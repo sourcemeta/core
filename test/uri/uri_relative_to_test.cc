@@ -91,3 +91,14 @@ TEST(URI_relative_to, urn_1) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "myschema");
 }
+
+TEST(URI_relative_to, absolute_absolute_trailing_slash) {
+  const sourcemeta::core::URI base{
+      "https://github.com/apis-json/api-json/blob/develop/spec"};
+  sourcemeta::core::URI uri{
+      "https://github.com/apis-json/api-json/blob/develop/spec/"};
+  uri.relative_to(base);
+  // This is the result in Node.js URI parser too
+  EXPECT_EQ(uri.recompose(),
+            "https://github.com/apis-json/api-json/blob/develop/spec/");
+}
