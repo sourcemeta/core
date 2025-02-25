@@ -63,6 +63,13 @@ TEST(URI_try_resolve_from, base_relative_path_leading_slash) {
   EXPECT_EQ(relative.recompose(), "/foo#/bar");
 }
 
+TEST(URI_try_resolve_from, relative_path_from_relative_path) {
+  const sourcemeta::core::URI base{"foo/bar/baz"};
+  sourcemeta::core::URI relative{"qux"};
+  relative.try_resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "foo/bar/qux");
+}
+
 // RFC 3986, inspired from
 // https://cr.openjdk.org/~dfuchs/writeups/updating-uri/A Section "Resolutuon"
 

@@ -1728,6 +1728,44 @@ TEST(JSONSchema_frame_2020_12, relative_base_uri_with_ref) {
                           "foo");
 }
 
+TEST(JSONSchema_frame_2020_12, relative_base_with_relative_path_ref) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "foo/bar/baz",
+    "$ref": "qux"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 4);
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(frame, "foo/bar/baz", "foo/bar/baz", "",
+                                       "foo/bar/baz", "", {""}, std::nullopt);
+
+  // JSON Pointers
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(frame, "foo/bar/baz#/$schema",
+                                      "foo/bar/baz", "/$schema", "foo/bar/baz",
+                                      "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(frame, "foo/bar/baz#/$id", "foo/bar/baz",
+                                      "/$id", "foo/bar/baz", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(frame, "foo/bar/baz#/$ref", "foo/bar/baz",
+                                      "/$ref", "foo/bar/baz", "/$ref", {}, "");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "foo/bar/qux", "foo/bar/qux",
+                          std::nullopt);
+}
+
 TEST(JSONSchema_frame_2020_12, idempotent_with_refs) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.sourcemeta.com/schema",
