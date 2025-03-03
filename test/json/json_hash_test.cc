@@ -7,7 +7,7 @@ TEST(JSON_key_hash, hash_empty) {
       hasher;
   const sourcemeta::core::JSON::String value{""};
   const auto hash{hasher(value)};
-  EXPECT_FALSE(hasher.is_perfect(hash));
+  EXPECT_TRUE(hasher.is_perfect(hash));
 #if defined(__SIZEOF_INT128__)
   EXPECT_EQ(hash.a,
             (__uint128_t{0x0000000000000000} << 64) | 0x0000000000000000);
@@ -619,14 +619,14 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooooooo) {
   EXPECT_FALSE(hasher.is_perfect(hash));
 #if defined(__SIZEOF_INT128__)
   EXPECT_EQ(hash.a,
-            (__uint128_t{0x0000000000000000} << 64) | 0x00000000000000f5);
+            (__uint128_t{0x6f6f6f6f6f6f6f6f} << 64) | 0x6f6f6f6f6f6f66f5);
   EXPECT_EQ(hash.b,
-            (__uint128_t{0x0000000000000000} << 64) | 0x0000000000000000);
+            (__uint128_t{0x6f6f6f6f6f6f6f6f} << 64) | 0x6f6f6f6f6f6f6f6f);
 #else
   // 0x20 (length) + 0x66 (f) + 0x6f (o)
-  EXPECT_EQ(hash.a, 0x00000000000000f5);
-  EXPECT_EQ(hash.b, 0x0000000000000000);
-  EXPECT_EQ(hash.c, 0x0000000000000000);
-  EXPECT_EQ(hash.d, 0x0000000000000000);
+  EXPECT_EQ(hash.a, 0x6f6f6f6f6f6f66f5);
+  EXPECT_EQ(hash.b, 0x6f6f6f6f6f6f6f6f);
+  EXPECT_EQ(hash.c, 0x6f6f6f6f6f6f6f6f);
+  EXPECT_EQ(hash.d, 0x6f6f6f6f6f6f6f6f);
 #endif
 }
