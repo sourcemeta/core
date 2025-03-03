@@ -12,6 +12,13 @@ TEST(YAML_parse, scalar_1) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(YAML_parse, scalar_2) {
+  const std::string input{"   1    "};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{1};
+  EXPECT_EQ(result, expected);
+}
+
 TEST(YAML_parse, object_1) {
   const std::string input{"hello: world\nfoo: 1\nbar: true"};
 
@@ -33,6 +40,66 @@ TEST(YAML_parse, object_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "foo": "bar baz"
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, object_3) {
+  const std::string input{"version: \"1.29.2\""};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "version": "1.29.2"
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, object_4) {
+  const std::string input{"version: \'1.29.2\'"};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "version": "1.29.2"
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, object_5) {
+  const std::string input{"version: 1.29.2"};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "version": "1.29.2"
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, object_6) {
+  const std::string input{"version: v1.29.2"};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "version": "v1.29.2"
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, object_7) {
+  const std::string input{"version: 1.29v"};
+
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "version": "1.29v"
   })JSON");
 
   EXPECT_EQ(result, expected);
