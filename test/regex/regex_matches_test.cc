@@ -93,6 +93,25 @@ TEST(Regex_matches, match_true_14) {
                                                      "@namespace/mypackage"));
 }
 
+TEST(Regex_matches, match_true_15) {
+  const auto regex{sourcemeta::core::to_regex<std::string>(".")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches<std::string>(regex.value(), "\n"));
+}
+
+TEST(Regex_matches, match_true_16) {
+  const auto regex{sourcemeta::core::to_regex<std::string>(".")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches<std::string>(regex.value(), "\r"));
+}
+
+TEST(Regex_matches, match_true_17) {
+  const auto regex{sourcemeta::core::to_regex<std::string>("^.+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      sourcemeta::core::matches<std::string>(regex.value(), "foo\nbar\r"));
+}
+
 TEST(Regex_matches, match_false_1) {
   const auto regex{sourcemeta::core::to_regex<std::string>("^foo")};
   EXPECT_TRUE(regex.has_value());
