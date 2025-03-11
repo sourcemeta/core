@@ -619,12 +619,36 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooooooo) {
   EXPECT_FALSE(hasher.is_perfect(hash));
 #if defined(__SIZEOF_INT128__)
   EXPECT_EQ(hash.a,
-            (__uint128_t{0x0000000000000000} << 64) | 0x00000000000000f5);
+            (__uint128_t{0x0000000000000000} << 64) | 0x00000000000000f6);
   EXPECT_EQ(hash.b,
             (__uint128_t{0x0000000000000000} << 64) | 0x0000000000000000);
 #else
   // 0x20 (length) + 0x66 (f) + 0x6f (o)
-  EXPECT_EQ(hash.a, 0x00000000000000f5);
+  EXPECT_EQ(hash.a, 0x00000000000000f6);
+  EXPECT_EQ(hash.b, 0x0000000000000000);
+  EXPECT_EQ(hash.c, 0x0000000000000000);
+  EXPECT_EQ(hash.d, 0x0000000000000000);
+#endif
+}
+
+TEST(JSON_key_hash, hash_no_collision) {
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const sourcemeta::core::JSON::String value{
+      "zaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaz"};
+  const auto hash{hasher(value)};
+  EXPECT_FALSE(hasher.is_perfect(hash));
+#if defined(__SIZEOF_INT128__)
+  EXPECT_EQ(hash.a,
+            (__uint128_t{0x0000000000000000} << 64) | 0x0000000000000003);
+  EXPECT_EQ(hash.b,
+            (__uint128_t{0x0000000000000000} << 64) | 0x0000000000000000);
+#else
+  // 0x10C (length) + 0x7A (z) + 0x7A (z)
+  EXPECT_EQ(hash.a, 0x0000000000000003);
   EXPECT_EQ(hash.b, 0x0000000000000000);
   EXPECT_EQ(hash.c, 0x0000000000000000);
   EXPECT_EQ(hash.d, 0x0000000000000000);
