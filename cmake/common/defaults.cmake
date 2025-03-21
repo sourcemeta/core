@@ -41,6 +41,17 @@ endif()
 # It is very useful for IDE integration, linting, etc
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# CMake typically defaults to -O2 for RelWithDebInfo, which can
+# result in slight differences when comparing to Release when
+# profiling or analysing the resulting assembly
+# See https://stackoverflow.com/a/59314670
+if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+  set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 -g" CACHE STRING "Optimization level for RelWithDebInfo (C)" FORCE)
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g" CACHE STRING "Optimization level for RelWithDebInfo (C++)" FORCE)
+  set(CMAKE_OBJC_FLAGS_RELWITHDEBINFO "-O3 -g" CACHE STRING "Optimization level for RelWithDebInfo (Objective-C)" FORCE)
+  set(CMAKE_OBJCXX_FLAGS_RELWITHDEBINFO "-O3 -g" CACHE STRING "Optimization level for RelWithDebInfo (Objective-C++)" FORCE)
+endif()
+
 # Prevent DT_RPATH/DT_RUNPATH problem
 # This problem is not present on Apple platforms.
 # See https://www.youtube.com/watch?v=m0DwB4OvDXk
