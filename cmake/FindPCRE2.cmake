@@ -103,6 +103,10 @@ if(NOT PCRE2_FOUND)
     target_compile_options(sljit PRIVATE -Wno-conditional-uninitialized)
   endif()
 
+  if(SOURCEMETA_COMPILER_GCC)
+    target_compile_options(sljit PRIVATE -Wno-stringop-overflow)
+  endif()
+
   if(SOURCEMETA_COMPILER_MSVC)
     target_compile_options(sljit PRIVATE /sdl-)
     target_compile_options(sljit PRIVATE /wd4701)
