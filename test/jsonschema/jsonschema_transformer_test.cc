@@ -539,3 +539,31 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
 }
+
+TEST(JSONSchema_transformer, remove_rule_by_name) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+  bundle.add<ExampleRule2>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  EXPECT_TRUE(bundle.remove("example_rule_2"));
+  EXPECT_FALSE(bundle.remove("example_rule_2"));
+  EXPECT_FALSE(bundle.remove("i_dont_exist"));
+
+  bundle.apply(document, sourcemeta::core::schema_official_walker,
+               sourcemeta::core::schema_official_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
