@@ -41,6 +41,16 @@ function(sourcemeta_executable)
       $<$<CONFIG:MinSizeRel>:-pie>)
   endif()
 
+  # Stack-frame hardening on executable targets only: defends the process
+  # boundary where untrusted input first lands, without paying canary and
+  # auto-init cost on every library hot path
+  # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+    target_compile_options(${TARGET_NAME} PRIVATE
+      -fstack-protector-strong
+      $<$<NOT:$<CONFIG:Debug>>:-ftrivial-auto-var-init=zero>)
+  endif()
+
   # See https://learn.microsoft.com/en-us/cpp/build/reference/guard-enable-control-flow-guard
   # See https://learn.microsoft.com/en-us/cpp/build/reference/cetcompat
   if(SOURCEMETA_COMPILER_MSVC)
