@@ -4,6 +4,16 @@
 
 #include <sourcemeta/core/regex.h>
 
+TEST(Regex_matches_if_valid, match_pattern_true) {
+  EXPECT_TRUE(
+      sourcemeta::core::matches_if_valid<std::string>("^foo", "foobar"));
+}
+
+TEST(Regex_matches_if_valid, match_pattern_false) {
+  EXPECT_FALSE(
+      sourcemeta::core::matches_if_valid<std::string>("^bar", "foobar"));
+}
+
 TEST(Regex_matches, match_true_1) {
   const auto regex{sourcemeta::core::to_regex<std::string>("^foo")};
   EXPECT_TRUE(regex.has_value());
