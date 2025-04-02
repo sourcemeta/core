@@ -4,10 +4,12 @@
 #include <sourcemeta/core/jsonpointer_pointer.h>
 #include <sourcemeta/core/jsonpointer_token.h>
 
+#include <sourcemeta/core/regex.h>
+
 #include <algorithm> // std::copy
 #include <cassert>   // assert
 #include <iterator>  // std::back_inserter
-#include <variant>   // std::variant, std::holds_alternative
+#include <variant>   // std::variant, std::holds_alternative, std::get
 #include <vector>    // std::vector
 
 namespace sourcemeta::core {
@@ -214,7 +216,7 @@ public:
   [[nodiscard]] auto
   matches(const GenericPointerTemplate<PointerT> &other) const noexcept
       -> bool {
-    // TODO: Support matching regular expressions and wildcards
+    // TODO: Support wildcards
 
     auto iterator_this = this->data.cbegin();
     auto iterator_that = other.data.cbegin();
@@ -233,14 +235,32 @@ public:
 
       if (iterator_this == this->data.cend() ||
           iterator_that == other.data.cend()) {
-        return iterator_this == this->data.cend() &&
-               iterator_that == other.data.cend();
+        break;
       } else if (*iterator_this != *iterator_that) {
-        return false;
-      } else {
-        iterator_this += 1;
-        iterator_that += 1;
+        // Handle regular expressions
+        if (std::holds_alternative<Token>(*iterator_this) &&
+            std::holds_alternative<Regex>(*iterator_that)) {
+          const auto &token{std::get<Token>(*iterator_this)};
+          if (!token.is_property() ||
+              !sourcemeta::core::matches_if_valid(
+                  std::get<Regex>(*iterator_that), token.to_property())) {
+            return false;
+          }
+        } else if (std::holds_alternative<Regex>(*iterator_this) &&
+                   std::holds_alternative<Token>(*iterator_that)) {
+          const auto &token{std::get<Token>(*iterator_that)};
+          if (!token.is_property() ||
+              !sourcemeta::core::matches_if_valid(
+                  std::get<Regex>(*iterator_this), token.to_property())) {
+            return false;
+          }
+        } else {
+          return false;
+        }
       }
+
+      iterator_this += 1;
+      iterator_that += 1;
     }
 
     return iterator_this == this->data.cend() &&
