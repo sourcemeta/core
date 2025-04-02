@@ -216,6 +216,7 @@ public:
   [[nodiscard]] auto
   matches(const GenericPointerTemplate<PointerT> &other) const noexcept
       -> bool {
+    // TODO: Find a way to simplify this long method
     auto iterator_this = this->data.cbegin();
     auto iterator_that = other.data.cbegin();
 
@@ -256,9 +257,32 @@ public:
           // Handle wildcards
         } else if (std::holds_alternative<Wildcard>(*iterator_this) &&
                    std::holds_alternative<Token>(*iterator_that)) {
+          const auto &token{std::get<Token>(*iterator_that)};
+          const auto wildcard{std::get<Wildcard>(*iterator_this)};
+          if (wildcard == Wildcard::Key ||
+              (wildcard == Wildcard::Property && !token.is_property()) ||
+              (wildcard == Wildcard::Item && !token.is_index())) {
+            return false;
+          }
         } else if (std::holds_alternative<Token>(*iterator_this) &&
                    std::holds_alternative<Wildcard>(*iterator_that)) {
-
+          const auto &token{std::get<Token>(*iterator_this)};
+          const auto wildcard{std::get<Wildcard>(*iterator_that)};
+          if (wildcard == Wildcard::Key ||
+              (wildcard == Wildcard::Property && !token.is_property()) ||
+              (wildcard == Wildcard::Item && !token.is_index())) {
+            return false;
+          }
+        } else if (std::holds_alternative<Regex>(*iterator_this) &&
+                   std::holds_alternative<Wildcard>(*iterator_that)) {
+          if (std::get<Wildcard>(*iterator_that) != Wildcard::Property) {
+            return false;
+          }
+        } else if (std::holds_alternative<Wildcard>(*iterator_this) &&
+                   std::holds_alternative<Regex>(*iterator_that)) {
+          if (std::get<Wildcard>(*iterator_this) != Wildcard::Property) {
+            return false;
+          }
         } else {
           return false;
         }
