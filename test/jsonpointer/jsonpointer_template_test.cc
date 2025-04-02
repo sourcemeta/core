@@ -501,3 +501,71 @@ TEST(JSONPointer_template, matches_regex_true_conditional) {
   EXPECT_TRUE(left.matches(right));
   EXPECT_TRUE(right.matches(left));
 }
+
+TEST(JSONPointer_template, matches_wildcard_property) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::Pointer::Token{"foo"}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Wildcard{}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_wildcard_index) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::Pointer::Token{0}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Wildcard{}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_wildcard_multi_token) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::Pointer::Token{"foo"},
+      sourcemeta::core::Pointer::Token{"bar"}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Wildcard{}};
+
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_wildcard_property_conditional) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::PointerTemplate::Condition{},
+      sourcemeta::core::Pointer::Token{"foo"}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Wildcard{}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_wildcard_regex) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::PointerTemplate::Regex{"^f"}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Wildcard{}};
+
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_wildcard_negation) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::PointerTemplate::Negation{}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Wildcard{}};
+
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
+}

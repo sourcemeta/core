@@ -216,8 +216,6 @@ public:
   [[nodiscard]] auto
   matches(const GenericPointerTemplate<PointerT> &other) const noexcept
       -> bool {
-    // TODO: Support wildcards
-
     auto iterator_this = this->data.cbegin();
     auto iterator_that = other.data.cbegin();
 
@@ -254,6 +252,13 @@ public:
                   std::get<Regex>(*iterator_this), token.to_property())) {
             return false;
           }
+
+          // Handle wildcards
+        } else if (std::holds_alternative<Wildcard>(*iterator_this) &&
+                   std::holds_alternative<Token>(*iterator_that)) {
+        } else if (std::holds_alternative<Token>(*iterator_this) &&
+                   std::holds_alternative<Wildcard>(*iterator_that)) {
+
         } else {
           return false;
         }
