@@ -195,8 +195,8 @@ public:
     return this->data.empty();
   }
 
-  /// Check if a JSON Pointer template is equal to another JSON Pointer template
-  /// when not taking into account condition tokens. For example:
+  /// Check if a JSON Pointer template matches another JSON Pointer template.
+  /// For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/jsonpointer.h>
@@ -208,12 +208,14 @@ public:
   /// const sourcemeta::core::PointerTemplate right{
   ///     sourcemeta::core::Pointer::Token{"foo"}};
   ///
-  /// assert(left.conditional_of(right));
-  /// assert(right.conditional_of(left));
+  /// assert(left.matches(right));
+  /// assert(right.matches(left));
   /// ```
   [[nodiscard]] auto
-  conditional_of(const GenericPointerTemplate<PointerT> &other) const noexcept
+  matches(const GenericPointerTemplate<PointerT> &other) const noexcept
       -> bool {
+    // TODO: Support matching regular expressions and wildcards
+
     auto iterator_this = this->data.cbegin();
     auto iterator_that = other.data.cbegin();
 

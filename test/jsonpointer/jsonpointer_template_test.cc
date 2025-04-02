@@ -311,23 +311,23 @@ TEST(JSONPointer_template, empty_false) {
   EXPECT_FALSE(pointer.empty());
 }
 
-TEST(JSONPointer_template, conditional_of_empty) {
+TEST(JSONPointer_template, matches_empty) {
   const sourcemeta::core::PointerTemplate left;
   const sourcemeta::core::PointerTemplate right;
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_equal_no_conditional_one) {
+TEST(JSONPointer_template, matches_equal_no_conditional_one) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::Pointer::Token{"foo"}};
   const sourcemeta::core::PointerTemplate right{
       sourcemeta::core::Pointer::Token{"foo"}};
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_equal_no_conditional_many) {
+TEST(JSONPointer_template, matches_equal_no_conditional_many) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::Pointer::Token{"foo"},
       sourcemeta::core::Pointer::Token{0},
@@ -337,20 +337,20 @@ TEST(JSONPointer_template, conditional_of_equal_no_conditional_many) {
       sourcemeta::core::Pointer::Token{0},
       sourcemeta::core::Pointer::Token{"bar"}};
 
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_not_equal_no_conditional_one) {
+TEST(JSONPointer_template, matches_not_equal_no_conditional_one) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::Pointer::Token{"foo"}};
   const sourcemeta::core::PointerTemplate right{
       sourcemeta::core::Pointer::Token{"fo"}};
-  EXPECT_FALSE(left.conditional_of(right));
-  EXPECT_FALSE(right.conditional_of(left));
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_not_equal_no_conditional_many) {
+TEST(JSONPointer_template, matches_not_equal_no_conditional_many) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::Pointer::Token{"foo"},
       sourcemeta::core::Pointer::Token{0},
@@ -360,35 +360,22 @@ TEST(JSONPointer_template, conditional_of_not_equal_no_conditional_many) {
       sourcemeta::core::Pointer::Token{0},
       sourcemeta::core::Pointer::Token{"ba"}};
 
-  EXPECT_FALSE(left.conditional_of(right));
-  EXPECT_FALSE(right.conditional_of(left));
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_equal_conditional_one) {
+TEST(JSONPointer_template, matches_equal_conditional_one) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::PointerTemplate::Condition{}};
   const sourcemeta::core::PointerTemplate right{
       sourcemeta::core::PointerTemplate::Condition{}};
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_equal_conditional_many) {
+TEST(JSONPointer_template, matches_equal_conditional_many) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::PointerTemplate::Condition{},
-      sourcemeta::core::PointerTemplate::Condition{},
-      sourcemeta::core::PointerTemplate::Condition{}};
-  const sourcemeta::core::PointerTemplate right{
-      sourcemeta::core::PointerTemplate::Condition{},
-      sourcemeta::core::PointerTemplate::Condition{},
-      sourcemeta::core::PointerTemplate::Condition{}};
-
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
-}
-
-TEST(JSONPointer_template, conditional_of_equal_conditional_different) {
-  const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::PointerTemplate::Condition{},
       sourcemeta::core::PointerTemplate::Condition{}};
   const sourcemeta::core::PointerTemplate right{
@@ -396,11 +383,24 @@ TEST(JSONPointer_template, conditional_of_equal_conditional_different) {
       sourcemeta::core::PointerTemplate::Condition{},
       sourcemeta::core::PointerTemplate::Condition{}};
 
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_equal_mix_1) {
+TEST(JSONPointer_template, matches_equal_conditional_different) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::PointerTemplate::Condition{},
+      sourcemeta::core::PointerTemplate::Condition{}};
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Condition{},
+      sourcemeta::core::PointerTemplate::Condition{},
+      sourcemeta::core::PointerTemplate::Condition{}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_equal_mix_1) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::PointerTemplate::Condition{},
       sourcemeta::core::PointerTemplate::Wildcard{},
@@ -417,11 +417,11 @@ TEST(JSONPointer_template, conditional_of_equal_mix_1) {
       sourcemeta::core::Pointer::Token{0},
       sourcemeta::core::PointerTemplate::Condition{}};
 
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_equal_mix_2) {
+TEST(JSONPointer_template, matches_equal_mix_2) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::Pointer::Token{0},
       sourcemeta::core::PointerTemplate::Condition{},
@@ -441,11 +441,11 @@ TEST(JSONPointer_template, conditional_of_equal_mix_2) {
       sourcemeta::core::PointerTemplate::Negation{},
       sourcemeta::core::PointerTemplate::Condition{}};
 
-  EXPECT_TRUE(left.conditional_of(right));
-  EXPECT_TRUE(right.conditional_of(left));
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
 }
 
-TEST(JSONPointer_template, conditional_of_not_equal_mix_1) {
+TEST(JSONPointer_template, matches_not_equal_mix_1) {
   const sourcemeta::core::PointerTemplate left{
       sourcemeta::core::PointerTemplate::Condition{},
       sourcemeta::core::PointerTemplate::Wildcard{},
@@ -462,6 +462,6 @@ TEST(JSONPointer_template, conditional_of_not_equal_mix_1) {
       sourcemeta::core::Pointer::Token{0},
       sourcemeta::core::PointerTemplate::Condition{}};
 
-  EXPECT_FALSE(left.conditional_of(right));
-  EXPECT_FALSE(right.conditional_of(left));
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
 }
