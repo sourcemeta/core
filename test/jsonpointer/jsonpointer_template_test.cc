@@ -465,3 +465,39 @@ TEST(JSONPointer_template, matches_not_equal_mix_1) {
   EXPECT_FALSE(left.matches(right));
   EXPECT_FALSE(right.matches(left));
 }
+
+TEST(JSONPointer_template, matches_regex_true) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::Pointer::Token{"foo"}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Regex{"^f"}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_regex_false) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::Pointer::Token{"foo"}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Regex{"^b"}};
+
+  EXPECT_FALSE(left.matches(right));
+  EXPECT_FALSE(right.matches(left));
+}
+
+TEST(JSONPointer_template, matches_regex_true_conditional) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::PointerTemplate::Condition{},
+      sourcemeta::core::Pointer::Token{"foo"},
+      sourcemeta::core::PointerTemplate::Condition{}};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::PointerTemplate::Regex{"^f"},
+      sourcemeta::core::PointerTemplate::Condition{}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
