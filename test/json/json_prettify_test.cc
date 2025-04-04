@@ -100,7 +100,112 @@ TEST(JSON_prettify, array_integers) {
       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "[\n  1,\n  2,\n  3,\n  4\n]");
+  EXPECT_EQ(stream.str(), "[ 1, 2, 3, 4 ]");
+}
+
+TEST(JSON_prettify, array_strings_almost_long) {
+  const sourcemeta::core::JSON document{sourcemeta::core::JSON{"aaaaaaaaaa"},
+                                        sourcemeta::core::JSON{"bbbbbbbbbb"},
+                                        sourcemeta::core::JSON{"cccccccccc"},
+                                        sourcemeta::core::JSON{"dddddddddd"},
+                                        sourcemeta::core::JSON{"eeeeeeeeee"}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "[ \"aaaaaaaaaa\", \"bbbbbbbbbb\", \"cccccccccc\", "
+                          "\"dddddddddd\", \"eeeeeeeeee\" ]");
+}
+
+TEST(JSON_prettify, array_strings_almost_long_with_indentation) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("1", sourcemeta::core::JSON::make_object());
+  document.at("1").assign("2", sourcemeta::core::JSON::make_object());
+  document.at("1").at("2").assign("3", sourcemeta::core::JSON::make_object());
+  document.at("1").at("2").at("3").assign(
+      "4", sourcemeta::core::JSON::make_object());
+  document.at("1").at("2").at("3").at("4").assign(
+      "5", sourcemeta::core::JSON::make_array());
+
+  document.at("1").at("2").at("3").at("4").at("5").push_back(
+      sourcemeta::core::JSON{"aaaaaaaaaa"});
+  document.at("1").at("2").at("3").at("4").at("5").push_back(
+      sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at("1").at("2").at("3").at("4").at("5").push_back(
+      sourcemeta::core::JSON{"cccccccccc"});
+  document.at("1").at("2").at("3").at("4").at("5").push_back(
+      sourcemeta::core::JSON{"dddddddddd"});
+  document.at("1").at("2").at("3").at("4").at("5").push_back(
+      sourcemeta::core::JSON{"eeeeeeeeee"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto expected = R"JSON({
+  "1": {
+    "2": {
+      "3": {
+        "4": {
+          "5": [
+            "aaaaaaaaaa",
+            "bbbbbbbbbb",
+            "cccccccccc",
+            "dddddddddd",
+            "eeeeeeeeee"
+          ]
+        }
+      }
+    }
+  }
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+TEST(JSON_prettify, array_strings_almost_long_with_long_property) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  // Key has 40 characters (plus 2 for quotes + 1 for semicolon + 1 for space) =
+  // 44
+  document.assign("longlonglonglonglonglonglonglonglonglong",
+                  sourcemeta::core::JSON::make_array());
+
+  document.at("longlonglonglonglonglonglonglonglonglong")
+      .push_back(sourcemeta::core::JSON{"aaaaaaaaaa"});
+  document.at("longlonglonglonglonglonglonglonglonglong")
+      .push_back(sourcemeta::core::JSON{"bbbbbbbbbb"});
+  document.at("longlonglonglonglonglonglonglonglonglong")
+      .push_back(sourcemeta::core::JSON{"cccccccccc"});
+  document.at("longlonglonglonglonglonglonglonglonglong")
+      .push_back(sourcemeta::core::JSON{"dddddddddd"});
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+
+  const auto expected = R"JSON({
+  "longlonglonglonglonglonglonglonglonglong": [
+    "aaaaaaaaaa",
+    "bbbbbbbbbb",
+    "cccccccccc",
+    "dddddddddd"
+  ]
+})JSON";
+
+  EXPECT_EQ(stream.str(), expected);
+}
+
+TEST(JSON_prettify, array_strings_long) {
+  const sourcemeta::core::JSON document{sourcemeta::core::JSON{"aaaaaaaaaa"},
+                                        sourcemeta::core::JSON{"bbbbbbbbbb"},
+                                        sourcemeta::core::JSON{"cccccccccc"},
+                                        sourcemeta::core::JSON{"dddddddddd"},
+                                        sourcemeta::core::JSON{"eeeeeeeeee"},
+                                        sourcemeta::core::JSON{"ffffffffff"},
+                                        sourcemeta::core::JSON{"gggggggggg"},
+                                        sourcemeta::core::JSON{"hhhhhhhhhh"}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(),
+            "[\n  \"aaaaaaaaaa\",\n  \"bbbbbbbbbb\",\n  \"cccccccccc\",\n  "
+            "\"dddddddddd\",\n  \"eeeeeeeeee\",\n  \"ffffffffff\",\n  "
+            "\"gggggggggg\",\n  \"hhhhhhhhhh\"\n]");
 }
 
 TEST(JSON_prettify, array_nested_1) {
@@ -111,7 +216,7 @@ TEST(JSON_prettify, array_nested_1) {
   document.push_back(std::move(array));
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "[\n  [\n    1,\n    2,\n    3,\n    4\n  ]\n]");
+  EXPECT_EQ(stream.str(), "[\n  [ 1, 2, 3, 4 ]\n]");
 }
 
 TEST(JSON_prettify, array_nested_2) {
@@ -123,7 +228,7 @@ TEST(JSON_prettify, array_nested_2) {
   document.push_back(sourcemeta::core::JSON{4});
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "[\n  1,\n  [\n    2,\n    3\n  ],\n  4\n]");
+  EXPECT_EQ(stream.str(), "[\n  1,\n  [ 2, 3 ],\n  4\n]");
 }
 
 TEST(JSON_prettify, array_empty) {
@@ -180,7 +285,7 @@ TEST(JSON_prettify, object_with_array) {
   const sourcemeta::core::JSON document{{"foo", std::move(array)}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "{\n  \"foo\": [\n    1,\n    2\n  ]\n}");
+  EXPECT_EQ(stream.str(), "{\n  \"foo\": [ 1, 2 ]\n}");
 }
 
 TEST(JSON_prettify, object_nested) {

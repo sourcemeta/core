@@ -343,7 +343,7 @@ TEST(JSON_value, to_ostream) {
 #ifdef NDEBUG
   EXPECT_EQ(stream.str(), "[1,2,3,4]");
 #else
-  EXPECT_EQ(stream.str(), "[\n  1,\n  2,\n  3,\n  4\n]");
+  EXPECT_EQ(stream.str(), "[ 1, 2, 3, 4 ]");
 #endif
 }
 
