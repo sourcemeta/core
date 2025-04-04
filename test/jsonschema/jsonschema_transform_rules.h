@@ -17,9 +17,8 @@ public:
     return schema.defines("foo");
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.erase("foo");
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase("foo");
   }
 };
 
@@ -37,9 +36,8 @@ public:
     return schema.defines("bar");
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.erase("bar");
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase("bar");
   }
 };
 
@@ -57,9 +55,8 @@ public:
     return !schema.defines("top") && pointer.empty();
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.assign("top", sourcemeta::core::JSON{true});
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.assign("top", sourcemeta::core::JSON{true});
   }
 };
 
@@ -77,9 +74,8 @@ public:
     return !schema.defines("here");
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.assign("here", sourcemeta::core::JSON{true});
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.assign("here", sourcemeta::core::JSON{true});
   }
 };
 
@@ -98,9 +94,8 @@ public:
            pointer == sourcemeta::core::Pointer{"properties", "baz"};
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.assign("baz", sourcemeta::core::JSON{true});
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.assign("baz", sourcemeta::core::JSON{true});
   }
 };
 
@@ -119,9 +114,8 @@ public:
            dialect == "http://json-schema.org/draft-03/schema#";
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.assign("draft", sourcemeta::core::JSON{3});
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.assign("draft", sourcemeta::core::JSON{3});
   }
 };
 
@@ -139,9 +133,8 @@ public:
     return schema.defines("foo");
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.erase("foo");
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase("foo");
   }
 };
 
@@ -161,9 +154,8 @@ public:
     return schema.defines("$schema") && schema.size() == 1;
   }
 
-  auto transform(sourcemeta::core::PointerProxy &transformer) const
-      -> void override {
-    transformer.assign("foo", sourcemeta::core::JSON{true});
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.assign("foo", sourcemeta::core::JSON{true});
   }
 };
 

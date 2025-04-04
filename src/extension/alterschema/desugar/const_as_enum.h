@@ -20,10 +20,10 @@ public:
            !schema.defines("enum");
   }
 
-  auto transform(PointerProxy &transformer) const -> void override {
+  auto transform(JSON &schema) const -> void override {
     sourcemeta::core::JSON values = sourcemeta::core::JSON::make_array();
-    values.push_back(transformer.value().at("const"));
-    transformer.assign("enum", values);
-    transformer.erase("const");
+    values.push_back(schema.at("const"));
+    schema.assign("enum", values);
+    schema.erase("const");
   }
 };
