@@ -31,7 +31,7 @@ public:
     auto choices = sourcemeta::core::JSON::make_array();
     choices.push_back(sourcemeta::core::JSON{false});
     choices.push_back(sourcemeta::core::JSON{true});
-    schema.assign("enum", choices);
-    schema.erase("type");
+    schema.at("type").into(std::move(choices));
+    schema.rename("type", "enum");
   }
 };

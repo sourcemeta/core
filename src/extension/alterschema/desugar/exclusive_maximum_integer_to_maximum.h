@@ -29,13 +29,13 @@ public:
     if (schema.at("exclusiveMaximum").is_integer()) {
       auto new_maximum = schema.at("exclusiveMaximum");
       new_maximum += sourcemeta::core::JSON{-1};
-      schema.assign("maximum", new_maximum);
-      schema.erase("exclusiveMaximum");
+      schema.at("exclusiveMaximum").into(new_maximum);
+      schema.rename("exclusiveMaximum", "maximum");
     } else {
       const auto current{schema.at("exclusiveMaximum").to_real()};
       const auto new_value{static_cast<std::int64_t>(std::floor(current))};
-      schema.assign("maximum", sourcemeta::core::JSON{new_value});
-      schema.erase("exclusiveMaximum");
+      schema.at("exclusiveMaximum").into(sourcemeta::core::JSON{new_value});
+      schema.rename("exclusiveMaximum", "maximum");
     }
   }
 };
