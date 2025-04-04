@@ -29,13 +29,13 @@ public:
     if (schema.at("exclusiveMinimum").is_integer()) {
       auto new_minimum = schema.at("exclusiveMinimum");
       new_minimum += sourcemeta::core::JSON{1};
-      schema.assign("minimum", new_minimum);
-      schema.erase("exclusiveMinimum");
+      schema.at("exclusiveMinimum").into(new_minimum);
+      schema.rename("exclusiveMinimum", "minimum");
     } else {
       const auto current{schema.at("exclusiveMinimum").to_real()};
       const auto new_value{static_cast<std::int64_t>(std::ceil(current))};
-      schema.assign("minimum", sourcemeta::core::JSON{new_value});
-      schema.erase("exclusiveMinimum");
+      schema.at("exclusiveMinimum").into(sourcemeta::core::JSON{new_value});
+      schema.rename("exclusiveMinimum", "minimum");
     }
   }
 };

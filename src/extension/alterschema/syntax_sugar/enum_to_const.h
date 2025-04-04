@@ -22,7 +22,8 @@ public:
   }
 
   auto transform(JSON &schema) const -> void override {
-    schema.assign("const", schema.at("enum").front());
-    schema.erase("enum");
+    auto front{schema.at("enum").front()};
+    schema.at("enum").into(front);
+    schema.rename("enum", "const");
   }
 };

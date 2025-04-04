@@ -21,9 +21,9 @@ public:
   }
 
   auto transform(JSON &schema) const -> void override {
-    sourcemeta::core::JSON values = sourcemeta::core::JSON::make_array();
+    auto values = sourcemeta::core::JSON::make_array();
     values.push_back(schema.at("const"));
-    schema.assign("enum", values);
-    schema.erase("const");
+    schema.at("const").into(std::move(values));
+    schema.rename("const", "enum");
   }
 };

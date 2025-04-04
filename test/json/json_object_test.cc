@@ -721,3 +721,36 @@ TEST(JSON_object, at_index) {
   EXPECT_TRUE(entry_2.second.to_boolean());
   EXPECT_EQ(entry_2.hash, document.as_object().hash("bar"));
 }
+
+TEST(JSON_object, rename_match) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}}};
+  document.rename("foo", "bar");
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_TRUE(document.at("bar").is_boolean());
+  EXPECT_TRUE(document.at("bar").to_boolean());
+}
+
+TEST(JSON_object, rename_no_match) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}}};
+  document.rename("xxx", "bar");
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.at("foo").is_boolean());
+  EXPECT_TRUE(document.at("foo").to_boolean());
+}
+
+TEST(JSON_object, rename_match_destination_exists) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
+                                  {"bar", sourcemeta::core::JSON{1}}};
+  document.rename("foo", "bar");
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_TRUE(document.at("bar").is_boolean());
+  EXPECT_TRUE(document.at("bar").to_boolean());
+}

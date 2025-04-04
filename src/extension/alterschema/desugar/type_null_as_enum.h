@@ -30,7 +30,7 @@ public:
   auto transform(JSON &schema) const -> void override {
     auto choices = sourcemeta::core::JSON::make_array();
     choices.push_back(sourcemeta::core::JSON{nullptr});
-    schema.assign("enum", choices);
-    schema.erase("type");
+    schema.at("type").into(std::move(choices));
+    schema.rename("type", "enum");
   }
 };
