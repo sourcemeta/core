@@ -676,14 +676,16 @@ TEST(JSONSchema_official_walker_draft3, instance_locations) {
                                       "/~I~/1", "/1");
 
   // Applicators (any)
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 11, "/type/1", "", "/~?type~",
-                                      "/~?type~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 12, "/type/2", "", "/~?type~",
-                                      "/~?type~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 11, "/type/1", "",
+                                      "/~?type~/~?1~", "/~?type~/~?1~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 12, "/type/2", "",
+                                      "/~?type~/~?2~", "/~?type~/~?2~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 13, "/disallow/1", "",
-                                      "/~?disallow~/~!~", "/~?disallow~/~!~");
+                                      "/~?disallow~/~?1~/~!~",
+                                      "/~?disallow~/~?1~/~!~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 14, "/disallow/2", "",
-                                      "/~?disallow~/~!~", "/~?disallow~/~!~");
+                                      "/~?disallow~/~?2~/~!~",
+                                      "/~?disallow~/~?2~/~!~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 15, "/extends", "", "", "");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 16, "/extends/extends/0",
                                       "/extends", "", "");

@@ -190,8 +190,13 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
             auto new_instance_location{instance_location};
             new_instance_location.emplace_back(
                 sourcemeta::core::PointerTemplate::Condition{pair.first});
+            new_instance_location.emplace_back(
+                sourcemeta::core::PointerTemplate::Condition{
+                    std::to_string(index)});
             walk(pointer, new_pointer, new_instance_location,
-                 {sourcemeta::core::PointerTemplate::Condition{pair.first}},
+                 {sourcemeta::core::PointerTemplate::Condition{pair.first},
+                  sourcemeta::core::PointerTemplate::Condition{
+                      std::to_string(index)}},
                  subschemas, pair.second.at(index), walker, resolver,
                  new_dialect, type, level + 1, orphan);
           }
@@ -210,9 +215,14 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
             new_instance_location.emplace_back(
                 sourcemeta::core::PointerTemplate::Condition{pair.first});
             new_instance_location.emplace_back(
+                sourcemeta::core::PointerTemplate::Condition{
+                    std::to_string(index)});
+            new_instance_location.emplace_back(
                 sourcemeta::core::PointerTemplate::Negation{});
             walk(pointer, new_pointer, new_instance_location,
                  {sourcemeta::core::PointerTemplate::Condition{pair.first},
+                  sourcemeta::core::PointerTemplate::Condition{
+                      std::to_string(index)},
                   sourcemeta::core::PointerTemplate::Negation{}},
                  subschemas, pair.second.at(index), walker, resolver,
                  new_dialect, type, level + 1, orphan);

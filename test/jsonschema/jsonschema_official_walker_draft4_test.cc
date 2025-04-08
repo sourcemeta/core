@@ -679,10 +679,10 @@ TEST(JSONSchema_official_walker_draft4, instance_locations) {
   // Applicators (any)
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 1, "/allOf/0", "", "", "");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 2, "/allOf/1", "", "", "");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 3, "/anyOf/0", "", "/~?anyOf~",
-                                      "/~?anyOf~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 4, "/oneOf/0", "", "/~?oneOf~",
-                                      "/~?oneOf~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 3, "/anyOf/0", "",
+                                      "/~?anyOf~/~?0~", "/~?anyOf~/~?0~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 4, "/oneOf/0", "",
+                                      "/~?oneOf~/~?0~", "/~?oneOf~/~?0~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 5, "/not", "", "/~!~", "/~!~");
 
   // Applicators (object)
