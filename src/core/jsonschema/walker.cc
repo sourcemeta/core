@@ -264,8 +264,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
             auto new_instance_location{instance_location};
             new_instance_location.emplace_back(
                 sourcemeta::core::PointerTemplate::Condition{pair.first});
+            new_instance_location.emplace_back(
+                sourcemeta::core::PointerTemplate::Condition{subpair.first});
             walk(pointer, new_pointer, new_instance_location,
-                 {sourcemeta::core::PointerTemplate::Condition{pair.first}},
+                 {sourcemeta::core::PointerTemplate::Condition{pair.first},
+                  sourcemeta::core::PointerTemplate::Condition{subpair.first}},
                  subschemas, subpair.second, walker, resolver, new_dialect,
                  type, level + 1, orphan);
           }

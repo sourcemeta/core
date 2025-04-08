@@ -698,7 +698,8 @@ TEST(JSONSchema_official_walker_draft4, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 10, "/patternProperties/x$", "",
                                       "/~Rx$~", "/~Rx$~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 11, "/dependencies/baz", "",
-                                      "/~?dependencies~", "/~?dependencies~");
+                                      "/~?dependencies~/~?baz~",
+                                      "/~?dependencies~/~?baz~");
 
   // Applicators (array)
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT4(entries, 12, "/additionalItems", "",
