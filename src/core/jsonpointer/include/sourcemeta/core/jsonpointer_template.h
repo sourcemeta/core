@@ -9,6 +9,7 @@
 #include <algorithm> // std::copy, std::all_of
 #include <cassert>   // assert
 #include <iterator>  // std::back_inserter
+#include <optional>  // std::optional, std::nullopt
 #include <variant>   // std::variant, std::holds_alternative, std::get
 #include <vector>    // std::vector
 
@@ -21,6 +22,7 @@ public:
   struct Condition {
     auto operator==(const Condition &) const noexcept -> bool = default;
     auto operator<(const Condition &) const noexcept -> bool { return false; }
+    std::optional<typename PointerT::Value::String> suffix = std::nullopt;
   };
   struct Negation {
     auto operator==(const Negation &) const noexcept -> bool = default;

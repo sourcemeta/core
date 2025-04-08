@@ -57,11 +57,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
         new_pointer.emplace_back(pair.first);
         auto new_instance_location{instance_location};
         new_instance_location.emplace_back(
-            sourcemeta::core::PointerTemplate::Condition{});
+            sourcemeta::core::PointerTemplate::Condition{pair.first});
         new_instance_location.emplace_back(
             sourcemeta::core::PointerTemplate::Wildcard::Property);
         walk(pointer, new_pointer, new_instance_location,
-             {sourcemeta::core::PointerTemplate::Condition{},
+             {sourcemeta::core::PointerTemplate::Condition{pair.first},
               sourcemeta::core::PointerTemplate::Wildcard::Property},
              subschemas, pair.second, walker, resolver, new_dialect, type,
              level + 1, orphan);
@@ -99,11 +99,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
         new_pointer.emplace_back(pair.first);
         auto new_instance_location{instance_location};
         new_instance_location.emplace_back(
-            sourcemeta::core::PointerTemplate::Condition{});
+            sourcemeta::core::PointerTemplate::Condition{pair.first});
         new_instance_location.emplace_back(
             sourcemeta::core::PointerTemplate::Wildcard::Item);
         walk(pointer, new_pointer, new_instance_location,
-             {sourcemeta::core::PointerTemplate::Condition{},
+             {sourcemeta::core::PointerTemplate::Condition{pair.first},
               sourcemeta::core::PointerTemplate::Wildcard::Item},
              subschemas, pair.second, walker, resolver, new_dialect, type,
              level + 1, orphan);
@@ -144,11 +144,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
         new_pointer.emplace_back(pair.first);
         auto new_instance_location{instance_location};
         new_instance_location.emplace_back(
-            sourcemeta::core::PointerTemplate::Condition{});
+            sourcemeta::core::PointerTemplate::Condition{pair.first});
         walk(pointer, new_pointer, new_instance_location,
-             {sourcemeta::core::PointerTemplate::Condition{}}, subschemas,
-             pair.second, walker, resolver, new_dialect, type, level + 1,
-             orphan);
+             {sourcemeta::core::PointerTemplate::Condition{pair.first}},
+             subschemas, pair.second, walker, resolver, new_dialect, type,
+             level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorElementsTraverseItem:
@@ -189,11 +189,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
             new_pointer.emplace_back(index);
             auto new_instance_location{instance_location};
             new_instance_location.emplace_back(
-                sourcemeta::core::PointerTemplate::Condition{});
+                sourcemeta::core::PointerTemplate::Condition{pair.first});
             walk(pointer, new_pointer, new_instance_location,
-                 {sourcemeta::core::PointerTemplate::Condition{}}, subschemas,
-                 pair.second.at(index), walker, resolver, new_dialect, type,
-                 level + 1, orphan);
+                 {sourcemeta::core::PointerTemplate::Condition{pair.first}},
+                 subschemas, pair.second.at(index), walker, resolver,
+                 new_dialect, type, level + 1, orphan);
           }
         }
 
@@ -208,11 +208,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
             new_pointer.emplace_back(index);
             auto new_instance_location{instance_location};
             new_instance_location.emplace_back(
-                sourcemeta::core::PointerTemplate::Condition{});
+                sourcemeta::core::PointerTemplate::Condition{pair.first});
             new_instance_location.emplace_back(
                 sourcemeta::core::PointerTemplate::Negation{});
             walk(pointer, new_pointer, new_instance_location,
-                 {sourcemeta::core::PointerTemplate::Condition{},
+                 {sourcemeta::core::PointerTemplate::Condition{pair.first},
                   sourcemeta::core::PointerTemplate::Negation{}},
                  subschemas, pair.second.at(index), walker, resolver,
                  new_dialect, type, level + 1, orphan);
@@ -263,11 +263,11 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
             new_pointer.emplace_back(subpair.first);
             auto new_instance_location{instance_location};
             new_instance_location.emplace_back(
-                sourcemeta::core::PointerTemplate::Condition{});
+                sourcemeta::core::PointerTemplate::Condition{pair.first});
             walk(pointer, new_pointer, new_instance_location,
-                 {sourcemeta::core::PointerTemplate::Condition{}}, subschemas,
-                 subpair.second, walker, resolver, new_dialect, type, level + 1,
-                 orphan);
+                 {sourcemeta::core::PointerTemplate::Condition{pair.first}},
+                 subschemas, subpair.second, walker, resolver, new_dialect,
+                 type, level + 1, orphan);
           }
         }
 

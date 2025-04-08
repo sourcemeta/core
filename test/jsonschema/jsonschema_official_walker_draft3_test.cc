@@ -655,17 +655,19 @@ TEST(JSONSchema_official_walker_draft3, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 2, "/properties/bar", "", "/bar",
                                       "/bar");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 3, "/additionalProperties", "",
-                                      "/~?~/~P~", "/~?~/~P~");
+                                      "/~?additionalProperties~/~P~",
+                                      "/~?additionalProperties~/~P~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 4, "/patternProperties/^f", "",
                                       "/~R^f~", "/~R^f~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 5, "/patternProperties/x$", "",
                                       "/~Rx$~", "/~Rx$~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 6, "/dependencies/baz", "",
-                                      "/~?~", "/~?~");
+                                      "/~?dependencies~", "/~?dependencies~");
 
   // Applicators (array)
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 7, "/additionalItems", "",
-                                      "/~?~/~I~", "/~?~/~I~");
+                                      "/~?additionalItems~/~I~",
+                                      "/~?additionalItems~/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 8, "/items", "", "/~I~", "/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 9, "/items/items/0", "/items",
                                       "/~I~/0", "/0");
@@ -673,14 +675,14 @@ TEST(JSONSchema_official_walker_draft3, instance_locations) {
                                       "/~I~/1", "/1");
 
   // Applicators (any)
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 11, "/type/1", "", "/~?~",
-                                      "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 12, "/type/2", "", "/~?~",
-                                      "/~?~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 11, "/type/1", "", "/~?type~",
+                                      "/~?type~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 12, "/type/2", "", "/~?type~",
+                                      "/~?type~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 13, "/disallow/1", "",
-                                      "/~?~/~!~", "/~?~/~!~");
+                                      "/~?disallow~/~!~", "/~?disallow~/~!~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 14, "/disallow/2", "",
-                                      "/~?~/~!~", "/~?~/~!~");
+                                      "/~?disallow~/~!~", "/~?disallow~/~!~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 15, "/extends", "", "", "");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT3(entries, 16, "/extends/extends/0",
                                       "/extends", "", "");

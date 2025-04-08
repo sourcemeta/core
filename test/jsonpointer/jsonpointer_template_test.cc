@@ -134,6 +134,26 @@ TEST(JSONPointer_template, equality_with_key_wildcard_false) {
   EXPECT_NE(left, right);
 }
 
+TEST(JSONPointer_template, equality_with_condition_suffix_true) {
+  sourcemeta::core::PointerTemplate left;
+  left.emplace_back(sourcemeta::core::PointerTemplate::Condition{"foo"});
+
+  sourcemeta::core::PointerTemplate right;
+  right.emplace_back(sourcemeta::core::PointerTemplate::Condition{"foo"});
+
+  EXPECT_EQ(left, right);
+}
+
+TEST(JSONPointer_template, equality_with_condition_suffix_false) {
+  sourcemeta::core::PointerTemplate left;
+  left.emplace_back(sourcemeta::core::PointerTemplate::Condition{"foo"});
+
+  sourcemeta::core::PointerTemplate right;
+  right.emplace_back(sourcemeta::core::PointerTemplate::Condition{"bar"});
+
+  EXPECT_NE(left, right);
+}
+
 TEST(JSONPointer_template, equality_with_condition_wildcard_true) {
   const sourcemeta::core::Pointer prefix{"foo", "bar"};
   const sourcemeta::core::Pointer suffix{"baz"};
@@ -334,6 +354,18 @@ TEST(JSONPointer_template, stringify_condition) {
   sourcemeta::core::stringify(pointer, stream);
 
   EXPECT_EQ(stream.str(), "/foo/bar/~?~");
+}
+
+TEST(JSONPointer_template, stringify_condition_with_suffix) {
+  const sourcemeta::core::Pointer prefix{"foo", "bar"};
+
+  sourcemeta::core::PointerTemplate pointer{prefix};
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Condition{"hello"});
+
+  std::ostringstream stream;
+  sourcemeta::core::stringify(pointer, stream);
+
+  EXPECT_EQ(stream.str(), "/foo/bar/~?hello~");
 }
 
 TEST(JSONPointer_template, stringify_negation) {

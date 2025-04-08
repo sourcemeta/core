@@ -918,13 +918,16 @@ TEST(JSONSchema_official_walker_draft7, instance_locations) {
   // Applicators (any)
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 1, "/allOf/0", "", "", "");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 2, "/allOf/1", "", "", "");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 3, "/anyOf/0", "", "/~?~",
-                                      "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 4, "/oneOf/0", "", "/~?~",
-                                      "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 5, "/if", "", "/~?~", "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 6, "/then", "", "/~?~", "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 7, "/else", "", "/~?~", "/~?~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 3, "/anyOf/0", "", "/~?anyOf~",
+                                      "/~?anyOf~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 4, "/oneOf/0", "", "/~?oneOf~",
+                                      "/~?oneOf~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 5, "/if", "", "/~?if~",
+                                      "/~?if~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 6, "/then", "", "/~?then~",
+                                      "/~?then~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 7, "/else", "", "/~?else~",
+                                      "/~?else~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 8, "/not", "", "/~!~", "/~!~");
 
   // Applicators (object)
@@ -933,13 +936,14 @@ TEST(JSONSchema_official_walker_draft7, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 10, "/properties/bar", "",
                                       "/bar", "/bar");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 11, "/additionalProperties", "",
-                                      "/~?~/~P~", "/~?~/~P~");
+                                      "/~?additionalProperties~/~P~",
+                                      "/~?additionalProperties~/~P~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 12, "/patternProperties/^f", "",
                                       "/~R^f~", "/~R^f~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 13, "/patternProperties/x$", "",
                                       "/~Rx$~", "/~Rx$~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 14, "/dependencies/baz", "",
-                                      "/~?~", "/~?~");
+                                      "/~?dependencies~", "/~?dependencies~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 15, "/propertyNames", "", "/~K~",
                                       "/~K~");
 
@@ -947,7 +951,8 @@ TEST(JSONSchema_official_walker_draft7, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 16, "/contains", "", "/~I~",
                                       "/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 17, "/additionalItems", "",
-                                      "/~?~/~I~", "/~?~/~I~");
+                                      "/~?additionalItems~/~I~",
+                                      "/~?additionalItems~/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 18, "/items", "", "/~I~",
                                       "/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 19, "/items/items/0", "/items",
@@ -993,5 +998,6 @@ TEST(JSONSchema_official_walker_draft7, definitions_subschemas) {
       "/bar");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7_ORPHAN(
       entries, 3, "/definitions/foo/properties/bar/additionalProperties",
-      "/definitions/foo/properties/bar", "/bar/~?~/~P~", "/~?~/~P~");
+      "/definitions/foo/properties/bar", "/bar/~?additionalProperties~/~P~",
+      "/~?additionalProperties~/~P~");
 }
