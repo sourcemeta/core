@@ -646,3 +646,15 @@ TEST(JSONPointer_template, matches_item_wildcard_negation) {
   EXPECT_FALSE(left.matches(right));
   EXPECT_FALSE(right.matches(left));
 }
+
+TEST(JSONPointer_template, matches_conditional_property_wildcard) {
+  const sourcemeta::core::PointerTemplate left{
+      sourcemeta::core::PointerTemplate::Condition{},
+      sourcemeta::core::PointerTemplate::Wildcard::Property};
+
+  const sourcemeta::core::PointerTemplate right{
+      sourcemeta::core::Pointer::Token{"foo"}};
+
+  EXPECT_TRUE(left.matches(right));
+  EXPECT_TRUE(right.matches(left));
+}
