@@ -1573,11 +1573,11 @@ TEST(JSONSchema_official_walker_2019_09, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 13, "/patternProperties/x$", "",
                                        "/~Rx$~", "/~Rx$~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 14, "/dependentSchemas/foo", "",
-                                       "/~?dependentSchemas~",
-                                       "/~?dependentSchemas~");
+                                       "/~?dependentSchemas~/~?foo~",
+                                       "/~?dependentSchemas~/~?foo~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 15, "/dependentSchemas/bar", "",
-                                       "/~?dependentSchemas~",
-                                       "/~?dependentSchemas~");
+                                       "/~?dependentSchemas~/~?bar~",
+                                       "/~?dependentSchemas~/~?bar~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 16, "/propertyNames", "",
                                        "/~K~", "/~K~");
 

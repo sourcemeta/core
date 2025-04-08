@@ -943,7 +943,8 @@ TEST(JSONSchema_official_walker_draft7, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 13, "/patternProperties/x$", "",
                                       "/~Rx$~", "/~Rx$~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 14, "/dependencies/baz", "",
-                                      "/~?dependencies~", "/~?dependencies~");
+                                      "/~?dependencies~/~?baz~",
+                                      "/~?dependencies~/~?baz~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT7(entries, 15, "/propertyNames", "", "/~K~",
                                       "/~K~");
 
