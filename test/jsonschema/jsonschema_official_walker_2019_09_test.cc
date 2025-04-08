@@ -1548,13 +1548,16 @@ TEST(JSONSchema_official_walker_2019_09, instance_locations) {
   // Applicator vocabulary (any)
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 1, "/allOf/0", "", "", "");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 2, "/allOf/1", "", "", "");
-  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 3, "/anyOf/0", "", "/~?~",
-                                       "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 4, "/oneOf/0", "", "/~?~",
-                                       "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 5, "/if", "", "/~?~", "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 6, "/then", "", "/~?~", "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 7, "/else", "", "/~?~", "/~?~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 3, "/anyOf/0", "", "/~?anyOf~",
+                                       "/~?anyOf~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 4, "/oneOf/0", "", "/~?oneOf~",
+                                       "/~?oneOf~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 5, "/if", "", "/~?if~",
+                                       "/~?if~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 6, "/then", "", "/~?then~",
+                                       "/~?then~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 7, "/else", "", "/~?else~",
+                                       "/~?else~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 8, "/not", "", "/~!~", "/~!~");
 
   // Applicator vocabulary (object)
@@ -1563,15 +1566,18 @@ TEST(JSONSchema_official_walker_2019_09, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 10, "/properties/bar", "",
                                        "/bar", "/bar");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 11, "/additionalProperties", "",
-                                       "/~?~/~P~", "/~?~/~P~");
+                                       "/~?additionalProperties~/~P~",
+                                       "/~?additionalProperties~/~P~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 12, "/patternProperties/^f", "",
                                        "/~R^f~", "/~R^f~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 13, "/patternProperties/x$", "",
                                        "/~Rx$~", "/~Rx$~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 14, "/dependentSchemas/foo", "",
-                                       "/~?~", "/~?~");
+                                       "/~?dependentSchemas~",
+                                       "/~?dependentSchemas~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 15, "/dependentSchemas/bar", "",
-                                       "/~?~", "/~?~");
+                                       "/~?dependentSchemas~",
+                                       "/~?dependentSchemas~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 16, "/propertyNames", "",
                                        "/~K~", "/~K~");
 
@@ -1579,7 +1585,8 @@ TEST(JSONSchema_official_walker_2019_09, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 17, "/contains", "", "/~I~",
                                        "/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 18, "/additionalItems", "",
-                                       "/~?~/~I~", "/~?~/~I~");
+                                       "/~?additionalItems~/~I~",
+                                       "/~?additionalItems~/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 19, "/items", "", "/~I~",
                                        "/~I~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 20, "/items/items/0", "/items",
@@ -1589,9 +1596,11 @@ TEST(JSONSchema_official_walker_2019_09, instance_locations) {
 
   // Unevaluated applicators
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 22, "/unevaluatedProperties",
-                                       "", "/~?~/~P~", "/~?~/~P~");
+                                       "", "/~?unevaluatedProperties~/~P~",
+                                       "/~?unevaluatedProperties~/~P~");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 23, "/unevaluatedItems", "",
-                                       "/~?~/~I~", "/~?~/~I~");
+                                       "/~?unevaluatedItems~/~I~",
+                                       "/~?unevaluatedItems~/~I~");
 
   // Content vocabulary
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09(entries, 24, "/contentSchema", "", "",
@@ -1638,5 +1647,6 @@ TEST(JSONSchema_official_walker_2019_09, definitions_subschemas) {
       entries, 2, "/$defs/foo/properties/bar", "/$defs/foo", "/bar", "/bar");
   EXPECT_OFFICIAL_WALKER_ENTRY_2019_09_ORPHAN(
       entries, 3, "/$defs/foo/properties/bar/additionalProperties",
-      "/$defs/foo/properties/bar", "/bar/~?~/~P~", "/~?~/~P~");
+      "/$defs/foo/properties/bar", "/bar/~?additionalProperties~/~P~",
+      "/~?additionalProperties~/~P~");
 }

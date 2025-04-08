@@ -308,7 +308,7 @@ TEST(JSONSchema_frame, no_id_with_default) {
       "https://www.sourcemeta.com/schema", "/items",
       "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema",
-      "https://www.sourcemeta.com/schema", "/items", {"/~?~/~I~"}, "");
+      "https://www.sourcemeta.com/schema", "/items", {"/~?items~/~I~"}, "");
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/type",
       "https://www.sourcemeta.com/schema", "/items/type",
@@ -348,16 +348,16 @@ TEST(JSONSchema_frame, anchor_on_absolute_subid) {
       "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", "https://www.example.com",
       "", {""}, std::nullopt);
-  EXPECT_FRAME_STATIC_RESOURCE(frame, "https://www.example.org",
-                               "https://www.example.com", "/items",
-                               "https://json-schema.org/draft/2020-12/schema",
-                               "https://json-schema.org/draft/2020-12/schema",
-                               "https://www.example.org", "", {"/~?~/~I~"}, "");
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "https://www.example.org", "https://www.example.com", "/items",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", "https://www.example.org",
+      "", {"/~?items~/~I~"}, "");
   EXPECT_FRAME_STATIC_ANCHOR(
       frame, "https://www.example.org#foo", "https://www.example.com",
       "/items/items", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", "https://www.example.org",
-      "/items", {"/~?~/~I~/~?~/~I~"}, "/items");
+      "/items", {"/~?items~/~I~/~?items~/~I~"}, "/items");
 
   // JSON Pointers
 
@@ -375,7 +375,7 @@ TEST(JSONSchema_frame, anchor_on_absolute_subid) {
       frame, "https://www.example.com#/items", "https://www.example.com",
       "/items", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", "https://www.example.org",
-      "", {"/~?~/~I~"}, "");
+      "", {"/~?items~/~I~"}, "");
   EXPECT_FRAME_STATIC_POINTER(frame, "https://www.example.com#/items/$id",
                               "https://www.example.com", "/items/$id",
                               "https://json-schema.org/draft/2020-12/schema",
@@ -385,7 +385,7 @@ TEST(JSONSchema_frame, anchor_on_absolute_subid) {
       frame, "https://www.example.com#/items/items", "https://www.example.com",
       "/items/items", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", "https://www.example.org",
-      "/items", {"/~?~/~I~/~?~/~I~"}, "/items");
+      "/items", {"/~?items~/~I~/~?items~/~I~"}, "/items");
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.example.com#/items/items/$anchor",
       "https://www.example.com", "/items/items/$anchor",
@@ -401,7 +401,7 @@ TEST(JSONSchema_frame, anchor_on_absolute_subid) {
       frame, "https://www.example.org#/items", "https://www.example.com",
       "/items/items", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", "https://www.example.org",
-      "/items", {"/~?~/~I~/~?~/~I~"}, "/items");
+      "/items", {"/~?items~/~I~/~?items~/~I~"}, "/items");
   EXPECT_FRAME_STATIC_POINTER(frame, "https://www.example.org#/items/$anchor",
                               "https://www.example.com", "/items/items/$anchor",
                               "https://json-schema.org/draft/2020-12/schema",

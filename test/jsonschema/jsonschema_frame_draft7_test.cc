@@ -58,7 +58,8 @@ TEST(JSONSchema_frame_draft7, anonymous_with_nested_schema_resource) {
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalProperties",
       "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", {"/~?~/~P~"}, "");
+      "http://json-schema.org/draft-07/schema#",
+      {"/~?additionalProperties~/~P~"}, "");
 
   // JSON Pointers
 
@@ -75,7 +76,8 @@ TEST(JSONSchema_frame_draft7, anonymous_with_nested_schema_resource) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalProperties", "/additionalProperties",
       "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", {"/~?~/~P~"}, "");
+      "http://json-schema.org/draft-07/schema#",
+      {"/~?additionalProperties~/~P~"}, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalProperties/$id", "/additionalProperties/$id",
       "http://json-schema.org/draft-07/schema#",

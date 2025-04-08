@@ -794,7 +794,8 @@ TEST(JSONSchema_official_walker_draft1, instance_locations) {
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 3, "/properties/bar", "", "/bar",
                                       "/bar");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 4, "/additionalProperties", "",
-                                      "/~?~/~P~", "/~?~/~P~");
+                                      "/~?additionalProperties~/~P~",
+                                      "/~?additionalProperties~/~P~");
 
   // Applicators (array)
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 5, "/items", "", "/~I~", "/~I~");
@@ -804,10 +805,10 @@ TEST(JSONSchema_official_walker_draft1, instance_locations) {
                                       "/~I~/1", "/1");
 
   // Applicators (any)
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 8, "/type/1", "", "/~?~",
-                                      "/~?~");
-  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 9, "/type/2", "", "/~?~",
-                                      "/~?~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 8, "/type/1", "", "/~?type~",
+                                      "/~?type~");
+  EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 9, "/type/2", "", "/~?type~",
+                                      "/~?type~");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 10, "/extends", "", "", "");
   EXPECT_OFFICIAL_WALKER_ENTRY_DRAFT1(entries, 11, "/extends/extends/0",
                                       "/extends", "", "");
