@@ -194,6 +194,68 @@ TEST(JSONPointer_template, equality_with_negation_wildcard_false) {
   EXPECT_NE(left, right);
 }
 
+TEST(JSONPointer_template, trivial_empty) {
+  // const sourcemeta::core::PointerTemplate left{
+  // sourcemeta::core::PointerTemplate::Negation{}};
+  const sourcemeta::core::PointerTemplate pointer;
+  EXPECT_TRUE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_wildcard_property) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::PointerTemplate::Wildcard::Property};
+  EXPECT_FALSE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_wildcard_item) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::PointerTemplate::Wildcard::Item};
+  EXPECT_FALSE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_wildcard_key) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::PointerTemplate::Wildcard::Key};
+  EXPECT_FALSE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_condition) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::PointerTemplate::Condition{}};
+  EXPECT_FALSE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_negation) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::PointerTemplate::Negation{}};
+  EXPECT_FALSE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_regex) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::PointerTemplate::Regex{"^f"}};
+  EXPECT_FALSE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_token_index) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::Pointer::Token{5}};
+  EXPECT_TRUE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_token_property) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::Pointer::Token{"foo"}};
+  EXPECT_TRUE(pointer.trivial());
+}
+
+TEST(JSONPointer_template, trivial_mixed) {
+  const sourcemeta::core::PointerTemplate pointer{
+      sourcemeta::core::Pointer::Token{"foo"},
+      sourcemeta::core::PointerTemplate::Condition{}};
+  EXPECT_FALSE(pointer.trivial());
+}
+
 TEST(JSONPointer_template, pop_back) {
   const sourcemeta::core::Pointer base{"foo", "bar"};
   sourcemeta::core::PointerTemplate pointer{base};
