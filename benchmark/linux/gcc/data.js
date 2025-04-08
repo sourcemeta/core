@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1744053478829,
+  "lastUpdate": 1744124782633,
   "repoUrl": "https://github.com/sourcemeta/core",
   "entries": {
     "Benchmark (linux/gcc)": [
@@ -84822,6 +84822,252 @@ window.BENCHMARK_DATA = {
             "value": 851.6369698246297,
             "unit": "ns/iter",
             "extra": "iterations: 816428\ncpu: 851.6266174114569 ns\nthreads: 1"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "jv@jviotti.com",
+            "name": "Juan Cruz Viotti",
+            "username": "jviotti"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3f1c47469446cfe4edf5989a49ad2516c7bdca19",
+          "message": "Test `PointerTemplate` conditional wildcards with `matches` (#1601)\n\nSigned-off-by: Juan Cruz Viotti <jv@jviotti.com>",
+          "timestamp": "2025-04-08T10:51:25-04:00",
+          "tree_id": "48cbeca8ac92a1de05bc874c27180ff4b2579b04",
+          "url": "https://github.com/sourcemeta/core/commit/3f1c47469446cfe4edf5989a49ad2516c7bdca19"
+        },
+        "date": 1744124772323,
+        "tool": "googlecpp",
+        "benches": [
+          {
+            "name": "Schema_Frame_OMC_Instances",
+            "value": 222197871.0000106,
+            "unit": "ns/iter",
+            "extra": "iterations: 3\ncpu: 222184740.33333334 ns\nthreads: 1"
+          },
+          {
+            "name": "Schema_Frame_OMC_References",
+            "value": 144940966.8000044,
+            "unit": "ns/iter",
+            "extra": "iterations: 5\ncpu: 144935644.60000002 ns\nthreads: 1"
+          },
+          {
+            "name": "Schema_Frame_OMC_Locations",
+            "value": 139766628.20000455,
+            "unit": "ns/iter",
+            "extra": "iterations: 5\ncpu: 139764969.59999996 ns\nthreads: 1"
+          },
+          {
+            "name": "Schema_Bundle_Meta_2020_12",
+            "value": 6985996.6565684425,
+            "unit": "ns/iter",
+            "extra": "iterations: 99\ncpu: 6986280.8282828005 ns\nthreads: 1"
+          },
+          {
+            "name": "Pointer_Object_Traverse",
+            "value": 46.30228140025229,
+            "unit": "ns/iter",
+            "extra": "iterations: 15062723\ncpu: 46.301911148468996 ns\nthreads: 1"
+          },
+          {
+            "name": "Pointer_Object_Try_Traverse",
+            "value": 23.338281897548896,
+            "unit": "ns/iter",
+            "extra": "iterations: 30003787\ncpu: 23.337216831995228 ns\nthreads: 1"
+          },
+          {
+            "name": "Pointer_Push_Back_Pointer_To_Weak_Pointer",
+            "value": 174.77219854631716,
+            "unit": "ns/iter",
+            "extra": "iterations: 4058982\ncpu: 174.7716617122225 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Array_Of_Objects_Unique",
+            "value": 369.90390841464375,
+            "unit": "ns/iter",
+            "extra": "iterations: 1868072\ncpu: 369.88219779537417 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Parse_1",
+            "value": 33174.800028344835,
+            "unit": "ns/iter",
+            "extra": "iterations: 21168\ncpu: 33172.67124905518 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Fast_Hash_Helm_Chart_Lock",
+            "value": 55.667867606495065,
+            "unit": "ns/iter",
+            "extra": "iterations: 10903405\ncpu: 55.66599745675779 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Equality_Helm_Chart_Lock",
+            "value": 147.89527436797417,
+            "unit": "ns/iter",
+            "extra": "iterations: 4703519\ncpu: 147.89288658130195 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Equal/10",
+            "value": 5.735268204064731,
+            "unit": "ns/iter",
+            "extra": "iterations: 122436362\ncpu: 5.734974729157671 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Equal/100",
+            "value": 6.336549663551431,
+            "unit": "ns/iter",
+            "extra": "iterations: 110304698\ncpu: 6.3365360195265605 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Equal_Small_By_Perfect_Hash/10",
+            "value": 0.9335484811493627,
+            "unit": "ns/iter",
+            "extra": "iterations: 750204222\ncpu: 0.9335442409706932 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Equal_Small_By_Runtime_Perfect_Hash/10",
+            "value": 19.255424388855875,
+            "unit": "ns/iter",
+            "extra": "iterations: 36351791\ncpu: 19.255519734914834 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Fast_Hash/10",
+            "value": 0.9359455164927087,
+            "unit": "ns/iter",
+            "extra": "iterations: 750852249\ncpu: 0.9359466871624155 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Fast_Hash/100",
+            "value": 0.9552736387463,
+            "unit": "ns/iter",
+            "extra": "iterations: 749815524\ncpu: 0.9552255349143723 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Key_Hash/10",
+            "value": 1.2453136362160142,
+            "unit": "ns/iter",
+            "extra": "iterations: 562119347\ncpu: 1.2453057233057658 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_String_Key_Hash/100",
+            "value": 2.024079531562466,
+            "unit": "ns/iter",
+            "extra": "iterations: 345893066\ncpu: 2.024011351531407 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Object_Defines_Miss_Same_Length",
+            "value": 2.804884332900097,
+            "unit": "ns/iter",
+            "extra": "iterations: 250173775\ncpu: 2.8048308180983383 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Object_Defines_Miss_Too_Small",
+            "value": 2.494924098782673,
+            "unit": "ns/iter",
+            "extra": "iterations: 281309454\ncpu: 2.494909275249593 ns\nthreads: 1"
+          },
+          {
+            "name": "JSON_Object_Defines_Miss_Too_Large",
+            "value": 2.493971371254465,
+            "unit": "ns/iter",
+            "extra": "iterations: 281414078\ncpu: 2.49395626540048 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Lower_S_Or_Upper_S_Asterisk",
+            "value": 2.804010890743193,
+            "unit": "ns/iter",
+            "extra": "iterations: 247735893\ncpu: 2.803947779177886 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Lower_S_Or_Upper_S_Asterisk_Dollar",
+            "value": 3.1102285159055145,
+            "unit": "ns/iter",
+            "extra": "iterations: 225273903\ncpu: 3.110137977233876 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Period_Asterisk",
+            "value": 3.150038506223971,
+            "unit": "ns/iter",
+            "extra": "iterations: 224528635\ncpu: 3.149856965905494 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Group_Period_Asterisk_Group",
+            "value": 3.107447913992476,
+            "unit": "ns/iter",
+            "extra": "iterations: 225018831\ncpu: 3.1073688139460733 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Period_Plus",
+            "value": 3.107478133268233,
+            "unit": "ns/iter",
+            "extra": "iterations: 223974024\ncpu: 3.1072216169139253 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Period",
+            "value": 3.120124546473252,
+            "unit": "ns/iter",
+            "extra": "iterations: 224976583\ncpu: 3.119966143320785 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Period_Plus_Dollar",
+            "value": 3.108441964193653,
+            "unit": "ns/iter",
+            "extra": "iterations: 223879521\ncpu: 3.108118651906531 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Group_Period_Plus_Group_Dollar",
+            "value": 3.106672695547266,
+            "unit": "ns/iter",
+            "extra": "iterations: 223789470\ncpu: 3.1065581101738187 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Period_Asterisk_Dollar",
+            "value": 4.040036023553491,
+            "unit": "ns/iter",
+            "extra": "iterations: 172946846\ncpu: 4.039872580272435 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Group_Period_Asterisk_Group_Dollar",
+            "value": 4.051343653773125,
+            "unit": "ns/iter",
+            "extra": "iterations: 173314253\ncpu: 4.051398005910102 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_X_Hyphen",
+            "value": 13.19208462310237,
+            "unit": "ns/iter",
+            "extra": "iterations: 53342880\ncpu: 13.191709952668411 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Period_Md_Dollar",
+            "value": 90.80279115947006,
+            "unit": "ns/iter",
+            "extra": "iterations: 7701029\ncpu: 90.79996140775465 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Slash_Period_Asterisk",
+            "value": 8.705257539751312,
+            "unit": "ns/iter",
+            "extra": "iterations: 80455483\ncpu: 8.704540584263185 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Caret_Period_Range_Dollar",
+            "value": 4.0391360261300076,
+            "unit": "ns/iter",
+            "extra": "iterations: 172686056\ncpu: 4.038891362485015 ns\nthreads: 1"
+          },
+          {
+            "name": "Regex_Nested_Backtrack",
+            "value": 832.5301222846017,
+            "unit": "ns/iter",
+            "extra": "iterations: 842134\ncpu: 832.471559158049 ns\nthreads: 1"
           }
         ]
       }
