@@ -100,6 +100,9 @@ private:
             const SchemaFrame::Location &location, const SchemaWalker &walker,
             const SchemaResolver &resolver) const -> bool = 0;
 
+  // TODO: Allow this method to not be overriden, as a way to signify
+  // that a rule does not support auto-fixing
+
   /// The rule transformation
   virtual auto transform(JSON &schema) const -> void = 0;
 
