@@ -110,6 +110,27 @@ TEST(JSONSchema_wrap,
   EXPECT_EQ(result, expected);
 }
 
+TEST(JSONSchema_wrap, schema_without_identifier_empty_pointer) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "type": "string"
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "type": "string"
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(JSONSchema_wrap, schema_without_identifier_without_dialect) {
   const auto schema{sourcemeta::core::parse_json(R"JSON({
     "items": {
@@ -234,6 +255,27 @@ TEST(JSONSchema_wrap, schema_with_identifier_default_dialect) {
           "type": "string"
         }
       }
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, schema_with_identifier_empty_pointer) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://sourcemeta.com/1",
+    "items": {
+      "type": "string"
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://sourcemeta.com/1",
+    "items": {
+      "type": "string"
     }
   })JSON")};
 
