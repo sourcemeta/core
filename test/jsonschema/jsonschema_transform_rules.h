@@ -9,10 +9,12 @@ public:
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_1", "Keyword foo is not permitted") {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return schema.defines("foo");
   }
@@ -28,10 +30,12 @@ public:
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_2", "Keyword bar is not permitted") {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return schema.defines("bar");
   }
@@ -50,8 +54,9 @@ public:
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
             const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &location) const
-      -> bool override {
+            const sourcemeta::core::SchemaFrame::Location &location,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const -> bool override {
     return !schema.defines("top") && location.pointer.empty();
   }
 
@@ -66,10 +71,12 @@ public:
       : sourcemeta::core::SchemaTransformRule("example_rule_4",
                                               "Example rule 4") {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return !schema.defines("here");
   }
@@ -88,8 +95,9 @@ public:
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
             const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &location) const
-      -> bool override {
+            const sourcemeta::core::SchemaFrame::Location &location,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const -> bool override {
     return !schema.defines("baz") &&
            location.pointer == sourcemeta::core::Pointer{"properties", "baz"};
   }
@@ -108,8 +116,9 @@ public:
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
             const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &location) const
-      -> bool override {
+            const sourcemeta::core::SchemaFrame::Location &location,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const -> bool override {
     return !schema.defines("draft") &&
            location.dialect == "http://json-schema.org/draft-03/schema#";
   }
@@ -125,10 +134,12 @@ public:
       : sourcemeta::core::SchemaTransformRule("example_rule_1",
                                               "My custom message") {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return schema.defines("foo");
   }
@@ -146,10 +157,12 @@ public:
             "example_rule_conflicts_with_1",
             "Example rule that conflicts with rule 1") {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return schema.defines("$schema") && schema.size() == 1;
   }
