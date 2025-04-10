@@ -42,7 +42,8 @@ namespace sourcemeta::core {
 ///   sourcemeta::core::SchemaTransformRule("my_rule", "My rule") {};
 ///
 ///   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-///                                const std::set<std::string> &vocabularies,
+///                                const std::map<std::string, bool>
+///                                  &vocabularies,
 ///                                const sourcemeta::core::SchemaFrame &,
 ///                                const sourcemeta::core::SchemaFrame::Location
 ///                                &)
@@ -80,19 +81,22 @@ public:
   [[nodiscard]] auto message() const -> const std::string &;
 
   /// Apply the rule to a schema
-  auto apply(JSON &schema, const SchemaWalker &walker,
-             const SchemaResolver &resolver, const SchemaFrame &frame,
+  auto apply(JSON &schema, const std::map<std::string, bool> &vocabularies,
+             const SchemaWalker &walker, const SchemaResolver &resolver,
+             const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
   /// Check if the rule applies to a schema
-  auto check(const JSON &schema, const SchemaWalker &walker,
-             const SchemaResolver &resolver, const SchemaFrame &frame,
+  auto check(const JSON &schema,
+             const std::map<std::string, bool> &vocabularies,
+             const SchemaWalker &walker, const SchemaResolver &resolver,
+             const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
 private:
   /// The rule condition
   [[nodiscard]] virtual auto
-  condition(const JSON &schema, const std::set<std::string> &vocabularies,
+  condition(const JSON &schema, const std::map<std::string, bool> &vocabularies,
             const SchemaFrame &frame, const SchemaFrame::Location &location,
             const SchemaWalker &walker, const SchemaResolver &resolver) const
       -> bool = 0;
@@ -130,7 +134,8 @@ private:
 ///   MyRule() : sourcemeta::core::SchemaTransformRule("my_rule") {};
 ///
 ///   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-///                                const std::set<std::string> &vocabularies,
+///                                const std::map<std::string, bool>
+///                                  &vocabularies,
 ///                                const sourcemeta::core::SchemaFrame &,
 ///                                const sourcemeta::core::SchemaFrame::Location
 ///                                &)

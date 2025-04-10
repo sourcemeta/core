@@ -7,7 +7,7 @@ public:
             "`anyOf` over the corresponding types"} {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::set<std::string> &vocabularies,
+                               const std::map<std::string, bool> &vocabularies,
 
                                const sourcemeta::core::SchemaFrame &frame,
                                const sourcemeta::core::SchemaFrame::Location &,
