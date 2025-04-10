@@ -613,6 +613,36 @@ auto bundle(const JSON &schema, const SchemaWalker &walker,
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto wrap(const JSON::String &identifier) -> JSON;
 
+/// @ingroup jsonschema
+///
+/// Wrap a schema to only access one of its subschemas. This is useful if you
+/// want to perform validation only a specific part of the schemaw without
+/// having to reinvent the wheel. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonschema.h>
+/// #include <iostream>
+///
+/// const sourcemeta::core::JSON document =
+///     sourcemeta::core::parse_json(R"JSON({
+///   "$schema": "https://json-schema.org/draft/2020-12/schema",
+///   "items": { "type": "string" }
+/// })JSON");
+///
+/// const sourcemeta::core::JSON result =
+///   sourcemeta::core::wrap(document, { "items" },
+///     sourcemeta::core::schema_official_resolver);
+///
+/// sourcemeta::core::prettify(result, std::cerr);
+/// std::cerr << "\n";
+/// ```
+SOURCEMETA_CORE_JSONSCHEMA_EXPORT
+auto wrap(const JSON &schema, const Pointer &pointer,
+          const SchemaResolver &resolver,
+          const std::optional<std::string> &default_dialect = std::nullopt)
+    -> JSON;
+
 } // namespace sourcemeta::core
 
 #endif
