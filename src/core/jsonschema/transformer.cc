@@ -25,13 +25,14 @@ auto SchemaTransformRule::message() const -> const std::string & {
   return this->message_;
 }
 
-auto SchemaTransformRule::apply(JSON &schema, const Vocabularies &vocabularies,
+auto SchemaTransformRule::apply(JSON &schema, const JSON &root,
+                                const Vocabularies &vocabularies,
                                 const SchemaWalker &walker,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
                                 const SchemaFrame::Location &location) const
     -> bool {
-  if (!this->condition(schema, vocabularies, frame, location, walker,
+  if (!this->condition(schema, root, vocabularies, frame, location, walker,
                        resolver)) {
     return false;
   }
@@ -40,7 +41,7 @@ auto SchemaTransformRule::apply(JSON &schema, const Vocabularies &vocabularies,
 
   // The condition must always be false after applying the
   // transformation in order to avoid infinite loops
-  if (this->condition(schema, vocabularies, frame, location, walker,
+  if (this->condition(schema, root, vocabularies, frame, location, walker,
                       resolver)) {
     std::ostringstream error;
     error << "Rule condition holds after application: " << this->name();
@@ -50,14 +51,14 @@ auto SchemaTransformRule::apply(JSON &schema, const Vocabularies &vocabularies,
   return true;
 }
 
-auto SchemaTransformRule::check(const JSON &schema,
+auto SchemaTransformRule::check(const JSON &schema, const JSON &root,
                                 const Vocabularies &vocabularies,
                                 const SchemaWalker &walker,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
                                 const SchemaFrame::Location &location) const
     -> bool {
-  return this->condition(schema, vocabularies, frame, location, walker,
+  return this->condition(schema, root, vocabularies, frame, location, walker,
                          resolver);
 }
 
@@ -80,8 +81,8 @@ auto SchemaTransformer::check(
     const auto current_vocabularies{
         vocabularies(schema, resolver, entry.second.dialect)};
     for (const auto &[name, rule] : this->rules) {
-      if (rule->check(current, current_vocabularies, walker, resolver, frame,
-                      entry.second)) {
+      if (rule->check(current, schema, current_vocabularies, walker, resolver,
+                      frame, entry.second)) {
         result = false;
         callback(entry.second.pointer, name, rule->message());
       }
@@ -113,8 +114,8 @@ auto SchemaTransformer::apply(
       const auto current_vocabularies{
           vocabularies(schema, resolver, entry.second.dialect)};
       for (const auto &[name, rule] : this->rules) {
-        applied = rule->apply(current, current_vocabularies, walker, resolver,
-                              frame, entry.second) ||
+        applied = rule->apply(current, schema, current_vocabularies, walker,
+                              resolver, frame, entry.second) ||
                   applied;
         if (!applied) {
           continue;
