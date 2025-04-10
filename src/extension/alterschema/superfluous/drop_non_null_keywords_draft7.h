@@ -6,12 +6,11 @@ public:
             "Keywords that don't apply to null values will never match if the "
             "instance is guaranteed to be null"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &vocabularies,
-                               const sourcemeta::core::Pointer &,
-                               const sourcemeta::core::SchemaFrame &) const
-      -> bool override {
+  [[nodiscard]] auto condition(
+      const sourcemeta::core::JSON &schema, const std::string &,
+      const std::set<std::string> &vocabularies,
+      const sourcemeta::core::Pointer &, const sourcemeta::core::SchemaFrame &,
+      const sourcemeta::core::SchemaFrame::Location &) const -> bool override {
     return vocabularies.contains("http://json-schema.org/draft-07/schema#") &&
            schema.is_object() && schema.defines("type") &&
            schema.at("type").is_string() &&

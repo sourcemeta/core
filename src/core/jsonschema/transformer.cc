@@ -39,21 +39,16 @@ auto SchemaTransformRule::message() const -> const std::string & {
   return this->message_;
 }
 
-auto SchemaTransformRule::apply(
-    JSON &schema, const Pointer &pointer, const SchemaResolver &resolver,
-    const SchemaFrame &frame,
-    const std::optional<std::string> &default_dialect) const -> bool {
-  const std::optional<std::string> effective_dialect{
-      dialect(schema, default_dialect)};
-  if (!effective_dialect.has_value()) {
-    throw SchemaError("Could not determine the schema dialect");
-  }
-
+auto SchemaTransformRule::apply(JSON &schema, const Pointer &pointer,
+                                const SchemaResolver &resolver,
+                                const SchemaFrame &frame,
+                                const SchemaFrame::Location &location) const
+    -> bool {
   // TODO: Stop converting to set. This hurts performance
   const auto current_vocabularies{
-      vocabularies_to_set(vocabularies(schema, resolver, default_dialect))};
-  if (!this->condition(schema, effective_dialect.value(), current_vocabularies,
-                       pointer, frame)) {
+      vocabularies_to_set(vocabularies(schema, resolver, location.dialect))};
+  if (!this->condition(schema, location.dialect, current_vocabularies, pointer,
+                       frame, location)) {
     return false;
   }
 
@@ -61,8 +56,8 @@ auto SchemaTransformRule::apply(
 
   // The condition must always be false after applying the
   // transformation in order to avoid infinite loops
-  if (this->condition(schema, effective_dialect.value(), current_vocabularies,
-                      pointer, frame)) {
+  if (this->condition(schema, location.dialect, current_vocabularies, pointer,
+                      frame, location)) {
     std::ostringstream error;
     error << "Rule condition holds after application: " << this->name();
     throw std::runtime_error(error.str());
@@ -71,20 +66,15 @@ auto SchemaTransformRule::apply(
   return true;
 }
 
-auto SchemaTransformRule::check(
-    const JSON &schema, const Pointer &pointer, const SchemaResolver &resolver,
-    const SchemaFrame &frame,
-    const std::optional<std::string> &default_dialect) const -> bool {
-  const std::optional<std::string> effective_dialect{
-      dialect(schema, default_dialect)};
-  if (!effective_dialect.has_value()) {
-    throw SchemaError("Could not determine the schema dialect");
-  }
-
+auto SchemaTransformRule::check(const JSON &schema, const Pointer &pointer,
+                                const SchemaResolver &resolver,
+                                const SchemaFrame &frame,
+                                const SchemaFrame::Location &location) const
+    -> bool {
   return this->condition(
-      schema, effective_dialect.value(),
-      vocabularies_to_set(vocabularies(schema, resolver, default_dialect)),
-      pointer, frame);
+      schema, location.dialect,
+      vocabularies_to_set(vocabularies(schema, resolver, location.dialect)),
+      pointer, frame, location);
 }
 
 auto SchemaTransformer::check(
@@ -105,7 +95,7 @@ auto SchemaTransformer::check(
     const auto &current{get(schema, entry.second.pointer)};
     for (const auto &[name, rule] : this->rules) {
       if (rule->check(current, entry.second.pointer, resolver, frame,
-                      entry.second.dialect)) {
+                      entry.second)) {
         result = false;
         callback(entry.second.pointer, name, rule->message());
       }
@@ -136,7 +126,7 @@ auto SchemaTransformer::apply(
       auto &current{get(schema, entry.second.pointer)};
       for (const auto &[name, rule] : this->rules) {
         applied = rule->apply(current, entry.second.pointer, resolver, frame,
-                              entry.second.dialect) ||
+                              entry.second) ||
                   applied;
         if (!applied) {
           continue;

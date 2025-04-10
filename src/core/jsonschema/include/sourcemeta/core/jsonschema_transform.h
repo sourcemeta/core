@@ -44,9 +44,11 @@ namespace sourcemeta::core {
 ///   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
 ///                                const std::string &dialect,
 ///                                const std::set<std::string> &vocabularies,
-///                                const sourcemeta::core::Pointer
-///                                  &pointer) const
-///       -> bool override
+///                                const sourcemeta::core::Pointer &pointer,
+///                                const sourcemeta::core::SchemaFrame &,
+///                                const sourcemeta::core::SchemaFrame::Location
+///                                &)
+///       const -> bool override
 ///     return schema.defines("foo");
 ///   }
 ///
@@ -80,25 +82,22 @@ public:
   [[nodiscard]] auto message() const -> const std::string &;
 
   /// Apply the rule to a schema
-  auto
-  apply(JSON &schema, const Pointer &pointer, const SchemaResolver &resolver,
-        const SchemaFrame &frame,
-        const std::optional<std::string> &default_dialect = std::nullopt) const
-      -> bool;
+  auto apply(JSON &schema, const Pointer &pointer,
+             const SchemaResolver &resolver, const SchemaFrame &frame,
+             const SchemaFrame::Location &location) const -> bool;
 
   /// Check if the rule applies to a schema
-  auto
-  check(const JSON &schema, const Pointer &pointer,
-        const SchemaResolver &resolver, const SchemaFrame &frame,
-        const std::optional<std::string> &default_dialect = std::nullopt) const
-      -> bool;
+  auto check(const JSON &schema, const Pointer &pointer,
+             const SchemaResolver &resolver, const SchemaFrame &frame,
+             const SchemaFrame::Location &location) const -> bool;
 
 private:
   /// The rule condition
   [[nodiscard]] virtual auto
   condition(const JSON &schema, const std::string &dialect,
             const std::set<std::string> &vocabularies, const Pointer &pointer,
-            const SchemaFrame &frame) const -> bool = 0;
+            const SchemaFrame &frame,
+            const SchemaFrame::Location &location) const -> bool = 0;
 
   /// The rule transformation
   virtual auto transform(JSON &schema) const -> void = 0;
@@ -136,8 +135,10 @@ private:
 ///                                const std::string &dialect,
 ///                                const std::set<std::string> &vocabularies,
 ///                                const sourcemeta::core::Pointer &pointer,
-///                                const sourcemeta::core::SchemaFrame &) const
-///       -> bool override {
+///                                const sourcemeta::core::SchemaFrame &,
+///                                const sourcemeta::core::SchemaFrame::Location
+///                                &)
+///       const -> bool override {
 ///     return schema.defines("foo");
 ///   }
 ///
