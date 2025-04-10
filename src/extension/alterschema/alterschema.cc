@@ -7,9 +7,9 @@
 #include <cmath>
 #include <iterator>
 namespace sourcemeta::core {
-template <typename T>
-auto contains_any(const T &container,
-                  const std::set<typename T::key_type> &values) -> bool {
+auto contains_any(const Vocabularies &container,
+                  const std::set<typename Vocabularies::key_type> &values)
+    -> bool {
   return std::any_of(std::cbegin(container), std::cend(container),
                      [&values](const auto &element) {
                        return values.contains(element.first);

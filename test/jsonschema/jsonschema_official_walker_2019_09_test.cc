@@ -5,30 +5,30 @@
 
 #include "jsonschema_test_utils.h"
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_CORE{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_CORE{
     {"https://json-schema.org/draft/2019-09/vocab/core", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_APPLICATOR{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_APPLICATOR{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/applicator", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_VALIDATION{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_VALIDATION{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/validation", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_FORMAT{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_FORMAT{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/format", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_CONTENT{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_CONTENT{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/content", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_METADATA{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_METADATA{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/meta-data", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2019_09_HYPERSCHEMA{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_HYPERSCHEMA{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/hyper-schema", true}};
 
@@ -255,7 +255,7 @@ TEST(JSONSchema_official_walker_2019_09, applicator_contains_only) {
 
 TEST(JSONSchema_official_walker_2019_09, applicator_contains_with_validation) {
   using namespace sourcemeta::core;
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2019_09_APPLICATOR.cbegin(),
             VOCABULARIES_2019_09_APPLICATOR.cend(),
             std::inserter(vocabularies, vocabularies.end()));
@@ -1444,7 +1444,7 @@ TEST(JSONSchema_official_walker_2019_09,
 }
 
 TEST(JSONSchema_official_walker_2019_09, schema_keyword_priority_array) {
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2019_09_APPLICATOR.cbegin(),
             VOCABULARIES_2019_09_APPLICATOR.cend(),
             std::inserter(vocabularies, vocabularies.end()));

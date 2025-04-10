@@ -335,7 +335,7 @@ auto sourcemeta::core::vocabularies(
     const sourcemeta::core::JSON &schema,
     const sourcemeta::core::SchemaResolver &resolver,
     const std::optional<std::string> &default_dialect)
-    -> std::map<std::string, bool> {
+    -> sourcemeta::core::Vocabularies {
   const std::optional<std::string> maybe_base_dialect{
       sourcemeta::core::base_dialect(schema, resolver, default_dialect)};
   if (!maybe_base_dialect.has_value()) {
@@ -360,7 +360,7 @@ auto sourcemeta::core::vocabularies(
 auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
                                     const std::string &base_dialect,
                                     const std::string &dialect)
-    -> std::map<std::string, bool> {
+    -> sourcemeta::core::Vocabularies {
   // As a performance optimization shortcut
   if (base_dialect == dialect) {
     if (dialect == "https://json-schema.org/draft/2020-12/schema") {
@@ -425,7 +425,7 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
    * dialect
    */
 
-  std::map<std::string, bool> result;
+  Vocabularies result;
   const std::string core{core_vocabulary(base_dialect)};
   if (schema_dialect.defines("$vocabulary")) {
     const sourcemeta::core::JSON &vocabularies{
@@ -627,7 +627,8 @@ auto sourcemeta::core::reference_visitor_relativize(
 }
 
 auto sourcemeta::core::schema_keyword_priority(
-    std::string_view keyword, const std::map<std::string, bool> &vocabularies,
+    std::string_view keyword,
+    const sourcemeta::core::Vocabularies &vocabularies,
     const sourcemeta::core::SchemaWalker &walker) -> std::uint64_t {
   const auto result{walker(keyword, vocabularies)};
   return std::accumulate(

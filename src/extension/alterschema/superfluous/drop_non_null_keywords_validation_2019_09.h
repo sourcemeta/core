@@ -6,13 +6,13 @@ public:
             "Keywords that don't apply to null values will never match if the "
             "instance is guaranteed to be null"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &vocabularies,
-                               const sourcemeta::core::SchemaFrame &,
-                               const sourcemeta::core::SchemaFrame::Location &,
-                               const sourcemeta::core::SchemaWalker &,
-                               const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const -> bool override {
     return vocabularies.contains(
                "https://json-schema.org/draft/2019-09/vocab/validation") &&
            schema.is_object() &&

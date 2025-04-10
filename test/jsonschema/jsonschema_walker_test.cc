@@ -32,7 +32,7 @@ static auto test_resolver(std::string_view identifier)
 }
 
 static auto test_walker(std::string_view keyword,
-                        const std::map<std::string, bool> &vocabularies)
+                        const sourcemeta::core::Vocabularies &vocabularies)
     -> sourcemeta::core::SchemaWalkerResult {
   if (vocabularies.find("https://sourcemeta.com/vocab/test-1") !=
       vocabularies.end()) {

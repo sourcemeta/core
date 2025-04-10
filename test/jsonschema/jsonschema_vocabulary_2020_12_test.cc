@@ -60,9 +60,10 @@ static auto test_resolver(std::string_view identifier)
 
 TEST(JSONSchema_vocabulary_2020_12, core_vocabularies_boolean_with_default) {
   const sourcemeta::core::JSON document{true};
-  const std::map<std::string, bool> vocabularies{sourcemeta::core::vocabularies(
-      document, test_resolver,
-      "https://sourcemeta.com/2020-12-custom-vocabularies")};
+  const sourcemeta::core::Vocabularies vocabularies{
+      sourcemeta::core::vocabularies(
+          document, test_resolver,
+          "https://sourcemeta.com/2020-12-custom-vocabularies")};
   EXPECT_EQ(vocabularies.size(), 3);
   EXPECT_VOCABULARY_REQUIRED(
       vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
@@ -77,9 +78,10 @@ TEST(JSONSchema_vocabulary_2020_12,
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/2020-12-no-vocabularies"
   })JSON");
-  const std::map<std::string, bool> vocabularies{sourcemeta::core::vocabularies(
-      document, test_resolver,
-      "https://sourcemeta.com/2020-12-custom-vocabularies")};
+  const sourcemeta::core::Vocabularies vocabularies{
+      sourcemeta::core::vocabularies(
+          document, test_resolver,
+          "https://sourcemeta.com/2020-12-custom-vocabularies")};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(
       vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
@@ -107,7 +109,7 @@ TEST(JSONSchema_vocabulary_2020_12, no_vocabularies) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/2020-12-no-vocabularies"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(
@@ -118,7 +120,7 @@ TEST(JSONSchema_vocabulary_2020_12, no_vocabularies_hyper) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/2020-12-hyper-no-vocabularies"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(
@@ -129,7 +131,7 @@ TEST(JSONSchema_vocabulary_2020_12, hyper) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/hyper-schema"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 8);
   EXPECT_VOCABULARY_REQUIRED(

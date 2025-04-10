@@ -39,7 +39,7 @@ TEST(JSONSchema_vocabulary_draft4, schema) {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(vocabularies,
@@ -51,7 +51,7 @@ TEST(JSONSchema_vocabulary_draft4, hyperschema) {
     "$schema": "http://json-schema.org/draft-04/hyper-schema#",
     "type": "object"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(vocabularies,
@@ -63,7 +63,7 @@ TEST(JSONSchema_vocabulary_draft4, one_hop) {
     "$schema": "https://sourcemeta.com/one-hop",
     "type": "object"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(vocabularies,
@@ -75,7 +75,7 @@ TEST(JSONSchema_vocabulary_draft4, ignore_vocabulary) {
     "$schema": "https://sourcemeta.com/with-vocabulary",
     "type": "object"
   })JSON");
-  const std::map<std::string, bool> vocabularies{
+  const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(vocabularies,

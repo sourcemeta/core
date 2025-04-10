@@ -3,10 +3,10 @@
 
 #include "jsonschema_test_utils.h"
 
-static const std::map<std::string, bool> VOCABULARIES_DRAFT7{
+static const sourcemeta::core::Vocabularies VOCABULARIES_DRAFT7{
     {"http://json-schema.org/draft-07/schema#", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_DRAFT7_HYPERSCHEMA{
+static const sourcemeta::core::Vocabularies VOCABULARIES_DRAFT7_HYPERSCHEMA{
     {"http://json-schema.org/draft-07/hyper-schema#", true}};
 
 TEST(JSONSchema_official_walker_draft7, schema) {
