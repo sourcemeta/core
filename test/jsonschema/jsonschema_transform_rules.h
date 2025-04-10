@@ -10,7 +10,7 @@ public:
             "example_rule_1", "Keyword foo is not permitted") {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &,
+                               const sourcemeta::core::Vocabularies &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
@@ -31,7 +31,7 @@ public:
             "example_rule_2", "Keyword bar is not permitted") {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &,
+                               const sourcemeta::core::Vocabularies &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
@@ -53,7 +53,7 @@ public:
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
-            const std::map<std::string, bool> &,
+            const sourcemeta::core::Vocabularies &,
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &location,
             const sourcemeta::core::SchemaWalker &,
@@ -73,7 +73,7 @@ public:
                                               "Example rule 4") {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &,
+                               const sourcemeta::core::Vocabularies &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
@@ -95,7 +95,7 @@ public:
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
-            const std::map<std::string, bool> &,
+            const sourcemeta::core::Vocabularies &,
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &location,
             const sourcemeta::core::SchemaWalker &,
@@ -117,7 +117,7 @@ public:
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
-            const std::map<std::string, bool> &,
+            const sourcemeta::core::Vocabularies &,
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &location,
             const sourcemeta::core::SchemaWalker &,
@@ -138,7 +138,7 @@ public:
                                               "My custom message") {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &,
+                               const sourcemeta::core::Vocabularies &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
@@ -161,7 +161,7 @@ public:
             "Example rule that conflicts with rule 1") {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &,
+                               const sourcemeta::core::Vocabularies &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,

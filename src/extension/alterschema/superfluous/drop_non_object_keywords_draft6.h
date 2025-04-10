@@ -6,13 +6,13 @@ public:
             "Keywords that don't apply to objects will never match if the "
             "instance is guaranteed to be an object"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &vocabularies,
-                               const sourcemeta::core::SchemaFrame &,
-                               const sourcemeta::core::SchemaFrame::Location &,
-                               const sourcemeta::core::SchemaWalker &,
-                               const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const -> bool override {
     return vocabularies.contains("http://json-schema.org/draft-06/schema#") &&
            schema.is_object() && schema.defines("type") &&
            schema.at("type").is_string() &&

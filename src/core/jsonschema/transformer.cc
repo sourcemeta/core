@@ -25,8 +25,7 @@ auto SchemaTransformRule::message() const -> const std::string & {
   return this->message_;
 }
 
-auto SchemaTransformRule::apply(JSON &schema,
-                                const std::map<std::string, bool> &vocabularies,
+auto SchemaTransformRule::apply(JSON &schema, const Vocabularies &vocabularies,
                                 const SchemaWalker &walker,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
@@ -52,7 +51,7 @@ auto SchemaTransformRule::apply(JSON &schema,
 }
 
 auto SchemaTransformRule::check(const JSON &schema,
-                                const std::map<std::string, bool> &vocabularies,
+                                const Vocabularies &vocabularies,
                                 const SchemaWalker &walker,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,

@@ -6,14 +6,14 @@ public:
             "Setting `type` to more than one choice is syntax sugar to "
             "`anyOf` over the corresponding types"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::map<std::string, bool> &vocabularies,
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::Vocabularies &vocabularies,
 
-                               const sourcemeta::core::SchemaFrame &frame,
-                               const sourcemeta::core::SchemaFrame::Location &,
-                               const sourcemeta::core::SchemaWalker &,
-                               const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+            const sourcemeta::core::SchemaFrame &frame,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const -> bool override {
 
     // Note that a big limitation of this rule is that it cannot apply to
     // schemas that have identifiers. For example, consider a schema that has

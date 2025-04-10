@@ -5,38 +5,41 @@
 
 #include "jsonschema_test_utils.h"
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_CORE{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_CORE{
     {"https://json-schema.org/draft/2020-12/vocab/core", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_APPLICATOR{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_APPLICATOR{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://json-schema.org/draft/2020-12/vocab/applicator", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_UNEVALUATED{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_UNEVALUATED{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://json-schema.org/draft/2020-12/vocab/unevaluated", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_VALIDATION{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_VALIDATION{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://json-schema.org/draft/2020-12/vocab/validation", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_FORMAT_ANNOTATION{
-    {"https://json-schema.org/draft/2020-12/vocab/core", true},
-    {"https://json-schema.org/draft/2020-12/vocab/format-annotation", true}};
+static const sourcemeta::core::Vocabularies
+    VOCABULARIES_2020_12_FORMAT_ANNOTATION{
+        {"https://json-schema.org/draft/2020-12/vocab/core", true},
+        {"https://json-schema.org/draft/2020-12/vocab/format-annotation",
+         true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_FORMAT_ASSERTION{
-    {"https://json-schema.org/draft/2020-12/vocab/core", true},
-    {"https://json-schema.org/draft/2020-12/vocab/format-assertion", true}};
+static const sourcemeta::core::Vocabularies
+    VOCABULARIES_2020_12_FORMAT_ASSERTION{
+        {"https://json-schema.org/draft/2020-12/vocab/core", true},
+        {"https://json-schema.org/draft/2020-12/vocab/format-assertion", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_CONTENT{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_CONTENT{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://json-schema.org/draft/2020-12/vocab/content", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_METADATA{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_METADATA{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://json-schema.org/draft/2020-12/vocab/meta-data", true}};
 
-static const std::map<std::string, bool> VOCABULARIES_2020_12_HYPERSCHEMA{
+static const sourcemeta::core::Vocabularies VOCABULARIES_2020_12_HYPERSCHEMA{
     {"https://json-schema.org/draft/2020-12/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/hyper-schema", true}};
 
@@ -262,7 +265,7 @@ TEST(JSONSchema_official_walker_2020_12, applicator_contains_only) {
 
 TEST(JSONSchema_official_walker_2020_12, applicator_contains_with_validation) {
   using namespace sourcemeta::core;
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
             VOCABULARIES_2020_12_APPLICATOR.cend(),
             std::inserter(vocabularies, vocabularies.end()));
@@ -341,7 +344,7 @@ TEST(JSONSchema_official_walker_2020_12, unevaluated_unevaluatedItems_only) {
 TEST(JSONSchema_official_walker_2020_12,
      unevaluated_unevaluatedItems_with_applicator) {
   using namespace sourcemeta::core;
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2020_12_UNEVALUATED.cbegin(),
             VOCABULARIES_2020_12_UNEVALUATED.cend(),
             std::inserter(vocabularies, vocabularies.end()));
@@ -373,7 +376,7 @@ TEST(JSONSchema_official_walker_2020_12,
 TEST(JSONSchema_official_walker_2020_12,
      unevaluated_unevaluatedProperties_with_applicator) {
   using namespace sourcemeta::core;
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2020_12_UNEVALUATED.cbegin(),
             VOCABULARIES_2020_12_UNEVALUATED.cend(),
             std::inserter(vocabularies, vocabularies.end()));
@@ -1512,7 +1515,7 @@ TEST(JSONSchema_official_walker_2020_12,
 }
 
 TEST(JSONSchema_official_walker_2020_12, schema_keyword_priority_array) {
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
             VOCABULARIES_2020_12_APPLICATOR.cend(),
             std::inserter(vocabularies, vocabularies.end()));
@@ -1535,7 +1538,7 @@ TEST(JSONSchema_official_walker_2020_12, schema_keyword_priority_array) {
 }
 
 TEST(JSONSchema_official_walker_2020_12, schema_keyword_priority_object) {
-  std::map<std::string, bool> vocabularies;
+  sourcemeta::core::Vocabularies vocabularies;
   std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
             VOCABULARIES_2020_12_APPLICATOR.cend(),
             std::inserter(vocabularies, vocabularies.end()));
