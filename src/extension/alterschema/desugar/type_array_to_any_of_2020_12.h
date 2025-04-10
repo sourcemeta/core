@@ -6,11 +6,12 @@ public:
             "Setting `type` to more than one choice is syntax sugar to "
             "`anyOf` over the corresponding types"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &vocabularies,
-                               const sourcemeta::core::Pointer &,
-                               const sourcemeta::core::SchemaFrame &frame) const
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &vocabularies,
+            const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &frame,
+            const sourcemeta::core::SchemaFrame::Location &) const
       -> bool override {
 
     // Note that a big limitation of this rule is that it cannot apply to

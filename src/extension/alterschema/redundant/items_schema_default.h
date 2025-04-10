@@ -5,12 +5,11 @@ public:
                             "Setting the `items` keyword to the true schema "
                             "does not add any further constraint"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &vocabularies,
-                               const sourcemeta::core::Pointer &,
-                               const sourcemeta::core::SchemaFrame &) const
-      -> bool override {
+  [[nodiscard]] auto condition(
+      const sourcemeta::core::JSON &schema, const std::string &,
+      const std::set<std::string> &vocabularies,
+      const sourcemeta::core::Pointer &, const sourcemeta::core::SchemaFrame &,
+      const sourcemeta::core::SchemaFrame::Location &) const -> bool override {
     return contains_any(
                vocabularies,
                {"https://json-schema.org/draft/2020-12/vocab/applicator",

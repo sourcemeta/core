@@ -5,12 +5,11 @@ public:
             "type_union_implicit",
             "Not setting `type` is equivalent to accepting any type"} {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &vocabularies,
-                               const sourcemeta::core::Pointer &,
-                               const sourcemeta::core::SchemaFrame &) const
-      -> bool override {
+  [[nodiscard]] auto condition(
+      const sourcemeta::core::JSON &schema, const std::string &,
+      const std::set<std::string> &vocabularies,
+      const sourcemeta::core::Pointer &, const sourcemeta::core::SchemaFrame &,
+      const sourcemeta::core::SchemaFrame::Location &) const -> bool override {
     if (!schema.is_object()) {
       return false;
     }
