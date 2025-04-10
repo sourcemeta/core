@@ -1484,22 +1484,8 @@ TEST(AlterSchema_lint_2020_12, type_array_to_any_of_1) {
     "$id": "https://example.com",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$anchor": "foo",
-    "anyOf": [
-      {
-        "type": "integer",
-        "multipleOf": 1,
-        "minimum": 5
-      },
-      {
-        "type": "number",
-        "multipleOf": 1,
-        "minimum": 5
-      },
-      {
-        "type": "string",
-        "minLength": 0
-      }
-    ]
+    "type": [ "integer", "number", "string" ],
+    "minimum": 5
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1543,26 +1529,12 @@ TEST(AlterSchema_lint_2020_12, type_array_to_any_of_3) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "anyOf": [
-      {
-        "type": "object",
-        "properties": {},
-        "minProperties": 0,
-        "additionalProperties": {
-          "$anchor": "foo",
-          "type": "string",
-          "minLength": 0
-        }
-      },
-      {
-        "type": "array",
-        "minItems": 0
-      },
-      {
-        "type": "string",
-        "minLength": 0
-      }
-    ]
+    "type": [ "object", "array", "string" ],
+    "additionalProperties": {
+      "$anchor": "foo",
+      "type": "string",
+      "minLength": 0
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

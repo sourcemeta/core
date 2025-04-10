@@ -21,8 +21,11 @@ TEST(JSONSchema_transformer, flat_document_no_applicators) {
     "qux": "xxx"
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -45,7 +48,6 @@ TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
 
   EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_official_walker,
                             sourcemeta::core::schema_official_resolver,
-                            sourcemeta::core::empty_pointer,
                             "https://example.com/invalid"),
                sourcemeta::core::SchemaResolutionError);
 
@@ -70,10 +72,12 @@ TEST(JSONSchema_transformer, with_default_dialect) {
     "qux": "xxx"
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver,
-               sourcemeta::core::empty_pointer,
-               "https://json-schema.org/draft/2020-12/schema");
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   "https://json-schema.org/draft/2020-12/schema");
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "qux": "xxx"
@@ -94,10 +98,12 @@ TEST(JSONSchema_transformer, with_explicit_default_dialect_same) {
     "qux": "xxx"
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver,
-               sourcemeta::core::empty_pointer,
-               "https://json-schema.org/draft/2020-12/schema");
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   "https://json-schema.org/draft/2020-12/schema");
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -133,8 +139,11 @@ TEST(JSONSchema_transformer, top_level_rule) {
     }
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -163,8 +172,11 @@ TEST(JSONSchema_transformer, walker_2020_12) {
     }
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -203,10 +215,12 @@ TEST(JSONSchema_transformer, mismatch_default_dialect) {
     }
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver,
-               sourcemeta::core::empty_pointer,
-               "http://json-schema.org/draft-04/schema#");
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   "http://json-schema.org/draft-04/schema#");
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -219,45 +233,6 @@ TEST(JSONSchema_transformer, mismatch_default_dialect) {
       "bar": {
         "here": true,
         "unevaluatedItems": {
-          "here": true,
-          "type": "number"
-        }
-      }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(JSONSchema_transformer, specific_subschema) {
-  sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule4>();
-
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "properties": {
-      "foo": { "type": "string" },
-      "bar": {
-        "items": {
-          "type": "number"
-        }
-      }
-    }
-  })JSON");
-
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver,
-               {"properties", "bar"});
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "properties": {
-      "foo": {
-        "type": "string"
-      },
-      "bar": {
-        "here": true,
-        "items": {
           "here": true,
           "type": "number"
         }
@@ -281,8 +256,11 @@ TEST(JSONSchema_transformer, rule_pointers) {
     }
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -313,8 +291,11 @@ TEST(JSONSchema_transformer, multi_dialect_rules) {
     }
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -351,8 +332,11 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
     }
   })JSON");
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -401,40 +385,6 @@ TEST(JSONSchema_transformer, check_top_level) {
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
-}
-
-TEST(JSONSchema_transformer, check_subschema) {
-  sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
-
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "foo": "bar",
-    "properties": {
-      "xxx": {
-        "bar": "baz"
-      }
-    }
-  })JSON");
-
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string>>
-      entries;
-  const bool result = bundle.check(
-      document, sourcemeta::core::schema_official_walker,
-      sourcemeta::core::schema_official_resolver,
-      [&entries](const auto &pointer, const auto &name, const auto &message) {
-        entries.emplace_back(pointer, name, message);
-      },
-      {"properties", "xxx"});
-
-  EXPECT_FALSE(result);
-  EXPECT_EQ(entries.size(), 1);
-
-  EXPECT_EQ(std::get<0>(entries.at(0)),
-            sourcemeta::core::Pointer({"properties", "xxx"}));
-  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_2");
-  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword bar is not permitted");
 }
 
 TEST(JSONSchema_transformer, check_no_match) {
@@ -497,7 +447,6 @@ TEST(JSONSchema_transformer, check_throw_if_no_dialect_invalid_default) {
 
   EXPECT_THROW(bundle.check(document, sourcemeta::core::schema_official_walker,
                             sourcemeta::core::schema_official_resolver, nullptr,
-                            sourcemeta::core::empty_pointer,
                             "https://example.com/invalid"),
                sourcemeta::core::SchemaResolutionError);
 }
@@ -524,7 +473,6 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
       [&entries](const auto &pointer, const auto &name, const auto &message) {
         entries.emplace_back(pointer, name, message);
       },
-      sourcemeta::core::empty_pointer,
       "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_FALSE(result);
@@ -556,8 +504,11 @@ TEST(JSONSchema_transformer, remove_rule_by_name) {
   EXPECT_FALSE(bundle.remove("example_rule_2"));
   EXPECT_FALSE(bundle.remove("i_dont_exist"));
 
-  bundle.apply(document, sourcemeta::core::schema_official_walker,
-               sourcemeta::core::schema_official_resolver);
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
