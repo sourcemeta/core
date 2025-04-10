@@ -6,20 +6,6 @@
 #include <stdexcept> // std::runtime_error
 #include <utility>   // std::move, std::pair
 
-namespace {
-
-auto vocabularies_to_set(const std::map<std::string, bool> &vocabularies)
-    -> std::set<std::string> {
-  std::set<std::string> result;
-  for (const auto &pair : vocabularies) {
-    result.insert(pair.first);
-  }
-
-  return result;
-}
-
-} // namespace
-
 namespace sourcemeta::core {
 
 SchemaTransformRule::SchemaTransformRule(std::string &&name,
@@ -39,15 +25,14 @@ auto SchemaTransformRule::message() const -> const std::string & {
   return this->message_;
 }
 
-auto SchemaTransformRule::apply(JSON &schema, const SchemaWalker &walker,
+auto SchemaTransformRule::apply(JSON &schema,
+                                const std::map<std::string, bool> &vocabularies,
+                                const SchemaWalker &walker,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
                                 const SchemaFrame::Location &location) const
     -> bool {
-  // TODO: Stop converting to set. This hurts performance
-  const auto current_vocabularies{
-      vocabularies_to_set(vocabularies(schema, resolver, location.dialect))};
-  if (!this->condition(schema, current_vocabularies, frame, location, walker,
+  if (!this->condition(schema, vocabularies, frame, location, walker,
                        resolver)) {
     return false;
   }
@@ -56,7 +41,7 @@ auto SchemaTransformRule::apply(JSON &schema, const SchemaWalker &walker,
 
   // The condition must always be false after applying the
   // transformation in order to avoid infinite loops
-  if (this->condition(schema, current_vocabularies, frame, location, walker,
+  if (this->condition(schema, vocabularies, frame, location, walker,
                       resolver)) {
     std::ostringstream error;
     error << "Rule condition holds after application: " << this->name();
@@ -66,15 +51,15 @@ auto SchemaTransformRule::apply(JSON &schema, const SchemaWalker &walker,
   return true;
 }
 
-auto SchemaTransformRule::check(const JSON &schema, const SchemaWalker &walker,
+auto SchemaTransformRule::check(const JSON &schema,
+                                const std::map<std::string, bool> &vocabularies,
+                                const SchemaWalker &walker,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
                                 const SchemaFrame::Location &location) const
     -> bool {
-  return this->condition(
-      schema,
-      vocabularies_to_set(vocabularies(schema, resolver, location.dialect)),
-      frame, location, walker, resolver);
+  return this->condition(schema, vocabularies, frame, location, walker,
+                         resolver);
 }
 
 auto SchemaTransformer::check(
@@ -93,8 +78,11 @@ auto SchemaTransformer::check(
     }
 
     const auto &current{get(schema, entry.second.pointer)};
+    const auto current_vocabularies{
+        vocabularies(schema, resolver, entry.second.dialect)};
     for (const auto &[name, rule] : this->rules) {
-      if (rule->check(current, walker, resolver, frame, entry.second)) {
+      if (rule->check(current, current_vocabularies, walker, resolver, frame,
+                      entry.second)) {
         result = false;
         callback(entry.second.pointer, name, rule->message());
       }
@@ -123,8 +111,11 @@ auto SchemaTransformer::apply(
       }
 
       auto &current{get(schema, entry.second.pointer)};
+      const auto current_vocabularies{
+          vocabularies(schema, resolver, entry.second.dialect)};
       for (const auto &[name, rule] : this->rules) {
-        applied = rule->apply(current, walker, resolver, frame, entry.second) ||
+        applied = rule->apply(current, current_vocabularies, walker, resolver,
+                              frame, entry.second) ||
                   applied;
         if (!applied) {
           continue;

@@ -7,7 +7,7 @@ public:
         };
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::set<std::string> &,
+                               const std::map<std::string, bool> &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
