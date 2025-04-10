@@ -709,10 +709,11 @@ auto sourcemeta::core::wrap(const sourcemeta::core::JSON &schema,
                             const sourcemeta::core::SchemaResolver &resolver,
                             const std::optional<std::string> &default_dialect)
     -> sourcemeta::core::JSON {
-  // Otherwise what's the point?
-  assert(!pointer.empty());
-  assert(try_get(schema, pointer));
+  if (pointer.empty()) {
+    return schema;
+  }
 
+  assert(try_get(schema, pointer));
   auto result{JSON::make_object()};
   // JSON Schema 2020-12 is the first dialect that truly supports cross-dialect
   // references In practice, others do, but we can play it safe here
