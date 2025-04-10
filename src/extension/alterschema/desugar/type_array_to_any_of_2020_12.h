@@ -7,9 +7,9 @@ public:
             "`anyOf` over the corresponding types"} {};
 
   [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::string &,
+  condition(const sourcemeta::core::JSON &schema,
             const std::set<std::string> &vocabularies,
-            const sourcemeta::core::Pointer &,
+
             const sourcemeta::core::SchemaFrame &frame,
             const sourcemeta::core::SchemaFrame::Location &) const
       -> bool override {

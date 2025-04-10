@@ -42,9 +42,7 @@ namespace sourcemeta::core {
 ///   sourcemeta::core::SchemaTransformRule("my_rule", "My rule") {};
 ///
 ///   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-///                                const std::string &dialect,
 ///                                const std::set<std::string> &vocabularies,
-///                                const sourcemeta::core::Pointer &pointer,
 ///                                const sourcemeta::core::SchemaFrame &,
 ///                                const sourcemeta::core::SchemaFrame::Location
 ///                                &)
@@ -82,20 +80,19 @@ public:
   [[nodiscard]] auto message() const -> const std::string &;
 
   /// Apply the rule to a schema
-  auto apply(JSON &schema, const Pointer &pointer,
-             const SchemaResolver &resolver, const SchemaFrame &frame,
+  auto apply(JSON &schema, const SchemaResolver &resolver,
+             const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
   /// Check if the rule applies to a schema
-  auto check(const JSON &schema, const Pointer &pointer,
-             const SchemaResolver &resolver, const SchemaFrame &frame,
+  auto check(const JSON &schema, const SchemaResolver &resolver,
+             const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
 private:
   /// The rule condition
   [[nodiscard]] virtual auto
-  condition(const JSON &schema, const std::string &dialect,
-            const std::set<std::string> &vocabularies, const Pointer &pointer,
+  condition(const JSON &schema, const std::set<std::string> &vocabularies,
             const SchemaFrame &frame,
             const SchemaFrame::Location &location) const -> bool = 0;
 
@@ -132,9 +129,7 @@ private:
 ///   MyRule() : sourcemeta::core::SchemaTransformRule("my_rule") {};
 ///
 ///   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-///                                const std::string &dialect,
 ///                                const std::set<std::string> &vocabularies,
-///                                const sourcemeta::core::Pointer &pointer,
 ///                                const sourcemeta::core::SchemaFrame &,
 ///                                const sourcemeta::core::SchemaFrame::Location
 ///                                &)

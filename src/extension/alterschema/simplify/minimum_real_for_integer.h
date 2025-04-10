@@ -6,11 +6,12 @@ public:
             "If an instance is guaranteed to be an integer, setting a real "
             "number lower bound is the same as a ceil of that lower bound"} {};
 
-  [[nodiscard]] auto condition(
-      const sourcemeta::core::JSON &schema, const std::string &,
-      const std::set<std::string> &vocabularies,
-      const sourcemeta::core::Pointer &, const sourcemeta::core::SchemaFrame &,
-      const sourcemeta::core::SchemaFrame::Location &) const -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const std::set<std::string> &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &) const
+      -> bool override {
     return contains_any(
                vocabularies,
                {"https://json-schema.org/draft/2020-12/vocab/validation",
