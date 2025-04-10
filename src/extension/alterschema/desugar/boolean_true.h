@@ -6,11 +6,10 @@ public:
             "The boolean schema `true` is syntax sugar for the empty schema"} {
         };
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return schema.is_boolean() && schema.to_boolean();
   }
 

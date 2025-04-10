@@ -10,7 +10,8 @@ public:
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
                                const std::string &,
                                const std::set<std::string> &vocabularies,
-                               const sourcemeta::core::Pointer &) const
+                               const sourcemeta::core::Pointer &,
+                               const sourcemeta::core::SchemaFrame &) const
       -> bool override {
     return contains_any(
                vocabularies,

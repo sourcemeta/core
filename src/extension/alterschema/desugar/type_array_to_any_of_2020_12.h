@@ -9,13 +9,29 @@ public:
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
                                const std::string &,
                                const std::set<std::string> &vocabularies,
-                               const sourcemeta::core::Pointer &) const
+                               const sourcemeta::core::Pointer &,
+                               const sourcemeta::core::SchemaFrame &frame) const
       -> bool override {
+
+    // Note that a big limitation of this rule is that it cannot apply to
+    // schemas that have identifiers. For example, consider a schema that has
+    // a type union declaration alongside of an `anyOf` where one branch defines
+    // `$id` or `$anchor`. We will end up duplicating identifiers (leading to
+    // invalid schemas) and there is no silver bullet to avoid these cases.
+    const auto has_identifiers{std::any_of(
+        frame.locations().cbegin(), frame.locations().cend(),
+        [](const auto &entry) {
+          return entry.second.type ==
+                     sourcemeta::core::SchemaFrame::LocationType::Resource ||
+                 entry.second.type ==
+                     sourcemeta::core::SchemaFrame::LocationType::Anchor;
+        })};
+
     return contains_any(
                vocabularies,
                {"https://json-schema.org/draft/2020-12/vocab/validation",
                 "https://json-schema.org/draft/2020-12/vocab/applicator"}) &&
-           schema.is_object() && schema.defines("type") &&
+           !has_identifiers && schema.is_object() && schema.defines("type") &&
            schema.at("type").is_array() &&
            // Non type-specific applicators can leads to invalid schemas
            !schema.defines("$defs") && !schema.defines("$ref") &&

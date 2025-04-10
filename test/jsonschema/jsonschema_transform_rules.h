@@ -9,11 +9,10 @@ public:
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_1", "Keyword foo is not permitted") {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return schema.defines("foo");
   }
 
@@ -28,11 +27,10 @@ public:
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_2", "Keyword bar is not permitted") {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return schema.defines("bar");
   }
 
@@ -50,7 +48,8 @@ public:
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
                                const std::string &,
                                const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &pointer) const
+                               const sourcemeta::core::Pointer &pointer,
+                               const sourcemeta::core::SchemaFrame &) const
       -> bool override {
     return !schema.defines("top") && pointer.empty();
   }
@@ -66,11 +65,10 @@ public:
       : sourcemeta::core::SchemaTransformRule("example_rule_4",
                                               "Example rule 4") {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return !schema.defines("here");
   }
 
@@ -88,7 +86,8 @@ public:
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
                                const std::string &,
                                const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &pointer) const
+                               const sourcemeta::core::Pointer &pointer,
+                               const sourcemeta::core::SchemaFrame &) const
       -> bool override {
     return !schema.defines("baz") &&
            pointer == sourcemeta::core::Pointer{"properties", "baz"};
@@ -105,11 +104,10 @@ public:
       : sourcemeta::core::SchemaTransformRule("example_rule_6",
                                               "Example rule 6") {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &dialect,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &dialect,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return !schema.defines("draft") &&
            dialect == "http://json-schema.org/draft-03/schema#";
   }
@@ -125,11 +123,10 @@ public:
       : sourcemeta::core::SchemaTransformRule("example_rule_1",
                                               "My custom message") {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return schema.defines("foo");
   }
 
@@ -146,11 +143,10 @@ public:
             "example_rule_conflicts_with_1",
             "Example rule that conflicts with rule 1") {};
 
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const std::string &,
-                               const std::set<std::string> &,
-                               const sourcemeta::core::Pointer &) const
-      -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema, const std::string &,
+            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+            const sourcemeta::core::SchemaFrame &) const -> bool override {
     return schema.defines("$schema") && schema.size() == 1;
   }
 
