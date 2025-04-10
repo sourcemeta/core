@@ -81,24 +81,24 @@ public:
   [[nodiscard]] auto message() const -> const std::string &;
 
   /// Apply the rule to a schema
-  auto apply(JSON &schema, const Vocabularies &vocabularies,
+  auto apply(JSON &schema, const JSON &root, const Vocabularies &vocabularies,
              const SchemaWalker &walker, const SchemaResolver &resolver,
              const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
   /// Check if the rule applies to a schema
-  auto check(const JSON &schema, const Vocabularies &vocabularies,
-             const SchemaWalker &walker, const SchemaResolver &resolver,
-             const SchemaFrame &frame,
+  auto check(const JSON &schema, const JSON &root,
+             const Vocabularies &vocabularies, const SchemaWalker &walker,
+             const SchemaResolver &resolver, const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
 private:
   /// The rule condition
   [[nodiscard]] virtual auto
-  condition(const JSON &schema, const Vocabularies &vocabularies,
-            const SchemaFrame &frame, const SchemaFrame::Location &location,
-            const SchemaWalker &walker, const SchemaResolver &resolver) const
-      -> bool = 0;
+  condition(const JSON &schema, const JSON &root,
+            const Vocabularies &vocabularies, const SchemaFrame &frame,
+            const SchemaFrame::Location &location, const SchemaWalker &walker,
+            const SchemaResolver &resolver) const -> bool = 0;
 
   /// The rule transformation
   virtual auto transform(JSON &schema) const -> void = 0;

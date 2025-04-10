@@ -7,6 +7,7 @@ public:
         };
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
                                const sourcemeta::core::Vocabularies &,
                                const sourcemeta::core::SchemaFrame &,
                                const sourcemeta::core::SchemaFrame::Location &,
