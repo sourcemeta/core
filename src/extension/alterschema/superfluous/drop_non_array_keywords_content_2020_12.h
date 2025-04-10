@@ -6,11 +6,12 @@ public:
             "Keywords that don't apply to arrays will never match if the "
             "instance is guaranteed to be an array"} {};
 
-  [[nodiscard]] auto condition(
-      const sourcemeta::core::JSON &schema, const std::string &,
-      const std::set<std::string> &vocabularies,
-      const sourcemeta::core::Pointer &, const sourcemeta::core::SchemaFrame &,
-      const sourcemeta::core::SchemaFrame::Location &) const -> bool override {
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const std::set<std::string> &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &) const
+      -> bool override {
     return vocabularies.contains(
                "https://json-schema.org/draft/2020-12/vocab/validation") &&
            schema.is_object() && schema.defines("type") &&

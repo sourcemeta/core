@@ -39,16 +39,14 @@ auto SchemaTransformRule::message() const -> const std::string & {
   return this->message_;
 }
 
-auto SchemaTransformRule::apply(JSON &schema, const Pointer &pointer,
-                                const SchemaResolver &resolver,
+auto SchemaTransformRule::apply(JSON &schema, const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
                                 const SchemaFrame::Location &location) const
     -> bool {
   // TODO: Stop converting to set. This hurts performance
   const auto current_vocabularies{
       vocabularies_to_set(vocabularies(schema, resolver, location.dialect))};
-  if (!this->condition(schema, location.dialect, current_vocabularies, pointer,
-                       frame, location)) {
+  if (!this->condition(schema, current_vocabularies, frame, location)) {
     return false;
   }
 
@@ -56,8 +54,7 @@ auto SchemaTransformRule::apply(JSON &schema, const Pointer &pointer,
 
   // The condition must always be false after applying the
   // transformation in order to avoid infinite loops
-  if (this->condition(schema, location.dialect, current_vocabularies, pointer,
-                      frame, location)) {
+  if (this->condition(schema, current_vocabularies, frame, location)) {
     std::ostringstream error;
     error << "Rule condition holds after application: " << this->name();
     throw std::runtime_error(error.str());
@@ -66,15 +63,15 @@ auto SchemaTransformRule::apply(JSON &schema, const Pointer &pointer,
   return true;
 }
 
-auto SchemaTransformRule::check(const JSON &schema, const Pointer &pointer,
+auto SchemaTransformRule::check(const JSON &schema,
                                 const SchemaResolver &resolver,
                                 const SchemaFrame &frame,
                                 const SchemaFrame::Location &location) const
     -> bool {
   return this->condition(
-      schema, location.dialect,
+      schema,
       vocabularies_to_set(vocabularies(schema, resolver, location.dialect)),
-      pointer, frame, location);
+      frame, location);
 }
 
 auto SchemaTransformer::check(
@@ -94,8 +91,7 @@ auto SchemaTransformer::check(
 
     const auto &current{get(schema, entry.second.pointer)};
     for (const auto &[name, rule] : this->rules) {
-      if (rule->check(current, entry.second.pointer, resolver, frame,
-                      entry.second)) {
+      if (rule->check(current, resolver, frame, entry.second)) {
         result = false;
         callback(entry.second.pointer, name, rule->message());
       }
@@ -125,9 +121,8 @@ auto SchemaTransformer::apply(
 
       auto &current{get(schema, entry.second.pointer)};
       for (const auto &[name, rule] : this->rules) {
-        applied = rule->apply(current, entry.second.pointer, resolver, frame,
-                              entry.second) ||
-                  applied;
+        applied =
+            rule->apply(current, resolver, frame, entry.second) || applied;
         if (!applied) {
           continue;
         }

@@ -7,8 +7,7 @@ public:
         };
 
   [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema, const std::string &,
-            const std::set<std::string> &, const sourcemeta::core::Pointer &,
+  condition(const sourcemeta::core::JSON &schema, const std::set<std::string> &,
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &) const
       -> bool override {
