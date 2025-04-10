@@ -6,11 +6,12 @@ public:
             "Setting `type` alongside `const` is considered an anti-pattern, "
             "as the constant already implies its respective type"} {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema,
-            const std::set<std::string> &vocabularies,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &vocabularies,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return contains_any(
                vocabularies,

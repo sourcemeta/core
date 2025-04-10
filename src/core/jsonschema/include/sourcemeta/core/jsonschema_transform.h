@@ -80,21 +80,22 @@ public:
   [[nodiscard]] auto message() const -> const std::string &;
 
   /// Apply the rule to a schema
-  auto apply(JSON &schema, const SchemaResolver &resolver,
-             const SchemaFrame &frame,
+  auto apply(JSON &schema, const SchemaWalker &walker,
+             const SchemaResolver &resolver, const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
   /// Check if the rule applies to a schema
-  auto check(const JSON &schema, const SchemaResolver &resolver,
-             const SchemaFrame &frame,
+  auto check(const JSON &schema, const SchemaWalker &walker,
+             const SchemaResolver &resolver, const SchemaFrame &frame,
              const SchemaFrame::Location &location) const -> bool;
 
 private:
   /// The rule condition
   [[nodiscard]] virtual auto
   condition(const JSON &schema, const std::set<std::string> &vocabularies,
-            const SchemaFrame &frame,
-            const SchemaFrame::Location &location) const -> bool = 0;
+            const SchemaFrame &frame, const SchemaFrame::Location &location,
+            const SchemaWalker &walker, const SchemaResolver &resolver) const
+      -> bool = 0;
 
   /// The rule transformation
   virtual auto transform(JSON &schema) const -> void = 0;

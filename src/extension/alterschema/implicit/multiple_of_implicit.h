@@ -4,11 +4,12 @@ public:
       : SchemaTransformRule{"multiple_of_implicit",
                             "The unit of `multipleOf` is the integer 1"} {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema,
-            const std::set<std::string> &vocabularies,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &vocabularies,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return contains_any(
                vocabularies,

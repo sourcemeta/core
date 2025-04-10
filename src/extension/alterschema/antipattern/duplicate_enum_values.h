@@ -5,11 +5,12 @@ public:
                             "Setting duplicate values in `enum` is "
                             "considered an anti-pattern"} {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema,
-            const std::set<std::string> &vocabularies,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &vocabularies,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return contains_any(
                vocabularies,

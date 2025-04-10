@@ -6,11 +6,12 @@ public:
             "If an instance is guaranteed to be an integer, setting a real "
             "number upper bound is the same as a floor of that upper bound"} {};
 
-  [[nodiscard]] auto
-  condition(const sourcemeta::core::JSON &schema,
-            const std::set<std::string> &vocabularies,
-            const sourcemeta::core::SchemaFrame &,
-            const sourcemeta::core::SchemaFrame::Location &) const
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const std::set<std::string> &vocabularies,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
       -> bool override {
     return contains_any(
                vocabularies,
