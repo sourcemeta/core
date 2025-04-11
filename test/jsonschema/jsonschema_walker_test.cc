@@ -174,6 +174,47 @@ TEST(JSONSchema_walker, value) {
             "https://json-schema.org/draft/2020-12/schema");
 }
 
+TEST(JSONSchema_walker, value_with_dialect_no_identifier) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/test-metaschema",
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2019-09/schema"
+    }
+  })JSON");
+
+  std::vector<sourcemeta::core::JSON> subschemas;
+  std::vector<sourcemeta::core::SchemaIteratorEntry> entries;
+  for (const auto &entry :
+       sourcemeta::core::SchemaIterator(document, test_walker, test_resolver)) {
+    subschemas.push_back(sourcemeta::core::get(document, entry.pointer));
+    entries.push_back(entry);
+  }
+
+  EXPECT_EQ(subschemas.size(), 2);
+  EXPECT_EQ(subschemas.at(0), sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/test-metaschema",
+    "schema": {
+      "$schema": "https://json-schema.org/draft/2019-09/schema"
+    }
+  })JSON"));
+  EXPECT_EQ(subschemas.at(1), sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON"));
+
+  EXPECT_EQ(entries.size(), 2);
+
+  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer{});
+  EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
+  EXPECT_EQ(entries.at(0).base_dialect,
+            "https://json-schema.org/draft/2020-12/schema");
+
+  // `$schema` outside a schema resource is ignored
+  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer{"schema"});
+  EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
+  EXPECT_EQ(entries.at(1).base_dialect,
+            "https://json-schema.org/draft/2020-12/schema");
+}
+
 TEST(JSONSchema_walker, value_invalid) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/test-metaschema",
@@ -544,6 +585,7 @@ TEST(JSONSchema_walker, multi_metaschemas) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/test-metaschema",
     "schema": {
+      "$id": "https://www.example.com",
       "$schema": "https://sourcemeta.com/custom-vocab",
       "custom": { "foo": 1 }
     }
@@ -561,11 +603,13 @@ TEST(JSONSchema_walker, multi_metaschemas) {
   EXPECT_EQ(subschemas.at(0), sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/test-metaschema",
     "schema": {
+      "$id": "https://www.example.com",
       "$schema": "https://sourcemeta.com/custom-vocab",
       "custom": { "foo": 1 }
     }
   })JSON"));
   EXPECT_EQ(subschemas.at(1), sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
     "$schema": "https://sourcemeta.com/custom-vocab",
     "custom": { "foo": 1 }
   })JSON"));

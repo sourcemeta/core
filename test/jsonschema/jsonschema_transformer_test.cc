@@ -326,6 +326,60 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$defs": {
+      "foo": {
+        "id": "https://www.example.com/foo",
+        "$schema": "http://json-schema.org/draft-03/schema#"
+      },
+      "bar": {
+        "id": "https://www.example.com/bar",
+        "$schema": "http://json-schema.org/draft-02/schema#"
+      },
+      "baz": {
+        "id": "https://www.example.com/baz",
+        "$schema": "http://json-schema.org/draft-01/schema#"
+      }
+    }
+  })JSON");
+
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(result);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$defs": {
+      "foo": {
+        "id": "https://www.example.com/foo",
+        "$schema": "http://json-schema.org/draft-03/schema#",
+        "draft": 3
+      },
+      "bar": {
+        "id": "https://www.example.com/bar",
+        "$schema": "http://json-schema.org/draft-02/schema#"
+      },
+      "baz": {
+        "id": "https://www.example.com/baz",
+        "$schema": "http://json-schema.org/draft-01/schema#"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule6>();
+
+  // Note that `$schema` is only valid on subschemas that represent
+  // schema resources. Here we test that if not, `$schema` is ignored
+  // and the dialects never change
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$defs": {
       "foo": { "$schema": "http://json-schema.org/draft-03/schema#" },
       "bar": { "$schema": "http://json-schema.org/draft-02/schema#" },
       "baz": { "$schema": "http://json-schema.org/draft-01/schema#" }
@@ -341,7 +395,7 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$defs": {
-      "foo": { "$schema": "http://json-schema.org/draft-03/schema#", "draft": 3 },
+      "foo": { "$schema": "http://json-schema.org/draft-03/schema#" },
       "bar": { "$schema": "http://json-schema.org/draft-02/schema#" },
       "baz": { "$schema": "http://json-schema.org/draft-01/schema#" }
     }
