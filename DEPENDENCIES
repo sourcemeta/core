@@ -4,7 +4,7 @@ jsonschema-2020-12 https://github.com/json-schema-org/json-schema-spec 769daad75
 jsonschema-2019-09 https://github.com/json-schema-org/json-schema-spec 41014ea723120ce70b314d72f863c6929d9f3cfd
 jsonschema-draft7 https://github.com/json-schema-org/json-schema-spec 567f768506aaa33a38e552c85bf0586029ef1b32
 jsonschema-draft6 https://github.com/json-schema-org/json-schema-spec 59ed5f6fc6f6386e23ca51d7f31d7fe9cf696713
-jsonschema-draft4 https://github.com/json-schema-org/json-schema-spec dba92b702c94858162f653590230e7573c8b7dd0
+jsonschema-draft4 https://github.com/json-schema-org/json-schema-spec 955d185db846cfca84269d9d711b10f4f3353d38
 jsonschema-draft3 https://github.com/json-schema-org/json-schema-spec 89912ad69fe15e006e8336a59e93bf7a1e46fa54
 jsonschema-draft2 https://github.com/json-schema-org/json-schema-spec 707f65070d09fe5baa1315bce4d31a66ff124171
 jsonschema-draft1 https://github.com/json-schema-org/json-schema-spec 2072feec9fc7a7ff0b2bb5b02c2d6742c554cc4a
