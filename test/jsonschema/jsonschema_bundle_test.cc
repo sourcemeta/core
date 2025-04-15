@@ -168,7 +168,7 @@ TEST(JSONSchema_bundle, target_no_dialect) {
   EXPECT_THROW(
       sourcemeta::core::bundle(
           document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaResolutionError);
+      sourcemeta::core::SchemaReferenceError);
 }
 
 TEST(JSONSchema_bundle, target_array) {
@@ -182,5 +182,5 @@ TEST(JSONSchema_bundle, target_array) {
   EXPECT_THROW(
       sourcemeta::core::bundle(
           document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaResolutionError);
+      sourcemeta::core::SchemaReferenceError);
 }
