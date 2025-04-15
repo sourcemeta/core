@@ -200,6 +200,11 @@ TEST(JSON_parse_error, empty_object_missing_right_curly) {
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
+TEST(JSON_parse_error, object_missing_closing_curly) {
+  std::istringstream input{"{\"foo\":{}"};
+  EXPECT_PARSE_ERROR(input, 1, 10);
+}
+
 TEST(JSON_parse_error, object_integer_key) {
   std::istringstream input{"{1:false}"};
   EXPECT_PARSE_ERROR(input, 1, 2);
@@ -654,15 +659,30 @@ TEST(JSON_parse_error, backspace_is_not_whitespace) {
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, read_json_invalid) {
+TEST(JSON_parse_error, read_json_invalid_1) {
   try {
     sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
-                                "stub_invalid.json");
+                                "stub_invalid_1.json");
   } catch (const sourcemeta::core::JSONFileParseError &error) {
     EXPECT_EQ(error.path(),
-              std::filesystem::path{TEST_DIRECTORY} / "stub_invalid.json");
+              std::filesystem::path{TEST_DIRECTORY} / "stub_invalid_1.json");
     EXPECT_EQ(error.line(), 3);
     EXPECT_EQ(error.column(), 9);
+    EXPECT_STREQ(error.what(), "Failed to parse the JSON document");
+  } catch (...) {
+    FAIL() << "The parse function was expected to throw a file parse error";
+  }
+}
+
+TEST(JSON_parse_error, read_json_invalid_2) {
+  try {
+    sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
+                                "stub_invalid_2.json");
+  } catch (const sourcemeta::core::JSONFileParseError &error) {
+    EXPECT_EQ(error.path(),
+              std::filesystem::path{TEST_DIRECTORY} / "stub_invalid_2.json");
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 1);
     EXPECT_STREQ(error.what(), "Failed to parse the JSON document");
   } catch (...) {
     FAIL() << "The parse function was expected to throw a file parse error";
