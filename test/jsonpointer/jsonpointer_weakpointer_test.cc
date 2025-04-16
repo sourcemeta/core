@@ -316,3 +316,18 @@ TEST(JSONWeakPointer_pointer, to_pointer) {
   EXPECT_TRUE(pointer.at(1).is_index());
   EXPECT_EQ(pointer.at(1).to_index(), 0);
 }
+
+TEST(JSONWeakPointer_pointer, to_weak_pointer) {
+  const sourcemeta::core::Pointer pointer{"foo", 1, "baz"};
+  const auto result{sourcemeta::core::to_weak_pointer(pointer)};
+  EXPECT_EQ(result.size(), 3);
+
+  EXPECT_TRUE(result.at(0).is_property());
+  EXPECT_EQ(result.at(0).to_property(), "foo");
+
+  EXPECT_TRUE(result.at(1).is_index());
+  EXPECT_EQ(result.at(1).to_index(), 1);
+
+  EXPECT_TRUE(result.at(2).is_property());
+  EXPECT_EQ(result.at(2).to_property(), "baz");
+}
