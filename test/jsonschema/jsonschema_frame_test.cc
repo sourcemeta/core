@@ -697,6 +697,8 @@ TEST(JSONSchema_frame, mode_references) {
   frame.analyse(document, sourcemeta::core::schema_official_walker,
                 sourcemeta::core::schema_official_resolver);
 
+  EXPECT_EQ(frame.mode(), sourcemeta::core::SchemaFrame::Mode::References);
+
   EXPECT_EQ(frame.locations().size(), 9);
   EXPECT_FRAME_STATIC_RESOURCE(frame, "https://www.example.com",
                                "https://www.example.com", "",
@@ -781,6 +783,7 @@ TEST(JSONSchema_frame, mode_locations) {
   frame.analyse(document, sourcemeta::core::schema_official_walker,
                 sourcemeta::core::schema_official_resolver);
 
+  EXPECT_EQ(frame.mode(), sourcemeta::core::SchemaFrame::Mode::Locations);
   EXPECT_EQ(frame.locations().size(), 9);
   EXPECT_FRAME_STATIC_RESOURCE(frame, "https://www.example.com",
                                "https://www.example.com", "",
