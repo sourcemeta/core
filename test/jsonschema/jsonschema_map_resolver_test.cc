@@ -26,7 +26,8 @@ TEST(JSONSchema_SchemaMapResolver, single_schema) {
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON");
 
-  resolver.add(document);
+  const auto result{resolver.add(document)};
+  EXPECT_TRUE(result);
 
   EXPECT_TRUE(resolver("https://www.sourcemeta.com/test").has_value());
   EXPECT_EQ(resolver("https://www.sourcemeta.com/test").value(), document);
@@ -44,7 +45,9 @@ TEST(JSONSchema_SchemaMapResolver, single_schema_with_default_dialect) {
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON");
 
-  resolver.add(document, "https://json-schema.org/draft/2020-12/schema");
+  const auto result{
+      resolver.add(document, "https://json-schema.org/draft/2020-12/schema")};
+  EXPECT_TRUE(result);
 
   EXPECT_TRUE(resolver("https://www.sourcemeta.com/test").has_value());
   EXPECT_EQ(resolver("https://www.sourcemeta.com/test").value(), expected);
@@ -62,7 +65,9 @@ TEST(JSONSchema_SchemaMapResolver, single_schema_anonymous_with_default) {
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON");
 
-  resolver.add(document, std::nullopt, "https://www.sourcemeta.com/test");
+  const auto result{
+      resolver.add(document, std::nullopt, "https://www.sourcemeta.com/test")};
+  EXPECT_TRUE(result);
 
   EXPECT_TRUE(resolver("https://www.sourcemeta.com/test").has_value());
   EXPECT_EQ(resolver("https://www.sourcemeta.com/test").value(), expected);
@@ -76,9 +81,13 @@ TEST(JSONSchema_SchemaMapResolver, single_schema_idempotent) {
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON");
 
-  resolver.add(document);
-  resolver.add(document);
-  resolver.add(document);
+  const auto result_1{resolver.add(document)};
+  const auto result_2{resolver.add(document)};
+  const auto result_3{resolver.add(document)};
+
+  EXPECT_TRUE(result_1);
+  EXPECT_TRUE(result_2);
+  EXPECT_TRUE(result_3);
 
   EXPECT_TRUE(resolver("https://www.sourcemeta.com/test").has_value());
   EXPECT_EQ(resolver("https://www.sourcemeta.com/test").value(), document);
@@ -100,7 +109,8 @@ TEST(JSONSchema_SchemaMapResolver, duplicate_ids) {
     "type": "string"
   })JSON");
 
-  resolver.add(document_1);
+  const auto result{resolver.add(document_1)};
+  EXPECT_TRUE(result);
   EXPECT_THROW(resolver.add(document_2), sourcemeta::core::SchemaError);
 }
 
@@ -118,7 +128,8 @@ TEST(JSONSchema_SchemaMapResolver, embedded_resource) {
     }
   })JSON");
 
-  resolver.add(document);
+  const auto result{resolver.add(document)};
+  EXPECT_TRUE(result);
 
   const sourcemeta::core::JSON embedded = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.sourcemeta.com/string",
