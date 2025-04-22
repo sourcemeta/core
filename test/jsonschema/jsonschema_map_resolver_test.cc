@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <unordered_set>
+
 #include <sourcemeta/core/jsonschema.h>
 
 TEST(JSONSchema_SchemaMapResolver, empty_no_fallback) {
@@ -141,4 +143,41 @@ TEST(JSONSchema_SchemaMapResolver, embedded_resource) {
   EXPECT_TRUE(resolver("https://www.sourcemeta.com/string").has_value());
   EXPECT_EQ(resolver("https://www.sourcemeta.com/test").value(), document);
   EXPECT_EQ(resolver("https://www.sourcemeta.com/string").value(), embedded);
+}
+
+TEST(JSONSchema_SchemaMapResolver, embedded_resource_with_callback) {
+  sourcemeta::core::SchemaMapResolver resolver;
+  std::unordered_set<sourcemeta::core::JSON::String> identifiers;
+
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/test",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "string": {
+        "$id": "string",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  const auto result{resolver.add(document, std::nullopt, std::nullopt,
+                                 [&identifiers](const auto &identifier) {
+                                   identifiers.insert(identifier);
+                                 })};
+  EXPECT_TRUE(result);
+
+  const sourcemeta::core::JSON embedded = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/string",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON");
+
+  EXPECT_TRUE(resolver("https://www.sourcemeta.com/test").has_value());
+  EXPECT_TRUE(resolver("https://www.sourcemeta.com/string").has_value());
+  EXPECT_EQ(resolver("https://www.sourcemeta.com/test").value(), document);
+  EXPECT_EQ(resolver("https://www.sourcemeta.com/string").value(), embedded);
+
+  EXPECT_EQ(identifiers.size(), 2);
+  EXPECT_TRUE(identifiers.contains("https://www.sourcemeta.com/test"));
+  EXPECT_TRUE(identifiers.contains("https://www.sourcemeta.com/string"));
 }
