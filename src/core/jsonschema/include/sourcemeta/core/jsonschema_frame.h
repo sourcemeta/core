@@ -17,8 +17,9 @@
 #include <map>           // std::map
 #include <optional>      // std::optional
 #include <ostream>       // std::ostream
+#include <set>           // std::set
 #include <tuple>         // std::tuple
-#include <unordered_set> // std::set
+#include <unordered_set> // std::unordered_set
 #include <utility>       // std::pair
 #include <vector>        // std::vector
 
@@ -180,12 +181,14 @@ public:
   /// Export the frame entries as JSON
   auto to_json() const -> JSON;
 
-  /// Analyse a given schema
+  /// Analyse a schema or set of schemas from a given root. Passing
+  /// multiple paths that have any overlap is undefined behaviour
   auto
-  analyse(const JSON &schema, const SchemaWalker &walker,
+  analyse(const JSON &root, const SchemaWalker &walker,
           const SchemaResolver &resolver,
           const std::optional<JSON::String> &default_dialect = std::nullopt,
-          const std::optional<JSON::String> &default_id = std::nullopt) -> void;
+          const std::optional<JSON::String> &default_id = std::nullopt,
+          const std::set<Pointer> &paths = {empty_pointer}) -> void;
 
   /// Access the analysed schema locations
   auto locations() const noexcept -> const Locations &;
