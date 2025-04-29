@@ -530,7 +530,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                           const SchemaResolver &resolver,
                           const std::optional<JSON::String> &default_dialect,
                           const std::optional<JSON::String> &default_id,
-                          const std::set<Pointer> &paths) -> void {
+                          const SchemaFrame::Paths &paths) -> void {
   std::vector<InternalEntry> subschema_entries;
   std::map<Pointer, CacheSubschema> subschemas;
   std::map<sourcemeta::core::Pointer, std::vector<JSON::String>> base_uris;
