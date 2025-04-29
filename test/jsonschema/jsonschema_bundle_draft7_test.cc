@@ -531,3 +531,30 @@ TEST(JSONSchema_bundle_draft7, hyperschema_ref_metaschema) {
   EXPECT_TRUE(document.at("definitions")
                   .defines("http://json-schema.org/draft-07/schema"));
 }
+
+TEST(JSONSchema_bundle_draft7, bundle_to_defs) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "https://www.sourcemeta.com/recursive"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+                           test_resolver, std::nullopt,
+                           sourcemeta::core::Pointer{"$defs"});
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "$defs": {
+      "https://www.sourcemeta.com/recursive": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://www.sourcemeta.com/recursive",
+        "properties": {
+          "foo": { "$ref": "#" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
