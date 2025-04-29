@@ -538,7 +538,8 @@ auto reference_visit(
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto bundle(JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
-            const std::optional<std::string> &default_dialect = std::nullopt)
+            const std::optional<std::string> &default_dialect = std::nullopt,
+            const std::optional<Pointer> &default_container = std::nullopt)
     -> void;
 
 /// @ingroup jsonschema
@@ -595,7 +596,8 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto bundle(const JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
-            const std::optional<std::string> &default_dialect = std::nullopt)
+            const std::optional<std::string> &default_dialect = std::nullopt,
+            const std::optional<Pointer> &default_container = std::nullopt)
     -> JSON;
 
 /// @ingroup jsonschema

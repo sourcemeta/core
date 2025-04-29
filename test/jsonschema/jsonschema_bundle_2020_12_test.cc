@@ -623,3 +623,143 @@ TEST(JSONSchema_bundle_2020_12, hyperschema_1) {
   EXPECT_TRUE(document.at("$defs").defines(
       "https://json-schema.org/draft/2020-12/hyper-schema"));
 }
+
+TEST(JSONSchema_bundle_2020_12, bundle_to_definitions) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+                           test_resolver, std::nullopt,
+                           sourcemeta::core::Pointer{"definitions"});
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "definitions": {
+      "https://www.sourcemeta.com/recursive": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://www.sourcemeta.com/recursive",
+        "properties": {
+          "foo": { "$ref": "#" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_non_existent) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive"
+  })JSON");
+
+  sourcemeta::core::bundle(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      std::nullopt, sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "x-definitions": {
+      "foo": {
+        "bar": {
+          "https://www.sourcemeta.com/recursive": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://www.sourcemeta.com/recursive",
+            "properties": {
+              "foo": { "$ref": "#" }
+            }
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_half_existent) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "x-definitions": { "foo": {} }
+  })JSON");
+
+  sourcemeta::core::bundle(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      std::nullopt, sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "x-definitions": {
+      "foo": {
+        "bar": {
+          "https://www.sourcemeta.com/recursive": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://www.sourcemeta.com/recursive",
+            "properties": {
+              "foo": { "$ref": "#" }
+            }
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12,
+     custom_nested_object_path_half_existent_with_array) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "x-definitions": [ { "foo": {} } ]
+  })JSON");
+
+  sourcemeta::core::bundle(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      std::nullopt,
+      sourcemeta::core::Pointer{"x-definitions", 0, "foo", "bar"});
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "x-definitions": [
+      {
+        "foo": {
+          "bar": {
+            "https://www.sourcemeta.com/recursive": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "$id": "https://www.sourcemeta.com/recursive",
+              "properties": {
+                "foo": { "$ref": "#" }
+              }
+            }
+          }
+        }
+      }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_not_object) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://www.sourcemeta.com/recursive",
+    "x-definitions": { "foo": { "bar": [] } }
+  })JSON");
+
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_official_walker,
+                   test_resolver, std::nullopt,
+                   sourcemeta::core::Pointer{"x-definitions", "foo", "bar"}),
+               sourcemeta::core::SchemaError);
+}
