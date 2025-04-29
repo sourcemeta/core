@@ -51,7 +51,13 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    const sourcemeta::core::SchemaWalker &walker,
                    const sourcemeta::core::SchemaResolver &resolver,
                    const std::optional<std::string> &default_dialect) -> void {
+  // Keep in mind that the resulting frame does miss some information. For
+  // example, when we recurse to framing embedded schemas, we will frame them
+  // without keeping their new relationship to their parent (after embedding if
+  // to the container location). However, that's fine for the purpose of this
+  // function, given we don't pass the frame back to the caller
   frame.analyse(subschema, walker, resolver, default_dialect);
+
   // Otherwise, given recursion, we would be modifying the
   // references list *while* looping on it
   const auto references_copy = frame.references();
