@@ -50,13 +50,22 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    sourcemeta::core::SchemaFrame &frame,
                    const sourcemeta::core::SchemaWalker &walker,
                    const sourcemeta::core::SchemaResolver &resolver,
-                   const std::optional<std::string> &default_dialect) -> void {
+                   const std::optional<std::string> &default_dialect,
+                   const sourcemeta::core::SchemaFrame::Paths &paths,
+                   const std::size_t depth = 0) -> void {
   // Keep in mind that the resulting frame does miss some information. For
   // example, when we recurse to framing embedded schemas, we will frame them
   // without keeping their new relationship to their parent (after embedding if
   // to the container location). However, that's fine for the purpose of this
   // function, given we don't pass the frame back to the caller
-  frame.analyse(subschema, walker, resolver, default_dialect);
+  if (depth == 0) {
+    frame.analyse(
+        subschema, walker, resolver, default_dialect, std::nullopt,
+        // We only want to frame in "wrapper" mode for the top level object
+        paths);
+  } else {
+    frame.analyse(subschema, walker, resolver, default_dialect);
+  }
 
   // Otherwise, given recursion, we would be modifying the
   // references list *while* looping on it
@@ -124,7 +133,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     embed_schema(root, container, identifier, copy);
     bundle_schema(root, container, copy, frame, walker, resolver,
-                  default_dialect);
+                  default_dialect, paths, depth + 1);
   }
 }
 
@@ -135,7 +144,8 @@ namespace sourcemeta::core {
 auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
             const std::optional<std::string> &default_dialect,
-            const std::optional<Pointer> &default_container) -> void {
+            const std::optional<Pointer> &default_container,
+            const SchemaFrame::Paths &paths) -> void {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
 
@@ -143,7 +153,7 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
     // This is undefined behavior
     assert(!default_container.value().empty());
     bundle_schema(schema, default_container.value(), schema, frame, walker,
-                  resolver, default_dialect);
+                  resolver, default_dialect, paths);
     return;
   }
 
@@ -154,7 +164,7 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
       vocabularies.contains(
           "https://json-schema.org/draft/2019-09/vocab/core")) {
     bundle_schema(schema, {"$defs"}, schema, frame, walker, resolver,
-                  default_dialect);
+                  default_dialect, paths);
   } else if (vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
              vocabularies.contains(
                  "http://json-schema.org/draft-07/hyper-schema#") ||
@@ -165,7 +175,7 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
              vocabularies.contains(
                  "http://json-schema.org/draft-04/hyper-schema#")) {
     bundle_schema(schema, {"definitions"}, schema, frame, walker, resolver,
-                  default_dialect);
+                  default_dialect, paths);
   } else {
     // We don't attempt to bundle on dialects where we
     // don't know where to put the embedded schemas
@@ -177,10 +187,10 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
 auto bundle(const sourcemeta::core::JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
             const std::optional<std::string> &default_dialect,
-            const std::optional<Pointer> &default_container)
-    -> sourcemeta::core::JSON {
+            const std::optional<Pointer> &default_container,
+            const SchemaFrame::Paths &paths) -> sourcemeta::core::JSON {
   sourcemeta::core::JSON copy = schema;
-  bundle(copy, walker, resolver, default_dialect, default_container);
+  bundle(copy, walker, resolver, default_dialect, default_container, paths);
   return copy;
 }
 

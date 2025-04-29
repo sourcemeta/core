@@ -178,6 +178,9 @@ public:
   /// A set of unresolved instance locations
   using Instances = std::map<Pointer, std::vector<PointerTemplate>>;
 
+  /// A set of paths to frame within a schema wrapper
+  using Paths = std::set<Pointer>;
+
   /// Export the frame entries as JSON
   auto to_json() const -> JSON;
 
@@ -188,7 +191,7 @@ public:
           const SchemaResolver &resolver,
           const std::optional<JSON::String> &default_dialect = std::nullopt,
           const std::optional<JSON::String> &default_id = std::nullopt,
-          const std::set<Pointer> &paths = {empty_pointer}) -> void;
+          const Paths &paths = {empty_pointer}) -> void;
 
   /// Access the analysed schema locations
   auto locations() const noexcept -> const Locations &;

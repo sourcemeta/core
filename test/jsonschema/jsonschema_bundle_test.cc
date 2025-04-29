@@ -184,3 +184,112 @@ TEST(JSONSchema_bundle, target_array) {
           document, sourcemeta::core::schema_official_walker, test_resolver),
       sourcemeta::core::SchemaReferenceError);
 }
+
+TEST(JSONSchema_bundle, custom_paths_no_external) {
+  auto schema{sourcemeta::core::parse_json(R"JSON({
+    "wrapper": {
+      "$ref": "#/common/test"
+    },
+    "common": {
+      "test": {
+        "$ref": "#/common/with-id"
+      },
+      "with-id": {
+        "$id": "https://www.sourcemeta.com/schema",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string"
+      }
+    }
+  })JSON")};
+
+  sourcemeta::core::bundle(schema, sourcemeta::core::schema_official_walker,
+                           test_resolver,
+                           "https://json-schema.org/draft/2020-12/schema",
+                           sourcemeta::core::Pointer{"components"},
+                           {
+                               sourcemeta::core::Pointer{"wrapper"},
+                               sourcemeta::core::Pointer{"common", "test"},
+                               sourcemeta::core::Pointer{"common", "with-id"},
+                           });
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "wrapper": {
+      "$ref": "#/common/test"
+    },
+    "common": {
+      "test": {
+        "$ref": "#/common/with-id"
+      },
+      "with-id": {
+        "$id": "https://www.sourcemeta.com/schema",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string"
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(schema, expected);
+}
+
+TEST(JSONSchema_bundle, custom_paths_with_externals) {
+  auto schema{sourcemeta::core::parse_json(R"JSON({
+    "wrapper": {
+      "$ref": "#/common/test"
+    },
+    "common": {
+      "test": {
+        "$ref": "#/common/with-id"
+      },
+      "with-id": {
+        "$id": "https://www.sourcemeta.com/schema",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": "test-2"
+      }
+    }
+  })JSON")};
+
+  sourcemeta::core::bundle(schema, sourcemeta::core::schema_official_walker,
+                           test_resolver,
+                           "https://json-schema.org/draft/2020-12/schema",
+                           sourcemeta::core::Pointer{"components"},
+                           {
+                               sourcemeta::core::Pointer{"wrapper"},
+                               sourcemeta::core::Pointer{"common", "test"},
+                               sourcemeta::core::Pointer{"common", "with-id"},
+                           });
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "wrapper": {
+      "$ref": "#/common/test"
+    },
+    "common": {
+      "test": {
+        "$ref": "#/common/with-id"
+      },
+      "with-id": {
+        "$id": "https://www.sourcemeta.com/schema",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": "test-2"
+      }
+    },
+    "components": {
+      "https://www.sourcemeta.com/test-2": {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "$id": "https://www.sourcemeta.com/test-2",
+        "$ref": "test-3"
+      },
+      "https://www.sourcemeta.com/test-3": {
+        "$schema": "http://json-schema.org/draft-06/schema#",
+        "$id": "https://www.sourcemeta.com/test-3",
+        "allOf": [ { "$ref": "test-4" } ]
+      },
+      "https://www.sourcemeta.com/test-4": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://www.sourcemeta.com/test-4",
+        "type": "string"
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(schema, expected);
+}
