@@ -16,8 +16,35 @@ public:
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return schema.defines("foo");
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase("foo");
+  }
+};
+
+class ExampleRule1WithDescription final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRule1WithDescription()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_1", "Keyword foo is not permitted") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (schema.defines("foo")) {
+      return "This is a message from the rule";
+    } else {
+      return false;
+    }
   }
 
   auto transform(sourcemeta::core::JSON &schema) const -> void override {
@@ -38,7 +65,7 @@ public:
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return schema.defines("bar");
   }
 
@@ -60,7 +87,8 @@ public:
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &location,
             const sourcemeta::core::SchemaWalker &,
-            const sourcemeta::core::SchemaResolver &) const -> bool override {
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return !schema.defines("top") && location.pointer.empty();
   }
 
@@ -82,7 +110,7 @@ public:
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return !schema.defines("here");
   }
 
@@ -104,7 +132,8 @@ public:
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &location,
             const sourcemeta::core::SchemaWalker &,
-            const sourcemeta::core::SchemaResolver &) const -> bool override {
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return !schema.defines("baz") &&
            location.pointer == sourcemeta::core::Pointer{"properties", "baz"};
   }
@@ -127,7 +156,8 @@ public:
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &location,
             const sourcemeta::core::SchemaWalker &,
-            const sourcemeta::core::SchemaResolver &) const -> bool override {
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return !schema.defines("draft") &&
            location.dialect == "http://json-schema.org/draft-03/schema#";
   }
@@ -150,7 +180,7 @@ public:
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return schema.defines("foo");
   }
 
@@ -174,7 +204,7 @@ public:
                                const sourcemeta::core::SchemaFrame::Location &,
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
-      -> bool override {
+      -> sourcemeta::core::SchemaTransformRule::Result override {
     return schema.defines("$schema") && schema.size() == 1;
   }
 
