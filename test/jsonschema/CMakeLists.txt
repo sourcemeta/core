@@ -22,8 +22,6 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_frame_draft1_test.cc
     jsonschema_frame_draft0_test.cc
     jsonschema_frame_test.cc
-    jsonschema_unevaluated_2020_12_test.cc
-    jsonschema_unevaluated_2019_09_test.cc
     jsonschema_bundle_2020_12_test.cc
     jsonschema_bundle_2019_09_test.cc
     jsonschema_bundle_draft7_test.cc

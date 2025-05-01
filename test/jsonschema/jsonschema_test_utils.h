@@ -291,34 +291,6 @@
                    expected_pointer, expected_uri, expected_base,              \
                    expected_fragment)
 
-#define EXPECT_UNEVALUATED_STATIC(keywords, expected_pointer,                  \
-                                  expected_dependencies_size)                  \
-  EXPECT_EQ(keywords.at(expected_pointer).static_dependencies.size(),          \
-            expected_dependencies_size);
-
-#define EXPECT_UNEVALUATED_DYNAMIC(keywords, expected_pointer,                 \
-                                   expected_dependencies_size)                 \
-  EXPECT_EQ(keywords.at(expected_pointer).dynamic_dependencies.size(),         \
-            expected_dependencies_size);
-
-#define EXPECT_UNEVALUATED_UNRESOLVED(keywords, expected_pointer)              \
-  EXPECT_TRUE(keywords.at(expected_pointer).unresolved);
-
-#define EXPECT_UNEVALUATED_RESOLVED(keywords, expected_pointer)                \
-  EXPECT_FALSE(keywords.at(expected_pointer).unresolved);
-
-#define EXPECT_UNEVALUATED_STATIC_DEPENDENCY(keywords, expected_pointer,       \
-                                             expected_destination)             \
-  EXPECT_TRUE(                                                                 \
-      keywords.at(expected_pointer)                                            \
-          .static_dependencies.contains(TO_POINTER(expected_destination)));
-
-#define EXPECT_UNEVALUATED_DYNAMIC_DEPENDENCY(keywords, expected_pointer,      \
-                                              expected_destination)            \
-  EXPECT_TRUE(                                                                 \
-      keywords.at(expected_pointer)                                            \
-          .dynamic_dependencies.contains(TO_POINTER(expected_destination)));
-
 #define __EXPECT_OFFICIAL_WALKER_ENTRY(                                        \
     entries, index, expected_schema_location, expected_parent_location,        \
     expected_dialect, expected_base_dialect, expected_instance_location,       \
