@@ -51,7 +51,22 @@ function(sourcemeta_add_default_options visibility target)
       # multiplication wraps around using twos-complement representation
       # See https://users.cs.utah.edu/~regehr/papers/overflow12.pdf
       # See https://www.postgresql.org/message-id/1689.1134422394@sss.pgh.pa.us
-      -fwrapv)
+      -fwrapv
+
+      # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+      -Wformat
+      -Wformat=2
+      -Werror=format-security
+      -fstack-protector-strong)
+
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      target_compile_options("${target}" ${visibility} -fcf-protection=full)
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+      target_compile_options("${target}" ${visibility} -mbranch-protection=standard)
+    endif()
+
+    target_compile_definitions("${target}" ${visibility} _FORTIFY_SOURCE=3)
+    target_compile_definitions("${target}" ${visibility} $<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
   endif()
 
   if(SOURCEMETA_COMPILER_LLVM)
@@ -80,6 +95,11 @@ function(sourcemeta_add_default_options visibility target)
       -fvectorize
       # Enable vectorization of straight-line code for performance
       -fslp-vectorize)
+
+    # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+    target_compile_options("${target}" ${visibility}
+      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks -fno-strict-aliasing -ftrivial-auto-var-init=zero>
+      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks -fno-strict-aliasing -ftrivial-auto-var-init=zero>)
   elseif(SOURCEMETA_COMPILER_GCC)
     target_compile_options("${target}" ${visibility}
       -fno-trapping-math
@@ -88,7 +108,18 @@ function(sourcemeta_add_default_options visibility target)
       # GCC seems to print a lot of false-positives here
       -Wno-free-nonheap-object
       # Disables runtime type information
-      -fno-rtti)
+      -fno-rtti
+
+      # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+      -Wtrampolines
+      -Wbidi-chars=any
+      -fstack-clash-protection
+      -fstrict-flex-arrays=3)
+
+    # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+    target_compile_options("${target}" ${visibility}
+      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks -fno-strict-overflow -fno-strict-aliasing -ftrivial-auto-var-init=zero>
+      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks -fno-strict-overflow -fno-strict-aliasing -ftrivial-auto-var-init=zero>)
   endif()
 endfunction()
 
