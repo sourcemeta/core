@@ -213,4 +213,48 @@ public:
   }
 };
 
+class ExampleRuleUnfixable1 final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleUnfixable1()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_unfixable_1",
+            "An example rule that cannot be fixed") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    return schema.defines("foo");
+  }
+};
+
+class ExampleRuleUnfixableWithDescription1 final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleUnfixableWithDescription1()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_unfixable_with_description_1",
+            "An example rule that cannot be fixed") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (schema.defines("foo")) {
+      return "The subschema cannot define foo";
+    } else {
+      return false;
+    }
+  }
+};
+
 #endif

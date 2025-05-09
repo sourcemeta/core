@@ -9,6 +9,22 @@
 
 #include "jsonschema_transform_rules.h"
 
+static auto transformer_callback_noop(const sourcemeta::core::Pointer &,
+                                      const std::string_view,
+                                      const std::string_view,
+                                      const std::string_view) -> void {}
+
+using TestTransformTraces =
+    std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
+                           std::string>>;
+
+static auto transformer_callback_trace(TestTransformTraces &traces) -> auto {
+  return [&traces](const auto &pointer, const auto &name, const auto &message,
+                   const auto &description) {
+    traces.emplace_back(pointer, name, message, description);
+  };
+}
+
 TEST(JSONSchema_transformer, flat_document_no_applicators) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRule1>();
@@ -21,11 +37,14 @@ TEST(JSONSchema_transformer, flat_document_no_applicators) {
     "qux": "xxx"
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -48,6 +67,7 @@ TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
 
   EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_official_walker,
                             sourcemeta::core::schema_official_resolver,
+                            transformer_callback_noop,
                             "https://example.com/invalid"),
                sourcemeta::core::SchemaResolutionError);
 
@@ -72,12 +92,15 @@ TEST(JSONSchema_transformer, with_default_dialect) {
     "qux": "xxx"
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries),
                    "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "qux": "xxx"
@@ -98,12 +121,15 @@ TEST(JSONSchema_transformer, with_explicit_default_dialect_same) {
     "qux": "xxx"
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries),
                    "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -124,7 +150,8 @@ TEST(JSONSchema_transformer, throw_on_rules_called_twice) {
   })JSON");
 
   EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_official_walker,
-                            sourcemeta::core::schema_official_resolver),
+                            sourcemeta::core::schema_official_resolver,
+                            transformer_callback_noop),
                std::runtime_error);
 }
 
@@ -139,11 +166,14 @@ TEST(JSONSchema_transformer, top_level_rule) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -172,11 +202,14 @@ TEST(JSONSchema_transformer, walker_2020_12) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -215,12 +248,15 @@ TEST(JSONSchema_transformer, mismatch_default_dialect) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries),
                    "http://json-schema.org/draft-04/schema#");
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -256,11 +292,14 @@ TEST(JSONSchema_transformer, rule_pointers) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -291,11 +330,14 @@ TEST(JSONSchema_transformer, multi_dialect_rules) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -341,11 +383,14 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -386,11 +431,14 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
     }
   })JSON");
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -419,16 +467,11 @@ TEST(JSONSchema_transformer, check_top_level) {
     }
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
-                         std::string>>
-      entries;
+  TestTransformTraces entries;
   const bool result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
-                   [&entries](const auto &pointer, const auto &name,
-                              const auto &message, const auto &description) {
-                     entries.emplace_back(pointer, name, message, description);
-                   });
+                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result);
   EXPECT_EQ(entries.size(), 2);
@@ -459,16 +502,11 @@ TEST(JSONSchema_transformer, check_no_match) {
     }
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
-                         std::string>>
-      entries;
+  TestTransformTraces entries;
   const bool result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
-                   [&entries](const auto &pointer, const auto &name,
-                              const auto &message, const auto &description) {
-                     entries.emplace_back(pointer, name, message, description);
-                   });
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_TRUE(entries.empty());
@@ -481,16 +519,11 @@ TEST(JSONSchema_transformer, check_empty) {
     "foo": "bar"
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
-                         std::string>>
-      entries;
+  TestTransformTraces entries;
   const bool result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
-                   [&entries](const auto &pointer, const auto &name,
-                              const auto &message, const auto &description) {
-                     entries.emplace_back(pointer, name, message, description);
-                   });
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_TRUE(entries.empty());
@@ -527,17 +560,12 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
     }
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
-                         std::string>>
-      entries;
-  const bool result = bundle.check(
-      document, sourcemeta::core::schema_official_walker,
-      sourcemeta::core::schema_official_resolver,
-      [&entries](const auto &pointer, const auto &name, const auto &message,
-                 const auto &description) {
-        entries.emplace_back(pointer, name, message, description);
-      },
-      "https://json-schema.org/draft/2020-12/schema");
+  TestTransformTraces entries;
+  const bool result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries),
+                   "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_FALSE(result);
   EXPECT_EQ(entries.size(), 2);
@@ -570,11 +598,14 @@ TEST(JSONSchema_transformer, remove_rule_by_name) {
   EXPECT_FALSE(bundle.remove("example_rule_2"));
   EXPECT_FALSE(bundle.remove("i_dont_exist"));
 
-  const auto result =
+  TestTransformTraces entries;
+  const bool result =
       bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver);
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -583,4 +614,101 @@ TEST(JSONSchema_transformer, remove_rule_by_name) {
   })JSON");
 
   EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, unfixable_apply_without_description) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleUnfixable1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result);
+
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_unfixable_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
+  EXPECT_EQ(std::get<3>(entries.at(0)), "");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, unfixable_apply_with_description) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleUnfixableWithDescription1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result);
+
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)),
+            "example_rule_unfixable_with_description_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
+  EXPECT_EQ(std::get<3>(entries.at(0)), "The subschema cannot define foo");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, unfixable_check) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleUnfixable1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz",
+    "qux": "xxx"
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result);
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_unfixable_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
+  EXPECT_EQ(std::get<3>(entries.at(0)), "");
 }
