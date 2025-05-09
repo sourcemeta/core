@@ -406,7 +406,7 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
 
 TEST(JSONSchema_transformer, check_top_level) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  bundle.add<ExampleRule1WithDescription>();
   bundle.add<ExampleRule2>();
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -419,14 +419,16 @@ TEST(JSONSchema_transformer, check_top_level) {
     }
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string>>
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
+                         std::string>>
       entries;
-  const bool result = bundle.check(
-      document, sourcemeta::core::schema_official_walker,
-      sourcemeta::core::schema_official_resolver,
-      [&entries](const auto &pointer, const auto &name, const auto &message) {
-        entries.emplace_back(pointer, name, message);
-      });
+  const bool result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   [&entries](const auto &pointer, const auto &name,
+                              const auto &message, const auto &description) {
+                     entries.emplace_back(pointer, name, message, description);
+                   });
 
   EXPECT_FALSE(result);
   EXPECT_EQ(entries.size(), 2);
@@ -434,11 +436,13 @@ TEST(JSONSchema_transformer, check_top_level) {
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)), "This is a message from the rule");
 
   EXPECT_EQ(std::get<0>(entries.at(1)),
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(1)), "");
 }
 
 TEST(JSONSchema_transformer, check_no_match) {
@@ -455,14 +459,16 @@ TEST(JSONSchema_transformer, check_no_match) {
     }
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string>>
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
+                         std::string>>
       entries;
-  const bool result = bundle.check(
-      document, sourcemeta::core::schema_official_walker,
-      sourcemeta::core::schema_official_resolver,
-      [&entries](const auto &pointer, const auto &name, const auto &message) {
-        entries.emplace_back(pointer, name, message);
-      });
+  const bool result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   [&entries](const auto &pointer, const auto &name,
+                              const auto &message, const auto &description) {
+                     entries.emplace_back(pointer, name, message, description);
+                   });
 
   EXPECT_TRUE(result);
   EXPECT_TRUE(entries.empty());
@@ -475,14 +481,16 @@ TEST(JSONSchema_transformer, check_empty) {
     "foo": "bar"
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string>>
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
+                         std::string>>
       entries;
-  const bool result = bundle.check(
-      document, sourcemeta::core::schema_official_walker,
-      sourcemeta::core::schema_official_resolver,
-      [&entries](const auto &pointer, const auto &name, const auto &message) {
-        entries.emplace_back(pointer, name, message);
-      });
+  const bool result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   [&entries](const auto &pointer, const auto &name,
+                              const auto &message, const auto &description) {
+                     entries.emplace_back(pointer, name, message, description);
+                   });
 
   EXPECT_TRUE(result);
   EXPECT_TRUE(entries.empty());
@@ -519,13 +527,15 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
     }
   })JSON");
 
-  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string>>
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
+                         std::string>>
       entries;
   const bool result = bundle.check(
       document, sourcemeta::core::schema_official_walker,
       sourcemeta::core::schema_official_resolver,
-      [&entries](const auto &pointer, const auto &name, const auto &message) {
-        entries.emplace_back(pointer, name, message);
+      [&entries](const auto &pointer, const auto &name, const auto &message,
+                 const auto &description) {
+        entries.emplace_back(pointer, name, message, description);
       },
       "https://json-schema.org/draft/2020-12/schema");
 
@@ -535,11 +545,13 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)), "");
 
   EXPECT_EQ(std::get<0>(entries.at(1)),
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(1)), "");
 }
 
 TEST(JSONSchema_transformer, remove_rule_by_name) {
