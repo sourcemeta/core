@@ -84,7 +84,8 @@ TEST(JSONSchema_frame_draft1, anonymous_with_nested_schema_resource) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, empty_schema) {
@@ -121,7 +122,8 @@ TEST(JSONSchema_frame_draft1, empty_schema) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, empty_schema_trailing_hash) {
@@ -158,7 +160,8 @@ TEST(JSONSchema_frame_draft1, empty_schema_trailing_hash) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, one_level_applicators_without_identifiers) {
@@ -220,7 +223,8 @@ TEST(JSONSchema_frame_draft1, one_level_applicators_without_identifiers) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, one_level_applicators_with_identifiers) {
@@ -282,7 +286,8 @@ TEST(JSONSchema_frame_draft1, one_level_applicators_with_identifiers) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, subschema_absolute_identifier) {
@@ -347,7 +352,8 @@ TEST(JSONSchema_frame_draft1, subschema_absolute_identifier) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, id_override) {
@@ -400,7 +406,8 @@ TEST(JSONSchema_frame_draft1, explicit_argument_id_same) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, explicit_argument_id_different) {
@@ -490,7 +497,8 @@ TEST(JSONSchema_frame_draft1, explicit_argument_id_different) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }
 
 TEST(JSONSchema_frame_draft1, ref_metaschema) {
@@ -522,8 +530,10 @@ TEST(JSONSchema_frame_draft1, ref_metaschema) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
   EXPECT_STATIC_REFERENCE(
       frame, "/$ref", "http://json-schema.org/draft-01/schema",
-      "http://json-schema.org/draft-01/schema", std::nullopt);
+      "http://json-schema.org/draft-01/schema", std::nullopt,
+      "http://json-schema.org/draft-01/schema#");
 }

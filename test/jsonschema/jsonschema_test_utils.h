@@ -260,7 +260,7 @@
       sourcemeta::core::SchemaFrame::LocationType::Anchor);
 
 #define EXPECT_REFERENCE(frame, expected_type, expected_pointer, expected_uri, \
-                         expected_base, expected_fragment)                     \
+                         expected_base, expected_fragment, expected_original)  \
   EXPECT_TRUE((frame).references().contains(                                   \
       {expected_type, TO_POINTER(expected_pointer)}));                         \
   EXPECT_EQ((frame)                                                            \
@@ -277,19 +277,26 @@
                 .references()                                                  \
                 .at({expected_type, TO_POINTER(expected_pointer)})             \
                 .fragment,                                                     \
-            (expected_fragment));
+            (expected_fragment));                                              \
+  EXPECT_EQ((frame)                                                            \
+                .references()                                                  \
+                .at({expected_type, TO_POINTER(expected_pointer)})             \
+                .original,                                                     \
+            (expected_original));
 
 #define EXPECT_STATIC_REFERENCE(frame, expected_pointer, expected_uri,         \
-                                expected_base, expected_fragment)              \
+                                expected_base, expected_fragment,              \
+                                expected_original)                             \
   EXPECT_REFERENCE(frame, sourcemeta::core::SchemaReferenceType::Static,       \
                    expected_pointer, expected_uri, expected_base,              \
-                   expected_fragment)
+                   expected_fragment, expected_original)
 
 #define EXPECT_DYNAMIC_REFERENCE(frame, expected_pointer, expected_uri,        \
-                                 expected_base, expected_fragment)             \
+                                 expected_base, expected_fragment,             \
+                                 expected_original)                            \
   EXPECT_REFERENCE(frame, sourcemeta::core::SchemaReferenceType::Dynamic,      \
                    expected_pointer, expected_uri, expected_base,              \
-                   expected_fragment)
+                   expected_fragment, expected_original)
 
 #define __EXPECT_OFFICIAL_WALKER_ENTRY(                                        \
     entries, index, expected_schema_location, expected_parent_location,        \
