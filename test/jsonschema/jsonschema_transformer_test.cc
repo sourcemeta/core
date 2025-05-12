@@ -712,3 +712,405 @@ TEST(JSONSchema_transformer, unfixable_check) {
   EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
   EXPECT_EQ(std::get<3>(entries.at(0)), "");
 }
+
+TEST(JSONSchema_transformer, rereference_not_hit) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsNoRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_not_fixed) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsNoRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+
+  try {
+    bundle.apply(document, sourcemeta::core::schema_official_walker,
+                 sourcemeta::core::schema_official_resolver,
+                 transformer_callback_trace(entries));
+    FAIL() << "The transformation was expected to throw";
+  } catch (const sourcemeta::core::SchemaReferenceError &error) {
+    EXPECT_EQ(error.id(), "#/definitions/foo");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/$ref");
+    SUCCEED();
+  }
+
+  EXPECT_EQ(entries.size(), 0);
+
+  // Note we still transform the schema to leave it in its broken state for
+  // logging, etc
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/definitions/foo",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_1) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_2) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "https://example.com#/definitions/foo",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "https://example.com#/$defs/foo",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_3) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "foo",
+    "definitions": {
+      "foo": {
+        "$id": "foo",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "foo",
+    "$defs": {
+      "foo": {
+        "$id": "foo",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_4) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "#foo",
+    "definitions": {
+      "foo": {
+        "$anchor": "foo",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "#foo",
+    "$defs": {
+      "foo": {
+        "$anchor": "foo",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_5) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/properties/definitions/definitions/helper"
+      },
+      "definitions": {
+        "definitions": {
+          "helper": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/properties/definitions/$defs/helper"
+      },
+      "definitions": {
+        "$defs": {
+          "helper": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_6) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/here",
+    "properties": {
+      "foo": {
+        "$id": "nested",
+        "$ref": "here#/properties/bar/definitions/helper"
+      },
+      "bar": {
+        "definitions": {
+          "helper": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/here",
+    "properties": {
+      "foo": {
+        "$id": "nested",
+        "$ref": "here#/properties/bar/$defs/helper"
+      },
+      "bar": {
+        "$defs": {
+          "helper": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_fixed_7) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/here",
+    "allOf": [
+      { "$ref": "#/definitions/outer" },
+      {
+        "properties": {
+          "foo": {
+            "$id": "nested",
+            "$ref": "#/definitions/helper",
+            "definitions": {
+              "inner": {
+                "type": "string"
+              }
+            },
+            "$defs": {}
+          }
+        }
+      }
+    ],
+    "definitions": {
+      "outer": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/here",
+    "allOf": [
+      { "$ref": "#/$defs/outer" },
+      {
+        "properties": {
+          "foo": {
+            "$id": "nested",
+            "$ref": "#/definitions/helper",
+            "definitions": {
+              "inner": {
+                "type": "string"
+              }
+            },
+            "$defs": {}
+          }
+        }
+      }
+    ],
+    "$defs": {
+      "outer": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
