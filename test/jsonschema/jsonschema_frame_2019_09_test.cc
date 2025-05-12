@@ -102,7 +102,8 @@ TEST(JSONSchema_frame_2019_09, anonymous_with_nested_schema_resource) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, empty_schema) {
@@ -139,7 +140,8 @@ TEST(JSONSchema_frame_2019_09, empty_schema) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, empty_schema_trailing_hash) {
@@ -176,7 +178,8 @@ TEST(JSONSchema_frame_2019_09, empty_schema_trailing_hash) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, one_level_applicators_without_identifiers) {
@@ -238,7 +241,8 @@ TEST(JSONSchema_frame_2019_09, one_level_applicators_without_identifiers) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, one_level_applicators_with_identifiers) {
@@ -330,7 +334,8 @@ TEST(JSONSchema_frame_2019_09, one_level_applicators_with_identifiers) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, subschema_absolute_identifier) {
@@ -395,7 +400,8 @@ TEST(JSONSchema_frame_2019_09, subschema_absolute_identifier) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, nested_schemas) {
@@ -572,7 +578,8 @@ TEST(JSONSchema_frame_2019_09, nested_schemas) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, id_override) {
@@ -640,7 +647,8 @@ TEST(JSONSchema_frame_2019_09, explicit_argument_id_same) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, anchor_top_level) {
@@ -687,7 +695,8 @@ TEST(JSONSchema_frame_2019_09, anchor_top_level) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, explicit_argument_id_different) {
@@ -827,7 +836,8 @@ TEST(JSONSchema_frame_2019_09, explicit_argument_id_different) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, ref_metaschema) {
@@ -860,10 +870,12 @@ TEST(JSONSchema_frame_2019_09, ref_metaschema) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(
       frame, "/$ref", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, location_independent_identifier_anonymous) {
@@ -936,7 +948,8 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_true_with_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_false_with_id) {
@@ -981,7 +994,8 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_false_with_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_true_without_id) {
@@ -1037,7 +1051,8 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_true_without_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_false_without_id) {
@@ -1086,7 +1101,8 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_false_without_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor_anonymous) {
@@ -1129,9 +1145,10 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor_anonymous) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "",
-                          std::nullopt, std::nullopt);
+                          std::nullopt, std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor) {
@@ -1181,10 +1198,12 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                           "https://www.sourcemeta.com/schema",
-                          "https://www.sourcemeta.com/schema", std::nullopt);
+                          "https://www.sourcemeta.com/schema", std::nullopt,
+                          "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false_anonymous) {
@@ -1232,9 +1251,10 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false_anonymous) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "",
-                          std::nullopt, std::nullopt);
+                          std::nullopt, std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false) {
@@ -1289,10 +1309,12 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                           "https://www.sourcemeta.com/schema",
-                          "https://www.sourcemeta.com/schema", std::nullopt);
+                          "https://www.sourcemeta.com/schema", std::nullopt,
+                          "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true_anonymous) {
@@ -1347,9 +1369,10 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true_anonymous) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "",
-                           std::nullopt, std::nullopt);
+                           std::nullopt, std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true) {
@@ -1412,10 +1435,12 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                            "https://www.sourcemeta.com/schema",
-                           "https://www.sourcemeta.com/schema", std::nullopt);
+                           "https://www.sourcemeta.com/schema", std::nullopt,
+                           "#");
 }
 
 TEST(JSONSchema_frame_2019_09,
@@ -1490,10 +1515,11 @@ TEST(JSONSchema_frame_2019_09,
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                           "https://example.com", "https://example.com",
-                          std::nullopt);
+                          std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09,
@@ -1576,10 +1602,11 @@ TEST(JSONSchema_frame_2019_09,
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                            "https://example.com", "https://example.com",
-                           std::nullopt);
+                           std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_nested_recursive_anchor_true) {
@@ -1643,10 +1670,12 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_nested_recursive_anchor_true) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                            "https://www.sourcemeta.com/schema",
-                           "https://www.sourcemeta.com/schema", std::nullopt);
+                           "https://www.sourcemeta.com/schema", std::nullopt,
+                           "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_multiple_recursive_anchor_true) {
@@ -1743,10 +1772,12 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_multiple_recursive_anchor_true) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                            "https://www.sourcemeta.com/nested",
-                           "https://www.sourcemeta.com/nested", std::nullopt);
+                           "https://www.sourcemeta.com/nested", std::nullopt,
+                           "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_conflict) {
@@ -1856,7 +1887,8 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_on_relative_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, ref_with_id) {
@@ -1915,10 +1947,11 @@ TEST(JSONSchema_frame_2019_09, ref_with_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
-  EXPECT_STATIC_REFERENCE(frame, "/$ref",
-                          "https://www.sourcemeta.com/schema#/$defs/string",
-                          "https://www.sourcemeta.com/schema", "/$defs/string");
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$ref", "https://www.sourcemeta.com/schema#/$defs/string",
+      "https://www.sourcemeta.com/schema", "/$defs/string", "#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2019_09, ref_from_definitions) {
@@ -1987,14 +2020,17 @@ TEST(JSONSchema_frame_2019_09, ref_from_definitions) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(
       frame, "/$ref", "https://www.sourcemeta.com/schema#/definitions/middle",
-      "https://www.sourcemeta.com/schema", "/definitions/middle");
+      "https://www.sourcemeta.com/schema", "/definitions/middle",
+      "#/definitions/middle");
   EXPECT_STATIC_REFERENCE(
       frame, "/definitions/middle/$ref",
       "https://www.sourcemeta.com/schema#/definitions/string",
-      "https://www.sourcemeta.com/schema", "/definitions/string");
+      "https://www.sourcemeta.com/schema", "/definitions/string",
+      "#/definitions/string");
 }
 
 TEST(JSONSchema_frame_2019_09, relative_base_uri_without_ref) {
@@ -2026,7 +2062,8 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_without_ref) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
@@ -2085,9 +2122,10 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
-  EXPECT_STATIC_REFERENCE(frame, "/allOf/0/$ref", "common#foo", "common",
-                          "foo");
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/allOf/0/$ref", "common#foo", "common", "foo",
+                          "#foo");
 }
 
 TEST(JSONSchema_frame_2019_09, relative_id_leading_slash) {
@@ -2118,5 +2156,6 @@ TEST(JSONSchema_frame_2019_09, relative_id_leading_slash) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }

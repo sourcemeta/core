@@ -80,7 +80,8 @@ TEST(JSONSchema_frame_draft3, anonymous_with_nested_schema_resource) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, empty_schema) {
@@ -117,7 +118,8 @@ TEST(JSONSchema_frame_draft3, empty_schema) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, empty_schema_trailing_slash) {
@@ -154,7 +156,8 @@ TEST(JSONSchema_frame_draft3, empty_schema_trailing_slash) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, one_level_applicators_without_identifiers) {
@@ -216,7 +219,8 @@ TEST(JSONSchema_frame_draft3, one_level_applicators_without_identifiers) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, one_level_applicators_with_identifiers) {
@@ -278,7 +282,8 @@ TEST(JSONSchema_frame_draft3, one_level_applicators_with_identifiers) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, subschema_absolute_identifier) {
@@ -343,7 +348,8 @@ TEST(JSONSchema_frame_draft3, subschema_absolute_identifier) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, id_override) {
@@ -396,7 +402,8 @@ TEST(JSONSchema_frame_draft3, explicit_argument_id_same) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, explicit_argument_id_different) {
@@ -486,7 +493,8 @@ TEST(JSONSchema_frame_draft3, explicit_argument_id_different) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, ref_metaschema) {
@@ -518,10 +526,12 @@ TEST(JSONSchema_frame_draft3, ref_metaschema) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
   EXPECT_STATIC_REFERENCE(
       frame, "/$ref", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
 }
 
 TEST(JSONSchema_frame_draft3, ref_with_id) {
@@ -559,7 +569,8 @@ TEST(JSONSchema_frame_draft3, ref_with_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
-      "http://json-schema.org/draft-03/schema", std::nullopt);
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
   EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", std::nullopt,
-                          "/definitions/string");
+                          "/definitions/string", "#/definitions/string");
 }

@@ -175,10 +175,12 @@ TEST(JSONSchema_frame, nested_schemas_mixing_dialects) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
   EXPECT_STATIC_REFERENCE(
       frame, "/$defs/foo/$schema", "http://json-schema.org/draft-04/schema",
-      "http://json-schema.org/draft-04/schema", std::nullopt);
+      "http://json-schema.org/draft-04/schema", std::nullopt,
+      "http://json-schema.org/draft-04/schema#");
 }
 
 TEST(JSONSchema_frame, no_id) {
@@ -274,7 +276,8 @@ TEST(JSONSchema_frame, no_id) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
 }
 
 TEST(JSONSchema_frame, no_id_with_default) {
@@ -322,7 +325,8 @@ TEST(JSONSchema_frame, no_id_with_default) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
 }
 
 TEST(JSONSchema_frame, cross_2020_12_to_2019_09_without_id) {
@@ -458,7 +462,8 @@ TEST(JSONSchema_frame, anchor_on_absolute_subid) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
 }
 
 TEST(JSONSchema_frame, uri_iterators) {
@@ -505,7 +510,8 @@ TEST(JSONSchema_frame, uri_iterators) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
 }
 
 TEST(JSONSchema_frame, no_refs) {
@@ -528,7 +534,8 @@ TEST(JSONSchema_frame, no_refs) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
 }
 
 TEST(JSONSchema_frame, refs_with_id) {
@@ -560,20 +567,21 @@ TEST(JSONSchema_frame, refs_with_id) {
   EXPECT_EQ(frame.references().size(), 5);
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
-  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
-                          "https://www.sourcemeta.com/schema",
-                          "https://www.sourcemeta.com/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/properties/foo/$ref", "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", std::nullopt, "#");
   EXPECT_STATIC_REFERENCE(frame, "/properties/bar/$ref",
                           "https://www.sourcemeta.com/schema#/properties/baz",
                           "https://www.sourcemeta.com/schema",
-                          "/properties/baz");
+                          "/properties/baz", "#/properties/baz");
   EXPECT_STATIC_REFERENCE(frame, "/properties/qux/$ref",
                           "https://www.sourcemeta.com/test",
-                          "https://www.sourcemeta.com/test", std::nullopt);
+                          "https://www.sourcemeta.com/test", std::nullopt, "#");
   EXPECT_STATIC_REFERENCE(frame, "/properties/anchor/$ref",
                           "https://www.sourcemeta.com/schema#baz",
-                          "https://www.sourcemeta.com/schema", "baz");
+                          "https://www.sourcemeta.com/schema", "baz", "#baz");
 }
 
 TEST(JSONSchema_frame, refs_with_no_id) {
@@ -604,16 +612,17 @@ TEST(JSONSchema_frame, refs_with_no_id) {
   EXPECT_EQ(frame.references().size(), 5);
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref", "", std::nullopt,
-                          std::nullopt);
+                          std::nullopt, "#");
   EXPECT_STATIC_REFERENCE(frame, "/properties/bar/$ref", "#/properties/baz",
-                          std::nullopt, "/properties/baz");
+                          std::nullopt, "/properties/baz", "#/properties/baz");
   EXPECT_STATIC_REFERENCE(frame, "/properties/qux/$ref",
                           "https://www.example.com", "https://www.example.com",
-                          std::nullopt);
+                          std::nullopt, "#");
   EXPECT_STATIC_REFERENCE(frame, "/properties/anchor/$ref", "#baz",
-                          std::nullopt, "baz");
+                          std::nullopt, "baz", "#baz");
 }
 
 TEST(JSONSchema_frame, no_dynamic_ref_on_old_drafts) {
@@ -634,7 +643,8 @@ TEST(JSONSchema_frame, no_dynamic_ref_on_old_drafts) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
-      "https://json-schema.org/draft/2019-09/schema", std::nullopt);
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
 }
 
 TEST(JSONSchema_frame, remote_refs) {
@@ -655,16 +665,19 @@ TEST(JSONSchema_frame, remote_refs) {
   EXPECT_EQ(frame.references().size(), 4);
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
                           "https://www.example.com", "https://www.example.com",
-                          std::nullopt);
+                          std::nullopt, "https://www.example.com");
   EXPECT_STATIC_REFERENCE(frame, "/properties/bar/$ref",
                           "https://www.example.com/test#foo",
-                          "https://www.example.com/test", "foo");
+                          "https://www.example.com/test", "foo",
+                          "https://www.example.com/test#foo");
   EXPECT_STATIC_REFERENCE(frame, "/properties/baz/$ref",
                           "https://www.example.com/x/y#/foo/bar",
-                          "https://www.example.com/x/y", "/foo/bar");
+                          "https://www.example.com/x/y", "/foo/bar",
+                          "https://www.example.com/x/y#/foo/bar");
 }
 
 TEST(JSONSchema_frame, no_dialect) {
@@ -759,10 +772,11 @@ TEST(JSONSchema_frame, mode_references) {
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
-  EXPECT_STATIC_REFERENCE(frame, "/items/$ref",
-                          "https://www.example.com#/$defs/helper",
-                          "https://www.example.com", "/$defs/helper");
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/items/$ref", "https://www.example.com#/$defs/helper",
+      "https://www.example.com", "/$defs/helper", "#/$defs/helper");
 }
 
 TEST(JSONSchema_frame, mode_locations) {
