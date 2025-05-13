@@ -747,7 +747,7 @@ TEST(JSONSchema_transformer, rereference_not_hit) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(JSONSchema_transformer, rereference_not_fixed) {
+TEST(JSONSchema_transformer, rereference_not_fixed_ref) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRuleDefinitionsToDefsNoRereference>();
 
@@ -785,6 +785,79 @@ TEST(JSONSchema_transformer, rereference_not_fixed) {
       "foo": {
         "type": "string"
       }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_not_fixed_id) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleRemoveIdentifiers>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "helper",
+    "$defs": {
+      "helper": {
+        "$id": "helper"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  // The reference is now just treated as an external one
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "helper",
+    "$defs": {
+      "helper": {}
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, rereference_not_fixed_anchor) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleRemoveIdentifiers>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#helper",
+    "$defs": {
+      "helper": {
+        "$anchor": "helper"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  // The reference is now just treated as an external one
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#helper",
+    "$defs": {
+      "helper": {}
     }
   })JSON");
 
