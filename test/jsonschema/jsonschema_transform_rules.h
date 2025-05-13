@@ -257,4 +257,61 @@ public:
   }
 };
 
+class ExampleRuleDefinitionsToDefsNoRereference final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleDefinitionsToDefsNoRereference()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_definitions_to_defs_no_rereference",
+            "Rename `definitions` to `$defs`") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    return schema.defines("definitions") && !schema.defines("$defs");
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.rename("definitions", "$defs");
+  }
+};
+
+class ExampleRuleDefinitionsToDefsWithRereference final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleDefinitionsToDefsWithRereference()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_definitions_to_defs_with_rereference",
+            "Rename `definitions` to `$defs`") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    return schema.defines("definitions") && !schema.defines("$defs");
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.rename("definitions", "$defs");
+  }
+
+  [[nodiscard]] auto rereference(const std::string &,
+                                 const sourcemeta::core::Pointer &,
+                                 const sourcemeta::core::Pointer &target,
+                                 const sourcemeta::core::Pointer &current) const
+      -> sourcemeta::core::Pointer override {
+    return target.rebase(current.concat({"definitions"}),
+                         current.concat({"$defs"}));
+  }
+};
+
 #endif
