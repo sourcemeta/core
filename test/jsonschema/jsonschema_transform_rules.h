@@ -314,4 +314,28 @@ public:
   }
 };
 
+class ExampleRuleRemoveIdentifiers final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleRemoveIdentifiers()
+      : sourcemeta::core::SchemaTransformRule("example_rule_remove_identifiers",
+                                              "Remove all identifiers") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    return schema.is_object() &&
+           (schema.defines("$id") || schema.defines("$anchor"));
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase_keys({"$id", "$anchor"});
+  }
+};
+
 #endif
