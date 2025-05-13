@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_error.h>
 
 #define __EXPECT_PARSE_ERROR(input, expected_line, expected_column,            \
                              expected_error, expected_message)                 \

@@ -3,6 +3,7 @@
 #include <exception>
 #include <sstream>
 
+#include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/jsonl.h>
 
 #define EXPECT_PARSE_ERROR(stream, expected_line, expected_column)             \

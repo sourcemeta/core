@@ -1,4 +1,5 @@
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_error.h>
 
 #include <gtest/gtest.h>
 
