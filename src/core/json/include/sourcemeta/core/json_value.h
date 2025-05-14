@@ -6,7 +6,7 @@
 #endif
 
 #include <sourcemeta/core/json_array.h>
-#include <sourcemeta/core/json_hash.h>
+#include <sourcemeta/core/json_hash.hh>
 #include <sourcemeta/core/json_object.h>
 
 #include <algorithm>        // std::any_of
