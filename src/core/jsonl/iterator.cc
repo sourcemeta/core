@@ -1,7 +1,10 @@
+#include <istream>
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/jsonl_iterator.h>
 
 #include "grammar.h"
+#include "sourcemeta/core/json.h"
+#include "sourcemeta/core/json_value.h"
 
 #include <cassert> // assert
 

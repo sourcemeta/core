@@ -1,11 +1,10 @@
 #ifndef SOURCEMETA_CORE_JSONL_ITERATOR_H_
 #define SOURCEMETA_CORE_JSONL_ITERATOR_H_
 
+#include "sourcemeta/core/json_value.h"
 #ifndef SOURCEMETA_CORE_JSONL_EXPORT
 #include <sourcemeta/core/jsonl_export.h>
 #endif
-
-#include <sourcemeta/core/json.h>
 
 #include <cstddef>  // std::ptrdiff_t
 #include <cstdint>  // std::uint64_t

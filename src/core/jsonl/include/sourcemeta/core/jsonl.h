@@ -1,11 +1,11 @@
 #ifndef SOURCEMETA_CORE_JSONL_H_
 #define SOURCEMETA_CORE_JSONL_H_
 
+#include "sourcemeta/core/json_value.h"
 #ifndef SOURCEMETA_CORE_JSONL_EXPORT
 #include <sourcemeta/core/jsonl_export.h>
 #endif
 
-#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonl_iterator.h>
 
 #include <istream> // std::basic_istream

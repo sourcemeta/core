@@ -1,3 +1,5 @@
+#include "sourcemeta/core/json_value.h"
+#include <istream>
 #include <sourcemeta/core/jsonl.h>
 
 namespace sourcemeta::core {
