@@ -1,6 +1,7 @@
 #ifndef SOURCEMETA_CORE_JSON_VALUE_H_
 #define SOURCEMETA_CORE_JSON_VALUE_H_
 
+#include <cstddef>
 #ifndef SOURCEMETA_CORE_JSON_EXPORT
 #include <sourcemeta/core/json_export.h>
 #endif
@@ -15,7 +16,6 @@
 #include <functional>       // std::less, std::reference_wrapper, std::function
 #include <initializer_list> // std::initializer_list
 #include <memory>           // std::allocator
-#include <optional>         // std::optional
 #include <set>              // std::set
 #include <sstream>          // std::basic_istringstream
 #include <string>           // std::basic_string, std::char_traits

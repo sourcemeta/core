@@ -1,9 +1,9 @@
 #ifndef SOURCEMETA_CORE_JSON_OBJECT_H_
 #define SOURCEMETA_CORE_JSON_OBJECT_H_
 
-#include <algorithm>        // std::swap
-#include <cassert>          // assert
-#include <functional>       // std::equal_to, std::less
+#include <algorithm> // std::swap
+#include <cassert>   // assert
+#include <cstddef>
 #include <initializer_list> // std::initializer_list
 #include <iterator>         // std::advance
 #include <utility>          // std::pair, std::move

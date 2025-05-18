@@ -1,6 +1,8 @@
 #ifndef SOURCEMETA_CORE_JSON_ERROR_H_
 #define SOURCEMETA_CORE_JSON_ERROR_H_
 
+#include <string>
+#include <utility>
 #ifndef SOURCEMETA_CORE_JSON_EXPORT
 #include <sourcemeta/core/json_export.h>
 #endif

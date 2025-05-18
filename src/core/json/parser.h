@@ -2,8 +2,9 @@
 #define SOURCEMETA_CORE_JSON_PARSER_H_
 
 #include "grammar.h"
+#include "sourcemeta/core/json_value.h"
 
-#include <sourcemeta/core/json.h>
+#include <cstddef>
 #include <sourcemeta/core/json_error.h>
 
 #include <cassert>    // assert
