@@ -1,8 +1,7 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_TEMPLATE_H_
 #define SOURCEMETA_CORE_JSONPOINTER_TEMPLATE_H_
 
-#include <sourcemeta/core/jsonpointer_pointer.h>
-#include <sourcemeta/core/jsonpointer_token.h>
+#include <initializer_list>
 
 #include <sourcemeta/core/regex.h>
 

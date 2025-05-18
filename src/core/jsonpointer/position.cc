@@ -1,3 +1,7 @@
+#include "sourcemeta/core/json_value.h"
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <sourcemeta/core/jsonpointer_position.h>
 
 #include <cassert> // assert

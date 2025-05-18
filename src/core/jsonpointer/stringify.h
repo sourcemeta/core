@@ -2,14 +2,16 @@
 #define SOURCEMETA_CORE_JSONPOINTER_STRINGIFY_H_
 
 #include "grammar.h"
+#include "sourcemeta/core/json_value.h"
 
-#include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonpointer_pointer.h>
+#include <cassert>
+#include <ios>
 #include <sourcemeta/core/uri.h>
 
 #include <ostream> // std::basic_ostream
 #include <sstream> // std::basic_istringstream
 #include <string>  // std::to_string, std::basic_string
+#include <variant> // std::holds_alternative
 
 namespace sourcemeta::core::internal {
 inline auto

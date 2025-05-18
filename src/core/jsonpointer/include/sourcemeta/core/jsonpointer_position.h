@@ -1,11 +1,13 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_POSITION_H_
 #define SOURCEMETA_CORE_JSONPOINTER_POSITION_H_
 
+#include "sourcemeta/core/json_hash.h"
+#include "sourcemeta/core/json_value.h"
+#include <cstddef>
 #ifndef SOURCEMETA_CORE_JSONPOINTER_EXPORT
 #include <sourcemeta/core/jsonpointer_export.h>
 #endif
 
-#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer_pointer.h>
 
 #include <cstdint>  // std::uint64_t

@@ -1,10 +1,9 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_WALKER_H_
 #define SOURCEMETA_CORE_JSONPOINTER_WALKER_H_
 
+#include "sourcemeta/core/json_value.h"
+#include <cstddef>
 #include <vector> // std::vector
-
-#include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonpointer_pointer.h>
 
 namespace sourcemeta::core {
 
