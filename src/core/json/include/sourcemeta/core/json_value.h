@@ -1,7 +1,6 @@
 #ifndef SOURCEMETA_CORE_JSON_VALUE_H_
 #define SOURCEMETA_CORE_JSON_VALUE_H_
 
-#include <cstddef>
 #ifndef SOURCEMETA_CORE_JSON_EXPORT
 #include <sourcemeta/core/json_export.h>
 #endif
@@ -22,6 +21,7 @@
 #include <string_view>      // std::basic_string_view
 #include <type_traits>      // std::enable_if_t, std::is_same_v
 #include <utility>          // std::pair
+#include <cstddef>          // std::size_t
 
 namespace sourcemeta::core {
 

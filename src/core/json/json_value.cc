@@ -1,20 +1,20 @@
-#include "sourcemeta/core/json_array.h"
-#include <cstddef>
-#include <cstdint>
-#include <functional>
-#include <initializer_list>
+#include <sourcemeta/core/json_array.h>
 #include <sourcemeta/core/json_value.h>
 
-#include <algorithm> // std::find
-#include <cassert>   // assert
-#include <cmath>     // std::isinf, std::isnan, std::modf, std::trunc
-#include <numeric>   // std::transform
-#include <sstream>
-#include <stdexcept> // std::invalid_argument
-#include <string>    // std::to_string
-#include <string_view>
-#include <utility> // std::move
-#include <vector>  // std::vector
+#include <algorithm>          // std::find
+#include <cassert>            // assert
+#include <cmath>              // std::isinf, std::isnan, std::modf, std::trunc
+#include <numeric>            // std::transform
+#include <sstream>            // std::basic_istringstream
+#include <stdexcept>          // std::invalid_argument
+#include <string>             // std::to_string
+#include <string_view>        // std::basic_string_view
+#include <utility>            // std::move
+#include <vector>             // std::vector
+#include <cstddef>            // std::size_t
+#include <cstdint>            // std::int64_t
+#include <functional>         // std::reference_wrapper
+#include <initializer_list>   // std::initializer_list
 
 namespace sourcemeta::core {
 

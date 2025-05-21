@@ -2,10 +2,9 @@
 #define SOURCEMETA_CORE_JSON_PARSER_H_
 
 #include "grammar.h"
-#include "sourcemeta/core/json_value.h"
 
-#include <cstddef>
 #include <sourcemeta/core/json_error.h>
+#include <sourcemeta/core/json_value.h>
 
 #include <cassert>    // assert
 #include <cctype>     // std::isxdigit
@@ -17,6 +16,7 @@
 #include <stack>      // std::stack
 #include <stdexcept>  // std::out_of_range
 #include <string>     // std::basic_string, std::stol, std::stod, std::stoul
+#include <cstddef>    // std::size_t
 
 namespace sourcemeta::core::internal {
 
