@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
 
 TEST(JSONSchema_metaschema, example_2020_12) {
   const auto schema{sourcemeta::core::parse_json(R"JSON({

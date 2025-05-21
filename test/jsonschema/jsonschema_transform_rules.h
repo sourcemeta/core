@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_JSONSCHEMA_TEST_TRANSFORM_RULES_H_
 
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_transform.h>
 
 class ExampleRule1 final : public sourcemeta::core::SchemaTransformRule {
 public:

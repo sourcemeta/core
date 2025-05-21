@@ -1,5 +1,7 @@
 #include <sourcemeta/core/jsonschema.h>
 
+#include <string_view> // std::string_view
+
 auto sourcemeta::core::schema_official_walker(
     std::string_view keyword,
     const sourcemeta::core::Vocabularies &vocabularies)

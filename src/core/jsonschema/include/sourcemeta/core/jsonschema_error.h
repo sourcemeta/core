@@ -6,11 +6,11 @@
 #endif
 
 #include <sourcemeta/core/jsonpointer.h>
-#include <sourcemeta/core/uri.h>
 
-#include <exception> // std::exception
-#include <string>    // std::string
-#include <utility>   // std::move
+#include <exception>   // std::exception
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 namespace sourcemeta::core {
 

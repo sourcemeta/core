@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
+#include <sourcemeta/core/jsonschema_resolver.h>
 
 TEST(JSONSchema_SchemaFlatFileResolver, empty_no_fallback) {
   sourcemeta::core::SchemaFlatFileResolver resolver;

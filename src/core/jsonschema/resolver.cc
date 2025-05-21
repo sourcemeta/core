@@ -1,9 +1,21 @@
+#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
+#include <sourcemeta/core/jsonschema_frame.h>
+#include <sourcemeta/core/jsonschema_resolver.h>
+#include <sourcemeta/core/jsonschema_types.h>
 
-#include <algorithm> // std::transform
-#include <cassert>   // assert
-#include <cctype>    // std::tolower
-#include <sstream>   // std::ostringstream
+#include <algorithm>   // std::transform
+#include <cassert>     // assert
+#include <cctype>      // std::tolower
+#include <filesystem>  // std::filesystem
+#include <functional>  // std::function
+#include <optional>    // std::optional
+#include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 namespace sourcemeta::core {
 

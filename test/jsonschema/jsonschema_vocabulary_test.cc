@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
 
 TEST(JSONSchema_vocabulary, core_vocabularies_boolean_without_default) {
   const sourcemeta::core::JSON document{true};

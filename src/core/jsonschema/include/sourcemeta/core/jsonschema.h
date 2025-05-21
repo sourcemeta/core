@@ -5,20 +5,14 @@
 #include <sourcemeta/core/jsonschema_export.h>
 #endif
 
-#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
-
-#include <sourcemeta/core/jsonschema_error.h>
 #include <sourcemeta/core/jsonschema_frame.h>
-#include <sourcemeta/core/jsonschema_resolver.h>
-#include <sourcemeta/core/jsonschema_transform.h>
 #include <sourcemeta/core/jsonschema_types.h>
-#include <sourcemeta/core/jsonschema_walker.h>
+#include <sourcemeta/core/uri.h>
 
 #include <cstdint>     // std::uint8_t
-#include <functional>  // std::function
 #include <optional>    // std::optional, std::nullopt
-#include <set>         // std::set
 #include <string>      // std::string
 #include <string_view> // std::string_view
 

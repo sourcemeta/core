@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_JSONSCHEMA_TYPES_H_
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/uri.h>
 

@@ -6,12 +6,14 @@
 #endif
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonschema_types.h>
 
 #include <filesystem>  // std::filesystem
 #include <functional>  // std::function
 #include <map>         // std::map
 #include <optional>    // std::optional
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {

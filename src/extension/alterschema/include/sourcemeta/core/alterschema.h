@@ -15,6 +15,7 @@
 #endif
 
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_transform.h>
 
 namespace sourcemeta::core {
 
