@@ -3,11 +3,12 @@
 
 #include "grammar.h"
 
-#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/json_error.h>
+#include <sourcemeta/core/json_value.h>
 
 #include <cassert>    // assert
 #include <cctype>     // std::isxdigit
+#include <cstddef>    // std::size_t
 #include <cstdint>    // std::uint64_t
 #include <functional> // std::reference_wrapper
 #include <istream>    // std::basic_istream
