@@ -1,11 +1,12 @@
-#include <algorithm>
 #include <gtest/gtest.h>
+
+#include <sourcemeta/core/json.h>
+
+#include <algorithm>
 #include <map>
 #include <set>
 #include <string>
 #include <type_traits>
-
-#include <sourcemeta/core/json.h>
 
 TEST(JSON_object, general_traits) {
   EXPECT_TRUE(

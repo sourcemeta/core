@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <unordered_set>
-
 #include <sourcemeta/core/jsonschema.h>
+
+#include <unordered_set>
 
 TEST(JSONSchema_SchemaMapResolver, empty_no_fallback) {
   sourcemeta::core::SchemaMapResolver resolver;

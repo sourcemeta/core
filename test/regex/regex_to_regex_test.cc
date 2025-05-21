@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <string>
-
 #include <sourcemeta/core/regex.h>
+
+#include <string>
 
 TEST(Regex_to_regex, valid_1) {
   const auto regex{sourcemeta::core::to_regex<std::string>("^foo")};

@@ -2,7 +2,6 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
-#include <sourcemeta/core/jsonpointer_position.h>
 
 TEST(JSONPointer_position, track_1) {
   const auto input{R"JSON([

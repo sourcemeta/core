@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/json.h>
+
 #include <type_traits>
 #include <unordered_set>
 #include <utility>

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/uri.h>
 
 TEST(URI_query, https_example_url_no_query) {

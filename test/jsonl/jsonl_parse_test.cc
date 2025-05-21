@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/jsonl.h>
+
 #include <sstream>
 #include <vector>
-
-#include <sourcemeta/core/jsonl.h>
 
 TEST(JSONL_parse, empty) {
   std::istringstream stream{""};

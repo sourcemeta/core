@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <string>
-
 #include <sourcemeta/core/regex.h>
+
+#include <string>
 
 TEST(Regex_matches_if_valid, match_pattern_true) {
   EXPECT_TRUE(

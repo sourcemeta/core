@@ -5,6 +5,7 @@
 #include <sourcemeta/core/json_export.h>
 #endif
 
+#include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/json_value.h>
 
 #include <cstdint>    // std::uint64_t

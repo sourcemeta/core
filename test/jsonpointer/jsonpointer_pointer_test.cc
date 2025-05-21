@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/jsonpointer.h>
+
 #include <type_traits>
 
 TEST(JSONPointer_pointer, general_traits) {

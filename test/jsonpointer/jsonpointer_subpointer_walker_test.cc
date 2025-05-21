@@ -1,10 +1,11 @@
 #include <gtest/gtest.h>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
+
+#include <memory>
+#include <string>
+#include <vector>
 
 TEST(JSONPointer_subpointer_walker, equality_null_subpointer_iterators) {
   const sourcemeta::core::SubPointerWalker::const_iterator first{nullptr};

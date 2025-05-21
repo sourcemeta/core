@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/uri.h>
 
 TEST(URI_fragment, https_no_fragment) {

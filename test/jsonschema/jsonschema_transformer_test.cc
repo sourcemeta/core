@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonschema.h>
+
 #include <string>
 #include <tuple>
 #include <vector>
-
-#include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonschema.h>
 
 #include "jsonschema_transform_rules.h"
 

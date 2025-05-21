@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
-#include <sstream>
-#include <string>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
+
+#include <sstream>
+#include <string>
 
 TEST(JSONPointer_parse, empty_string) {
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("");

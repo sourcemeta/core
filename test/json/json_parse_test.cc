@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/json.h>
+
 #include <sstream>
 
 TEST(JSON_parse, true) {

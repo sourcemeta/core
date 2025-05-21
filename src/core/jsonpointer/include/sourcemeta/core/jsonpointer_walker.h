@@ -1,7 +1,7 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_WALKER_H_
 #define SOURCEMETA_CORE_JSONPOINTER_WALKER_H_
 
-#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/json.h>
 
 #include <cstddef> // std::size_t
 #include <vector>  // std::vector

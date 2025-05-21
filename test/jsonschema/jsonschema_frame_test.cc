@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include <set>
-#include <sstream>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+
+#include <set>
+#include <sstream>
 
 #include "jsonschema_test_utils.h"
 

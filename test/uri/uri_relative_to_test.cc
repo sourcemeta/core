@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/uri.h>
 
 TEST(URI_relative_to, absolute_absolute_base_true_1) {

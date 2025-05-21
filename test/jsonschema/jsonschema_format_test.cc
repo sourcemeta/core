@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
-#include <sstream>
 
 #include <sourcemeta/core/jsonschema.h>
+
+#include <sstream>
 
 TEST(JSONSchema_format, example_1) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({

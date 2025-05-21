@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/uri.h>
 
 // Insipred from https://datatracker.ietf.org/doc/html/rfc2732#section-2

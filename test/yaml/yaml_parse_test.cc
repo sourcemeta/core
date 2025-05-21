@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <sstream>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/yaml.h>
+
+#include <sstream>
 
 TEST(YAML_parse, scalar_1) {
   const std::string input{"1"};

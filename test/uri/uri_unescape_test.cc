@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/uri.h>
+
 #include <sstream>
 
 TEST(URI_unescape, example_1) {

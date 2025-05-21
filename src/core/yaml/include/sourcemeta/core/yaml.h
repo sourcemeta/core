@@ -5,9 +5,9 @@
 #include <sourcemeta/core/yaml_export.h>
 #endif
 
-#include <sourcemeta/core/yaml_error.h>
-
 #include <sourcemeta/core/json.h>
+
+#include <sourcemeta/core/yaml_error.h>
 
 #include <filesystem> // std::filesystem
 #include <istream>    // std::basic_istream
