@@ -8,6 +8,7 @@
 
 #include <cassert>    // assert
 #include <cctype>     // std::isxdigit
+#include <cstddef>    // std::size_t
 #include <cstdint>    // std::uint64_t
 #include <functional> // std::reference_wrapper
 #include <istream>    // std::basic_istream
@@ -16,7 +17,6 @@
 #include <stack>      // std::stack
 #include <stdexcept>  // std::out_of_range
 #include <string>     // std::basic_string, std::stol, std::stod, std::stoul
-#include <cstddef>    // std::size_t
 
 namespace sourcemeta::core::internal {
 

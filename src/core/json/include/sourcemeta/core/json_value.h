@@ -11,6 +11,7 @@
 
 #include <algorithm>        // std::any_of
 #include <cassert>          // assert
+#include <cstddef>          // std::size_t
 #include <cstdint>          // std::int64_t, std::uint8_t
 #include <functional>       // std::less, std::reference_wrapper, std::function
 #include <initializer_list> // std::initializer_list
@@ -21,7 +22,6 @@
 #include <string_view>      // std::basic_string_view
 #include <type_traits>      // std::enable_if_t, std::is_same_v
 #include <utility>          // std::pair
-#include <cstddef>          // std::size_t
 
 namespace sourcemeta::core {
 
