@@ -2,12 +2,12 @@
 #define SOURCEMETA_CORE_JSONPOINTER_STRINGIFY_H_
 
 #include "grammar.h"
-#include "sourcemeta/core/json_value.h"
 
-#include <cassert>
-#include <ios>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/uri.h>
 
+#include <cassert> // assert
+#include <ios>     // std::basic_ostream
 #include <ostream> // std::basic_ostream
 #include <sstream> // std::basic_istringstream
 #include <string>  // std::to_string, std::basic_string

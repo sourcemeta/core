@@ -1,20 +1,20 @@
-#include <ostream>
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_hash.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/jsonpointer_pointer.h>
+#include <sourcemeta/core/uri.h>
 
 #include "grammar.h"
 #include "parser.h"
-#include "sourcemeta/core/json.h"
-#include "sourcemeta/core/json_hash.h"
-#include "sourcemeta/core/json_value.h"
-#include "sourcemeta/core/jsonpointer_pointer.h"
-#include "sourcemeta/core/uri.h"
 #include "stringify.h"
 
-#include <cassert>  // assert
-#include <iterator> // std::cbegin, std::cend, std::prev
-#include <memory>   // std::allocator
-#include <sstream>  // std::basic_ostringstream, std::basic_stringstream
-#include <string>
+#include <cassert>     // assert
+#include <iterator>    // std::cbegin, std::cend, std::prev
+#include <memory>      // std::allocator
+#include <ostream>     // std::basic_ostream
+#include <sstream>     // std::basic_ostringstream, std::basic_stringstream
+#include <string>      // std::basic_string
 #include <type_traits> // std::is_same_v
 #include <utility>     // std::move
 

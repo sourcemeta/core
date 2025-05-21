@@ -1,14 +1,14 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_H_
 #define SOURCEMETA_CORE_JSONPOINTER_H_
 
-#include "sourcemeta/core/json_hash.h"
-#include "sourcemeta/core/json_value.h"
 #ifndef SOURCEMETA_CORE_JSONPOINTER_EXPORT
 #include <sourcemeta/core/jsonpointer_export.h>
 #endif
 
 #include <sourcemeta/core/uri.h>
 
+#include <sourcemeta/core/json_hash.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonpointer_pointer.h>
 #include <sourcemeta/core/jsonpointer_subpointer_walker.h>
