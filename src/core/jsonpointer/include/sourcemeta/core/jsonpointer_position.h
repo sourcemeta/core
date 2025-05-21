@@ -5,9 +5,11 @@
 #include <sourcemeta/core/jsonpointer_export.h>
 #endif
 
-#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_hash.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer_pointer.h>
 
+#include <cstddef>  // std::size_t
 #include <cstdint>  // std::uint64_t
 #include <map>      // std::map
 #include <optional> // std::optional

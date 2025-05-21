@@ -4,7 +4,9 @@
 #include <string>
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/jsonpointer_error.h>
 
 #define EXPECT_JSON_PARSE_ERROR(input)                                         \
   try {                                                                        \

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/jsonpointer_error.h>
 
 #include <exception>   // std::exception
 #include <string>      // std::string
