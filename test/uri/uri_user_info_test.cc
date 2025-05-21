@@ -1,5 +1,5 @@
-
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/uri.h>
 
 TEST(URI_user_info, working_example) {

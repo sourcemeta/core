@@ -5,7 +5,8 @@
 #include <sourcemeta/core/jsonl_export.h>
 #endif
 
-#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/json.h>
+
 #include <sourcemeta/core/jsonl_iterator.h>
 
 #include <istream> // std::basic_istream

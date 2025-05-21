@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <memory>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
+
+#include <memory>
 
 #include "jsonschema_transform_rules.h"
 

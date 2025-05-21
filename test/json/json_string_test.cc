@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
+
+#include <sourcemeta/core/json.h>
+
 #include <string>
 #include <string_view>
 #include <unordered_set>
-
-#include <sourcemeta/core/json.h>
 
 TEST(JSON_string, foo_value_string) {
   const std::string value{"foo"};

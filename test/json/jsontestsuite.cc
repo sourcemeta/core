@@ -1,7 +1,6 @@
-#include <sourcemeta/core/json.h>
-#include <sourcemeta/core/json_error.h>
-
 #include <gtest/gtest.h>
+
+#include <sourcemeta/core/json.h>
 
 #include <exception>  // std::exception
 #include <filesystem> // std::filesystem

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/json.h>
 
 TEST(JSON_boolean, true_value) {

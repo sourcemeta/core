@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
-#include <sstream>
 
 #include <sourcemeta/core/jsonpointer.h>
+
+#include <sstream>
 
 TEST(JSONPointer_stringify, empty_pointer) {
   const sourcemeta::core::Pointer pointer;

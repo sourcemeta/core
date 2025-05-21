@@ -1,10 +1,10 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_STRINGIFY_H_
 #define SOURCEMETA_CORE_JSONPOINTER_STRINGIFY_H_
 
-#include "grammar.h"
-
 #include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/uri.h>
+
+#include "grammar.h"
 
 #include <cassert> // assert
 #include <ios>     // std::basic_ostream

@@ -1,7 +1,7 @@
 #ifndef SOURCEMETA_CORE_JSONPOINTER_TOKEN_H_
 #define SOURCEMETA_CORE_JSONPOINTER_TOKEN_H_
 
-#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/json.h>
 
 #include <cassert> // assert
 

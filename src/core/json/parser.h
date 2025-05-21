@@ -1,10 +1,10 @@
 #ifndef SOURCEMETA_CORE_JSON_PARSER_H_
 #define SOURCEMETA_CORE_JSON_PARSER_H_
 
-#include "grammar.h"
-
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/json_value.h>
+
+#include "grammar.h"
 
 #include <cassert>    // assert
 #include <cctype>     // std::isxdigit

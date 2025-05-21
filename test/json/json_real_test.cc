@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/json.h>
+
 #include <cmath>
 #include <limits>
-
-#include <sourcemeta/core/json.h>
 
 TEST(JSON_real, positive) {
   const sourcemeta::core::JSON document{10.2};

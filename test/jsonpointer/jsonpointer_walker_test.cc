@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
+
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonpointer.h>
+
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
-
-#include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonpointer.h>
 
 TEST(JSONPointer_walker, null) {
   const sourcemeta::core::JSON document{nullptr};

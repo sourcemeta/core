@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
+
 #include <type_traits>
 
 TEST(JSONPointer_token, general_traits) {

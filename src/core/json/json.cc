@@ -1,9 +1,9 @@
-#include "parser.h"
-#include "stringify.h"
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/json_value.h>
+
+#include "parser.h"
+#include "stringify.h"
 
 #include <cassert>      // assert
 #include <cstdint>      // std::uint64_t

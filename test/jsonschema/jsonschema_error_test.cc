@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/jsonschema.h>
 
 #include <exception>   // std::exception

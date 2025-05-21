@@ -1,12 +1,11 @@
-#include <exception>
 #include <gtest/gtest.h>
-#include <sstream>
-#include <string>
 
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/jsonpointer.h>
-#include <sourcemeta/core/jsonpointer_error.h>
+
+#include <exception>
+#include <sstream>
+#include <string>
 
 #define EXPECT_JSON_PARSE_ERROR(input)                                         \
   try {                                                                        \

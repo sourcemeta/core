@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <sourcemeta/core/jsonpointer.h>
 
 TEST(JSONPointer_empty_pointer, is_empty) {

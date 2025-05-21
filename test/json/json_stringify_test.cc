@@ -1,7 +1,8 @@
 #include <gtest/gtest.h>
-#include <sstream>
 
 #include <sourcemeta/core/json.h>
+
+#include <sstream>
 
 TEST(JSON_stringify, boolean_false) {
   const sourcemeta::core::JSON document{false};

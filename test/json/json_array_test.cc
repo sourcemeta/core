@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/json.h>
+
 #include <algorithm>
 #include <set>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <sourcemeta/core/json.h>
 
 TEST(JSON_array, general_traits) {
   EXPECT_TRUE(

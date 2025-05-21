@@ -1,5 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/uri.h>
+
 #include <cassert>
 #include <filesystem>
 #include <map>
@@ -7,11 +12,6 @@
 #include <sstream>
 #include <string>
 #include <utility>
-
-#include <sourcemeta/core/json.h>
-#include <sourcemeta/core/jsonpointer.h>
-#include <sourcemeta/core/jsonschema.h>
-#include <sourcemeta/core/uri.h>
 
 static auto dereference(
     const std::string &uri,
