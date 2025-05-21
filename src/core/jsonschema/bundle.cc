@@ -7,7 +7,7 @@
 
 #include <cassert>  // assert
 #include <cstddef>  // std::size_t
-#include <optional> //std::nullopt
+#include <optional> // std::nullopt
 #include <sstream>  // std::ostringstream
 #include <string>   // std::string
 #include <utility>  // std::move
