@@ -1,5 +1,7 @@
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_types.h>
 
+#include <optional>    // std::nullopt
 #include <string_view> // std::string_view
 
 auto sourcemeta::core::schema_official_walker(

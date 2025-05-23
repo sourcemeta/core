@@ -12,6 +12,7 @@
 #include <cstddef>    // std::size_t
 #include <cstdint>    // std::uint8_t
 #include <functional> // std::less
+#include <iterator>   // std::next
 #include <map>        // std::map
 #include <optional>   // std::optional
 #include <ostream>    // std::ostream

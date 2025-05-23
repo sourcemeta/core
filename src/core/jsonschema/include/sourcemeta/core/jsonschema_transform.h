@@ -7,9 +7,7 @@
 
 #include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
-#include <sourcemeta/core/uri.h>
-
-#include <sourcemeta/core/jsonschema_resolver.h>
+#include <sourcemeta/core/jsonschema_frame.h>
 #include <sourcemeta/core/jsonschema_types.h>
 
 #include <cassert>     // assert

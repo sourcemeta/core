@@ -13,6 +13,7 @@
 #include <stdexcept> // std::runtime_error
 #include <string>    // std::string
 #include <utility>   // std::move, std::pair
+#include <variant>   // std::holds_alternative, std::get_if
 
 namespace {
 
