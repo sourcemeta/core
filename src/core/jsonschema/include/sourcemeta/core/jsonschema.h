@@ -8,8 +8,15 @@
 #include <sourcemeta/core/json.h> // NOLINT(misc-include-cleaner) Public header needs it
 #include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
+
+// NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/jsonschema_error.h>
 #include <sourcemeta/core/jsonschema_frame.h>
+#include <sourcemeta/core/jsonschema_resolver.h>
 #include <sourcemeta/core/jsonschema_types.h>
+#include <sourcemeta/core/jsonschema_walker.h>
+// NOLINTEND(misc-include-cleaner)
+
 #include <sourcemeta/core/uri.h>
 
 #include <cstdint>     // std::uint8_t
