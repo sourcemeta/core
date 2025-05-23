@@ -5,6 +5,7 @@
 #include <sourcemeta/core/jsonschema_export.h>
 #endif
 
+#include <sourcemeta/core/json.h> // NOLINT(misc-include-cleaner) Public header needs it
 #include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema_frame.h>
