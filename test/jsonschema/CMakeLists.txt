@@ -82,7 +82,6 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_official_resolver_test.cc
     jsonschema_relativize_test.cc
     jsonschema_map_resolver_test.cc
-    jsonschema_flat_file_resolver_test.cc
     jsonschema_format_test.cc
     jsonschema_wrap_test.cc)
 
@@ -94,8 +93,6 @@ target_link_libraries(sourcemeta_core_jsonschema_unit
   PRIVATE sourcemeta::core::jsonschema)
 target_link_libraries(sourcemeta_core_jsonschema_unit
   PRIVATE sourcemeta::core::uri)
-target_compile_definitions(sourcemeta_core_jsonschema_unit
-  PRIVATE SCHEMAS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/schemas")
 
 # JSON Schema Referencing Suite
 # See https://github.com/python-jsonschema/referencing-suite
