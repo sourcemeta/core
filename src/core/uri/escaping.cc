@@ -1,9 +1,13 @@
 #include <uriparser/Uri.h>
+#include <uriparser/UriBase.h>
 
 #include <sourcemeta/core/uri.h>
 
 #include <algorithm> // std::copy
+#include <istream>   // std::istream
+#include <ostream>   // std::ostream
 #include <sstream>   // std::ostringstream
+#include <string>    // std::string
 
 namespace sourcemeta::core {
 

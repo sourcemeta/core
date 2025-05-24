@@ -1,11 +1,14 @@
 #include <sourcemeta/core/alterschema.h>
-
-#include <cassert> // assert
+#include <sourcemeta/core/jsonschema_transform.h>
+#include <sourcemeta/core/jsonschema_types.h>
 
 // For built-in rules
-#include <algorithm>
-#include <cmath>
-#include <iterator>
+#include <algorithm> // std::any_of, std::all_of
+#include <cassert>   // assert
+#include <cmath>     // std::floor
+#include <iterator>  // std::cbegin, std::cend
+#include <set>       // std::set
+
 namespace sourcemeta::core {
 auto contains_any(const Vocabularies &container,
                   const std::set<typename Vocabularies::key_type> &values)

@@ -1,7 +1,17 @@
+#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_types.h>
+#include <sourcemeta/core/jsonschema_walker.h>
 
 #include <algorithm> // std::max, std::sort
 #include <cassert>   // assert
+#include <cstddef>   // std::size_t
+#include <cstdint>   // std::uint8_t
+#include <optional>  // std::optional
+#include <string>    // std::string
+#include <utility>   // std::move
+#include <vector>    // std::vector
 
 namespace {
 enum class SchemaWalkerType_t : std::uint8_t { Deep, Flat };

@@ -1,17 +1,20 @@
 #include <uriparser/Uri.h>
+#include <uriparser/UriBase.h>
 
 #include <sourcemeta/core/uri.h>
 
-#include <cassert>   // assert
-#include <cstdint>   // std::uint32_t
-#include <istream>   // std::istream
-#include <optional>  // std::optional
-#include <sstream>   // std::ostringstream
-#include <stdexcept> // std::length_error, std::runtime_error
-#include <string>    // std::stoul, std::string, std::tolower
-#include <tuple>     // std::tie
-#include <utility>   // std::move
-#include <vector>    // std::vector
+#include <cassert>     // assert
+#include <cctype>      // std::tolower
+#include <cstdint>     // std::uint32_t
+#include <istream>     // std::istream
+#include <optional>    // std::optional
+#include <sstream>     // std::ostringstream
+#include <stdexcept>   // std::length_error, std::runtime_error
+#include <string>      // std::stoul, std::string, std::tolower
+#include <string_view> // std::string_view
+#include <tuple>       // std::tie
+#include <utility>     // std::move
+#include <vector>      // std::vector
 
 static auto uri_normalize(UriUriA *uri) -> void {
   if (uriNormalizeSyntaxA(uri) != URI_SUCCESS) {
