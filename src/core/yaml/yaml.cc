@@ -1,10 +1,16 @@
 // See https://pyyaml.org/wiki/LibYAML for basic documentation
 #include <yaml.h>
 
+#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/json_error.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/yaml.h>
+#include <sourcemeta/core/yaml_error.h>
 
+#include <filesystem>  // std::filesystem::path
+#include <istream>     // std::basic_istream
 #include <sstream>     // std::ostringstream, std::istringstream
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 // TODO: Perform parsing token by token using `yaml_parser_parse`,

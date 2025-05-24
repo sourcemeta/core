@@ -1,10 +1,20 @@
+#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
+#include <sourcemeta/core/jsonschema_frame.h>
+#include <sourcemeta/core/jsonschema_types.h>
+#include <sourcemeta/core/uri.h>
 
 #include <algorithm>  // std::sort, std::all_of, std::any_of
 #include <cassert>    // assert
+#include <cstddef>    // std::size_t
+#include <cstdint>    // std::uint8_t
 #include <functional> // std::less
+#include <iterator>   // std::next
 #include <map>        // std::map
 #include <optional>   // std::optional
+#include <ostream>    // std::ostream
 #include <set>        // std::set
 #include <sstream>    // std::ostringstream
 #include <utility>    // std::pair, std::move

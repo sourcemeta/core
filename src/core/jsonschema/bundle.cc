@@ -1,8 +1,16 @@
+#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
+#include <sourcemeta/core/jsonschema_frame.h>
+#include <sourcemeta/core/jsonschema_types.h>
 
-#include <cassert> // assert
-#include <sstream> // std::ostringstream
-#include <utility> // std::move
+#include <cassert>  // assert
+#include <cstddef>  // std::size_t
+#include <optional> // std::optional
+#include <sstream>  // std::ostringstream
+#include <string>   // std::string
+#include <utility>  // std::move
 
 namespace {
 

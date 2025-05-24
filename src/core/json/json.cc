@@ -10,7 +10,9 @@
 #include <filesystem>   // std::filesystem
 #include <fstream>      // std::ifstream
 #include <istream>      // std::basic_istream
+#include <memory>       // std::allocator
 #include <ostream>      // std::basic_ostream
+#include <string>       // std::basic_string
 #include <system_error> // std::make_error_code, std::errc
 
 namespace sourcemeta::core {

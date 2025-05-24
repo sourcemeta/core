@@ -1,10 +1,19 @@
+#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
+#include <sourcemeta/core/jsonschema_frame.h>
+#include <sourcemeta/core/jsonschema_transform.h>
+#include <sourcemeta/core/jsonschema_types.h>
 
 #include <cassert>   // assert
+#include <optional>  // std::optional
 #include <set>       // std::set
 #include <sstream>   // std::ostringstream
 #include <stdexcept> // std::runtime_error
+#include <string>    // std::string
 #include <utility>   // std::move, std::pair
+#include <variant>   // std::get_if, std::holds_alternative
 
 namespace {
 
