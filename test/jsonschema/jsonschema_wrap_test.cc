@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
 
 TEST(JSONSchema_wrap, identifier_without_fragment) {
   const auto identifier{"https://www.example.com"};

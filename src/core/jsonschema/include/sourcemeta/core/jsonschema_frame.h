@@ -5,23 +5,18 @@
 #include <sourcemeta/core/jsonschema_export.h>
 #endif
 
-#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonpointer.h>
-
-#include <sourcemeta/core/jsonschema_resolver.h>
 #include <sourcemeta/core/jsonschema_types.h>
-#include <sourcemeta/core/jsonschema_walker.h>
 
-#include <cstdint>       // std::uint8_t
-#include <functional>    // std::reference_wrapper
-#include <map>           // std::map
-#include <optional>      // std::optional
-#include <ostream>       // std::ostream
-#include <set>           // std::set
-#include <tuple>         // std::tuple
-#include <unordered_set> // std::unordered_set
-#include <utility>       // std::pair
-#include <vector>        // std::vector
+#include <cstdint>    // std::uint8_t
+#include <functional> // std::reference_wrapper
+#include <map>        // std::map
+#include <optional>   // std::optional
+#include <ostream>    // std::ostream
+#include <set>        // std::set
+#include <utility>    // std::pair
+#include <vector>     // std::vector
 
 namespace sourcemeta::core {
 

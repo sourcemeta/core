@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
 
 TEST(JSONSchema_identify, boolean_no_dialect) {
   const sourcemeta::core::JSON document{true};

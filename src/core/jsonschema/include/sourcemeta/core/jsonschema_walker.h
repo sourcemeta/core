@@ -5,15 +5,12 @@
 #include <sourcemeta/core/jsonschema_export.h>
 #endif
 
-#include <sourcemeta/core/json.h>
-
+#include <sourcemeta/core/json_value.h>
 #include <sourcemeta/core/jsonschema_types.h>
 
-#include <cstdint>     // std::uint64_t
-#include <optional>    // std::optional
-#include <string>      // std::string
-#include <string_view> // std::string_view
-#include <vector>      // std::vector
+#include <optional> // std::optional
+#include <string>   // std::string
+#include <vector>   // std::vector
 
 namespace sourcemeta::core {
 

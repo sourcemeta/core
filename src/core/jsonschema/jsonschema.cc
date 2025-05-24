@@ -1,11 +1,22 @@
+#include <sourcemeta/core/json_value.h>
+#include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
+#include <sourcemeta/core/jsonschema_frame.h>
+#include <sourcemeta/core/jsonschema_types.h>
+#include <sourcemeta/core/jsonschema_walker.h>
+#include <sourcemeta/core/uri.h>
 
 #include <cassert>     // assert
 #include <cstdint>     // std::uint64_t
 #include <functional>  // std::less
 #include <limits>      // std::numeric_limits
+#include <map>         // std::map
 #include <numeric>     // std::accumulate
+#include <optional>    // std::optional
 #include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view
 #include <type_traits> // std::remove_reference_t
 #include <utility>     // std::move
 

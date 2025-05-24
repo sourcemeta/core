@@ -1,4 +1,5 @@
 #include <sourcemeta/core/alterschema.h>
+#include <sourcemeta/core/jsonschema_transform.h>
 
 #include <cassert> // assert
 

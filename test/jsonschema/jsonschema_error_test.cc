@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/jsonschema_error.h>
 
 #include <exception>   // std::exception
 #include <string>      // std::string

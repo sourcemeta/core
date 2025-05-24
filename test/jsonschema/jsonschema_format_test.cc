@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
 #include <sstream>
