@@ -779,3 +779,45 @@ TEST(JSON_object, merge_with_overlap) {
   EXPECT_FALSE(document.at("bar").to_boolean());
   EXPECT_EQ(document.at("baz").to_integer(), 9);
 }
+
+TEST(JSON_object, at_or_defined) {
+  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
+                                        {"bar", sourcemeta::core::JSON{1}}};
+  const sourcemeta::core::JSON default_value{99};
+
+  const auto &result{document.at_or("foo", default_value)};
+  EXPECT_TRUE(result.is_boolean());
+  EXPECT_TRUE(result.to_boolean());
+}
+
+TEST(JSON_object, at_or_defined_with_hash) {
+  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
+                                        {"bar", sourcemeta::core::JSON{1}}};
+  const sourcemeta::core::JSON default_value{99};
+
+  const auto hash{document.as_object().hash("foo")};
+  const auto &result{document.at_or("foo", hash, default_value)};
+  EXPECT_TRUE(result.is_boolean());
+  EXPECT_TRUE(result.to_boolean());
+}
+
+TEST(JSON_object, at_or_not_defined) {
+  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
+                                        {"bar", sourcemeta::core::JSON{1}}};
+  const sourcemeta::core::JSON default_value{99};
+
+  const auto &result{document.at_or("baz", default_value)};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 99);
+}
+
+TEST(JSON_object, at_or_not_defined_with_hash) {
+  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
+                                        {"bar", sourcemeta::core::JSON{1}}};
+  const sourcemeta::core::JSON default_value{99};
+
+  const auto hash{document.as_object().hash("baz")};
+  const auto &result{document.at_or("baz", hash, default_value)};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 99);
+}

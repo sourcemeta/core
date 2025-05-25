@@ -504,6 +504,20 @@ JSON::at(const String &key,
   return this->data_object.data.at(key, hash);
 }
 
+[[nodiscard]] auto JSON::at_or(const String &key,
+                               const typename Object::Container::hash_type hash,
+                               const JSON &otherwise) const -> const JSON & {
+  assert(this->is_object());
+  const auto result{this->try_at(key, hash)};
+  return result ? *result : otherwise;
+}
+
+[[nodiscard]] auto JSON::at_or(const String &key, const JSON &otherwise) const
+    -> const JSON & {
+  assert(this->is_object());
+  return this->at_or(key, this->data_object.data.hash(key), otherwise);
+}
+
 [[nodiscard]] auto JSON::front() -> JSON & {
   assert(this->is_array());
   assert(!this->empty());
