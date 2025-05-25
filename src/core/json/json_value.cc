@@ -846,6 +846,13 @@ auto JSON::clear_except(std::initializer_list<JSON::String> keys) -> void {
   this->clear_except(keys.begin(), keys.end());
 }
 
+auto JSON::merge(const JSON::Object &other) -> void {
+  assert(this->is_object());
+  for (const auto &pair : other) {
+    this->assign(pair.first, pair.second);
+  }
+}
+
 auto JSON::rename(const JSON::String &key, JSON::String &&to) -> void {
   assert(this->is_object());
   auto &object{this->data_object};

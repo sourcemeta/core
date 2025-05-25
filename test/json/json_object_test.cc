@@ -755,3 +755,27 @@ TEST(JSON_object, rename_match_destination_exists) {
   EXPECT_TRUE(document.at("bar").is_boolean());
   EXPECT_TRUE(document.at("bar").to_boolean());
 }
+
+TEST(JSON_object, merge_with_overlap) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
+                                  {"bar", sourcemeta::core::JSON{1}}};
+
+  const sourcemeta::core::JSON other{{"bar", sourcemeta::core::JSON{false}},
+                                     {"baz", sourcemeta::core::JSON{9}}};
+
+  document.merge(other.as_object());
+
+  EXPECT_EQ(document.size(), 3);
+
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_TRUE(document.defines("baz"));
+
+  EXPECT_TRUE(document.at("foo").is_boolean());
+  EXPECT_TRUE(document.at("bar").is_boolean());
+  EXPECT_TRUE(document.at("baz").is_integer());
+
+  EXPECT_TRUE(document.at("foo").to_boolean());
+  EXPECT_FALSE(document.at("bar").to_boolean());
+  EXPECT_EQ(document.at("baz").to_integer(), 9);
+}
