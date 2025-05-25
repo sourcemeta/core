@@ -867,6 +867,21 @@ auto JSON::merge(const JSON::Object &other) -> void {
   }
 }
 
+[[nodiscard]] auto JSON::trim() const -> JSON::String {
+  assert(this->is_string());
+  auto copy = *this;
+  copy.trim();
+  return copy.to_string();
+}
+
+auto JSON::trim() -> const JSON::String & {
+  assert(this->is_string());
+  constexpr auto WHITESPACE = " \t\n\r\v\f";
+  this->data_string.erase(this->data_string.find_last_not_of(WHITESPACE) + 1);
+  this->data_string.erase(0, this->data_string.find_first_not_of(WHITESPACE));
+  return this->to_string();
+}
+
 auto JSON::rename(const JSON::String &key, JSON::String &&to) -> void {
   assert(this->is_object());
   auto &object{this->data_object};
