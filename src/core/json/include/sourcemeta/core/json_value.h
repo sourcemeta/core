@@ -1457,6 +1457,34 @@ public:
   /// ```
   auto clear_except(std::initializer_list<String> keys) -> void;
 
+  /// This method assigns every property of another object into the current
+  /// object. Overriding existing properties if they are already defined. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document =
+  ///   sourcemeta::core::JSON::make_object();
+  /// document.assign("foo", sourcemeta::core::JSON{1});
+  /// document.assign("bar", sourcemeta::core::JSON{2});
+  ///
+  /// sourcemeta::core::JSON other =
+  ///   sourcemeta::core::JSON::make_object();
+  /// other.assign("bar", sourcemeta::core::JSON{1});
+  /// other.assign("baz", sourcemeta::core::JSON{2});
+  ///
+  /// document.merge(other.as_object());
+  ///
+  /// assert(document.size() == 3);
+  ///
+  /// assert(document.at("foo").to_integer() == 1);
+  /// assert(document.at("bar").to_integer() == 1);
+  /// assert(document.at("baz").to_integer() == 2);
+  /// ```
+  auto merge(const JSON::Object &other) -> void;
+
   /*
    * Transform operations
    */
