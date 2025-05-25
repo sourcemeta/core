@@ -1522,6 +1522,29 @@ public:
   /// ```
   auto merge(const JSON::Object &other) -> void;
 
+  /// Return a trimmed version of the string. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::JSON document{" \r\t  Hello World\n\v   \f"};
+  /// assert(document.trim() == "Hello World");
+  /// ```
+  [[nodiscard]] auto trim() const -> JSON::String;
+
+  /// Trim the string in-place. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document{" \r\t  Hello World\n\v   \f"};
+  /// document.trim();
+  /// assert(document.to_string() == "Hello World");
+  /// ```
+  auto trim() -> const JSON::String &;
+
   /*
    * Transform operations
    */

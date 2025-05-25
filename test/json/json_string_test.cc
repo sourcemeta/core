@@ -108,3 +108,16 @@ TEST(JSON_string, contains_character_false) {
   const sourcemeta::core::JSON document{"foo"};
   EXPECT_FALSE(document.contains('b'));
 }
+
+TEST(JSON_string, trim_const) {
+  const sourcemeta::core::JSON document{" \r\t  foo   bar\n\v   \f"};
+  EXPECT_EQ(document.trim(), "foo   bar");
+  EXPECT_EQ(document.to_string(), " \r\t  foo   bar\n\v   \f");
+}
+
+TEST(JSON_string, trim_in_place) {
+  sourcemeta::core::JSON document{" \r\t  foo   bar\n\v   \f"};
+  const auto &result{document.trim()};
+  EXPECT_EQ(result, "foo   bar");
+  EXPECT_EQ(document.to_string(), "foo   bar");
+}
