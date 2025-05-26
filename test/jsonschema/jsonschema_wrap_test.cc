@@ -54,13 +54,43 @@ TEST(JSONSchema_wrap, schema_without_identifier) {
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "tag:core.sourcemeta.com,2025:wrap#/items",
+    "$ref": "__sourcemeta-core-wrap__#/items",
     "$defs": {
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "tag:core.sourcemeta.com,2025:wrap",
+        "$id": "__sourcemeta-core-wrap__",
         "items": {
           "type": "string"
+        }
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, schema_without_identifier_and_relative_uri) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": {
+      "$ref": "relative"
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {"items"}, sourcemeta::core::schema_official_resolver)};
+
+  // We don't want the relative reference to be resolved against
+  // an absolute base
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "__sourcemeta-core-wrap__#/items",
+    "$defs": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "__sourcemeta-core-wrap__",
+        "items": {
+          "$ref": "relative"
         }
       }
     }
@@ -82,11 +112,11 @@ TEST(JSONSchema_wrap, schema_without_identifier_with_default_dialect) {
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "tag:core.sourcemeta.com,2025:wrap#/items",
+    "$ref": "__sourcemeta-core-wrap__#/items",
     "$defs": {
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "tag:core.sourcemeta.com,2025:wrap",
+        "$id": "__sourcemeta-core-wrap__",
         "items": {
           "type": "string"
         }
@@ -112,11 +142,11 @@ TEST(JSONSchema_wrap,
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "tag:core.sourcemeta.com,2025:wrap#/items",
+    "$ref": "__sourcemeta-core-wrap__#/items",
     "$defs": {
       "schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "tag:core.sourcemeta.com,2025:wrap",
+        "$id": "__sourcemeta-core-wrap__",
         "items": {
           "type": "string"
         }
