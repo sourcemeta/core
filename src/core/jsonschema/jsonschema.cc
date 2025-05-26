@@ -15,7 +15,7 @@ auto sourcemeta::core::is_schema(const sourcemeta::core::JSON &schema) -> bool {
 
 namespace {
 
-static auto id_keyword_guess(const sourcemeta::core::JSON &schema)
+auto id_keyword_guess(const sourcemeta::core::JSON &schema)
     -> std::optional<std::string> {
   if (schema.defines("$id") && schema.at("$id").is_string()) {
     if (!schema.defines("id") ||

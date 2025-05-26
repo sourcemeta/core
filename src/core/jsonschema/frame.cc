@@ -14,8 +14,8 @@ enum class AnchorType : std::uint8_t { Static, Dynamic, All };
 
 namespace {
 
-static auto find_anchors(const sourcemeta::core::JSON &schema,
-                         const sourcemeta::core::Vocabularies &vocabularies)
+auto find_anchors(const sourcemeta::core::JSON &schema,
+                  const sourcemeta::core::Vocabularies &vocabularies)
     -> std::map<sourcemeta::core::JSON::String, AnchorType> {
   std::map<sourcemeta::core::JSON::String, AnchorType> result;
 
@@ -233,7 +233,7 @@ struct InternalEntry {
 
 namespace {
 
-static auto traverse_origin_instance_locations(
+auto traverse_origin_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
     const sourcemeta::core::Pointer &current,
@@ -274,7 +274,7 @@ struct CacheSubschema {
 
 namespace {
 
-static auto repopulate_instance_locations(
+auto repopulate_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
     const std::map<sourcemeta::core::Pointer, CacheSubschema> &cache,
