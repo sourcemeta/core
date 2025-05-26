@@ -13,6 +13,8 @@
 #include <utility>   // std::move
 #include <vector>    // std::vector
 
+namespace {
+
 static auto uri_normalize(UriUriA *uri) -> void {
   if (uriNormalizeSyntaxA(uri) != URI_SUCCESS) {
     throw sourcemeta::core::URIError{"Could not normalize URI"};
@@ -111,6 +113,8 @@ static auto canonicalize_path(const std::string &path)
     return std::nullopt;
   return canonical_path;
 }
+
+} // namespace
 
 namespace sourcemeta::core {
 

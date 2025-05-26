@@ -12,6 +12,8 @@
 
 enum class AnchorType : std::uint8_t { Static, Dynamic, All };
 
+namespace {
+
 static auto find_anchors(const sourcemeta::core::JSON &schema,
                          const sourcemeta::core::Vocabularies &vocabularies)
     -> std::map<sourcemeta::core::JSON::String, AnchorType> {
@@ -117,6 +119,8 @@ static auto find_nearest_bases(
 
   return {{}, sourcemeta::core::empty_pointer};
 }
+
+} // namespace
 
 static auto find_every_base(
     const std::map<sourcemeta::core::Pointer,
@@ -227,6 +231,8 @@ struct InternalEntry {
   const std::optional<sourcemeta::core::JSON::String> id;
 };
 
+namespace {
+
 static auto traverse_origin_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
@@ -257,12 +263,16 @@ static auto traverse_origin_instance_locations(
   }
 }
 
+} // namespace
+
 struct CacheSubschema {
   const sourcemeta::core::PointerTemplate instance_location;
   const sourcemeta::core::PointerTemplate relative_instance_location;
   const bool orphan;
   const std::optional<sourcemeta::core::Pointer> parent;
 };
+
+namespace {
 
 static auto repopulate_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
@@ -313,6 +323,8 @@ static auto repopulate_instance_locations(
     }
   }
 }
+
+} // namespace
 
 namespace sourcemeta::core {
 
