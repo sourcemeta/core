@@ -13,6 +13,8 @@ auto sourcemeta::core::is_schema(const sourcemeta::core::JSON &schema) -> bool {
   return schema.is_object() || schema.is_boolean();
 }
 
+namespace {
+
 static auto id_keyword_guess(const sourcemeta::core::JSON &schema)
     -> std::optional<std::string> {
   if (schema.defines("$id") && schema.at("$id").is_string()) {
@@ -54,6 +56,8 @@ static auto id_keyword(const std::string &base_dialect) -> std::string {
   error << "Unrecognized base dialect: " << base_dialect;
   throw sourcemeta::core::SchemaError(error.str());
 }
+
+} // namespace
 
 auto sourcemeta::core::identify(
     const sourcemeta::core::JSON &schema, const SchemaResolver &resolver,
