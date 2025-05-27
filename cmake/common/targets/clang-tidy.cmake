@@ -41,7 +41,6 @@ function(sourcemeta_target_clang_tidy)
       WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
       VERBATIM
       COMMAND "${CLANG_TIDY_BIN}" -p "${PROJECT_BINARY_DIR}"
-        --config-file "${CLANG_TIDY_CONFIG}"
         ${SOURCEMETA_TARGET_CLANG_TIDY_FILES}
         COMMENT "Analyzing sources using ClangTidy")
   else()
