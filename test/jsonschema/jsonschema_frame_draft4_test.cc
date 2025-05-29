@@ -669,6 +669,71 @@ TEST(JSONSchema_frame_draft4, ref_with_id) {
                           "/definitions/string", "#/definitions/string");
 }
 
+TEST(JSONSchema_frame_draft4,
+     id_with_trailing_hash_and_ref_and_same_default_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "https://www.sourcemeta.com/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "properties": {
+        "foo": { "$ref": "#/properties/bar" },
+        "bar": {}
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver, std::nullopt,
+                // Note that this is intentionally non-canonical
+                "https://www.sourcemeta.com/schema#");
+
+  EXPECT_EQ(frame.locations().size(), 7);
+
+  EXPECT_FRAME_STATIC_DRAFT4_RESOURCE(
+      frame, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+  EXPECT_FRAME_STATIC_DRAFT4_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/id",
+      "https://www.sourcemeta.com/schema", "/id",
+      "https://www.sourcemeta.com/schema", "/id", {}, "");
+  EXPECT_FRAME_STATIC_DRAFT4_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_DRAFT4_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties",
+      "https://www.sourcemeta.com/schema", "/properties",
+      "https://www.sourcemeta.com/schema", "/properties", {}, "");
+  EXPECT_FRAME_STATIC_DRAFT4_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema", "/properties/foo",
+      "https://www.sourcemeta.com/schema", "/properties/foo", {"/foo"}, "");
+  EXPECT_FRAME_STATIC_DRAFT4_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties/foo/$ref",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$ref",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$ref", {},
+      "/properties/foo");
+  EXPECT_FRAME_STATIC_DRAFT4_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema", "/properties/bar",
+      "https://www.sourcemeta.com/schema", "/properties/bar",
+      POINTER_TEMPLATES("/bar", "/foo"), "");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-04/schema",
+      "http://json-schema.org/draft-04/schema", std::nullopt,
+      "http://json-schema.org/draft-04/schema#");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
+                          "https://www.sourcemeta.com/schema#/properties/bar",
+                          "https://www.sourcemeta.com/schema",
+                          "/properties/bar", "#/properties/bar");
+}
+
 TEST(JSONSchema_frame_draft4, relative_base_uri_without_ref) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
