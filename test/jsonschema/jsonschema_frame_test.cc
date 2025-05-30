@@ -689,7 +689,7 @@ TEST(JSONSchema_frame, no_dialect) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_frame, mode_references) {

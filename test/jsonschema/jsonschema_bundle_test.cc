@@ -154,7 +154,7 @@ TEST(JSONSchema_bundle, without_default_dialect) {
   EXPECT_THROW(
       sourcemeta::core::bundle(
           document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaError);
+      sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_bundle, target_no_dialect) {

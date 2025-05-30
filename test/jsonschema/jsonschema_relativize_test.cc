@@ -274,7 +274,7 @@ TEST(JSONSchema_relativize, draft4_8) {
                    schema, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
                    sourcemeta::core::reference_visitor_relativize),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_relativize, 2020_12_1) {

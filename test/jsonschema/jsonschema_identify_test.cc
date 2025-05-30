@@ -269,5 +269,5 @@ TEST(JSONSchema_identify, reidentify_boolean) {
   EXPECT_THROW(
       sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
                                    sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+      sourcemeta::core::SchemaUnknownBaseDialectError);
 }
