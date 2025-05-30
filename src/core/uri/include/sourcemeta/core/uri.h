@@ -7,13 +7,12 @@
 
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/uri_error.h>
+#include <sourcemeta/core/uri_escape.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <cstdint>     // std::uint32_t
-#include <istream>     // std::istream
 #include <memory>      // std::unique_ptr
 #include <optional>    // std::optional
-#include <ostream>     // std::ostream
 #include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -343,36 +342,6 @@ public:
   /// assert(uri.recompose() == "/qux/bar/baz");
   /// ```
   auto rebase(const URI &base, const URI &new_base) -> URI &;
-
-  /// Escape a string as established by RFC 3986 using C++ standard stream. For
-  /// example:
-  ///
-  /// ```cpp
-  /// #include <sourcemeta/core/uri.h>
-  /// #include <sstream>
-  /// #include <cassert>
-  ///
-  /// std::istringstream input{"foo bar"};
-  /// std::ostringstream output;
-  /// sourcemeta::core::URI::escape(input, output);
-  /// assert(output.str() == "foo%20bar");
-  /// ```
-  static auto escape(std::istream &input, std::ostream &output) -> void;
-
-  /// Unescape a string that has been percentage-escaped as established by
-  /// RFC 3986 using C++ standard streams. For example:
-  ///
-  /// ```cpp
-  /// #include <sourcemeta/core/uri.h>
-  /// #include <sstream>
-  /// #include <cassert>
-  ///
-  /// std::istringstream input{"foo%20bar"};
-  /// std::ostringstream output;
-  /// sourcemeta::core::URI::unescape(input, output);
-  /// assert(output.str() == "foo bar");
-  /// ```
-  static auto unescape(std::istream &input, std::ostream &output) -> void;
 
   /// Create a URI from a fragment. For example:
   ///
