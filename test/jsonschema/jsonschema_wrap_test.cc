@@ -188,7 +188,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_without_dialect) {
   EXPECT_THROW(
       sourcemeta::core::wrap(schema, {"items"},
                              sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+      sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier) {
@@ -340,7 +340,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_no_dialect) {
   EXPECT_THROW(
       sourcemeta::core::wrap(schema, {"items"},
                              sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+      sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_with_fragment) {

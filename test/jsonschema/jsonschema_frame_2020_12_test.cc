@@ -2835,7 +2835,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_no_base_dialect) {
                              {sourcemeta::core::Pointer{"wrapper"},
                               sourcemeta::core::Pointer{"common", "test"},
                               sourcemeta::core::Pointer{"common", "with-id"}}),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_same_id) {
