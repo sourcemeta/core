@@ -12,8 +12,10 @@
 
 enum class AnchorType : std::uint8_t { Static, Dynamic, All };
 
-static auto find_anchors(const sourcemeta::core::JSON &schema,
-                         const sourcemeta::core::Vocabularies &vocabularies)
+namespace {
+
+auto find_anchors(const sourcemeta::core::JSON &schema,
+                  const sourcemeta::core::Vocabularies &vocabularies)
     -> std::map<sourcemeta::core::JSON::String, AnchorType> {
   std::map<sourcemeta::core::JSON::String, AnchorType> result;
 
@@ -117,6 +119,8 @@ static auto find_nearest_bases(
 
   return {{}, sourcemeta::core::empty_pointer};
 }
+
+} // namespace
 
 static auto find_every_base(
     const std::map<sourcemeta::core::Pointer,
@@ -227,7 +231,9 @@ struct InternalEntry {
   const std::optional<sourcemeta::core::JSON::String> id;
 };
 
-static auto traverse_origin_instance_locations(
+namespace {
+
+auto traverse_origin_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
     const sourcemeta::core::Pointer &current,
@@ -257,6 +263,8 @@ static auto traverse_origin_instance_locations(
   }
 }
 
+} // namespace
+
 struct CacheSubschema {
   const sourcemeta::core::PointerTemplate instance_location;
   const sourcemeta::core::PointerTemplate relative_instance_location;
@@ -264,7 +272,9 @@ struct CacheSubschema {
   const std::optional<sourcemeta::core::Pointer> parent;
 };
 
-static auto repopulate_instance_locations(
+namespace {
+
+auto repopulate_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
     const std::map<sourcemeta::core::Pointer, CacheSubschema> &cache,
@@ -313,6 +323,8 @@ static auto repopulate_instance_locations(
     }
   }
 }
+
+} // namespace
 
 namespace sourcemeta::core {
 
