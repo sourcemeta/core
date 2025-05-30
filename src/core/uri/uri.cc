@@ -6,7 +6,7 @@
 #include <cstdint>   // std::uint32_t
 #include <istream>   // std::istream
 #include <optional>  // std::optional
-#include <sstream>   // std::ostringstream
+#include <sstream>   // std::ostringstream, std::istringstream
 #include <stdexcept> // std::length_error, std::runtime_error
 #include <string>    // std::stoul, std::string, std::tolower
 #include <tuple>     // std::tie
@@ -632,6 +632,30 @@ auto URI::operator<(const URI &other) const noexcept -> bool {
                   this->path_, this->query_, this->fragment_) <
          std::tie(other.scheme_, other.userinfo_, other.host_, other.port_,
                   other.path_, other.query_, other.fragment_);
+}
+
+auto to_uri(const std::filesystem::path &path) -> URI {
+  // URI representation of paths is only valid for absolute paths
+  assert(path.is_absolute());
+
+  // Get the path always with forward slashes
+  // https://en.cppreference.com/w/cpp/filesystem/path/generic_string.html
+  const auto unix_path{path.generic_string()};
+  std::ostringstream result;
+  if (unix_path.empty() || unix_path.front() != '/') {
+    result << '/';
+  }
+
+  result << unix_path;
+
+  // TODO: This whole dance is because we don't
+  // allow setting a scheme on an existing URI
+  URI temp{result.str()};
+  temp.canonicalize();
+  std::ostringstream final_result;
+  final_result << "file://";
+  final_result << temp.recompose();
+  return URI{final_result.str()};
 }
 
 } // namespace sourcemeta::core
