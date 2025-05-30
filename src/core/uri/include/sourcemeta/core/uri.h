@@ -270,7 +270,7 @@ public:
   [[nodiscard]] auto recompose_without_fragment() const
       -> std::optional<std::string>;
 
-  /// Recompose and canonicalize a URI. For example:
+  /// Canonicalize a URI. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -343,18 +343,6 @@ public:
   /// ```
   auto rebase(const URI &base, const URI &new_base) -> URI &;
 
-  /// Create a URI from a fragment. For example:
-  ///
-  /// ```cpp
-  /// #include <sourcemeta/core/uri.h>
-  /// #include <cassert>
-  ///
-  /// const sourcemeta::core::URI uri{
-  ///   sourcemeta::core::URI::from_fragment("foo")};
-  /// assert(uri.recompose() == "#foo");
-  /// ```
-  static auto from_fragment(std::string_view fragment) -> URI;
-
   /// Get the user information part of the URI, if any. For example:
   ///
   /// ```cpp
@@ -376,6 +364,31 @@ public:
 
   /// To support ordering of URIs
   auto operator<(const URI &other) const noexcept -> bool;
+
+  /// Create a URI from a fragment. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::URI uri{
+  ///   sourcemeta::core::URI::from_fragment("foo")};
+  /// assert(uri.recompose() == "#foo");
+  /// ```
+  static auto from_fragment(std::string_view fragment) -> URI;
+
+  /// A convenient method to canonicalize and recompose a URI from a string. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const auto result{
+  ///   sourcemeta::core::URI::canonicalize("hTtP://exAmpLe.com:80/TEST")};
+  /// assert(result == "http://example.com/TEST");
+  /// ```
+  static auto canonicalize(const std::string &input) -> std::string;
 
 private:
   bool parsed = false;

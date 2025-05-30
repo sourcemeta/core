@@ -141,3 +141,9 @@ TEST(URI_canonicalize, empty_fragment) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "");
 }
+
+TEST(URI_canonicalize, static_from_string) {
+  const std::string uri{"hTtP://exAmpLe.com:80/TEST"};
+  const auto result{sourcemeta::core::URI::canonicalize(uri)};
+  EXPECT_EQ(result, "http://example.com/TEST");
+}
