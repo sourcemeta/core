@@ -10,6 +10,7 @@
 // NOLINTEND(misc-include-cleaner)
 
 #include <cstdint>     // std::uint32_t
+#include <filesystem>  // std::filesystem
 #include <istream>     // std::istream
 #include <memory>      // std::unique_ptr
 #include <optional>    // std::optional
@@ -436,6 +437,10 @@ private:
 #pragma warning(default : 4251)
 #endif
 };
+
+// @ingroup uri
+// TODO: test & document
+auto to_uri(const std::filesystem::path &path) -> URI;
 
 } // namespace sourcemeta::core
 

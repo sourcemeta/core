@@ -4,6 +4,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_fragment_test.cc
     uri_host_test.cc
     uri_path_test.cc
+    uri_path_to_uri_test.cc
     uri_parse_test.cc
     uri_port_test.cc
     uri_scheme_test.cc
