@@ -35,13 +35,11 @@ function(sourcemeta_target_clang_tidy)
   file(GLOB_RECURSE SOURCEMETA_TARGET_CLANG_TIDY_FILES
     ${SOURCEMETA_TARGET_CLANG_TIDY_SOURCES})
 
-  set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.config")
   if(CLANG_TIDY_BIN)
     add_custom_target(clang_tidy
       WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
       VERBATIM
       COMMAND "${CLANG_TIDY_BIN}" -p "${PROJECT_BINARY_DIR}"
-        --config-file "${CLANG_TIDY_CONFIG}"
         ${SOURCEMETA_TARGET_CLANG_TIDY_FILES}
         COMMENT "Analyzing sources using ClangTidy")
   else()
