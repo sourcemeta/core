@@ -739,12 +739,10 @@ auto sourcemeta::core::wrap(const sourcemeta::core::JSON &schema,
   result.at("$defs").assign("schema", std::move(copy));
 
   // Add a reference to the schema
-  const URI uri{id};
+  URI uri{id};
   if (!uri.fragment().has_value() || uri.fragment().value().empty()) {
-    std::ostringstream effective_uri;
-    effective_uri << uri.recompose_without_fragment().value_or("")
-                  << to_uri(pointer).recompose();
-    result.assign("$ref", JSON{effective_uri.str()});
+    uri.fragment(to_string(pointer));
+    result.assign("$ref", JSON{uri.recompose()});
   } else {
     result.assign(
         "$ref",
