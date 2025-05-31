@@ -228,6 +228,33 @@ public:
   /// ```
   [[nodiscard]] auto fragment() const -> std::optional<std::string_view>;
 
+  /// Set the fragment part of the URI. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  /// const std::string fragment{"foo"};
+  /// uri.fragment(fragment);
+  /// assert(uri.fragment().has_value());
+  /// assert(uri.fragment().value() == "foo");
+  /// ```
+  auto fragment(const std::string &fragment) -> URI &;
+
+  /// Set the fragment part of the URI with move semantics. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  /// std::string fragment{"foo"};
+  /// uri.fragment(std::move(fragment));
+  /// assert(uri.fragment().has_value());
+  /// assert(uri.fragment().value() == "foo");
+  auto fragment(std::string &&fragment) -> URI &;
+
   /// Get the non-dissected query part of the URI, if any. For example:
   ///
   /// ```cpp

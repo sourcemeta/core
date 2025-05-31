@@ -72,3 +72,84 @@ TEST(URI_fragment, is_fragment_only_false_3) {
   const sourcemeta::core::URI uri{"urn:example:schema#foo"};
   EXPECT_FALSE(uri.is_fragment_only());
 }
+
+TEST(URI_fragment, set_uri_absolute_non_empty_with_hash_prefix) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("#foo");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#foo");
+}
+
+TEST(URI_fragment, set_uri_absolute_non_empty) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("foo");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#foo");
+}
+
+TEST(URI_fragment, set_uri_absolute_empty) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#");
+}
+
+TEST(URI_fragment, set_uri_absolute_replace) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com#bar"};
+  uri.fragment("foo");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#foo");
+}
+
+TEST(URI_fragment, set_urn_non_empty) {
+  sourcemeta::core::URI uri{"urn:example:schema"};
+  uri.fragment("foo");
+  EXPECT_EQ(uri.recompose(), "urn:example:schema#foo");
+}
+
+TEST(URI_fragment, set_urn_replace) {
+  sourcemeta::core::URI uri{"urn:example:schema#bar"};
+  uri.fragment("foo");
+  EXPECT_EQ(uri.recompose(), "urn:example:schema#foo");
+}
+
+TEST(URI_fragment, set_urn_empty) {
+  sourcemeta::core::URI uri{"urn:example:schema"};
+  uri.fragment("");
+  EXPECT_EQ(uri.recompose(), "urn:example:schema#");
+}
+
+TEST(URI_fragment, set_uri_relative_non_empty) {
+  sourcemeta::core::URI uri{"foo/bar"};
+  uri.fragment("baz");
+  EXPECT_EQ(uri.recompose(), "foo/bar#baz");
+}
+
+TEST(URI_fragment, set_uri_empty_non_empty) {
+  sourcemeta::core::URI uri{""};
+  uri.fragment("baz");
+  EXPECT_EQ(uri.recompose(), "#baz");
+}
+
+TEST(URI_fragment, set_uri_empty_empty) {
+  sourcemeta::core::URI uri{""};
+  uri.fragment("");
+  EXPECT_EQ(uri.recompose(), "#");
+}
+
+TEST(URI_fragment, copy_semantics_1) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  const std::string fragment{"foo"};
+  uri.fragment(fragment);
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#foo");
+}
+
+TEST(URI_fragment, copy_semantics_2) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  const std::string fragment{""};
+  uri.fragment(fragment);
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#");
+}
+
+TEST(URI_fragment, copy_semantics_3) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  const std::string fragment{"#foo"};
+  uri.fragment(fragment);
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#foo");
+}
