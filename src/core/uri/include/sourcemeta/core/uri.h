@@ -140,6 +140,17 @@ public:
   /// ```
   auto is_ipv6() const -> bool;
 
+  /// Check if the URI corresponds to the empty URI. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::URI uri{""};
+  /// assert(uri.empty());
+  /// ```
+  auto empty() const -> bool;
+
   /// Get the scheme part of the URI, if any. For example:
   ///
   /// ```cpp
