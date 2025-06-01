@@ -256,6 +256,13 @@ auto URI::is_fragment_only() const -> bool {
          this->fragment().has_value() && !this->query().has_value();
 }
 
+auto URI::empty() const -> bool {
+  return !this->path_.has_value() && !this->userinfo_.has_value() &&
+         !this->host_.has_value() && !this->port_.has_value() &&
+         !this->scheme_.has_value() && !this->fragment_.has_value() &&
+         !this->query_.has_value();
+}
+
 auto URI::scheme() const -> std::optional<std::string_view> {
   return this->scheme_;
 }
