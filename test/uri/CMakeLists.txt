@@ -24,6 +24,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_relative_to_test.cc
     uri_escape_test.cc
     uri_unescape_test.cc
+    uri_extension_test.cc
     uri_user_info_test.cc)
 
 target_link_libraries(sourcemeta_core_uri_unit
