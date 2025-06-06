@@ -284,3 +284,65 @@ TEST(URI_path_setter_no_scheme, set_path_with_port) {
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/test2");
   EXPECT_EQ(path, "");
 }
+
+TEST(URI_path, append_path_without_path_from_root) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  uri.append_path("/test");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/test");
+}
+
+TEST(URI_path, append_path_without_path) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  uri.append_path("test/bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/test/bar");
+}
+
+TEST(URI_path, append_path_without_path_empty) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  uri.append_path("");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080");
+}
+
+TEST(URI_path, append_path_without_path_slash_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  uri.append_path("/");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/");
+}
+
+TEST(URI_path, append_path_with_path_with_slash_prefix) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("/bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+}
+
+TEST(URI_path, append_path_with_path_with_slash_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("/");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/");
+}
+
+TEST(URI_path, append_path_with_path_trailing_slash_clash) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  uri.append_path("/bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo//bar");
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+}
+
+TEST(URI_path, append_path_with_path_trailing_slash) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  uri.append_path("bar/baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
+}
+
+TEST(URI_path, append_path_with_path_no_slash_delimiters) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("bar/baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
+}
+
+TEST(URI_path, append_path_chain) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("bar").append_path("baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
+}
