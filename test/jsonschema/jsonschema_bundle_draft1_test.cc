@@ -24,10 +24,14 @@ TEST(JSONSchema_bundle_draft1, no_references_no_id) {
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaError);
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-01/schema#"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }
 
 TEST(JSONSchema_bundle_draft1, const_no_references_no_id) {
@@ -35,10 +39,14 @@ TEST(JSONSchema_bundle_draft1, const_no_references_no_id) {
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaError);
+  const auto result = sourcemeta::core::bundle(
+      document, sourcemeta::core::schema_official_walker, test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-01/schema#"
+  })JSON");
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONSchema_bundle_draft1, simple_bundling) {
