@@ -324,9 +324,13 @@ TEST(URI_path, append_path_with_path_with_slash_only) {
 TEST(URI_path, append_path_with_path_trailing_slash_clash) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
   uri.append_path("/bar");
-  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo//bar");
-  uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+}
+
+TEST(URI_path, append_path_with_path_trailing_slash_in_argument) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  uri.append_path("/bar//baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar//baz");
 }
 
 TEST(URI_path, append_path_with_path_trailing_slash) {
