@@ -61,6 +61,9 @@ jobs:
           - os: windows-latest
             type: shared
             shell: pwsh
+          - os: windows-2019
+            type: shared
+            shell: pwsh
 
           # Sanitizers
           - os: ubuntu-latest
