@@ -680,6 +680,95 @@ TEST(JSONSchema_frame, remote_refs) {
                           "https://www.example.com/x/y#/foo/bar");
 }
 
+TEST(JSONSchema_frame, standalone_with_external_refs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "https://www.example.com" },
+      "bar": { "$ref": "#/properties/foo" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_FALSE(frame.standalone());
+}
+
+TEST(JSONSchema_frame, standalone_with_embedded_external_refs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "https://www.example.com" },
+      "bar": { "$ref": "#/properties/foo" }
+    },
+    "$defs": {
+      "https://www.example.com": {
+        "$id": "https://www.example.com"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(frame.standalone());
+}
+
+TEST(JSONSchema_frame, standalone_with_internal_refs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "type": "string" },
+      "bar": { "$ref": "#/properties/foo" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(frame.standalone());
+}
+
+TEST(JSONSchema_frame, standalone_without_refs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "type": "string" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_TRUE(frame.standalone());
+}
+
+TEST(JSONSchema_frame, standalone_with_draft3_external_ref) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "https://example.com",
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "properties": {
+      "test": { "$ref": "https://www.sourcemeta.com/test-1" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_FALSE(frame.standalone());
+}
+
 TEST(JSONSchema_frame, no_dialect) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "type": "string"
