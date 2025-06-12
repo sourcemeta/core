@@ -2,9 +2,9 @@ function(sourcemeta_target_clang_format)
   cmake_parse_arguments(SOURCEMETA_TARGET_CLANG_FORMAT "REQUIRED" "" "SOURCES" ${ARGN})
 
   if(SOURCEMETA_TARGET_CLANG_FORMAT_REQUIRED)
-    find_program(CLANG_FORMAT_BIN NAMES clang-format REQUIRED)
+    find_program(CLANG_FORMAT_BIN NAMES clang-format HINTS "${CMAKE_BINARY_DIR}/bin" REQUIRED)
   else()
-    find_program(CLANG_FORMAT_BIN NAMES clang-format)
+    find_program(CLANG_FORMAT_BIN NAMES clang-format HINTS "${CMAKE_BINARY_DIR}/bin")
   endif()
 
   # This covers the empty list too

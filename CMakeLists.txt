@@ -20,6 +20,7 @@ option(SOURCEMETA_CORE_UNDEFINED_SANITIZER "Build Sourcemeta Core with an undefi
 option(SOURCEMETA_CORE_CONTRIB_GOOGLETEST "Build the GoogleTest library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
 
+include(TryDownloadClangFormat)
 include(Sourcemeta)
 
 # Don't force downstream consumers on it
