@@ -113,3 +113,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -flto=full")
   endif()
 endif()
+
+# Turn on POSIX compatibility on MSYS2
+if(CMAKE_SYSTEM_NAME STREQUAL "MSYS")
+  # POSIX.1-2008
+  add_compile_definitions(_POSIX_C_SOURCE=200809L)
+endif()
