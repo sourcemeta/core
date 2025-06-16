@@ -527,7 +527,7 @@ TEST(AlterSchema_lint_draft4, type_boolean_as_enum_1) {
     "type": "boolean"
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -544,7 +544,7 @@ TEST(AlterSchema_lint_draft4, type_boolean_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -577,7 +577,7 @@ TEST(AlterSchema_lint_draft4, type_null_as_enum_1) {
     "type": "null"
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -594,7 +594,7 @@ TEST(AlterSchema_lint_draft4, type_null_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -629,7 +629,7 @@ TEST(AlterSchema_lint_draft4, boolean_true_1) {
     }
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -652,7 +652,7 @@ TEST(AlterSchema_lint_draft4, min_properties_covered_by_required_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -672,7 +672,7 @@ TEST(AlterSchema_lint_draft4, min_properties_implicit_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -693,7 +693,7 @@ TEST(AlterSchema_lint_draft4, min_properties_implicit_2) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -732,7 +732,7 @@ TEST(AlterSchema_lint_draft4, equal_numeric_bounds_to_enum_2) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",

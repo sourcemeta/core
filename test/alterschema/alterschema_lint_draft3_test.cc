@@ -427,7 +427,7 @@ TEST(AlterSchema_lint_draft3, type_boolean_as_enum_1) {
     "type": "boolean"
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -444,7 +444,7 @@ TEST(AlterSchema_lint_draft3, type_boolean_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -477,7 +477,7 @@ TEST(AlterSchema_lint_draft3, type_null_as_enum_1) {
     "type": "null"
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -494,7 +494,7 @@ TEST(AlterSchema_lint_draft3, type_null_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -529,7 +529,7 @@ TEST(AlterSchema_lint_draft3, boolean_true_1) {
     }
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -570,7 +570,7 @@ TEST(AlterSchema_lint_draft3, equal_numeric_bounds_to_enum_2) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
