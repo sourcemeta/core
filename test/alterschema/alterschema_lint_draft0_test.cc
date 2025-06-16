@@ -178,7 +178,7 @@ TEST(AlterSchema_lint_draft0, boolean_true_1) {
     }
   })JSON");
 
-  LINT_AND_FIX_FOR_ANALYSIS(document);
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/schema#",
