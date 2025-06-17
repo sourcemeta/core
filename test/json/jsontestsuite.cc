@@ -25,6 +25,8 @@ public:
       // certain test cases.
       while (stream.peek() != std::char_traits<char>::eof()) {
         switch (stream.get()) {
+          case '\r':
+          case '\t':
           case '\n':
           case ' ':
             break;
