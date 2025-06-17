@@ -236,8 +236,7 @@ auto sourcemeta::core::metaschema(
     const std::optional<std::string> &default_dialect) -> JSON {
   const auto maybe_dialect{sourcemeta::core::dialect(schema, default_dialect)};
   if (!maybe_dialect.has_value()) {
-    throw sourcemeta::core::SchemaError(
-        "Could not the determine dialect of the schema");
+    throw sourcemeta::core::SchemaUnknownDialectError();
   }
 
   const auto maybe_metaschema{resolver(maybe_dialect.value())};

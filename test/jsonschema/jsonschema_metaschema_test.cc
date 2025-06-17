@@ -44,7 +44,7 @@ TEST(JSONSchema_metaschema, no_dialect) {
 
   EXPECT_THROW(sourcemeta::core::metaschema(
                    schema, sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaUnknownDialectError);
 }
 
 TEST(JSONSchema_metaschema, unknown_dialect) {
