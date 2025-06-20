@@ -120,7 +120,6 @@ auto find_nearest_bases(
   return {{}, sourcemeta::core::empty_pointer};
 }
 
-
 auto find_every_base(
     const std::map<sourcemeta::core::Pointer,
                    std::vector<sourcemeta::core::JSON::String>> &bases,
@@ -164,8 +163,7 @@ auto ref_overrides_adjacent_keywords(
          base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
 }
 
-auto
-supports_id_anchors(const sourcemeta::core::JSON::String &base_dialect)
+auto supports_id_anchors(const sourcemeta::core::JSON::String &base_dialect)
     -> bool {
   return base_dialect == "http://json-schema.org/draft-07/schema#" ||
          base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
@@ -186,28 +184,27 @@ auto fragment_string(const sourcemeta::core::URI &uri)
 }
 
 [[noreturn]]
-auto throw_already_exists(const sourcemeta::core::JSON::String &uri)
-    -> void {
+auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
   std::ostringstream error;
   error << "Schema identifier already exists: " << uri;
   throw sourcemeta::core::SchemaError(error.str());
 }
 
-auto
-store(sourcemeta::core::SchemaFrame::Locations &frame,
-      sourcemeta::core::SchemaFrame::Instances &instances,
-      const sourcemeta::core::SchemaReferenceType type,
-      const sourcemeta::core::SchemaFrame::LocationType entry_type,
-      const sourcemeta::core::JSON::String &uri,
-      const std::optional<sourcemeta::core::JSON::String> &root_id,
-      const sourcemeta::core::JSON::String &base_id,
-      const sourcemeta::core::Pointer &pointer_from_root,
-      const sourcemeta::core::Pointer &pointer_from_base,
-      const sourcemeta::core::JSON::String &dialect,
-      const sourcemeta::core::JSON::String &base_dialect,
-      const std::vector<sourcemeta::core::PointerTemplate> &instance_locations,
-      const std::optional<sourcemeta::core::Pointer> &parent,
-      const bool ignore_if_present = false) -> void {
+auto store(
+    sourcemeta::core::SchemaFrame::Locations &frame,
+    sourcemeta::core::SchemaFrame::Instances &instances,
+    const sourcemeta::core::SchemaReferenceType type,
+    const sourcemeta::core::SchemaFrame::LocationType entry_type,
+    const sourcemeta::core::JSON::String &uri,
+    const std::optional<sourcemeta::core::JSON::String> &root_id,
+    const sourcemeta::core::JSON::String &base_id,
+    const sourcemeta::core::Pointer &pointer_from_root,
+    const sourcemeta::core::Pointer &pointer_from_base,
+    const sourcemeta::core::JSON::String &dialect,
+    const sourcemeta::core::JSON::String &base_dialect,
+    const std::vector<sourcemeta::core::PointerTemplate> &instance_locations,
+    const std::optional<sourcemeta::core::Pointer> &parent,
+    const bool ignore_if_present = false) -> void {
   assert(std::set<sourcemeta::core::PointerTemplate>(
              instance_locations.cbegin(), instance_locations.cend())
              .size() == instance_locations.size());
