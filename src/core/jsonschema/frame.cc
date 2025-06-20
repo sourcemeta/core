@@ -100,7 +100,7 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   return result;
 }
 
-static auto find_nearest_bases(
+auto find_nearest_bases(
     const std::map<sourcemeta::core::Pointer,
                    std::vector<sourcemeta::core::JSON::String>> &bases,
     const sourcemeta::core::Pointer &pointer,
@@ -120,9 +120,8 @@ static auto find_nearest_bases(
   return {{}, sourcemeta::core::empty_pointer};
 }
 
-} // namespace
 
-static auto find_every_base(
+auto find_every_base(
     const std::map<sourcemeta::core::Pointer,
                    std::vector<sourcemeta::core::JSON::String>> &bases,
     const sourcemeta::core::Pointer &pointer)
@@ -149,7 +148,7 @@ static auto find_every_base(
   return result;
 }
 
-static auto ref_overrides_adjacent_keywords(
+auto ref_overrides_adjacent_keywords(
     const sourcemeta::core::JSON::String &base_dialect) -> bool {
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
@@ -165,7 +164,7 @@ static auto ref_overrides_adjacent_keywords(
          base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
 }
 
-static auto
+auto
 supports_id_anchors(const sourcemeta::core::JSON::String &base_dialect)
     -> bool {
   return base_dialect == "http://json-schema.org/draft-07/schema#" ||
@@ -176,7 +175,7 @@ supports_id_anchors(const sourcemeta::core::JSON::String &base_dialect)
          base_dialect == "http://json-schema.org/draft-04/hyper-schema#";
 }
 
-static auto fragment_string(const sourcemeta::core::URI &uri)
+auto fragment_string(const sourcemeta::core::URI &uri)
     -> std::optional<sourcemeta::core::JSON::String> {
   const auto fragment{uri.fragment()};
   if (fragment.has_value()) {
@@ -187,14 +186,14 @@ static auto fragment_string(const sourcemeta::core::URI &uri)
 }
 
 [[noreturn]]
-static auto throw_already_exists(const sourcemeta::core::JSON::String &uri)
+auto throw_already_exists(const sourcemeta::core::JSON::String &uri)
     -> void {
   std::ostringstream error;
   error << "Schema identifier already exists: " << uri;
   throw sourcemeta::core::SchemaError(error.str());
 }
 
-static auto
+auto
 store(sourcemeta::core::SchemaFrame::Locations &frame,
       sourcemeta::core::SchemaFrame::Instances &instances,
       const sourcemeta::core::SchemaReferenceType type,
@@ -231,8 +230,6 @@ struct InternalEntry {
   const std::optional<sourcemeta::core::JSON::String> id;
 };
 
-namespace {
-
 auto traverse_origin_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
@@ -263,16 +260,12 @@ auto traverse_origin_instance_locations(
   }
 }
 
-} // namespace
-
 struct CacheSubschema {
   const sourcemeta::core::PointerTemplate instance_location;
   const sourcemeta::core::PointerTemplate relative_instance_location;
   const bool orphan;
   const std::optional<sourcemeta::core::Pointer> parent;
 };
-
-namespace {
 
 auto repopulate_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
