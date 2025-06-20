@@ -82,7 +82,7 @@ auto get(const JSON &document, const Pointer &pointer) -> const JSON &;
 // https://clang.llvm.org/extra/clang-tidy/checks/bugprone/return-const-ref-from-parameter.html
 // This overload avoids mis-uses of retuning const reference parameter as
 // constant reference.
-auto get(const JSON &&document, const Pointer &pointer)
+auto get(JSON &&document, const Pointer &pointer)
     -> const JSON & = delete;
 
 /// @ingroup jsonpointer
@@ -117,7 +117,7 @@ auto get(const JSON &document, const WeakPointer &pointer) -> const JSON &;
 // https://clang.llvm.org/extra/clang-tidy/checks/bugprone/return-const-ref-from-parameter.html
 // This overload avoids mis-uses of retuning const reference parameter as
 // constant reference.
-auto get(const JSON &&document, const WeakPointer &pointer)
+auto get(JSON &&document, const WeakPointer &pointer)
     -> const JSON & = delete;
 
 /// @ingroup jsonpointer
