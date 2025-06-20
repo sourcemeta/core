@@ -137,7 +137,7 @@ auto try_traverse(const sourcemeta::core::JSON &document,
 
 namespace sourcemeta::core {
 
-auto get(const JSON &document, const Pointer &pointer) -> const JSON & {
+auto get(const JSON &document [[clang::lifetimebound]], const Pointer &pointer) -> const JSON & {
   if (pointer.empty()) {
     return document;
   }
@@ -145,7 +145,7 @@ auto get(const JSON &document, const Pointer &pointer) -> const JSON & {
   return traverse_all<std::allocator, const JSON>(document, pointer);
 }
 
-auto get(const JSON &document, const WeakPointer &pointer) -> const JSON & {
+auto get(const JSON &document [[clang::lifetimebound]], const WeakPointer &pointer) -> const JSON & {
   if (pointer.empty()) {
     return document;
   }
