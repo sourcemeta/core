@@ -114,10 +114,6 @@ jobs:
           HOMEBREW_NO_ANALYTICS: 1
           HOMEBREW_NO_AUTO_UPDATE: 1
 
-      - name: Install ClangFormat
-        run: pipx install clang-format==19.1.0 --verbose
-        if: matrix.platform.format
-
       - run: cmake --version
       - name: Configure (static)
         if: matrix.platform.type == 'static'
