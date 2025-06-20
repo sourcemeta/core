@@ -74,7 +74,6 @@ using PointerTemplate = GenericPointerTemplate<Pointer>;
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto get(const JSON &document, const Pointer &pointer) -> const JSON &;
 
-// overloaded function
 // Constant reference parameters can accept xvalues which will be destructed
 // after the call. When the function returns such a parameter also as constant
 // reference, then the returned reference can be used after the object it refers
@@ -108,7 +107,6 @@ auto get(JSON &&document, const Pointer &pointer) -> const JSON & = delete;
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto get(const JSON &document, const WeakPointer &pointer) -> const JSON &;
 
-// overloaded function
 // Constant reference parameters can accept xvalues which will be destructed
 // after the call. When the function returns such a parameter also as constant
 // reference, then the returned reference can be used after the object it refers
