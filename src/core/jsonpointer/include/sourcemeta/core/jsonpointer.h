@@ -52,12 +52,6 @@ const WeakPointer empty_weak_pointer;
 /// A JSON Pointer with unresolved wildcards
 using PointerTemplate = GenericPointerTemplate<Pointer>;
 
-// overloaded functions
-auto get(const JSON &&document, const Pointer &pointer)
-    -> const JSON & = delete;
-auto get(const JSON &&document, const WeakPointer &pointer)
-    -> const JSON & = delete;
-
 /// @ingroup jsonpointer
 /// Get a value from a JSON document using a JSON Pointer (`const` overload).
 ///
@@ -79,6 +73,17 @@ auto get(const JSON &&document, const WeakPointer &pointer)
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto get(const JSON &document, const Pointer &pointer) -> const JSON &;
+
+// overloaded function
+// Constant reference parameters can accept xvalues which will be destructed
+// after the call. When the function returns such a parameter also as constant
+// reference, then the returned reference can be used after the object it refers
+// to has been destroyed.
+// https://clang.llvm.org/extra/clang-tidy/checks/bugprone/return-const-ref-from-parameter.html
+// This overload avoids mis-uses of retuning const reference parameter as
+// constant reference.
+auto get(const JSON &&document, const Pointer &pointer)
+    -> const JSON & = delete;
 
 /// @ingroup jsonpointer
 /// Get a value from a JSON document using a JSON WeakPointer (`const`
@@ -103,6 +108,17 @@ auto get(const JSON &document, const Pointer &pointer) -> const JSON &;
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto get(const JSON &document, const WeakPointer &pointer) -> const JSON &;
+
+// overloaded function
+// Constant reference parameters can accept xvalues which will be destructed
+// after the call. When the function returns such a parameter also as constant
+// reference, then the returned reference can be used after the object it refers
+// to has been destroyed.
+// https://clang.llvm.org/extra/clang-tidy/checks/bugprone/return-const-ref-from-parameter.html
+// This overload avoids mis-uses of retuning const reference parameter as
+// constant reference.
+auto get(const JSON &&document, const WeakPointer &pointer)
+    -> const JSON & = delete;
 
 /// @ingroup jsonpointer
 /// Get a value from a JSON document using a Pointer, returning an optional that
