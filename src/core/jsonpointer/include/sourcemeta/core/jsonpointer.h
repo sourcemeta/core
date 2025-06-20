@@ -53,8 +53,10 @@ const WeakPointer empty_weak_pointer;
 using PointerTemplate = GenericPointerTemplate<Pointer>;
 
 // overloaded functions
-auto get(const JSON &&document, const Pointer &pointer) -> const JSON & = delete;
-auto get(const JSON &&document, const WeakPointer &pointer) -> const JSON & = delete;
+auto get(const JSON &&document, const Pointer &pointer)
+    -> const JSON & = delete;
+auto get(const JSON &&document, const WeakPointer &pointer)
+    -> const JSON & = delete;
 
 /// @ingroup jsonpointer
 /// Get a value from a JSON document using a JSON Pointer (`const` overload).
