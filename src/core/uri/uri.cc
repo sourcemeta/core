@@ -141,7 +141,6 @@ URI::URI(const URI &other) : URI{other.recompose()} {}
 URI::URI(URI &&other)
     : parsed(other.parsed), data{std::move(other.data)},
       internal{std::move(other.internal)} {
-  // this->parsed = other.parsed;
   this->path_ = std::move(other.path_);
   this->scheme_ = std::move(other.scheme_);
   this->userinfo_ = std::move(other.userinfo_);
