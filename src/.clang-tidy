@@ -1,0 +1,6 @@
+---
+# See https://clang.llvm.org/extra/clang-tidy/index.html
+Checks: 'concurrency-*'
+InheritParentConfig: true
+WarningsAsErrors: '*'
+FormatStyle: none
