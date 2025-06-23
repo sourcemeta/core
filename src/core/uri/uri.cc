@@ -53,18 +53,18 @@ auto uri_text_range(const UriTextRangeA *const range)
 auto uri_parse(const std::string &data, UriUriA *uri) -> void {
   const char *error_position;
   switch (uriParseSingleUriA(uri, data.c_str(), &error_position)) {
-  case URI_ERROR_SYNTAX:
-    // TODO: Test the positions of this error
-    throw sourcemeta::core::URIParseError{
-        static_cast<std::uint64_t>(error_position - data.c_str() + 1)};
-  case URI_ERROR_MALLOC:
-    throw std::runtime_error("URI malloc error");
-  case URI_ERROR_OUTPUT_TOO_LARGE:
-    throw std::length_error("URI output too large");
-  case URI_SUCCESS:
-    break;
-  default:
-    throw sourcemeta::core::URIError{"Unknown URI error"};
+    case URI_ERROR_SYNTAX:
+      // TODO: Test the positions of this error
+      throw sourcemeta::core::URIParseError{
+          static_cast<std::uint64_t>(error_position - data.c_str() + 1)};
+    case URI_ERROR_MALLOC:
+      throw std::runtime_error("URI malloc error");
+    case URI_ERROR_OUTPUT_TOO_LARGE:
+      throw std::length_error("URI output too large");
+    case URI_SUCCESS:
+      break;
+    default:
+      throw sourcemeta::core::URIError{"Unknown URI error"};
   }
 
   uri_normalize(uri);
@@ -548,15 +548,15 @@ auto URI::resolve_from(const URI &base) -> URI & {
   // See https://uriparser.github.io/doc/api/latest/
   switch (uriAddBaseUriExA(&absoluteDest, &this->internal->uri,
                            &base.internal->uri, URI_RESOLVE_STRICTLY)) {
-  case URI_SUCCESS:
-    break;
-  case URI_ERROR_ADDBASE_REL_BASE:
-    uriFreeUriMembersA(&absoluteDest);
-    assert(!base.is_absolute());
-    throw URIError{"Base URI is not absolute"};
-  default:
-    uriFreeUriMembersA(&absoluteDest);
-    throw URIError{"Could not resolve URI"};
+    case URI_SUCCESS:
+      break;
+    case URI_ERROR_ADDBASE_REL_BASE:
+      uriFreeUriMembersA(&absoluteDest);
+      assert(!base.is_absolute());
+      throw URIError{"Base URI is not absolute"};
+    default:
+      uriFreeUriMembersA(&absoluteDest);
+      throw URIError{"Could not resolve URI"};
   }
 
   try {
@@ -585,10 +585,10 @@ auto URI::relative_to(const URI &base) -> URI & {
   // https://uriparser.github.io/doc/api/latest/Uri_8h.html#a20cc7888b62700d6cb7e7896647b0d5d
   switch (uriRemoveBaseUriMmA(&result, &copy.internal->uri, &base.internal->uri,
                               URI_FALSE, nullptr)) {
-  case URI_SUCCESS:
-    break;
-  default:
-    throw URIError{"Could not resolve URI relative to the given base"};
+    case URI_SUCCESS:
+      break;
+    default:
+      throw URIError{"Could not resolve URI relative to the given base"};
   }
 
   try {
