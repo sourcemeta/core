@@ -19,6 +19,7 @@ TEST(JSONSchema_official_walker_draft6, schema) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, id) {
@@ -30,6 +31,7 @@ TEST(JSONSchema_official_walker_draft6, id) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, ref) {
@@ -40,6 +42,7 @@ TEST(JSONSchema_official_walker_draft6, ref) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-06/schema#");
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, definitions) {
@@ -51,6 +54,7 @@ TEST(JSONSchema_official_walker_draft6, definitions) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, allOf) {
@@ -62,6 +66,7 @@ TEST(JSONSchema_official_walker_draft6, allOf) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, anyOf) {
@@ -73,6 +78,7 @@ TEST(JSONSchema_official_walker_draft6, anyOf) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, oneOf) {
@@ -84,6 +90,7 @@ TEST(JSONSchema_official_walker_draft6, oneOf) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, not) {
@@ -95,6 +102,7 @@ TEST(JSONSchema_official_walker_draft6, not) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, items) {
@@ -107,6 +115,8 @@ TEST(JSONSchema_official_walker_draft6, items) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft6, additionalItems) {
@@ -119,6 +129,8 @@ TEST(JSONSchema_official_walker_draft6, additionalItems) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"items"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft6, contains) {
@@ -130,6 +142,8 @@ TEST(JSONSchema_official_walker_draft6, contains) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft6, properties) {
@@ -142,6 +156,8 @@ TEST(JSONSchema_official_walker_draft6, properties) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref", "required"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, patternProperties) {
@@ -155,6 +171,8 @@ TEST(JSONSchema_official_walker_draft6, patternProperties) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, dependencies) {
@@ -167,6 +185,8 @@ TEST(JSONSchema_official_walker_draft6, dependencies) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, additionalProperties) {
@@ -180,6 +200,8 @@ TEST(JSONSchema_official_walker_draft6, additionalProperties) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"properties", "patternProperties"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, propertyNames) {
@@ -193,6 +215,8 @@ TEST(JSONSchema_official_walker_draft6, propertyNames) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, type) {
@@ -204,6 +228,7 @@ TEST(JSONSchema_official_walker_draft6, type) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"properties"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, enum) {
@@ -215,6 +240,7 @@ TEST(JSONSchema_official_walker_draft6, enum) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, const) {
@@ -226,6 +252,7 @@ TEST(JSONSchema_official_walker_draft6, const) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, multipleOf) {
@@ -237,6 +264,10 @@ TEST(JSONSchema_official_walker_draft6, multipleOf) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft6, maximum) {
@@ -248,6 +279,10 @@ TEST(JSONSchema_official_walker_draft6, maximum) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft6, minimum) {
@@ -259,6 +294,10 @@ TEST(JSONSchema_official_walker_draft6, minimum) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft6, exclusiveMaximum) {
@@ -271,6 +310,10 @@ TEST(JSONSchema_official_walker_draft6, exclusiveMaximum) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft6, exclusiveMinimum) {
@@ -283,6 +326,10 @@ TEST(JSONSchema_official_walker_draft6, exclusiveMinimum) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft6, maxLength) {
@@ -294,6 +341,8 @@ TEST(JSONSchema_official_walker_draft6, maxLength) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft6, minLength) {
@@ -305,6 +354,8 @@ TEST(JSONSchema_official_walker_draft6, minLength) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft6, pattern) {
@@ -316,6 +367,8 @@ TEST(JSONSchema_official_walker_draft6, pattern) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft6, maxItems) {
@@ -327,6 +380,8 @@ TEST(JSONSchema_official_walker_draft6, maxItems) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft6, minItems) {
@@ -338,6 +393,8 @@ TEST(JSONSchema_official_walker_draft6, minItems) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft6, uniqueItems) {
@@ -349,6 +406,8 @@ TEST(JSONSchema_official_walker_draft6, uniqueItems) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft6, maxProperties) {
@@ -361,6 +420,8 @@ TEST(JSONSchema_official_walker_draft6, maxProperties) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, minProperties) {
@@ -373,6 +434,8 @@ TEST(JSONSchema_official_walker_draft6, minProperties) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, required) {
@@ -384,6 +447,8 @@ TEST(JSONSchema_official_walker_draft6, required) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft6, format) {
@@ -395,6 +460,8 @@ TEST(JSONSchema_official_walker_draft6, format) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft6, title) {
@@ -406,6 +473,7 @@ TEST(JSONSchema_official_walker_draft6, title) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, description) {
@@ -417,6 +485,7 @@ TEST(JSONSchema_official_walker_draft6, description) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, default) {
@@ -428,6 +497,7 @@ TEST(JSONSchema_official_walker_draft6, default) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, examples) {
@@ -439,6 +509,7 @@ TEST(JSONSchema_official_walker_draft6, examples) {
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_links) {
@@ -449,6 +520,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_links) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_href) {
@@ -459,6 +531,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_href) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_rel) {
@@ -469,6 +542,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_rel) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_mediaType) {
@@ -479,6 +553,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_mediaType) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_submissionEncType) {
@@ -489,6 +564,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_submissionEncType) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_base) {
@@ -499,6 +575,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_base) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_media) {
@@ -509,6 +586,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_media) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_readOnly) {
@@ -521,6 +599,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_readOnly) {
             "http://json-schema.org/draft-06/hyper-schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_hrefSchema) {
@@ -532,6 +611,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_hrefSchema) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-06/hyper-schema#");
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_targetSchema) {
@@ -543,6 +623,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_targetSchema) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-06/hyper-schema#");
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_submissionSchema) {
@@ -554,6 +635,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_submissionSchema) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-06/hyper-schema#");
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_links_without_hyperschema) {
@@ -563,6 +645,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_links_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_href_without_hyperschema) {
@@ -572,6 +655,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_href_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_rel_without_hyperschema) {
@@ -581,6 +665,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_rel_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6,
@@ -591,6 +676,7 @@ TEST(JSONSchema_official_walker_draft6,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6,
@@ -602,6 +688,7 @@ TEST(JSONSchema_official_walker_draft6,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_base_without_hyperschema) {
@@ -611,6 +698,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_base_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_media_without_hyperschema) {
@@ -620,6 +708,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_media_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6,
@@ -632,6 +721,7 @@ TEST(JSONSchema_official_walker_draft6,
             "http://json-schema.org/draft-06/schema#");
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6,
@@ -642,6 +732,7 @@ TEST(JSONSchema_official_walker_draft6,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6,
@@ -653,6 +744,7 @@ TEST(JSONSchema_official_walker_draft6,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6,
@@ -664,6 +756,7 @@ TEST(JSONSchema_official_walker_draft6,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.instances.empty());
 }
 
 TEST(JSONSchema_official_walker_draft6, schema_keyword_priority_array) {
