@@ -52,8 +52,8 @@ TEST(JSONSchema_official_walker_draft1, items) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft1, properties) {
@@ -65,8 +65,8 @@ TEST(JSONSchema_official_walker_draft1, properties) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, additionalProperties) {
@@ -80,8 +80,8 @@ TEST(JSONSchema_official_walker_draft1, additionalProperties) {
             "http://json-schema.org/draft-01/schema#");
   const std::set<std::string> expected{"properties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, type) {
@@ -114,9 +114,10 @@ TEST(JSONSchema_official_walker_draft1, maximum) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft1, minimum) {
@@ -127,9 +128,10 @@ TEST(JSONSchema_official_walker_draft1, minimum) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft1, maximumCanEqual) {
@@ -141,9 +143,10 @@ TEST(JSONSchema_official_walker_draft1, maximumCanEqual) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft1, minimumCanEqual) {
@@ -155,9 +158,10 @@ TEST(JSONSchema_official_walker_draft1, minimumCanEqual) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_draft1, maxLength) {
@@ -168,8 +172,8 @@ TEST(JSONSchema_official_walker_draft1, maxLength) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft1, minLength) {
@@ -180,8 +184,8 @@ TEST(JSONSchema_official_walker_draft1, minLength) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft1, pattern) {
@@ -192,8 +196,8 @@ TEST(JSONSchema_official_walker_draft1, pattern) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft1, maxItems) {
@@ -204,8 +208,8 @@ TEST(JSONSchema_official_walker_draft1, maxItems) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft1, minItems) {
@@ -216,8 +220,8 @@ TEST(JSONSchema_official_walker_draft1, minItems) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft1, requires) {
@@ -228,8 +232,8 @@ TEST(JSONSchema_official_walker_draft1, requires) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, format) {
@@ -240,8 +244,8 @@ TEST(JSONSchema_official_walker_draft1, format) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft1, title) {
@@ -308,8 +312,8 @@ TEST(JSONSchema_official_walker_draft1, contentEncoding) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_draft1, optional) {
@@ -320,8 +324,8 @@ TEST(JSONSchema_official_walker_draft1, optional) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, maxDecimal) {
@@ -332,8 +336,8 @@ TEST(JSONSchema_official_walker_draft1, maxDecimal) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Real}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Real});
 }
 
 TEST(JSONSchema_official_walker_draft1, hyperschema_links) {
@@ -486,8 +490,8 @@ TEST(JSONSchema_official_walker_draft1, hyperschema_items) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/hyper-schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_draft1, hyperschema_properties) {
@@ -500,8 +504,8 @@ TEST(JSONSchema_official_walker_draft1, hyperschema_properties) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/hyper-schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, hyperschema_additionalProperties) {
@@ -515,8 +519,8 @@ TEST(JSONSchema_official_walker_draft1, hyperschema_additionalProperties) {
             "http://json-schema.org/draft-01/hyper-schema#");
   const std::set<std::string> expected{"properties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, hyperschema_type) {
@@ -640,8 +644,8 @@ TEST(JSONSchema_official_walker_draft1, hyperschema_requires) {
   EXPECT_EQ(result.vocabulary.value(),
             "http://json-schema.org/draft-01/hyper-schema#");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_draft1, hyperschema_format) {

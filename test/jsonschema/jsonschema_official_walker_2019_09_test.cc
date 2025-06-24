@@ -233,8 +233,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_dependentSchemas) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_items) {
@@ -247,8 +247,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_items) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_additionalItems) {
@@ -261,8 +261,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_additionalItems) {
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   const std::set<std::string> expected{"items"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_contains_only) {
@@ -274,8 +274,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_contains_only) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_contains_with_validation) {
@@ -294,8 +294,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_contains_with_validation) {
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   const std::set<std::string> expected{"minContains", "maxContains"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_properties) {
@@ -308,8 +308,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_properties) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_patternProperties) {
@@ -322,8 +322,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_patternProperties) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_additionalProperties) {
@@ -337,8 +337,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_additionalProperties) {
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   const std::set<std::string> expected{"properties", "patternProperties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_propertyNames) {
@@ -351,8 +351,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_propertyNames) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_unevaluatedItems) {
@@ -365,8 +365,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_unevaluatedItems) {
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   const std::set<std::string> expected{"items", "additionalItems"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, applicator_unevaluatedProperties) {
@@ -381,8 +381,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_unevaluatedProperties) {
   const std::set<std::string> expected{"properties", "patternProperties",
                                        "additionalProperties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_type) {
@@ -430,9 +430,10 @@ TEST(JSONSchema_official_walker_2019_09, validation_multipleOf) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_maximum) {
@@ -445,9 +446,10 @@ TEST(JSONSchema_official_walker_2019_09, validation_maximum) {
             "https://json-schema.org/draft/2019-09/vocab/validation");
   const std::set<std::string> expected{"type"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_minimum) {
@@ -460,9 +462,10 @@ TEST(JSONSchema_official_walker_2019_09, validation_minimum) {
             "https://json-schema.org/draft/2019-09/vocab/validation");
   const std::set<std::string> expected{"type"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_exclusiveMaximum) {
@@ -474,9 +477,10 @@ TEST(JSONSchema_official_walker_2019_09, validation_exclusiveMaximum) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_exclusiveMinimum) {
@@ -488,9 +492,10 @@ TEST(JSONSchema_official_walker_2019_09, validation_exclusiveMinimum) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Integer,
-                                   sourcemeta::core::JSON::Type::Real}));
+  const std::set<sourcemeta::core::JSON::Type> instances{
+      sourcemeta::core::JSON::Type::Integer,
+      sourcemeta::core::JSON::Type::Real};
+  EXPECT_EQ(result.instances, instances);
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_maxLength) {
@@ -502,8 +507,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_maxLength) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_minLength) {
@@ -515,8 +520,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_minLength) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_pattern) {
@@ -528,8 +533,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_pattern) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_maxItems) {
@@ -541,8 +546,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_maxItems) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_minItems) {
@@ -554,8 +559,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_minItems) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_uniqueItems) {
@@ -567,8 +572,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_uniqueItems) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_maxContains) {
@@ -580,8 +585,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_maxContains) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_minContains) {
@@ -593,8 +598,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_minContains) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Array}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Array});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_maxProperties) {
@@ -606,8 +611,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_maxProperties) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_minProperties) {
@@ -619,8 +624,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_minProperties) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_required) {
@@ -632,8 +637,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_required) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, validation_dependentRequired) {
@@ -645,8 +650,8 @@ TEST(JSONSchema_official_walker_2019_09, validation_dependentRequired) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/validation");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::Object}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::Object});
 }
 
 TEST(JSONSchema_official_walker_2019_09, format_format) {
@@ -658,8 +663,8 @@ TEST(JSONSchema_official_walker_2019_09, format_format) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/format");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, content_contentEncoding) {
@@ -671,8 +676,8 @@ TEST(JSONSchema_official_walker_2019_09, content_contentEncoding) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/content");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, content_contentMediaType) {
@@ -684,8 +689,8 @@ TEST(JSONSchema_official_walker_2019_09, content_contentMediaType) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/content");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, content_contentSchema) {
@@ -697,8 +702,8 @@ TEST(JSONSchema_official_walker_2019_09, content_contentSchema) {
   EXPECT_EQ(result.vocabulary.value(),
             "https://json-schema.org/draft/2019-09/vocab/content");
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>(
-                                  {sourcemeta::core::JSON::Type::String}));
+  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+                                  sourcemeta::core::JSON::Type::String});
 }
 
 TEST(JSONSchema_official_walker_2019_09, metadata_title) {
