@@ -532,7 +532,7 @@ auto URI::canonicalize() -> URI & {
                                      result_port.value() == 443};
 
     if (!is_default_http_port && !is_default_https_port) {
-      this->port_ = result_port.value();
+      this->port_ = result_port;
     } else {
       this->port_ = std::nullopt;
     }
