@@ -620,7 +620,6 @@ auto URI::relative_to(const URI &base) -> URI & {
   return *this;
 }
 
-// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
   this->relative_to(base);
   if (!this->is_relative()) {
