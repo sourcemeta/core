@@ -62,8 +62,10 @@ static auto id_keyword(const std::string &base_dialect) -> std::string {
 auto sourcemeta::core::identify(
     const sourcemeta::core::JSON &schema, const SchemaResolver &resolver,
     const SchemaIdentificationStrategy strategy,
-    const std::optional<std::string> &default_dialect,
-    const std::optional<std::string> &default_id)
+    const std::optional<std::string>
+        &default_dialect, // NOLINT(bugprone-easily-swappable-parameters)
+    const std::optional<std::string>
+        &default_id) // NOLINT(bugprone-easily-swappable-parameters)
     -> std::optional<std::string> {
   std::optional<std::string> maybe_base_dialect;
 

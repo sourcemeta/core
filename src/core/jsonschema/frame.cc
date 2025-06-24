@@ -75,9 +75,10 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       assert(schema.at("$id").is_string());
       const sourcemeta::core::URI identifier(schema.at("$id").to_string());
       if (identifier.is_fragment_only()) {
-        result.insert(
-            {sourcemeta::core::JSON::String{identifier.fragment().value()},
-             AnchorType::Static});
+        result.insert({sourcemeta::core::JSON::String{
+                           identifier.fragment() ? identifier.fragment().value()
+                                                 : "what should we have here?"},
+                       AnchorType::Static});
       }
     }
   }
@@ -90,9 +91,10 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       assert(schema.at("id").is_string());
       const sourcemeta::core::URI identifier(schema.at("id").to_string());
       if (identifier.is_fragment_only()) {
-        result.insert(
-            {sourcemeta::core::JSON::String{identifier.fragment().value()},
-             AnchorType::Static});
+        result.insert({sourcemeta::core::JSON::String{
+                           identifier.fragment() ? identifier.fragment().value()
+                                                 : "what should we have here?"},
+                       AnchorType::Static});
       }
     }
   }

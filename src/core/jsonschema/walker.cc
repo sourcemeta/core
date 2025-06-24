@@ -1,3 +1,4 @@
+#include <optional>
 #include <sourcemeta/core/jsonschema.h>
 
 #include <algorithm> // std::max, std::sort
@@ -44,11 +45,13 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
   const auto is_schema_resource{level == 0 || id.has_value()};
   const auto current_dialect{is_schema_resource ? maybe_current_dialect.value()
                                                 : dialect};
-  const auto current_base_dialect{
-      is_schema_resource
-          ? sourcemeta::core::base_dialect(subschema, resolver, current_dialect)
-                .value()
-          : base_dialect};
+  const auto opt_current_base_dialect =
+      sourcemeta::core::base_dialect(subschema, resolver, current_dialect);
+  const auto current_base_dialect{is_schema_resource
+                                      ? (opt_current_base_dialect
+                                             ? opt_current_base_dialect.value()
+                                             : base_dialect)
+                                      : base_dialect};
 
   const auto vocabularies{sourcemeta::core::vocabularies(
       resolver, current_base_dialect, current_dialect)};
