@@ -3,10 +3,10 @@
 
 #include <sourcemeta/core/json_value.h>
 
-#include <concepts>    // std::same_as, std::constructible_from
-#include <functional>  // std::function
-#include <optional>    // std::optional
-#include <tuple>       // std::tuple, std::apply, std::tuple_element_t
+#include <concepts>   // std::same_as, std::constructible_from
+#include <functional> // std::function
+#include <optional>   // std::optional
+#include <tuple> // std::tuple, std::apply, std::tuple_element_t, std::tuple_size, std::tuple_size_v
 #include <type_traits> // std::false_type, std::true_type, std::void_t, std::is_enum_v, std::underlying_type_t, std::is_same_v, std::is_base_of_v, std::remove_cvref_t
 #include <utility>     // std::pair
 
@@ -208,17 +208,28 @@ auto to_json(const std::pair<L, R> &value) -> JSON {
   return tuple;
 }
 
-// MSVC seems confuses `std::pair` of 2 elements with this overload too
-#if defined(_MSC_VER)
+// Handle 1-element tuples
+/// @ingroup json
+template <typename T>
+  requires(std::tuple_size_v<std::remove_cvref_t<std::tuple<T>>> == 1)
+auto to_json(const std::tuple<T> &value) -> JSON {
+  auto tuple = JSON::make_array();
+  std::apply([&](const T &element) { tuple.push_back(to_json(element)); },
+             value);
+  return tuple;
+}
+
+// We have to do this mess because MSVC seems confuses `std::pair`
+// of 2 elements with this overload
 /// @ingroup json
 template <typename TupleT>
-  requires(!std::is_base_of_v<
+  requires(requires {
+    typename std::tuple_size<std::remove_cvref_t<TupleT>>::type;
+  } && (std::tuple_size_v<std::remove_cvref_t<TupleT>> >= 2) &&
+           (!std::is_base_of_v<
                std::pair<std::tuple_element_t<0, std::remove_cvref_t<TupleT>>,
                          std::tuple_element_t<1, std::remove_cvref_t<TupleT>>>,
-               std::remove_cvref_t<TupleT>> &&
-           requires {
-             typename std::tuple_size<std::remove_cvref_t<TupleT>>::type;
-           })
+               std::remove_cvref_t<TupleT>>))
 auto to_json(const TupleT &value) -> JSON {
   auto tuple = JSON::make_array();
   std::apply(
@@ -228,19 +239,6 @@ auto to_json(const TupleT &value) -> JSON {
       value);
   return tuple;
 }
-#else
-/// @ingroup json
-template <typename... Args>
-auto to_json(const std::tuple<Args...> &value) -> JSON {
-  auto tuple{JSON::make_array()};
-  std::apply(
-      [&tuple](const Args &...elements) {
-        (tuple.push_back(to_json(elements)), ...);
-      },
-      value);
-  return tuple;
-}
-#endif
 
 } // namespace sourcemeta::core
 
