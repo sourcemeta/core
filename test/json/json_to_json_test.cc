@@ -117,6 +117,20 @@ TEST(JSON_to_json, vector_without_iterators_and_transform) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(JSON_to_json, vector_of_pairs) {
+  const std::vector<std::pair<std::string, std::size_t>> value{
+      {"foo", 1}, {"bar", 2}, {"baz", 3}};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    [ "foo", 1 ],
+    [ "bar", 2 ],
+    [ "baz", 3 ]
+  ])JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(JSON_to_json, map_with_iterators) {
   const std::map<std::string, std::size_t> value{
       {"foo", 1}, {"bar", 2}, {"baz", 3}};
