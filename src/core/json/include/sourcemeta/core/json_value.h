@@ -808,6 +808,7 @@ public:
   [[nodiscard]] auto at_or(const String &key,
                            const typename Object::Container::hash_type hash,
                            JSON &&otherwise) const -> const JSON & = delete;
+
   /// This method retrieves a reference to the first element of a JSON array.
   /// This method is undefined if the input JSON instance is an empty array. For
   /// example:
