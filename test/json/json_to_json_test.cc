@@ -173,6 +173,18 @@ TEST(JSON_to_json, pair) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(JSON_to_json, pair_with_pair) {
+  const std::pair<sourcemeta::core::JSON::Type,
+                  std::pair<sourcemeta::core::JSON::Type, std::size_t>>
+      value{sourcemeta::core::JSON::Type::String,
+            {sourcemeta::core::JSON::Type::String, 5}};
+
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON([ 4, [ 4, 5 ] ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
 TEST(JSON_to_json, tuple_1) {
   const std::tuple<std::string> value{"foo"};
   const auto result{sourcemeta::core::to_json(value)};
