@@ -1,10 +1,17 @@
 #include <sourcemeta/core/jsonschema.h>
 
+#include <initializer_list> // std::initializer_list
+
+template <typename T>
+auto make_set(std::initializer_list<T> types) -> std::set<T> {
+  return {types};
+}
+
 auto sourcemeta::core::schema_official_walker(
     std::string_view keyword,
     const sourcemeta::core::Vocabularies &vocabularies)
     -> sourcemeta::core::SchemaWalkerResult {
-#define TYPES(...) std::set<JSON::Type>({__VA_ARGS__})
+#define TYPES(...) make_set({__VA_ARGS__})
 #define WALK(vocabulary, _keyword, _types, strategy, ...)                      \
   if (vocabularies.contains(vocabulary) && keyword == _keyword)                \
     return {sourcemeta::core::SchemaKeywordType::strategy,                     \
