@@ -7,7 +7,7 @@
 #include <functional> // std::function
 #include <optional>   // std::optional
 #include <tuple> // std::tuple, std::apply, std::tuple_element_t, std::tuple_size, std::tuple_size_v
-#include <type_traits> // std::false_type, std::true_type, std::void_t, std::is_enum_v, std::underlying_type_t, std::is_same_v, std::is_base_of_v, std::remove_cvref_t
+#include <type_traits> // std::false_type, std::true_type, std::void_t, std::is_enum_v, std::underlying_type_t, std::is_same_v, std::is_base_of_v, std::remove_cvref_t, std::is_fundamental_v
 #include <utility> // std::pair, std::make_index_sequence, std::index_sequence
 
 // Forward declarations (added as needed)
@@ -49,7 +49,10 @@ struct json_auto_supports_auto_impl<T, std::void_t<typename T::json_auto>>
     : std::bool_constant<
           !std::is_same_v<typename T::json_auto, std::false_type>> {};
 template <typename T>
-concept json_auto_supports_auto = json_auto_supports_auto_impl<T>::value;
+concept json_auto_supports_auto =
+    std::is_fundamental_v<std::remove_cvref_t<T>> ||
+    json_auto_supports_auto_impl<T>::value ||
+    json_auto_is_basic_string<T>::value;
 
 /// @ingroup json
 template <typename T>
