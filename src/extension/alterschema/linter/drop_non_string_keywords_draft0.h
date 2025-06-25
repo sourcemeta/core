@@ -15,8 +15,7 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    return vocabularies.contains(
-               "http://json-schema.org/draft-00/hyper-schema#") &&
+    return vocabularies.contains("http://json-schema.org/draft-00/schema#") &&
            schema.is_object() && schema.defines("type") &&
            schema.at("type").is_string() &&
            schema.at("type").to_string() == "string" &&
