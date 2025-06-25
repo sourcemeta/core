@@ -18,13 +18,14 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <cassert>  // assert
-#include <cstdint>  // std::uint8_t, std::uint64_t
-#include <optional> // std::optional
-#include <regex>    // std::regex
-#include <string>   // std::stoull
-#include <utility>  // std::pair
-#include <variant>  // std::variant
+#include <cassert>     // assert
+#include <cstdint>     // std::uint8_t, std::uint64_t
+#include <optional>    // std::optional
+#include <regex>       // std::regex
+#include <string>      // std::stoull
+#include <type_traits> // std::false_type
+#include <utility>     // std::pair
+#include <variant>     // std::variant
 
 /// @defgroup regex Regex
 /// @brief An opinionated regex ECMA 262 implementation for JSON Schema
@@ -60,11 +61,14 @@ struct RegexTypeNoop {
 };
 
 /// @ingroup regex
-template <typename T>
-using Regex =
-    std::variant<RegexTypeBoost<typename T::value_type>, RegexTypePrefix<T>,
-                 RegexTypeNonEmpty, RegexTypeRange,
-                 RegexTypeStd<typename T::value_type>, RegexTypeNoop>;
+template <typename T> struct Regex {
+  // Because we can't do this directly
+  using json_auto = std::false_type;
+  std::variant<RegexTypeBoost<typename T::value_type>, RegexTypePrefix<T>,
+               RegexTypeNonEmpty, RegexTypeRange,
+               RegexTypeStd<typename T::value_type>, RegexTypeNoop>
+      data;
+};
 #if !defined(DOXYGEN)
 // For fast internal dispatching. It must stay in sync with the variant above
 enum class RegexIndex : std::uint8_t {
@@ -94,20 +98,20 @@ template <typename T>
 auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
   if (pattern == ".*" || pattern == "^.*$" || pattern == "^(.*)$" ||
       pattern == "(.*)" || pattern == "[\\s\\S]*" || pattern == "^[\\s\\S]*$") {
-    return RegexTypeNoop{};
+    return Regex<T>{RegexTypeNoop{}};
 
     // Note that the JSON Schema specification does not impose the use of any
     // regular expression flag. Given popular adoption, we assume `.` matches
     // new line characters (as in the `DOTALL`) option
   } else if (pattern == ".+" || pattern == "^.+$" || pattern == "^(.+)$" ||
              pattern == ".") {
-    return RegexTypeNonEmpty{};
+    return Regex<T>{RegexTypeNonEmpty{}};
   }
 
   const std::regex PREFIX_REGEX{R"(^\^([a-zA-Z0-9-_/@]+)(\.\*)?)"};
   std::smatch matches_prefix;
   if (std::regex_match(pattern, matches_prefix, PREFIX_REGEX)) {
-    return RegexTypePrefix<T>{matches_prefix[1].str()};
+    return Regex<T>{RegexTypePrefix<T>{matches_prefix[1].str()}};
   }
 
   const std::regex RANGE_REGEX{R"(^\^\.\{(\d+),(\d+)\}\$$)"};
@@ -116,7 +120,7 @@ auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
     const std::uint64_t minimum{std::stoull(matches_range[1].str())};
     const std::uint64_t maximum{std::stoull(matches_range[2].str())};
     assert(minimum <= maximum);
-    return RegexTypeRange{minimum, maximum};
+    return Regex<T>{RegexTypeRange{minimum, maximum}};
   }
 
   RegexTypeBoost<typename T::value_type> result{
@@ -140,13 +144,13 @@ auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
   // See
   // https://www.boost.org/doc/libs/1_82_0/libs/regex/doc/html/boost_regex/ref/basic_regex.html
   if (result.status() == 0) {
-    return result;
+    return Regex<T>{std::move(result)};
   }
 
   try {
     // Boost seems to sometimes be overly strict, so we still default to
     // the standard implementation
-    return RegexTypeStd<typename T::value_type>{
+    return Regex<T>{RegexTypeStd<typename T::value_type>{
         pattern,
         // See https://en.cppreference.com/w/cpp/regex/basic_regex/constants
         std::regex::ECMAScript |
@@ -157,7 +161,7 @@ auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
 
             // Instructs the regular expression engine to make matching
             // faster, with the potential cost of making construction slower
-            std::regex::optimize};
+            std::regex::optimize}};
   } catch (const std::regex_error &) {
     return std::nullopt;
   }
@@ -178,20 +182,22 @@ auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
 /// ```
 template <typename T>
 auto matches(const Regex<T> &regex, const T &value) -> bool {
-  switch (static_cast<RegexIndex>(regex.index())) {
+  switch (static_cast<RegexIndex>(regex.data.index())) {
     case RegexIndex::Boost:
       return boost::regex_search(
-          value, *std::get_if<RegexTypeBoost<typename T::value_type>>(&regex));
+          value,
+          *std::get_if<RegexTypeBoost<typename T::value_type>>(&regex.data));
     case RegexIndex::Prefix:
-      return value.starts_with(*std::get_if<RegexTypePrefix<T>>(&regex));
+      return value.starts_with(*std::get_if<RegexTypePrefix<T>>(&regex.data));
     case RegexIndex::NonEmpty:
       return !value.empty();
     case RegexIndex::Range:
-      return value.size() >= std::get_if<RegexTypeRange>(&regex)->first &&
-             value.size() <= std::get_if<RegexTypeRange>(&regex)->second;
+      return value.size() >= std::get_if<RegexTypeRange>(&regex.data)->first &&
+             value.size() <= std::get_if<RegexTypeRange>(&regex.data)->second;
     case RegexIndex::Std:
       return std::regex_search(
-          value, *std::get_if<RegexTypeStd<typename T::value_type>>(&regex));
+          value,
+          *std::get_if<RegexTypeStd<typename T::value_type>>(&regex.data));
     case RegexIndex::Noop:
       return true;
   }
