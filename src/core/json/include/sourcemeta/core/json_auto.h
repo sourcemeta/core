@@ -8,7 +8,7 @@
 #include <optional>   // std::optional
 #include <tuple> // std::tuple, std::apply, std::tuple_element_t, std::tuple_size, std::tuple_size_v
 #include <type_traits> // std::false_type, std::true_type, std::void_t, std::is_enum_v, std::underlying_type_t, std::is_same_v, std::is_base_of_v, std::remove_cvref_t
-#include <utility>     // std::pair
+#include <utility> // std::pair, std::make_index_sequence, std::index_sequence
 
 // Forward declarations (added as needed)
 #ifndef DOXYGEN
@@ -77,9 +77,19 @@ concept json_auto_map_like =
 
 /// @ingroup json
 template <typename T>
-concept json_auto_tuple_mono = requires {
-  typename std::tuple_size<std::remove_cvref_t<T>>::type;
-} && (std::tuple_size_v<std::remove_cvref_t<T>> == 1);
+concept json_auto_tuple_mono =
+    requires { typename std::tuple_size<std::remove_cvref_t<T>>::type; } &&
+    (std::tuple_size_v<std::remove_cvref_t<T>> == 1) &&
+    json_auto_supports_auto<std::tuple_element_t<0, std::remove_cvref_t<T>>>;
+
+/// @ingroup json
+template <typename T, std::size_t... I>
+consteval bool
+json_auto_tuple_elements_support_auto(std::index_sequence<I...>) {
+  return (json_auto_supports_auto<
+              std::tuple_element_t<I, std::remove_cvref_t<T>>> &&
+          ...);
+}
 
 // We have to do this mess because MSVC seems confuses `std::pair`
 // of 2 elements with this overload
@@ -91,7 +101,9 @@ concept json_auto_tuple_poly =
     (!std::is_base_of_v<
         std::pair<std::tuple_element_t<0, std::remove_cvref_t<T>>,
                   std::tuple_element_t<1, std::remove_cvref_t<T>>>,
-        std::remove_cvref_t<T>>);
+        std::remove_cvref_t<T>>) &&
+    json_auto_tuple_elements_support_auto<T>(
+        std::make_index_sequence<std::tuple_size_v<std::remove_cvref_t<T>>>{});
 
 /// @ingroup json
 /// If the value has a `.to_json()` method, always prefer that
@@ -225,6 +237,7 @@ auto to_json(
 
 /// @ingroup json
 template <typename L, typename R>
+  requires(json_auto_supports_auto<L> && json_auto_supports_auto<R>)
 auto to_json(const std::pair<L, R> &value) -> JSON {
   auto tuple{JSON::make_array()};
   tuple.push_back(to_json(value.first));
