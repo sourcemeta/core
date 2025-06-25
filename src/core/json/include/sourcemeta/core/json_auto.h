@@ -77,8 +77,9 @@ concept json_auto_map_like =
 
 /// @ingroup json
 template <typename T>
-concept json_auto_tuple_mono =
-    std::tuple_size_v<std::remove_cvref_t<std::tuple<T>>> == 1;
+concept json_auto_tuple_mono = requires {
+  typename std::tuple_size<std::remove_cvref_t<T>>::type;
+} && (std::tuple_size_v<std::remove_cvref_t<T>> == 1);
 
 // We have to do this mess because MSVC seems confuses `std::pair`
 // of 2 elements with this overload
@@ -233,10 +234,9 @@ auto to_json(const std::pair<L, R> &value) -> JSON {
 
 // Handle 1-element tuples
 /// @ingroup json
-template <json_auto_tuple_mono T>
-auto to_json(const std::tuple<T> &value) -> JSON {
+template <json_auto_tuple_mono T> auto to_json(const T &value) -> JSON {
   auto tuple = JSON::make_array();
-  std::apply([&](const T &element) { tuple.push_back(to_json(element)); },
+  std::apply([&](const auto &element) { tuple.push_back(to_json(element)); },
              value);
   return tuple;
 }
