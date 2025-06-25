@@ -2,8 +2,10 @@
 
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -172,6 +174,28 @@ TEST(JSON_to_json, map_without_iterators_and_transform) {
     "bar": 4,
     "baz": 6
   })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSON_to_json, set_without_iterators) {
+  const std::set<std::string> value{"foo", "bar", "baz"};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    "bar", "baz", "foo"
+  ])JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSON_to_json, unordered_set_without_iterators) {
+  const std::unordered_set<std::string> value{"foo", "bar", "baz"};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    "bar", "baz", "foo"
+  ])JSON")};
 
   EXPECT_EQ(result, expected);
 }
