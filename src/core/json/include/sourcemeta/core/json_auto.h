@@ -22,20 +22,20 @@ namespace sourcemeta::core {
 
 /// @ingroup json
 template <typename, typename = void>
-struct to_json_has_mapped_type : std::false_type {};
+struct json_auto_has_mapped_type : std::false_type {};
 template <typename T>
-struct to_json_has_mapped_type<T, std::void_t<typename T::mapped_type>>
+struct json_auto_has_mapped_type<T, std::void_t<typename T::mapped_type>>
     : std::true_type {};
 
 /// @ingroup json
-template <typename T> struct to_json_is_basic_string : std::false_type {};
+template <typename T> struct json_auto_is_basic_string : std::false_type {};
 template <typename CharT, typename Traits, typename Alloc>
-struct to_json_is_basic_string<std::basic_string<CharT, Traits, Alloc>>
+struct json_auto_is_basic_string<std::basic_string<CharT, Traits, Alloc>>
     : std::true_type {};
 
 /// @ingroup json
 template <typename T>
-concept to_json_has_method = requires(const T value) {
+concept json_auto_has_method = requires(const T value) {
   { value.to_json() } -> std::same_as<JSON>;
 };
 
@@ -43,42 +43,42 @@ concept to_json_has_method = requires(const T value) {
 /// Container-like classes can opt-out from automatic JSON
 /// serialisation by setting `using json_auto = std::false_type;`
 template <typename, typename = void>
-struct to_json_supports_auto_impl : std::true_type {};
+struct json_auto_supports_auto_impl : std::true_type {};
 template <typename T>
-struct to_json_supports_auto_impl<T, std::void_t<typename T::json_auto>>
+struct json_auto_supports_auto_impl<T, std::void_t<typename T::json_auto>>
     : std::bool_constant<
           !std::is_same_v<typename T::json_auto, std::false_type>> {};
 template <typename T>
-concept to_json_supports_auto = to_json_supports_auto_impl<T>::value;
+concept json_auto_supports_auto = json_auto_supports_auto_impl<T>::value;
 
 /// @ingroup json
 template <typename T>
-concept to_json_list_like =
+concept json_auto_list_like =
     requires(T type) {
       typename T::value_type;
       typename T::const_iterator;
       { type.cbegin() } -> std::same_as<typename T::const_iterator>;
       { type.cend() } -> std::same_as<typename T::const_iterator>;
-    } && to_json_supports_auto<T> && !to_json_has_mapped_type<T>::value &&
-    !to_json_has_method<T> && !to_json_is_basic_string<T>::value;
+    } && json_auto_supports_auto<T> && !json_auto_has_mapped_type<T>::value &&
+    !json_auto_has_method<T> && !json_auto_is_basic_string<T>::value;
 
 /// @ingroup json
 template <typename T>
-concept to_json_map_like =
+concept json_auto_map_like =
     requires(T type) {
       typename T::value_type;
       typename T::const_iterator;
       typename T::key_type;
       { type.cbegin() } -> std::same_as<typename T::const_iterator>;
       { type.cend() } -> std::same_as<typename T::const_iterator>;
-    } && to_json_supports_auto<T> && to_json_has_mapped_type<T>::value &&
-    !to_json_has_method<T> &&
+    } && json_auto_supports_auto<T> && json_auto_has_mapped_type<T>::value &&
+    !json_auto_has_method<T> &&
     std::is_same_v<typename T::key_type, JSON::String>;
 
 /// @ingroup json
 /// If the value has a `.to_json()` method, always prefer that
 template <typename T>
-  requires(to_json_has_method<T>)
+  requires(json_auto_has_method<T>)
 auto to_json(const T &value) -> JSON {
   return value.to_json();
 }
@@ -124,7 +124,7 @@ template <typename T> auto to_json(const std::optional<T> &value) -> JSON {
 }
 
 /// @ingroup json
-template <to_json_list_like T>
+template <json_auto_list_like T>
 auto to_json(typename T::const_iterator begin, typename T::const_iterator end)
     -> JSON {
   // TODO: Extend `make_array` to optionally take iterators, etc
@@ -137,7 +137,7 @@ auto to_json(typename T::const_iterator begin, typename T::const_iterator end)
 }
 
 /// @ingroup json
-template <to_json_list_like T>
+template <json_auto_list_like T>
 auto to_json(
     typename T::const_iterator begin, typename T::const_iterator end,
     const std::function<JSON(const typename T::value_type &)> &callback)
@@ -152,12 +152,12 @@ auto to_json(
 }
 
 /// @ingroup json
-template <to_json_list_like T> auto to_json(const T &value) -> JSON {
+template <json_auto_list_like T> auto to_json(const T &value) -> JSON {
   return to_json<T>(value.cbegin(), value.cend());
 }
 
 /// @ingroup json
-template <to_json_list_like T>
+template <json_auto_list_like T>
 auto to_json(
     const T &value,
     const std::function<JSON(const typename T::value_type &)> &callback)
@@ -166,7 +166,7 @@ auto to_json(
 }
 
 /// @ingroup json
-template <to_json_map_like T>
+template <json_auto_map_like T>
 auto to_json(typename T::const_iterator begin, typename T::const_iterator end)
     -> JSON {
   auto result{JSON::make_object()};
@@ -178,12 +178,12 @@ auto to_json(typename T::const_iterator begin, typename T::const_iterator end)
 }
 
 /// @ingroup json
-template <to_json_map_like T> auto to_json(const T &value) -> JSON {
+template <json_auto_map_like T> auto to_json(const T &value) -> JSON {
   return to_json<T>(value.cbegin(), value.cend());
 }
 
 /// @ingroup json
-template <to_json_map_like T>
+template <json_auto_map_like T>
 auto to_json(
     typename T::const_iterator begin, typename T::const_iterator end,
     const std::function<JSON(const typename T::mapped_type &)> &callback)
@@ -197,7 +197,7 @@ auto to_json(
 }
 
 /// @ingroup json
-template <to_json_map_like T>
+template <json_auto_map_like T>
 auto to_json(
     const T &value,
     const std::function<JSON(const typename T::mapped_type &)> &callback)
