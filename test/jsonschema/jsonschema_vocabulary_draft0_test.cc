@@ -44,7 +44,7 @@ TEST(JSONSchema_vocabulary_draft0, schema) {
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
   EXPECT_VOCABULARY_REQUIRED(vocabularies,
-                             "http://json-schema.org/draft-00/hyper-schema#");
+                             "http://json-schema.org/draft-00/schema#");
 }
 
 TEST(JSONSchema_vocabulary_draft0, hyperschema) {
