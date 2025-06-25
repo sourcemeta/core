@@ -76,6 +76,23 @@ concept json_auto_map_like =
     std::is_same_v<typename T::key_type, JSON::String>;
 
 /// @ingroup json
+template <typename T>
+concept json_auto_tuple_mono =
+    std::tuple_size_v<std::remove_cvref_t<std::tuple<T>>> == 1;
+
+// We have to do this mess because MSVC seems confuses `std::pair`
+// of 2 elements with this overload
+/// @ingroup json
+template <typename T>
+concept json_auto_tuple_poly =
+    requires { typename std::tuple_size<std::remove_cvref_t<T>>::type; } &&
+    (std::tuple_size_v<std::remove_cvref_t<T>> >= 2) &&
+    (!std::is_base_of_v<
+        std::pair<std::tuple_element_t<0, std::remove_cvref_t<T>>,
+                  std::tuple_element_t<1, std::remove_cvref_t<T>>>,
+        std::remove_cvref_t<T>>);
+
+/// @ingroup json
 /// If the value has a `.to_json()` method, always prefer that
 template <typename T>
   requires(json_auto_has_method<T>)
@@ -216,8 +233,7 @@ auto to_json(const std::pair<L, R> &value) -> JSON {
 
 // Handle 1-element tuples
 /// @ingroup json
-template <typename T>
-  requires(std::tuple_size_v<std::remove_cvref_t<std::tuple<T>>> == 1)
+template <json_auto_tuple_mono T>
 auto to_json(const std::tuple<T> &value) -> JSON {
   auto tuple = JSON::make_array();
   std::apply([&](const T &element) { tuple.push_back(to_json(element)); },
@@ -225,18 +241,8 @@ auto to_json(const std::tuple<T> &value) -> JSON {
   return tuple;
 }
 
-// We have to do this mess because MSVC seems confuses `std::pair`
-// of 2 elements with this overload
 /// @ingroup json
-template <typename TupleT>
-  requires(requires {
-    typename std::tuple_size<std::remove_cvref_t<TupleT>>::type;
-  } && (std::tuple_size_v<std::remove_cvref_t<TupleT>> >= 2) &&
-           (!std::is_base_of_v<
-               std::pair<std::tuple_element_t<0, std::remove_cvref_t<TupleT>>,
-                         std::tuple_element_t<1, std::remove_cvref_t<TupleT>>>,
-               std::remove_cvref_t<TupleT>>))
-auto to_json(const TupleT &value) -> JSON {
+template <json_auto_tuple_poly T> auto to_json(const T &value) -> JSON {
   auto tuple = JSON::make_array();
   std::apply(
       [&tuple](const auto &...elements) {
