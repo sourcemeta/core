@@ -3,6 +3,7 @@
 
 #include <sourcemeta/core/json_value.h>
 
+#include <algorithm>  // std::sort
 #include <concepts>   // std::same_as, std::constructible_from
 #include <functional> // std::function
 #include <optional>   // std::optional
@@ -74,6 +75,16 @@ concept json_auto_map_like =
     } && json_auto_supports_auto<T> && json_auto_has_mapped_type<T>::value &&
     !json_auto_has_method<T> &&
     std::is_same_v<typename T::key_type, JSON::String>;
+
+/// @ingroup json
+template <typename, typename = void>
+struct json_auto_has_reverse_iterator : std::false_type {};
+
+/// @ingroup json
+template <typename T>
+struct json_auto_has_reverse_iterator<T,
+                                      std::void_t<typename T::reverse_iterator>>
+    : std::true_type {};
 
 /// @ingroup json
 template <typename T>
@@ -151,6 +162,11 @@ auto to_json(typename T::const_iterator begin, typename T::const_iterator end)
     result.push_back(to_json(*iterator));
   }
 
+  // To guarantee ordering across implementations
+  if constexpr (!json_auto_has_reverse_iterator<T>::value) {
+    std::sort(result.as_array().begin(), result.as_array().end());
+  }
+
   return result;
 }
 
@@ -164,6 +180,11 @@ auto to_json(
   auto result{JSON::make_array()};
   for (auto iterator = begin; iterator != end; ++iterator) {
     result.push_back(callback(*iterator));
+  }
+
+  // To guarantee ordering across implementations
+  if constexpr (!json_auto_has_reverse_iterator<T>::value) {
+    std::sort(result.as_array().begin(), result.as_array().end());
   }
 
   return result;
