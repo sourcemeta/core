@@ -725,10 +725,10 @@ auto URI::canonicalize(const std::string &input) -> std::string {
 auto URI::from_path(const std::filesystem::path &path) -> URI {
   auto normalized{path.lexically_normal().string()};
   const auto is_unc{normalized.starts_with("\\\\")};
-  const auto is_unix_absolute{normalized.starts_with("/")};
   const auto is_windows_absolute{normalized.size() >= 2 &&
                                  normalized[1] == ':'};
   std::replace(normalized.begin(), normalized.end(), '\\', '/');
+  const auto is_unix_absolute{normalized.starts_with("/")};
   if (!is_unix_absolute && !is_windows_absolute && !is_unc) {
     throw URIError(
         "It is not valid to construct a file:// URI out of a relative path");
@@ -749,7 +749,9 @@ auto URI::from_path(const std::filesystem::path &path) -> URI {
     if (iterator->empty()) {
       result.append_path("/");
     } else if (*iterator == "/") {
-      continue;
+      if (std::next(iterator) == final_path.end()) {
+        result.append_path("/");
+      }
     } else if (result.path_.has_value()) {
       result.append_path(uri_escape_for_path(iterator->string()));
     } else {
