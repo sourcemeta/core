@@ -1,4 +1,3 @@
-#include <optional>
 #include <sourcemeta/core/jsonschema.h>
 
 #include <algorithm> // std::max, std::sort
