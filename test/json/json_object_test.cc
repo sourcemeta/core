@@ -780,6 +780,47 @@ TEST(JSON_object, merge_with_overlap) {
   EXPECT_EQ(document.at("baz").to_integer(), 9);
 }
 
+TEST(JSON_object, merge_deep_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": {
+      "bar": {
+        "baz": 1,
+        "array": [ { "x": 1 } ]
+      }
+    },
+    "x": true
+  })JSON")};
+
+  const auto other{sourcemeta::core::parse_json(R"JSON({
+    "foo": {
+      "bar": {
+        "qux": 2,
+        "array": [ { "y": 2 }, 2, 3 ]
+      }
+    },
+    "x": {
+      "y": 1
+    }
+  })JSON")};
+
+  document.merge(other.as_object());
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": {
+      "bar": {
+        "baz": 1,
+        "qux": 2,
+        "array": [ { "y": 2 }, 2, 3 ]
+      }
+    },
+    "x": {
+      "y": 1
+    }
+  })JSON")};
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(JSON_object, at_or_defined) {
   const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
                                         {"bar", sourcemeta::core::JSON{1}}};
