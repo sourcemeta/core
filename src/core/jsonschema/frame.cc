@@ -448,15 +448,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       if (this->mode_ == SchemaFrame::Mode::Instances) {
         store(this->locations_, this->instances_, SchemaReferenceType::Static,
               SchemaFrame::LocationType::Resource, default_id_canonical,
-              root_id.value(), root_id.value(), path,
-              sourcemeta::core::empty_pointer, root_dialect.value(),
-              root_base_dialect.value(), {{}}, std::nullopt);
+              root_id, root_id.value(), path, sourcemeta::core::empty_pointer,
+              root_dialect.value(), root_base_dialect.value(), {{}},
+              std::nullopt);
       } else {
         store(this->locations_, this->instances_, SchemaReferenceType::Static,
               SchemaFrame::LocationType::Resource, default_id_canonical,
-              root_id.value(), root_id.value(), path,
-              sourcemeta::core::empty_pointer, root_dialect.value(),
-              root_base_dialect.value(), {}, std::nullopt);
+              root_id, root_id.value(), path, sourcemeta::core::empty_pointer,
+              root_dialect.value(), root_base_dialect.value(), {},
+              std::nullopt);
       }
 
       base_uris.insert({path, {default_id_canonical}});
