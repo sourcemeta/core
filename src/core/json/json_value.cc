@@ -806,7 +806,7 @@ auto JSON::assign(const JSON::String &key, const JSON &value) -> void {
 
 auto JSON::assign(const JSON::String &key, JSON &&value) -> void {
   assert(this->is_object());
-  this->data_object.data.emplace(key, std::move(value));
+  this->data_object.data.emplace(key, value);
 }
 
 auto JSON::assign_if_missing(const JSON::String &key, const JSON &value)
