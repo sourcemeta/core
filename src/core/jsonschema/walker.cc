@@ -47,7 +47,7 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
   const auto current_base_dialect{
       is_schema_resource
           ? sourcemeta::core::base_dialect(subschema, resolver, current_dialect)
-                .value()
+                .value_or(base_dialect)
           : base_dialect};
 
   const auto vocabularies{sourcemeta::core::vocabularies(

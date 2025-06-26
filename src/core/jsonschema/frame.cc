@@ -76,7 +76,11 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       const sourcemeta::core::URI identifier(schema.at("$id").to_string());
       if (identifier.is_fragment_only()) {
         result.insert(
-            {sourcemeta::core::JSON::String{identifier.fragment().value()},
+            {sourcemeta::core::JSON::String{
+                 identifier.fragment()
+                     .value()}, // NOLINT(bugprone-unchecked-optional-access):
+                                // Check for optional is happening
+                                // inside is_fragment_only()
              AnchorType::Static});
       }
     }
@@ -91,7 +95,11 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       const sourcemeta::core::URI identifier(schema.at("id").to_string());
       if (identifier.is_fragment_only()) {
         result.insert(
-            {sourcemeta::core::JSON::String{identifier.fragment().value()},
+            {sourcemeta::core::JSON::String{
+                 identifier.fragment()
+                     .value()}, // NOLINT(bugprone-unchecked-optional-access):
+                                // Check for optional is happening
+                                // inside is_fragment_only()
              AnchorType::Static});
       }
     }
