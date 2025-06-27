@@ -81,5 +81,5 @@ function(sourcemeta_enable_clang_tidy)
   find_program(CLANG_TIDY_BIN NAMES clang-tidy NO_DEFAULT_PATH
       PATHS "${CMAKE_CURRENT_BINARY_DIR}/bin")
   # Add clang-tidy to the targets. Clang-tidy uses the .clang-tidy file for configuration.
-  set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN};--allow-no-checks;--quiet" PARENT_SCOPE)
+  set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN};--allow-no-checks;" PARENT_SCOPE)
 endfunction()

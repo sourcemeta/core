@@ -1,6 +1,9 @@
 ---
 # See https://clang.llvm.org/extra/clang-tidy/index.html
-Checks: 'concurrency-*'
+Checks: '
+        concurrency-*,
+        cppcoreguidelines-*,
+        '
 InheritParentConfig: true
 WarningsAsErrors: '*'
 FormatStyle: none
