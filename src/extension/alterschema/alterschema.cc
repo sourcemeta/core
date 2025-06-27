@@ -77,6 +77,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/pattern_properties_default.h"
 #include "linter/properties_default.h"
 #include "linter/single_type_array.h"
+#include "linter/then_else_empty.h"
 #include "linter/then_without_if.h"
 #include "linter/unevaluated_items_default.h"
 #include "linter/unevaluated_properties_default.h"
@@ -118,6 +119,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   switch (mode) {
     case AlterSchemaMode::StaticAnalysis:
       bundle.add<BooleanTrue>();
+      bundle.add<ThenElseEmpty>();
       bundle.add<ConstAsEnum>();
       bundle.add<ExclusiveMaximumIntegerToMaximum>();
       bundle.add<ExclusiveMinimumIntegerToMinimum>();
@@ -135,6 +137,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
       bundle.add<TypeUnionImplicit>();
       break;
     case AlterSchemaMode::Readability:
+      bundle.add<ThenElseEmpty>();
       bundle.add<AdditionalPropertiesDefault>();
       bundle.add<ContentSchemaDefault>();
       bundle.add<DependenciesDefault>();
