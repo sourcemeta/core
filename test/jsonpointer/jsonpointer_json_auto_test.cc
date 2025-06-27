@@ -9,7 +9,22 @@ TEST(JSONPointer_json_auto, foo_bar_baz) {
   EXPECT_EQ(result, expected);
   const auto back{
       sourcemeta::core::from_json<sourcemeta::core::Pointer>(result)};
-  EXPECT_EQ(pointer, back);
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(pointer, back.value());
+}
+
+TEST(JSONPointer_json_auto, from_json_invalid_string) {
+  const sourcemeta::core::JSON input{"x"};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::Pointer>(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONPointer_json_auto, from_json_invalid_type) {
+  const sourcemeta::core::JSON input{1};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::Pointer>(input)};
+  EXPECT_FALSE(result.has_value());
 }
 
 TEST(JSONWeakPointer_json_auto, to_json_foo_bar_baz) {
