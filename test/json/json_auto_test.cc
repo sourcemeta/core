@@ -90,15 +90,26 @@ TEST(JSON_auto, optional_with_value) {
   EXPECT_EQ(value, back.value());
 }
 
-TEST(JSON_auto, optional_without_value) {
+TEST(JSON_auto, optional_without_value_1) {
   const std::optional<std::string> value;
   const auto result{sourcemeta::core::to_json(value)};
-  const sourcemeta::core::JSON expected{nullptr};
+  const auto expected{sourcemeta::core::parse_json(R"JSON(null)JSON")};
   EXPECT_EQ(result, expected);
   const auto back{
       sourcemeta::core::from_json<std::optional<std::string>>(result)};
-  EXPECT_FALSE(back.has_value());
-  EXPECT_EQ(value, back);
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_without_value_2) {
+  const std::optional<std::size_t> value;
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{
+      sourcemeta::core::from_json<std::optional<std::size_t>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
 }
 
 TEST(JSON_auto, vector_with_iterators) {
@@ -350,6 +361,22 @@ TEST(JSON_auto, tuple_3) {
   const auto back{
       sourcemeta::core::from_json<std::tuple<std::string, std::size_t, bool>>(
           result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, tuple_4) {
+  const std::tuple<std::size_t, std::optional<std::size_t>, bool> value{
+      1, {}, false};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    1, null, false
+  ])JSON")};
+
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::tuple<std::size_t, std::optional<std::size_t>, bool>>(result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
 }

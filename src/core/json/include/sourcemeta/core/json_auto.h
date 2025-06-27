@@ -151,7 +151,7 @@ template <typename T>
   requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
 auto from_json(const JSON &value) -> std::optional<T> {
   if (value.is_integer()) {
-    return value.to_integer();
+    return static_cast<T>(value.to_integer());
   } else {
     return std::nullopt;
   }
@@ -261,7 +261,8 @@ template <typename T>
            std::is_same_v<T, std::optional<typename T::value_type>>
 auto from_json(const JSON &value) -> std::optional<T> {
   if (value.is_null()) {
-    return {};
+    return std::optional<T>{
+        std::optional<typename T::value_type>{std::nullopt}};
   } else {
     auto result{from_json<typename T::value_type>(value)};
     if (!result.has_value()) {
