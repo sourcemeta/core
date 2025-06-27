@@ -539,7 +539,7 @@ TEST(JSONSchema_bundle_draft7, bundle_to_defs) {
   })JSON");
 
   sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
-                           test_resolver, std::nullopt,
+                           test_resolver, std::nullopt, std::nullopt,
                            sourcemeta::core::Pointer{"$defs"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({

@@ -631,7 +631,7 @@ TEST(JSONSchema_bundle_2020_12, bundle_to_definitions) {
   })JSON");
 
   sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
-                           test_resolver, std::nullopt,
+                           test_resolver, std::nullopt, std::nullopt,
                            sourcemeta::core::Pointer{"definitions"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -659,7 +659,8 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_non_existent) {
 
   sourcemeta::core::bundle(
       document, sourcemeta::core::schema_official_walker, test_resolver,
-      std::nullopt, sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
+      std::nullopt, std::nullopt,
+      sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -691,7 +692,8 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_half_existent) {
 
   sourcemeta::core::bundle(
       document, sourcemeta::core::schema_official_walker, test_resolver,
-      std::nullopt, sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
+      std::nullopt, std::nullopt,
+      sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -724,7 +726,7 @@ TEST(JSONSchema_bundle_2020_12,
 
   sourcemeta::core::bundle(
       document, sourcemeta::core::schema_official_walker, test_resolver,
-      std::nullopt,
+      std::nullopt, std::nullopt,
       sourcemeta::core::Pointer{"x-definitions", 0, "foo", "bar"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -759,7 +761,7 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_not_object) {
 
   EXPECT_THROW(sourcemeta::core::bundle(
                    document, sourcemeta::core::schema_official_walker,
-                   test_resolver, std::nullopt,
+                   test_resolver, std::nullopt, std::nullopt,
                    sourcemeta::core::Pointer{"x-definitions", "foo", "bar"}),
                sourcemeta::core::SchemaError);
 }
