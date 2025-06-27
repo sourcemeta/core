@@ -1,10 +1,6 @@
 ---
 # See https://clang.llvm.org/extra/clang-tidy/index.html
-Checks: '
-        concurrency-*,
-        bugprone-*,
-        -bugprone-easily-swappable-parameters,
-        '
+Checks: 'concurrency-*'
 InheritParentConfig: true
 WarningsAsErrors: '*'
 FormatStyle: none
