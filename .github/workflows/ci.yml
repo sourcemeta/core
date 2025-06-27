@@ -161,3 +161,18 @@ jobs:
           alert-threshold: '5%'
           comment-always: true
           fail-on-alert: false
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake --version
+      - run: >
+          cmake -S . -B ./build
+          -DCMAKE_BUILD_TYPE:STRING=Release
+          -DSOURCEMETA_CORE_TESTS:BOOL=OFF
+          -DSOURCEMETA_CORE_BENCHMARK:BOOL=OFF
+          -DSOURCEMETA_CORE_DOCS:BOOL=OFF
+          -DBUILD_SHARED_LIBS:BOOL=OFF
+          -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
+      - run: cmake --build ./build --config Release --target clang_tidy
