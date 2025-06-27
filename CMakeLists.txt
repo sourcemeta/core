@@ -27,7 +27,7 @@ if(PROJECT_IS_TOP_LEVEL)
     src/*.h src/*.cc
     benchmark/*.h benchmark/*.cc
     test/*.h test/*.cc)
-  sourcemeta_find_clang_tidy() # Locates CLANG_TIDY program
+  sourcemeta_enable_clang_tidy() # Locates and enables CLANG_TIDY
 endif()
 
 # Add clang-tidy to the targets. Clang-tidy uses the .clang-tidy file for configuration.
