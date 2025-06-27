@@ -30,8 +30,6 @@ if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_clang_tidy() # Locates and enables CLANG_TIDY
 endif()
 
-# Add clang-tidy to the targets. Clang-tidy uses the .clang-tidy file for configuration.
-set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN}" "--allow-no-checks")
 # Don't force downstream consumers on it
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
