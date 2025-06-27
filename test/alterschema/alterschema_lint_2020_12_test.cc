@@ -1842,3 +1842,22 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_5) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_Lint_2020_12, empty_then_else_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON(
+    {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "if": { "properties": { "flag": { "const": true } } },
+      "then": {}
+    })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON(
+    {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "if": { "properties": { "flag": { "const": true } } }
+    })JSON");
+
+  EXPECT_EQ(document, expected);
+}
