@@ -285,6 +285,16 @@ TEST(URI_path_setter_no_scheme, set_path_with_port) {
   EXPECT_EQ(path, "");
 }
 
+TEST(URI_path_setter, lowercase_relative_path) {
+  sourcemeta::core::URI uri{"../SERVER.JSON"};
+  EXPECT_EQ(uri.recompose(), "../SERVER.JSON");
+  uri.path("../server.json");
+  EXPECT_EQ(uri.recompose(), "../server.json");
+  const auto const_path{"../foo.json"};
+  uri.path(const_path);
+  EXPECT_EQ(uri.recompose(), "../foo.json");
+}
+
 TEST(URI_path, append_path_without_path_from_root) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
   uri.append_path("/test");
