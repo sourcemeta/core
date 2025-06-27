@@ -22,6 +22,14 @@ option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark librar
 
 include(Sourcemeta)
 
+if(PROJECT_IS_TOP_LEVEL)
+  sourcemeta_target_clang_format(SOURCES
+    src/*.h src/*.cc
+    benchmark/*.h benchmark/*.cc
+    test/*.h test/*.cc)
+  sourcemeta_enable_clang_tidy() # Locates and enables CLANG_TIDY
+endif()
+
 # Don't force downstream consumers on it
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
@@ -91,13 +99,6 @@ if(SOURCEMETA_CORE_DOCS)
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/website")
 endif()
 
-if(PROJECT_IS_TOP_LEVEL)
-  sourcemeta_target_clang_format(SOURCES
-    src/*.h src/*.cc
-    benchmark/*.h benchmark/*.cc
-    test/*.h test/*.cc)
-  sourcemeta_target_clang_tidy(SOURCES src/*.cc)
-endif()
 
 # Testing
 
