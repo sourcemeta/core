@@ -108,3 +108,18 @@ TEST(URI_resolve_from, rfc3986_resolve_with_absolute_path) {
   absolute_path.resolve_from(base);
   EXPECT_EQ(absolute_path.recompose(), "s://h/x");
 }
+
+TEST(URI_resolve_from, file_1) {
+  const sourcemeta::core::URI base{"file:///foo/bar/baz"};
+  sourcemeta::core::URI relative{"./qux"};
+  relative.resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "file:///foo/bar/qux");
+}
+
+TEST(URI_resolve_from, file_from_path) {
+  const std::filesystem::path base_path{"/foo/bar/baz"};
+  const auto base{sourcemeta::core::URI::from_path(base_path)};
+  sourcemeta::core::URI relative{"./qux"};
+  relative.resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "file:///foo/bar/qux");
+}
