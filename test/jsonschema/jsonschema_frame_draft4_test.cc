@@ -459,26 +459,26 @@ TEST(JSONSchema_frame_draft4, explicit_argument_id_different) {
 
   // JSON Pointers
 
-  EXPECT_FRAME_STATIC_DRAFT4_POINTER(frame,
-                                     "https://www.sourcemeta.com/schema#/id",
-                                     "https://www.sourcemeta.com/schema", "/id",
-                                     "https://www.example.com", "/id", {}, "");
+  EXPECT_FRAME_STATIC_DRAFT4_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/id",
+      "https://www.sourcemeta.com/schema", "/id",
+      "https://www.sourcemeta.com/schema", "/id", {}, "");
   EXPECT_FRAME_STATIC_DRAFT4_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.example.com", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
   EXPECT_FRAME_STATIC_DRAFT4_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties",
       "https://www.sourcemeta.com/schema", "/properties",
-      "https://www.example.com", "/properties", {}, "");
+      "https://www.sourcemeta.com/schema", "/properties", {}, "");
   EXPECT_FRAME_STATIC_DRAFT4_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/one",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.example.com/test", "", {"/one"}, "");
+      "https://www.sourcemeta.com/test", "", {"/one"}, "");
   EXPECT_FRAME_STATIC_DRAFT4_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/one/id",
       "https://www.sourcemeta.com/schema", "/properties/one/id",
-      "https://www.example.com/test", "/id", {}, "/properties/one");
+      "https://www.sourcemeta.com/test", "/id", {}, "/properties/one");
   EXPECT_FRAME_STATIC_DRAFT4_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/two",
       "https://www.sourcemeta.com/schema", "/properties/two",
@@ -490,7 +490,7 @@ TEST(JSONSchema_frame_draft4, explicit_argument_id_different) {
   EXPECT_FRAME_STATIC_DRAFT4_POINTER(
       frame, "https://www.sourcemeta.com/test#/id",
       "https://www.sourcemeta.com/schema", "/properties/one/id",
-      "https://www.example.com/test", "/id", {}, "/properties/one");
+      "https://www.sourcemeta.com/test", "/id", {}, "/properties/one");
   EXPECT_FRAME_STATIC_DRAFT4_POINTER(
       frame, "https://www.test.com#/id", "https://www.sourcemeta.com/schema",
       "/properties/two/id", "https://www.test.com", "/id", {},
