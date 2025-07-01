@@ -1,4 +1,10 @@
 ---
 # See https://clang.llvm.org/extra/clang-tidy/index.html
-# First disable all default checks (with -*)
-Checks: '-*'
+Checks: '
+        -*,
+        concurrency-*,
+        '
+WarningsAsErrors: '*'
+SystemHeaders: false
+UseColor: true
+FormatStyle: none

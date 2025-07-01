@@ -27,8 +27,9 @@ if(PROJECT_IS_TOP_LEVEL)
     src/*.h src/*.cc
     benchmark/*.h benchmark/*.cc
     test/*.h test/*.cc)
-  sourcemeta_enable_clang_tidy() # Locates and enables CLANG_TIDY
 endif()
+
+sourcemeta_enable_clang_tidy() # Locates and enables CLANG_TIDY
 
 # Don't force downstream consumers on it
 if(PROJECT_IS_TOP_LEVEL)
@@ -87,6 +88,8 @@ endif()
 if(SOURCEMETA_CORE_EXTENSION_ALTERSCHEMA)
   add_subdirectory(src/extension/alterschema)
 endif()
+
+sourcemeta_disable_clang_tidy()
 
 if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
   sourcemeta_sanitizer(TYPE address)
