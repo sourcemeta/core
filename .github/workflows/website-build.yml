@@ -16,6 +16,7 @@ jobs:
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
+          -DSOURCEMETA_CORE_UUID:BOOL=OFF
           -DSOURCEMETA_CORE_GZIP:BOOL=OFF
           -DSOURCEMETA_CORE_REGEX:BOOL=OFF
           -DSOURCEMETA_CORE_URI:BOOL=OFF
