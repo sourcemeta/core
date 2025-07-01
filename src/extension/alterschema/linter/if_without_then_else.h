@@ -15,13 +15,18 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
+    const auto trivial_if = [](const sourcemeta::core::JSON &s) {
+      return s.is_boolean() || (s.is_object() && s.empty());
+    };
+
     return contains_any(
                vocabularies,
                {"https://json-schema.org/draft/2020-12/vocab/applicator",
                 "https://json-schema.org/draft/2019-09/vocab/applicator",
                 "http://json-schema.org/draft-07/schema#"}) &&
            schema.is_object() && schema.defines("if") &&
-           !schema.defines("then") && !schema.defines("else");
+           !schema.defines("then") && !schema.defines("else") &&
+           trivial_if(schema.at("if"));
   }
 
   auto transform(JSON &schema) const -> void override { schema.erase("if"); }
