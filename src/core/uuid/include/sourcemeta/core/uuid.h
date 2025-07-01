@@ -8,7 +8,7 @@
 #include <string> // std::string
 
 /// @defgroup uuid UUID
-/// @brief An growing implementation of RFC 9562 UUID.
+/// @brief A growing implementation of RFC 9562 UUID.
 ///
 /// This functionality is included as follows:
 ///
