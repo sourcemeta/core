@@ -10,7 +10,7 @@
 #include <string_view> // std::string_view
 
 /// @defgroup gzip GZIP
-/// @brief An growing implementation of RFC 1952 GZIP.
+/// @brief A growing implementation of RFC 1952 GZIP.
 ///
 /// This functionality is included as follows:
 ///

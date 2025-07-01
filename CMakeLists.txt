@@ -5,6 +5,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 # Options
 option(SOURCEMETA_CORE_UUID "Build the Sourcemeta Core UUID library" ON)
 option(SOURCEMETA_CORE_GZIP "Build the Sourcemeta Core GZIP library" ON)
+option(SOURCEMETA_CORE_MD5 "Build the Sourcemeta Core MD5 library" ON)
 option(SOURCEMETA_CORE_REGEX "Build the Sourcemeta Core Regex library" ON)
 option(SOURCEMETA_CORE_URI "Build the Sourcemeta Core URI library" ON)
 option(SOURCEMETA_CORE_JSON "Build the Sourcemeta Core JSON library" ON)
@@ -20,6 +21,7 @@ option(SOURCEMETA_CORE_INSTALL "Install the Sourcemeta Core library" ON)
 option(SOURCEMETA_CORE_ADDRESS_SANITIZER "Build Sourcemeta Core with an address sanitizer" OFF)
 option(SOURCEMETA_CORE_UNDEFINED_SANITIZER "Build Sourcemeta Core with an undefined behavior sanitizer" OFF)
 option(SOURCEMETA_CORE_CONTRIB_ZLIB "Build the ZLIB library for downstream consumers" OFF)
+option(SOURCEMETA_CORE_CONTRIB_BEARSSL "Build the BearSSL library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLETEST "Build the GoogleTest library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
 
@@ -55,6 +57,11 @@ endif()
 if(SOURCEMETA_CORE_GZIP OR SOURCEMETA_CORE_CONTRIB_ZLIB)
   find_package(ZLIB REQUIRED)
   add_subdirectory(src/core/gzip)
+endif()
+
+if(SOURCEMETA_CORE_MD5 OR SOURCEMETA_CORE_CONTRIB_BEARSSL)
+  find_package(BearSSL REQUIRED)
+  add_subdirectory(src/core/md5)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
@@ -130,6 +137,10 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_GZIP)
     add_subdirectory(test/gzip)
+  endif()
+
+  if(SOURCEMETA_CORE_MD5)
+    add_subdirectory(test/md5)
   endif()
 
   if(SOURCEMETA_CORE_REGEX)
