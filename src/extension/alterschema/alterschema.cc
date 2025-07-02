@@ -73,6 +73,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/maximum_real_for_integer.h"
 #include "linter/min_contains_without_contains.h"
 #include "linter/minimum_real_for_integer.h"
+#include "linter/multiple_of_default.h"
 #include "linter/non_applicable_type_specific_keywords.h"
 #include "linter/pattern_properties_default.h"
 #include "linter/properties_default.h"
@@ -141,6 +142,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
       bundle.add<DependentRequiredDefault>();
       bundle.add<ItemsArrayDefault>();
       bundle.add<ItemsSchemaDefault>();
+      bundle.add<MultipleOfDefault>();
       bundle.add<PatternPropertiesDefault>();
       bundle.add<PropertiesDefault>();
       bundle.add<UnevaluatedItemsDefault>();
