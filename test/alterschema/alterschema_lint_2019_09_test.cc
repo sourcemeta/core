@@ -1661,8 +1661,7 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_ref_wrapper_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "allOf": [
-      { 
-        "type": "integer",
+      { "type": "integer",
         "$ref": "https://example.com"
       }
     ]
@@ -1676,6 +1675,50 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_ref_wrapper_5) {
     "allOf": [
       { "type": "integer" }
     ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, dangling_additional_items_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": {
+      "type": "number"
+    },
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": {
+      "type": "number"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, dangling_additional_items_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": {
+      "unevaluatedProperties": false
+    },
+    "additionalItems": {
+      "type": "string"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": {
+      "unevaluatedProperties": false
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
