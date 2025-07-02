@@ -163,17 +163,14 @@ jobs:
           fail-on-alert: false
 
   clang-tidy:
-    runs-on: macos-latest
-    env:
-      CC: clang
-      CXX: clang++
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: cmake --version
       - name: Install llvm
-        run: brew install llvm
-      - name: Set PATH
-        run: echo "/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_PATH"
+        run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+      # - name: Set PATH
+      #   run: echo "/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_PATH"
       - name: Debug Environment
         run: |
           echo "PATH: $PATH"
