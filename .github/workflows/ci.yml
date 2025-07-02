@@ -169,13 +169,6 @@ jobs:
       - run: cmake --version
       - name: Install llvm
         run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
-      # - name: Set PATH
-      #   run: echo "/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_PATH"
-      - name: Debug Environment
-        run: |
-          echo "PATH: $PATH"
-          echo "SHELL: $SHELL"
-        shell: bash
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
@@ -185,6 +178,4 @@ jobs:
           -DBUILD_SHARED_LIBS:BOOL=OFF
           -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
           -DSOURCEMETA_CORE_CLANG_TIDY:BOOL=ON
-        shell: bash
       - run: cmake --build ./build --config Release
-        shell: bash
