@@ -1,0 +1,10 @@
+---
+# See https://clang.llvm.org/extra/clang-tidy/index.html
+Checks: '
+        -*,
+        concurrency-*,
+        '
+WarningsAsErrors: '*'
+SystemHeaders: false
+UseColor: true
+FormatStyle: none
