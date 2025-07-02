@@ -183,4 +183,6 @@ jobs:
           -DBUILD_SHARED_LIBS:BOOL=OFF
           -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
           -DSOURCEMETA_CORE_CLANG_TIDY:BOOL=ON
+        shell: bash
       - run: cmake --build ./build --config Release
+        shell: bash
