@@ -163,7 +163,7 @@ jobs:
           fail-on-alert: false
 
   clang-tidy:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     env:
       CC: clang
       CXX: clang++
