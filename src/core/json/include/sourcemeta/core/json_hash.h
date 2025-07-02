@@ -14,7 +14,7 @@ template <typename T> struct HashJSON {
     return value.fast_hash();
   }
 
-  inline auto is_perfect(const hash_type) const noexcept -> bool {
+  [[nodiscard]] inline auto is_perfect(const hash_type) const noexcept -> bool {
     return false;
   }
 };
@@ -45,7 +45,8 @@ template <typename T> struct PropertyHashJSON {
     }
   };
 
-  inline auto perfect(const T &value, const std::size_t size) const noexcept
+  [[nodiscard]] inline auto perfect(const T &value,
+                                    const std::size_t size) const noexcept
       -> hash_type {
     hash_type result;
     assert(!value.empty());
@@ -134,7 +135,8 @@ template <typename T> struct PropertyHashJSON {
     }
   }
 
-  inline auto is_perfect(const hash_type &hash) const noexcept -> bool {
+  [[nodiscard]] inline auto is_perfect(const hash_type &hash) const noexcept
+      -> bool {
     // If there is anything written past the first byte,
     // then it is a perfect hash
     return hash.a > 255;
