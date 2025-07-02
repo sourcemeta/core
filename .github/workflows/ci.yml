@@ -164,6 +164,9 @@ jobs:
 
   clang-tidy:
     runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v4
       - run: cmake --version
