@@ -173,7 +173,7 @@ jobs:
       - name: Install llvm
         run: brew install llvm
       - name: Set PATH
-        run: echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> /Users/runner/.bash_profile
+        run: echo "/opt/homebrew/opt/llvm/bin:$PATH" >> "$GITHUB_PATH"
       - name: Debug Environment
         run: |
           echo "PATH: $PATH"
