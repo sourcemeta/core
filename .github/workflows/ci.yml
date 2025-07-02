@@ -171,7 +171,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: cmake --version
       - name: Install llvm
-        run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+        run: brew install llvm
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
