@@ -245,8 +245,8 @@ auto traverse_origin_instance_locations(
     sourcemeta::core::SchemaFrame::Instances::mapped_type &destination)
     -> void {
   if (accumulator.has_value() &&
-      std::find(destination.cbegin(), destination.cend(),
-                accumulator.value()) == destination.cend()) {
+      std::ranges::find(destination, accumulator.value()) ==
+          destination.cend()) {
     destination.push_back(accumulator.value());
   }
 
@@ -314,8 +314,7 @@ auto repopulate_instance_locations(
         result.emplace_back(token);
       }
 
-      if (std::find(destination.cbegin(), destination.cend(), result) ==
-          destination.cend()) {
+      if (std::ranges::find(destination, result) == destination.cend()) {
         destination.push_back(result);
       }
 
@@ -418,10 +417,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
     // start with another one, else you are doing something wrong
-    assert(
-        std::all_of(paths.cbegin(), paths.cend(), [&path](const auto &other) {
-          return path == other || !path.starts_with(other);
-        }));
+    assert(std::ranges::all_of(paths, [&path](const auto &other) {
+      return path == other || !path.starts_with(other);
+    }));
 
     const auto &schema{get(root, path)};
 
@@ -721,8 +719,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     const auto pointer_walker{sourcemeta::core::PointerWalker{schema}};
     std::vector<sourcemeta::core::Pointer> pointers{pointer_walker.cbegin(),
                                                     pointer_walker.cend()};
-    std::sort(pointers.begin(), pointers.end(),
-              std::less<sourcemeta::core::Pointer>());
+    std::ranges::sort(pointers, std::less<sourcemeta::core::Pointer>());
 
     // Pre-compute every possible pointer to the schema
     for (const auto &relative_pointer : pointers) {
@@ -982,19 +979,17 @@ auto SchemaFrame::references() const noexcept -> const References & {
 }
 
 auto SchemaFrame::standalone() const -> bool {
-  return std::all_of(
-      this->references_.cbegin(), this->references_.cend(),
-      [&](const auto &reference) {
-        assert(!reference.first.second.empty());
-        assert(reference.first.second.back().is_property());
-        // TODO: This check might need to be more elaborate given
-        // https://github.com/sourcemeta/core/issues/1390
-        return reference.first.second.back().to_property() == "$schema" ||
-               this->locations_.contains({SchemaReferenceType::Static,
-                                          reference.second.destination}) ||
-               this->locations_.contains({SchemaReferenceType::Dynamic,
-                                          reference.second.destination});
-      });
+  return std::ranges::all_of(this->references_, [&](const auto &reference) {
+    assert(!reference.first.second.empty());
+    assert(reference.first.second.back().is_property());
+    // TODO: This check might need to be more elaborate given
+    // https://github.com/sourcemeta/core/issues/1390
+    return reference.first.second.back().to_property() == "$schema" ||
+           this->locations_.contains(
+               {SchemaReferenceType::Static, reference.second.destination}) ||
+           this->locations_.contains(
+               {SchemaReferenceType::Dynamic, reference.second.destination});
+  });
 }
 
 auto SchemaFrame::vocabularies(const Location &location,
