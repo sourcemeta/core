@@ -24,12 +24,17 @@ option(SOURCEMETA_CORE_CONTRIB_ZLIB "Build the ZLIB library for downstream consu
 option(SOURCEMETA_CORE_CONTRIB_BEARSSL "Build the BearSSL library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLETEST "Build the GoogleTest library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
+option(SOURCEMETA_CORE_CLANG_TIDY "Run clang-tidy checks" OFF)
 
 include(Sourcemeta)
 
 # Don't force downstream consumers on it
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
+endif()
+
+if(SOURCEMETA_CORE_CLANG_TIDY)
+  sourcemeta_enable_clang_tidy()
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
@@ -117,6 +122,8 @@ if(PROJECT_IS_TOP_LEVEL)
     test/*.h test/*.cc)
   sourcemeta_target_clang_tidy(SOURCES src/*.cc)
 endif()
+
+sourcemeta_disable_clang_tidy()
 
 # Testing
 

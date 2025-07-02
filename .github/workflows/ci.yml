@@ -164,9 +164,14 @@ jobs:
 
   clang-tidy:
     runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v4
       - run: cmake --version
+      - name: Install llvm
+        run: bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
@@ -175,4 +180,5 @@ jobs:
           -DSOURCEMETA_CORE_DOCS:BOOL=OFF
           -DBUILD_SHARED_LIBS:BOOL=OFF
           -DCMAKE_COMPILE_WARNING_AS_ERROR:BOOL=ON
-      - run: cmake --build ./build --config Release --target clang_tidy
+          -DSOURCEMETA_CORE_CLANG_TIDY:BOOL=ON
+      - run: cmake --build ./build --config Release
