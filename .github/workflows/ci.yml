@@ -167,7 +167,7 @@ jobs:
     env:
       CC: clang
       CXX: clang++
-      PATH: "/opt/homebrew/opt/llvm/bin/:$PATH"
+      PATH: "/opt/homebrew/opt/llvm/bin:$PATH"
     steps:
       - uses: actions/checkout@v4
       - run: cmake --version
