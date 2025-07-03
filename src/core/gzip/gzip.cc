@@ -1,3 +1,4 @@
+#include <array>
 #include <sourcemeta/core/gzip.h>
 
 extern "C" {
