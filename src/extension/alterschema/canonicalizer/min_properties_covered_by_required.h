@@ -1,4 +1,3 @@
-#include <utility>
 class MinPropertiesCoveredByRequired final : public SchemaTransformRule {
 public:
   MinPropertiesCoveredByRequired()
