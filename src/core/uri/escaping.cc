@@ -90,7 +90,7 @@ auto uri_unescape(std::istream &input, std::ostream &output) -> void {
   std::string::value_type *const buffer =
       new std::string::value_type[input_string.size() + 1];
   try {
-    std::copy(input_string.cbegin(), input_string.cend(), buffer);
+    std::ranges::copy(input_string, buffer);
   } catch (...) {
     delete[] buffer;
     throw;
