@@ -52,7 +52,7 @@ private:
 template <typename PointerT> class GenericSubPointerWalker {
 public:
   using const_iterator = GenericSubPointerIterator<PointerT>;
-  GenericSubPointerWalker(const PointerT &pointer) : data{pointer} {}
+  GenericSubPointerWalker(PointerT pointer) : data{std::move(pointer)} {}
 
   const_iterator begin() { return {&this->data}; }
   const_iterator end() { return {nullptr}; }
