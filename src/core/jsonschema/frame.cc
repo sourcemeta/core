@@ -217,12 +217,17 @@ auto store(
              instance_locations.cbegin(), instance_locations.cend())
              .size() == instance_locations.size());
   const auto canonical{sourcemeta::core::URI::canonicalize(uri)};
-  const auto inserted{
-      frame
-          .insert({{type, canonical},
-                   {parent, entry_type, root_id, base_id, pointer_from_root,
-                    pointer_from_base, dialect, base_dialect}})
-          .second};
+  const auto inserted{frame
+                          .insert({{type, canonical},
+                                   {.parent = parent,
+                                    .type = entry_type,
+                                    .root = root_id,
+                                    .base = base_id,
+                                    .pointer = pointer_from_root,
+                                    .relative_pointer = pointer_from_base,
+                                    .dialect = dialect,
+                                    .base_dialect = base_dialect}})
+                          .second};
   if (!ignore_if_present && !inserted) {
     throw_already_exists(uri);
   }
@@ -493,12 +498,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           entry.pointer.empty() ? default_id : std::nullopt)};
 
       // Store information
-      subschemas.emplace(entry.pointer,
-                         CacheSubschema{entry.instance_location,
-                                        entry.relative_instance_location,
-                                        entry.orphan, entry.parent});
+      subschemas.emplace(
+          entry.pointer,
+          CacheSubschema{.instance_location = entry.instance_location,
+                         .relative_instance_location =
+                             entry.relative_instance_location,
+                         .orphan = entry.orphan,
+                         .parent = entry.parent});
       subschema_entries.emplace_back(
-          InternalEntry{std::move(entry), std::move(id)});
+          InternalEntry{.common = std::move(entry), .id = std::move(id)});
       current_subschema_entries.emplace_back(subschema_entries.size() - 1);
     }
 
@@ -602,9 +610,10 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               {SchemaReferenceType::Static,
                entry.common.pointer.concat({"$schema"})},
               SchemaFrame::ReferencesEntry{
-                  maybe_metaschema.value(), destination,
-                  metaschema.recompose_without_fragment(),
-                  fragment_string(metaschema)});
+                  .original = maybe_metaschema.value(),
+                  .destination = destination,
+                  .base = metaschema.recompose_without_fragment(),
+                  .fragment = fragment_string(metaschema)});
         }
       }
 
@@ -809,9 +818,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         this->references_.insert_or_assign(
             {SchemaReferenceType::Static,
              entry.common.pointer.concat({"$ref"})},
-            SchemaFrame::ReferencesEntry{original, ref.recompose(),
-                                         ref.recompose_without_fragment(),
-                                         fragment_string(ref)});
+            SchemaFrame::ReferencesEntry{.original = original,
+                                         .destination = ref.recompose(),
+                                         .base =
+                                             ref.recompose_without_fragment(),
+                                         .fragment = fragment_string(ref)});
       }
 
       if (entry.common.vocabularies.contains(
@@ -842,9 +853,10 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         this->references_.insert_or_assign(
             {reference_type, entry.common.pointer.concat({"$recursiveRef"})},
             SchemaFrame::ReferencesEntry{
-                ref, anchor_uri.recompose(),
-                anchor_uri.recompose_without_fragment(),
-                fragment_string(anchor_uri)});
+                .original = ref,
+                .destination = anchor_uri.recompose(),
+                .base = anchor_uri.recompose_without_fragment(),
+                .fragment = fragment_string(anchor_uri)});
       }
 
       if (entry.common.vocabularies.contains(
@@ -878,9 +890,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             {behaves_as_static ? SchemaReferenceType::Static
                                : SchemaReferenceType::Dynamic,
              entry.common.pointer.concat({"$dynamicRef"})},
-            SchemaFrame::ReferencesEntry{original, std::move(ref_string),
-                                         ref.recompose_without_fragment(),
-                                         fragment_string(ref)});
+            SchemaFrame::ReferencesEntry{.original = original,
+                                         .destination = std::move(ref_string),
+                                         .base =
+                                             ref.recompose_without_fragment(),
+                                         .fragment = fragment_string(ref)});
       }
     }
   }
