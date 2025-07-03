@@ -141,7 +141,7 @@ auto find_every_base(
   for (const auto &subpointer : sourcemeta::core::SubPointerWalker{pointer}) {
     if (bases.contains(subpointer)) {
       for (const auto &base : bases.at(subpointer)) {
-        result.push_back({base, subpointer});
+        result.emplace_back(base, subpointer);
       }
     }
   }
@@ -149,7 +149,7 @@ auto find_every_base(
   if (result.empty() ||
       // This means the top-level schema is anonymous
       result.back().second != sourcemeta::core::empty_pointer) {
-    result.push_back({"", sourcemeta::core::empty_pointer});
+    result.emplace_back("", sourcemeta::core::empty_pointer);
   }
 
   return result;
