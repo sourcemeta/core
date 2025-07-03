@@ -104,9 +104,10 @@ public:
   explicit JSON(const int value);
 
   // On some systems, `std::int64_t` might be equal to `long`
-  template <typename T = std::int64_t,
-            typename = std::enable_if_t<!std::is_same_v<T, std::int64_t>>>
-  explicit JSON(const long value) : current_type{Type::Integer} {
+  template <typename T = std::int64_t>
+  explicit JSON(const long value)
+    requires(!std::is_same_v<T, std::int64_t>)
+      : current_type{Type::Integer} {
     this->data_integer = value;
   }
 
