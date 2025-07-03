@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <utility>
 namespace sourcemeta::core {
 static auto
 contains_any(const Vocabularies &container,
