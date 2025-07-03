@@ -1,3 +1,4 @@
+#include <utility>
 class UnsatisfiableMinProperties final : public SchemaTransformRule {
 public:
   UnsatisfiableMinProperties()
@@ -26,9 +27,9 @@ public:
            schema.at("minProperties").is_integer() &&
            schema.defines("required") && schema.at("required").is_array() &&
            schema.at("required").unique() &&
-           schema.at("required").size() >=
-               static_cast<std::uint64_t>(
-                   schema.at("minProperties").to_integer());
+           std::cmp_greater_equal(schema.at("required").size(),
+                                  static_cast<std::uint64_t>(
+                                      schema.at("minProperties").to_integer()));
   }
 
   auto transform(JSON &schema) const -> void override {
