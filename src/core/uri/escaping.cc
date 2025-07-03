@@ -14,8 +14,8 @@ namespace sourcemeta::core {
 
 auto uri_escape(const char character, std::ostream &output,
                 const URIEscapeMode mode) -> void {
-  constexpr std::array<char, 16> HEX = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+  const std::array<char, 16> HEX = {'0', '1', '2', '3', '4', '5', '6', '7',
+                                    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
   // unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
   // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
