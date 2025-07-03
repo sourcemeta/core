@@ -1,3 +1,4 @@
+#include <array>
 #include <sourcemeta/core/uuid.h>
 
 #include <cstdint> // std::uint8_t
