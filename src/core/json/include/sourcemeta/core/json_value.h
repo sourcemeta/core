@@ -1469,12 +1469,12 @@ public:
   template <typename Iterator>
   auto clear_except(Iterator first, Iterator last) -> void {
     assert(this->is_object());
-    std::set<String, std::less<String>, Allocator<String>> whitelist;
+    std::set<String, std::less<>, Allocator<String>> whitelist;
     for (auto iterator = first; iterator != last; ++iterator) {
       whitelist.insert(*iterator);
     }
 
-    std::set<String, std::less<String>, Allocator<String>> blacklist;
+    std::set<String, std::less<>, Allocator<String>> blacklist;
     for (const auto &pair : this->as_object()) {
       if (!whitelist.contains(pair.first)) {
         blacklist.insert(pair.first);

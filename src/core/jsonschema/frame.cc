@@ -721,8 +721,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     const auto pointer_walker{sourcemeta::core::PointerWalker{schema}};
     std::vector<sourcemeta::core::Pointer> pointers{pointer_walker.cbegin(),
                                                     pointer_walker.cend()};
-    std::sort(pointers.begin(), pointers.end(),
-              std::less<sourcemeta::core::Pointer>());
+    std::sort(pointers.begin(), pointers.end(), std::less<>());
 
     // Pre-compute every possible pointer to the schema
     for (const auto &relative_pointer : pointers) {
