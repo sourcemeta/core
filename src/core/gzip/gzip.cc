@@ -1,10 +1,10 @@
-#include <array>
 #include <sourcemeta/core/gzip.h>
 
 extern "C" {
 #include <zlib.h>
 }
 
+#include <array>   // std::array
 #include <cstring> // std::memset
 #include <sstream> // std::ostringstream
 

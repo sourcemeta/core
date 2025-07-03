@@ -1,9 +1,9 @@
-#include <array>
 #include <uriparser/Uri.h>
 
 #include <sourcemeta/core/uri_escape.h>
 
 #include <algorithm> // std::copy
+#include <array>     // std::array
 #include <cassert>   // assert
 #include <cctype>    // std::isalnum
 #include <istream>   // std::istream

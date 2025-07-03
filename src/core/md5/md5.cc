@@ -1,6 +1,6 @@
-#include <array>
 #include <sourcemeta/core/md5.h>
 
+#include <array>   // std::array
 #include <iomanip> // std::setfill, std::setw
 #include <ios>     // std::hex
 
