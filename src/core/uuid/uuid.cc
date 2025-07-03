@@ -17,8 +17,8 @@ auto uuidv4() -> std::string {
                                                                           15);
   std::string result;
   result.reserve(36);
-  for (std::uint8_t index = 0; index < 16; index++) {
-    if (dash[index]) {
+  for (bool isDash : dash) {
+    if (isDash) {
       result += "-";
     }
 
