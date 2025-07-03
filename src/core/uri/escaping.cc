@@ -1,3 +1,4 @@
+#include <array>
 #include <uriparser/Uri.h>
 
 #include <sourcemeta/core/uri_escape.h>
