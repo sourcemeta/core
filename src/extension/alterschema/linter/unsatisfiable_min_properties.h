@@ -1,4 +1,3 @@
-#include <utility>
 class UnsatisfiableMinProperties final : public SchemaTransformRule {
 public:
   UnsatisfiableMinProperties()
