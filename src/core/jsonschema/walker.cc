@@ -481,8 +481,8 @@ sourcemeta::core::SchemaKeywordIterator::SchemaKeywordIterator(
   }
 
   // Sort keywords based on priority for correct evaluation
-  std::sort(
-      this->entries.begin(), this->entries.end(),
+  std::ranges::sort(
+      this->entries,
       [&vocabularies, &walker](const auto &left, const auto &right) -> bool {
         // These cannot be empty or indexes, as we created
         // the entries array from a JSON object
