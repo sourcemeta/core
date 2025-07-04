@@ -761,3 +761,89 @@ TEST(AlterSchema_lint_draft4, unnecessary_allof_ref_wrapper_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft4, dangling_additional_items_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": {
+      "type": "number"
+    },
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": {
+      "type": "number"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, dangling_additional_items_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "array",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "boolean"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "array",
+    "items": {
+      "type": "string"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, dangling_additional_items_no_change_array_items) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": [
+      { "type": "string" },
+      { "type": "number" }
+    ],
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": [
+      { "type": "string" },
+      { "type": "number" }
+    ],
+    "additionalItems": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, dangling_additional_items_no_change_no_items) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "additionalItems": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
