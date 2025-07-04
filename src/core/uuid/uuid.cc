@@ -13,13 +13,14 @@ auto uuidv4() -> std::string {
   static std::mt19937 generator{device()};
   static constexpr std::string_view digits = "0123456789abcdef";
   static constexpr std::array<bool, 16> dash = {
-      {0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0}};
+      {false, false, false, false, true, false, true, false, true, false, true,
+       false, false, false, false, false}};
   std::uniform_int_distribution<decltype(digits)::size_type> distribution(0,
                                                                           15);
   std::string result;
   result.reserve(36);
-  for (std::uint8_t index = 0; index < 16; index++) {
-    if (dash[index]) {
+  for (bool is_dash : dash) {
+    if (is_dash) {
       result += "-";
     }
 
