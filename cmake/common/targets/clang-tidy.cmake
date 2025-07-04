@@ -1,6 +1,6 @@
 function(sourcemeta_enable_clang_tidy)
   find_program(CLANG_TIDY_BIN NAMES clang-tidy)
-  set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN};--config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy;-header-filter=${CMAKE_CURRENT_SOURCE_DIR}/src/*" PARENT_SCOPE)
+  set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_BIN};--config-file=${PROJECT_SOURCE_DIR}/.clang-tidy;-header-filter=${CMAKE_CURRENT_SOURCE_DIR}/src/*" PARENT_SCOPE)
 endfunction()
 
 function(sourcemeta_disable_clang_tidy)
