@@ -540,9 +540,10 @@ TEST(JSONSchema_transformer, check_throw_if_no_dialect_invalid_default) {
     "qux": "xxx"
   })JSON");
 
-  EXPECT_THROW(bundle.check(document, sourcemeta::core::schema_official_walker,
-                            sourcemeta::core::schema_official_resolver, nullptr,
-                            "https://example.com/invalid"),
+  EXPECT_THROW((void)bundle.check(document,
+                                  sourcemeta::core::schema_official_walker,
+                                  sourcemeta::core::schema_official_resolver,
+                                  nullptr, "https://example.com/invalid"),
                sourcemeta::core::SchemaResolutionError);
 }
 
