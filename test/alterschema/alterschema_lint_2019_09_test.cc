@@ -1661,7 +1661,8 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_ref_wrapper_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "allOf": [
-      { "type": "integer",
+      { 
+        "type": "integer",
         "$ref": "https://example.com"
       }
     ]
