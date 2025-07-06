@@ -22,7 +22,6 @@ public:
                 "http://json-schema.org/draft-06/schema#",
                 "http://json-schema.org/draft-04/schema#"}) &&
            schema.is_object() && schema.defines("multipleOf") &&
-           schema.at("multipleOf").is_number() &&
            ((schema.at("multipleOf").is_integer() &&
              schema.at("multipleOf").to_integer() == 1) ||
             (schema.at("multipleOf").is_real() &&

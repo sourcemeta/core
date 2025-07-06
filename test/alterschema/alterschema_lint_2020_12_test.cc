@@ -1894,3 +1894,21 @@ TEST(AlterSchema_lint_2020_12, multiple_of_default_no_change_string_value) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12, multiple_of_default_no_change_numeric_value) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "number",
+    "multipleOf": 2.5
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "number",
+    "multipleOf": 2.5
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
