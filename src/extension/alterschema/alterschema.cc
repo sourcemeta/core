@@ -77,6 +77,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/pattern_properties_default.h"
 #include "linter/properties_default.h"
 #include "linter/single_type_array.h"
+#include "linter/then_else_empty.h"
 #include "linter/then_without_if.h"
 #include "linter/unevaluated_items_default.h"
 #include "linter/unevaluated_properties_default.h"
@@ -101,6 +102,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<IfWithoutThenElse>();
   bundle.add<MaxContainsWithoutContains>();
   bundle.add<MinContainsWithoutContains>();
+  bundle.add<ThenElseEmpty>();
   bundle.add<ThenWithoutIf>();
   bundle.add<DependenciesPropertyTautology>();
   bundle.add<DependentRequiredTautology>();
