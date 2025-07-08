@@ -22,7 +22,7 @@ public:
                 "http://json-schema.org/draft-04/schema#",
                 "http://json-schema.org/draft-03/schema#"}) &&
            schema.is_object() && schema.defines("items") &&
-           schema.defines("additionalItems") && schema.at("items").is_object();
+           schema.defines("additionalItems") && is_schema(schema.at("items"));
   }
 
   auto transform(JSON &schema) const -> void override {

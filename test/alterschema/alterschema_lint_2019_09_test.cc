@@ -1661,8 +1661,7 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_ref_wrapper_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "allOf": [
-      { 
-        "type": "integer",
+      { "type": "integer",
         "$ref": "https://example.com"
       }
     ]
@@ -1720,6 +1719,67 @@ TEST(AlterSchema_lint_2019_09, additional_items_with_schema_items_2) {
     "items": {
       "unevaluatedProperties": false
     }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09,
+     additional_items_with_schema_items_boolean_items_true) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": true,
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09,
+     additional_items_with_schema_items_boolean_items_false) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": false,
+    "additionalItems": {
+      "type": "string"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, additional_items_with_schema_items_array_items) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": [
+      { "type": "string" },
+      { "type": "number" }
+    ],
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "items": [
+      { "type": "string" },
+      { "type": "number" }
+    ],
+    "additionalItems": false
   })JSON");
 
   EXPECT_EQ(document, expected);
