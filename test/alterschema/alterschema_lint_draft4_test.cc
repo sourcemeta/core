@@ -885,7 +885,7 @@ TEST(AlterSchema_lint_draft4, multiple_of_default_no_change_negative) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, metaschema_uri_missing_hash_1) {
+TEST(AlterSchema_lint_draft4, draft_official_dialect_without_empty_fragment_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema",
     "type": "string"

@@ -1247,7 +1247,7 @@ TEST(AlterSchema_lint_draft7, multiple_of_default_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, metaschema_uri_missing_hash_1) {
+TEST(AlterSchema_lint_draft7, draft_official_dialect_without_empty_fragment_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema",
     "type": "string"
@@ -1263,7 +1263,8 @@ TEST(AlterSchema_lint_draft7, metaschema_uri_missing_hash_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, metaschema_uri_missing_hash_hyper) {
+TEST(AlterSchema_lint_draft7,
+     draft_official_dialect_without_empty_fragment_hyper) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/hyper-schema",
     "type": "string"
@@ -1279,7 +1280,8 @@ TEST(AlterSchema_lint_draft7, metaschema_uri_missing_hash_hyper) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, metaschema_uri_missing_hash_already_has_hash) {
+TEST(AlterSchema_lint_draft7,
+     draft_official_dialect_without_empty_fragment_already_has_hash) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "string"

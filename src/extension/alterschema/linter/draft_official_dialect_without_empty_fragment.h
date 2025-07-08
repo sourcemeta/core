@@ -1,8 +1,10 @@
-class MetaschemaUriMissingHash final : public SchemaTransformRule {
+class DraftOfficialDialectWithoutEmptyFragment final
+    : public SchemaTransformRule {
 public:
-  MetaschemaUriMissingHash()
-      : SchemaTransformRule{"metaschema_uri_missing_hash",
-                            "The official dialect URI of Draft 7 and older versions must contain the empty fragment"} {};
+  DraftOfficialDialectWithoutEmptyFragment()
+      : SchemaTransformRule{"draft_official_dialect_without_empty_fragment",
+                            "The official dialect URI of Draft 7 and older "
+                            "versions must contain the empty fragment"} {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
                                const sourcemeta::core::JSON &,
@@ -12,9 +14,13 @@ public:
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (!schema.is_object() || !schema.defines("$schema") ||
+        !schema.at("$schema").is_string()) {
+      return false;
+    }
+
     const auto &schema_value = schema.at("$schema").to_string();
-    return !schema_value.empty() && schema_value.back() != '#' &&
-           (schema_value == "http://json-schema.org/draft-07/schema" ||
+    return (schema_value == "http://json-schema.org/draft-07/schema" ||
             schema_value == "http://json-schema.org/draft-07/hyper-schema" ||
             schema_value == "http://json-schema.org/draft-06/schema" ||
             schema_value == "http://json-schema.org/draft-06/hyper-schema" ||
