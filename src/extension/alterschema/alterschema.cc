@@ -71,6 +71,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/items_schema_default.h"
 #include "linter/max_contains_without_contains.h"
 #include "linter/maximum_real_for_integer.h"
+#include "linter/metaschema_uri_missing_hash.h"
 #include "linter/min_contains_without_contains.h"
 #include "linter/minimum_real_for_integer.h"
 #include "linter/non_applicable_type_specific_keywords.h"
@@ -93,6 +94,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   // Common rules that apply to all modes
   bundle.add<ContentMediaTypeWithoutEncoding>();
   bundle.add<ContentSchemaWithoutMediaType>();
+  bundle.add<MetaschemaUriMissingHash>();
   bundle.add<NonApplicableTypeSpecificKeywords>();
   bundle.add<UnnecessaryAllOfRefWrapper>();
   bundle.add<DuplicateAllOfBranches>();

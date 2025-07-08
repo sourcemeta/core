@@ -29,6 +29,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/dependent_required_tautology.h
     linter/equal_numeric_bounds_to_enum.h
     linter/maximum_real_for_integer.h
+    linter/metaschema_uri_missing_hash.h
     linter/minimum_real_for_integer.h
     linter/single_type_array.h
     linter/enum_to_const.h
