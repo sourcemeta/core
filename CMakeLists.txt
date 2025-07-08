@@ -35,7 +35,7 @@ if(PROJECT_IS_TOP_LEVEL)
 endif()
 
 if(SOURCEMETA_CORE_CLANG_TIDY)
-  sourcemeta_find_clang_tidy()
+  sourcemeta_set_clang_tidy_config(HEADER_FILTER "${PROJECT_SOURCE_DIR}/src/*")
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
