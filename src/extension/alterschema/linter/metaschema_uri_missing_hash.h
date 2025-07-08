@@ -2,9 +2,7 @@ class MetaschemaUriMissingHash final : public SchemaTransformRule {
 public:
   MetaschemaUriMissingHash()
       : SchemaTransformRule{"metaschema_uri_missing_hash",
-                            "The canonical metaschema URIs end with `schema#`. "
-                            "Omitting the fragment identifier can confuse "
-                            "tooling and may bypass caching"} {};
+                            "The official dialect URI of Draft 7 and older versions must contain the empty fragment"} {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
                                const sourcemeta::core::JSON &,
@@ -14,12 +12,7 @@ public:
                                const sourcemeta::core::SchemaWalker &,
                                const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    if (!schema.is_object() || !schema.defines("$schema") ||
-        !schema.at("$schema").is_string()) {
-      return false;
-    }
-
-    const auto schema_value = schema.at("$schema").to_string();
+    const auto &schema_value = schema.at("$schema").to_string();
     return !schema_value.empty() && schema_value.back() != '#' &&
            (schema_value == "http://json-schema.org/draft-07/schema" ||
             schema_value == "http://json-schema.org/draft-07/hyper-schema" ||
@@ -40,6 +33,6 @@ public:
   auto transform(sourcemeta::core::JSON &schema) const -> void override {
     auto schema_value = schema.at("$schema").to_string();
     schema_value += "#";
-    schema.at("$schema").into(sourcemeta::core::JSON{schema_value});
+    schema.at("$schema").into(sourcemeta::core::JSON{std::move(schema_value)});
   }
 };
