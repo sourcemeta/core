@@ -47,6 +47,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "canonicalizer/type_union_implicit.h"
 
 // Linter
+#include "linter/additional_items_with_schema_items.h"
 #include "linter/additional_properties_default.h"
 #include "linter/const_with_type.h"
 #include "linter/content_media_type_without_encoding.h"
@@ -113,6 +114,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<DuplicateEnumValues>();
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();
+  bundle.add<AdditionalItemsWithSchemaItems>();
   bundle.add<ExclusiveMaximumNumberAndMaximum>();
   bundle.add<ExclusiveMinimumNumberAndMinimum>();
 
