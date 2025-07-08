@@ -1,6 +1,6 @@
 function(sourcemeta_library)
   cmake_parse_arguments(SOURCEMETA_LIBRARY ""
-    "NAMESPACE;PROJECT;NAME;VARIANT" "PRIVATE_HEADERS;SOURCES" ${ARGN})
+    "NAMESPACE;PROJECT;NAME;VARIANT" "PRIVATE_HEADERS;SOURCES;CLANG_TIDY" ${ARGN})
 
   if(NOT SOURCEMETA_LIBRARY_PROJECT)
     message(FATAL_ERROR "You must pass the project name using the PROJECT option")
@@ -114,6 +114,13 @@ function(sourcemeta_library)
     # To find the generated files
     target_include_directories(${TARGET_NAME}
       PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>")
+  endif()
+
+  if(SOURCEMETA_LIBRARY_CLANG_TIDY)
+    message(STATUS "setting CXX_CLANG_TIDY target property to ${SOURCEMETA_LIBRARY_CLANG_TIDY} on ${TARGET_NAME}")
+    set_target_properties(${TARGET_NAME}
+      PROPERTIES
+        CXX_CLANG_TIDY "${SOURCEMETA_LIBRARY_CLANG_TIDY}")
   endif()
 endfunction()
 
