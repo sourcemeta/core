@@ -2,7 +2,7 @@
 # See https://clang.llvm.org/extra/clang-tidy/index.html
 # First disable all default checks (with -*)
 Checks: '-*,
-          modernize-use-nodiscard'
+          modernize-*'
 # TODO(bavulapati): iterate through the rules and enable them incrementally inorder to send smaller PRs
           # bugprone-*,-bugprone-branch-clone,-bugprone-easily-swappable-parameters,-bugprone-empty-catch,
           # clang-analyzer-*,
