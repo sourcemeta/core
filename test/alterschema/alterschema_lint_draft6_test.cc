@@ -1113,7 +1113,7 @@ TEST(AlterSchema_lint_draft6, unnecessary_allof_ref_wrapper_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, dangling_additional_items_1) {
+TEST(AlterSchema_lint_draft6, additional_items_with_schema_items_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
     "items": {
@@ -1134,7 +1134,7 @@ TEST(AlterSchema_lint_draft6, dangling_additional_items_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, dangling_additional_items_2) {
+TEST(AlterSchema_lint_draft6, additional_items_with_schema_items_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
     "items": {

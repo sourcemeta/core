@@ -1,9 +1,9 @@
-class DanglingAdditionalItems final : public SchemaTransformRule {
+class AdditionalItemsWithSchemaItems final : public SchemaTransformRule {
 public:
-  DanglingAdditionalItems()
-      : SchemaTransformRule{
-            "dangling_additional_items",
-            "`additionalItems` is ignored when `items` is an object"} {};
+  AdditionalItemsWithSchemaItems()
+      : SchemaTransformRule{"additional_items_with_schema_items",
+                            "The `additionalItems` keyword is ignored when the "
+                            "`items` keyword is set to a schema"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
@@ -19,7 +19,8 @@ public:
                {"https://json-schema.org/draft/2019-09/vocab/applicator",
                 "http://json-schema.org/draft-07/schema#",
                 "http://json-schema.org/draft-06/schema#",
-                "http://json-schema.org/draft-04/schema#"}) &&
+                "http://json-schema.org/draft-04/schema#",
+                "http://json-schema.org/draft-03/schema#"}) &&
            schema.is_object() && schema.defines("items") &&
            schema.defines("additionalItems") && schema.at("items").is_object();
   }

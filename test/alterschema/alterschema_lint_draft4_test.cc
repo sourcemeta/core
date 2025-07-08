@@ -762,7 +762,7 @@ TEST(AlterSchema_lint_draft4, unnecessary_allof_ref_wrapper_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, dangling_additional_items_1) {
+TEST(AlterSchema_lint_draft4, additional_items_with_schema_items_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "items": {
@@ -783,7 +783,7 @@ TEST(AlterSchema_lint_draft4, dangling_additional_items_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, dangling_additional_items_2) {
+TEST(AlterSchema_lint_draft4, additional_items_with_schema_items_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "array",
@@ -808,7 +808,8 @@ TEST(AlterSchema_lint_draft4, dangling_additional_items_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, dangling_additional_items_no_change_array_items) {
+TEST(AlterSchema_lint_draft4,
+     additional_items_with_schema_items_no_change_array_items) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "items": [
@@ -832,7 +833,8 @@ TEST(AlterSchema_lint_draft4, dangling_additional_items_no_change_array_items) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, dangling_additional_items_no_change_no_items) {
+TEST(AlterSchema_lint_draft4,
+     additional_items_with_schema_items_no_change_no_items) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "additionalItems": false
@@ -843,6 +845,47 @@ TEST(AlterSchema_lint_draft4, dangling_additional_items_no_change_no_items) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "additionalItems": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4,
+     additional_items_with_schema_items_no_change_boolean_items_true) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": true,
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "additionalItems": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4,
+     additional_items_with_schema_items_no_change_boolean_items_false) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": false,
+    "additionalItems": {
+      "type": "string"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "items": false,
+    "additionalItems": {
+      "type": "string"
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

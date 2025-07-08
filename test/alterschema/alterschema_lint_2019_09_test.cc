@@ -1661,7 +1661,8 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_ref_wrapper_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "allOf": [
-      { "type": "integer",
+      { 
+        "type": "integer",
         "$ref": "https://example.com"
       }
     ]
@@ -1680,7 +1681,7 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_ref_wrapper_5) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2019_09, dangling_additional_items_1) {
+TEST(AlterSchema_lint_2019_09, additional_items_with_schema_items_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "items": {
@@ -1701,7 +1702,7 @@ TEST(AlterSchema_lint_2019_09, dangling_additional_items_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2019_09, dangling_additional_items_2) {
+TEST(AlterSchema_lint_2019_09, additional_items_with_schema_items_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "items": {
