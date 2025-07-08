@@ -1,10 +1,9 @@
-class MinPropertiesCoveredByRequired final : public SchemaTransformRule {
+class MultipleOfDefault final : public SchemaTransformRule {
 public:
-  MinPropertiesCoveredByRequired()
+  MultipleOfDefault()
       : SchemaTransformRule{
-            "min_properties_covered_by_required",
-            "Setting `minProperties` to a number less than `required` does "
-            "not add any further constraint"} {};
+            "multiple_of_default",
+            "Setting `multipleOf` to 1 does not add any further constraint"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
@@ -22,17 +21,14 @@ public:
                 "http://json-schema.org/draft-07/schema#",
                 "http://json-schema.org/draft-06/schema#",
                 "http://json-schema.org/draft-04/schema#"}) &&
-           schema.is_object() && schema.defines("minProperties") &&
-           schema.at("minProperties").is_integer() &&
-           schema.defines("required") && schema.at("required").is_array() &&
-           schema.at("required").unique() &&
-           std::cmp_greater(schema.at("required").size(),
-                            static_cast<std::uint64_t>(
-                                schema.at("minProperties").to_integer()));
+           schema.is_object() && schema.defines("multipleOf") &&
+           ((schema.at("multipleOf").is_integer() &&
+             schema.at("multipleOf").to_integer() == 1) ||
+            (schema.at("multipleOf").is_real() &&
+             schema.at("multipleOf").to_real() == 1.0));
   }
 
   auto transform(JSON &schema) const -> void override {
-    schema.assign("minProperties",
-                  sourcemeta::core::JSON{schema.at("required").size()});
+    schema.erase("multipleOf");
   }
 };

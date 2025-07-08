@@ -38,6 +38,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/dependent_required_default.h
     linter/items_array_default.h
     linter/items_schema_default.h
+    linter/multiple_of_default.h
     linter/pattern_properties_default.h
     linter/properties_default.h
     linter/unevaluated_items_default.h

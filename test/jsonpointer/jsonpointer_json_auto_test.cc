@@ -6,6 +6,7 @@ TEST(JSONPointer_json_auto, foo_bar_baz) {
   const sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
   const auto result{sourcemeta::core::to_json(pointer)};
   const sourcemeta::core::JSON expected{"/foo/bar/baz"};
+  EXPECT_EQ(result.size(), 12);
   EXPECT_EQ(result, expected);
   const auto back{
       sourcemeta::core::from_json<sourcemeta::core::Pointer>(result)};
@@ -37,5 +38,6 @@ TEST(JSONWeakPointer_json_auto, to_json_foo_bar_baz) {
 
   const auto result{sourcemeta::core::to_json(pointer)};
   const sourcemeta::core::JSON expected{"/foo/bar/baz"};
+  EXPECT_EQ(result.size(), 12);
   EXPECT_EQ(result, expected);
 }

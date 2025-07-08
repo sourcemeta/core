@@ -6,14 +6,14 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <utility>
 namespace sourcemeta::core {
 static auto
 contains_any(const Vocabularies &container,
              const std::set<typename Vocabularies::key_type> &values) -> bool {
-  return std::any_of(std::cbegin(container), std::cend(container),
-                     [&values](const auto &element) {
-                       return values.contains(element.first);
-                     });
+  return std::ranges::any_of(container, [&values](const auto &element) {
+    return values.contains(element.first);
+  });
 }
 
 template <typename T>
@@ -74,6 +74,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/maximum_real_for_integer.h"
 #include "linter/min_contains_without_contains.h"
 #include "linter/minimum_real_for_integer.h"
+#include "linter/multiple_of_default.h"
 #include "linter/non_applicable_type_specific_keywords.h"
 #include "linter/pattern_properties_default.h"
 #include "linter/properties_default.h"
@@ -143,6 +144,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
       bundle.add<DependentRequiredDefault>();
       bundle.add<ItemsArrayDefault>();
       bundle.add<ItemsSchemaDefault>();
+      bundle.add<MultipleOfDefault>();
       bundle.add<PatternPropertiesDefault>();
       bundle.add<PropertiesDefault>();
       bundle.add<UnevaluatedItemsDefault>();
