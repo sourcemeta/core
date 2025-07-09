@@ -16,18 +16,6 @@ contains_any(const Vocabularies &container,
   });
 }
 
-template <typename T>
-static auto every_item_is_null(const T &container) -> bool {
-  return std::all_of(std::cbegin(container), std::cend(container),
-                     [](const auto &element) { return element.is_null(); });
-}
-
-template <typename T>
-static auto every_item_is_boolean(const T &container) -> bool {
-  return std::all_of(std::cbegin(container), std::cend(container),
-                     [](const auto &element) { return element.is_boolean(); });
-}
-
 // Canonicalizer
 #include "canonicalizer/boolean_true.h"
 #include "canonicalizer/const_as_enum.h"
