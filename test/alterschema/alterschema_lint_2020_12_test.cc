@@ -643,6 +643,22 @@ TEST(AlterSchema_lint_2020_12, exclusive_minimum_number_and_minimum_3) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, empty_allof_branches_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [ {}, { "type": "integer" }, true ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "integer"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12, duplicate_allof_branches_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -653,7 +669,8 @@ TEST(AlterSchema_lint_2020_12, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "allOf": [ { "type": "integer" }, { "type": "string" } ]
+    "type": "integer",
+    "allOf": [ { "type": "string" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1733,7 +1750,7 @@ TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_1) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1751,7 +1768,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_2) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1764,8 +1781,8 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com/foo",
     "allOf": [
-      { "$ref": "https://example.com/foo" },
       { "$ref": "https://example.com/bar" }
     ]
   })JSON");
@@ -1773,7 +1790,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_3) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$ref": "https://example.com/foo",
@@ -1795,7 +1812,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_4) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1809,9 +1826,9 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_4) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "number",
     "$ref": "https://example.com",
     "allOf": [
-      { "type": "number" },
       { "type": "integer" }
     ]
   })JSON");
@@ -1819,7 +1836,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_5) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1835,15 +1852,13 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_5) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$ref": "https://example.com",
-    "allOf": [
-      { "type": "integer" }
-    ]
+    "type": "integer"
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_6) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_6) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1875,7 +1890,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_6) {
   EXPECT_EQ(keywords.at(2), "title");
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_7) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_7) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1890,9 +1905,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_7) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$ref": "https://example.com",
-    "allOf": [
-      { "type": "string" }
-    ],
+    "type": "string",
     "title": "Foo"
   })JSON");
 
@@ -1908,11 +1921,11 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_7) {
   EXPECT_EQ(keywords.size(), 4);
   EXPECT_EQ(keywords.at(0), "$schema");
   EXPECT_EQ(keywords.at(1), "$ref");
-  EXPECT_EQ(keywords.at(2), "allOf");
+  EXPECT_EQ(keywords.at(2), "type");
   EXPECT_EQ(keywords.at(3), "title");
 }
 
-TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_8) {
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_8) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "allOf": [
@@ -1925,8 +1938,8 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_8) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string",
     "$ref": "https://example.com",
-    "allOf": [ { "type": "string" } ],
     "title": "Foo"
   })JSON");
 
@@ -1941,8 +1954,8 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_8) {
 
   EXPECT_EQ(keywords.size(), 4);
   EXPECT_EQ(keywords.at(0), "$schema");
-  EXPECT_EQ(keywords.at(1), "$ref");
-  EXPECT_EQ(keywords.at(2), "allOf");
+  EXPECT_EQ(keywords.at(1), "type");
+  EXPECT_EQ(keywords.at(2), "$ref");
   EXPECT_EQ(keywords.at(3), "title");
 }
 
