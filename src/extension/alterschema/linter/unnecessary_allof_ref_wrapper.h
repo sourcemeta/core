@@ -59,16 +59,17 @@ public:
     }
 
     assert(iterator != array.end());
-    auto reference{std::move(iterator->at("$ref"))};
-    if (iterator->size() == 1) {
-      schema.at("allOf").erase(iterator);
-      if (schema.at("allOf").empty()) {
-        schema.erase("allOf");
-      }
-    } else {
-      iterator->erase("$ref");
-    }
 
-    schema.assign("$ref", std::move(reference));
+    auto reference{iterator->at("$ref")};
+    if (iterator->size() > 1) {
+      schema.try_assign_before("$ref", std::move(reference), "allOf");
+      iterator->erase("$ref");
+    } else if (schema.at("allOf").size() == 1) {
+      schema.at("allOf").into(std::move(reference));
+      schema.rename("allOf", "$ref");
+    } else {
+      schema.try_assign_before("$ref", std::move(reference), "allOf");
+      schema.at("allOf").erase(iterator);
+    }
   }
 };

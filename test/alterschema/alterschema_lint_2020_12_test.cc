@@ -1843,6 +1843,109 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_5) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "$ref": "https://example.com" }
+    ],
+    "title": "Foo"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com",
+    "title": "Foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+
+  // We expect the `$ref` keyword to take the place of `allOf` in
+  // terms of keyword ordering
+  std::vector<sourcemeta::core::JSON::String> keywords;
+  for (const auto &entry : document.as_object()) {
+    keywords.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(keywords.size(), 3);
+  EXPECT_EQ(keywords.at(0), "$schema");
+  EXPECT_EQ(keywords.at(1), "$ref");
+  EXPECT_EQ(keywords.at(2), "title");
+}
+
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "$ref": "https://example.com" },
+      { "type": "string" }
+    ],
+    "title": "Foo"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com",
+    "allOf": [
+      { "type": "string" }
+    ],
+    "title": "Foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+
+  // We expect the `$ref` keyword to take the place of `allOf` in
+  // terms of keyword ordering
+  std::vector<sourcemeta::core::JSON::String> keywords;
+  for (const auto &entry : document.as_object()) {
+    keywords.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(keywords.size(), 4);
+  EXPECT_EQ(keywords.at(0), "$schema");
+  EXPECT_EQ(keywords.at(1), "$ref");
+  EXPECT_EQ(keywords.at(2), "allOf");
+  EXPECT_EQ(keywords.at(3), "title");
+}
+
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_8) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "type": "string", "$ref": "https://example.com" }
+    ],
+    "title": "Foo"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com",
+    "allOf": [ { "type": "string" } ],
+    "title": "Foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+
+  // We expect the `$ref` keyword to take the place of `allOf` in
+  // terms of keyword ordering
+  std::vector<sourcemeta::core::JSON::String> keywords;
+  for (const auto &entry : document.as_object()) {
+    keywords.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(keywords.size(), 4);
+  EXPECT_EQ(keywords.at(0), "$schema");
+  EXPECT_EQ(keywords.at(1), "$ref");
+  EXPECT_EQ(keywords.at(2), "allOf");
+  EXPECT_EQ(keywords.at(3), "title");
+}
+
 TEST(AlterSchema_lint_2020_12, multiple_of_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
