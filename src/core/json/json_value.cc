@@ -809,6 +809,12 @@ auto JSON::assign(const JSON::String &key, JSON &&value) -> void {
   this->data_object.data.emplace(key, value);
 }
 
+auto JSON::try_assign_before(const String &key, const JSON &value,
+                             const String &other) -> void {
+  assert(this->is_object());
+  this->data_object.data.try_emplace_before(key, value, other);
+}
+
 auto JSON::assign_if_missing(const JSON::String &key, const JSON &value)
     -> void {
   assert(this->is_object());

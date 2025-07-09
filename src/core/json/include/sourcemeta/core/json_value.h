@@ -1291,6 +1291,22 @@ public:
   /// ```
   auto assign(const String &key, JSON &&value) -> void;
 
+  /// This method sets or updates an object key. However, it will try to insert
+  /// the key _before_ the given one if possible.
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json("{ \"foo\": true }");
+  /// const sourcemeta::core::JSON value{false};
+  /// document.try_assign_before("bar", value, "foo");
+  /// assert(document.as_object().cbegin()->first == "bar");
+  /// ```
+  auto try_assign_before(const String &key, const JSON &value,
+                         const String &other) -> void;
+
   /// This method sets an object key if it is not already defined. For example:
   ///
   /// ```cpp
