@@ -862,3 +862,81 @@ TEST(JSON_object, at_or_not_defined_with_hash) {
   EXPECT_TRUE(result.is_integer());
   EXPECT_EQ(result.to_integer(), 99);
 }
+
+TEST(JSON_object, try_assign_before_exists) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}}};
+
+  document.try_assign_before("baz", sourcemeta::core::JSON{99}, "bar");
+
+  std::vector<sourcemeta::core::JSON::String> properties;
+  for (const auto &entry : document.as_object()) {
+    properties.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(properties.size(), 3);
+  EXPECT_EQ(properties.at(0), "foo");
+  EXPECT_EQ(properties.at(1), "baz");
+  EXPECT_EQ(properties.at(2), "bar");
+
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 2);
+  EXPECT_EQ(document.at("baz").to_integer(), 99);
+}
+
+TEST(JSON_object, try_assign_before_not_exists) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}}};
+
+  document.try_assign_before("baz", sourcemeta::core::JSON{99}, "qux");
+
+  std::vector<sourcemeta::core::JSON::String> properties;
+  for (const auto &entry : document.as_object()) {
+    properties.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(properties.size(), 3);
+  EXPECT_EQ(properties.at(0), "foo");
+  EXPECT_EQ(properties.at(1), "bar");
+  EXPECT_EQ(properties.at(2), "baz");
+
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 2);
+  EXPECT_EQ(document.at("baz").to_integer(), 99);
+}
+
+TEST(JSON_object, try_assign_before_exists_front) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}}};
+
+  document.try_assign_before("baz", sourcemeta::core::JSON{99}, "foo");
+
+  std::vector<sourcemeta::core::JSON::String> properties;
+  for (const auto &entry : document.as_object()) {
+    properties.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(properties.size(), 3);
+  EXPECT_EQ(properties.at(0), "baz");
+  EXPECT_EQ(properties.at(1), "foo");
+  EXPECT_EQ(properties.at(2), "bar");
+
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 2);
+  EXPECT_EQ(document.at("baz").to_integer(), 99);
+}
+
+TEST(JSON_object, try_assign_before_empty) {
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::make_object()};
+
+  document.try_assign_before("baz", sourcemeta::core::JSON{99}, "foo");
+
+  std::vector<sourcemeta::core::JSON::String> properties;
+  for (const auto &entry : document.as_object()) {
+    properties.emplace_back(entry.first);
+  }
+
+  EXPECT_EQ(properties.size(), 1);
+  EXPECT_EQ(properties.at(0), "baz");
+  EXPECT_EQ(document.at("baz").to_integer(), 99);
+}
