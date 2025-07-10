@@ -283,7 +283,7 @@ TEST(AlterSchema_lint_draft7, duplicate_enum_values_7) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "enum": [ 1, 2, 3, {} ]
+    "enum": [ 1, {}, 2, 3 ]
   })JSON");
 
   EXPECT_EQ(document, expected);
