@@ -186,7 +186,8 @@ TEST(AlterSchema_lint_draft4, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "allOf": [ { "type": "integer" }, { "type": "string" } ]
+    "type": "integer",
+    "allOf": [ { "type": "string" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -742,7 +743,7 @@ TEST(AlterSchema_lint_draft4, equal_numeric_bounds_to_enum_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, unnecessary_allof_ref_wrapper_1) {
+TEST(AlterSchema_lint_draft4, unnecessary_allof_wrapper_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "allOf": [

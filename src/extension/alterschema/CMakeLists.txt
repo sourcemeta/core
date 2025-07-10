@@ -48,7 +48,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/content_media_type_without_encoding.h
     linter/content_schema_without_media_type.h
     linter/non_applicable_type_specific_keywords.h
-    linter/unnecessary_allof_ref_wrapper.h
+    linter/unnecessary_allof_wrapper_modern.h
+    linter/unnecessary_allof_wrapper_draft.h
     linter/duplicate_allof_branches.h
     linter/duplicate_anyof_branches.h
     linter/else_without_if.h
