@@ -579,3 +579,19 @@ TEST(AlterSchema_lint_draft3, equal_numeric_bounds_to_enum_2) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft3, draft_official_dialect_without_empty_fragment_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema",
+    "type": "string"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "type": "string"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

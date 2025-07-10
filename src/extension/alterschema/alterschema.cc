@@ -56,6 +56,7 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/dependencies_property_tautology.h"
 #include "linter/dependent_required_default.h"
 #include "linter/dependent_required_tautology.h"
+#include "linter/draft_official_dialect_without_empty_fragment.h"
 #include "linter/duplicate_allof_branches.h"
 #include "linter/duplicate_anyof_branches.h"
 #include "linter/duplicate_enum_values.h"
@@ -94,6 +95,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   // Common rules that apply to all modes
   bundle.add<ContentMediaTypeWithoutEncoding>();
   bundle.add<ContentSchemaWithoutMediaType>();
+  bundle.add<DraftOfficialDialectWithoutEmptyFragment>();
   bundle.add<NonApplicableTypeSpecificKeywords>();
   bundle.add<UnnecessaryAllOfRefWrapper>();
   bundle.add<DuplicateAllOfBranches>();
