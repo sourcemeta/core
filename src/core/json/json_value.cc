@@ -852,6 +852,12 @@ auto JSON::erase(typename JSON::Array::const_iterator first,
   return this->data_array.data.erase(first, last);
 }
 
+auto JSON::erase_if(const std::function<bool(const JSON &)> &predicate)
+    -> void {
+  assert(this->is_array());
+  std::erase_if(this->data_array.data, predicate);
+}
+
 auto JSON::clear() -> void {
   if (this->is_object()) {
     this->data_object.data.clear();
