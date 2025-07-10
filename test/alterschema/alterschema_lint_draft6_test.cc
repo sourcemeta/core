@@ -1147,3 +1147,39 @@ TEST(AlterSchema_lint_draft6, multiple_of_default_2) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_properties_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "properties": {
+      "foo": { "type": "string" }
+    },
+    "allOf": [
+      {
+        "$ref": "https://example.com",
+        "properties": {
+          "bar": { "pattern": "^f" }
+        }
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "properties": {
+      "foo": { "type": "string" }
+    },
+    "allOf": [
+      {
+        "$ref": "https://example.com",
+        "properties": {
+          "bar": { "pattern": "^f" }
+        }
+      }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
