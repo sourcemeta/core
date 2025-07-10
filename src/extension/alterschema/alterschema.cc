@@ -71,6 +71,7 @@ contains_any(const Vocabularies &container,
 #include "linter/unevaluated_properties_default.h"
 #include "linter/unnecessary_allof_wrapper_draft.h"
 #include "linter/unnecessary_allof_wrapper_modern.h"
+#include "linter/unnecessary_allof_wrapper_properties.h"
 #include "linter/unsatisfiable_max_contains.h"
 #include "linter/unsatisfiable_min_properties.h"
 } // namespace sourcemeta::core
@@ -86,6 +87,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<NonApplicableTypeSpecificKeywords>();
   bundle.add<UnnecessaryAllOfWrapperModern>();
   bundle.add<UnnecessaryAllOfWrapperDraft>();
+  bundle.add<UnnecessaryAllOfWrapperProperties>();
   bundle.add<DuplicateAllOfBranches>();
   bundle.add<DuplicateAnyOfBranches>();
   bundle.add<ElseWithoutIf>();
