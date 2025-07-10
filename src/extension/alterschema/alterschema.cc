@@ -49,7 +49,6 @@ contains_any(const Vocabularies &container,
 #include "linter/duplicate_enum_values.h"
 #include "linter/duplicate_required_values.h"
 #include "linter/else_without_if.h"
-#include "linter/empty_allof_branches.h"
 #include "linter/enum_to_const.h"
 #include "linter/enum_with_type.h"
 #include "linter/equal_numeric_bounds_to_enum.h"
@@ -88,7 +87,6 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<UnnecessaryAllOfWrapperModern>();
   bundle.add<UnnecessaryAllOfWrapperDraft>();
   bundle.add<DuplicateAllOfBranches>();
-  bundle.add<EmptyAllOfBranches>();
   bundle.add<DuplicateAnyOfBranches>();
   bundle.add<ElseWithoutIf>();
   bundle.add<IfWithoutThenElse>();

@@ -54,27 +54,12 @@ public:
           entry.erase(property);
         }
       }
-
-      // TODO: Do we really need this?
-      auto &all_of{schema.at("allOf")};
-      for (auto iterator = all_of.as_array().begin();
-           iterator != all_of.as_array().end();) {
-        if (this->is_empty(*iterator)) {
-          iterator = all_of.erase(iterator);
-        } else {
-          ++iterator;
-        }
-      }
-
-      if (all_of.empty()) {
-        schema.erase("allOf");
-      }
     }
-  }
 
-  // TODO: This is duplicated in `empty_allof_branches`
-  auto is_empty(const JSON &schema) const -> bool {
-    return (schema.is_boolean() && schema.to_boolean()) ||
-           (schema.is_object() && schema.empty());
+    schema.at("allOf").erase_if(sourcemeta::core::is_empty_schema);
+
+    if (schema.at("allOf").empty()) {
+      schema.erase("allOf");
+    }
   }
 };
