@@ -16,18 +16,6 @@ contains_any(const Vocabularies &container,
   });
 }
 
-template <typename T>
-static auto every_item_is_null(const T &container) -> bool {
-  return std::all_of(std::cbegin(container), std::cend(container),
-                     [](const auto &element) { return element.is_null(); });
-}
-
-template <typename T>
-static auto every_item_is_boolean(const T &container) -> bool {
-  return std::all_of(std::cbegin(container), std::cend(container),
-                     [](const auto &element) { return element.is_boolean(); });
-}
-
 // Canonicalizer
 #include "canonicalizer/boolean_true.h"
 #include "canonicalizer/const_as_enum.h"
@@ -82,7 +70,9 @@ static auto every_item_is_boolean(const T &container) -> bool {
 #include "linter/then_without_if.h"
 #include "linter/unevaluated_items_default.h"
 #include "linter/unevaluated_properties_default.h"
-#include "linter/unnecessary_allof_ref_wrapper.h"
+#include "linter/unnecessary_allof_wrapper_draft.h"
+#include "linter/unnecessary_allof_wrapper_modern.h"
+#include "linter/unnecessary_allof_wrapper_properties.h"
 #include "linter/unsatisfiable_max_contains.h"
 #include "linter/unsatisfiable_min_properties.h"
 } // namespace sourcemeta::core
@@ -96,7 +86,9 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<ContentMediaTypeWithoutEncoding>();
   bundle.add<ContentSchemaWithoutMediaType>();
   bundle.add<NonApplicableTypeSpecificKeywords>();
-  bundle.add<UnnecessaryAllOfRefWrapper>();
+  bundle.add<UnnecessaryAllOfWrapperModern>();
+  bundle.add<UnnecessaryAllOfWrapperDraft>();
+  bundle.add<UnnecessaryAllOfWrapperProperties>();
   bundle.add<DuplicateAllOfBranches>();
   bundle.add<DuplicateAnyOfBranches>();
   bundle.add<ElseWithoutIf>();

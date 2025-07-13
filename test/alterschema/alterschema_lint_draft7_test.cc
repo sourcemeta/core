@@ -283,7 +283,7 @@ TEST(AlterSchema_lint_draft7, duplicate_enum_values_7) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "enum": [ 1, 2, 3, {} ]
+    "enum": [ 1, {}, 2, 3 ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -417,7 +417,8 @@ TEST(AlterSchema_lint_draft7, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "allOf": [ { "type": "integer" }, { "type": "string" } ]
+    "type": "integer",
+    "allOf": [ { "type": "string" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1189,7 +1190,7 @@ TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_enum_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, unnecessary_allof_ref_wrapper_1) {
+TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "allOf": [
@@ -1242,6 +1243,42 @@ TEST(AlterSchema_lint_draft7, multiple_of_default_2) {
     "properties": {
       "age": { "type": "number" }
     }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_properties_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+      "foo": { "type": "string" }
+    },
+    "allOf": [
+      {
+        "$ref": "https://example.com",
+        "properties": {
+          "bar": { "pattern": "^f" }
+        }
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+      "foo": { "type": "string" }
+    },
+    "allOf": [
+      {
+        "$ref": "https://example.com",
+        "properties": {
+          "bar": { "pattern": "^f" }
+        }
+      }
+    ]
   })JSON");
 
   EXPECT_EQ(document, expected);
