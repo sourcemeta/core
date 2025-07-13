@@ -12,6 +12,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_identify_draft0_test.cc
     jsonschema_identify_test.cc
     jsonschema_is_schema_test.cc
+    jsonschema_is_empty_schema_test.cc
     jsonschema_frame_2020_12_test.cc
     jsonschema_frame_2019_09_test.cc
     jsonschema_frame_draft7_test.cc
