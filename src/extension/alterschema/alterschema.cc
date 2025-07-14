@@ -63,6 +63,7 @@ contains_any(const Vocabularies &container,
 #include "linter/maximum_real_for_integer.h"
 #include "linter/min_contains_without_contains.h"
 #include "linter/minimum_real_for_integer.h"
+#include "linter/modern_official_dialect_with_empty_fragment.h"
 #include "linter/multiple_of_default.h"
 #include "linter/non_applicable_type_specific_keywords.h"
 #include "linter/pattern_properties_default.h"
@@ -109,6 +110,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();
   bundle.add<AdditionalItemsWithSchemaItems>();
+  bundle.add<ModernOfficialDialectWithEmptyFragment>();
   bundle.add<ExclusiveMaximumNumberAndMaximum>();
   bundle.add<ExclusiveMinimumNumberAndMinimum>();
 
