@@ -534,3 +534,45 @@ TEST(JSON_array, sort_object_items) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(JSON_array, erase_if_some) {
+  auto document = sourcemeta::core::parse_json(R"JSON([
+    1, 2, 3, 4, 5
+  ])JSON");
+
+  document.erase_if([](const auto &item) {
+    return item.is_integer() && item.to_integer() % 2 == 0;
+  });
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON([
+    1, 3, 5
+  ])JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSON_array, erase_if_none) {
+  auto document = sourcemeta::core::parse_json(R"JSON([
+    1, 2, 3, 4, 5
+  ])JSON");
+
+  document.erase_if([](const auto &item) { return item.is_boolean(); });
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON([
+    1, 2, 3, 4, 5
+  ])JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSON_array, erase_if_all) {
+  auto document = sourcemeta::core::parse_json(R"JSON([
+    1, 2, 3, 4, 5
+  ])JSON");
+
+  document.erase_if([](const auto &item) { return item.is_integer(); });
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON([])JSON");
+
+  EXPECT_EQ(document, expected);
+}
