@@ -922,6 +922,22 @@ TEST(AlterSchema_lint_draft4, unnecessary_allof_wrapper_properties_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft4, draft_official_dialect_without_empty_fragment_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "type": "string"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "string"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft4, additional_items_with_schema_items_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
