@@ -4,7 +4,7 @@ public:
   ModernOfficialDialectWithEmptyFragment()
       : SchemaTransformRule{
             "modern_official_dialect_with_empty_fragment",
-            "The official dialect URI of Draft 2019-09 and newer versions must "
+            "The official dialect URI of 2019-09 and newer versions must "
             "not contain the empty fragment"} {};
 
   [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
