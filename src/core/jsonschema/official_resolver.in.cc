@@ -11,12 +11,6 @@ auto sourcemeta::core::schema_official_resolver(std::string_view identifier)
     return sourcemeta::core::parse_json(
         R"EOF(@METASCHEMA_HYPERSCHEMA_2020_12@)EOF");
   } else if (identifier ==
-             "https://json-schema.org/draft/2020-12/hyper-schema#") {
-    auto schema = sourcemeta::core::parse_json(
-        R"EOF(@METASCHEMA_HYPERSCHEMA_2020_12@)EOF");
-    schema.at("$id").into(sourcemeta::core::JSON{identifier});
-    return schema;
-  } else if (identifier ==
              "https://json-schema.org/draft/2020-12/meta/applicator") {
     return sourcemeta::core::parse_json(
         R"EOF(@METASCHEMA_JSONSCHEMA_2020_12_APPLICATOR@)EOF");
@@ -60,10 +54,12 @@ auto sourcemeta::core::schema_official_resolver(std::string_view identifier)
 
     // Just for compatibility given that this is such a common issue
   } else if (identifier == "https://json-schema.org/draft/2020-12/schema#") {
-    auto schema = sourcemeta::core::parse_json(
+    return sourcemeta::core::parse_json(
         R"EOF(@METASCHEMA_JSONSCHEMA_2020_12@)EOF");
-    schema.at("$id").into(sourcemeta::core::JSON{identifier});
-    return schema;
+  } else if (identifier ==
+             "https://json-schema.org/draft/2020-12/hyper-schema#") {
+    return sourcemeta::core::parse_json(
+        R"EOF(@METASCHEMA_HYPERSCHEMA_2020_12@)EOF");
 
     // JSON Schema 2019-09
   } else if (identifier == "https://json-schema.org/draft/2019-09/schema") {
@@ -73,12 +69,6 @@ auto sourcemeta::core::schema_official_resolver(std::string_view identifier)
              "https://json-schema.org/draft/2019-09/hyper-schema") {
     return sourcemeta::core::parse_json(
         R"EOF(@METASCHEMA_HYPERSCHEMA_2019_09@)EOF");
-  } else if (identifier ==
-             "https://json-schema.org/draft/2019-09/hyper-schema#") {
-    auto schema = sourcemeta::core::parse_json(
-        R"EOF(@METASCHEMA_HYPERSCHEMA_2019_09@)EOF");
-    schema.at("$id").into(sourcemeta::core::JSON{identifier});
-    return schema;
   } else if (identifier ==
              "https://json-schema.org/draft/2019-09/meta/applicator") {
     return sourcemeta::core::parse_json(
@@ -119,10 +109,12 @@ auto sourcemeta::core::schema_official_resolver(std::string_view identifier)
 
     // Just for compatibility given that this is such a common issue
   } else if (identifier == "https://json-schema.org/draft/2019-09/schema#") {
-    auto schema = sourcemeta::core::parse_json(
+    return sourcemeta::core::parse_json(
         R"EOF(@METASCHEMA_JSONSCHEMA_2019_09@)EOF");
-    schema.at("$id").into(sourcemeta::core::JSON{identifier});
-    return schema;
+  } else if (identifier ==
+             "https://json-schema.org/draft/2019-09/hyper-schema#") {
+    return sourcemeta::core::parse_json(
+        R"EOF(@METASCHEMA_HYPERSCHEMA_2019_09@)EOF");
 
     // JSON Schema Draft7
   } else if (identifier == "http://json-schema.org/draft-07/schema#" ||
