@@ -2134,4 +2134,3 @@ TEST(AlterSchema_lint_2019_09, else_empty_2) {
 
   EXPECT_EQ(document, expected);
 }
-
