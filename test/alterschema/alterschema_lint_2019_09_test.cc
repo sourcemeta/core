@@ -1946,7 +1946,7 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_properties_3) {
       "bar": { "minLength": 3 },
       "baz": { "maxLength": 5 },
       "qux": { "pattern": "^f" }
->>>>>>> e62097909dec1a609ad95a027d29500bcdf6f642
+>>>>>>> 
     }
   })JSON");
 
