@@ -104,9 +104,10 @@ public:
   explicit JSON(const int value);
 
   // On some systems, `std::int64_t` might be equal to `long`
-  template <typename T = std::int64_t,
-            typename = std::enable_if_t<!std::is_same_v<T, std::int64_t>>>
-  explicit JSON(const long value) : current_type{Type::Integer} {
+  template <typename T = std::int64_t>
+  explicit JSON(const long value)
+    requires(!std::is_same_v<T, std::int64_t>)
+      : current_type{Type::Integer} {
     this->data_integer = value;
   }
 
@@ -1290,6 +1291,22 @@ public:
   /// ```
   auto assign(const String &key, JSON &&value) -> void;
 
+  /// This method sets or updates an object key. However, it will try to insert
+  /// the key _before_ the given one if possible.
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document =
+  ///   sourcemeta::core::parse_json("{ \"foo\": true }");
+  /// const sourcemeta::core::JSON value{false};
+  /// document.try_assign_before("bar", value, "foo");
+  /// assert(document.as_object().cbegin()->first == "bar");
+  /// ```
+  auto try_assign_before(const String &key, const JSON &value,
+                         const String &other) -> void;
+
   /// This method sets an object key if it is not already defined. For example:
   ///
   /// ```cpp
@@ -1426,6 +1443,23 @@ public:
   auto erase(typename Array::const_iterator first,
              typename Array::const_iterator last) -> typename Array::iterator;
 
+  /// This method deletes a set of array elements given a predicate. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON array =
+  ///   sourcemeta::core::parse_json("[ 1, 2, 3 ]");
+  /// array.erase_if(array,
+  ///   [](const auto &item) { return item.to_integer() % 2 == 0; });
+  /// assert(array.size(), 2);
+  /// assert(array.at(0), 1);
+  /// assert(array.at(1), 3);
+  /// ```
+  auto erase_if(const std::function<bool(const JSON &)> &predicate) -> void;
+
   /// This method deletes all members of an object or all elements of an array,
   /// leaving them empty. For example:
   ///
@@ -1469,12 +1503,12 @@ public:
   template <typename Iterator>
   auto clear_except(Iterator first, Iterator last) -> void {
     assert(this->is_object());
-    std::set<String, std::less<String>, Allocator<String>> whitelist;
+    std::set<String, std::less<>, Allocator<String>> whitelist;
     for (auto iterator = first; iterator != last; ++iterator) {
       whitelist.insert(*iterator);
     }
 
-    std::set<String, std::less<String>, Allocator<String>> blacklist;
+    std::set<String, std::less<>, Allocator<String>> blacklist;
     for (const auto &pair : this->as_object()) {
       if (!whitelist.contains(pair.first)) {
         blacklist.insert(pair.first);

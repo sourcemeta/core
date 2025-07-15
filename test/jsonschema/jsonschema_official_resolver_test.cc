@@ -31,6 +31,9 @@ TEST(JSONSchema_official_resolver, jsonschema_2020_12) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/meta/validation");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/links");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/output/schema");
+
+  // Just because a lot of people get this wrong
+  EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema#");
 }
 
 TEST(JSONSchema_official_resolver, jsonschema_2019_09) {
@@ -45,6 +48,9 @@ TEST(JSONSchema_official_resolver, jsonschema_2019_09) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/output/schema");
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/links");
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/output/hyper-schema");
+
+  // Just because a lot of people get this wrong
+  EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/schema#");
 }
 
 TEST(JSONSchema_official_resolver, jsonschema_draft7) {

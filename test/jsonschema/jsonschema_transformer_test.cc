@@ -3,6 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -1186,4 +1187,21 @@ TEST(JSONSchema_transformer, rereference_fixed_7) {
   })JSON");
 
   EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_transformer, iterators) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+  bundle.add<ExampleRule2>();
+  bundle.add<ExampleRule3>();
+
+  std::set<std::string> rules;
+  for (const auto &entry : bundle) {
+    rules.insert(entry.first);
+  }
+
+  EXPECT_EQ(rules.size(), 3);
+  EXPECT_TRUE(rules.contains("example_rule_1"));
+  EXPECT_TRUE(rules.contains("example_rule_2"));
+  EXPECT_TRUE(rules.contains("example_rule_3"));
 }

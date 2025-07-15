@@ -5,6 +5,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
 #include <sourcemeta/core/md5.h>
+#include <sourcemeta/core/time.h>
 #include <sourcemeta/core/uri.h>
 #include <sourcemeta/core/uuid.h>
 #include <sourcemeta/core/yaml.h>

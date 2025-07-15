@@ -777,7 +777,7 @@ auto JSON::push_back_if_unique(const JSON &value)
     -> std::pair<std::reference_wrapper<const JSON>, bool> {
   assert(this->is_array());
   auto &array_data{this->as_array().data};
-  const auto match{std::find(array_data.cbegin(), array_data.cend(), value)};
+  const auto match{std::ranges::find(array_data, value)};
   if (match == array_data.cend()) {
     array_data.push_back(value);
     return {array_data.back(), true};
@@ -790,7 +790,7 @@ auto JSON::push_back_if_unique(JSON &&value)
     -> std::pair<std::reference_wrapper<const JSON>, bool> {
   assert(this->is_array());
   auto &array_data{this->as_array().data};
-  const auto match{std::find(array_data.cbegin(), array_data.cend(), value)};
+  const auto match{std::ranges::find(array_data, value)};
   if (match == array_data.cend()) {
     array_data.push_back(std::move(value));
     return {array_data.back(), true};
@@ -807,6 +807,12 @@ auto JSON::assign(const JSON::String &key, const JSON &value) -> void {
 auto JSON::assign(const JSON::String &key, JSON &&value) -> void {
   assert(this->is_object());
   this->data_object.data.emplace(key, value);
+}
+
+auto JSON::try_assign_before(const String &key, const JSON &value,
+                             const String &other) -> void {
+  assert(this->is_object());
+  this->data_object.data.try_emplace_before(key, value, other);
 }
 
 auto JSON::assign_if_missing(const JSON::String &key, const JSON &value)
@@ -844,6 +850,12 @@ auto JSON::erase(typename JSON::Array::const_iterator first,
     typename JSON::Array::iterator {
   assert(this->is_array());
   return this->data_array.data.erase(first, last);
+}
+
+auto JSON::erase_if(const std::function<bool(const JSON &)> &predicate)
+    -> void {
+  assert(this->is_array());
+  std::erase_if(this->data_array.data, predicate);
 }
 
 auto JSON::clear() -> void {
