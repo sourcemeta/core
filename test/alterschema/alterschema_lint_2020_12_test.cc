@@ -1843,7 +1843,7 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_ref_wrapper_5) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, then_else_empty_1) {
+TEST(AlterSchema_lint_2020_12, then_empty_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "if": {
@@ -1865,7 +1865,7 @@ TEST(AlterSchema_lint_2020_12, then_else_empty_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, then_else_empty_2) {
+TEST(AlterSchema_lint_2020_12, else_empty_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "if": {
@@ -1887,7 +1887,7 @@ TEST(AlterSchema_lint_2020_12, then_else_empty_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, then_else_empty_3) {
+TEST(AlterSchema_lint_2020_12, then_empty_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "if": {
@@ -1910,7 +1910,7 @@ TEST(AlterSchema_lint_2020_12, then_else_empty_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, then_else_empty_4) {
+TEST(AlterSchema_lint_2020_12, else_empty_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "if": {
@@ -1945,7 +1945,7 @@ TEST(AlterSchema_lint_2020_12, then_else_empty_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, then_else_empty_5) {
+TEST(AlterSchema_lint_2020_12, else_empty_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "if": {
@@ -1955,17 +1955,20 @@ TEST(AlterSchema_lint_2020_12, then_else_empty_5) {
         }
       }
     },
-    "then": {
-      "type": "string"
-    },
-    "else": {
-      "type": "number"
-    }
+    "else": true
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, then_empty_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "if": {
       "properties": {
@@ -1974,18 +1977,19 @@ TEST(AlterSchema_lint_2020_12, then_else_empty_5) {
         }
       }
     },
-    "then": {
-      "type": "string"
-    },
-    "else": {
-      "type": "number"
-    }
+    "then": true
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, then_else_empty_6) {
+TEST(AlterSchema_lint_2020_12, then_empty_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "then": {}

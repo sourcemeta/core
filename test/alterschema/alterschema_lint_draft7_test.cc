@@ -1209,7 +1209,7 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_ref_wrapper_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, then_else_empty_1) {
+TEST(AlterSchema_lint_draft7, then_empty_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "if": {
@@ -1231,7 +1231,7 @@ TEST(AlterSchema_lint_draft7, then_else_empty_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, then_else_empty_2) {
+TEST(AlterSchema_lint_draft7, else_empty_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "if": {
@@ -1253,7 +1253,7 @@ TEST(AlterSchema_lint_draft7, then_else_empty_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, then_else_empty_3) {
+TEST(AlterSchema_lint_draft7, then_empty_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "if": {
@@ -1276,7 +1276,7 @@ TEST(AlterSchema_lint_draft7, then_else_empty_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, then_else_empty_4) {
+TEST(AlterSchema_lint_draft7, else_empty_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "if": {
@@ -1311,7 +1311,7 @@ TEST(AlterSchema_lint_draft7, then_else_empty_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, then_else_empty_5) {
+TEST(AlterSchema_lint_draft7, then_empty_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "if": {
@@ -1351,7 +1351,7 @@ TEST(AlterSchema_lint_draft7, then_else_empty_5) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, then_else_empty_6) {
+TEST(AlterSchema_lint_draft7, then_empty_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "then": {}
