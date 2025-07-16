@@ -31,7 +31,6 @@ include(Sourcemeta)
 # Don't force downstream consumers on this
 if(PROJECT_IS_TOP_LEVEL)
   sourcemeta_enable_simd()
-  sourcemeta_clang_tidy_attempt_enable()
 endif()
 
 # TODO: Turn this into a re-usable utility CMake function
@@ -117,13 +116,11 @@ if(SOURCEMETA_CORE_DOCS)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL)
-  # TODO: Try once more to enable this per target,
-  # so, we don't need to manually disable it here
-  sourcemeta_clang_tidy_attempt_disable()
   sourcemeta_target_clang_format(SOURCES
     src/*.h src/*.cc
     benchmark/*.h benchmark/*.cc
     test/*.h test/*.cc)
+  sourcemeta_target_clang_tidy(SOURCES src/*.cc)
 endif()
 
 # Testing
