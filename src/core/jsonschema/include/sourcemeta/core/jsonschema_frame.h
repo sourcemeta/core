@@ -110,7 +110,7 @@ public:
   SchemaFrame(const Mode mode) : mode_{mode} {}
 
   // Query the current mode that the schema frame was configured with
-  [[nodiscard]] auto mode() const noexcept -> Mode { return this->mode_; }
+  auto mode() const noexcept -> Mode { return this->mode_; }
 
   /// A single entry in a JSON Schema reference map
   struct ReferencesEntry {
@@ -182,7 +182,7 @@ public:
   using Paths = std::set<Pointer>;
 
   /// Export the frame entries as JSON
-  [[nodiscard]] auto to_json() const -> JSON;
+  auto to_json() const -> JSON;
 
   /// Analyse a schema or set of schemas from a given root. Passing
   /// multiple paths that have any overlap is undefined behaviour
@@ -194,47 +194,45 @@ public:
           const Paths &paths = {empty_pointer}) -> void;
 
   /// Access the analysed schema locations
-  [[nodiscard]] auto locations() const noexcept -> const Locations &;
+  auto locations() const noexcept -> const Locations &;
 
   /// Access the analysed schema references
-  [[nodiscard]] auto references() const noexcept -> const References &;
+  auto references() const noexcept -> const References &;
 
   /// Check whether the analysed schema has no external references
-  [[nodiscard]] auto standalone() const -> bool;
+  auto standalone() const -> bool;
 
   /// Get the vocabularies associated with a location entry
-  [[nodiscard]] auto vocabularies(const Location &location,
-                                  const SchemaResolver &resolver) const
-      -> Vocabularies;
+  auto vocabularies(const Location &location,
+                    const SchemaResolver &resolver) const -> Vocabularies;
 
   /// Get the URI associated with a location entry
-  [[nodiscard]] auto
-  uri(const Location &location,
-      const Pointer &relative_schema_location = empty_pointer) const
+  auto uri(const Location &location,
+           const Pointer &relative_schema_location = empty_pointer) const
       -> JSON::String;
 
   /// Get the location associated by traversing a pointer from another location
-  [[nodiscard]] auto traverse(const Location &location,
-                              const Pointer &relative_schema_location) const
+  auto traverse(const Location &location,
+                const Pointer &relative_schema_location) const
       -> const Location &;
 
   /// Get the location associated with a given URI
-  [[nodiscard]] auto traverse(const JSON::String &uri) const
+  auto traverse(const JSON::String &uri) const
       -> std::optional<std::reference_wrapper<const Location>>;
 
   /// Try to dereference a reference location into its destination location
-  [[nodiscard]] auto
+  auto
   dereference(const Location &location,
               const Pointer &relative_schema_location = empty_pointer) const
       -> std::pair<SchemaReferenceType,
                    std::optional<std::reference_wrapper<const Location>>>;
 
   /// Get the unresolved instance locations associated with a location entry
-  [[nodiscard]] auto instance_locations(const Location &location) const -> const
+  auto instance_locations(const Location &location) const -> const
       typename Instances::mapped_type &;
 
   /// Find all references to a given location pointer
-  [[nodiscard]] auto references_to(const Pointer &pointer) const -> std::vector<
+  auto references_to(const Pointer &pointer) const -> std::vector<
       std::reference_wrapper<const typename References::value_type>>;
 
 private:

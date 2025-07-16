@@ -85,7 +85,7 @@ public:
   /// const sourcemeta::core::URI uri{"urn:example:schema"};
   /// assert(uri.is_urn());
   /// ```
-  [[nodiscard]] auto is_urn() const -> bool;
+  auto is_urn() const -> bool;
 
   /// Check if the URI is a tag as described by RFC 4151. For example:
   ///
@@ -96,7 +96,7 @@ public:
   /// const sourcemeta::core::URI uri{"tag:yaml.org,2002:int"};
   /// assert(uri.is_tag());
   /// ```
-  [[nodiscard]] auto is_tag() const -> bool;
+  auto is_tag() const -> bool;
 
   /// Check if the URI has the `mailto` scheme. For example:
   ///
@@ -107,7 +107,7 @@ public:
   /// const sourcemeta::core::URI uri{"mailto:joe@example.com"};
   /// assert(uri.is_mailto());
   /// ```
-  [[nodiscard]] auto is_mailto() const -> bool;
+  auto is_mailto() const -> bool;
 
   /// Check if the URI only consists of a fragment. For example:
   ///
@@ -118,7 +118,7 @@ public:
   /// const sourcemeta::core::URI uri{"#foo"};
   /// assert(uri.is_fragment_only());
   /// ```
-  [[nodiscard]] auto is_fragment_only() const -> bool;
+  auto is_fragment_only() const -> bool;
 
   /// Check if the URI is relative. For example:
   ///
@@ -129,7 +129,7 @@ public:
   /// sourcemeta::core::URI uri{"./foo"};
   /// assert(uri.is_relative());
   /// ```
-  [[nodiscard]] auto is_relative() const -> bool;
+  auto is_relative() const -> bool;
 
   /// Check if the host is an ipv6 address. For example:
   ///
@@ -140,7 +140,7 @@ public:
   /// sourcemeta::core::URI uri{"http://[::1]"};
   /// assert(uri.is_ipv6());
   /// ```
-  [[nodiscard]] auto is_ipv6() const -> bool;
+  auto is_ipv6() const -> bool;
 
   /// Check if the URI corresponds to the empty URI. For example:
   ///
@@ -151,7 +151,7 @@ public:
   /// sourcemeta::core::URI uri{""};
   /// assert(uri.empty());
   /// ```
-  [[nodiscard]] auto empty() const -> bool;
+  auto empty() const -> bool;
 
   /// Get the scheme part of the URI, if any. For example:
   ///
