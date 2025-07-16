@@ -117,6 +117,9 @@ if(SOURCEMETA_CORE_DOCS)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL)
+  # TODO: Try once more to enable this per target,
+  # so, we don't need to manually disable it here
+  sourcemeta_clang_tidy_attempt_disable()
   sourcemeta_target_clang_format(SOURCES
     src/*.h src/*.cc
     benchmark/*.h benchmark/*.cc

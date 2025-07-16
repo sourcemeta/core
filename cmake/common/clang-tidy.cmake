@@ -106,9 +106,9 @@ function(sourcemeta_clang_tidy_attempt_enable)
 
   # TODO: Support other platforms too, like Linux
   if(APPLE)
-    execute_process(COMMAND xcrun --show-sdk-path 
+    execute_process(COMMAND xcrun --show-sdk-path
       OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir 
+    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
       OUTPUT_VARIABLE MACOSX_RESOURCE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(CMAKE_CXX_CLANG_TIDY
       "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
@@ -118,4 +118,8 @@ function(sourcemeta_clang_tidy_attempt_enable)
       "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}"
       PARENT_SCOPE)
   endif()
+endfunction()
+
+function(sourcemeta_clang_tidy_attempt_disable)
+  unset(CMAKE_CXX_CLANG_TIDY PARENT_SCOPE)
 endfunction()
