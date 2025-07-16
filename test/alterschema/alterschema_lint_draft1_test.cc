@@ -154,7 +154,7 @@ TEST(AlterSchema_lint_draft1, duplicate_enum_values_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-01/schema#",
-    "enum": [ 1, 2, 3, {} ]
+    "enum": [ 1, {}, 2, 3 ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -518,6 +518,22 @@ TEST(AlterSchema_lint_draft1, equal_numeric_bounds_to_enum_2) {
     "$schema": "http://json-schema.org/draft-01/schema#",
     "enum": [ 3 ],
     "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft1, draft_official_dialect_without_empty_fragment_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-01/schema",
+    "type": "string"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-01/schema#",
+    "type": "string"
   })JSON");
 
   EXPECT_EQ(document, expected);
