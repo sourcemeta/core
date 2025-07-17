@@ -77,24 +77,26 @@ function(sourcemeta_clang_tidy_attempt_install)
 endfunction()
 
 function(sourcemeta_clang_tidy_attempt_enable)
-  # TODO: Support other platforms too, like Linux
-  if(NOT APPLE)
-    message(STATUS "Ignoring ClangTidy setup on OS other than APPLE")
-    return()
-  endif()
-
-  if(SOURCEMETA_COMPILER_LLVM)
-    message(STATUS "Enabling ClangTidy alongside compilation")
-  else()
-    message(STATUS "Ignoring ClangTidy setup on a compiler other than LLVM")
-    return()
-  endif()
-
   cmake_parse_arguments(PARSE_ARGV 0 SOURCEMETA_CLANG_TIDY "" "TARGET_NAME" "")
   if(NOT SOURCEMETA_CLANG_TIDY_TARGET_NAME)
     message(STATUS "ClangTidy runs at target level. TARGET_NAME is required.")
     return()
   endif()
+
+  # TODO: Support other platforms too, like Linux
+  if(NOT APPLE)
+    message(STATUS "Ignoring ClangTidy setup on OS other than APPLE for target ${SOURCEMETA_CLANG_TIDY_TARGET_NAME}")
+    return()
+  endif()
+
+
+  if(SOURCEMETA_COMPILER_LLVM)
+    message(STATUS "Enabling ClangTidy alongside compilation for target ${SOURCEMETA_CLANG_TIDY_TARGET_NAME}")
+  else()
+    message(STATUS "Ignoring ClangTidy setup on a compiler other than LLVM for target ${SOURCEMETA_CLANG_TIDY_TARGET_NAME}")
+    return()
+  endif()
+
 
   sourcemeta_clang_tidy_attempt_install(
     OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
