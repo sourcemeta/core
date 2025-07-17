@@ -77,7 +77,11 @@ function(sourcemeta_clang_tidy_attempt_install)
 endfunction()
 
 function(sourcemeta_clang_tidy_attempt_enable)
-  cmake_parse_arguments(SOURCEMETA_TARGET_CLANG_TIDY "REQUIRED" "" "" ${ARGN})
+  # TODO: Support other platforms too, like Linux
+  if(NOT APPLE)
+    message(STATUS "Ignoring ClangTidy setup on OS other than APPLE")
+    return()
+  endif()
 
   if(SOURCEMETA_COMPILER_LLVM)
     message(STATUS "Enabling ClangTidy alongside compilation")
@@ -86,40 +90,38 @@ function(sourcemeta_clang_tidy_attempt_enable)
     return()
   endif()
 
-  sourcemeta_clang_tidy_attempt_install(OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
-
-  if(SOURCEMETA_TARGET_CLANG_TIDY_REQUIRED)
-    find_program(CLANG_TIDY_BIN NAMES clang-tidy NO_DEFAULT_PATH
-      PATHS "${CMAKE_CURRENT_BINARY_DIR}/bin")
-    if(NOT CLANG_TIDY_BIN)
-      find_program(CLANG_TIDY_BIN NAMES clang-tidy REQUIRED)
-    endif()
-  else()
-    find_program(CLANG_TIDY_BIN NAMES clang-tidy NO_DEFAULT_PATH
-      PATHS "${CMAKE_CURRENT_BINARY_DIR}/bin")
-    if(NOT CLANG_TIDY_BIN)
-      find_program(CLANG_TIDY_BIN NAMES clang-tidy)
-    endif()
+  cmake_parse_arguments(PARSE_ARGV 0 SOURCEMETA_CLANG_TIDY "" "TARGET_NAME" "")
+  if(NOT SOURCEMETA_CLANG_TIDY_TARGET_NAME)
+    message(STATUS "ClangTidy runs at target level. TARGET_NAME is required.")
+    return()
   endif()
 
-  set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.config")
+  sourcemeta_clang_tidy_attempt_install(
+    OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 
-  # TODO: Support other platforms too, like Linux
-  if(APPLE)
-    execute_process(COMMAND xcrun --show-sdk-path
+  if(SOURCEMETA_CXX_CLANG_TIDY)
+    set_target_properties("${SOURCEMETA_CLANG_TIDY_TARGET_NAME}"
+      PROPERTIES CXX_CLANG_TIDY "${SOURCEMETA_CXX_CLANG_TIDY}")
+    return()
+  endif()
+
+  find_program(CLANG_TIDY_BIN NAMES clang-tidy
+      NO_DEFAULT_PATH
+      PATHS "${PROJECT_BINARY_DIR}/bin"
+      REQUIRED)
+
+  set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.config")
+  execute_process(COMMAND xcrun --show-sdk-path
       OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
+  execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
       OUTPUT_VARIABLE MACOSX_RESOURCE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(CMAKE_CXX_CLANG_TIDY
+  set(SOURCEMETA_CXX_CLANG_TIDY
       "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
       "--extra-arg=-std=c++${CMAKE_CXX_STANDARD}"
       "--extra-arg=-isysroot"
       "--extra-arg=${MACOSX_SDK_PATH}"
-      "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}"
-      PARENT_SCOPE)
-  endif()
-endfunction()
+      "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}")
 
-function(sourcemeta_clang_tidy_attempt_disable)
-  unset(CMAKE_CXX_CLANG_TIDY PARENT_SCOPE)
+  set_target_properties("${SOURCEMETA_CLANG_TIDY_TARGET_NAME}"
+    PROPERTIES CXX_CLANG_TIDY "${SOURCEMETA_CXX_CLANG_TIDY}")
 endfunction()
