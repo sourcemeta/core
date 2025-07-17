@@ -7,6 +7,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME jsonschema
   SOURCES jsonschema.cc official_walker.cc frame.cc
     resolver.cc walker.cc bundle.cc transformer.cc
     "${CMAKE_CURRENT_BINARY_DIR}/official_resolver.cc")
+sourcemeta_clang_tidy_attempt_enable(TARGET_NAME "sourcemeta_core_jsonschema")
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME jsonschema)

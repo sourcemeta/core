@@ -2,6 +2,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
   PRIVATE_HEADERS pointer.h position.h error.h token.h
     walker.h subpointer_walker.h template.h
   SOURCES jsonpointer.cc stringify.h parser.h grammar.h position.cc)
+sourcemeta_clang_tidy_attempt_enable(TARGET_NAME "sourcemeta_core_jsonpointer")
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME jsonpointer)
