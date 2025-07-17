@@ -102,7 +102,7 @@ function(sourcemeta_clang_tidy_attempt_enable)
     endif()
   endif()
 
-  set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.config")
+  set(CLANG_TIDY_CONFIG "${PROJECT_SOURCE_DIR}/.clang-tidy")
 
   # TODO: Support other platforms too, like Linux
   if(APPLE)
