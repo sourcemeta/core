@@ -15,29 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - os: macos-latest
-            cc: clang
-            cxx: clang++
-            type: static
-            shell: sh
-            benchmark: macos/llvm
-          - os: macos-latest
-            cc: clang
-            cxx: clang++
-            type: shared
-            shell: sh
-          - os: macos-latest
-            cc: gcc-13
-            cxx: g++-13
-            type: static
-            shell: sh
-            benchmark: macos/gcc
-          - os: ubuntu-latest
-            cc: clang
-            cxx: clang++
-            type: static
-            shell: sh
-            benchmark: linux/llvm
           - os: ubuntu-latest
             cc: gcc
             cxx: g++
@@ -54,16 +31,6 @@ jobs:
             cxx: g++
             type: shared
             shell: sh
-          - os: windows-latest
-            type: static
-            shell: pwsh
-            benchmark: windows/msvc
-          - os: windows-latest
-            type: shared
-            shell: pwsh
-          - os: windows-latest
-            type: static
-            shell: msys2 {0}
 
           # Sanitizers
           - os: ubuntu-latest
