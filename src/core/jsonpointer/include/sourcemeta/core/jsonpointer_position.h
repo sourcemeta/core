@@ -54,6 +54,7 @@ public:
   [[nodiscard]] auto get(const Pointer &pointer) const
       -> std::optional<Position>;
   [[nodiscard]] auto size() const -> std::size_t;
+  [[nodiscard]] auto to_json() const -> JSON;
 
 private:
 // Exporting symbols that depends on the standard C++ library is considered

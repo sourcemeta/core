@@ -286,6 +286,16 @@ TEST(JSON_auto, unordered_set_without_iterators) {
   EXPECT_EQ(value, back.value());
 }
 
+TEST(JSON_auto, unsigned_long_long) {
+  const unsigned long long value{15};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{15}};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<unsigned long long>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
 TEST(JSON_auto, pair) {
   const std::pair<std::string, std::size_t> value{"foo", 1};
   const auto result{sourcemeta::core::to_json(value)};
