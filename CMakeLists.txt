@@ -3,6 +3,7 @@ project(core VERSION 0.0.0 LANGUAGES C CXX DESCRIPTION "Sourcemeta Core")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Options
+option(SOURCEMETA_CORE_LANG_IO "Build the Sourcemeta Core language I/O library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
 option(SOURCEMETA_CORE_UUID "Build the Sourcemeta Core UUID library" ON)
 option(SOURCEMETA_CORE_GZIP "Build the Sourcemeta Core GZIP library" ON)
@@ -50,6 +51,10 @@ if(SOURCEMETA_CORE_INSTALL)
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
     COMPONENT sourcemeta_${PROJECT_NAME}_dev)
+endif()
+
+if(SOURCEMETA_CORE_LANG_IO)
+  add_subdirectory(src/lang/io)
 endif()
 
 if(SOURCEMETA_CORE_TIME)
@@ -138,6 +143,10 @@ endif()
 
 if(SOURCEMETA_CORE_TESTS)
   enable_testing()
+
+  if(SOURCEMETA_CORE_LANG_IO)
+    add_subdirectory(test/io)
+  endif()
 
   if(SOURCEMETA_CORE_TIME)
     add_subdirectory(test/time)
