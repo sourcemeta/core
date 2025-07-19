@@ -109,7 +109,8 @@ function(sourcemeta_clang_tidy_attempt_enable)
 
   set(CMAKE_CXX_CLANG_TIDY
       "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
-      "--extra-arg=-isysroot ${MACOSX_RESOURCE_PATH}/include/"
+      "--extra-arg=-isystem"
+      "--extra-arg=${MACOSX_RESOURCE_PATH}/include/"
       PARENT_SCOPE)
 endfunction()
 
