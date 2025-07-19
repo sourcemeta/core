@@ -1,5 +1,6 @@
 #include <sourcemeta/core/alterschema.h>
 #include <sourcemeta/core/gzip.h>
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonl.h>
 #include <sourcemeta/core/jsonpointer.h>
