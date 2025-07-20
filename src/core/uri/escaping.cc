@@ -3,6 +3,7 @@
 #include <sourcemeta/core/uri_escape.h>
 
 #include <istream>       // std::istream
+#include <iterator>      // std::istream_iterator
 #include <ostream>       // std::ostream
 #include <string>        // std::string
 #include <unordered_set> // std::unordered_set
