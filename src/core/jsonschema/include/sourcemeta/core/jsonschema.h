@@ -675,6 +675,17 @@ auto wrap(const JSON &schema, const Pointer &pointer,
           const std::optional<std::string> &default_dialect = std::nullopt)
     -> JSON;
 
+// TODO: Test and document
+SOURCEMETA_CORE_JSONSCHEMA_EXPORT
+auto dependencies(
+    const JSON &schema, const SchemaWalker &walker,
+    const SchemaResolver &resolver,
+    const std::function<void(const std::optional<JSON::String> &,
+                             const Pointer &, const JSON::String &)> &callback,
+    const std::optional<std::string> &default_dialect = std::nullopt,
+    const std::optional<std::string> &default_id = std::nullopt,
+    const SchemaFrame::Paths &paths = {empty_pointer}) -> void;
+
 } // namespace sourcemeta::core
 
 #endif
