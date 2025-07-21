@@ -1302,3 +1302,68 @@ TEST(AlterSchema_lint_draft6, additional_items_with_schema_items_array_items) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft6, property_names_type_default_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "propertyNames": {
+      "type": "string",
+      "pattern": "^S_"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "propertyNames": {
+      "pattern": "^S_"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, property_names_type_default_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "propertyNames": {
+      "type": [ "string" ]
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "propertyNames": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, property_names_type_default_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "propertyNames": {
+      "type": "integer"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "propertyNames": {
+      "type": "integer"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

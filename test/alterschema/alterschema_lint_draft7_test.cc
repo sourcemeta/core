@@ -1443,7 +1443,7 @@ TEST(AlterSchema_lint_draft7, additional_items_with_schema_items_array_items) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, redundant_type_in_propertynames_1) {
+TEST(AlterSchema_lint_draft7, property_names_type_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
