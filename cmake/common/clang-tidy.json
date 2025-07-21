@@ -1,0 +1,6 @@
+{
+  "Checks": "-*, concurrency-*, modernize-*, portability-*",
+  "WarningsAsErrors": "*",
+  "FormatStyle": "none",
+  "UseColor": true
+}
