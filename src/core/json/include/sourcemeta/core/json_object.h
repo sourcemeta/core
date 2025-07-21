@@ -469,16 +469,32 @@ public:
     return this->data.size();
   }
 
+  /// Check if the object is empty
+  [[nodiscard]] inline auto empty() const -> bool { return this->data.empty(); }
+
   /// Access an object entry by its underlying positional index
   [[nodiscard]] inline auto at(const size_type index) const noexcept -> const
       typename Container::Entry & {
     return this->data.at(index);
   }
 
+  /// Try to access an object entry by its underlying positional index
+  [[nodiscard]] inline auto
+  try_at(const Key &key, const typename Container::hash_type hash) const
+      -> const mapped_type * {
+    return this->data.try_at(key, hash);
+  }
+
   // Hash an object property
   [[nodiscard]] inline auto hash(const Key &property) const ->
       typename Container::hash_type {
     return this->data.hasher(property);
+  }
+
+  // Emplace an object property
+  inline auto emplace(const Key &key, const mapped_type &value) ->
+      typename Container::hash_type {
+    return this->data.emplace(key, value);
   }
 
 private:
