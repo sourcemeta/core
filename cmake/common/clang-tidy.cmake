@@ -98,19 +98,19 @@ function(sourcemeta_clang_tidy_attempt_enable)
         NO_DEFAULT_PATH
         PATHS "${PROJECT_BINARY_DIR}/bin"
         REQUIRED)
-  endif()
 
-  set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.json")
-  execute_process(COMMAND xcrun --show-sdk-path
+    set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.json")
+    execute_process(COMMAND xcrun --show-sdk-path
         OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-  execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
+    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
         OUTPUT_VARIABLE MACOSX_RESOURCE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-  set(SOURCEMETA_CXX_CLANG_TIDY
+    set(SOURCEMETA_CXX_CLANG_TIDY
         "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
         "--extra-arg=-isysroot"
         "--extra-arg=${MACOSX_SDK_PATH}"
         "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}"
         CACHE STRING "CXX_CLANG_TIDY")
+  endif()
 
   set_target_properties("${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_ENABLE_TARGET}"
     PROPERTIES CXX_CLANG_TIDY "${SOURCEMETA_CXX_CLANG_TIDY}")
