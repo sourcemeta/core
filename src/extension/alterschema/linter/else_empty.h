@@ -16,11 +16,10 @@ public:
                 "https://json-schema.org/draft/2019-09/vocab/applicator",
                 "http://json-schema.org/draft-07/schema#"}) &&
            schema.is_object() && schema.defines("else") &&
-           is_schema(schema.at("else")) &&
-           ((schema.at("else").is_object() && schema.at("else").empty()) ||
-            (schema.at("else").is_boolean() && schema.at("else").to_boolean() &&
-             (!schema.defines("if") || !(schema.at("if").is_boolean() &&
-                                         schema.at("if").to_boolean()))));
+           is_schema(schema.at("else")) && is_empty_schema(schema.at("else")) &&
+           (schema.at("else").is_object() ||
+            (!schema.defines("if") ||
+             !(schema.at("if").is_boolean() && schema.at("if").to_boolean())));
   }
 
   auto transform(JSON &schema) const -> void override { schema.erase("else"); }
