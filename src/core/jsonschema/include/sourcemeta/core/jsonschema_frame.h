@@ -105,7 +105,7 @@ class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaFrame {
 public:
   /// The mode of framing. More extensive analysis can be compute and memory
   /// intensive
-  enum class Mode { Locations, References, Instances };
+  enum class Mode : std::uint8_t { Locations, References, Instances };
 
   SchemaFrame(const Mode mode) : mode_{mode} {}
 

@@ -1,6 +1,0 @@
-{
-  "Checks": "-*, concurrency-*, modernize-*, performance-*",
-  "WarningsAsErrors": "*",
-  "FormatStyle": "none",
-  "UseColor": true
-}
