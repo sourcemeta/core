@@ -11,8 +11,8 @@
 TEST(JSON_object, general_traits) {
   EXPECT_TRUE(
       std::is_default_constructible<sourcemeta::core::JSON::Object>::value);
-  EXPECT_FALSE(std::is_nothrow_default_constructible<
-               sourcemeta::core::JSON::Object>::value);
+  EXPECT_TRUE(std::is_nothrow_default_constructible<
+              sourcemeta::core::JSON::Object>::value);
   EXPECT_TRUE(std::is_destructible<sourcemeta::core::JSON::Object>::value);
   EXPECT_TRUE(
       std::is_nothrow_destructible<sourcemeta::core::JSON::Object>::value);
