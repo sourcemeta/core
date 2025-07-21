@@ -43,8 +43,9 @@ TEST(JSON_auto, object_hash) {
   const auto result{sourcemeta::core::to_json(value)};
   EXPECT_TRUE(result.is_array());
   EXPECT_FALSE(result.empty());
-  const auto back{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(result)};
+  const auto back{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
 }
@@ -405,8 +406,9 @@ TEST(JSON_auto, from_json_invalid_integer) {
 
 TEST(JSON_auto, from_json_invalid_hash_1) {
   const sourcemeta::core::JSON document{true};
-  const auto result{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(document)};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          document)};
   EXPECT_FALSE(result.has_value());
 }
 
@@ -415,8 +417,9 @@ TEST(JSON_auto, from_json_invalid_hash_2) {
     "foo", "bar", "baz"
   ])JSON")};
 
-  const auto result{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(document)};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          document)};
   EXPECT_FALSE(result.has_value());
 }
 
@@ -425,8 +428,9 @@ TEST(JSON_auto, from_json_invalid_hash_3) {
     "foo", "bar", "baz", "qux"
   ])JSON")};
 
-  const auto result{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(document)};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          document)};
   EXPECT_FALSE(result.has_value());
 }
 
