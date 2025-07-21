@@ -2,11 +2,11 @@
 
 #include <sourcemeta/core/uri_escape.h>
 
-#include <istream>       // std::istream
-#include <iterator>      // std::istream_iterator
-#include <ostream>       // std::ostream
-#include <string>        // std::string
-#include <unordered_set> // std::unordered_set
+#include <cctype>   // std::isalnum
+#include <istream>  // std::istream
+#include <iterator> // std::istream_iterator
+#include <ostream>  // std::ostream
+#include <string>   // std::string
 
 namespace sourcemeta::core {
 
@@ -14,29 +14,24 @@ auto uri_escape(const char character, std::ostream &output,
                 const URIEscapeMode mode) -> void {
   // unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
   // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-  std::unordered_set<char> unreserved{
-      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-      'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b',
-      'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-      'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3',
-      '4', '5', '6', '7', '8', '9', '-', '.', '_', '~'};
-
-  // sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" /
-  // "=" See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-  std::unordered_set<char> sub_delims{'!', '$', '&', '\'', '(', ')',
-                                      '*', '+', ',', ';',  '='};
-
-  if (unreserved.contains(character)) {
+  if (std::isalnum(character) || character == '-' || character == '.' ||
+      character == '_' || character == '~') {
     output << character;
     return;
   }
 
   if (mode == URIEscapeMode::SkipSubDelims) {
-    if (sub_delims.contains(character)) {
+    // sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" /
+    // "=" See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
+    if (character == '!' || character == '$' || character == '&' ||
+        character == '\'' || character == '(' || character == ')' ||
+        character == '*' || character == '+' || character == ',' ||
+        character == ';' || character == '=') {
       output << character;
       return;
     }
   }
+  // percent encode -> % followed by the hex code of the character
   output << '%' << std::hex << std::uppercase
          << +(static_cast<unsigned char>(character));
   return;
