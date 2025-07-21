@@ -538,3 +538,20 @@ TEST(AlterSchema_lint_draft1, draft_official_dialect_without_empty_fragment_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft1, draft_ref_siblings_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-01/schema#",
+    "$ref": "#/definitions/foo",
+    "type": "string"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-01/schema#",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
