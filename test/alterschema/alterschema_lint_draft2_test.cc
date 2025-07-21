@@ -556,23 +556,6 @@ TEST(AlterSchema_lint_draft2, draft_ref_siblings_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft2, draft_ref_siblings_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-02/schema#",
-    "$ref": "#/definitions/foo",
-    "type": "string"
-  })JSON");
-
-  LINT_AND_FIX_FOR_READABILITY(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-02/schema#",
-    "$ref": "#/definitions/foo"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft2, draft_ref_siblings_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#",
