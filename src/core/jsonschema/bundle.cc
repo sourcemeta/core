@@ -1,15 +1,16 @@
 #include <sourcemeta/core/jsonschema.h>
 
-#include <cassert> // assert
-#include <sstream> // std::ostringstream
-#include <utility> // std::move
+#include <cassert>       // assert
+#include <sstream>       // std::ostringstream
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
 
 namespace {
 
 auto embed_schema(sourcemeta::core::JSON &root,
                   const sourcemeta::core::Pointer &container,
                   const std::string &identifier,
-                  const sourcemeta::core::JSON &target) -> void {
+                  sourcemeta::core::JSON &&target) -> void {
   auto *current{&root};
   for (const auto &token : container) {
     if (token.is_property()) {
@@ -34,108 +35,33 @@ auto embed_schema(sourcemeta::core::JSON &root,
     key << "/x";
   }
 
-  current->assign(key.str(), target);
+  current->assign(key.str(), std::move(target));
 }
 
-auto is_official_metaschema_reference(const sourcemeta::core::Pointer &pointer,
-                                      const std::string &destination) -> bool {
-  return !pointer.empty() && pointer.back().is_property() &&
-         pointer.back().to_property() == "$schema" &&
-         sourcemeta::core::schema_official_resolver(destination).has_value();
-}
+auto bundle_externals(
+    sourcemeta::core::JSON &schema, const sourcemeta::core::Pointer &container,
+    const sourcemeta::core::SchemaResolver &resolver,
+    const std::unordered_set<sourcemeta::core::JSON::String> &externals,
+    const std::optional<std::string> &default_dialect) -> void {
+  for (const auto &identifier : externals) {
+    auto subschema{resolver(identifier)};
+    // If the dependency scanning was successful, then all external references
+    // were found
+    assert(subschema.has_value());
 
-auto bundle_schema(sourcemeta::core::JSON &root,
-                   const sourcemeta::core::Pointer &container,
-                   const sourcemeta::core::JSON &subschema,
-                   sourcemeta::core::SchemaFrame &frame,
-                   const sourcemeta::core::SchemaWalker &walker,
-                   const sourcemeta::core::SchemaResolver &resolver,
-                   const std::optional<std::string> &default_dialect,
-                   const std::optional<std::string> &default_id,
-                   const sourcemeta::core::SchemaFrame::Paths &paths,
-                   const std::size_t depth = 0) -> void {
-  // Keep in mind that the resulting frame does miss some information. For
-  // example, when we recurse to framing embedded schemas, we will frame them
-  // without keeping their new relationship to their parent (after embedding if
-  // to the container location). However, that's fine for the purpose of this
-  // function, given we don't pass the frame back to the caller
-  if (depth == 0) {
-    frame.analyse(
-        subschema, walker, resolver, default_dialect, default_id,
-        // We only want to frame in "wrapper" mode for the top level object
-        paths);
-  } else {
-    // Note that we only apply the default identifier to the top-level frame
-    frame.analyse(subschema, walker, resolver, default_dialect);
-  }
-
-  // Otherwise, given recursion, we would be modifying the
-  // references list *while* looping on it
-  const auto references_copy = frame.references();
-  for (const auto &[key, reference] : references_copy) {
-    if (frame.traverse(reference.destination).has_value() ||
-
-        // We don't want to bundle official schemas, as we can expect
-        // virtually all implementations to understand them out of the box
-        is_official_metaschema_reference(key.second, reference.destination)) {
-      continue;
-    }
-
-    // If we can't find the destination but there is a base and we can
-    // find base, then we are facing an unresolved fragment
-    if (reference.base.has_value() &&
-        frame.traverse(reference.base.value()).has_value()) {
-      throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, key.second,
-          "Could not resolve schema reference");
-    }
-
-    if (!reference.base.has_value()) {
-      throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, key.second,
-          "Could not resolve schema reference");
-    }
-
-    assert(reference.base.has_value());
-    const auto identifier{reference.base.value()};
-    const auto remote{resolver(identifier)};
-    if (!remote.has_value()) {
-      if (frame.traverse(identifier).has_value()) {
-        throw sourcemeta::core::SchemaReferenceError(
-            reference.destination, key.second,
-            "Could not resolve schema reference");
-      }
-
+    if (!sourcemeta::core::is_schema(subschema.value())) {
       throw sourcemeta::core::SchemaResolutionError(
-          identifier, "Could not resolve the reference to an external schema");
+          identifier, "The JSON document is not a valid JSON Schema");
     }
 
-    // Otherwise, if the target schema does not declare an inline identifier,
-    // references to that identifier from the outer schema won't resolve.
-    sourcemeta::core::JSON copy{remote.value()};
-
-    if (!sourcemeta::core::is_schema(copy)) {
-      throw sourcemeta::core::SchemaReferenceError(
-          identifier, key.second,
-          "The JSON document is not a valid JSON Schema");
-    }
-
-    const auto dialect{sourcemeta::core::dialect(copy, default_dialect)};
-    if (!dialect.has_value()) {
-      throw sourcemeta::core::SchemaReferenceError(
-          identifier, key.second,
-          "The JSON document is not a valid JSON Schema");
-    }
-
-    if (copy.is_object()) {
+    if (subschema.value().is_object()) {
       // Always insert an identifier, as a schema might refer to another schema
       // using another URI (i.e. due to relying on HTTP re-directions, etc)
-      sourcemeta::core::reidentify(copy, identifier, resolver, default_dialect);
+      sourcemeta::core::reidentify(subschema.value(), identifier, resolver,
+                                   default_dialect);
     }
 
-    embed_schema(root, container, identifier, copy);
-    bundle_schema(root, container, copy, frame, walker, resolver,
-                  default_dialect, default_id, paths, depth + 1);
+    embed_schema(schema, container, identifier, std::move(subschema).value());
   }
 }
 
@@ -149,14 +75,25 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
             const SchemaFrame::Paths &paths) -> void {
-  sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References};
+  // TODO: Add a bundle overload that just blindly takes the external references
+  // to embed
+  std::unordered_set<JSON::String> externals;
+  dependencies(
+      schema, walker, resolver,
+      [&externals](const auto &, const auto &, const auto &dependency) {
+        // TODO: This means we do bundle `$ref` to official meta-schemas
+        // which apparently we still need because of Blaze?
+        externals.emplace(dependency);
+      },
+      default_dialect, default_id, paths);
 
-  if (default_container.has_value()) {
+  if (externals.empty()) {
+    return;
+  } else if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
-    bundle_schema(schema, default_container.value(), schema, frame, walker,
-                  resolver, default_dialect, default_id, paths);
+    bundle_externals(schema, default_container.value(), resolver, externals,
+                     default_dialect);
     return;
   }
 
@@ -166,8 +103,7 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
           "https://json-schema.org/draft/2020-12/vocab/core") ||
       vocabularies.contains(
           "https://json-schema.org/draft/2019-09/vocab/core")) {
-    bundle_schema(schema, {"$defs"}, schema, frame, walker, resolver,
-                  default_dialect, default_id, paths);
+    bundle_externals(schema, {"$defs"}, resolver, externals, default_dialect);
     return;
   } else if (vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
              vocabularies.contains(
@@ -178,31 +114,15 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
              vocabularies.contains("http://json-schema.org/draft-04/schema#") ||
              vocabularies.contains(
                  "http://json-schema.org/draft-04/hyper-schema#")) {
-    bundle_schema(schema, {"definitions"}, schema, frame, walker, resolver,
-                  default_dialect, default_id, paths);
+    bundle_externals(schema, {"definitions"}, resolver, externals,
+                     default_dialect);
     return;
-  } else if (vocabularies.contains(
-                 "http://json-schema.org/draft-03/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-03/schema#") ||
-             vocabularies.contains(
-                 "http://json-schema.org/draft-02/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-02/schema#") ||
-             vocabularies.contains(
-                 "http://json-schema.org/draft-01/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-01/schema#") ||
-             vocabularies.contains(
-                 "http://json-schema.org/draft-00/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-00/schema#")) {
-    frame.analyse(schema, walker, resolver, default_dialect, default_id);
-    if (frame.standalone()) {
-      return;
-    }
+  } else {
+    // We don't attempt to bundle on dialects where we
+    // don't know where to put the embedded schemas
+    throw sourcemeta::core::SchemaError(
+        "Could not determine how to perform bundling in this dialect");
   }
-
-  // We don't attempt to bundle on dialects where we
-  // don't know where to put the embedded schemas
-  throw sourcemeta::core::SchemaError(
-      "Could not determine how to perform bundling in this dialect");
 }
 
 auto bundle(const sourcemeta::core::JSON &schema, const SchemaWalker &walker,

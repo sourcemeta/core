@@ -6,6 +6,8 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
+#include <iostream> // TODO DEBUG
+
 static auto test_resolver(std::string_view identifier)
     -> std::optional<sourcemeta::core::JSON> {
   if (identifier == "https://example.com/foo/bar") {
@@ -265,10 +267,27 @@ TEST(JSONSchema_bundle_2020_12, anchor_not_found) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaReferenceError);
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+  "$id": "https://example.com",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "foo": {
+      "$ref": "https://example.com/foo/bar#xxxxxxxx"
+    }
+  },
+  "$defs": {
+    "https://example.com/foo/bar": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/foo/bar",
+      "$anchor": "baz"
+    }
+  }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }
 
 TEST(JSONSchema_bundle_2020_12, idempotency) {

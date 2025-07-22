@@ -23,9 +23,13 @@ dependencies_impl(std::unordered_set<sourcemeta::core::JSON::String> &traversed,
   }
 
   for (const auto &[key, reference] : frame.references()) {
-    // TODO: Have an option to omit references from `$schema`, as when bundling
-    // it DOES NOT make sense to bundle meta-schemas, as we need to know about
-    // the meta-schema to parse the rest of the schema
+    // We don't care about official meta-schemas
+    if (key.second.back().to_property() == "$schema" &&
+        sourcemeta::core::schema_official_resolver(reference.destination)
+            .has_value()) {
+      continue;
+    }
+
     if (!frame.traverse(reference.destination).has_value() &&
         reference.base.has_value()) {
       // TODO: Avoid even considering official schemas? Otherwise the consumer
