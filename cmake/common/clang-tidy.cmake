@@ -98,7 +98,8 @@ function(sourcemeta_clang_tidy_attempt_enable)
         NO_DEFAULT_PATH
         PATHS "${PROJECT_BINARY_DIR}/bin"
         REQUIRED)
-    set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.config")
+
+    set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.json")
     execute_process(COMMAND xcrun --show-sdk-path
         OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
