@@ -212,25 +212,23 @@ auto URI::parse() -> void {
     // URNs and tags have a single path segment by definition
     if (this->is_urn() || this->is_tag()) {
       const auto part{uri_text_range(&segment->text)};
-      if (part) {
-        path << part.value();
-      }
+      assert(part.has_value());
+      path << part.value();
     } else {
       bool first{true};
       while (segment) {
         const auto part{uri_text_range(&segment->text)};
-        if (part) {
-          const auto value{part.value()};
+        assert(part.has_value());
+        const auto value{part.value()};
 
-          if (first) {
-            path << value;
-          } else {
-            path << "/" << value;
-          }
-
-          segment = segment->next;
-          first = false;
+        if (first) {
+          path << value;
+        } else {
+          path << "/" << value;
         }
+
+        segment = segment->next;
+        first = false;
       }
     }
     this->path_ = path.str();
