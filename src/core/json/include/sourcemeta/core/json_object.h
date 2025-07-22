@@ -91,9 +91,7 @@ public:
 
     for (const auto &entry : this->data) {
       const auto *result{other.try_at(entry.first, entry.hash)};
-      if (!result) {
-        return false;
-      } else if (*result != entry.second) {
+      if (!result || *result != entry.second) {
         return false;
       }
     }
