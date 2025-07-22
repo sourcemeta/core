@@ -9,7 +9,7 @@ namespace {
 auto embed_schema(sourcemeta::core::JSON &root,
                   const sourcemeta::core::Pointer &container,
                   const std::string &identifier,
-                  sourcemeta::core::JSON &&target) -> void {
+                  sourcemeta::core::JSON &&target) -> std::string {
   auto *current{&root};
   for (const auto &token : container) {
     if (token.is_property()) {
@@ -35,6 +35,7 @@ auto embed_schema(sourcemeta::core::JSON &root,
   }
 
   current->assign(key.str(), std::move(target));
+  return key.str();
 }
 
 auto is_official_metaschema_reference(const sourcemeta::core::Pointer &pointer,
@@ -54,6 +55,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    const std::optional<std::string> &default_dialect,
                    const std::optional<std::string> &default_id,
                    const sourcemeta::core::SchemaFrame::Paths &paths,
+                   const sourcemeta::core::BundleCallback &callback,
                    const std::size_t depth = 0) -> void {
   // Keep in mind that the resulting frame does miss some information. For
   // example, when we recurse to framing embedded schemas, we will frame them
@@ -133,8 +135,17 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     }
 
     bundle_schema(root, container, remote.value(), frame, walker, resolver,
-                  default_dialect, identifier, paths, depth + 1);
-    embed_schema(root, container, identifier, std::move(remote).value());
+                  default_dialect, identifier, paths, callback, depth + 1);
+    auto embed_key{
+        embed_schema(root, container, identifier, std::move(remote).value())};
+
+    if (callback) {
+      const auto origin{sourcemeta::core::identify(
+          subschema, resolver,
+          sourcemeta::core::SchemaIdentificationStrategy::Strict,
+          default_dialect, default_id)};
+      callback(origin, key.second, identifier, container.concat({embed_key}));
+    }
   }
 }
 
@@ -147,14 +158,15 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_dialect,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
-            const SchemaFrame::Paths &paths) -> void {
+            const SchemaFrame::Paths &paths, const BundleCallback &callback)
+    -> void {
   SchemaFrame frame{SchemaFrame::Mode::References};
 
   if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
     bundle_schema(schema, default_container.value(), schema, frame, walker,
-                  resolver, default_dialect, default_id, paths);
+                  resolver, default_dialect, default_id, paths, callback);
     return;
   }
 
@@ -165,7 +177,7 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
       vocabularies.contains(
           "https://json-schema.org/draft/2019-09/vocab/core")) {
     bundle_schema(schema, {"$defs"}, schema, frame, walker, resolver,
-                  default_dialect, default_id, paths);
+                  default_dialect, default_id, paths, callback);
     return;
   } else if (vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
              vocabularies.contains(
@@ -177,7 +189,7 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
              vocabularies.contains(
                  "http://json-schema.org/draft-04/hyper-schema#")) {
     bundle_schema(schema, {"definitions"}, schema, frame, walker, resolver,
-                  default_dialect, default_id, paths);
+                  default_dialect, default_id, paths, callback);
     return;
   } else if (vocabularies.contains(
                  "http://json-schema.org/draft-03/hyper-schema#") ||
@@ -208,10 +220,11 @@ auto bundle(const JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_dialect,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
-            const SchemaFrame::Paths &paths) -> JSON {
+            const SchemaFrame::Paths &paths, const BundleCallback &callback)
+    -> JSON {
   JSON copy = schema;
   bundle(copy, walker, resolver, default_dialect, default_id, default_container,
-         paths);
+         paths, callback);
   return copy;
 }
 
