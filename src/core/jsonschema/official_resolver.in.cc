@@ -10,6 +10,7 @@ auto sourcemeta::core::schema_official_resolver(std::string_view identifier)
         R"EOF(@METASCHEMA_JSONSCHEMA_2020_12@)EOF");
   } else if (identifier ==
                  "https://json-schema.org/draft/2020-12/hyper-schema" ||
+             // Just for compatibility given that this is such a common issue
              identifier ==
                  "https://json-schema.org/draft/2020-12/hyper-schema#") {
     return sourcemeta::core::parse_json(
@@ -64,6 +65,7 @@ auto sourcemeta::core::schema_official_resolver(std::string_view identifier)
         R"EOF(@METASCHEMA_JSONSCHEMA_2019_09@)EOF");
   } else if (identifier ==
                  "https://json-schema.org/draft/2019-09/hyper-schema" ||
+             // Just for compatibility given that this is such a common issue
              identifier ==
                  "https://json-schema.org/draft/2019-09/hyper-schema#") {
     return sourcemeta::core::parse_json(
