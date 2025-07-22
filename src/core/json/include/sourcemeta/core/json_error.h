@@ -25,10 +25,12 @@ namespace sourcemeta::core {
 class SOURCEMETA_CORE_JSON_EXPORT JSONParseError : public std::exception {
 public:
   /// Create a parsing error
+  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
   JSONParseError(const std::uint64_t line, const std::uint64_t column)
       : line_{line}, column_{column} {}
 
   /// Create a parsing error with a custom error
+  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
   JSONParseError(const std::uint64_t line, const std::uint64_t column,
                  std::string message)
       : line_{line}, column_{column}, message_{std::move(message)} {}
