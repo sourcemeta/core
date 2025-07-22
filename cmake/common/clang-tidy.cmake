@@ -105,10 +105,9 @@ function(sourcemeta_clang_tidy_attempt_enable)
         OUTPUT_VARIABLE MACOSX_RESOURCE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(SOURCEMETA_CXX_CLANG_TIDY
         "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
-        "--extra-arg=-std=c++${CMAKE_CXX_STANDARD}"
         "--extra-arg=-isysroot"
         "--extra-arg=${MACOSX_SDK_PATH}"
-        "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}" 
+        "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}"
         CACHE STRING "CXX_CLANG_TIDY")
   endif()
 

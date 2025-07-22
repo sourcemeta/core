@@ -43,8 +43,9 @@ TEST(JSON_auto, object_hash) {
   const auto result{sourcemeta::core::to_json(value)};
   EXPECT_TRUE(result.is_array());
   EXPECT_FALSE(result.empty());
-  const auto back{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(result)};
+  const auto back{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
 }
@@ -286,6 +287,16 @@ TEST(JSON_auto, unordered_set_without_iterators) {
   EXPECT_EQ(value, back.value());
 }
 
+TEST(JSON_auto, unsigned_long_long) {
+  const unsigned long long value{15};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{15}};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<unsigned long long>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
 TEST(JSON_auto, pair) {
   const std::pair<std::string, std::size_t> value{"foo", 1};
   const auto result{sourcemeta::core::to_json(value)};
@@ -395,8 +406,9 @@ TEST(JSON_auto, from_json_invalid_integer) {
 
 TEST(JSON_auto, from_json_invalid_hash_1) {
   const sourcemeta::core::JSON document{true};
-  const auto result{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(document)};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          document)};
   EXPECT_FALSE(result.has_value());
 }
 
@@ -405,8 +417,9 @@ TEST(JSON_auto, from_json_invalid_hash_2) {
     "foo", "bar", "baz"
   ])JSON")};
 
-  const auto result{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(document)};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          document)};
   EXPECT_FALSE(result.has_value());
 }
 
@@ -415,8 +428,9 @@ TEST(JSON_auto, from_json_invalid_hash_3) {
     "foo", "bar", "baz", "qux"
   ])JSON")};
 
-  const auto result{sourcemeta::core::from_json<
-      sourcemeta::core::JSON::Object::Container::hash_type>(document)};
+  const auto result{
+      sourcemeta::core::from_json<sourcemeta::core::JSON::Object::hash_type>(
+          document)};
   EXPECT_FALSE(result.has_value());
 }
 
