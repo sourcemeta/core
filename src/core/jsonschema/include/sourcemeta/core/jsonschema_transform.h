@@ -10,10 +10,10 @@
 
 #include <sourcemeta/core/jsonschema_resolver.h>
 
+#include <algorithm>   // std::ranges
 #include <cassert>     // assert
 #include <concepts>    // std::derived_from
 #include <functional>  // std::function
-#include <map>         // std::map
 #include <memory>      // std::make_unique, std::unique_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <set>         // std::set
@@ -206,13 +206,17 @@ public:
   auto operator=(SchemaTransformer &&) -> SchemaTransformer & = default;
 #endif
 
-  /// Add a rule to the bundle
+  /// Add a rule to the bundle. Note that evaluation ordering is determined
+  /// by the ordering of the inserts
   template <std::derived_from<SchemaTransformRule> T, typename... Args>
   auto add(Args &&...args) -> void {
     auto rule{std::make_unique<T>(std::forward<Args>(args)...)};
     // Rules must only be defined once
-    assert(!this->rules.contains(rule->name()));
-    this->rules.emplace(rule->name(), std::move(rule));
+    assert(std::ranges::none_of(this->rules, [&rule](const auto &entry) {
+      return entry->name() == rule->name();
+    }));
+
+    this->rules.emplace_back(std::move(rule));
   }
 
   /// Remove a rule from the bundle
@@ -254,7 +258,7 @@ private:
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251)
 #endif
-  std::map<std::string, std::unique_ptr<SchemaTransformRule>> rules;
+  std::vector<std::unique_ptr<SchemaTransformRule>> rules;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

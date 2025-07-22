@@ -115,7 +115,7 @@ auto SchemaTransformer::check(
     const auto &current{get(schema, entry.second.pointer)};
     const auto current_vocabularies{
         vocabularies(schema, resolver, entry.second.dialect)};
-    for (const auto &[name, rule] : this->rules) {
+    for (const auto &rule : this->rules) {
       const auto outcome{rule->check(current, schema, current_vocabularies,
                                      walker, resolver, frame, entry.second)};
       switch (outcome.index()) {
@@ -123,14 +123,14 @@ auto SchemaTransformer::check(
           assert(std::holds_alternative<bool>(outcome));
           if (*std::get_if<bool>(&outcome)) {
             result = false;
-            callback(entry.second.pointer, name, rule->message(), "");
+            callback(entry.second.pointer, rule->name(), rule->message(), "");
           }
 
           break;
         default:
           assert(std::holds_alternative<std::string>(outcome));
           result = false;
-          callback(entry.second.pointer, name, rule->message(),
+          callback(entry.second.pointer, rule->name(), rule->message(),
                    *std::get_if<std::string>(&outcome));
           break;
       }
@@ -164,7 +164,7 @@ auto SchemaTransformer::apply(
       auto &current{get(schema, entry.second.pointer)};
       const auto current_vocabularies{
           vocabularies(schema, resolver, entry.second.dialect)};
-      for (const auto &[name, rule] : this->rules) {
+      for (const auto &rule : this->rules) {
         const auto subresult{rule->apply(current, schema, current_vocabularies,
                                          walker, resolver, frame,
                                          entry.second)};
@@ -173,7 +173,7 @@ auto SchemaTransformer::apply(
           applied = is_true(subresult.second) || applied;
         } else {
           result = false;
-          callback(entry.second.pointer, name, rule->message(),
+          callback(entry.second.pointer, rule->name(), rule->message(),
                    subresult.second.index() == 0
                        ? ""
                        : *std::get_if<std::string>(&subresult.second));
@@ -183,11 +183,11 @@ auto SchemaTransformer::apply(
           continue;
         }
 
-        if (processed_rules.contains({entry.second.pointer, name})) {
+        if (processed_rules.contains({entry.second.pointer, rule->name()})) {
           // TODO: Throw a better custom error that also highlights the schema
           // location
           std::ostringstream error;
-          error << "Rules must only be processed once: " << name;
+          error << "Rules must only be processed once: " << rule->name();
           throw std::runtime_error(error.str());
         }
 
@@ -221,7 +221,7 @@ auto SchemaTransformer::apply(
           set(schema, reference.first.second, JSON{original.recompose()});
         }
 
-        processed_rules.emplace(entry.second.pointer, name);
+        processed_rules.emplace(entry.second.pointer, rule->name());
         goto core_transformer_start_again;
       }
     }
@@ -236,7 +236,10 @@ auto SchemaTransformer::apply(
 }
 
 auto SchemaTransformer::remove(const std::string &name) -> bool {
-  return this->rules.erase(name) > 0;
+  const auto size{this->rules.size()};
+  std::erase_if(this->rules,
+                [&name](const auto &entry) { return entry->name() == name; });
+  return this->rules.size() != size;
 }
 
 } // namespace sourcemeta::core

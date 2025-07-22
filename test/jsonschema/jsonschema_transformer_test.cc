@@ -1198,7 +1198,7 @@ TEST(JSONSchema_transformer, iterators) {
 
   std::set<std::string> rules;
   for (const auto &entry : bundle) {
-    rules.insert(entry.first);
+    rules.insert(entry->name());
   }
 
   EXPECT_EQ(rules.size(), 3);

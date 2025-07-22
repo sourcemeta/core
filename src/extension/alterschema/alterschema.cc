@@ -91,11 +91,11 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<ContentSchemaWithoutMediaType>();
   bundle.add<DraftOfficialDialectWithoutEmptyFragment>();
   bundle.add<NonApplicableTypeSpecificKeywords>();
+  bundle.add<DuplicateAllOfBranches>();
+  bundle.add<DuplicateAnyOfBranches>();
   bundle.add<UnnecessaryAllOfWrapperModern>();
   bundle.add<UnnecessaryAllOfWrapperDraft>();
   bundle.add<UnnecessaryAllOfWrapperProperties>();
-  bundle.add<DuplicateAllOfBranches>();
-  bundle.add<DuplicateAnyOfBranches>();
   bundle.add<ElseWithoutIf>();
   bundle.add<IfWithoutThenElse>();
   bundle.add<MaxContainsWithoutContains>();
