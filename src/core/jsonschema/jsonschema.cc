@@ -624,10 +624,11 @@ auto sourcemeta::core::reference_visit(
       }
 
       assert(property.second.is_string());
-      assert(walker_result.vocabulary.has_value());
-      sourcemeta::core::URI reference{property.second.to_string()};
-      callback(subschema, base, walker_result.vocabulary.value(),
-               property.first, reference);
+      if (walker_result.vocabulary) {
+        sourcemeta::core::URI reference{property.second.to_string()};
+        callback(subschema, base, walker_result.vocabulary.value(),
+                 property.first, reference);
+      }
     }
   }
 }
@@ -685,7 +686,9 @@ auto sourcemeta::core::unidentify(
     }
 
     assert(entry.base_dialect.has_value());
-    sourcemeta::core::anonymize(subschema, entry.base_dialect.value());
+    if (entry.base_dialect) {
+      sourcemeta::core::anonymize(subschema, entry.base_dialect.value());
+    }
 
     if (entry.vocabularies.contains(
             "https://json-schema.org/draft/2020-12/vocab/core")) {
