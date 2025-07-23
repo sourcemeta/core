@@ -536,6 +536,7 @@ public:
   ///   sourcemeta::core::Pointer{"qux", "baz"});
   /// ```
   [[nodiscard]] auto
+  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
   rebase(const GenericPointer<PropertyT, Hash> &prefix,
          const GenericPointer<PropertyT, Hash> &replacement) const
       -> GenericPointer<PropertyT, Hash> {
