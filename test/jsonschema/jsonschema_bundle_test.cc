@@ -60,6 +60,80 @@ static auto test_resolver(std::string_view identifier)
   }
 }
 
+TEST(JSONSchema_bundle, multiple_refs) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-3"
+      },
+      "bar": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
+    }
+  })JSON");
+
+  std::vector<std::tuple<
+      std::optional<sourcemeta::core::JSON::String>, sourcemeta::core::Pointer,
+      sourcemeta::core::JSON::String, sourcemeta::core::Pointer>>
+      traces;
+  sourcemeta::core::bundle(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      std::nullopt, std::nullopt, std::nullopt,
+      {sourcemeta::core::empty_pointer},
+      [&traces](const std::optional<sourcemeta::core::JSON::String> &origin,
+                const sourcemeta::core::Pointer &pointer,
+                const sourcemeta::core::JSON::String &target,
+                const sourcemeta::core::Pointer &key) {
+        traces.emplace_back(origin, pointer, target, key);
+      });
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/test-3"
+      },
+      "bar": {
+        "$ref": "https://www.sourcemeta.com/test-1"
+      }
+    },
+    "$defs": {
+      "https://www.sourcemeta.com/test-4": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://www.sourcemeta.com/test-4",
+        "type": "string"
+      },
+      "https://www.sourcemeta.com/test-3": {
+        "$schema": "http://json-schema.org/draft-06/schema#",
+        "$id": "https://www.sourcemeta.com/test-3",
+        "allOf": [ { "$ref": "test-4" } ]
+      },
+      "https://www.sourcemeta.com/test-1": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://www.sourcemeta.com/test-1",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+
+  EXPECT_EQ(traces.size(), 3);
+
+  EXPECT_TRACE(traces, 0, "https://www.example.com", "/properties/bar/$ref",
+               "https://www.sourcemeta.com/test-1",
+               "/$defs/https:~1~1www.sourcemeta.com~1test-1");
+  EXPECT_TRACE(traces, 1, "https://www.sourcemeta.com/test-3", "/allOf/0/$ref",
+               "https://www.sourcemeta.com/test-4",
+               "/$defs/https:~1~1www.sourcemeta.com~1test-4");
+  EXPECT_TRACE(traces, 2, "https://www.example.com", "/properties/foo/$ref",
+               "https://www.sourcemeta.com/test-3",
+               "/$defs/https:~1~1www.sourcemeta.com~1test-3");
+}
+
 TEST(JSONSchema_bundle, across_dialects) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.example.com",

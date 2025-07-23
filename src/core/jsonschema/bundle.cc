@@ -57,25 +57,19 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    const sourcemeta::core::SchemaFrame::Paths &paths,
                    const sourcemeta::core::BundleCallback &callback,
                    const std::size_t depth = 0) -> void {
-  // Keep in mind that the resulting frame does miss some information. For
-  // example, when we recurse to framing embedded schemas, we will frame them
-  // without keeping their new relationship to their parent (after embedding if
-  // to the container location). However, that's fine for the purpose of this
-  // function, given we don't pass the frame back to the caller
+  sourcemeta::core::SchemaFrame subframe{
+      sourcemeta::core::SchemaFrame::Mode::References};
   if (depth == 0) {
-    frame.analyse(
-        subschema, walker, resolver, default_dialect, default_id,
-        // We only want to frame in "wrapper" mode for the top level object
-        paths);
+    frame.analyse(subschema, walker, resolver, default_dialect, default_id,
+                  paths);
+    subframe.analyse(subschema, walker, resolver, default_dialect, default_id,
+                     paths);
   } else {
     frame.analyse(subschema, walker, resolver, default_dialect, default_id);
+    subframe.analyse(subschema, walker, resolver, default_dialect, default_id);
   }
 
-  // Otherwise, given recursion, we would be modifying the
-  // references list *while* looping on it
-  // TODO: How can we avoid this very expensive copy?
-  const auto references_copy = frame.references();
-  for (const auto &[key, reference] : references_copy) {
+  for (const auto &[key, reference] : subframe.references()) {
     if (frame.traverse(reference.destination).has_value() ||
 
         // We don't want to bundle official schemas, as we can expect
@@ -139,6 +133,9 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     auto embed_key{
         embed_schema(root, container, identifier, std::move(remote).value())};
 
+    // TODO: Instead of having a bundle callback, extract the dependency
+    // tracking information into its own public function and turn `.bundle()`
+    // into a dummy function that just takes a set of identifiers to embed
     if (callback) {
       const auto origin{sourcemeta::core::identify(
           subschema, resolver,
@@ -160,11 +157,10 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
             const std::optional<Pointer> &default_container,
             const SchemaFrame::Paths &paths, const BundleCallback &callback)
     -> void {
-  SchemaFrame frame{SchemaFrame::Mode::References};
-
   if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
+    SchemaFrame frame{SchemaFrame::Mode::Locations};
     bundle_schema(schema, default_container.value(), schema, frame, walker,
                   resolver, default_dialect, default_id, paths, callback);
     return;
@@ -176,7 +172,13 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
           "https://json-schema.org/draft/2020-12/vocab/core") ||
       vocabularies.contains(
           "https://json-schema.org/draft/2019-09/vocab/core")) {
+    SchemaFrame frame{SchemaFrame::Mode::Locations};
     bundle_schema(schema, {"$defs"}, schema, frame, walker, resolver,
+                  default_dialect, default_id, paths, callback);
+    // TODO: Why do we need to do a final round just to check that everything
+    // adds up?
+    SchemaFrame subframe{SchemaFrame::Mode::Locations};
+    bundle_schema(schema, {"$defs"}, schema, subframe, walker, resolver,
                   default_dialect, default_id, paths, callback);
     return;
   } else if (vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
@@ -188,31 +190,27 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
              vocabularies.contains("http://json-schema.org/draft-04/schema#") ||
              vocabularies.contains(
                  "http://json-schema.org/draft-04/hyper-schema#")) {
+    SchemaFrame frame{SchemaFrame::Mode::Locations};
     bundle_schema(schema, {"definitions"}, schema, frame, walker, resolver,
                   default_dialect, default_id, paths, callback);
+    // TODO: Why do we need to do a final round just to check that everything
+    // adds up?
+    SchemaFrame subframe{SchemaFrame::Mode::Locations};
+    bundle_schema(schema, {"definitions"}, schema, subframe, walker, resolver,
+                  default_dialect, default_id, paths, callback);
     return;
-  } else if (vocabularies.contains(
-                 "http://json-schema.org/draft-03/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-03/schema#") ||
-             vocabularies.contains(
-                 "http://json-schema.org/draft-02/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-02/schema#") ||
-             vocabularies.contains(
-                 "http://json-schema.org/draft-01/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-01/schema#") ||
-             vocabularies.contains(
-                 "http://json-schema.org/draft-00/hyper-schema#") ||
-             vocabularies.contains("http://json-schema.org/draft-00/schema#")) {
-    frame.analyse(schema, walker, resolver, default_dialect, default_id);
+  } else {
+    SchemaFrame frame{SchemaFrame::Mode::References};
+    frame.analyse(schema, walker, resolver, default_dialect, default_id, paths);
     if (frame.standalone()) {
       return;
     }
-  }
 
-  // We don't attempt to bundle on dialects where we
-  // don't know where to put the embedded schemas
-  throw SchemaError(
-      "Could not determine how to perform bundling in this dialect");
+    // We don't attempt to bundle on dialects where we
+    // don't know where to put the embedded schemas
+    throw SchemaError(
+        "Could not determine how to perform bundling in this dialect");
+  }
 }
 
 auto bundle(const JSON &schema, const SchemaWalker &walker,
