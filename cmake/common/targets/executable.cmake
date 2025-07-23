@@ -30,5 +30,26 @@ function(sourcemeta_executable)
 
   add_executable("${TARGET_NAME}" ${SOURCEMETA_EXECUTABLE_SOURCES})
   sourcemeta_add_default_options(PRIVATE ${TARGET_NAME})
+
+  # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+  if(SOURCEMETA_COMPILER_LLVM)
+    target_compile_options(${TARGET_NAME} PRIVATE
+      $<$<CONFIG:Release>:-fPIE>
+      $<$<CONFIG:RelWithDebInfo>:-fPIE>)
+  elseif(SOURCEMETA_COMPILER_GCC)
+    target_compile_options(${TARGET_NAME} PRIVATE
+      $<$<CONFIG:Release>:-fPIE -pie>
+      $<$<CONFIG:RelWithDebInfo>:-fPIE -pie>)
+    if(NOT APPLE)
+      target_link_options(${TARGET_NAME} PRIVATE
+        "LINKER:-z,nodlopen"
+        "LINKER:-z,noexecstack"
+        "LINKER:-z,relro"
+        "LINKER:-z,now"
+        "LINKER:--as-needed"
+        "LINKER:--no-copy-dt-needed-entries")
+    endif()
+  endif()
+
   set_target_properties("${TARGET_NAME}" PROPERTIES FOLDER "${FOLDER_NAME}")
 endfunction()
