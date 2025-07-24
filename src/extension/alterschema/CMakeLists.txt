@@ -63,7 +63,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/then_empty.h
     linter/else_empty.h
     linter/then_without_if.h
-    linter/property_names_type_default.h)
+    linter/property_names_type_default.h
+    linter/property_names_default.h)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME alterschema)

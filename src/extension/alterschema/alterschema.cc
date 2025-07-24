@@ -69,6 +69,7 @@ contains_any(const Vocabularies &container,
 #include "linter/non_applicable_type_specific_keywords.h"
 #include "linter/pattern_properties_default.h"
 #include "linter/properties_default.h"
+#include "linter/property_names_default.h"
 #include "linter/property_names_type_default.h"
 #include "linter/single_type_array.h"
 #include "linter/then_empty.h"
@@ -148,6 +149,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
       bundle.add<MultipleOfDefault>();
       bundle.add<PatternPropertiesDefault>();
       bundle.add<PropertiesDefault>();
+      bundle.add<PropertyNamesDefault>();
       bundle.add<PropertyNamesTypeDefault>();
       bundle.add<UnevaluatedItemsDefault>();
       bundle.add<UnevaluatedPropertiesDefault>();
