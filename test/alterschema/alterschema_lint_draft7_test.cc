@@ -1273,10 +1273,7 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_properties_1) {
     },
     "allOf": [
       {
-        "$ref": "https://example.com",
-        "properties": {
-          "bar": { "pattern": "^f" }
-        }
+        "$ref": "https://example.com"
       }
     ]
   })JSON");
@@ -1630,8 +1627,7 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "#/definitions/foo",
-    "description": "A string field"
+    "$ref": "#/definitions/foo"
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1653,11 +1649,7 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_3) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "#/definitions/foo",
-    "title": "Test Schema",
-    "$comment": "This is a comment",
-    "examples": [42],
-    "default": null
+    "$ref": "#/definitions/foo"
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1666,16 +1658,42 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_3) {
 TEST(AlterSchema_lint_draft7, draft_ref_siblings_no_change) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "#/definitions/foo",
-    "description": "Documentation only"
+    "$ref": "#/definitions/foo"
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "#/definitions/foo",
-    "description": "Documentation only"
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, draft_ref_siblings_nested) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo",
+        "type": "string",
+        "description": "ignored sibling"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo"
+      }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

@@ -1,10 +1,9 @@
 class DraftRefSiblings final : public SchemaTransformRule {
 public:
   DraftRefSiblings()
-      : SchemaTransformRule{
-            "draft_ref_siblings",
-            "The official dialect URI of Draft 7 and older must not contain "
-            "other keywords as only $ref is evaluated"} {}
+      : SchemaTransformRule{"draft_ref_siblings",
+                            "In Draft 7 and older dialects, keywords sibling "
+                            "to $ref are never evaluated"} {}
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
@@ -12,7 +11,7 @@ public:
             const sourcemeta::core::Vocabularies &vocabularies,
             const sourcemeta::core::SchemaFrame &,
             const sourcemeta::core::SchemaFrame::Location &,
-            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaWalker &walker,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
     if (!contains_any(vocabularies,
@@ -30,23 +29,59 @@ public:
       return false;
     }
 
-    for (const auto &entry : schema.as_object()) {
-      const auto &key = entry.first;
+    // Determine which keywords to preserve
+    std::set<std::string> preserve_keywords{"$ref"};
 
-      if (key == "$ref" || key == "$schema" || key == "title" ||
-          key == "description" || key == "examples" || key == "$comment" ||
-          key == "default" || key == "properties") {
-        continue;
+    // If at top-level (has $schema), also preserve schema identifiers
+    if (schema.defines("$schema")) {
+      preserve_keywords.insert("$schema");
+
+      // Use walker to check if 'id' is a valid keyword for this dialect
+      if (schema.defines("id")) {
+        const auto id_metadata = walker("id", vocabularies);
+        // If the walker recognizes 'id' as a valid keyword, preserve it
+        if (id_metadata.vocabulary.has_value()) {
+          preserve_keywords.insert("id");
+        }
       }
 
-      return true;
+      // Use walker to check if '$id' is a valid keyword for this dialect
+      if (schema.defines("$id")) {
+        const auto id_metadata = walker("$id", vocabularies);
+        // If the walker recognizes '$id' as a valid keyword, preserve it
+        if (id_metadata.vocabulary.has_value()) {
+          preserve_keywords.insert("$id");
+        }
+      }
+    }
+
+    // Check if we have any siblings that should be removed
+    for (const auto &entry : schema.as_object()) {
+      const auto &key = entry.first;
+      if (preserve_keywords.find(key) == preserve_keywords.end()) {
+        return true;
+      }
     }
 
     return false;
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
-    schema.clear_except({"$ref", "$schema", "title", "description", "examples",
-                         "$comment", "default", "properties"});
+  auto transform(JSON &schema) const -> void override {
+    std::set<std::string> preserve_keywords{"$ref"};
+
+    // If at top-level (has $schema), also preserve schema identifiers
+    if (schema.defines("$schema")) {
+      preserve_keywords.insert("$schema");
+
+      // Preserve the appropriate identifier based on what's present
+      if (schema.defines("id")) {
+        preserve_keywords.insert("id");
+      }
+      if (schema.defines("$id")) {
+        preserve_keywords.insert("$id");
+      }
+    }
+
+    schema.clear_except(preserve_keywords.cbegin(), preserve_keywords.cend());
   }
 };
