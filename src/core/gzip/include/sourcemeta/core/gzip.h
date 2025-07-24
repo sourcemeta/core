@@ -5,6 +5,7 @@
 #include <sourcemeta/core/gzip_export.h>
 #endif
 
+#include <istream>     // std::istream
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -34,6 +35,26 @@ namespace sourcemeta::core {
 /// assert(!result.value().empty());
 /// ```
 SOURCEMETA_CORE_GZIP_EXPORT auto gzip(std::string_view input)
+    -> std::optional<std::string>;
+
+/// @ingroup gzip
+///
+/// Decompress an input stream into a sequence of bytes represented using a
+/// string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/gzip.h>
+/// #include <cassert>
+/// #include <sstream>
+///
+/// const auto input{sourcemeta::core::gzip("Hello World")};
+/// assert(input.has_value());
+/// std::istringstream stream{input.value()};
+/// const auto result{sourcemeta::core::gunzip(stream)};
+/// assert(result.has_value());
+/// assert(result.value() == "Hello World");
+/// ```
+SOURCEMETA_CORE_GZIP_EXPORT auto gunzip(std::istream &stream)
     -> std::optional<std::string>;
 
 } // namespace sourcemeta::core
