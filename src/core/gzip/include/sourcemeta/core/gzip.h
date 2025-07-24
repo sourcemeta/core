@@ -5,8 +5,11 @@
 #include <sourcemeta/core/gzip_export.h>
 #endif
 
+// NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/gzip_error.h>
+// NOLINTEND(misc-include-cleaner)
+
 #include <istream>     // std::istream
-#include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -31,11 +34,9 @@ namespace sourcemeta::core {
 /// #include <cassert>
 ///
 /// const auto result{sourcemeta::core::gzip("Hello World")};
-/// assert(result.has_value());
-/// assert(!result.value().empty());
+/// assert(!result.empty());
 /// ```
-SOURCEMETA_CORE_GZIP_EXPORT auto gzip(std::string_view input)
-    -> std::optional<std::string>;
+SOURCEMETA_CORE_GZIP_EXPORT auto gzip(std::string_view input) -> std::string;
 
 /// @ingroup gzip
 ///
@@ -48,14 +49,11 @@ SOURCEMETA_CORE_GZIP_EXPORT auto gzip(std::string_view input)
 /// #include <sstream>
 ///
 /// const auto input{sourcemeta::core::gzip("Hello World")};
-/// assert(input.has_value());
-/// std::istringstream stream{input.value()};
+/// std::istringstream stream{input};
 /// const auto result{sourcemeta::core::gunzip(stream)};
-/// assert(result.has_value());
-/// assert(result.value() == "Hello World");
+/// assert(result == "Hello World");
 /// ```
-SOURCEMETA_CORE_GZIP_EXPORT auto gunzip(std::istream &stream)
-    -> std::optional<std::string>;
+SOURCEMETA_CORE_GZIP_EXPORT auto gunzip(std::istream &stream) -> std::string;
 
 } // namespace sourcemeta::core
 
