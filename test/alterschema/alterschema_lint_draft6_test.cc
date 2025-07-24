@@ -1339,13 +1339,29 @@ TEST(AlterSchema_lint_draft6, draft_ref_siblings_2) {
 TEST(AlterSchema_lint_draft6, draft_ref_siblings_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://example.com/schema",
     "$ref": "#/definitions/foo",
-    "title": "Test Schema",
-    "$comment": "This is a comment",
-    "examples": [42],
-    "default": null,
-    "type": "object",
-    "required": ["name"]
+    "type": "string",
+    "minLength": 5,
+    "description": "Documentation"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://example.com/schema",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, draft_ref_siblings_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/foo",
+    "description": "Documentation only"
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
@@ -1358,18 +1374,39 @@ TEST(AlterSchema_lint_draft6, draft_ref_siblings_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, draft_ref_siblings_no_change) {
+TEST(AlterSchema_lint_draft6, draft_ref_siblings_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "#/definitions/foo",
-    "description": "Documentation only"
+    "$ref": "#/definitions/foo"
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
     "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, draft_ref_siblings_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/bar",
+        "type": "object",
+        "description": "Nested schema with $ref"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/bar"
+      }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

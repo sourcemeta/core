@@ -1636,29 +1636,31 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_2) {
 TEST(AlterSchema_lint_draft7, draft_ref_siblings_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/schema",
     "$ref": "#/definitions/foo",
-    "title": "Test Schema",
+    "if": { "type": "string" },
+    "then": { "minLength": 1 },
     "$comment": "This is a comment",
     "examples": [42],
-    "default": null,
-    "type": "object",
-    "required": ["name"]
+    "type": "object"
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/schema",
     "$ref": "#/definitions/foo"
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, draft_ref_siblings_no_change) {
+TEST(AlterSchema_lint_draft7, draft_ref_siblings_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$ref": "#/definitions/foo"
+    "$ref": "#/definitions/foo",
+    "description": "Documentation only"
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
@@ -1671,7 +1673,21 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_no_change) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft7, draft_ref_siblings_nested) {
+TEST(AlterSchema_lint_draft7, draft_ref_siblings_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, draft_ref_siblings_6) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",

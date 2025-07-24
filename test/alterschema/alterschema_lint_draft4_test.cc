@@ -1099,26 +1099,53 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_2) {
 TEST(AlterSchema_lint_draft4, draft_ref_siblings_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/schema",
     "$ref": "#/definitions/foo",
-    "title": "Test Schema",
-    "$comment": "This is a comment",
-    "examples": [42],
-    "default": null,
-    "type": "object",
-    "required": ["name"]
+    "type": "string",
+    "minLength": 5,
+    "description": "Documentation"
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/schema",
     "$ref": "#/definitions/foo"
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, draft_ref_siblings_no_change) {
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo",
+        "type": "string",
+        "description": "ignored sibling"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "$ref": "#/definitions/foo",
@@ -1135,7 +1162,21 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_no_change) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, draft_ref_siblings_with_id) {
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_6) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://example.com/schema",
@@ -1150,6 +1191,34 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_with_id) {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://example.com/schema",
     "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo",
+        "type": "string",
+        "description": "ignored sibling"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo"
+      }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
