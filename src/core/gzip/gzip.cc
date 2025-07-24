@@ -12,13 +12,13 @@ namespace sourcemeta::core {
 
 constexpr auto ZLIB_BUFFER_SIZE{4096};
 
-auto gzip(std::string_view input) -> std::optional<std::string> {
+auto gzip(std::string_view input) -> std::string {
   z_stream stream;
   std::memset(&stream, 0, sizeof(stream));
   auto code = deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
                            16 + MAX_WBITS, 8, Z_DEFAULT_STRATEGY);
   if (code != Z_OK) {
-    return std::nullopt;
+    throw GZIPError("Could not compress input");
   }
 
   stream.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(input.data()));
@@ -36,21 +36,21 @@ auto gzip(std::string_view input) -> std::optional<std::string> {
   } while (code == Z_OK);
 
   if (code != Z_STREAM_END) {
-    return std::nullopt;
+    throw GZIPError("Could not compress input");
   }
 
   code = deflateEnd(&stream);
   if (code != Z_OK) {
-    return std::nullopt;
+    throw GZIPError("Could not compress input");
   }
 
   return compressed.str();
 }
 
-auto gunzip(std::istream &stream) -> std::optional<std::string> {
+auto gunzip(std::istream &stream) -> std::string {
   z_stream zstream{};
   if (inflateInit2(&zstream, 16 + MAX_WBITS) != Z_OK) {
-    return std::nullopt;
+    throw GZIPError("Could not decompress input");
   }
 
   std::string decompressed;
@@ -78,7 +78,7 @@ auto gunzip(std::istream &stream) -> std::optional<std::string> {
     code = inflate(&zstream, Z_NO_FLUSH);
     if (code == Z_NEED_DICT || code == Z_DATA_ERROR || code == Z_MEM_ERROR) {
       inflateEnd(&zstream);
-      return std::nullopt;
+      throw GZIPError("Could not decompress input");
     } else {
       decompressed.append(buffer_output.data(),
                           buffer_output.size() - zstream.avail_out);
@@ -87,7 +87,7 @@ auto gunzip(std::istream &stream) -> std::optional<std::string> {
 
   inflateEnd(&zstream);
   if (code != Z_STREAM_END) {
-    return std::nullopt;
+    throw GZIPError("Could not decompress input");
   }
 
   return decompressed;
