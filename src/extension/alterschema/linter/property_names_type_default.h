@@ -3,7 +3,7 @@ public:
   PropertyNamesTypeDefault()
       : SchemaTransformRule{
             "property_names_type_default",
-            "Setting the `type` keyword to `\"string\"` inside "
+            "Setting the `type` keyword to `string` inside "
             "`propertyNames` does not add any further constraint"} {};
 
   [[nodiscard]] auto
@@ -27,10 +27,12 @@ public:
            ((schema.at("propertyNames").at("type").is_string() &&
              schema.at("propertyNames").at("type").to_string() == "string") ||
             (schema.at("propertyNames").at("type").is_array() &&
-             schema.at("propertyNames").at("type").size() == 1 &&
-             schema.at("propertyNames").at("type").front().is_string() &&
-             schema.at("propertyNames").at("type").front().to_string() ==
-                 "string"));
+             std::all_of(
+                 schema.at("propertyNames").at("type").as_array().begin(),
+                 schema.at("propertyNames").at("type").as_array().end(),
+                 [](const auto &item) {
+                   return item.is_string() && item.to_string() == "string";
+                 })));
   }
 
   auto transform(JSON &schema) const -> void override {
