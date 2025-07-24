@@ -1,15 +1,110 @@
 #include <sourcemeta/core/jsonschema.h>
 
-#include <cassert> // assert
-#include <sstream> // std::ostringstream
-#include <utility> // std::move
+#include <cassert>       // assert
+#include <functional>    // std::reference_wrapper
+#include <sstream>       // std::ostringstream
+#include <tuple>         // std::tuple
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
+#include <vector>        // std::vector
 
 namespace {
+
+auto is_official_metaschema_reference(const sourcemeta::core::Pointer &pointer,
+                                      const std::string &destination) -> bool {
+  assert(!pointer.empty());
+  assert(pointer.back().is_property());
+  return pointer.back().to_property() == "$schema" &&
+         sourcemeta::core::schema_official_resolver(destination).has_value();
+}
+
+auto dependencies_internal(
+    const sourcemeta::core::JSON &schema,
+    const sourcemeta::core::SchemaWalker &walker,
+    const sourcemeta::core::SchemaResolver &resolver,
+    const sourcemeta::core::DependencyCallback &callback,
+    const std::optional<std::string> &default_dialect,
+    const std::optional<std::string> &default_id,
+    const sourcemeta::core::SchemaFrame::Paths &paths,
+    std::unordered_set<sourcemeta::core::JSON::String> &visited) -> void {
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(schema, walker, resolver, default_dialect, default_id, paths);
+  const auto origin{sourcemeta::core::identify(
+      schema, resolver, sourcemeta::core::SchemaIdentificationStrategy::Strict,
+      default_dialect, default_id)};
+
+  std::vector<
+      std::tuple<sourcemeta::core::JSON,
+                 std::reference_wrapper<const sourcemeta::core::JSON::String>>>
+      found;
+
+  for (const auto &[key, reference] : frame.references()) {
+    if (frame.traverse(reference.destination).has_value() ||
+
+        // We don't want to report official schemas, as we can expect
+        // virtually all implementations to understand them out of the box
+        is_official_metaschema_reference(key.second, reference.destination)) {
+      continue;
+    }
+
+    if (!reference.base.has_value()) {
+      throw sourcemeta::core::SchemaReferenceError(
+          reference.destination, key.second,
+          "Could not resolve schema reference");
+    }
+
+    // To not infinitely loop on circular references
+    if (visited.contains(reference.base.value())) {
+      continue;
+    }
+
+    // If we can't find the destination but there is a base and we can
+    // find the base, then we are facing an unresolved fragment
+    if (frame.traverse(reference.base.value()).has_value()) {
+      throw sourcemeta::core::SchemaReferenceError(
+          reference.destination, key.second,
+          "Could not resolve schema reference");
+    }
+
+    assert(reference.base.has_value());
+    const auto &identifier{reference.base.value()};
+    auto remote{resolver(identifier)};
+    if (!remote.has_value()) {
+      throw sourcemeta::core::SchemaResolutionError(
+          identifier, "Could not resolve the reference to an external schema");
+    }
+
+    if (!sourcemeta::core::is_schema(remote.value())) {
+      throw sourcemeta::core::SchemaReferenceError(
+          identifier, key.second,
+          "The JSON document is not a valid JSON Schema");
+    }
+
+    const auto base_dialect{sourcemeta::core::base_dialect(
+        remote.value(), resolver, default_dialect)};
+    if (!base_dialect.has_value()) {
+      throw sourcemeta::core::SchemaReferenceError(
+          identifier, key.second,
+          "The JSON document is not a valid JSON Schema");
+    }
+
+    callback(origin, key.second, identifier, remote.value());
+    found.emplace_back(std::move(remote).value(), identifier);
+    visited.emplace(identifier);
+  }
+
+  for (const auto &entry : found) {
+    dependencies_internal(std::get<0>(entry), walker, resolver, callback,
+                          default_dialect, std::get<1>(entry).get(),
+                          {sourcemeta::core::empty_pointer}, visited);
+  }
+}
 
 auto embed_schema(sourcemeta::core::JSON &root,
                   const sourcemeta::core::Pointer &container,
                   const std::string &identifier,
-                  const sourcemeta::core::JSON &target) -> void {
+                  sourcemeta::core::JSON &&target) -> void {
   auto *current{&root};
   for (const auto &token : container) {
     if (token.is_property()) {
@@ -34,14 +129,7 @@ auto embed_schema(sourcemeta::core::JSON &root,
     key << "/x";
   }
 
-  current->assign(key.str(), target);
-}
-
-auto is_official_metaschema_reference(const sourcemeta::core::Pointer &pointer,
-                                      const std::string &destination) -> bool {
-  return !pointer.empty() && pointer.back().is_property() &&
-         pointer.back().to_property() == "$schema" &&
-         sourcemeta::core::schema_official_resolver(destination).has_value();
+  current->assign(key.str(), std::move(target));
 }
 
 auto bundle_schema(sourcemeta::core::JSON &root,
@@ -65,12 +153,12 @@ auto bundle_schema(sourcemeta::core::JSON &root,
         // We only want to frame in "wrapper" mode for the top level object
         paths);
   } else {
-    // Note that we only apply the default identifier to the top-level frame
-    frame.analyse(subschema, walker, resolver, default_dialect);
+    frame.analyse(subschema, walker, resolver, default_dialect, default_id);
   }
 
   // Otherwise, given recursion, we would be modifying the
   // references list *while* looping on it
+  // TODO: How can we avoid this very expensive copy?
   const auto references_copy = frame.references();
   for (const auto &[key, reference] : references_copy) {
     if (frame.traverse(reference.destination).has_value() ||
@@ -97,8 +185,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     }
 
     assert(reference.base.has_value());
-    const auto identifier{reference.base.value()};
-    const auto remote{resolver(identifier)};
+    const auto &identifier{reference.base.value()};
+    auto remote{resolver(identifier)};
     if (!remote.has_value()) {
       if (frame.traverse(identifier).has_value()) {
         throw sourcemeta::core::SchemaReferenceError(
@@ -110,32 +198,30 @@ auto bundle_schema(sourcemeta::core::JSON &root,
           identifier, "Could not resolve the reference to an external schema");
     }
 
-    // Otherwise, if the target schema does not declare an inline identifier,
-    // references to that identifier from the outer schema won't resolve.
-    sourcemeta::core::JSON copy{remote.value()};
-
-    if (!sourcemeta::core::is_schema(copy)) {
+    if (!sourcemeta::core::is_schema(remote.value())) {
       throw sourcemeta::core::SchemaReferenceError(
           identifier, key.second,
           "The JSON document is not a valid JSON Schema");
     }
 
-    const auto dialect{sourcemeta::core::dialect(copy, default_dialect)};
-    if (!dialect.has_value()) {
+    const auto base_dialect{sourcemeta::core::base_dialect(
+        remote.value(), resolver, default_dialect)};
+    if (!base_dialect.has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
           identifier, key.second,
           "The JSON document is not a valid JSON Schema");
     }
 
-    if (copy.is_object()) {
+    if (remote.value().is_object()) {
       // Always insert an identifier, as a schema might refer to another schema
       // using another URI (i.e. due to relying on HTTP re-directions, etc)
-      sourcemeta::core::reidentify(copy, identifier, resolver, default_dialect);
+      sourcemeta::core::reidentify(remote.value(), identifier,
+                                   base_dialect.value());
     }
 
-    embed_schema(root, container, identifier, copy);
-    bundle_schema(root, container, copy, frame, walker, resolver,
-                  default_dialect, default_id, paths, depth + 1);
+    bundle_schema(root, container, remote.value(), frame, walker, resolver,
+                  default_dialect, identifier, paths, depth + 1);
+    embed_schema(root, container, identifier, std::move(remote).value());
   }
 }
 
@@ -143,14 +229,26 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
 namespace sourcemeta::core {
 
-auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
+auto dependencies(const JSON &schema, const SchemaWalker &walker,
+                  const SchemaResolver &resolver,
+                  const DependencyCallback &callback,
+                  const std::optional<std::string> &default_dialect,
+                  const std::optional<std::string> &default_id,
+                  const SchemaFrame::Paths &paths) -> void {
+  std::unordered_set<sourcemeta::core::JSON::String> visited;
+  dependencies_internal(schema, walker, resolver, callback, default_dialect,
+                        default_id, paths, visited);
+}
+
+// TODO: Refactor this function to internally rely on the `.dependencies()`
+// function
+auto bundle(JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
             const std::optional<std::string> &default_dialect,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
             const SchemaFrame::Paths &paths) -> void {
-  sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References};
+  SchemaFrame frame{SchemaFrame::Mode::References};
 
   if (default_container.has_value()) {
     // This is undefined behavior
@@ -201,17 +299,17 @@ auto bundle(sourcemeta::core::JSON &schema, const SchemaWalker &walker,
 
   // We don't attempt to bundle on dialects where we
   // don't know where to put the embedded schemas
-  throw sourcemeta::core::SchemaError(
+  throw SchemaError(
       "Could not determine how to perform bundling in this dialect");
 }
 
-auto bundle(const sourcemeta::core::JSON &schema, const SchemaWalker &walker,
+auto bundle(const JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
             const std::optional<std::string> &default_dialect,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
-            const SchemaFrame::Paths &paths) -> sourcemeta::core::JSON {
-  sourcemeta::core::JSON copy = schema;
+            const SchemaFrame::Paths &paths) -> JSON {
+  JSON copy = schema;
   bundle(copy, walker, resolver, default_dialect, default_id, default_container,
          paths);
   return copy;
