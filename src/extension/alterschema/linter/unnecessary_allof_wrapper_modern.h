@@ -28,6 +28,12 @@ public:
 
     for (const auto &entry : schema.at("allOf").as_array()) {
       if (entry.is_object()) {
+        // TODO: Check vocabularies
+        if (entry.defines("type") && schema.defines("type") &&
+            entry.at("type") != schema.at("type")) {
+          continue;
+        }
+
         for (const auto &subentry : entry.as_object()) {
           if (!schema.defines(subentry.first)) {
             return true;

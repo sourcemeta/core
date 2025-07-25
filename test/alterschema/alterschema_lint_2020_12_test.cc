@@ -676,6 +676,30 @@ TEST(AlterSchema_lint_2020_12, duplicate_allof_branches_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, duplicate_allof_branches_2) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "type": "number" },
+      { "type": "string" },
+      { "type": "number" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "number",
+    "multipleOf": 1,
+    "allOf": [
+      { "type": "string", "minLength": 0 }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12, duplicate_anyof_branches_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",

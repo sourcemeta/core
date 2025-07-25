@@ -1,6 +1,7 @@
 #include <sourcemeta/core/alterschema.h>
 
 #include <cassert> // assert
+#include <iostream>
 
 // For built-in rules
 #include <algorithm>
