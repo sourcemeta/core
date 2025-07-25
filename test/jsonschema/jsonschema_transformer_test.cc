@@ -1206,3 +1206,29 @@ TEST(JSONSchema_transformer, iterators) {
   EXPECT_TRUE(rules.contains("example_rule_2"));
   EXPECT_TRUE(rules.contains("example_rule_3"));
 }
+
+TEST(JSONSchema_transformer, multiple_times_same_index_different_value) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleRemoveFooArrayFront>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": [ 1, 2, 3 ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const bool result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": []
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

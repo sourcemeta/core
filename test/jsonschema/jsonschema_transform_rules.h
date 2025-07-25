@@ -338,4 +338,29 @@ public:
   }
 };
 
+class ExampleRuleRemoveFooArrayFront final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleRemoveFooArrayFront()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_remove_foo_array_front",
+            "Remove the first item of the foo array") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    return schema.is_object() && schema.defines("foo") &&
+           schema.at("foo").is_array() && !schema.at("foo").empty();
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.at("foo").erase(schema.at("foo").as_array().begin());
+  }
+};
+
 #endif
