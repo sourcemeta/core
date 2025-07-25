@@ -147,7 +147,7 @@ auto SchemaTransformer::apply(
     const std::optional<JSON::String> &default_id) const -> bool {
   // There is no point in applying an empty bundle
   assert(!this->rules.empty());
-  std::set<std::pair<Pointer, JSON::String>> processed_rules;
+  std::set<std::pair<const JSON *, const JSON::String *>> processed_rules;
 
   bool result{true};
   while (true) {
@@ -183,7 +183,8 @@ auto SchemaTransformer::apply(
           continue;
         }
 
-        if (processed_rules.contains({entry.second.pointer, name})) {
+        std::pair<const JSON *, const JSON::String *> mark{&current, &name};
+        if (processed_rules.contains(mark)) {
           // TODO: Throw a better custom error that also highlights the schema
           // location
           std::ostringstream error;
@@ -221,7 +222,7 @@ auto SchemaTransformer::apply(
           set(schema, reference.first.second, JSON{original.recompose()});
         }
 
-        processed_rules.emplace(entry.second.pointer, name);
+        processed_rules.emplace(std::move(mark));
         goto core_transformer_start_again;
       }
     }
