@@ -29,59 +29,50 @@ public:
       return false;
     }
 
-    // Determine which keywords to preserve
-    std::set<std::string> preserve_keywords{"$ref"};
+    // Clear and populate the preserve_keywords set
+    this->preserve_keywords.clear();
+    this->preserve_keywords.insert("$ref");
 
-    // If at top-level (has $schema), also preserve schema identifiers
+    // For top-level schemas, also preserve $schema and appropriate identifier
     if (schema.defines("$schema")) {
-      preserve_keywords.insert("$schema");
+      this->preserve_keywords.insert("$schema");
 
-      // Use walker to check if 'id' is a valid keyword for this dialect
+      // Use walker to check which identifier is valid for this dialect
       if (schema.defines("id")) {
-        const auto id_metadata = walker("id", vocabularies);
-        // If the walker recognizes 'id' as a valid keyword, preserve it
-        if (id_metadata.vocabulary.has_value()) {
-          preserve_keywords.insert("id");
+        const auto metadata = walker("id", vocabularies);
+        if (metadata.vocabulary.has_value() &&
+            metadata.type != sourcemeta::core::SchemaKeywordType::Unknown) {
+          this->preserve_keywords.insert("id");
         }
       }
 
-      // Use walker to check if '$id' is a valid keyword for this dialect
       if (schema.defines("$id")) {
-        const auto id_metadata = walker("$id", vocabularies);
-        // If the walker recognizes '$id' as a valid keyword, preserve it
-        if (id_metadata.vocabulary.has_value()) {
-          preserve_keywords.insert("$id");
+        const auto metadata = walker("$id", vocabularies);
+        if (metadata.vocabulary.has_value() &&
+            metadata.type != sourcemeta::core::SchemaKeywordType::Unknown) {
+          this->preserve_keywords.insert("$id");
         }
       }
     }
 
-    // Check if we have any siblings that should be removed
+    // Check if we have any siblings to $ref that should be removed
+    bool has_removable_siblings = false;
     for (const auto &entry : schema.as_object()) {
       const auto &key = entry.first;
-      if (preserve_keywords.find(key) == preserve_keywords.end()) {
-        return true;
+      if (this->preserve_keywords.find(key) == this->preserve_keywords.end()) {
+        has_removable_siblings = true;
+        break;
       }
     }
 
-    return false;
+    return has_removable_siblings;
   }
 
   auto transform(JSON &schema) const -> void override {
-    std::set<std::string> preserve_keywords{"$ref"};
-
-    // If at top-level (has $schema), also preserve schema identifiers
-    if (schema.defines("$schema")) {
-      preserve_keywords.insert("$schema");
-
-      // Preserve the appropriate identifier based on what's present
-      if (schema.defines("id")) {
-        preserve_keywords.insert("id");
-      }
-      if (schema.defines("$id")) {
-        preserve_keywords.insert("$id");
-      }
-    }
-
-    schema.clear_except(preserve_keywords.cbegin(), preserve_keywords.cend());
+    schema.clear_except(this->preserve_keywords.cbegin(),
+                        this->preserve_keywords.cend());
   }
+
+private:
+  mutable std::unordered_set<std::string> preserve_keywords;
 };
