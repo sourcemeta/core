@@ -31,27 +31,17 @@ public:
 
     // Clear and populate the preserve_keywords set
     this->preserve_keywords.clear();
-    this->preserve_keywords.insert("$ref");
 
-    // For top-level schemas, also preserve $schema and appropriate identifier
-    if (schema.defines("$schema")) {
-      this->preserve_keywords.insert("$schema");
+    // Loop over the object properties in schema
+    for (const auto &entry : schema.as_object()) {
+      const auto &key = entry.first;
 
-      // Use walker to check which identifier is valid for this dialect
-      if (schema.defines("id")) {
-        const auto metadata = walker("id", vocabularies);
-        if (metadata.vocabulary.has_value() &&
-            metadata.type != sourcemeta::core::SchemaKeywordType::Unknown) {
-          this->preserve_keywords.insert("id");
-        }
-      }
-
-      if (schema.defines("$id")) {
-        const auto metadata = walker("$id", vocabularies);
-        if (metadata.vocabulary.has_value() &&
-            metadata.type != sourcemeta::core::SchemaKeywordType::Unknown) {
-          this->preserve_keywords.insert("$id");
-        }
+      // Run the walker and only add to preserve_keywords the keywords whose
+      // type is Other or Reference
+      const auto metadata = walker(key, vocabularies);
+      if (metadata.type == sourcemeta::core::SchemaKeywordType::Other ||
+          metadata.type == sourcemeta::core::SchemaKeywordType::Reference) {
+        this->preserve_keywords.insert(key);
       }
     }
 
