@@ -1793,7 +1793,7 @@ TEST(AlterSchema_lint_2020_12, min_items_given_min_contains_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_1) {
+TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "integer",
@@ -1811,7 +1811,7 @@ TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_2) {
+TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "integer",
@@ -1823,7 +1823,7 @@ TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "enum": [ 3 ]
+    "const": 3
   })JSON");
 
   EXPECT_EQ(document, expected);
