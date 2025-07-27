@@ -14,6 +14,7 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
           const sourcemeta::core::JSON &subschema,
           const sourcemeta::core::SchemaWalker &walker,
           const sourcemeta::core::SchemaResolver &resolver,
+          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
           const std::string &dialect, const std::string &base_dialect,
           const SchemaWalkerType_t type, const std::size_t level,
           const bool orphan) -> void {

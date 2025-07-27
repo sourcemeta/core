@@ -217,6 +217,7 @@ auto matches(const Regex<T> &regex, const T &value) -> bool {
 /// assert(sourcemeta::core::matches_if_valid("^foo", "foo bar"));
 /// ```
 template <typename T>
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 auto matches_if_valid(const T &pattern, const T &value) -> bool {
   const auto regex{to_regex(pattern)};
   return regex.has_value() && matches(regex.value(), value);
