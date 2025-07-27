@@ -2294,3 +2294,55 @@ TEST(AlterSchema_lint_2019_09, property_names_default_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2019_09, required_properties_default_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "required": [ "a", "b" ],
+    "properties": {
+      "a": { "type": "string" },
+      "b": { "type": "number" },
+      "c": { "type": "boolean" }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "required": [ "a", "b" ],
+    "properties": {
+      "a": { "type": "string" },
+      "b": { "type": "number" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, required_properties_default_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "required": [ "name" ],
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "integer" },
+      "email": { "type": "string" },
+      "active": { "type": "boolean" }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "required": [ "name" ],
+    "properties": {
+      "name": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
