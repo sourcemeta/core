@@ -2,6 +2,7 @@
   "Checks": "-*,
     bugprone-*,
     -bugprone-easily-swappable-parameters,
+    -bugprone-unchecked-optional-access,
     concurrency-*,
     cppcoreguidelines-*,
     -cppcoreguidelines-avoid-magic-numbers,
