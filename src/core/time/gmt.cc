@@ -18,7 +18,7 @@ namespace sourcemeta::core {
 
 auto to_gmt(const std::chrono::system_clock::time_point time) -> std::string {
   const std::time_t ctime = std::chrono::system_clock::to_time_t(time);
-  std::tm buffer;
+  std::tm buffer{};
 #if defined(_MSC_VER)
   if (gmtime_s(&buffer, &ctime) != 0) {
     throw std::runtime_error("Could not convert time point to GMT");

@@ -30,7 +30,7 @@ auto md5(std::string_view input, std::ostream &output) -> void {
   br_md5_context context;
   br_md5_init(&context);
   br_md5_update(&context, input.data(), input.size());
-  std::array<unsigned char, br_md5_SIZE> hash;
+  std::array<unsigned char, br_md5_SIZE> hash{};
   br_md5_out(&context, hash.data());
   std::string_view buffer{reinterpret_cast<const char *>(hash.data()),
                           br_md5_SIZE};

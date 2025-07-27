@@ -19,8 +19,8 @@ auto gzip(std::istream &input, std::ostream &output) -> void {
     throw GZIPError{"Could not compress input"};
   }
 
-  std::array<char, ZLIB_BUFFER_SIZE> buffer_input;
-  std::array<char, ZLIB_BUFFER_SIZE> buffer_output;
+  std::array<char, ZLIB_BUFFER_SIZE> buffer_input{};
+  std::array<char, ZLIB_BUFFER_SIZE> buffer_output{};
   bool reached_end_of_input{false};
   auto code{Z_OK};
 
@@ -68,8 +68,8 @@ auto gunzip(std::istream &input, std::ostream &output) -> void {
     throw GZIPError("Could not decompress input");
   }
 
-  std::array<char, ZLIB_BUFFER_SIZE> buffer_input;
-  std::array<char, ZLIB_BUFFER_SIZE> buffer_output;
+  std::array<char, ZLIB_BUFFER_SIZE> buffer_input{};
+  std::array<char, ZLIB_BUFFER_SIZE> buffer_output{};
 
   auto code{Z_OK};
   while (code != Z_STREAM_END) {
