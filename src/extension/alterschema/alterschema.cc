@@ -53,6 +53,7 @@ contains_any(const Vocabularies &container,
 #include "linter/else_empty.h"
 #include "linter/else_without_if.h"
 #include "linter/enum_to_const.h"
+#include "linter/enum_validation_keywords_default.h"
 #include "linter/enum_with_type.h"
 #include "linter/equal_numeric_bounds_to_enum.h"
 #include "linter/exclusive_maximum_number_and_maximum.h"
@@ -112,6 +113,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<MinimumRealForInteger>();
   bundle.add<SingleTypeArray>();
   bundle.add<EnumWithType>();
+  bundle.add<EnumValidationKeywordsDefault>();
   bundle.add<DuplicateEnumValues>();
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();
