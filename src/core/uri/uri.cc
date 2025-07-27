@@ -213,12 +213,14 @@ auto URI::parse() -> void {
     if (this->is_urn() || this->is_tag()) {
       const auto part{uri_text_range(&segment->text)};
       assert(part.has_value());
+      // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
       path << part.value();
     } else {
       bool first{true};
       while (segment) {
         const auto part{uri_text_range(&segment->text)};
         assert(part.has_value());
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         const auto value{part.value()};
 
         if (first) {
