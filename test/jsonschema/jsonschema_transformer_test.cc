@@ -469,12 +469,14 @@ TEST(JSONSchema_transformer, check_top_level) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
+  const auto result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
                    transformer_callback_trace(entries));
 
-  EXPECT_FALSE(result);
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
   EXPECT_EQ(entries.size(), 2);
 
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
@@ -504,13 +506,53 @@ TEST(JSONSchema_transformer, check_no_match) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
+  const auto result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
                    transformer_callback_trace(entries));
 
-  EXPECT_TRUE(result);
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+
   EXPECT_TRUE(entries.empty());
+}
+
+TEST(JSONSchema_transformer, check_partial_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "type": "string"
+      },
+      "bar": {
+        "type": "string",
+        "foo": 1
+      },
+      "baz": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 75);
+
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)),
+            sourcemeta::core::Pointer({"properties", "bar"}));
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)), "");
 }
 
 TEST(JSONSchema_transformer, check_empty) {
@@ -521,12 +563,14 @@ TEST(JSONSchema_transformer, check_empty) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
+  const auto result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
                    transformer_callback_trace(entries));
 
-  EXPECT_TRUE(result);
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+
   EXPECT_TRUE(entries.empty());
 }
 
@@ -563,13 +607,15 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
+  const auto result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
                    transformer_callback_trace(entries),
                    "https://json-schema.org/draft/2020-12/schema");
 
-  EXPECT_FALSE(result);
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
   EXPECT_EQ(entries.size(), 2);
 
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
@@ -701,12 +747,12 @@ TEST(JSONSchema_transformer, unfixable_check) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
+  const auto result =
       bundle.check(document, sourcemeta::core::schema_official_walker,
                    sourcemeta::core::schema_official_resolver,
                    transformer_callback_trace(entries));
 
-  EXPECT_FALSE(result);
+  EXPECT_FALSE(result.first);
   EXPECT_EQ(entries.size(), 1);
 
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});

@@ -91,9 +91,7 @@ public:
 
     for (const auto &entry : this->data) {
       const auto *result{other.try_at(entry.first, entry.hash)};
-      if (!result) {
-        return false;
-      } else if (*result != entry.second) {
+      if (!result || *result != entry.second) {
         return false;
       }
     }
@@ -185,8 +183,7 @@ public:
   [[nodiscard]] inline auto empty() const -> bool { return this->data.empty(); }
 
   /// Access an object entry by its underlying positional index
-  [[nodiscard]] inline auto at(const size_type index) const noexcept
-      -> const Entry & {
+  [[nodiscard]] inline auto at(const size_type index) const -> const Entry & {
     return this->data.at(index);
   }
 
