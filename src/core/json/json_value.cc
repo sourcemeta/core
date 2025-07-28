@@ -800,6 +800,7 @@ auto JSON::assign(const JSON::String &key, const JSON &value) -> void {
   this->data_object.emplace(key, value);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
 auto JSON::assign(const JSON::String &key, JSON &&value) -> void {
   assert(this->is_object());
   this->data_object.emplace(key, value);
