@@ -1,7 +1,8 @@
 {
-  "Checks": "-*,
+"Checks": "-*,
     bugprone-*,-bugprone-easily-swappable-parameters,
     concurrency-*,
+    cppcoreguidelines-avoid-const-or-ref-data-members,
     modernize-*,
     performance-*,
     portability-*",
