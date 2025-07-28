@@ -1,6 +1,5 @@
 {
-  "Checks": "-*, bugprone-*, -bugprone-easily-swappable-parameters,-bugprone-unchecked-optional-access, concurrency-*, cppcoreguidelines-rvalue-reference-param-not-moved,
- modernize-*, performance-*, portability-*",
+  "Checks": "-*, bugprone-*, -bugprone-easily-swappable-parameters,-bugprone-unchecked-optional-access, concurrency-*, cppcoreguidelines-rvalue-reference-param-not-moved,cppcoreguidelines-avoid-const-or-ref-data-members, modernize-*, performance-*, portability-*",
   "WarningsAsErrors": "*",
   "FormatStyle": "none",
   "UseColor": true
