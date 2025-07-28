@@ -1,4 +1,5 @@
 // See https://pyyaml.org/wiki/LibYAML for basic documentation
+#include <span>
 #include <yaml.h>
 
 #include <sourcemeta/core/io.h>
@@ -52,9 +53,10 @@ auto yaml_node_to_json(yaml_node_t *const node, yaml_document_t *const document)
 
     case YAML_SEQUENCE_NODE: {
       auto result{sourcemeta::core::JSON::make_array()};
-      for (yaml_node_item_t *item = node->data.sequence.items.start;
-           item < node->data.sequence.items.top; ++item) {
-        yaml_node_t *const child = yaml_document_get_node(document, *item);
+      auto item_span = std::span<yaml_node_item_t>(
+          node->data.sequence.items.start, node->data.sequence.items.top);
+      for (auto item : item_span) {
+        const auto child = yaml_document_get_node(document, item);
         result.push_back(yaml_node_to_json(child, document));
       }
 
@@ -63,12 +65,11 @@ auto yaml_node_to_json(yaml_node_t *const node, yaml_document_t *const document)
 
     case YAML_MAPPING_NODE: {
       auto result{sourcemeta::core::JSON::make_object()};
-      for (yaml_node_pair_t *pair = node->data.mapping.pairs.start;
-           pair < node->data.mapping.pairs.top; ++pair) {
-        yaml_node_t *const key_node =
-            yaml_document_get_node(document, pair->key);
-        yaml_node_t *const value_node =
-            yaml_document_get_node(document, pair->value);
+      auto pair_span = std::span<yaml_node_pair_t>(
+          node->data.mapping.pairs.start, node->data.mapping.pairs.top);
+      for (auto pair : pair_span) {
+        const auto key_node = yaml_document_get_node(document, pair.key);
+        const auto value_node = yaml_document_get_node(document, pair.value);
         if (key_node && key_node->type == YAML_SCALAR_NODE) {
           result.assign(reinterpret_cast<char *>(key_node->data.scalar.value),
                         yaml_node_to_json(value_node, document));
