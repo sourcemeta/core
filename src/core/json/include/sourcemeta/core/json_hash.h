@@ -52,6 +52,7 @@ template <typename T> struct PropertyHashJSON {
     hash_type result;
     assert(!value.empty());
     // Copy starting a byte 2
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     std::memcpy(reinterpret_cast<char *>(&result) + 1, value.data(), size);
     return result;
   }
