@@ -1819,7 +1819,7 @@ TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_2) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",

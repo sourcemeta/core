@@ -33,9 +33,7 @@ public:
   }
 
   auto transform(JSON &schema) const -> void override {
-    sourcemeta::core::JSON values = sourcemeta::core::JSON::make_array();
-    values.push_back(schema.at("minimum"));
-    schema.assign("const", std::move(values));
+    schema.assign("const", schema.at("minimum"));
     schema.erase("type");
     schema.erase("minimum");
     schema.erase("maximum");
