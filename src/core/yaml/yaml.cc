@@ -1,11 +1,11 @@
 // See https://pyyaml.org/wiki/LibYAML for basic documentation
-#include <span>
 #include <yaml.h>
 
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/yaml.h>
 
+#include <span>        // std::span
 #include <sstream>     // std::ostringstream, std::istringstream
 #include <string_view> // std::string_view
 
