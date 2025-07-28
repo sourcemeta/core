@@ -31,6 +31,7 @@ public:
 
     // Clear and populate the preserve_keywords set
     this->preserve_keywords.clear();
+    bool has_removable_siblings = false;
 
     // Loop over the object properties in schema
     for (const auto &entry : schema.as_object()) {
@@ -42,16 +43,8 @@ public:
       if (metadata.type == sourcemeta::core::SchemaKeywordType::Other ||
           metadata.type == sourcemeta::core::SchemaKeywordType::Reference) {
         this->preserve_keywords.insert(key);
-      }
-    }
-
-    // Check if we have any siblings to $ref that should be removed
-    bool has_removable_siblings = false;
-    for (const auto &entry : schema.as_object()) {
-      const auto &key = entry.first;
-      if (this->preserve_keywords.find(key) == this->preserve_keywords.end()) {
+      } else {
         has_removable_siblings = true;
-        break;
       }
     }
 
