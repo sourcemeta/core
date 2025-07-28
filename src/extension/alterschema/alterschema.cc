@@ -71,6 +71,7 @@ contains_any(const Vocabularies &container,
 #include "linter/properties_default.h"
 #include "linter/property_names_default.h"
 #include "linter/property_names_type_default.h"
+#include "linter/required_properties_default.h"
 #include "linter/single_type_array.h"
 #include "linter/then_empty.h"
 #include "linter/then_without_if.h"
@@ -114,6 +115,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<EnumWithType>();
   bundle.add<DuplicateEnumValues>();
   bundle.add<DuplicateRequiredValues>();
+  bundle.add<RequiredPropertiesDefault>();
   bundle.add<ConstWithType>();
   bundle.add<AdditionalItemsWithSchemaItems>();
   bundle.add<ModernOfficialDialectWithEmptyFragment>();
