@@ -46,6 +46,7 @@ contains_any(const Vocabularies &container,
 #include "linter/dependent_required_default.h"
 #include "linter/dependent_required_tautology.h"
 #include "linter/draft_official_dialect_without_empty_fragment.h"
+#include "linter/draft_ref_siblings.h"
 #include "linter/duplicate_allof_branches.h"
 #include "linter/duplicate_anyof_branches.h"
 #include "linter/duplicate_enum_values.h"
@@ -119,6 +120,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<ModernOfficialDialectWithEmptyFragment>();
   bundle.add<ExclusiveMaximumNumberAndMaximum>();
   bundle.add<ExclusiveMinimumNumberAndMinimum>();
+  bundle.add<DraftRefSiblings>();
 
   switch (mode) {
     case AlterSchemaMode::StaticAnalysis:
