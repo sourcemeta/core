@@ -321,7 +321,7 @@ public:
       }
     }
 
-    this->data.push_back({key, value, key_hash});
+    this->data.push_back({std::move(key), value, key_hash});
     return key_hash;
   }
 

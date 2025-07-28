@@ -257,8 +257,9 @@ public:
     }
 
     this->reserve(this->data.size() + other.size());
-    std::move(other.data.begin(), other.data.end(),
+    std::move(other.data.begin(), std::move(other).data.end(),
               std::back_inserter(this->data));
+    return;
   }
 
   /// Push a JSON Pointer into the back of a JSON WeakPointer. Make sure that
