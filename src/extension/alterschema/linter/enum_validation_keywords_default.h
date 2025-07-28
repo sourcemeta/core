@@ -36,36 +36,20 @@ public:
 
     std::set<sourcemeta::core::JSON::Type> enum_types;
     for (const auto &value : schema.at("enum").as_array()) {
-      if (value.is_null()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::Null);
-      } else if (value.is_boolean()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::Boolean);
-      } else if (value.is_integer()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::Integer);
-      } else if (value.is_real()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::Real);
-      } else if (value.is_string()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::String);
-      } else if (value.is_array()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::Array);
-      } else if (value.is_object()) {
-        enum_types.emplace(sourcemeta::core::JSON::Type::Object);
-      }
+      enum_types.emplace(value.type());
     }
 
     if (enum_types.empty()) {
       return false;
     }
 
-    // Build blacklist of keywords that don't apply to any enum value types
     this->blacklist.clear();
     for (const auto &entry : schema.as_object()) {
-      if (entry.first == "enum" || entry.first == "$schema" ||
-          entry.first == "$id" || entry.first == "$ref") {
+      const auto metadata = walker(entry.first, vocabularies);
+      if (metadata.type == sourcemeta::core::SchemaKeywordType::Other ||
+          metadata.type == sourcemeta::core::SchemaKeywordType::Reference) {
         continue;
       }
-
-      const auto metadata = walker(entry.first, vocabularies);
 
       // If keyword applies to any type, we can't determine type applicability
       if (metadata.instances.empty()) {
@@ -74,10 +58,10 @@ public:
 
       // If none of the types that the keyword applies to match the enum types,
       // then this keyword is redundant and can be removed
-      if (std::ranges::none_of(metadata.instances,
-                               [&enum_types](const auto keyword_type) {
-                                 return enum_types.contains(keyword_type);
-                               })) {
+      if (std::none_of(metadata.instances.cbegin(), metadata.instances.cend(),
+                       [&enum_types](const auto keyword_type) {
+                         return enum_types.contains(keyword_type);
+                       })) {
         this->blacklist.emplace_back(entry.first);
       }
     }
