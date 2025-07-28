@@ -626,6 +626,7 @@ auto sourcemeta::core::reference_visit(
       assert(property.second.is_string());
       assert(walker_result.vocabulary.has_value());
       sourcemeta::core::URI reference{property.second.to_string()};
+      // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
       callback(subschema, base, walker_result.vocabulary.value(),
                property.first, reference);
     }
@@ -685,6 +686,7 @@ auto sourcemeta::core::unidentify(
     }
 
     assert(entry.base_dialect.has_value());
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
     sourcemeta::core::anonymize(subschema, entry.base_dialect.value());
 
     if (entry.vocabularies.contains(

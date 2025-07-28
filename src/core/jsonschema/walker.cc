@@ -42,6 +42,7 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       sourcemeta::core::SchemaIdentificationStrategy::Strict,
       maybe_current_dialect)};
   const auto is_schema_resource{level == 0 || id.has_value()};
+  // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
   const auto current_dialect{is_schema_resource ? maybe_current_dialect.value()
                                                 : dialect};
   const auto current_base_dialect{
@@ -422,6 +423,7 @@ sourcemeta::core::SchemaIterator::SchemaIterator(
     assert(base_dialect.has_value());
     walk(std::nullopt, pointer, instance_location, instance_location,
          this->subschemas, schema, walker, resolver, dialect.value(),
+         // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
          base_dialect.value(), SchemaWalkerType_t::Deep, 0, false);
   }
 }
@@ -441,6 +443,7 @@ sourcemeta::core::SchemaIteratorFlat::SchemaIteratorFlat(
     assert(base_dialect.has_value());
     walk(std::nullopt, pointer, instance_location, instance_location,
          this->subschemas, schema, walker, resolver, dialect.value(),
+         // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
          base_dialect.value(), SchemaWalkerType_t::Flat, 0, false);
   }
 }
