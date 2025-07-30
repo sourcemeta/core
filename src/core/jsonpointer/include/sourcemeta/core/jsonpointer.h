@@ -313,7 +313,7 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 /// #include <sstream>
 ///
 /// std::istringstream stream{"[ { \"foo\": 1, \"baz\": 1 }, { \"bar\": 2 } ]"};
-/// sourcemeta::core::JSON document = 
+/// sourcemeta::core::JSON document =
 ///   sourcemeta::core::parse_json(stream);
 /// assert(document.at(0).defines("foo") == 1);
 ///
@@ -324,7 +324,6 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto remove(JSON &document, const Pointer &pointer) -> void;
-
 
 /// @ingroup jsonpointer
 /// Remove a value from a JSON document using a JSON WeakPointer.
@@ -339,7 +338,7 @@ auto remove(JSON &document, const Pointer &pointer) -> void;
 /// sourcemeta::core::JSON document =
 ///   sourcemeta::core::parse_json(stream);
 /// assert(document.at(0).defines("foo") == 1);
-/// 
+///
 /// const std::string foo = "foo";
 /// const sourcemeta::core::WeakPointer pointer{0, std::cref(foo)};
 /// sourcemeta::core::remove(document, pointer);
