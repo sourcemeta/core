@@ -261,7 +261,8 @@ auto remove_pointer(JSON &document, const PointerT &pointer) -> void {
     if (current.is_object()) {
       current.erase(std::to_string(last.to_index()));
     } else {
-      current.erase(current.as_array().cbegin() + (long)last.to_index());
+      current.erase(current.as_array().cbegin() +
+                    static_cast<JSON::Array::difference_type>(last.to_index()));
     }
   }
 }
