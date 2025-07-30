@@ -55,6 +55,7 @@ contains_any(const Vocabularies &container,
 #include "linter/else_without_if.h"
 #include "linter/enum_to_const.h"
 #include "linter/enum_with_type.h"
+#include "linter/equal_numeric_bounds_to_const.h"
 #include "linter/equal_numeric_bounds_to_enum.h"
 #include "linter/exclusive_maximum_number_and_maximum.h"
 #include "linter/exclusive_minimum_number_and_minimum.h"
@@ -126,6 +127,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
     case AlterSchemaMode::StaticAnalysis:
       bundle.add<BooleanTrue>();
       bundle.add<ConstAsEnum>();
+      bundle.add<EqualNumericBoundsToConst>();
       bundle.add<ExclusiveMaximumIntegerToMaximum>();
       bundle.add<ExclusiveMinimumIntegerToMinimum>();
       bundle.add<TypeArrayToAnyOf_2020_12>();
@@ -142,6 +144,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
       bundle.add<TypeUnionImplicit>();
       break;
     case AlterSchemaMode::Readability:
+      bundle.add<EqualNumericBoundsToConst>();
       bundle.add<AdditionalPropertiesDefault>();
       bundle.add<ContentSchemaDefault>();
       bundle.add<DependenciesDefault>();
