@@ -65,6 +65,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/then_without_if.h
     linter/property_names_type_default.h
     linter/property_names_default.h
+    linter/draft_ref_siblings.h
     linter/enum_validation_keywords_default.h)
 
 if(SOURCEMETA_CORE_INSTALL)

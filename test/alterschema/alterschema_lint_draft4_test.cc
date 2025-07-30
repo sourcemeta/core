@@ -1043,10 +1043,7 @@ TEST(AlterSchema_lint_draft4, unnecessary_allof_wrapper_properties_1) {
     },
     "allOf": [
       {
-        "$ref": "https://example.com",
-        "properties": {
-          "bar": { "pattern": "^f" }
-        }
+        "$ref": "https://example.com"
       }
     ]
   })JSON");
@@ -1190,6 +1187,124 @@ TEST(AlterSchema_lint_draft4,
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "items": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo",
+    "type": "string"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo",
+    "type": "string",
+    "minLength": 5,
+    "description": "A string field"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/schema",
+    "$ref": "#/definitions/foo",
+    "type": "string",
+    "minLength": 5,
+    "description": "Documentation"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/schema",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo",
+    "description": "Documentation only"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, draft_ref_siblings_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo",
+        "type": "string",
+        "description": "ignored sibling"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "nested": {
+        "$ref": "#/definitions/foo"
+      }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
