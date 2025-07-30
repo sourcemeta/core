@@ -33,9 +33,8 @@ public:
   }
 
   auto transform(JSON &schema) const -> void override {
-    schema.assign("const", schema.at("minimum"));
+    schema.rename("minimum", "const");
     schema.erase("type");
-    schema.erase("minimum");
     schema.erase("maximum");
   }
 };
