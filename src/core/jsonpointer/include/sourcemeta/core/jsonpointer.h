@@ -304,6 +304,52 @@ SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 
 /// @ingroup jsonpointer
+/// Remove a value from a JSON document using a JSON Pointer.
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <cassert>
+/// #include <sstream>
+///
+/// std::istringstream stream{"[ { \"foo\": 1, \"baz\": 1 }, { \"bar\": 2 } ]"};
+/// sourcemeta::core::JSON document = 
+///   sourcemeta::core::parse_json(stream);
+/// assert(document.at(0).defines("foo") == 1);
+///
+/// const sourcemeta::core::Pointer pointer{0, "foo"};
+/// sourcemeta::core::remove(document, pointer);
+/// assert(document.at(0).defines("foo") == 0);
+/// assert(document.at(0).defines("baz") == 1);
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto remove(JSON &document, const Pointer &pointer) -> void;
+
+
+/// @ingroup jsonpointer
+/// Remove a value from a JSON document using a JSON WeakPointer.
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <cassert>
+/// #include <sstream>
+///
+/// std::istringstream stream{"[ { \"foo\": 1, \"baz\": 1 }, { \"bar\": 2 } ]"};
+/// sourcemeta::core::JSON document =
+///   sourcemeta::core::parse_json(stream);
+/// assert(document.at(0).defines("foo") == 1);
+/// 
+/// const std::string foo = "foo";
+/// const sourcemeta::core::WeakPointer pointer{0, std::cref(foo)};
+/// sourcemeta::core::remove(document, pointer);
+/// assert(document.at(0).defines("foo") == 0);
+/// assert(document.at(0).defines("baz") == 1);
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto remove(JSON &document, const WeakPointer &pointer) -> void;
+
+/// @ingroup jsonpointer
 /// Create a JSON Pointer from a JSON string value. For example:
 ///
 /// ```cpp

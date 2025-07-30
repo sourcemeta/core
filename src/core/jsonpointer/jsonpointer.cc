@@ -245,6 +245,35 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void {
   }
 }
 
+template <typename PointerT>
+auto remove_pointer(JSON &document, const PointerT &pointer) -> void {
+  if (pointer.empty()) {
+    return;
+  }
+
+  JSON &current{traverse<std::allocator, JSON, PointerT>(
+      document, std::cbegin(pointer), std::prev(std::cend(pointer)))};
+  const auto &last{pointer.back()};
+
+  if (last.is_property()) {
+    current.erase(last.to_property());
+  } else {
+    if (current.is_object()) {
+      current.erase(std::to_string(last.to_index()));
+    } else {
+      current.erase(current.as_array().cbegin() + (long)last.to_index());
+    }
+  }
+}
+
+auto remove(JSON &document, const Pointer &pointer) -> void {
+  return remove_pointer(document, pointer);
+}
+
+auto remove(JSON &document, const WeakPointer &pointer) -> void {
+  return remove_pointer(document, pointer);
+}
+
 auto to_pointer(const JSON &document) -> Pointer {
   assert(document.is_string());
   auto stream{document.to_stringstream()};
