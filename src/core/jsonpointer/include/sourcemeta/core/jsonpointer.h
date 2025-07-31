@@ -315,7 +315,7 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 /// std::istringstream stream{"[ { \"foo\": 1, \"baz\": 1 }, { \"bar\": 2 } ]"};
 /// sourcemeta::core::JSON document =
 ///   sourcemeta::core::parse_json(stream);
-/// assert(document.at(0).defines("foo") == 1);
+/// assert(document.at(0).defines("foo"));
 ///
 /// const sourcemeta::core::Pointer pointer{0, "foo"};
 /// sourcemeta::core::remove(document, pointer);
