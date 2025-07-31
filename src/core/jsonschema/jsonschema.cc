@@ -501,7 +501,7 @@ static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
 
                    // This is a placeholder for "x-"-prefixed unknown keywords,
                    // as they are almost always metadata
-                   {"x-", 16},
+                   {"x", 16},
 
                    // Then references
                    {"$ref", 17},
@@ -573,12 +573,25 @@ static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
                    {"$defs", 71},
                    {"definitions", 72}};
 
+  // A common pattern that seems to come up often in practice is schema authors
+  // coming up with unknown annotation keywords that are meant to extend or
+  // complement existing ones. For example, `title:en` for `title`, etc. By
+  // checking the prefixes of a keyword, we can accomodate that pattern very
+  // nicely by keeping them right besides the keywords they are supposed to
+  // extend. For performance reasons, we only apply such logic to keywords
+  // that have certain special characters that are commonly used for these kind
+  // of extensions
+  const auto pivot{keyword.find_first_of("-_:")};
+  if (pivot != std::string::npos) {
+    const auto match{rank.find(keyword.substr(0, pivot))};
+    if (match != rank.cend()) {
+      return match->second;
+    }
+  }
+
   const auto match{rank.find(keyword)};
   if (match != rank.cend()) {
     return match->second;
-  } else if (keyword.starts_with("x-")) {
-    assert(rank.contains("x-"));
-    return rank["x-"];
   } else {
     return otherwise;
   }
@@ -590,8 +603,7 @@ auto sourcemeta::core::schema_format_compare(
   constexpr auto DEFAULT{std::numeric_limits<std::uint64_t>::max()};
   const auto left_rank{keyword_rank(left, DEFAULT)};
   const auto right_rank{keyword_rank(right, DEFAULT)};
-  if (left_rank == DEFAULT && right_rank == DEFAULT) {
-    // For unknown keywords, go alphabetically
+  if (left_rank == right_rank) {
     return left < right;
   } else {
     return left_rank < right_rank;
