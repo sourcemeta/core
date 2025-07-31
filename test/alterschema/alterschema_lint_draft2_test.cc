@@ -616,3 +616,21 @@ TEST(AlterSchema_lint_draft2, draft_ref_siblings_4) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft2, non_applicable_type_specific_keywords_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-02/schema#",
+    "enum": [ true, false ],
+    "maxItems": 4,
+    "maxLength": 3
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-02/schema#",
+    "enum": [ true, false ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
