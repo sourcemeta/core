@@ -10,7 +10,7 @@
 #include "stringify.h"
 
 #include <cassert>     // assert
-#include <iterator>    // std::cbegin, std::cend, std::prev
+#include <iterator>    // std::cbegin, std::cend, std::prev, std::advance
 #include <memory>      // std::allocator
 #include <ostream>     // std::basic_ostream
 #include <sstream>     // std::basic_ostringstream, std::basic_stringstream
@@ -246,9 +246,9 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void {
 }
 
 template <typename PointerT>
-auto remove_pointer(JSON &document, const PointerT &pointer) -> void {
+auto remove_pointer(JSON &document, const PointerT &pointer) -> bool {
   if (pointer.empty()) {
-    return;
+    return false;
   }
 
   JSON &current{traverse<std::allocator, JSON, PointerT>(
@@ -256,22 +256,32 @@ auto remove_pointer(JSON &document, const PointerT &pointer) -> void {
   const auto &last{pointer.back()};
 
   if (last.is_property()) {
-    current.erase(last.to_property());
+    const auto current_size{current.size()};
+    return current.erase(last.to_property()) < current_size;
   } else {
     if (current.is_object()) {
-      current.erase(std::to_string(last.to_index()));
+      const auto current_size{current.size()};
+      return current.erase(std::to_string(last.to_index())) < current_size;
     } else {
-      current.erase(current.as_array().cbegin() +
-                    static_cast<JSON::Array::difference_type>(last.to_index()));
+      const auto index{last.to_index()};
+      const auto &array{current.as_array()};
+
+      if (index >= array.size())
+        return false;
+
+      auto iterator{array.cbegin()};
+      std::advance(iterator, index);
+      current.erase(iterator);
+      return true;
     }
   }
 }
 
-auto remove(JSON &document, const Pointer &pointer) -> void {
+auto remove(JSON &document, const Pointer &pointer) -> bool {
   return remove_pointer(document, pointer);
 }
 
-auto remove(JSON &document, const WeakPointer &pointer) -> void {
+auto remove(JSON &document, const WeakPointer &pointer) -> bool {
   return remove_pointer(document, pointer);
 }
 

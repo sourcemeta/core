@@ -325,7 +325,7 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 /// assert(document.at(0).defines("baz"));
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
-auto remove(JSON &document, const Pointer &pointer) -> void;
+auto remove(JSON &document, const Pointer &pointer) -> bool;
 
 /// @ingroup jsonpointer
 /// Remove a value from a JSON document using a JSON WeakPointer.
@@ -350,7 +350,7 @@ auto remove(JSON &document, const Pointer &pointer) -> void;
 /// assert(document.at(0).defines("baz"));
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
-auto remove(JSON &document, const WeakPointer &pointer) -> void;
+auto remove(JSON &document, const WeakPointer &pointer) -> bool;
 
 /// @ingroup jsonpointer
 /// Create a JSON Pointer from a JSON string value. For example:
