@@ -38,7 +38,7 @@ TEST(JSONPointer_remove, nonexistent_property) {
   EXPECT_EQ(document, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
 }
 
-TEST(JSONPointer_remove, cannot_remove_self) {
+TEST(JSONPointer_remove, cannot_remove_root_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json(R"JSON({ "foo": 1, "": 2 })JSON");
 
@@ -112,7 +112,7 @@ TEST(JSONWeakPointer_remove, nonexistent_property) {
   EXPECT_EQ(document, sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON"));
 }
 
-TEST(JSONWeakPointer_remove, cannot_remove_self) {
+TEST(JSONWeakPointer_remove, cannot_remove_root_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json(R"JSON({ "foo": 1, "": 2 })JSON");
 

@@ -247,6 +247,11 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void {
 
 template <typename PointerT>
 auto remove_pointer(JSON &document, const PointerT &pointer) -> bool {
+  // Current implementation doesn't support removing an empty JSON pointer
+  // because we don't have a reference to the parent JSON object and there may
+  // be none (i.e. current object is the root JSON object). Here we are copying
+  // RapidJSON by making this a noop.
+  // https://github.com/Tencent/rapidjson/blob/24b5e7a8b27f42fa16b96fc70aade9106cf7102f/include/rapidjson/pointer.h#L835C9-L835C55
   if (pointer.empty()) {
     return false;
   }
