@@ -319,7 +319,7 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 ///
 /// const sourcemeta::core::Pointer pointer{0, "foo"};
 /// sourcemeta::core::remove(document, pointer);
-/// assert(document.at(0).defines("foo") == 0);
+/// assert(!document.at(0).defines("foo"));
 /// assert(document.at(0).defines("baz") == 1);
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
