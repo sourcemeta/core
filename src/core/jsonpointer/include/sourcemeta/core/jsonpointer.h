@@ -342,8 +342,8 @@ auto remove(JSON &document, const Pointer &pointer) -> void;
 /// const std::string foo = "foo";
 /// const sourcemeta::core::WeakPointer pointer{0, std::cref(foo)};
 /// sourcemeta::core::remove(document, pointer);
-/// assert(document.at(0).defines("foo") == 0);
-/// assert(document.at(0).defines("baz") == 1);
+/// assert(!document.at(0).defines("foo"));
+/// assert(document.at(0).defines("baz"));
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto remove(JSON &document, const WeakPointer &pointer) -> void;
