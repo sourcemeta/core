@@ -501,7 +501,7 @@ static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
 
                    // This is a placeholder for "x-"-prefixed unknown keywords,
                    // as they are almost always metadata
-                   {"x-", 16},
+                   {"x", 16},
 
                    // Then references
                    {"$ref", 17},
@@ -576,26 +576,25 @@ static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
   // A common pattern that seems to come up often in practice is schema authors
   // coming up with unknown annotation keywords that are meant to extend or
   // complement existing ones. For example, `title:en` for `title`, etc. By
-  // checking all prefixes of a keyword, we can accomodate that pattern very
+  // checking the prefixes of a keyword, we can accomodate that pattern very
   // nicely by keeping them right besides the keywords they are supposed to
   // extend. For performance reasons, we only apply such logic to keywords
   // that have certain special characters that are commonly used for these kind
   // of extensions
-  if (keyword.find_first_of("-_:") != std::string::npos) {
-    for (auto cursor = keyword.size(); cursor <= keyword.size(); cursor--) {
-      const auto match{rank.find(keyword.substr(0, cursor))};
-      if (match != rank.cend()) {
-        return match->second;
-      }
-    }
-  } else {
-    const auto match{rank.find(keyword)};
+  const auto pivot{keyword.find_first_of("-_:")};
+  if (pivot != std::string::npos) {
+    const auto match{rank.find(keyword.substr(0, pivot))};
     if (match != rank.cend()) {
       return match->second;
     }
   }
 
-  return otherwise;
+  const auto match{rank.find(keyword)};
+  if (match != rank.cend()) {
+    return match->second;
+  } else {
+    return otherwise;
+  }
 }
 
 auto sourcemeta::core::schema_format_compare(
