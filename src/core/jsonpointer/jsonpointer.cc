@@ -271,8 +271,9 @@ auto remove_pointer(JSON &document, const PointerT &pointer) -> bool {
       const auto index{last.to_index()};
       const auto &array{current.as_array()};
 
-      if (index >= array.size())
+      if (index >= array.size()) {
         return false;
+      }
 
       auto iterator{array.cbegin()};
       std::advance(iterator, index);

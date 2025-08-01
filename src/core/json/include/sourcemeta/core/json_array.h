@@ -91,6 +91,7 @@ public:
   [[nodiscard]] auto crend() const noexcept -> const_reverse_iterator {
     return this->data.crend();
   }
+
   /// Get array size
   [[nodiscard]] auto size() const noexcept -> size_type {
     return this->data.size();

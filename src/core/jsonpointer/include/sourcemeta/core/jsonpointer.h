@@ -305,7 +305,7 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void;
 
 /// @ingroup jsonpointer
 /// Remove a value from a JSON document using a JSON Pointer.
-/// Returns true is value is removed, false othervise.
+/// Returns true if a value is removed, false otherwise.
 ///
 /// Removing an empty pointer `Pointer{}`, i.e. the root, is a noop.
 ///
@@ -330,7 +330,7 @@ auto remove(JSON &document, const Pointer &pointer) -> bool;
 
 /// @ingroup jsonpointer
 /// Remove a value from a JSON document using a JSON WeakPointer.
-/// Returns true is value is removed, false othervise.
+/// Returns true if a value is removed, false otherwise.
 ///
 /// Removing an empty pointer `WeakPointer{}`, i.e. the root, is a noop.
 ///
