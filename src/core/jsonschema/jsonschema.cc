@@ -253,9 +253,17 @@ auto sourcemeta::core::metaschema(
 
   const auto maybe_metaschema{resolver(maybe_dialect.value())};
   if (!maybe_metaschema.has_value()) {
-    throw sourcemeta::core::SchemaResolutionError(
-        maybe_dialect.value(),
-        "Could not resolve the metaschema of the schema");
+    // Relative meta-schema references are invalid according to the
+    // JSON Schema specifications. They must be absolute ones
+    const URI effective_dialect_uri{maybe_dialect.value()};
+    if (effective_dialect_uri.is_relative()) {
+      throw sourcemeta::core::SchemaRelativeMetaschemaResolutionError(
+          maybe_dialect.value());
+    } else {
+      throw sourcemeta::core::SchemaResolutionError(
+          maybe_dialect.value(),
+          "Could not resolve the metaschema of the schema");
+    }
   }
 
   return maybe_metaschema.value();
