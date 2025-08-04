@@ -2529,6 +2529,30 @@ TEST(AlterSchema_lint_2020_12, property_names_default_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, definitions_to_defs_simple) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",

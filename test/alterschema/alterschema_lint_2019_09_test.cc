@@ -2295,6 +2295,68 @@ TEST(AlterSchema_lint_2019_09, property_names_default_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2019_09, definitions_to_defs_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "$ref": "#/definitions/uuid"
+      }
+    },
+    "definitions": {
+      "uuid": {
+        "type": "string",
+        "format": "uuid"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "$ref": "#/$defs/uuid"
+      }
+    },
+    "$defs": {
+      "uuid": {
+        "type": "string",
+        "format": "uuid"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, definitions_to_defs_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2019_09, non_applicable_type_specific_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
