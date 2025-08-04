@@ -86,6 +86,23 @@ TEST(JSONSchema_base_dialect, non_resolvable_schema_with_id) {
                sourcemeta::core::SchemaResolutionError);
 }
 
+TEST(JSONSchema_base_dialect, relative_schema_uri_with_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com/my-schema",
+    "$schema": "../foo.json"
+  })JSON");
+  EXPECT_THROW(sourcemeta::core::base_dialect(document, test_resolver),
+               sourcemeta::core::SchemaRelativeMetaschemaResolutionError);
+}
+
+TEST(JSONSchema_base_dialect, relative_schema_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "../foo.json"
+  })JSON");
+  EXPECT_THROW(sourcemeta::core::base_dialect(document, test_resolver),
+               sourcemeta::core::SchemaRelativeMetaschemaResolutionError);
+}
+
 TEST(JSONSchema_base_dialect, non_resolvable_schema) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://example.com/does-not-exist"
