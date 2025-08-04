@@ -34,6 +34,13 @@ TEST(URI_parse, syntax_error_4) {
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L315
 
+TEST(URI_parse, syntax_error_5) {
+  EXPECT_THROW(
+      sourcemeta::core::URI uri{
+          "urn:sourcemeta:foo/bar.json"}, // the "/" is invalid
+      sourcemeta::core::URIParseError);
+}
+
 TEST(URI_parse, success_1) {
   sourcemeta::core::URI uri{
       "//user:pass@[::1]:80/segment/index.html?query#frag"};
