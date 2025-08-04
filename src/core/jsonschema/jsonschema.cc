@@ -317,8 +317,16 @@ auto sourcemeta::core::base_dialect(
   const std::optional<sourcemeta::core::JSON> metaschema{
       resolver(effective_dialect)};
   if (!metaschema.has_value()) {
-    throw sourcemeta::core::SchemaResolutionError(
-        effective_dialect, "Could not resolve the metaschema of the schema");
+    // Relative meta-schema references are invalid according to the
+    // JSON Schema specifications. They must be absolute ones
+    const URI effective_dialect_uri{effective_dialect};
+    if (effective_dialect_uri.is_relative()) {
+      throw sourcemeta::core::SchemaRelativeMetaschemaResolutionError(
+          effective_dialect);
+    } else {
+      throw sourcemeta::core::SchemaResolutionError(
+          effective_dialect, "Could not resolve the metaschema of the schema");
+    }
   }
 
   return base_dialect(metaschema.value(), resolver, effective_dialect);
