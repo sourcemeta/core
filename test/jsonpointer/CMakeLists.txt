@@ -22,7 +22,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
     jsonpointer_starts_with_test.cc
     jsonpointer_starts_with_initial_test.cc
     jsonpointer_json_auto_test.cc
-    jsonpointer_rebase_test.cc)
+    jsonpointer_rebase_test.cc
+    jsonpointer_remove_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonpointer_unit
   PRIVATE sourcemeta::core::jsonpointer)

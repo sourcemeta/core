@@ -1793,7 +1793,7 @@ TEST(AlterSchema_lint_2020_12, min_items_given_min_contains_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_1) {
+TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "integer",
@@ -1811,7 +1811,7 @@ TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_2) {
+TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "integer",
@@ -1819,11 +1819,11 @@ TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_enum_2) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "enum": [ 3 ]
+    "const": 3
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2524,6 +2524,61 @@ TEST(AlterSchema_lint_2020_12, property_names_default_1) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "enum": [ true, false ],
+    "maxItems": 4,
+    "maxLength": 3
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "enum": [ true, false ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "const": null,
+    "maxItems": 4,
+    "maxLength": 3
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "const": null
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "const": "foo",
+    "maxItems": 4,
+    "maxLength": 3
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "const": "foo",
+    "maxLength": 3
   })JSON");
 
   EXPECT_EQ(document, expected);
