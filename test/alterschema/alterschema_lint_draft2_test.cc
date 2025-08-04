@@ -59,7 +59,7 @@ TEST(AlterSchema_lint_draft2, enum_validation_keywords_default_2) {
 TEST(AlterSchema_lint_draft2, enum_validation_keywords_default_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#",
-    "enum": [ {"a": 1}, {"b": 2} ],
+    "enum": [ { "a": 1 }, { "b": 2 } ],
     "minLength": 3,
     "minimum": 0
   })JSON");
@@ -68,7 +68,7 @@ TEST(AlterSchema_lint_draft2, enum_validation_keywords_default_3) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#",
-    "enum": [ {"a": 1}, {"b": 2} ]
+    "enum": [ { "a": 1 }, { "b": 2 } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
