@@ -75,6 +75,7 @@ contains_any(const Vocabularies &container,
 #include "linter/property_names_type_default.h"
 #include "linter/single_type_array.h"
 #include "linter/then_empty.h"
+#include "linter/then_false.h"
 #include "linter/then_without_if.h"
 #include "linter/unevaluated_items_default.h"
 #include "linter/unevaluated_properties_default.h"
@@ -106,6 +107,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<MinContainsWithoutContains>();
   bundle.add<ThenEmpty>();
   bundle.add<ElseEmpty>();
+  bundle.add<ThenFalse>();
   bundle.add<ThenWithoutIf>();
   bundle.add<DependenciesPropertyTautology>();
   bundle.add<DependentRequiredTautology>();
