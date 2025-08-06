@@ -30,9 +30,7 @@ public:
         }
       }
     } else if (if_schema.is_boolean()) {
-      if (if_schema.to_boolean()) {
-      } else {
-      }
+      schema = if_schema;
     }
   }
 };
