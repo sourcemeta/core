@@ -2583,3 +2583,32 @@ TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_3) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12, then_false_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "if": {
+      "properties": {
+        "flag": {
+          "const": true
+        }
+      }
+    },
+    "then": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "not": {
+      "properties": {
+        "flag": {
+          "const": true
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
