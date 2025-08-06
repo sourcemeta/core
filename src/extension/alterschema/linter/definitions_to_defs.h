@@ -1,10 +1,9 @@
 class DefinitionsToDefs final : public SchemaTransformRule {
 public:
   DefinitionsToDefs()
-      : SchemaTransformRule{
-            "definitions_to_defs",
-            "`definitions` is superseded by `$defs` starting in draft-2019-09. "
-            "Migrate to `$defs` for forward compatibility."} {};
+      : SchemaTransformRule{"definitions_to_defs",
+                            "`definitions` was superseded by `$defs` in "
+                            "2019-09 and later versions. "} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
@@ -26,24 +25,11 @@ public:
     schema.rename("definitions", "$defs");
   }
 
-  [[nodiscard]] auto rereference(const std::string &reference, const Pointer &,
-                                 const Pointer &, const Pointer &) const
+  [[nodiscard]] auto rereference(const std::string &, const Pointer &,
+                                 const Pointer &target,
+                                 const Pointer &current) const
       -> Pointer override {
-    // Update any $ref references from #/definitions/ to #/$defs/
-    if (reference.find("#/definitions/") == 0) {
-      std::string updated_ref = reference;
-      updated_ref.replace(0, 14, "#/$defs/");
-      // Extract just the fragment part (skip the #)
-      std::string fragment = updated_ref.substr(1);
-      return to_pointer(fragment);
-    }
-
-    if (reference.find("#") == 0) {
-      std::string fragment = reference.substr(1);
-      return to_pointer(fragment);
-    }
-
-    // If it's not a fragment reference, return empty pointer
-    return Pointer{};
+    return target.rebase(current.concat({"definitions"}),
+                         current.concat({"$defs"}));
   }
 };
