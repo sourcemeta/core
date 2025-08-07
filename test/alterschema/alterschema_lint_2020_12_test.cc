@@ -2529,6 +2529,132 @@ TEST(AlterSchema_lint_2020_12, property_names_default_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, definitions_to_defs_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "definitions": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, definitions_to_defs_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/properties/bar/definitions/helper"
+      },
+      "bar": {
+        "definitions": {
+          "helper": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/properties/bar/$defs/helper"
+      },
+      "bar": {
+        "$defs": {
+          "helper": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, definitions_to_defs_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "properties": {
+          "bar": {
+            "definitions": {
+              "baz": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "qux": {
+                "type": "number"
+              }
+            },
+            "properties": {
+              "id": {
+                "$ref": "#/properties/foo/properties/bar/definitions/baz"
+              },
+              "count": {
+                "$ref": "#/properties/foo/properties/bar/definitions/qux"
+              }
+            }
+          }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "properties": {
+          "bar": {
+            "$defs": {
+              "baz": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "qux": {
+                "type": "number"
+              }
+            },
+            "properties": {
+              "id": {
+                "$ref": "#/properties/foo/properties/bar/$defs/baz"
+              },
+              "count": {
+                "$ref": "#/properties/foo/properties/bar/$defs/qux"
+              }
+            }
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
