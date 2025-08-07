@@ -3,7 +3,9 @@ public:
   UnnecessaryAllOfWrapperProperties()
       : SchemaTransformRule{
             "unnecessary_allof_wrapper_properties",
-            "Avoid unnecessarily wrapping object `properties` in `allOf`"} {};
+            "Avoid unnecessarily wrapping object `properties` in `allOf` as it "
+            "even introduce a minor evaluation performance overhead and even "
+            "confuse documentation generators"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
