@@ -1,9 +1,10 @@
 class UnnecessaryAllOfWrapperModern final : public SchemaTransformRule {
 public:
   UnnecessaryAllOfWrapperModern()
-      : SchemaTransformRule{"unnecessary_allof_wrapper_modern",
-                            "Wrapping any keyword in `allOf` is unnecessary"} {
-        };
+      : SchemaTransformRule{
+            "unnecessary_allof_wrapper_modern",
+            "Wrapping any keyword in `allOf` is unnecessary and may even "
+            "introduce a minor evaluation performance overhead"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,

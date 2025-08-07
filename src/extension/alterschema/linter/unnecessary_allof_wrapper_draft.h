@@ -3,7 +3,8 @@ public:
   UnnecessaryAllOfWrapperDraft()
       : SchemaTransformRule{"unnecessary_allof_wrapper_draft",
                             "Wrapping any keyword other than `$ref` in `allOf` "
-                            "is unnecessary"} {};
+                            "is unnecessary and may even introduce a minor "
+                            "evaluation performance overhead"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
