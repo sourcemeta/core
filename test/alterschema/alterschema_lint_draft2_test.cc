@@ -371,8 +371,7 @@ TEST(AlterSchema_lint_draft2, type_boolean_as_enum_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#",
-    "enum": [ false, true ],
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
+    "enum": [ false, true ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -422,8 +421,7 @@ TEST(AlterSchema_lint_draft2, type_null_as_enum_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#",
-    "enum": [ null ],
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
+    "enum": [ null ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -516,8 +514,7 @@ TEST(AlterSchema_lint_draft2, equal_numeric_bounds_to_enum_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#",
-    "enum": [ 3 ],
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
+    "enum": [ 3 ]
   })JSON");
 
   EXPECT_EQ(document, expected);
