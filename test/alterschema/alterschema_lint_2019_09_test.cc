@@ -1864,6 +1864,24 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_5) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_6) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "allOf": [
+      { "type": "string", "$ref": "https://example.com" }
+    ]
+  })JSON");
+
+  LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "unnecessary_allof_wrapper_modern",
+                    "Wrapping any keyword in `allOf` is unnecessary and may "
+                    "even introduce a minor evaluation performance overhead",
+                    "- /allOf/0/type\n- /allOf/0/$ref\n");
+}
+
 TEST(AlterSchema_lint_2019_09, multiple_of_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
