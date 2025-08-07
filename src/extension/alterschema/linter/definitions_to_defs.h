@@ -3,7 +3,7 @@ public:
   DefinitionsToDefs()
       : SchemaTransformRule{"definitions_to_defs",
                             "`definitions` was superseded by `$defs` in "
-                            "2019-09 and later versions. "} {};
+                            "2019-09 and later versions"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
