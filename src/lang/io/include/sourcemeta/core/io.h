@@ -54,6 +54,21 @@ auto weakly_canonical(const std::filesystem::path &path)
 
 /// @ingroup io
 ///
+/// Check if a file path starts with another path. This function assumes the
+/// paths are canonicalised. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::starts_with("/foo/bar", "/foo"));
+/// ```
+SOURCEMETA_CORE_IO_EXPORT
+auto starts_with(const std::filesystem::path &path,
+                 const std::filesystem::path &prefix) -> bool;
+
+/// @ingroup io
+///
 /// A convenience function to open a stream from a file. For example:
 ///
 /// ```cpp

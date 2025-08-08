@@ -20,4 +20,21 @@ auto weakly_canonical(const std::filesystem::path &path)
              : std::filesystem::weakly_canonical(path);
 }
 
+auto starts_with(const std::filesystem::path &path,
+                 const std::filesystem::path &prefix) -> bool {
+  auto path_iterator = path.begin();
+  auto prefix_iterator = prefix.begin();
+
+  while (prefix_iterator != prefix.end()) {
+    if (path_iterator == path.end() || *path_iterator != *prefix_iterator) {
+      return false;
+    }
+
+    ++path_iterator;
+    ++prefix_iterator;
+  }
+
+  return true;
+}
+
 } // namespace sourcemeta::core
