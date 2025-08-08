@@ -9,6 +9,10 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: core-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
