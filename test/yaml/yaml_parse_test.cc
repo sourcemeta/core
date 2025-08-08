@@ -145,9 +145,37 @@ TEST(YAML_parse, stub_test_1) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(YAML_parse, yaml_or_json_stub_test_1) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_1.yaml")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_stub_test_2) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_1.json")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(YAML_parse, file_not_exists) {
   EXPECT_THROW(sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
                                            "not_exists.yaml"),
+               std::filesystem::filesystem_error);
+}
+
+TEST(YAML_parse, yaml_or_json_file_not_exists) {
+  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
+                   std::filesystem::path{STUBS_PATH} / "not_exists.yaml"),
                std::filesystem::filesystem_error);
 }
 
