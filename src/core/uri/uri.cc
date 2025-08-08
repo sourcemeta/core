@@ -263,6 +263,11 @@ auto URI::is_mailto() const -> bool {
   return scheme.has_value() && scheme.value() == "mailto";
 }
 
+auto URI::is_file() const -> bool {
+  const auto scheme{this->scheme()};
+  return scheme.has_value() && scheme.value() == "file";
+}
+
 auto URI::is_ipv6() const -> bool { return this->is_ipv6_; }
 
 auto URI::is_fragment_only() const -> bool {
