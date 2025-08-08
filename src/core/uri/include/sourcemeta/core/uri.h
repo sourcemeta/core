@@ -108,6 +108,17 @@ public:
   /// ```
   [[nodiscard]] auto is_mailto() const -> bool;
 
+  /// Check if the URI is a file URI. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::URI uri{"file:///home/jviotti/foo.txt"};
+  /// assert(uri.is_file());
+  /// ```
+  [[nodiscard]] auto is_file() const -> bool;
+
   /// Check if the URI only consists of a fragment. For example:
   ///
   /// ```cpp
