@@ -49,7 +49,7 @@ public:
     if (if_schema.is_object()) {
       for (auto &entry : if_schema.as_object()) {
         if (!schema.defines(entry.first)) {
-          schema.assign(entry.first, std::move(entry.second));
+          schema.assign(entry.first, entry.second);
         }
       }
     } else if (if_schema.is_boolean() && !if_schema.to_boolean()) {
