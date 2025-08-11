@@ -2437,3 +2437,84 @@ TEST(AlterSchema_lint_2019_09, else_false_4) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2019_09, else_false_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" }
+    },
+    "if": {
+      "properties": {
+        "name": { "type": "number" }
+      }
+    },
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" }
+    },
+    "if": {
+      "properties": {
+        "name": { "type": "number" }
+      }
+    },
+    "else": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, else_false_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "if": {
+      "properties": {
+        "flag": { "const": true }
+      }
+    },
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "flag": { "const": true }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, else_false_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "if": {
+      "type": "object"
+    },
+    "then": false,
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "if": {
+      "type": "object"
+    },
+    "then": false,
+    "else": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
