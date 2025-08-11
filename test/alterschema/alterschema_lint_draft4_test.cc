@@ -21,6 +21,58 @@ TEST(AlterSchema_lint_draft4, enum_with_type_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft4, enum_with_type_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "string",
+    "enum": [ "foo", 1 ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "string",
+    "enum": [ "foo", 1 ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, enum_with_type_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": [ "string", "null" ],
+    "enum": [ "foo", "bar" ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "enum": [ "foo", "bar" ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, enum_with_type_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": [ "string", "null" ],
+    "enum": [ "foo", "bar", "null" ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "enum": [ "foo", "bar", "null" ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft4, single_type_array_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -840,6 +892,25 @@ TEST(AlterSchema_lint_draft4, unnecessary_allof_wrapper_1) {
   })JSON");
 
   EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, unnecessary_allof_wrapper_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "string" }
+    ]
+  })JSON");
+
+  LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "unnecessary_allof_wrapper_draft",
+      "Wrapping any keyword other than `$ref` in `allOf` is unnecessary and "
+      "may even introduce a minor evaluation performance overhead",
+      "- /allOf/0/type\n");
 }
 
 TEST(AlterSchema_lint_draft4, multiple_of_default_1) {

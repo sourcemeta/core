@@ -127,14 +127,14 @@ TEST(JSONPointer_stringify, backslash) {
   const sourcemeta::core::Pointer pointer{"foo\\bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\\\bar");
+  EXPECT_EQ(stream.str(), "/foo\\bar");
 }
 
 TEST(JSONPointer_stringify, double_quote) {
   const sourcemeta::core::Pointer pointer{"foo\"bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\\"bar");
+  EXPECT_EQ(stream.str(), "/foo\"bar");
 }
 
 TEST(JSONPointer_stringify, single_quote) {

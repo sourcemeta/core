@@ -1,5 +1,9 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
-  SOURCES io_read_file_test.cc)
+  SOURCES
+    io_canonical_test.cc
+    io_weakly_canonical_test.cc
+    io_starts_with_test.cc
+    io_read_file_test.cc)
 
 target_link_libraries(sourcemeta_core_io_unit
   PRIVATE sourcemeta::core::io)
