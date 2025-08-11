@@ -494,7 +494,7 @@ TEST(AlterSchema_lint_2019_09, additional_properties_default_3) {
 
 TEST(AlterSchema_lint_2019_09, content_schema_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
     "contentEncoding": "base64",
     "contentMediaType": "application/json",
     "contentSchema": true
@@ -503,7 +503,7 @@ TEST(AlterSchema_lint_2019_09, content_schema_default_1) {
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
     "contentEncoding": "base64",
     "contentMediaType": "application/json"
   })JSON");
@@ -1642,7 +1642,7 @@ TEST(AlterSchema_lint_2019_09, min_properties_covered_by_required_1) {
 
 TEST(AlterSchema_lint_2019_09, min_properties_implicit_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
     "required": [ "foo", "bar" ]
   })JSON");
@@ -1650,7 +1650,7 @@ TEST(AlterSchema_lint_2019_09, min_properties_implicit_1) {
   LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
     "required": [ "foo", "bar" ],
     "properties": {},
