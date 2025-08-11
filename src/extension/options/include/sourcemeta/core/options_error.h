@@ -20,17 +20,17 @@ namespace sourcemeta::core {
 
 /// @ingroup options
 /// This class represents a general options error
-struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionError : public std::runtime_error {
-  explicit OptionError(const std::string &message)
+struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsError : public std::runtime_error {
+  explicit OptionsError(const std::string &message)
       : std::runtime_error{message} {}
 };
 
 /// @ingroup options
 /// This class represents a unknown option error
 struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsUnknownOptionError
-    : public OptionError {
+    : public OptionsError {
   explicit OptionsUnknownOptionError(std::string name)
-      : OptionError{"Unknown option"}, name_{std::move(name)} {}
+      : OptionsError{"Unknown option"}, name_{std::move(name)} {}
   [[nodiscard]] auto name() const -> const auto & { return this->name_; }
 
 private:
@@ -39,10 +39,10 @@ private:
 
 /// @ingroup options
 /// This class represents a value being passed to a flag
-struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionUnexpectedValueFlagError
-    : public OptionError {
-  explicit OptionUnexpectedValueFlagError(std::string name)
-      : OptionError{"Cannot pass a value to a flag"}, name_{std::move(name)} {}
+struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsUnexpectedValueFlagError
+    : public OptionsError {
+  explicit OptionsUnexpectedValueFlagError(std::string name)
+      : OptionsError{"This flag cannot take a value"}, name_{std::move(name)} {}
   [[nodiscard]] auto name() const -> const auto & { return this->name_; }
 
 private:
@@ -51,10 +51,10 @@ private:
 
 /// @ingroup options
 /// This class represents a missing value from an option
-struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionMissingOptionValueError
-    : public OptionError {
-  explicit OptionMissingOptionValueError(std::string name)
-      : OptionError{"This option takes a value"}, name_{std::move(name)} {}
+struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsMissingOptionValueError
+    : public OptionsError {
+  explicit OptionsMissingOptionValueError(std::string name)
+      : OptionsError{"This option must take a value"}, name_{std::move(name)} {}
   [[nodiscard]] auto name() const -> const auto & { return this->name_; }
 
 private:
