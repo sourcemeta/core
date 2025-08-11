@@ -76,7 +76,8 @@ auto Options::parse(const int argc,
                     const char *const argv[], const OptionsModifiers options)
     -> void {
   bool end_of_options{false};
-  for (auto index = static_cast<int>(options.skip); index < argc; index++) {
+  // We assume that the first argument is the program name
+  for (auto index = static_cast<int>(options.skip + 1); index < argc; index++) {
     const std::string_view token{argv[index]};
 
     if (end_of_options) {
@@ -101,7 +102,7 @@ auto Options::parse(const int argc,
         if (eq == std::string_view::npos) {
           this->options_[canonical].push_back(token.substr(2));
         } else {
-          throw OptionUnexpectedValueFlagError(std::string{name});
+          throw OptionsUnexpectedValueFlagError(std::string{name});
         }
       } else if (eq != std::string_view::npos) {
         this->options_[canonical].push_back(token.substr(eq + 1));
@@ -109,7 +110,7 @@ auto Options::parse(const int argc,
         this->options_[canonical].emplace_back(next);
         index += 1;
       } else {
-        throw OptionMissingOptionValueError(std::string{name});
+        throw OptionsMissingOptionValueError(std::string{name});
       }
 
       // Parse short options
@@ -129,7 +130,7 @@ auto Options::parse(const int argc,
           index += 1;
           break;
         } else {
-          throw OptionMissingOptionValueError(std::string{name});
+          throw OptionsMissingOptionValueError(std::string{name});
         }
       }
 
