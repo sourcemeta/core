@@ -1917,3 +1917,64 @@ TEST(AlterSchema_lint_draft7, else_false_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft7, else_false_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "if": {
+      "properties": {
+        "flag": {
+          "const": true
+        }
+      }
+    },
+    "then": true,
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+      "flag": {
+        "const": true
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, else_false_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "if": true,
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, else_false_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "if": false,
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "not": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

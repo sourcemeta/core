@@ -15,22 +15,35 @@ public:
                 "https://json-schema.org/draft/2019-09/vocab/applicator",
                 "http://json-schema.org/draft-07/schema#"}) &&
            schema.is_object() && schema.defines("if") &&
-           schema.defines("else") && schema.at("else").is_boolean() &&
-           !schema.at("else").to_boolean();
+           schema.defines("else") && is_schema(schema.at("else")) &&
+           schema.at("else").is_boolean() && !schema.at("else").to_boolean() &&
+           (!schema.defines("then") ||
+            (schema.at("then").is_boolean() && schema.at("then").to_boolean()));
   }
 
   auto transform(JSON &schema) const -> void override {
-    const auto if_schema = schema.at("if");
+    auto if_schema = schema.at("if");
     schema.erase("if");
     schema.erase("else");
+    if (schema.defines("then")) {
+      schema.erase("then");
+    }
     if (if_schema.is_object()) {
-      for (const auto &entry : if_schema.as_object()) {
+      for (auto &entry : if_schema.as_object()) {
         if (!schema.defines(entry.first)) {
-          schema.assign(entry.first, entry.second);
+          schema.assign(entry.first, std::move(entry.second));
         }
       }
-    } else if (if_schema.is_boolean()) {
-      schema = if_schema;
+    } else if (if_schema.is_boolean() && !if_schema.to_boolean()) {
+      auto metadata = JSON::make_object();
+      if (schema.defines("$schema")) {
+        metadata.assign("$schema", std::move(schema.at("$schema")));
+      }
+      if (schema.defines("$id")) {
+        metadata.assign("$id", std::move(schema.at("$id")));
+      }
+      schema = std::move(metadata);
+      schema.assign("not", JSON::make_object());
     }
   }
 };
