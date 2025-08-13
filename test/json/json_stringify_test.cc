@@ -152,9 +152,9 @@ TEST(JSON_stringify, object_integers_order_1) {
                                         {"bar", sourcemeta::core::JSON{2}},
                                         {"baz", sourcemeta::core::JSON{3}}};
   std::ostringstream stream;
-  sourcemeta::core::stringify(
-      document, stream,
-      [](const auto &left, const auto &right) { return left < right; });
+  sourcemeta::core::stringify(document, stream,
+                              [](const auto &, const auto &left,
+                                 const auto &right) { return left < right; });
   EXPECT_EQ(stream.str(), "{\"bar\":2,\"baz\":3,\"foo\":1}");
 }
 
@@ -163,9 +163,9 @@ TEST(JSON_stringify, object_integers_order_2) {
                                         {"bar", sourcemeta::core::JSON{2}},
                                         {"baz", sourcemeta::core::JSON{3}}};
   std::ostringstream stream;
-  sourcemeta::core::stringify(
-      document, stream,
-      [](const auto &left, const auto &right) { return left > right; });
+  sourcemeta::core::stringify(document, stream,
+                              [](const auto &, const auto &left,
+                                 const auto &right) { return left > right; });
   EXPECT_EQ(stream.str(), "{\"foo\":1,\"baz\":3,\"bar\":2}");
 }
 

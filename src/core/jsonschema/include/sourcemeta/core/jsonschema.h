@@ -383,8 +383,8 @@ auto vocabularies(const SchemaResolver &resolver,
 /// std::cout << stream.str() << std::endl;
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_format_compare(const JSON::String &left, const JSON::String &right)
-    -> bool;
+auto schema_format_compare(const JSON::String &parent, const JSON::String &left,
+                           const JSON::String &right) -> bool;
 
 /// @ingroup jsonschema
 ///

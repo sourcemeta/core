@@ -492,7 +492,8 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
   return result;
 }
 
-static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
+static auto keyword_rank(const sourcemeta::core::JSON::String &parent,
+                         const sourcemeta::core::JSON::String &keyword,
                          const std::uint64_t otherwise) -> std::uint64_t {
   using Rank =
       std::unordered_map<sourcemeta::core::JSON::String, std::uint64_t>;
@@ -589,6 +590,12 @@ static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
                    {"$defs", 71},
                    {"definitions", 72}};
 
+  // As an exception heuristic to the overall rule, don't consider keys within
+  // certain parent property names as schemas
+  if (parent == "properties") {
+    return otherwise;
+  }
+
   // A common pattern that seems to come up often in practice is schema authors
   // coming up with unknown annotation keywords that are meant to extend or
   // complement existing ones. For example, `title:en` for `title`, etc. By
@@ -614,11 +621,12 @@ static auto keyword_rank(const sourcemeta::core::JSON::String &keyword,
 }
 
 auto sourcemeta::core::schema_format_compare(
+    const sourcemeta::core::JSON::String &parent,
     const sourcemeta::core::JSON::String &left,
     const sourcemeta::core::JSON::String &right) -> bool {
   constexpr auto DEFAULT{std::numeric_limits<std::uint64_t>::max()};
-  const auto left_rank{keyword_rank(left, DEFAULT)};
-  const auto right_rank{keyword_rank(right, DEFAULT)};
+  const auto left_rank{keyword_rank(parent, left, DEFAULT)};
+  const auto right_rank{keyword_rank(parent, right, DEFAULT)};
   if (left_rank == right_rank) {
     return left < right;
   } else {
