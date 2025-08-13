@@ -67,7 +67,8 @@ public:
       const std::uint64_t column, const JSON &value)>;
   /// A comparison function between object property keys.
   /// See https://en.cppreference.com/w/cpp/named_req/Compare
-  using KeyComparison = std::function<bool(const String &, const String &)>;
+  using KeyComparison =
+      std::function<bool(const String &, const String &, const String &)>;
 
   /*
     Constructors

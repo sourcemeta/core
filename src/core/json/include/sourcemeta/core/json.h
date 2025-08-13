@@ -183,7 +183,8 @@ auto prettify(const JSON &document,
 /// #include <iostream>
 /// #include <sstream>
 ///
-/// auto key_compare(const sourcemeta::core::JSON::String &left,
+/// auto key_compare(const sourcemeta::core::JSON::String &parent,
+///                  const sourcemeta::core::JSON::String &left,
 ///                  const sourcemeta::core::JSON::String &right)
 ///   -> bool {
 ///   return left < right;
@@ -211,7 +212,8 @@ auto stringify(const JSON &document,
 /// #include <iostream>
 /// #include <sstream>
 ///
-/// auto key_compare(const sourcemeta::core::JSON::String &left,
+/// auto key_compare(const sourcemeta::core::JSON::String &parent,
+///                  const sourcemeta::core::JSON::String &left,
 ///                  const sourcemeta::core::JSON::String &right)
 ///   -> bool {
 ///   return left < right;
