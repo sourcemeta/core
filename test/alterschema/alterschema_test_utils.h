@@ -4,7 +4,32 @@
 #include <sourcemeta/core/alterschema.h>
 #include <sourcemeta/core/jsonschema.h>
 
-#define LINT_AND_FIX_FOR_READABILITY(document)                                 \
+#include <tuple>
+#include <vector>
+
+#define LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces)             \
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
+                         std::string>>                                         \
+      traces;                                                                  \
+  sourcemeta::core::SchemaTransformer bundle;                                  \
+  sourcemeta::core::add(bundle,                                                \
+                        sourcemeta::core::AlterSchemaMode::Readability);       \
+  const auto result =                                                          \
+      bundle.check(document, sourcemeta::core::schema_official_walker,         \
+                   sourcemeta::core::schema_official_resolver,                 \
+                   [&traces](const auto &pointer, const auto &name,            \
+                             const auto &message, const auto &description) {   \
+                     traces.emplace_back(pointer, name, message, description); \
+                   });
+
+#define EXPECT_LINT_TRACE(traces, index, pointer, name, message, description)  \
+  EXPECT_EQ(sourcemeta::core::to_string(std::get<0>((traces).at(index))),      \
+            (pointer));                                                        \
+  EXPECT_EQ(std::get<1>((traces).at(index)), (name));                          \
+  EXPECT_EQ(std::get<2>((traces).at(index)), (message));                       \
+  EXPECT_EQ(std::get<3>((traces).at(index)), (description));
+
+#define LINT_AND_FIX_FOR_READABILITY(traces)                                   \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::Readability);       \

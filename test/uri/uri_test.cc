@@ -24,6 +24,14 @@ TEST(URI, from_fragment) {
   EXPECT_EQ(uri.recompose(), "#foo");
 }
 
+TEST(URI, from_fragment_at) {
+  const auto uri{sourcemeta::core::URI::from_fragment("/@foo")};
+  const auto fragment{uri.fragment()};
+  EXPECT_TRUE(fragment.has_value());
+  EXPECT_EQ(fragment.value(), "/@foo");
+  EXPECT_EQ(uri.recompose(), "#/@foo");
+}
+
 TEST(URI, using_istream) {
   std::istringstream input{"https://example.com"};
   const sourcemeta::core::URI uri{input};

@@ -223,10 +223,10 @@ TEST(JSONSchema_unidentify, 2020_12_bundle) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
       "foo": {
-        "$ref": "#/$defs/https%3A~1~1www.sourcemeta.com~1recursive/properties/foo"
+        "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1recursive/properties/foo"
       },
       "baz": {
-        "$ref": "#/$defs/https%3A~1~1example.com~1baz-anchor/$defs/baz"
+        "$ref": "#/$defs/https:~1~1example.com~1baz-anchor/$defs/baz"
       }
     },
     "$defs": {
@@ -234,7 +234,7 @@ TEST(JSONSchema_unidentify, 2020_12_bundle) {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "properties": {
           "foo": {
-            "$ref": "#/$defs/https%3A~1~1www.sourcemeta.com~1recursive"
+            "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1recursive"
           }
         }
       },
@@ -290,11 +290,11 @@ TEST(JSONSchema_unidentify, 2020_12_bundle_metaschema) {
                                test_resolver_2020_12);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "#/$defs/https%3A~1~1example.com~1meta~11.json",
+    "$schema": "#/$defs/https:~1~1example.com~1meta~11.json",
     "type": "string",
     "$defs": {
       "https://example.com/meta/1.json": {
-        "$schema": "#/$defs/https%3A~1~1example.com~1meta~12.json",
+        "$schema": "#/$defs/https:~1~1example.com~1meta~12.json",
         "$vocabulary": { "https://json-schema.org/draft/2020-12/vocab/core": true }
       },
       "https://example.com/meta/2.json": {
@@ -364,10 +364,10 @@ TEST(JSONSchema_unidentify, 2019_09_bundle) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "properties": {
       "foo": {
-        "$ref": "#/$defs/https%3A~1~1www.sourcemeta.com~1recursive/properties/foo"
+        "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1recursive/properties/foo"
       },
       "baz": {
-        "$ref": "#/$defs/https%3A~1~1example.com~1baz-anchor/$defs/baz"
+        "$ref": "#/$defs/https:~1~1example.com~1baz-anchor/$defs/baz"
       }
     },
     "$defs": {
@@ -375,7 +375,7 @@ TEST(JSONSchema_unidentify, 2019_09_bundle) {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
         "properties": {
           "foo": {
-            "$ref": "#/$defs/https%3A~1~1www.sourcemeta.com~1recursive"
+            "$ref": "#/$defs/https:~1~1www.sourcemeta.com~1recursive"
           }
         }
       },
@@ -406,11 +406,11 @@ TEST(JSONSchema_unidentify, 2019_09_bundle_metaschema) {
                                test_resolver_2019_09);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "#/$defs/https%3A~1~1example.com~1meta~11.json",
+    "$schema": "#/$defs/https:~1~1example.com~1meta~11.json",
     "type": "string",
     "$defs": {
       "https://example.com/meta/1.json": {
-        "$schema": "#/$defs/https%3A~1~1example.com~1meta~12.json",
+        "$schema": "#/$defs/https:~1~1example.com~1meta~12.json",
         "$vocabulary": { "https://json-schema.org/draft/2019-09/vocab/core": true }
       },
       "https://example.com/meta/2.json": {
@@ -469,7 +469,7 @@ TEST(JSONSchema_unidentify, draft7_bundle) {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "properties": {
       "foo": {
-        "$ref": "#/definitions/https%3A~1~1www.sourcemeta.com~1recursive/properties/foo"
+        "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive/properties/foo"
       }
     },
     "definitions": {
@@ -477,7 +477,7 @@ TEST(JSONSchema_unidentify, draft7_bundle) {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "properties": {
           "foo": {
-            "$ref": "#/definitions/https%3A~1~1www.sourcemeta.com~1recursive"
+            "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive"
           }
         }
       }
@@ -499,11 +499,11 @@ TEST(JSONSchema_unidentify, draft7_bundle_metaschema) {
       document, sourcemeta::core::schema_official_walker, test_resolver_draft7);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "#/definitions/https%3A~1~1example.com~1meta~11.json",
+    "$schema": "#/definitions/https:~1~1example.com~1meta~11.json",
     "type": "string",
     "definitions": {
       "https://example.com/meta/1.json": {
-        "$schema": "#/definitions/https%3A~1~1example.com~1meta~12.json"
+        "$schema": "#/definitions/https:~1~1example.com~1meta~12.json"
       },
       "https://example.com/meta/2.json": {
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -560,7 +560,7 @@ TEST(JSONSchema_unidentify, draft6_bundle) {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "properties": {
       "foo": {
-        "$ref": "#/definitions/https%3A~1~1www.sourcemeta.com~1recursive/properties/foo"
+        "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive/properties/foo"
       }
     },
     "definitions": {
@@ -568,7 +568,7 @@ TEST(JSONSchema_unidentify, draft6_bundle) {
         "$schema": "http://json-schema.org/draft-06/schema#",
         "properties": {
           "foo": {
-            "$ref": "#/definitions/https%3A~1~1www.sourcemeta.com~1recursive"
+            "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive"
           }
         }
       }
@@ -590,11 +590,11 @@ TEST(JSONSchema_unidentify, draft6_bundle_metaschema) {
       document, sourcemeta::core::schema_official_walker, test_resolver_draft6);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "#/definitions/https%3A~1~1example.com~1meta~11.json",
+    "$schema": "#/definitions/https:~1~1example.com~1meta~11.json",
     "type": "string",
     "definitions": {
       "https://example.com/meta/1.json": {
-        "$schema": "#/definitions/https%3A~1~1example.com~1meta~12.json"
+        "$schema": "#/definitions/https:~1~1example.com~1meta~12.json"
       },
       "https://example.com/meta/2.json": {
         "$schema": "http://json-schema.org/draft-06/schema#"
@@ -651,7 +651,7 @@ TEST(JSONSchema_unidentify, draft4_bundle) {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "properties": {
       "foo": {
-        "$ref": "#/definitions/https%3A~1~1www.sourcemeta.com~1recursive/properties/foo"
+        "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive/properties/foo"
       }
     },
     "definitions": {
@@ -659,7 +659,7 @@ TEST(JSONSchema_unidentify, draft4_bundle) {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "properties": {
           "foo": {
-            "$ref": "#/definitions/https%3A~1~1www.sourcemeta.com~1recursive"
+            "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive"
           }
         }
       }
@@ -681,11 +681,11 @@ TEST(JSONSchema_unidentify, draft4_bundle_metaschema) {
       document, sourcemeta::core::schema_official_walker, test_resolver_draft4);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "#/definitions/https%3A~1~1example.com~1meta~11.json",
+    "$schema": "#/definitions/https:~1~1example.com~1meta~11.json",
     "type": "string",
     "definitions": {
       "https://example.com/meta/1.json": {
-        "$schema": "#/definitions/https%3A~1~1example.com~1meta~12.json"
+        "$schema": "#/definitions/https:~1~1example.com~1meta~12.json"
       },
       "https://example.com/meta/2.json": {
         "$schema": "http://json-schema.org/draft-04/schema#"

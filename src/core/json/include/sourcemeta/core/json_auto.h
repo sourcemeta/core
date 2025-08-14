@@ -5,7 +5,9 @@
 
 #include <algorithm>  // std::sort
 #include <cassert>    // assert
+#include <chrono>     // std::chrono
 #include <concepts>   // std::same_as, std::constructible_from
+#include <filesystem> // std::filesystem
 #include <functional> // std::function
 #include <optional>   // std::optional, std::nullopt, std::bad_optional_access
 #include <tuple> // std::tuple, std::apply, std::tuple_element_t, std::tuple_size, std::tuple_size_v
@@ -214,6 +216,26 @@ template <typename T>
            !std::is_same_v<T, unsigned long long>)
 auto to_json(const T &value) -> JSON {
   return JSON{value};
+}
+
+/// @ingroup json
+template <typename T>
+  requires std::is_same_v<T, std::filesystem::file_time_type>
+auto to_json(const T value) -> JSON {
+  return JSON{static_cast<std::int64_t>(value.time_since_epoch().count())};
+}
+
+/// @ingroup json
+template <typename T>
+  requires std::is_same_v<T, std::filesystem::file_time_type>
+auto from_json(const JSON &value) -> std::optional<T> {
+  if (value.is_integer()) {
+    using file_time_type = std::filesystem::file_time_type;
+    return file_time_type{file_time_type::duration{
+        static_cast<file_time_type::duration::rep>(value.to_integer())}};
+  } else {
+    return std::nullopt;
+  }
 }
 
 /// @ingroup json

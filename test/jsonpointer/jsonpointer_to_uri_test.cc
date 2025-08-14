@@ -300,3 +300,9 @@ TEST(JSONPointer_to_uri, with_relative_base) {
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
 }
+
+TEST(JSONPointer_to_uri, with_at_sign) {
+  const sourcemeta::core::Pointer pointer{"@foo", "bar"};
+  const auto fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#/@foo/bar");
+}
