@@ -44,7 +44,6 @@ public:
         this->unknown_keywords.emplace_back(keyword);
       }
     }
-    // add tests for multiple same name keywords
     if (this->unknown_keywords.empty()) {
       return false;
     }
@@ -63,7 +62,13 @@ public:
       if (schema.defines(keyword)) {
         auto value = schema.at(keyword);
         schema.erase(keyword);
-        schema.assign("x-" + keyword, std::move(value)); // rename
+
+        std::string prefixed_name = "x-" + keyword;
+        while (schema.defines(prefixed_name)) {
+          prefixed_name = "x-" + prefixed_name;
+        }
+
+        schema.assign(prefixed_name, std::move(value));
       }
     }
   }
