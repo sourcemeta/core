@@ -222,9 +222,7 @@ auto to_json(const T &value) -> JSON {
 template <typename T>
   requires std::is_same_v<T, std::filesystem::file_time_type>
 auto to_json(const T value) -> JSON {
-  return JSON{std::chrono::duration_cast<std::chrono::nanoseconds>(
-                  value.time_since_epoch())
-                  .count()};
+  return JSON{static_cast<std::int64_t>(value.time_since_epoch().count())};
 }
 
 /// @ingroup json
@@ -232,9 +230,9 @@ template <typename T>
   requires std::is_same_v<T, std::filesystem::file_time_type>
 auto from_json(const JSON &value) -> std::optional<T> {
   if (value.is_integer()) {
-    return std::filesystem::file_time_type{
-        std::chrono::duration_cast<std::filesystem::file_time_type::duration>(
-            std::chrono::nanoseconds{value.to_integer()})};
+    using file_time_type = std::filesystem::file_time_type;
+    return file_time_type{file_time_type::duration{
+        static_cast<file_time_type::duration::rep>(value.to_integer())}};
   } else {
     return std::nullopt;
   }
