@@ -2,10 +2,8 @@
 #define SOURCEMETA_CORE_BUILD_TEST_UTILSH_
 
 #include <cassert>
-#include <chrono>
 #include <fstream>
 #include <string>
-#include <thread>
 
 inline auto READ_FILE(const std::filesystem::path &path) -> std::string {
   std::ifstream stream{path};
@@ -22,13 +20,6 @@ inline auto WRITE_FILE(const std::filesystem::path &path,
   stream << contents;
   stream.flush();
   stream.close();
-
-  // TODO: Try to fix this for real. It seems like the GCC standard library has
-  // an implementation of `last_write_time` that tends to report stale results
-  // for a while
-#ifdef __GLIBCXX__
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-#endif
 }
 
 #endif

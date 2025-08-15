@@ -11,9 +11,10 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <filesystem> // std::filesystem
-#include <optional>   // std::optional
-#include <string>     // std::string
+#include <filesystem>    // std::filesystem
+#include <optional>      // std::optional
+#include <string>        // std::string
+#include <unordered_map> // std::unordered_map
 
 namespace sourcemeta::core {
 
@@ -32,9 +33,8 @@ public:
       -> node_type;
   [[nodiscard]] auto read_dependencies(const node_type &path) const
       -> std::optional<dependencies_type>;
-  auto
-  write_dependencies(const node_type &path,
-                     const BuildDependencies<node_type> &dependencies) const
+  auto write_dependencies(const node_type &path,
+                          const BuildDependencies<node_type> &dependencies)
       -> void;
   [[nodiscard]] auto dependency_to_node(const dependency_type &dep) const
       -> node_type;
@@ -51,6 +51,7 @@ private:
 #pragma warning(disable : 4251 4275)
 #endif
   std::string extension{".deps"};
+  std::unordered_map<node_type, mark_type> marks;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif
