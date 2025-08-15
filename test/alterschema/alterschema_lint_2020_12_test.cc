@@ -2866,7 +2866,7 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_3) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "x-alreadyPrefixed": true,
-    "X-alsoGood": 456,
+    "x-X-alsoGood": 456,
     "x-needsPrefix": "value"
   })JSON");
 

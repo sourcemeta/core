@@ -13,7 +13,6 @@ public:
       return false;
     }
 
-    // Only apply to JSON Schema dialects
     if (!contains_any(vocabularies,
                       {"https://json-schema.org/draft/2020-12/vocab/validation",
                        "https://json-schema.org/draft/2019-09/vocab/validation",
@@ -28,18 +27,15 @@ public:
     }
 
     this->unknown_keywords.clear();
-    for (const auto &entry : schema.as_object()) {
+    const auto &object = schema.as_object();
+    for (const auto &entry : object) {
       const auto &keyword = entry.first;
 
-      // Skip keywords that are already properly prefixed with x-
-      if (keyword.starts_with("x-") || keyword.starts_with("X-")) {
+      if (keyword.starts_with("x-")) {
         continue;
       }
 
-      const auto metadata{walker(keyword, vocabularies)};
-
-      // If the walker identifies this as an unknown keyword (type Unknown),
-      // and it's not already prefixed, it needs prefixing
+      const auto metadata = walker(keyword, vocabularies);
       if (metadata.type == SchemaKeywordType::Unknown) {
         this->unknown_keywords.emplace_back(keyword);
       }
@@ -50,27 +46,29 @@ public:
 
     std::ostringstream message;
     message << "Prefix unknown keyword(s) with \"x-\":\n";
-    for (const auto &keyword : this->unknown_keywords) {
-      message << "- " << keyword << "\n";
-    }
+    std::for_each(this->unknown_keywords.begin(), this->unknown_keywords.end(),
+                  [&message](const auto &keyword) {
+                    message << "- " << keyword << "\n";
+                  });
 
     return message.str();
   }
 
   auto transform(JSON &schema) const -> void override {
-    for (const auto &keyword : this->unknown_keywords) {
-      if (schema.defines(keyword)) {
-        auto value = schema.at(keyword);
-        schema.erase(keyword);
+    std::for_each(this->unknown_keywords.begin(), this->unknown_keywords.end(),
+                  [&schema](const auto &keyword) {
+                    if (schema.defines(keyword)) {
+                      auto value = schema.at(keyword);
+                      schema.erase(keyword);
 
-        std::string prefixed_name = "x-" + keyword;
-        while (schema.defines(prefixed_name)) {
-          prefixed_name.insert(0, "x-");
-        }
+                      std::string prefixed_name = "x-" + keyword;
+                      while (schema.defines(prefixed_name)) {
+                        prefixed_name.insert(0, "x-");
+                      }
 
-        schema.assign(prefixed_name, std::move(value));
-      }
-    }
+                      schema.assign(prefixed_name, std::move(value));
+                    }
+                  });
   }
 
 private:

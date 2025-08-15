@@ -2678,7 +2678,7 @@ TEST(AlterSchema_lint_2019_09, unknown_keywords_prefix_3) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
     "x-alreadyPrefixed": true,
-    "X-alsoGood": 456,
+    "x-X-alsoGood": 456,
     "needsPrefix": "value"
   })JSON");
 
@@ -2688,7 +2688,7 @@ TEST(AlterSchema_lint_2019_09, unknown_keywords_prefix_3) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
     "x-alreadyPrefixed": true,
-    "X-alsoGood": 456,
+    "x-X-alsoGood": 456,
     "x-needsPrefix": "value"
   })JSON");
 

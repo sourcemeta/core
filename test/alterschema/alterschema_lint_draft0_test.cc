@@ -328,7 +328,7 @@ TEST(AlterSchema_lint_draft0, unknown_keywords_prefix_3) {
     "$schema": "http://json-schema.org/draft-00/schema#",
     "type": "object",
     "x-alreadyPrefixed": true,
-    "X-alsoGood": 456,
+    "x-X-alsoGood": 456,
     "needsPrefix": "value"
   })JSON");
 
@@ -338,7 +338,7 @@ TEST(AlterSchema_lint_draft0, unknown_keywords_prefix_3) {
     "$schema": "http://json-schema.org/draft-00/schema#",
     "type": "object",
     "x-alreadyPrefixed": true,
-    "X-alsoGood": 456,
+    "x-X-alsoGood": 456,
     "x-needsPrefix": "value"
   })JSON");
 
