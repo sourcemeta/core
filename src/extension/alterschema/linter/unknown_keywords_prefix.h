@@ -46,29 +46,29 @@ public:
 
     std::ostringstream message;
     message << "Prefix unknown keyword(s) with \"x-\":\n";
-    std::for_each(this->unknown_keywords.begin(), this->unknown_keywords.end(),
-                  [&message](const auto &keyword) {
-                    message << "- " << keyword << "\n";
-                  });
+    std::ranges::for_each(this->unknown_keywords,
+                          [&message](const auto &keyword) {
+                            message << "- " << keyword << "\n";
+                          });
 
     return message.str();
   }
 
   auto transform(JSON &schema) const -> void override {
-    std::for_each(this->unknown_keywords.begin(), this->unknown_keywords.end(),
-                  [&schema](const auto &keyword) {
-                    if (schema.defines(keyword)) {
-                      auto value = schema.at(keyword);
-                      schema.erase(keyword);
+    std::ranges::for_each(this->unknown_keywords,
+                          [&schema](const auto &keyword) {
+                            if (schema.defines(keyword)) {
+                              auto value = schema.at(keyword);
+                              schema.erase(keyword);
 
-                      std::string prefixed_name = "x-" + keyword;
-                      while (schema.defines(prefixed_name)) {
-                        prefixed_name.insert(0, "x-");
-                      }
+                              std::string prefixed_name = "x-" + keyword;
+                              while (schema.defines(prefixed_name)) {
+                                prefixed_name.insert(0, "x-");
+                              }
 
-                      schema.assign(prefixed_name, std::move(value));
-                    }
-                  });
+                              schema.assign(prefixed_name, std::move(value));
+                            }
+                          });
   }
 
 private:
