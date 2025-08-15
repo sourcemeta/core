@@ -71,8 +71,7 @@ auto build(Adapter &adapter,
       std::ranges::none_of(
           destination_dependencies.value(),
           [&adapter, &destination_mark](const auto &dependency) {
-            const auto dependency_mark =
-                adapter.mark(adapter.dependency_to_node(dependency));
+            const auto dependency_mark = adapter.mark(dependency);
             return !dependency_mark.has_value() ||
                    adapter.is_newer_than(dependency_mark.value(),
                                          destination_mark.value());

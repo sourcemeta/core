@@ -58,6 +58,7 @@ TEST(Build_Adapter_Filesystem_JSON_e2e, simple_cache_miss_hit) {
                        "simple_cache_miss_hit"};
   write_uint64_t(base_path / "initial.txt", 8);
   EXPECT_EQ(read_uint64_t(base_path / "initial.txt"), 8);
+  adapter.refresh(base_path / "initial.txt");
 
   // Create first.txt from initial.txt (cache miss)
   const auto result_1 = sourcemeta::core::build<Context>(
@@ -90,6 +91,7 @@ TEST(Build_Adapter_Filesystem_JSON_e2e, simple_cache_miss_hit) {
   // Update initial.txt
   write_uint64_t(base_path / "initial.txt", 7);
   EXPECT_EQ(read_uint64_t(base_path / "initial.txt"), 7);
+  adapter.refresh(base_path / "initial.txt");
 
   // Create first.txt from initial.txt (cache miss)
   const auto result_5 = sourcemeta::core::build<Context>(
@@ -115,6 +117,7 @@ TEST(Build_Adapter_Filesystem_JSON_e2e, dynamic_dependency) {
                        "dynamic_dependency"};
   write_uint64_t(base_path / "initial.txt", 8);
   EXPECT_EQ(read_uint64_t(base_path / "initial.txt"), 8);
+  adapter.refresh(base_path / "initial.txt");
 
   // Create copy.txt from initial.txt (cache miss)
   const auto result_1 = sourcemeta::core::build<Context>(
@@ -141,6 +144,7 @@ TEST(Build_Adapter_Filesystem_JSON_e2e, missing_dynamic_dependency) {
                        "missing_dynamic_dependency"};
   write_uint64_t(base_path / "initial.txt", 8);
   EXPECT_EQ(read_uint64_t(base_path / "initial.txt"), 8);
+  adapter.refresh(base_path / "initial.txt");
 
   // Create copy.txt from initial.txt (cache miss)
   const auto result_1 = sourcemeta::core::build<Context>(

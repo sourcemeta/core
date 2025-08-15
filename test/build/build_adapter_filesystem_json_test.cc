@@ -39,19 +39,6 @@ TEST(Build_Adapter_Filesystem_JSON, read_dependencies_not_exists) {
   EXPECT_FALSE(dependencies.has_value());
 }
 
-TEST(Build_Adapter_Filesystem_JSON, dependency_to_node_stub_1) {
-  const std::filesystem::path stub{std::filesystem::path{TEST_DIRECTORY} /
-                                   "deps_stub_1.json"};
-  sourcemeta::core::BuildAdapterFilesystemJSON adapter;
-  const auto dependencies{adapter.read_dependencies(stub)};
-  EXPECT_TRUE(dependencies.has_value());
-  EXPECT_EQ(dependencies.value().size(), 2);
-  auto iterator{dependencies.value().cbegin()};
-  EXPECT_EQ(adapter.dependency_to_node(*iterator), "/foo/bar");
-  std::advance(iterator, 1);
-  EXPECT_EQ(adapter.dependency_to_node(*iterator), "/test");
-}
-
 TEST(Build_Adapter_Filesystem_JSON, write_dependencies_1) {
   sourcemeta::core::BuildDependencies<
       sourcemeta::core::BuildAdapterFilesystemJSON::node_type>
@@ -63,6 +50,8 @@ TEST(Build_Adapter_Filesystem_JSON, write_dependencies_1) {
   const auto node{std::filesystem::path{BINARY_DIRECTORY} /
                   "write_dependencies_1"};
 
+  WRITE_FILE(node, "test");
+
   sourcemeta::core::BuildAdapterFilesystemJSON adapter;
   adapter.write_dependencies(node, dependencies);
   const auto back{adapter.read_dependencies(node)};
@@ -70,11 +59,11 @@ TEST(Build_Adapter_Filesystem_JSON, write_dependencies_1) {
   EXPECT_EQ(back.value().size(), 3);
 
   auto iterator{back.value().cbegin()};
-  EXPECT_EQ(adapter.dependency_to_node(*iterator), "/foo/bar");
+  EXPECT_EQ(iterator->to_string(), "/foo/bar");
   std::advance(iterator, 1);
-  EXPECT_EQ(adapter.dependency_to_node(*iterator), "/baz");
+  EXPECT_EQ(iterator->to_string(), "/baz");
   std::advance(iterator, 1);
-  EXPECT_EQ(adapter.dependency_to_node(*iterator), "/test");
+  EXPECT_EQ(iterator->to_string(), "/test");
 }
 
 TEST(Build_Adapter_Filesystem_JSON, mark_stub_1) {
@@ -93,7 +82,18 @@ TEST(Build_Adapter_Filesystem_JSON, mark_stub_not_exists) {
   EXPECT_FALSE(mark.has_value());
 }
 
-TEST(Build_Adapter_Filesystem_JSON, is_newer_than_same) {
+TEST(Build_Adapter_Filesystem_JSON, is_newer_than_same_with_refresh) {
+  const std::filesystem::path file{std::filesystem::path{BINARY_DIRECTORY} /
+                                   "is_newer_than_same"};
+  sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+  WRITE_FILE(file, "test");
+  adapter.refresh(file);
+  const auto mark{adapter.mark(file)};
+  EXPECT_TRUE(mark.has_value());
+  EXPECT_FALSE(adapter.is_newer_than(mark.value(), mark.value()));
+}
+
+TEST(Build_Adapter_Filesystem_JSON, is_newer_than_same_without_refresh) {
   const std::filesystem::path file{std::filesystem::path{BINARY_DIRECTORY} /
                                    "is_newer_than_same"};
   WRITE_FILE(file, "test");
@@ -109,10 +109,12 @@ TEST(Build_Adapter_Filesystem_JSON, is_newer_than) {
   const std::filesystem::path file_2{std::filesystem::path{BINARY_DIRECTORY} /
                                      "is_newer_than" / "2.txt"};
 
-  WRITE_FILE(file_1, "test_1");
-  WRITE_FILE(file_2, "test_2");
-
   sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+
+  WRITE_FILE(file_1, "test_1");
+  adapter.refresh(file_1);
+  WRITE_FILE(file_2, "test_2");
+  adapter.refresh(file_2);
 
   const auto mark_1{adapter.mark(file_1)};
   const auto mark_2{adapter.mark(file_2)};
@@ -130,11 +132,14 @@ TEST(Build_Adapter_Filesystem_JSON, is_newer_than_with_update) {
   const std::filesystem::path file_2{std::filesystem::path{BINARY_DIRECTORY} /
                                      "is_newer_than_with_update" / "2.txt"};
 
-  WRITE_FILE(file_1, "test_1");
-  WRITE_FILE(file_2, "test_2");
-  WRITE_FILE(file_1, "test_3");
-
   sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+
+  WRITE_FILE(file_1, "test_1");
+  adapter.refresh(file_1);
+  WRITE_FILE(file_2, "test_2");
+  adapter.refresh(file_2);
+  WRITE_FILE(file_1, "test_3");
+  adapter.refresh(file_1);
 
   const auto mark_1{adapter.mark(file_1)};
   const auto mark_2{adapter.mark(file_2)};

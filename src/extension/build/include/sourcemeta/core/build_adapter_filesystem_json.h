@@ -12,6 +12,7 @@
 #include <sourcemeta/core/json.h>
 
 #include <filesystem>    // std::filesystem
+#include <mutex>         // std::mutex, std::lock_guard
 #include <optional>      // std::optional
 #include <string>        // std::string
 #include <unordered_map> // std::unordered_map
@@ -23,8 +24,10 @@ class SOURCEMETA_CORE_BUILD_EXPORT BuildAdapterFilesystemJSON {
 public:
   using node_type = std::filesystem::path;
   using mark_type = std::filesystem::file_time_type;
-  using dependencies_type = JSON::Array;
-  using dependency_type = typename dependencies_type::value_type;
+
+  using internal_dependencies_type = JSON::Array;
+  using internal_dependency_type =
+      typename internal_dependencies_type::value_type;
 
   BuildAdapterFilesystemJSON() = default;
   BuildAdapterFilesystemJSON(std::string dependency_extension);
@@ -32,14 +35,17 @@ public:
   [[nodiscard]] auto dependencies_path(const node_type &path) const
       -> node_type;
   [[nodiscard]] auto read_dependencies(const node_type &path) const
-      -> std::optional<dependencies_type>;
+      -> std::optional<internal_dependencies_type>;
   auto write_dependencies(const node_type &path,
                           const BuildDependencies<node_type> &dependencies)
       -> void;
-  [[nodiscard]] auto dependency_to_node(const dependency_type &dep) const
-      -> node_type;
+  auto refresh(const node_type &path) -> void;
+
   [[nodiscard]] auto mark(const node_type &path) const
       -> std::optional<mark_type>;
+  [[nodiscard]] auto mark(const internal_dependency_type &dependency) const
+      -> std::optional<mark_type>;
+
   [[nodiscard]] auto is_newer_than(const mark_type left,
                                    const mark_type right) const -> bool;
 
@@ -52,6 +58,7 @@ private:
 #endif
   std::string extension{".deps"};
   std::unordered_map<node_type, mark_type> marks;
+  std::mutex mutex;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif
