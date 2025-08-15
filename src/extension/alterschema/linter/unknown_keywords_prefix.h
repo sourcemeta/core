@@ -65,7 +65,7 @@ public:
 
         std::string prefixed_name = "x-" + keyword;
         while (schema.defines(prefixed_name)) {
-          prefixed_name = "x-" + prefixed_name;
+          prefixed_name.insert(0, "x-");
         }
 
         schema.assign(prefixed_name, std::move(value));
