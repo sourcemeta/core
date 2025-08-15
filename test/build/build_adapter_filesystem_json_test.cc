@@ -93,7 +93,18 @@ TEST(Build_Adapter_Filesystem_JSON, mark_stub_not_exists) {
   EXPECT_FALSE(mark.has_value());
 }
 
-TEST(Build_Adapter_Filesystem_JSON, is_newer_than_same) {
+TEST(Build_Adapter_Filesystem_JSON, is_newer_than_same_with_refresh) {
+  const std::filesystem::path file{std::filesystem::path{BINARY_DIRECTORY} /
+                                   "is_newer_than_same"};
+  sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+  WRITE_FILE(file, "test");
+  adapter.refresh(file);
+  const auto mark{adapter.mark(file)};
+  EXPECT_TRUE(mark.has_value());
+  EXPECT_FALSE(adapter.is_newer_than(mark.value(), mark.value()));
+}
+
+TEST(Build_Adapter_Filesystem_JSON, is_newer_than_same_without_refresh) {
   const std::filesystem::path file{std::filesystem::path{BINARY_DIRECTORY} /
                                    "is_newer_than_same"};
   WRITE_FILE(file, "test");
@@ -109,10 +120,12 @@ TEST(Build_Adapter_Filesystem_JSON, is_newer_than) {
   const std::filesystem::path file_2{std::filesystem::path{BINARY_DIRECTORY} /
                                      "is_newer_than" / "2.txt"};
 
-  WRITE_FILE(file_1, "test_1");
-  WRITE_FILE(file_2, "test_2");
-
   sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+
+  WRITE_FILE(file_1, "test_1");
+  adapter.refresh(file_1);
+  WRITE_FILE(file_2, "test_2");
+  adapter.refresh(file_2);
 
   const auto mark_1{adapter.mark(file_1)};
   const auto mark_2{adapter.mark(file_2)};
@@ -130,11 +143,14 @@ TEST(Build_Adapter_Filesystem_JSON, is_newer_than_with_update) {
   const std::filesystem::path file_2{std::filesystem::path{BINARY_DIRECTORY} /
                                      "is_newer_than_with_update" / "2.txt"};
 
-  WRITE_FILE(file_1, "test_1");
-  WRITE_FILE(file_2, "test_2");
-  WRITE_FILE(file_1, "test_3");
-
   sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+
+  WRITE_FILE(file_1, "test_1");
+  adapter.refresh(file_1);
+  WRITE_FILE(file_2, "test_2");
+  adapter.refresh(file_2);
+  WRITE_FILE(file_1, "test_3");
+  adapter.refresh(file_1);
 
   const auto mark_1{adapter.mark(file_1)};
   const auto mark_2{adapter.mark(file_2)};

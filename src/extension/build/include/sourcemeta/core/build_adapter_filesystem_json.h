@@ -38,6 +38,7 @@ public:
       -> void;
   [[nodiscard]] auto dependency_to_node(const dependency_type &dep) const
       -> node_type;
+  auto refresh(const node_type &path) -> void;
   [[nodiscard]] auto mark(const node_type &path) const
       -> std::optional<mark_type>;
   [[nodiscard]] auto is_newer_than(const mark_type left,
