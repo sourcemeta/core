@@ -2895,9 +2895,6 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_4) {
   EXPECT_EQ(document, expected);
 }
 
-// dynamic ref pointing to static anchor or something that isn't an anchor
-// unevaluatedItems, Props
-
 TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
