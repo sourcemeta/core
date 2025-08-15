@@ -36,9 +36,13 @@ auto BuildAdapterFilesystemJSON::read_dependencies(const node_type &path) const
 }
 
 auto BuildAdapterFilesystemJSON::write_dependencies(
-    const node_type &path,
-    const BuildDependencies<node_type> &dependencies) const -> void {
+    const node_type &path, const BuildDependencies<node_type> &dependencies)
+    -> void {
   assert(path.is_absolute());
+  // We prefer our own computed marks so that we don't have to rely
+  // too much on file-system specific non-sense
+  this->marks.insert_or_assign(path,
+                               std::filesystem::file_time_type::clock::now());
   const auto deps_path{this->dependencies_path(path)};
   std::filesystem::create_directories(deps_path.parent_path());
   std::ofstream deps_stream{deps_path};
@@ -58,7 +62,12 @@ auto BuildAdapterFilesystemJSON::mark(const node_type &path) const
     -> std::optional<mark_type> {
   assert(path.is_absolute());
   if (std::filesystem::exists(path)) {
-    return std::filesystem::last_write_time(path);
+    const auto match{this->marks.find(path)};
+    if (match == this->marks.cend()) {
+      return std::filesystem::last_write_time(path);
+    } else {
+      return match->second;
+    }
   } else {
     return std::nullopt;
   }
