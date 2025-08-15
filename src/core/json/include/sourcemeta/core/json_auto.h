@@ -240,6 +240,27 @@ auto from_json(const JSON &value) -> std::optional<T> {
 
 /// @ingroup json
 template <typename T>
+  requires(std::is_same_v<T, std::filesystem::path> &&
+           // In at least Clang and GCC, paths are convertible to strings,
+           // resulting in ambiguous templated calls
+           !std::is_convertible_v<T, std::string>)
+auto to_json(const T value) -> JSON {
+  return JSON{value.string()};
+}
+
+/// @ingroup json
+template <typename T>
+  requires std::is_same_v<T, std::filesystem::path>
+auto from_json(const JSON &value) -> std::optional<T> {
+  if (value.is_string()) {
+    return value.to_string();
+  } else {
+    return std::nullopt;
+  }
+}
+
+/// @ingroup json
+template <typename T>
   requires std::is_same_v<T, unsigned long long>
 auto to_json(const T value) -> JSON {
   return JSON{static_cast<std::int64_t>(value)};
