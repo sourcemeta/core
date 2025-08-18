@@ -3,9 +3,10 @@ public:
   EnumValidationKeywordsDefault()
       : SchemaTransformRule{
             "enum_validation_keywords_default",
-            "Setting validation keywords alongside `enum` is considered an "
+            "Setting validation keywords that do not apply to any item in "
+            "`enum` is considered an "
             "anti-pattern, as the enumeration choices already imply their "
-            "respective constraints"} {};
+            "respective types"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
@@ -26,9 +27,7 @@ public:
                        "http://json-schema.org/draft-02/schema#",
                        "http://json-schema.org/draft-02/hyper-schema#",
                        "http://json-schema.org/draft-01/schema#",
-                       "http://json-schema.org/draft-01/hyper-schema#",
-                       "http://json-schema.org/draft-00/schema#",
-                       "http://json-schema.org/draft-00/hyper-schema#"}) ||
+                       "http://json-schema.org/draft-01/hyper-schema#"}) ||
         !schema.is_object() || !schema.defines("enum") ||
         !schema.at("enum").is_array() || schema.defines("$ref")) {
       return false;

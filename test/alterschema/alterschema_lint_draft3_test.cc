@@ -219,10 +219,10 @@ TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_8) {
     "minimum": 10,
     "minLength": 2,
     "minItems": 1,
-    "minProperties": 1,
+    "x-foo-bar": 1,
     "maxLength": 100,
     "maxItems": 10,
-    "maxProperties": 5
+    "x-baz-qux": 5
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
@@ -233,10 +233,31 @@ TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_8) {
     "minimum": 10,
     "minLength": 2,
     "minItems": 1,
-    "minProperties": 1,
+    "x-foo-bar": 1,
     "maxLength": 100,
     "maxItems": 10,
-    "maxProperties": 5
+    "x-baz-qux": 5
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft3,
+     non_applicable_enum_validation_keywords_unknown_keyword) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "enum": [ "foo", "bar" ],
+    "x-unknown-keyword": "value",
+    "x-custom-prop": 42
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "enum": [ "foo", "bar" ],
+    "x-unknown-keyword": "value",
+    "x-custom-prop": 42
   })JSON");
 
   EXPECT_EQ(document, expected);
