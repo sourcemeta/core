@@ -67,7 +67,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/property_names_default.h
     linter/draft_ref_siblings.h
     linter/definitions_to_defs.h
-    linter/enum_validation_keywords_default.h)
+    linter/non_applicable_enum_validation_keywords.h)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME alterschema)

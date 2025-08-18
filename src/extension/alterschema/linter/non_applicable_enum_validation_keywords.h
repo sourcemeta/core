@@ -51,13 +51,10 @@ public:
         continue;
       }
 
-      // If keyword applies to any type, we can't determine type applicability
       if (metadata.instances.empty()) {
         continue;
       }
 
-      // If none of the types that the keyword applies to match the enum types,
-      // then this keyword is redundant and can be removed
       if (std::ranges::none_of(metadata.instances.cbegin(),
                                metadata.instances.cend(),
                                [&enum_types](const auto keyword_type) {

@@ -73,7 +73,7 @@ TEST(AlterSchema_lint_draft3, enum_with_type_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_1) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ "foo", "bar" ],
@@ -90,7 +90,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_2) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ 1, 2, 3 ],
@@ -108,7 +108,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_3) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ { "a": 1 }, { "b": 2 } ],
@@ -126,7 +126,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_4) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ 1, "foo" ],
@@ -144,7 +144,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_5) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ 1, "foo" ],
@@ -165,7 +165,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_5) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_6) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_6) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ { "name": "alice" }, { "age": 25 } ],
@@ -191,7 +191,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_6) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_7) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_7) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ "small", "medium", "large" ],
@@ -212,7 +212,7 @@ TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_7) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, enum_validation_keywords_default_8) {
+TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_8) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "enum": [ 42, "hello", true, null, { "key": "value" }, [1, 2, 3] ],

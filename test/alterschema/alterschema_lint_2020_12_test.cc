@@ -2815,7 +2815,7 @@ TEST(AlterSchema_lint_2020_12, non_applicable_type_specific_keywords_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_1) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ 1, 2, 3 ],
@@ -2833,7 +2833,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_2) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ "one", "two" ],
@@ -2852,7 +2852,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_2) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_3) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ true, false ],
@@ -2872,7 +2872,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_4) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ 1, "foo" ],
@@ -2890,7 +2890,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_5) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_5) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ 1, "foo" ],
@@ -2911,7 +2911,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_5) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_6) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_6) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ { "name": "alice" }, { "age": 25 } ],
@@ -2937,7 +2937,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_6) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_7) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_7) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ "small", "medium", "large" ],
@@ -2958,7 +2958,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_7) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_8) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_8) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ 42, "hello", true, null, { "key": "value" }, [1, 2, 3] ],
@@ -2988,7 +2988,7 @@ TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_8) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_validation_keywords_default_9) {
+TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_9) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "enum": [ 1, 2, 3 ],
