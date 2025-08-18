@@ -1,4 +1,4 @@
-#include <sourcemeta/core/build_adapter_filesystem_json.h>
+#include <sourcemeta/core/build_adapter_filesystem.h>
 
 #include <sourcemeta/core/io.h>
 
@@ -7,37 +7,45 @@
 
 namespace sourcemeta::core {
 
-BuildAdapterFilesystemJSON::BuildAdapterFilesystemJSON(
-    std::string dependency_extension)
+BuildAdapterFilesystem::BuildAdapterFilesystem(std::string dependency_extension)
     : extension{std::move(dependency_extension)} {
   assert(!this->extension.empty());
   assert(this->extension.starts_with("."));
 }
 
-auto BuildAdapterFilesystemJSON::dependencies_path(const node_type &path) const
+auto BuildAdapterFilesystem::dependencies_path(const node_type &path) const
     -> node_type {
   assert(path.is_absolute());
   return path.string() + this->extension;
 }
 
-auto BuildAdapterFilesystemJSON::read_dependencies(const node_type &path) const
-    -> std::optional<internal_dependencies_type> {
+auto BuildAdapterFilesystem::read_dependencies(const node_type &path) const
+    -> std::optional<BuildDependencies<node_type>> {
   assert(path.is_absolute());
   const auto deps_path{this->dependencies_path(path)};
   if (std::filesystem::exists(deps_path)) {
-    const auto deps{read_json(deps_path)};
-    assert(deps.is_array());
+    auto stream{sourcemeta::core::read_file(deps_path)};
+    assert(stream.is_open());
+
+    BuildDependencies<node_type> deps;
+    std::string line;
+    while (std::getline(stream, line)) {
+      if (!line.empty()) {
+        deps.emplace_back(line);
+      }
+    }
+
     if (deps.empty()) {
       return std::nullopt;
     } else {
-      return deps.as_array();
+      return deps;
     }
   } else {
     return std::nullopt;
   }
 }
 
-auto BuildAdapterFilesystemJSON::write_dependencies(
+auto BuildAdapterFilesystem::write_dependencies(
     const node_type &path, const BuildDependencies<node_type> &dependencies)
     -> void {
   assert(path.is_absolute());
@@ -49,12 +57,16 @@ auto BuildAdapterFilesystemJSON::write_dependencies(
   std::filesystem::create_directories(deps_path.parent_path());
   std::ofstream deps_stream{deps_path};
   assert(!deps_stream.fail());
-  // Because dependency lists as array of strings, stringifying vs prettifying
-  // doesn't yield that much of a return
-  prettify(to_json(dependencies), deps_stream);
+  for (const auto &node : dependencies) {
+    deps_stream << node.string() << "\n";
+  }
+
+  deps_stream.flush();
+  deps_stream.close();
+  flush(deps_path);
 }
 
-auto BuildAdapterFilesystemJSON::refresh(const node_type &path) -> void {
+auto BuildAdapterFilesystem::refresh(const node_type &path) -> void {
   // We prefer our own computed marks so that we don't have to rely
   // too much on file-system specific non-sense
   const auto value{std::filesystem::file_time_type::clock::now()};
@@ -63,7 +75,7 @@ auto BuildAdapterFilesystemJSON::refresh(const node_type &path) -> void {
   this->marks.insert_or_assign(path, value);
 }
 
-auto BuildAdapterFilesystemJSON::mark(const node_type &path) const
+auto BuildAdapterFilesystem::mark(const node_type &path) const
     -> std::optional<mark_type> {
   assert(path.is_absolute());
   if (std::filesystem::exists(path)) {
@@ -81,14 +93,8 @@ auto BuildAdapterFilesystemJSON::mark(const node_type &path) const
   }
 }
 
-auto BuildAdapterFilesystemJSON::mark(
-    const internal_dependency_type &node) const -> std::optional<mark_type> {
-  assert(node.is_string());
-  return this->mark(node.to_string());
-}
-
-auto BuildAdapterFilesystemJSON::is_newer_than(const mark_type left,
-                                               const mark_type right) const
+auto BuildAdapterFilesystem::is_newer_than(const mark_type left,
+                                           const mark_type right) const
     -> bool {
   return left > right;
 }

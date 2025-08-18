@@ -2,7 +2,7 @@
 #define SOURCEMETA_CORE_BUILD_H_
 
 // NOLINTBEGIN(misc-include-cleaner)
-#include <sourcemeta/core/build_adapter_filesystem_json.h>
+#include <sourcemeta/core/build_adapter_filesystem.h>
 #include <sourcemeta/core/build_types.h>
 // NOLINTEND(misc-include-cleaner)
 
@@ -28,7 +28,7 @@ namespace sourcemeta::core {
 /// node is considered fresh given its static or dynamic dependencies, the
 /// actual handler is never executed.
 ///
-/// Here is an example using the `BuildAdapterFilesystemJSON` pre-built
+/// Here is an example using the `BuildAdapterFilesystem` pre-built
 /// opinionated adapter:
 ///
 /// ```c++
@@ -45,7 +45,7 @@ namespace sourcemeta::core {
 ///   std::filesystem::copy_file(dependencies.front(), destination, options);
 /// }
 ///
-/// sourcemeta::core::BuildAdapterFilesystemJSON adapter;
+/// sourcemeta::core::BuildAdapterFilesystem adapter;
 ///
 /// // The file will be generated
 /// sourcemeta::core::build<std::filesystem::copy_options>(

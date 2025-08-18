@@ -1,5 +1,5 @@
-#ifndef SOURCEMETA_CORE_BUILD_ADAPTER_FILESYSTEM_JSON_H_
-#define SOURCEMETA_CORE_BUILD_ADAPTER_FILESYSTEM_JSON_H_
+#ifndef SOURCEMETA_CORE_BUILD_ADAPTER_FILESYSTEM_H_
+#define SOURCEMETA_CORE_BUILD_ADAPTER_FILESYSTEM_H_
 
 #ifndef SOURCEMETA_CORE_BUILD_EXPORT
 #include <sourcemeta/core/build_export.h>
@@ -8,8 +8,6 @@
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/build_types.h>
 // NOLINTEND(misc-include-cleaner)
-
-#include <sourcemeta/core/json.h>
 
 #include <filesystem>    // std::filesystem
 #include <mutex>         // std::mutex, std::lock_guard
@@ -20,30 +18,24 @@
 namespace sourcemeta::core {
 
 /// @ingroup build
-class SOURCEMETA_CORE_BUILD_EXPORT BuildAdapterFilesystemJSON {
+class SOURCEMETA_CORE_BUILD_EXPORT BuildAdapterFilesystem {
 public:
   using node_type = std::filesystem::path;
   using mark_type = std::filesystem::file_time_type;
 
-  using internal_dependencies_type = JSON::Array;
-  using internal_dependency_type =
-      typename internal_dependencies_type::value_type;
-
-  BuildAdapterFilesystemJSON() = default;
-  BuildAdapterFilesystemJSON(std::string dependency_extension);
+  BuildAdapterFilesystem() = default;
+  BuildAdapterFilesystem(std::string dependency_extension);
 
   [[nodiscard]] auto dependencies_path(const node_type &path) const
       -> node_type;
   [[nodiscard]] auto read_dependencies(const node_type &path) const
-      -> std::optional<internal_dependencies_type>;
+      -> std::optional<BuildDependencies<node_type>>;
   auto write_dependencies(const node_type &path,
                           const BuildDependencies<node_type> &dependencies)
       -> void;
   auto refresh(const node_type &path) -> void;
 
   [[nodiscard]] auto mark(const node_type &path) const
-      -> std::optional<mark_type>;
-  [[nodiscard]] auto mark(const internal_dependency_type &dependency) const
       -> std::optional<mark_type>;
 
   [[nodiscard]] auto is_newer_than(const mark_type left,

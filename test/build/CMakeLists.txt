@@ -1,8 +1,8 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME build
   SOURCES
     build_test_utils.h
-    build_adapter_filesystem_json_test.cc
-    build_adapter_filesystem_json_e2e_test.cc)
+    build_adapter_filesystem_test.cc
+    build_adapter_filesystem_e2e_test.cc)
 
 target_link_libraries(sourcemeta_core_build_unit PRIVATE sourcemeta::core::build)
 

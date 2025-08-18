@@ -49,8 +49,8 @@ auto HANDLER_MIRROR_CONTEXT_NODE_WITHOUT_CALLBACK(
   write_uint64_t(destination, input);
 }
 
-TEST(Build_Adapter_Filesystem_JSON_e2e, simple_cache_miss_hit) {
-  using Adapter = sourcemeta::core::BuildAdapterFilesystemJSON;
+TEST(Build_Adapter_Filesystem_e2e, simple_cache_miss_hit) {
+  using Adapter = sourcemeta::core::BuildAdapterFilesystem;
   using Context = std::uint64_t;
   Adapter adapter;
 
@@ -108,8 +108,8 @@ TEST(Build_Adapter_Filesystem_JSON_e2e, simple_cache_miss_hit) {
   EXPECT_EQ(read_uint64_t(base_path / "second.txt"), 42);
 }
 
-TEST(Build_Adapter_Filesystem_JSON_e2e, dynamic_dependency) {
-  using Adapter = sourcemeta::core::BuildAdapterFilesystemJSON;
+TEST(Build_Adapter_Filesystem_e2e, dynamic_dependency) {
+  using Adapter = sourcemeta::core::BuildAdapterFilesystem;
   using Context = Adapter::node_type;
   Adapter adapter;
 
@@ -135,8 +135,8 @@ TEST(Build_Adapter_Filesystem_JSON_e2e, dynamic_dependency) {
   EXPECT_EQ(read_uint64_t(base_path / "copy.txt"), 8);
 }
 
-TEST(Build_Adapter_Filesystem_JSON_e2e, missing_dynamic_dependency) {
-  using Adapter = sourcemeta::core::BuildAdapterFilesystemJSON;
+TEST(Build_Adapter_Filesystem_e2e, missing_dynamic_dependency) {
+  using Adapter = sourcemeta::core::BuildAdapterFilesystem;
   using Context = Adapter::node_type;
   Adapter adapter;
 
