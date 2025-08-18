@@ -2518,3 +2518,55 @@ TEST(AlterSchema_lint_2019_09, else_false_7) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2019_09, else_false_8) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/schema",
+    "$anchor": "root",
+    "$comment": "Test schema with metadata",
+    "if": false,
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/schema",
+    "$anchor": "root",
+    "$comment": "Test schema with metadata",
+    "not": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, else_false_9) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/complex",
+    "$anchor": "main",
+    "$ref": "#/$defs/base",
+    "$defs": {
+      "base": { "type": "string" }
+    },
+    "if": false,
+    "else": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/complex",
+    "$anchor": "main",
+    "$ref": "#/$defs/base",
+    "$defs": {
+      "base": { "type": "string" }
+    },
+    "not": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
