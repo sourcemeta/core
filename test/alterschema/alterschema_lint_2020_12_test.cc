@@ -3006,3 +3006,61 @@ TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_9) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12,
+     non_applicable_enum_validation_keywords_with_ref) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/myType",
+    "enum": [ "foo", "bar" ],
+    "minimum": 10,
+    "maxItems": 5,
+    "$defs": {
+      "myType": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/myType",
+    "enum": [ "foo", "bar" ],
+    "$defs": {
+      "myType": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     non_applicable_enum_validation_keywords_universal_keywords) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "enum": [ "foo", "bar" ],
+    "title": "My enum",
+    "description": "A test enum",
+    "default": "foo",
+    "examples": [ "foo" ],
+    "minimum": 10,
+    "maxItems": 5
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "enum": [ "foo", "bar" ],
+    "title": "My enum",
+    "description": "A test enum",
+    "default": "foo",
+    "examples": [ "foo" ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

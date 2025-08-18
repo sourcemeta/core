@@ -29,7 +29,7 @@ public:
                        "http://json-schema.org/draft-01/schema#",
                        "http://json-schema.org/draft-01/hyper-schema#"}) ||
         !schema.is_object() || !schema.defines("enum") ||
-        !schema.at("enum").is_array() || schema.defines("$ref")) {
+        !schema.at("enum").is_array()) {
       return false;
     }
 
