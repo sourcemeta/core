@@ -53,6 +53,7 @@ contains_any(const Vocabularies &container,
 #include "linter/duplicate_enum_values.h"
 #include "linter/duplicate_required_values.h"
 #include "linter/else_empty.h"
+#include "linter/else_false.h"
 #include "linter/else_without_if.h"
 #include "linter/enum_to_const.h"
 #include "linter/enum_with_type.h"
@@ -107,6 +108,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<MinContainsWithoutContains>();
   bundle.add<ThenEmpty>();
   bundle.add<ElseEmpty>();
+  bundle.add<ElseFalse>();
   bundle.add<ThenWithoutIf>();
   bundle.add<DependenciesPropertyTautology>();
   bundle.add<DependentRequiredTautology>();
