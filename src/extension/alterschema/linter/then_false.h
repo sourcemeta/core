@@ -3,7 +3,9 @@ public:
   ThenFalse()
       : SchemaTransformRule{
             "then_false",
-            "`if: S, then: false` is logically equivalent to `not: S`"} {};
+            "`Setting the `then` keyword to the false schema is a convoluted "
+            "way of negating the `if` subschema, which you can more cleanly "
+            "represent using the `not` keyword"} {};
 
   [[nodiscard]] auto
   condition(const JSON &schema, const JSON &, const Vocabularies &vocabularies,
@@ -19,6 +21,7 @@ public:
            schema.defines("then") && is_schema(schema.at("then")) &&
            schema.at("then").is_boolean() && !schema.at("then").to_boolean() &&
            is_schema(schema.at("if")) &&
+           !(schema.at("if").is_boolean() && schema.at("if").to_boolean()) &&
            (!schema.defines("else") || (schema.at("else").is_boolean() &&
                                         schema.at("else").to_boolean())) &&
            (!schema.at("if").is_object() ||
