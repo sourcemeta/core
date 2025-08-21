@@ -12,6 +12,11 @@ TEST(URI_recompose, example_2) {
   EXPECT_EQ(uri.recompose(), "https://example.com/bar");
 }
 
+TEST(URI_recompose, example_3) {
+  const sourcemeta::core::URI uri{"https://example.com/foo/%25/bar"};
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo/%25/bar");
+}
+
 TEST(URI_recompose, urn) {
   const sourcemeta::core::URI uri{"urn:example:schema"};
   EXPECT_EQ(uri.recompose(), "urn:example:schema");

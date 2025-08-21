@@ -1,6 +1,7 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
   SOURCES
     io_canonical_test.cc
+    io_flush_test.cc
     io_weakly_canonical_test.cc
     io_starts_with_test.cc
     io_read_file_test.cc)
