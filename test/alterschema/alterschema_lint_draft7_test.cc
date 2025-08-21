@@ -2190,8 +2190,7 @@ TEST(AlterSchema_lint_draft7, then_false_4) {
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "not": false
+    "$schema": "http://json-schema.org/draft-07/schema#"
   })JSON");
 
   EXPECT_EQ(document, expected);
