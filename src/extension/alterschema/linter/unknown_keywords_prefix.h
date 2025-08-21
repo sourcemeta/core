@@ -11,13 +11,12 @@ public:
             const SchemaFrame &, const SchemaFrame::Location &,
             const SchemaWalker &walker, const SchemaResolver &) const
       -> SchemaTransformRule::Result override {
-    if (!is_schema(schema) || !schema.is_object()) {
+    if (!schema.is_object()) {
       return false;
     }
 
     this->unknown_keywords.clear();
-    const auto &object = schema.as_object();
-    for (const auto &entry : object) {
+    for (const auto &entry : schema.as_object()) {
       const auto &keyword = entry.first;
 
       if (keyword.starts_with("x-")) {
@@ -29,6 +28,7 @@ public:
         this->unknown_keywords.emplace_back(keyword);
       }
     }
+
     if (this->unknown_keywords.empty()) {
       return false;
     }
