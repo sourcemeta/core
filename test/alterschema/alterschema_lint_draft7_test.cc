@@ -1413,6 +1413,28 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_2) {
       "- /allOf/0/type\n");
 }
 
+TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      { "$ref": "https://example.com/foo" },
+      { "$ref": "https://example.com/bar" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      { "$ref": "https://example.com/foo" },
+      { "$ref": "https://example.com/bar" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft7, multiple_of_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
