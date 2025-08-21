@@ -4,6 +4,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Options
 option(SOURCEMETA_CORE_LANG_IO "Build the Sourcemeta Core language I/O library" ON)
+option(SOURCEMETA_CORE_LANG_PARALLEL "Build the Sourcemeta Core language parallel library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
 option(SOURCEMETA_CORE_UUID "Build the Sourcemeta Core UUID library" ON)
 option(SOURCEMETA_CORE_GZIP "Build the Sourcemeta Core GZIP library" ON)
@@ -16,6 +17,8 @@ option(SOURCEMETA_CORE_JSONPOINTER "Build the Sourcemeta Core JSON Pointer libra
 option(SOURCEMETA_CORE_JSONL "Build the Sourcemeta Core JSONL library" ON)
 option(SOURCEMETA_CORE_YAML "Build the Sourcemeta Core YAML library" ON)
 option(SOURCEMETA_CORE_EXTENSION_ALTERSCHEMA "Build the Sourcemeta Core AlterSchema library" ON)
+option(SOURCEMETA_CORE_EXTENSION_OPTIONS "Build the Sourcemeta Core Options library" ON)
+option(SOURCEMETA_CORE_EXTENSION_BUILD "Build the Sourcemeta Core Build library" ON)
 option(SOURCEMETA_CORE_TESTS "Build the Sourcemeta Core tests" OFF)
 option(SOURCEMETA_CORE_BENCHMARK "Build the Sourcemeta Core benchmarks" OFF)
 option(SOURCEMETA_CORE_DOCS "Build the Sourcemeta Core docs" OFF)
@@ -23,7 +26,6 @@ option(SOURCEMETA_CORE_INSTALL "Install the Sourcemeta Core library" ON)
 option(SOURCEMETA_CORE_ADDRESS_SANITIZER "Build Sourcemeta Core with an address sanitizer" OFF)
 option(SOURCEMETA_CORE_UNDEFINED_SANITIZER "Build Sourcemeta Core with an undefined behavior sanitizer" OFF)
 option(SOURCEMETA_CORE_CONTRIB_ZLIB "Build the ZLIB library for downstream consumers" OFF)
-option(SOURCEMETA_CORE_CONTRIB_BEARSSL "Build the BearSSL library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLETEST "Build the GoogleTest library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
 
@@ -56,6 +58,11 @@ if(SOURCEMETA_CORE_LANG_IO)
   add_subdirectory(src/lang/io)
 endif()
 
+if(SOURCEMETA_CORE_LANG_PARALLEL)
+  find_package(Threads REQUIRED)
+  add_subdirectory(src/lang/parallel)
+endif()
+
 if(SOURCEMETA_CORE_TIME)
   add_subdirectory(src/core/time)
 endif()
@@ -70,10 +77,6 @@ endif()
 
 if(SOURCEMETA_CORE_GZIP)
   add_subdirectory(src/core/gzip)
-endif()
-
-if(SOURCEMETA_CORE_CONTRIB_BEARSSL OR SOURCEMETA_CORE_MD5)
-  find_package(BearSSL REQUIRED)
 endif()
 
 if(SOURCEMETA_CORE_MD5)
@@ -115,6 +118,14 @@ if(SOURCEMETA_CORE_EXTENSION_ALTERSCHEMA)
   add_subdirectory(src/extension/alterschema)
 endif()
 
+if(SOURCEMETA_CORE_EXTENSION_OPTIONS)
+  add_subdirectory(src/extension/options)
+endif()
+
+if(SOURCEMETA_CORE_EXTENSION_BUILD)
+  add_subdirectory(src/extension/build)
+endif()
+
 if(SOURCEMETA_CORE_ADDRESS_SANITIZER)
   sourcemeta_sanitizer(TYPE address)
 elseif(SOURCEMETA_CORE_UNDEFINED_SANITIZER)
@@ -148,6 +159,10 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_LANG_IO)
     add_subdirectory(test/io)
+  endif()
+
+  if(SOURCEMETA_CORE_LANG_PARALLEL)
+    add_subdirectory(test/parallel)
   endif()
 
   if(SOURCEMETA_CORE_TIME)
@@ -196,6 +211,14 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_EXTENSION_ALTERSCHEMA)
     add_subdirectory(test/alterschema)
+  endif()
+
+  if(SOURCEMETA_CORE_EXTENSION_OPTIONS)
+    add_subdirectory(test/options)
+  endif()
+
+  if(SOURCEMETA_CORE_EXTENSION_BUILD)
+    add_subdirectory(test/build)
   endif()
 
   if(PROJECT_IS_TOP_LEVEL)
