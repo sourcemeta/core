@@ -67,6 +67,9 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/property_names_default.h
     linter/draft_ref_siblings.h
     linter/definitions_to_defs.h
+
+    # Strict
+    strict/required_properties_in_properties.h
     linter/then_false.h)
 
 if(SOURCEMETA_CORE_INSTALL)

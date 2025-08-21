@@ -37,6 +37,14 @@
                sourcemeta::core::schema_official_resolver,                     \
                [](const auto &, const auto &, const auto &, const auto &) {});
 
+#define LINT_AND_FIX_FOR_READABILITY_STRICT(traces)                            \
+  sourcemeta::core::SchemaTransformer bundle;                                  \
+  sourcemeta::core::add(bundle,                                                \
+                        sourcemeta::core::AlterSchemaMode::ReadabilityStrict); \
+  bundle.apply(document, sourcemeta::core::schema_official_walker,             \
+               sourcemeta::core::schema_official_resolver,                     \
+               [](const auto &, const auto &, const auto &, const auto &) {});
+
 #define LINT_AND_FIX_FOR_STATIC_ANALYSIS(document)                             \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
