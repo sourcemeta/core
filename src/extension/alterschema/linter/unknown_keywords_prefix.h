@@ -43,13 +43,12 @@ public:
 
   auto transform(JSON &schema) const -> void override {
     for (const auto &keyword : this->unknown_keywords) {
-      if (schema.defines(keyword)) {
-        std::string prefixed_name = "x-" + keyword;
-        while (schema.defines(prefixed_name)) {
-          prefixed_name.insert(0, "x-");
-        }
-        schema.rename(keyword, std::move(prefixed_name));
+      assert(schema.defines(keyword));
+      std::string prefixed_name = "x-" + keyword;
+      while (schema.defines(prefixed_name)) {
+        prefixed_name.insert(0, "x-");
       }
+      schema.rename(keyword, std::move(prefixed_name));
     }
   }
 
