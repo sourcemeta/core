@@ -4,9 +4,7 @@ public:
       : SchemaTransformRule{
             "enum_validation_keywords_default",
             "Setting validation keywords that do not apply to any item in "
-            "`enum` is considered an "
-            "anti-pattern, as the enumeration choices already imply their "
-            "respective types"} {};
+            "`enum` is considered an anti-pattern"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
@@ -66,6 +64,7 @@ public:
     if (this->blacklist.empty()) {
       return false;
     }
+
     std::ostringstream message;
     for (const auto &entry : this->blacklist) {
       message << "- " << entry << "\n";
