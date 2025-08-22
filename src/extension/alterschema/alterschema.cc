@@ -1,7 +1,5 @@
 #include <sourcemeta/core/alterschema.h>
 
-#include <cassert> // assert
-
 // For built-in rules
 #include <algorithm>
 #include <cmath>
@@ -71,6 +69,7 @@ contains_any(const Vocabularies &container,
 #include "linter/multiple_of_default.h"
 #include "linter/non_applicable_enum_validation_keywords.h"
 #include "linter/non_applicable_type_specific_keywords.h"
+#include "linter/not_false.h"
 #include "linter/pattern_properties_default.h"
 #include "linter/properties_default.h"
 #include "linter/property_names_default.h"
@@ -85,13 +84,14 @@ contains_any(const Vocabularies &container,
 #include "linter/unnecessary_allof_wrapper_properties.h"
 #include "linter/unsatisfiable_max_contains.h"
 #include "linter/unsatisfiable_min_properties.h"
+
+// Strict
+#include "strict/required_properties_in_properties.h"
 } // namespace sourcemeta::core
 
 namespace sourcemeta::core {
 
-auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
-
-    -> void {
+auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   // Common rules that apply to all modes
   bundle.add<ContentMediaTypeWithoutEncoding>();
   bundle.add<ContentSchemaWithoutMediaType>();
@@ -106,6 +106,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<IfWithoutThenElse>();
   bundle.add<MaxContainsWithoutContains>();
   bundle.add<MinContainsWithoutContains>();
+  bundle.add<NotFalse>();
   bundle.add<ThenEmpty>();
   bundle.add<ElseEmpty>();
   bundle.add<ThenWithoutIf>();
@@ -126,50 +127,50 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<ExclusiveMinimumNumberAndMinimum>();
   bundle.add<DraftRefSiblings>();
 
-  switch (mode) {
-    case AlterSchemaMode::StaticAnalysis:
-      bundle.add<BooleanTrue>();
-      bundle.add<ConstAsEnum>();
-      bundle.add<EqualNumericBoundsToConst>();
-      bundle.add<ExclusiveMaximumIntegerToMaximum>();
-      bundle.add<ExclusiveMinimumIntegerToMinimum>();
-      bundle.add<TypeArrayToAnyOf_2020_12>();
-      bundle.add<TypeBooleanAsEnum>();
-      bundle.add<TypeNullAsEnum>();
-      bundle.add<MaxContainsCoveredByMaxItems>();
-      bundle.add<MinItemsGivenMinContains>();
-      bundle.add<MinItemsImplicit>();
-      bundle.add<MinLengthImplicit>();
-      bundle.add<MinPropertiesCoveredByRequired>();
-      bundle.add<MinPropertiesImplicit>();
-      bundle.add<MultipleOfImplicit>();
-      bundle.add<PropertiesImplicit>();
-      bundle.add<TypeUnionImplicit>();
-      break;
-    case AlterSchemaMode::Readability:
-      bundle.add<EqualNumericBoundsToConst>();
-      bundle.add<AdditionalPropertiesDefault>();
-      bundle.add<ContentSchemaDefault>();
-      bundle.add<DefinitionsToDefs>();
-      bundle.add<DependenciesDefault>();
-      bundle.add<DependentRequiredDefault>();
-      bundle.add<ItemsArrayDefault>();
-      bundle.add<ItemsSchemaDefault>();
-      bundle.add<MultipleOfDefault>();
-      bundle.add<PatternPropertiesDefault>();
-      bundle.add<PropertiesDefault>();
-      bundle.add<PropertyNamesDefault>();
-      bundle.add<PropertyNamesTypeDefault>();
-      bundle.add<UnevaluatedItemsDefault>();
-      bundle.add<UnevaluatedPropertiesDefault>();
-      bundle.add<UnsatisfiableMaxContains>();
-      bundle.add<UnsatisfiableMinProperties>();
-      bundle.add<EnumToConst>();
-      break;
-    default:
-      // We should never get here
-      assert(false);
-      break;
+  if (mode == AlterSchemaMode::StaticAnalysis) {
+    bundle.add<BooleanTrue>();
+    bundle.add<ConstAsEnum>();
+    bundle.add<EqualNumericBoundsToConst>();
+    bundle.add<ExclusiveMaximumIntegerToMaximum>();
+    bundle.add<ExclusiveMinimumIntegerToMinimum>();
+    bundle.add<TypeArrayToAnyOf_2020_12>();
+    bundle.add<TypeBooleanAsEnum>();
+    bundle.add<TypeNullAsEnum>();
+    bundle.add<MaxContainsCoveredByMaxItems>();
+    bundle.add<MinItemsGivenMinContains>();
+    bundle.add<MinItemsImplicit>();
+    bundle.add<MinLengthImplicit>();
+    bundle.add<MinPropertiesCoveredByRequired>();
+    bundle.add<MinPropertiesImplicit>();
+    bundle.add<MultipleOfImplicit>();
+    bundle.add<PropertiesImplicit>();
+    bundle.add<TypeUnionImplicit>();
+  }
+
+  if (mode == AlterSchemaMode::Readability ||
+      mode == AlterSchemaMode::ReadabilityStrict) {
+    bundle.add<EqualNumericBoundsToConst>();
+    bundle.add<AdditionalPropertiesDefault>();
+    bundle.add<ContentSchemaDefault>();
+    bundle.add<DefinitionsToDefs>();
+    bundle.add<DependenciesDefault>();
+    bundle.add<DependentRequiredDefault>();
+    bundle.add<ItemsArrayDefault>();
+    bundle.add<ItemsSchemaDefault>();
+    bundle.add<MultipleOfDefault>();
+    bundle.add<PatternPropertiesDefault>();
+    bundle.add<PropertiesDefault>();
+    bundle.add<PropertyNamesDefault>();
+    bundle.add<PropertyNamesTypeDefault>();
+    bundle.add<UnevaluatedItemsDefault>();
+    bundle.add<UnevaluatedPropertiesDefault>();
+    bundle.add<UnsatisfiableMaxContains>();
+    bundle.add<UnsatisfiableMinProperties>();
+    bundle.add<EnumToConst>();
+  }
+
+  if (mode == AlterSchemaMode::ReadabilityStrict) {
+    bundle.add<RequiredPropertiesInProperties>();
   }
 }
 
