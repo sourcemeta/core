@@ -159,6 +159,203 @@ TEST(AlterSchema_lint_draft6, enum_with_type_4) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ "foo", "bar" ],
+    "minimum": 0
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ "foo", "bar" ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 1, 2, 3 ],
+    "minLength": 0,
+    "maxLength": 5
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ { "a": 1 }, { "b": 2 } ],
+    "minLength": 3,
+    "minimum": 0
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ { "a": 1 }, { "b": 2 } ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 1, "foo" ],
+    "minLength": 2
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 1, "foo" ],
+    "minLength": 2
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 1, "foo" ],
+    "minLength": 2,
+    "minimum": 0,
+    "minItems": 1
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 1, "foo" ],
+    "minLength": 2,
+    "minimum": 0
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ { "name": "alice" }, { "age": 25 } ],
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "number" }
+    },
+    "minLength": 5,
+    "minimum": 10
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ { "name": "alice" }, { "age": 25 } ],
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "number" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ "small", "medium", "large" ],
+    "title": "Size Options",
+    "minLength": 3,
+    "minItems": 2
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ "small", "medium", "large" ],
+    "title": "Size Options",
+    "minLength": 3
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_8) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 42, "hello", true, null, { "key": "value" }, [1, 2, 3] ],
+    "minimum": 10,
+    "minLength": 2,
+    "minItems": 1,
+    "minProperties": 1,
+    "maxLength": 100,
+    "maxItems": 10,
+    "maxProperties": 5
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "enum": [ 42, "hello", true, null, { "key": "value" }, [1, 2, 3] ],
+    "minimum": 10,
+    "minLength": 2,
+    "minItems": 1,
+    "minProperties": 1,
+    "maxLength": 100,
+    "maxItems": 10,
+    "maxProperties": 5
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, non_applicable_enum_validation_keywords_9) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com/schema",
+    "title": "My Enum Schema",
+    "description": "A schema with enum and annotations",
+    "enum": [ "red", "green", "blue" ],
+    "minimum": 5,
+    "minLength": 10,
+    "minItems": 2,
+    "minProperties": 1,
+    "maxProperties": 5
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com/schema",
+    "title": "My Enum Schema",
+    "description": "A schema with enum and annotations",
+    "enum": [ "red", "green", "blue" ],
+    "minLength": 10
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft6, single_type_array_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",

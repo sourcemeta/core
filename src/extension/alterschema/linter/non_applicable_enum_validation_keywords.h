@@ -1,0 +1,77 @@
+class NonApplicableEnumValidationKeywords final : public SchemaTransformRule {
+public:
+  NonApplicableEnumValidationKeywords()
+      : SchemaTransformRule{
+            "enum_validation_keywords_default",
+            "Setting validation keywords that do not apply to any item in "
+            "`enum` is considered an anti-pattern"} {};
+
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::JSON &,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &walker,
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (!contains_any(vocabularies,
+                      {"https://json-schema.org/draft/2020-12/vocab/validation",
+                       "https://json-schema.org/draft/2019-09/vocab/validation",
+                       "http://json-schema.org/draft-07/schema#",
+                       "http://json-schema.org/draft-06/schema#",
+                       "http://json-schema.org/draft-04/schema#",
+                       "http://json-schema.org/draft-03/schema#",
+                       "http://json-schema.org/draft-02/schema#",
+                       "http://json-schema.org/draft-02/hyper-schema#",
+                       "http://json-schema.org/draft-01/schema#",
+                       "http://json-schema.org/draft-01/hyper-schema#"}) ||
+        !schema.is_object() || !schema.defines("enum") ||
+        !schema.at("enum").is_array()) {
+      return false;
+    }
+
+    std::set<sourcemeta::core::JSON::Type> enum_types;
+    for (const auto &value : schema.at("enum").as_array()) {
+      enum_types.emplace(value.type());
+    }
+
+    if (enum_types.empty()) {
+      return false;
+    }
+
+    this->blacklist.clear();
+    for (const auto &entry : schema.as_object()) {
+      const auto metadata = walker(entry.first, vocabularies);
+
+      if (metadata.instances.empty()) {
+        continue;
+      }
+
+      if (std::ranges::none_of(metadata.instances,
+                               [&enum_types](const auto keyword_type) {
+                                 return enum_types.contains(keyword_type);
+                               })) {
+        this->blacklist.emplace_back(entry.first);
+      }
+    }
+
+    if (this->blacklist.empty()) {
+      return false;
+    }
+
+    std::ostringstream message;
+    for (const auto &entry : this->blacklist) {
+      message << "- " << entry << "\n";
+    }
+
+    return message.str();
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase_keys(this->blacklist.cbegin(), this->blacklist.cend());
+  }
+
+private:
+  mutable std::vector<sourcemeta::core::JSON::String> blacklist;
+};
