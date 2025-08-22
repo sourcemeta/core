@@ -25,10 +25,10 @@ public:
   }
 };
 
-class ExampleRule1WithDescription final
+class ExampleRule1WithPointer final
     : public sourcemeta::core::SchemaTransformRule {
 public:
-  ExampleRule1WithDescription()
+  ExampleRule1WithPointer()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_1", "Keyword foo is not permitted") {};
 
@@ -41,7 +41,37 @@ public:
                                const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
     if (schema.defines("foo")) {
-      return "This is a message from the rule";
+      return sourcemeta::core::Pointer{"foo"};
+    } else {
+      return false;
+    }
+  }
+
+  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+    schema.erase("foo");
+  }
+};
+
+class ExampleRuleWithManyPointers final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleWithManyPointers()
+      : sourcemeta::core::SchemaTransformRule("example_rule_with_many_pointers",
+                                              "Foo Bar") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (schema.defines("foo") && schema.defines("bar")) {
+      std::vector<sourcemeta::core::Pointer> locations;
+      locations.emplace_back(sourcemeta::core::Pointer{"foo"});
+      locations.emplace_back(sourcemeta::core::Pointer{"bar"});
+      return locations;
     } else {
       return false;
     }
@@ -230,30 +260,6 @@ public:
                                const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
     return schema.defines("foo");
-  }
-};
-
-class ExampleRuleUnfixableWithDescription1 final
-    : public sourcemeta::core::SchemaTransformRule {
-public:
-  ExampleRuleUnfixableWithDescription1()
-      : sourcemeta::core::SchemaTransformRule(
-            "example_rule_unfixable_with_description_1",
-            "An example rule that cannot be fixed") {};
-
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const sourcemeta::core::JSON &,
-                               const sourcemeta::core::Vocabularies &,
-                               const sourcemeta::core::SchemaFrame &,
-                               const sourcemeta::core::SchemaFrame::Location &,
-                               const sourcemeta::core::SchemaWalker &,
-                               const sourcemeta::core::SchemaResolver &) const
-      -> sourcemeta::core::SchemaTransformRule::Result override {
-    if (schema.defines("foo")) {
-      return "The subschema cannot define foo";
-    } else {
-      return false;
-    }
   }
 };
 

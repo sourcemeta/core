@@ -22,14 +22,11 @@
                      traces.emplace_back(pointer, name, message, outcome);     \
                    });
 
-#define EXPECT_LINT_TRACE(traces, index, pointer, name, message,               \
-                          expected_description)                                \
+#define EXPECT_LINT_TRACE(traces, index, pointer, name, message)               \
   EXPECT_EQ(sourcemeta::core::to_string(std::get<0>((traces).at(index))),      \
             (pointer));                                                        \
   EXPECT_EQ(std::get<1>((traces).at(index)), (name));                          \
-  EXPECT_EQ(std::get<2>((traces).at(index)), (message));                       \
-  EXPECT_EQ(std::get<3>((traces).at(index)).description,                       \
-            (expected_description));
+  EXPECT_EQ(std::get<2>((traces).at(index)), (message));
 
 #define LINT_AND_FIX_FOR_READABILITY(traces)                                   \
   sourcemeta::core::SchemaTransformer bundle;                                  \

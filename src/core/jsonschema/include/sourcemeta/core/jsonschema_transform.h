@@ -11,8 +11,9 @@
 #include <sourcemeta/core/jsonschema_resolver.h>
 
 #include <cassert>     // assert
-#include <concepts>    // std::derived_from
+#include <concepts>    // std::derived_from, std::same_as
 #include <functional>  // std::function
+#include <iterator>    // std::make_move_iterator, std::begin, std::end
 #include <map>         // std::map
 #include <memory>      // std::make_unique, std::unique_ptr
 #include <optional>    // std::optional, std::nullopt
@@ -84,12 +85,24 @@ public:
   /// The result of evaluating a rule
   struct Result {
     Result(const bool applies_) : applies{applies_} {}
-    Result(std::string description_)
-        : applies{true}, description{std::move(description_)} {}
-    Result(const char *description_)
-        : applies{true}, description{description_} {}
+    Result(Pointer pointer) : applies{true}, locations{std::move(pointer)} {
+      assert(this->locations.size() == 1);
+    }
+
+    template <typename T>
+      requires std::same_as<typename T::value_type, Pointer>
+    Result(T &&container) : applies{true} {
+      auto &&input = std::forward<T>(container);
+      if constexpr (requires { input.size(); }) {
+        locations.reserve(input.size());
+      }
+
+      locations.assign(std::make_move_iterator(std::begin(input)),
+                       std::make_move_iterator(std::end(input)));
+    }
+
     bool applies;
-    std::string description{""};
+    std::vector<Pointer> locations;
   };
 
   /// Apply the rule to a schema
@@ -232,7 +245,6 @@ public:
   /// - The name of the rule
   /// - The message of the rule
   /// - The rule evaluation result
-  /// - The longer description of the rule (if any)
   using Callback = std::function<void(const Pointer &, const std::string_view,
                                       const std::string_view,
                                       const SchemaTransformRule::Result &)>;

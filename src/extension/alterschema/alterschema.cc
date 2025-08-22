@@ -14,6 +14,24 @@ contains_any(const Vocabularies &container,
   });
 }
 
+template <typename... Args>
+auto APPLIES_TO_KEYWORDS(Args &&...args) -> SchemaTransformRule::Result {
+  std::vector<Pointer> result;
+  result.reserve(sizeof...(args));
+  (result.push_back(Pointer{std::forward<Args>(args)}), ...);
+  return result;
+}
+
+inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
+    -> SchemaTransformRule::Result {
+  return {std::move(keywords)};
+}
+
+#define ONLY_CONTINUE_IF(condition)                                            \
+  if (!(condition)) {                                                          \
+    return false;                                                              \
+  }
+
 // Canonicalizer
 #include "canonicalizer/boolean_true.h"
 #include "canonicalizer/const_as_enum.h"
@@ -87,6 +105,8 @@ contains_any(const Vocabularies &container,
 
 // Strict
 #include "strict/required_properties_in_properties.h"
+
+#undef ONLY_CONTINUE_IF
 } // namespace sourcemeta::core
 
 namespace sourcemeta::core {

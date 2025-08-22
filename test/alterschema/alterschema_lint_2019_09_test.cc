@@ -1878,8 +1878,7 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_6) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "unnecessary_allof_wrapper_modern",
                     "Wrapping any keyword in `allOf` is unnecessary and may "
-                    "even introduce a minor evaluation performance overhead",
-                    "- /allOf/0/type\n- /allOf/0/$ref\n");
+                    "even introduce a minor evaluation performance overhead");
 }
 
 TEST(AlterSchema_lint_2019_09, multiple_of_default_1) {
