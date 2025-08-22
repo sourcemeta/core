@@ -43,17 +43,12 @@ public:
     this->blacklist.clear();
     for (const auto &entry : schema.as_object()) {
       const auto metadata = walker(entry.first, vocabularies);
-      if (metadata.type == sourcemeta::core::SchemaKeywordType::Other ||
-          metadata.type == sourcemeta::core::SchemaKeywordType::Reference) {
-        continue;
-      }
 
       if (metadata.instances.empty()) {
         continue;
       }
 
-      if (std::ranges::none_of(metadata.instances.cbegin(),
-                               metadata.instances.cend(),
+      if (std::ranges::none_of(metadata.instances,
                                [&enum_types](const auto keyword_type) {
                                  return enum_types.contains(keyword_type);
                                })) {
