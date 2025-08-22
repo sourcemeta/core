@@ -116,7 +116,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode)
   bundle.add<MinimumRealForInteger>();
   bundle.add<SingleTypeArray>();
   bundle.add<EnumWithType>();
-  bundle.add<EnumValidationKeywordsDefault>();
+  bundle.add<NonApplicableEnumValidationKeywords>();
   bundle.add<DuplicateEnumValues>();
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();

@@ -1,6 +1,6 @@
-class EnumValidationKeywordsDefault final : public SchemaTransformRule {
+class NonApplicableEnumValidationKeywords final : public SchemaTransformRule {
 public:
-  EnumValidationKeywordsDefault()
+  NonApplicableEnumValidationKeywords()
       : SchemaTransformRule{
             "enum_validation_keywords_default",
             "Setting validation keywords that do not apply to any item in "
