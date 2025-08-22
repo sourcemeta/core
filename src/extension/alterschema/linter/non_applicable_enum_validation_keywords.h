@@ -63,7 +63,15 @@ public:
       }
     }
 
-    return !this->blacklist.empty();
+    if (this->blacklist.empty()) {
+      return false;
+    }
+    std::ostringstream message;
+    for (const auto &entry : this->blacklist) {
+      message << "- " << entry << "\n";
+    }
+
+    return message.str();
   }
 
   auto transform(sourcemeta::core::JSON &schema) const -> void override {
