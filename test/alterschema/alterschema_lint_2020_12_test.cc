@@ -3009,3 +3009,248 @@ TEST(AlterSchema_lint_2020_12, required_properties_in_properties_5) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "anyOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar" ] }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "anyOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar" ] }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "anyOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar", "baz" ] }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "anyOf": [
+      { "required": [ "foo" ] },
+      {
+        "required": [ "bar", "baz" ],
+        "properties": {
+          "baz": true
+        }
+      }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_8) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "oneOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar" ] }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "oneOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar" ] }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_9) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "oneOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar", "baz" ] }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "oneOf": [
+      { "required": [ "foo" ] },
+      {
+        "required": [ "bar", "baz" ],
+        "properties": {
+          "baz": true
+        }
+      }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_10) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "allOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar" ] }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "required": [ "foo" ],
+    "allOf": [
+      { "required": [ "bar" ] }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_11) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true },
+    "allOf": [
+      { "required": [ "foo" ] },
+      { "required": [ "bar", "baz" ] }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true, "baz": true },
+    "required": [ "foo" ],
+    "allOf": [
+      { "required": [ "bar", "baz" ] }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_12) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true, "baz": true },
+    "if": { "required": [ "foo" ] },
+    "then": { "required": [ "bar" ] },
+    "else": { "required": [ "baz" ] }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true, "bar": true, "baz": true },
+    "if": { "required": [ "foo" ] },
+    "then": { "required": [ "bar" ] },
+    "else": { "required": [ "baz" ] }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_13) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true },
+    "not": { "required": [ "foo" ] }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true },
+    "not": { "required": [ "foo" ] }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_14) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true },
+    "contentEncoding": "base64",
+    "contentMediaType": "application/json",
+    "contentSchema": { "required": [ "foo" ] }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": { "foo": true },
+    "contentEncoding": "base64",
+    "contentMediaType": "application/json",
+    "contentSchema": { "required": [ "foo" ] }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, required_properties_in_properties_15) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "required": [ "foo", "bar" ],
+    "$ref": "#/$defs/helper",
+    "$defs": {
+      "helper": {
+        "properties": { "foo": true, "bar": true }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "required": [ "foo", "bar" ],
+    "$ref": "#/$defs/helper",
+    "properties": { "foo": true, "bar": true },
+    "$defs": {
+      "helper": {
+        "properties": { "foo": true, "bar": true }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
