@@ -101,8 +101,13 @@ public:
                        std::make_move_iterator(std::end(input)));
     }
 
+    Result(std::vector<Pointer> &&locations_, JSON::String &&description_)
+        : applies{true}, locations{std::move(locations_)},
+          description{std::move(description_)} {}
+
     bool applies;
     std::vector<Pointer> locations;
+    std::optional<JSON::String> description;
   };
 
   /// Apply the rule to a schema

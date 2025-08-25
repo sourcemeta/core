@@ -487,12 +487,14 @@ TEST(JSONSchema_transformer, check_top_level) {
   EXPECT_EQ(
       sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(0)),
       "/foo");
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 
   EXPECT_EQ(std::get<0>(entries.at(1)),
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
   EXPECT_EQ(std::get<3>(entries.at(1)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(1)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, check_multiple_pointers) {
@@ -526,6 +528,39 @@ TEST(JSONSchema_transformer, check_multiple_pointers) {
   EXPECT_EQ(
       sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(1)),
       "/bar");
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+}
+
+TEST(JSONSchema_transformer, check_with_description) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1WithDescription>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 1);
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(0)),
+      "/foo");
+  EXPECT_TRUE(std::get<3>(entries.at(0)).description.has_value());
+  EXPECT_EQ(std::get<3>(entries.at(0)).description.value(),
+            "This is a message from the rule");
 }
 
 TEST(JSONSchema_transformer, check_no_match) {
@@ -590,6 +625,7 @@ TEST(JSONSchema_transformer, check_partial_match) {
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
   EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, check_empty) {
@@ -659,12 +695,14 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
   EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 
   EXPECT_EQ(std::get<0>(entries.at(1)),
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
   EXPECT_EQ(std::get<3>(entries.at(1)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(1)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, remove_rule_by_name) {
@@ -725,6 +763,7 @@ TEST(JSONSchema_transformer, unfixable_apply) {
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_unfixable_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
   EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -760,6 +799,7 @@ TEST(JSONSchema_transformer, unfixable_check) {
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_unfixable_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
   EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, rereference_not_hit) {
