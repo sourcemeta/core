@@ -20,7 +20,6 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::forward, std::pair
-#include <variant>     // std::variant
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -83,7 +82,15 @@ public:
   [[nodiscard]] auto message() const -> const std::string &;
 
   /// The result of evaluating a rule
-  using Result = std::variant<bool, std::string>;
+  struct Result {
+    Result(const bool applies_) : applies{applies_} {}
+    Result(std::string description_)
+        : applies{true}, description{std::move(description_)} {}
+    Result(const char *description_)
+        : applies{true}, description{description_} {}
+    bool applies;
+    std::string description{""};
+  };
 
   /// Apply the rule to a schema
   auto apply(JSON &schema, const JSON &root, const Vocabularies &vocabularies,
@@ -224,10 +231,11 @@ public:
   /// - The JSON Pointer to the given subschema
   /// - The name of the rule
   /// - The message of the rule
+  /// - The rule evaluation result
   /// - The longer description of the rule (if any)
-  using Callback =
-      std::function<void(const Pointer &, const std::string_view,
-                         const std::string_view, const std::string_view)>;
+  using Callback = std::function<void(const Pointer &, const std::string_view,
+                                      const std::string_view,
+                                      const SchemaTransformRule::Result &)>;
 
   /// Apply the bundle of rules to a schema
   auto apply(JSON &schema, const SchemaWalker &walker,
