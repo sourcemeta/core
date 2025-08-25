@@ -15,41 +15,39 @@ public:
             const sourcemeta::core::SchemaWalker &walker,
             const sourcemeta::core::SchemaResolver &resolver) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    if (!(((vocabularies.contains(
-                "https://json-schema.org/draft/2020-12/vocab/validation") &&
-            vocabularies.contains(
-                "https://json-schema.org/draft/2020-12/vocab/applicator")) ||
-           (vocabularies.contains(
-                "https://json-schema.org/draft/2019-09/vocab/validation") &&
-            vocabularies.contains(
-                "https://json-schema.org/draft/2019-09/vocab/applicator")) ||
-           contains_any(vocabularies,
-                        {"http://json-schema.org/draft-07/schema#",
-                         "http://json-schema.org/draft-06/schema#",
-                         "http://json-schema.org/draft-04/schema#",
-                         "http://json-schema.org/draft-03/schema#"})) &&
-          schema.is_object() && schema.defines("required") &&
-          schema.at("required").is_array() && !schema.at("required").empty())) {
-      return false;
-    }
+    ONLY_CONTINUE_IF(
+        ((vocabularies.contains(
+              "https://json-schema.org/draft/2020-12/vocab/validation") &&
+          vocabularies.contains(
+              "https://json-schema.org/draft/2020-12/vocab/applicator")) ||
+         (vocabularies.contains(
+              "https://json-schema.org/draft/2019-09/vocab/validation") &&
+          vocabularies.contains(
+              "https://json-schema.org/draft/2019-09/vocab/applicator")) ||
+         contains_any(vocabularies,
+                      {"http://json-schema.org/draft-07/schema#",
+                       "http://json-schema.org/draft-06/schema#",
+                       "http://json-schema.org/draft-04/schema#",
+                       "http://json-schema.org/draft-03/schema#"})) &&
+        schema.is_object() && schema.defines("required") &&
+        schema.at("required").is_array() && !schema.at("required").empty());
 
     this->properties.clear();
-    std::ostringstream message;
+    std::vector<Pointer> locations;
+    std::size_t index{0};
     for (const auto &property : schema.at("required").as_array()) {
       if (property.is_string() &&
           !this->defined_in_properties_sibling(schema, property.to_string()) &&
           !this->defined_in_properties_parent(root, frame, location, walker,
                                               resolver, property.to_string())) {
-        message << "- " << property.to_string() << "\n";
+        locations.push_back(Pointer{"required", index});
         this->properties.emplace_back(property.to_string());
+        index += 1;
       }
     }
 
-    if (this->properties.empty()) {
-      return false;
-    } else {
-      return message.str();
-    }
+    ONLY_CONTINUE_IF(!locations.empty());
+    return APPLIES_TO_POINTERS(std::move(locations));
   }
 
   auto transform(JSON &schema) const -> void override {

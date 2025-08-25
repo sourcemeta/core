@@ -11,34 +11,23 @@ public:
             const SchemaFrame &, const SchemaFrame::Location &,
             const SchemaWalker &walker, const SchemaResolver &) const
       -> SchemaTransformRule::Result override {
-    if (!schema.is_object()) {
-      return false;
-    }
-
+    ONLY_CONTINUE_IF(schema.is_object());
     this->unknown_keywords.clear();
+    std::vector<Pointer> locations;
     for (const auto &entry : schema.as_object()) {
-      const auto &keyword = entry.first;
-
-      if (keyword.starts_with("x-")) {
+      if (entry.first.starts_with("x-")) {
         continue;
       }
 
-      const auto metadata = walker(keyword, vocabularies);
+      const auto metadata = walker(entry.first, vocabularies);
       if (metadata.type == SchemaKeywordType::Unknown) {
-        this->unknown_keywords.emplace_back(keyword);
+        this->unknown_keywords.emplace_back(entry.first);
+        locations.push_back(Pointer{entry.first});
       }
     }
 
-    if (this->unknown_keywords.empty()) {
-      return false;
-    }
-
-    std::ostringstream message;
-    for (const auto &keyword : this->unknown_keywords) {
-      message << "- " << keyword << "\n";
-    }
-
-    return message.str();
+    ONLY_CONTINUE_IF(!locations.empty());
+    return APPLIES_TO_POINTERS(std::move(locations));
   }
 
   auto transform(JSON &schema) const -> void override {
