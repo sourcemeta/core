@@ -28,7 +28,7 @@ public:
     return APPLIES_TO_KEYWORDS("exclusiveMaximum", "maximum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     if (schema.at("maximum") < schema.at("exclusiveMaximum")) {
       schema.erase("exclusiveMaximum");
     } else {

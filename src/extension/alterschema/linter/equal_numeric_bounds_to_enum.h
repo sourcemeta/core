@@ -31,7 +31,7 @@ public:
     return APPLIES_TO_KEYWORDS("minimum", "maximum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     sourcemeta::core::JSON values = sourcemeta::core::JSON::make_array();
     values.push_back(schema.at("minimum"));
     schema.assign("enum", std::move(values));

@@ -26,7 +26,8 @@ public:
     return APPLIES_TO_KEYWORDS("$schema");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema, const Result &) const
+      -> void override {
     auto dialect{std::move(schema.at("$schema")).to_string()};
     dialect.pop_back();
     schema.at("$schema").into(sourcemeta::core::JSON{dialect});

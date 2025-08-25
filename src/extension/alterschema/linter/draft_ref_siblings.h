@@ -24,13 +24,12 @@ public:
                                    "http://json-schema.org/draft-00/schema#"}));
     ONLY_CONTINUE_IF(schema.is_object() && schema.defines("$ref"));
 
-    this->preserve_keywords.clear();
     std::vector<Pointer> locations;
     for (const auto &entry : schema.as_object()) {
       const auto metadata{walker(entry.first, vocabularies)};
       if (metadata.type == sourcemeta::core::SchemaKeywordType::Other ||
           metadata.type == sourcemeta::core::SchemaKeywordType::Reference) {
-        this->preserve_keywords.insert(entry.first);
+        continue;
       } else {
         locations.push_back(Pointer{entry.first});
       }
@@ -40,11 +39,9 @@ public:
     return APPLIES_TO_POINTERS(std::move(locations));
   }
 
-  auto transform(JSON &schema) const -> void override {
-    schema.clear_except(this->preserve_keywords.cbegin(),
-                        this->preserve_keywords.cend());
+  auto transform(JSON &schema, const Result &result) const -> void override {
+    for (const auto &location : result.locations) {
+      schema.erase(location.at(0).to_property());
+    }
   }
-
-private:
-  mutable std::unordered_set<std::string> preserve_keywords;
 };

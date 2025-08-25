@@ -32,7 +32,6 @@ public:
         schema.is_object() && schema.defines("required") &&
         schema.at("required").is_array() && !schema.at("required").empty());
 
-    this->properties.clear();
     std::vector<Pointer> locations;
     std::size_t index{0};
     for (const auto &property : schema.at("required").as_array()) {
@@ -41,27 +40,26 @@ public:
           !this->defined_in_properties_parent(root, frame, location, walker,
                                               resolver, property.to_string())) {
         locations.push_back(Pointer{"required", index});
-        this->properties.emplace_back(property.to_string());
-        index += 1;
       }
+
+      index += 1;
     }
 
     ONLY_CONTINUE_IF(!locations.empty());
     return APPLIES_TO_POINTERS(std::move(locations));
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &result) const -> void override {
     schema.assign_if_missing("properties",
                              sourcemeta::core::JSON::make_object());
-    for (const auto &property : this->properties) {
-      schema.at("properties")
-          .assign(property.get(), sourcemeta::core::JSON{true});
+    for (const auto &location : result.locations) {
+      const auto &property{
+          schema.at("required").at(location.at(1).to_index()).to_string()};
+      schema.at("properties").assign(property, sourcemeta::core::JSON{true});
     }
   }
 
 private:
-  mutable std::vector<std::reference_wrapper<const JSON::String>> properties;
-
   [[nodiscard]] auto
   defined_in_properties_sibling(const JSON &schema,
                                 const JSON::String &property) const -> bool {

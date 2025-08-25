@@ -45,7 +45,7 @@ public:
     return APPLIES_TO_KEYWORDS("type");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     const std::set<std::string> keep{"$schema", "$id", "$anchor",
                                      "$dynamicAnchor", "$vocabulary"};
     auto disjunctors{sourcemeta::core::JSON::make_array()};

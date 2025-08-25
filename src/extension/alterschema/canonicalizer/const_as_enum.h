@@ -25,7 +25,7 @@ public:
     return APPLIES_TO_KEYWORDS("const");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto values = sourcemeta::core::JSON::make_array();
     values.push_back(schema.at("const"));
     schema.at("const").into(std::move(values));

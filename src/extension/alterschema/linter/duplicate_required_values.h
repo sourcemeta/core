@@ -28,7 +28,7 @@ public:
     return APPLIES_TO_KEYWORDS("required");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto collection = schema.at("required");
     std::sort(collection.as_array().begin(), collection.as_array().end());
     auto last =

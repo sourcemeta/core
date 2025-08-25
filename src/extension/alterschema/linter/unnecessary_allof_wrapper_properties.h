@@ -46,7 +46,7 @@ public:
     return false;
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     for (auto &entry : schema.at("allOf").as_array()) {
       if (entry.is_object() && entry.defines("properties")) {
         std::vector<JSON::String> blacklist;

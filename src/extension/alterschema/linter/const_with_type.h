@@ -44,5 +44,7 @@ public:
     return APPLIES_TO_KEYWORDS("const", "type");
   }
 
-  auto transform(JSON &schema) const -> void override { schema.erase("type"); }
+  auto transform(JSON &schema, const Result &) const -> void override {
+    schema.erase("type");
+  }
 };

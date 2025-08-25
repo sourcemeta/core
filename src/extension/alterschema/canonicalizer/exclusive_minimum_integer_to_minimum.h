@@ -30,7 +30,7 @@ public:
     return APPLIES_TO_KEYWORDS("exclusiveMinimum", "type");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     if (schema.at("exclusiveMinimum").is_integer()) {
       auto new_minimum = schema.at("exclusiveMinimum");
       new_minimum += sourcemeta::core::JSON{1};

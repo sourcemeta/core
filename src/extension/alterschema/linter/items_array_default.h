@@ -30,5 +30,7 @@ public:
     return APPLIES_TO_KEYWORDS("items");
   }
 
-  auto transform(JSON &schema) const -> void override { schema.erase("items"); }
+  auto transform(JSON &schema, const Result &) const -> void override {
+    schema.erase("items");
+  }
 };

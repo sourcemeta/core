@@ -30,7 +30,7 @@ public:
     return APPLIES_TO_KEYWORDS("enum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     // We want to be super careful to maintain the current ordering
     // as we delete the duplicates
     auto &enumeration{schema.at("enum")};

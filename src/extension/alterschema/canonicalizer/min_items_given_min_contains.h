@@ -27,7 +27,7 @@ public:
     return true;
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     if (schema.defines("contains") && schema.defines("minContains") &&
         schema.at("minContains").is_integer()) {
       schema.assign("minItems", sourcemeta::core::JSON{

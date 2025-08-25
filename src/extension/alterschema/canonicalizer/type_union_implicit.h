@@ -77,7 +77,7 @@ public:
     return true;
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto types{sourcemeta::core::JSON::make_array()};
 
     // All possible JSON Schema types

@@ -26,7 +26,7 @@ public:
     return APPLIES_TO_KEYWORDS("enum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto front{schema.at("enum").front()};
     schema.at("enum").into(front);
     schema.rename("enum", "const");

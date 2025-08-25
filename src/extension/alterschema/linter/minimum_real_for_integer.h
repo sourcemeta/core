@@ -32,7 +32,7 @@ public:
     return APPLIES_TO_KEYWORDS("minimum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     const auto current{schema.at("minimum").to_real()};
     const auto new_value{static_cast<std::int64_t>(std::ceil(current))};
     schema.assign("minimum", sourcemeta::core::JSON{new_value});

@@ -29,7 +29,7 @@ public:
     return APPLIES_TO_KEYWORDS("maxContains", "maxItems");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.assign("maxContains", schema.at("maxItems"));
   }
 };
