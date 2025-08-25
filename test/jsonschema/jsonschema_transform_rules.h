@@ -56,6 +56,37 @@ public:
   }
 };
 
+class ExampleRule1WithDescription final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRule1WithDescription()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_1", "Keyword foo is not permitted") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (schema.defines("foo")) {
+      std::ostringstream message;
+      message << "This is a message from the rule";
+      return {{sourcemeta::core::Pointer{"foo"}}, std::move(message).str()};
+    } else {
+      return false;
+    }
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.erase("foo");
+  }
+};
+
 class ExampleRuleWithManyPointers final
     : public sourcemeta::core::SchemaTransformRule {
 public:
