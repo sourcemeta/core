@@ -1312,8 +1312,7 @@ TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_2) {
   EXPECT_LINT_TRACE(
       traces, 0, "", "unnecessary_allof_wrapper_draft",
       "Wrapping any keyword other than `$ref` in `allOf` is unnecessary and "
-      "may even introduce a minor evaluation performance overhead",
-      "- /allOf/0/type\n");
+      "may even introduce a minor evaluation performance overhead");
 }
 
 TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_3) {
