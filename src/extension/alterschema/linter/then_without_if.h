@@ -23,5 +23,7 @@ public:
     return APPLIES_TO_KEYWORDS("then");
   }
 
-  auto transform(JSON &schema) const -> void override { schema.erase("then"); }
+  auto transform(JSON &schema, const Result &) const -> void override {
+    schema.erase("then");
+  }
 };

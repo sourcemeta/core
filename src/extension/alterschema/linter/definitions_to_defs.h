@@ -23,7 +23,7 @@ public:
     return APPLIES_TO_KEYWORDS("definitions");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.rename("definitions", "$defs");
   }
 

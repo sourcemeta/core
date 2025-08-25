@@ -28,7 +28,7 @@ public:
     return APPLIES_TO_KEYWORDS("exclusiveMinimum", "minimum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     if (schema.at("exclusiveMinimum") < schema.at("minimum")) {
       schema.erase("exclusiveMinimum");
     } else {

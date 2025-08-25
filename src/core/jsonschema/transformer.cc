@@ -39,7 +39,7 @@ auto SchemaTransformRule::message() const -> const std::string & {
   return this->message_;
 }
 
-auto SchemaTransformRule::transform(JSON &) const -> void {
+auto SchemaTransformRule::transform(JSON &, const Result &) const -> void {
   throw SchemaAbortError("This rule cannot be automatically transformed");
 }
 
@@ -64,7 +64,7 @@ auto SchemaTransformRule::apply(JSON &schema, const JSON &root,
   }
 
   try {
-    this->transform(schema);
+    this->transform(schema, outcome);
   } catch (const SchemaAbortError &) {
     return {false, std::move(outcome)};
   }

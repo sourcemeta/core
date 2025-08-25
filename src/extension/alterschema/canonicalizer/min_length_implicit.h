@@ -31,7 +31,7 @@ public:
     return true;
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.assign("minLength", sourcemeta::core::JSON{0});
   }
 };

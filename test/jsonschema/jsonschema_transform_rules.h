@@ -20,7 +20,9 @@ public:
     return schema.defines("foo");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -47,7 +49,9 @@ public:
     }
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -77,7 +81,9 @@ public:
     }
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -99,7 +105,9 @@ public:
     return schema.defines("bar");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("bar");
   }
 };
@@ -122,7 +130,9 @@ public:
     return !schema.defines("top") && location.pointer.empty();
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("top", sourcemeta::core::JSON{true});
   }
 };
@@ -144,7 +154,9 @@ public:
     return !schema.defines("here");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("here", sourcemeta::core::JSON{true});
   }
 };
@@ -168,7 +180,9 @@ public:
            location.pointer == sourcemeta::core::Pointer{"properties", "baz"};
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("baz", sourcemeta::core::JSON{true});
   }
 };
@@ -192,7 +206,9 @@ public:
            location.dialect == "http://json-schema.org/draft-03/schema#";
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("draft", sourcemeta::core::JSON{3});
   }
 };
@@ -214,7 +230,9 @@ public:
     return schema.defines("foo");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -238,7 +256,9 @@ public:
     return schema.defines("$schema") && schema.size() == 1;
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("foo", sourcemeta::core::JSON{true});
   }
 };
@@ -282,7 +302,9 @@ public:
     return schema.defines("definitions") && !schema.defines("$defs");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.rename("definitions", "$defs");
   }
 };
@@ -306,7 +328,9 @@ public:
     return schema.defines("definitions") && !schema.defines("$defs");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.rename("definitions", "$defs");
   }
 
@@ -339,7 +363,9 @@ public:
            (schema.defines("$id") || schema.defines("$anchor"));
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase_keys({"$id", "$anchor"});
   }
 };

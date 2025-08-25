@@ -28,7 +28,7 @@ public:
     return APPLIES_TO_KEYWORDS("unevaluatedItems");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.erase("unevaluatedItems");
   }
 };

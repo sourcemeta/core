@@ -25,5 +25,7 @@ public:
     return APPLIES_TO_KEYWORDS("if");
   }
 
-  auto transform(JSON &schema) const -> void override { schema.erase("if"); }
+  auto transform(JSON &schema, const Result &) const -> void override {
+    schema.erase("if");
+  }
 };

@@ -75,7 +75,6 @@ public:
     // so we cannot remove anything from it.
     ONLY_CONTINUE_IF(!current_types.empty());
 
-    this->blacklist.clear();
     std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
       const auto metadata{walker(entry.first, vocabularies)};
@@ -91,7 +90,6 @@ public:
                                [&current_types](const auto keyword_type) {
                                  return current_types.contains(keyword_type);
                                })) {
-        this->blacklist.emplace_back(entry.first);
         positions.push_back(Pointer{entry.first});
       }
     }
@@ -100,10 +98,9 @@ public:
     return APPLIES_TO_POINTERS(std::move(positions));
   }
 
-  auto transform(JSON &schema) const -> void override {
-    schema.erase_keys(this->blacklist.cbegin(), this->blacklist.cend());
+  auto transform(JSON &schema, const Result &result) const -> void override {
+    for (const auto &location : result.locations) {
+      schema.erase(location.at(0).to_property());
+    }
   }
-
-private:
-  mutable std::vector<JSON::String> blacklist;
 };

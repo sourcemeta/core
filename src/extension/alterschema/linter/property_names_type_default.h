@@ -35,7 +35,7 @@ public:
     return APPLIES_TO_POINTERS({{"propertyNames", "type"}});
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.at("propertyNames").erase("type");
   }
 };

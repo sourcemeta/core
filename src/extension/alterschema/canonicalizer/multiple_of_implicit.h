@@ -28,7 +28,7 @@ public:
     return true;
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.assign("multipleOf", sourcemeta::core::JSON{1});
   }
 };

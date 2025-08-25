@@ -32,7 +32,7 @@ public:
     return APPLIES_TO_KEYWORDS("maximum");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     const auto current{schema.at("maximum").to_real()};
     const auto new_value{static_cast<std::int64_t>(std::floor(current))};
     schema.assign("maximum", sourcemeta::core::JSON{new_value});

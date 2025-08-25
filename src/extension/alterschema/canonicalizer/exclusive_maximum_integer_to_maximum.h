@@ -30,7 +30,7 @@ public:
     return APPLIES_TO_KEYWORDS("exclusiveMaximum", "type");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     if (schema.at("exclusiveMaximum").is_integer()) {
       auto new_maximum = schema.at("exclusiveMaximum");
       new_maximum += sourcemeta::core::JSON{-1};

@@ -12,7 +12,6 @@ public:
             const SchemaWalker &walker, const SchemaResolver &) const
       -> SchemaTransformRule::Result override {
     ONLY_CONTINUE_IF(schema.is_object());
-    this->unknown_keywords.clear();
     std::vector<Pointer> locations;
     for (const auto &entry : schema.as_object()) {
       if (entry.first.starts_with("x-")) {
@@ -21,7 +20,6 @@ public:
 
       const auto metadata = walker(entry.first, vocabularies);
       if (metadata.type == SchemaKeywordType::Unknown) {
-        this->unknown_keywords.emplace_back(entry.first);
         locations.push_back(Pointer{entry.first});
       }
     }
@@ -30,17 +28,16 @@ public:
     return APPLIES_TO_POINTERS(std::move(locations));
   }
 
-  auto transform(JSON &schema) const -> void override {
-    for (const auto &keyword : this->unknown_keywords) {
+  auto transform(JSON &schema, const Result &result) const -> void override {
+    for (const auto &location : result.locations) {
+      const auto &keyword{location.at(0).to_property()};
       assert(schema.defines(keyword));
       std::string prefixed_name = "x-" + keyword;
       while (schema.defines(prefixed_name)) {
         prefixed_name.insert(0, "x-");
       }
+
       schema.rename(keyword, std::move(prefixed_name));
     }
   }
-
-private:
-  mutable std::vector<JSON::String> unknown_keywords;
 };

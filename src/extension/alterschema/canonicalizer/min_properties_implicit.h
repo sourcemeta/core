@@ -29,7 +29,7 @@ public:
     return true;
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     if (schema.defines("required") && schema.at("required").is_array()) {
       schema.assign("minProperties",
                     sourcemeta::core::JSON{schema.at("required").size()});

@@ -135,7 +135,7 @@ private:
 
   /// The rule transformation. If this virtual method is not overriden,
   /// then the rule condition is considered to not be fixable.
-  virtual auto transform(JSON &schema) const -> void;
+  virtual auto transform(JSON &schema, const Result &result) const -> void;
 
 // Exporting symbols that depends on the standard C++ library is considered
 // safe.

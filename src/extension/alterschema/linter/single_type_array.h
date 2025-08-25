@@ -31,7 +31,7 @@ public:
     return APPLIES_TO_KEYWORDS("type");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto type{schema.at("type").front()};
     schema.at("type").into(std::move(type));
   }

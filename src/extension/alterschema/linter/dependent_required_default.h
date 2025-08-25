@@ -26,7 +26,7 @@ public:
     return APPLIES_TO_KEYWORDS("dependentRequired");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     schema.erase("dependentRequired");
   }
 };

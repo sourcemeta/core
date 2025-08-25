@@ -32,7 +32,7 @@ public:
     return APPLIES_TO_KEYWORDS("type");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto choices = sourcemeta::core::JSON::make_array();
     choices.push_back(sourcemeta::core::JSON{false});
     choices.push_back(sourcemeta::core::JSON{true});

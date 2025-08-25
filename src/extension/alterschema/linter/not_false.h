@@ -23,5 +23,7 @@ public:
     return APPLIES_TO_KEYWORDS("not");
   }
 
-  auto transform(JSON &schema) const -> void override { schema.erase("not"); }
+  auto transform(JSON &schema, const Result &) const -> void override {
+    schema.erase("not");
+  }
 };

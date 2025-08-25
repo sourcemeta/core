@@ -34,7 +34,7 @@ public:
     return APPLIES_TO_KEYWORDS("dependentRequired", "required");
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto requirements{schema.at("required")};
     while (true) {
       bool match{false};

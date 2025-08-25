@@ -57,7 +57,7 @@ public:
     return APPLIES_TO_POINTERS(std::move(locations));
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     for (auto &entry : schema.at("allOf").as_array()) {
       if (entry.is_object()) {
         std::vector<JSON::String> blacklist;
