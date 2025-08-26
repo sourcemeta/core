@@ -299,6 +299,50 @@ TEST(EditorSchema, 2020_12_bundle_boolean_subschema) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(EditorSchema, 2020_12_default_base_dialect) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "properties": {
+      "foo": true
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(
+      document, sourcemeta::core::schema_official_walker, test_resolver_2020_12,
+      "https://json-schema.org/draft/2020-12/schema");
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": true
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(EditorSchema, 2020_12_default_dialect) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "properties": {
+      "foo": true
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(
+      document, sourcemeta::core::schema_official_walker, test_resolver_2020_12,
+      "https://example.com/meta/1.json");
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": true
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(EditorSchema, 2020_12_bundle_metaschema) {
   auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://example.com/meta/1.json",
