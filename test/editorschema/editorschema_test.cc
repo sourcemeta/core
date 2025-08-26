@@ -276,6 +276,55 @@ TEST(EditorSchema, 2020_12_dynamic_reference_to_static_anchor) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(EditorSchema, 2020_12_dynamic_anchors_1) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "meta",
+    "properties": {
+      "foo": {
+        "$dynamicRef": "#meta"
+      }
+    },
+    "$defs": {
+      "nested": {
+        "$id": "https://www.sourcemeta.com/nested",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$dynamicRef": "#meta",
+        "$defs": {
+          "default": {
+            "$dynamicAnchor": "meta"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(document,
+                               sourcemeta::core::schema_official_walker,
+                               test_resolver_2020_12);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#"
+      }
+    },
+    "$defs": {
+      "nested": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": "#",
+        "$defs": {
+          "default": {}
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(EditorSchema, 2020_12_bundle_boolean_subschema) {
   auto document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.sourcemeta.com/top-level",
@@ -502,6 +551,55 @@ TEST(EditorSchema, 2019_09_static_recursive_reference) {
     "properties": {
       "foo": {
         "$ref": "#"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(EditorSchema, 2019_09_recursive_anchors_1) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveAnchor": true,
+    "properties": {
+      "foo": {
+        "$recursiveRef": "#"
+      }
+    },
+    "$defs": {
+      "nested": {
+        "$id": "https://www.sourcemeta.com/nested",
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "$recursiveRef": "#",
+        "$defs": {
+          "default": {
+            "$recursiveAnchor": true
+          }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(document,
+                               sourcemeta::core::schema_official_walker,
+                               test_resolver_2020_12);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#"
+      }
+    },
+    "$defs": {
+      "nested": {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "$ref": "#",
+        "$defs": {
+          "default": {}
+        }
       }
     }
   })JSON");
