@@ -14,7 +14,7 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
   SchemaFrame frame{SchemaFrame::Mode::References};
   frame.analyse(schema, walker, resolver, default_dialect);
 
-  // (3) Remove all identifiers and anchors
+  // (3) Pre-process all subschemas
   for (const auto &entry : frame.locations()) {
     if (entry.second.type != SchemaFrame::LocationType::Resource &&
         entry.second.type != SchemaFrame::LocationType::Subschema) {
@@ -67,6 +67,12 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
     if (result.has_value()) {
       set(schema, key.second,
           JSON{to_uri(result.value().get().pointer).recompose()});
+
+      // If we have a dynamic reference to a static location,
+      // we can just rename the keyword
+      if (keyword == "$dynamicRef" || keyword == "$recursiveRef") {
+        get(schema, key.second.initial()).rename(keyword, "$ref");
+      }
 
     } else {
       set(schema, key.second, JSON{reference.destination});
