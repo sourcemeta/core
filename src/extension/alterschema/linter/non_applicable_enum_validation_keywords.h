@@ -40,7 +40,7 @@ public:
       return false;
     }
 
-    this->blacklist.clear();
+    std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
       const auto metadata = walker(entry.first, vocabularies);
 
@@ -52,26 +52,20 @@ public:
                                [&enum_types](const auto keyword_type) {
                                  return enum_types.contains(keyword_type);
                                })) {
-        this->blacklist.emplace_back(entry.first);
+        positions.push_back(Pointer{entry.first});
       }
     }
 
-    if (this->blacklist.empty()) {
+    if (positions.empty()) {
       return false;
     }
 
-    std::ostringstream message;
-    for (const auto &entry : this->blacklist) {
-      message << "- " << entry << "\n";
+    return APPLIES_TO_POINTERS(std::move(positions));
+  }
+
+  auto transform(JSON &schema, const Result &result) const -> void override {
+    for (const auto &location : result.locations) {
+      schema.erase(location.at(0).to_property());
     }
-
-    return message.str();
   }
-
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
-    schema.erase_keys(this->blacklist.cbegin(), this->blacklist.cend());
-  }
-
-private:
-  mutable std::vector<sourcemeta::core::JSON::String> blacklist;
 };
