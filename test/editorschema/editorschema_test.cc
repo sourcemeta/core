@@ -216,6 +216,66 @@ TEST(EditorSchema, 2020_12_bundle) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(EditorSchema, 2020_12_static_dynamic_reference) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$dynamicRef": "https://example.com/foo/bar"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(document,
+                               sourcemeta::core::schema_official_walker,
+                               test_resolver_2020_12);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/$defs/https:~1~1example.com~1foo~1bar"
+      }
+    },
+    "$defs": {
+      "https://example.com/foo/bar": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(EditorSchema, 2020_12_dynamic_reference_to_static_anchor) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "foo",
+    "properties": {
+      "foo": {
+        "$dynamicRef": "#foo"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(document,
+                               sourcemeta::core::schema_official_walker,
+                               test_resolver_2020_12);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(EditorSchema, 2020_12_bundle_boolean_subschema) {
   auto document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.sourcemeta.com/top-level",
@@ -371,6 +431,33 @@ TEST(EditorSchema, draft7_bundle) {
             "$ref": "#/definitions/https:~1~1www.sourcemeta.com~1recursive"
           }
         }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(EditorSchema, 2019_09_static_recursive_reference) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/top-level",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "foo": {
+        "$recursiveRef": "#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::for_editor(document,
+                               sourcemeta::core::schema_official_walker,
+                               test_resolver_2020_12);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#"
       }
     }
   })JSON");
