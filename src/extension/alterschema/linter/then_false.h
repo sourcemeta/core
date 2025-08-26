@@ -32,7 +32,7 @@ public:
                         }));
   }
 
-  auto transform(JSON &schema) const -> void override {
+  auto transform(JSON &schema, const Result &) const -> void override {
     auto if_schema = schema.at("if");
     schema.erase("if");
     schema.erase("then");
