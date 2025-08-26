@@ -10,19 +10,20 @@
 
 #include "jsonschema_transform_rules.h"
 
-static auto transformer_callback_noop(const sourcemeta::core::Pointer &,
-                                      const std::string_view,
-                                      const std::string_view,
-                                      const std::string_view) -> void {}
+static auto
+transformer_callback_noop(const sourcemeta::core::Pointer &,
+                          const std::string_view, const std::string_view,
+                          const sourcemeta::core::SchemaTransformRule::Result &)
+    -> void {}
 
 using TestTransformTraces =
     std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,
-                           std::string>>;
+                           sourcemeta::core::SchemaTransformRule::Result>>;
 
 static auto transformer_callback_trace(TestTransformTraces &traces) -> auto {
   return [&traces](const auto &pointer, const auto &name, const auto &message,
-                   const auto &description) {
-    traces.emplace_back(pointer, name, message, description);
+                   const auto &result) {
+    traces.emplace_back(pointer, name, message, result);
   };
 }
 
@@ -455,7 +456,7 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
 
 TEST(JSONSchema_transformer, check_top_level) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1WithDescription>();
+  bundle.add<ExampleRule1WithPointer>();
   bundle.add<ExampleRule2>();
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -482,13 +483,84 @@ TEST(JSONSchema_transformer, check_top_level) {
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
-  EXPECT_EQ(std::get<3>(entries.at(0)), "This is a message from the rule");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 1);
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(0)),
+      "/foo");
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 
   EXPECT_EQ(std::get<0>(entries.at(1)),
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
-  EXPECT_EQ(std::get<3>(entries.at(1)), "");
+  EXPECT_EQ(std::get<3>(entries.at(1)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(1)).description.has_value());
+}
+
+TEST(JSONSchema_transformer, check_multiple_pointers) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleWithManyPointers>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "bar": "baz"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_with_many_pointers");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Foo Bar");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 2);
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(0)),
+      "/foo");
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(1)),
+      "/bar");
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+}
+
+TEST(JSONSchema_transformer, check_with_description) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1WithDescription>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 1);
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(entries.at(0)).locations.at(0)),
+      "/foo");
+  EXPECT_TRUE(std::get<3>(entries.at(0)).description.has_value());
+  EXPECT_EQ(std::get<3>(entries.at(0)).description.value(),
+            "This is a message from the rule");
 }
 
 TEST(JSONSchema_transformer, check_no_match) {
@@ -552,7 +624,8 @@ TEST(JSONSchema_transformer, check_partial_match) {
             sourcemeta::core::Pointer({"properties", "bar"}));
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
-  EXPECT_EQ(std::get<3>(entries.at(0)), "");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, check_empty) {
@@ -621,13 +694,15 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
-  EXPECT_EQ(std::get<3>(entries.at(0)), "");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 
   EXPECT_EQ(std::get<0>(entries.at(1)),
             sourcemeta::core::Pointer({"properties", "xxx"}));
   EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_2");
   EXPECT_EQ(std::get<2>(entries.at(1)), "Keyword bar is not permitted");
-  EXPECT_EQ(std::get<3>(entries.at(1)), "");
+  EXPECT_EQ(std::get<3>(entries.at(1)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(1)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, remove_rule_by_name) {
@@ -664,7 +739,7 @@ TEST(JSONSchema_transformer, remove_rule_by_name) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(JSONSchema_transformer, unfixable_apply_without_description) {
+TEST(JSONSchema_transformer, unfixable_apply) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRuleUnfixable1>();
 
@@ -687,43 +762,8 @@ TEST(JSONSchema_transformer, unfixable_apply_without_description) {
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_unfixable_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
-  EXPECT_EQ(std::get<3>(entries.at(0)), "");
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "foo": "bar",
-    "bar": "baz",
-    "qux": "xxx"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(JSONSchema_transformer, unfixable_apply_with_description) {
-  sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleUnfixableWithDescription1>();
-
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "foo": "bar",
-    "bar": "baz",
-    "qux": "xxx"
-  })JSON");
-
-  TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
-
-  EXPECT_FALSE(result);
-
-  EXPECT_EQ(entries.size(), 1);
-  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
-  EXPECT_EQ(std::get<1>(entries.at(0)),
-            "example_rule_unfixable_with_description_1");
-  EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
-  EXPECT_EQ(std::get<3>(entries.at(0)), "The subschema cannot define foo");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -758,7 +798,8 @@ TEST(JSONSchema_transformer, unfixable_check) {
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_unfixable_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "An example rule that cannot be fixed");
-  EXPECT_EQ(std::get<3>(entries.at(0)), "");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 }
 
 TEST(JSONSchema_transformer, rereference_not_hit) {

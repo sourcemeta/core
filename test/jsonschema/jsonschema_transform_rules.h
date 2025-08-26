@@ -20,7 +20,38 @@ public:
     return schema.defines("foo");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.erase("foo");
+  }
+};
+
+class ExampleRule1WithPointer final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRule1WithPointer()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_1", "Keyword foo is not permitted") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (schema.defines("foo")) {
+      return sourcemeta::core::Pointer{"foo"};
+    } else {
+      return false;
+    }
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -41,13 +72,49 @@ public:
                                const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
     if (schema.defines("foo")) {
-      return "This is a message from the rule";
+      std::ostringstream message;
+      message << "This is a message from the rule";
+      return {{sourcemeta::core::Pointer{"foo"}}, std::move(message).str()};
     } else {
       return false;
     }
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.erase("foo");
+  }
+};
+
+class ExampleRuleWithManyPointers final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleWithManyPointers()
+      : sourcemeta::core::SchemaTransformRule("example_rule_with_many_pointers",
+                                              "Foo Bar") {};
+
+  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
+                               const sourcemeta::core::JSON &,
+                               const sourcemeta::core::Vocabularies &,
+                               const sourcemeta::core::SchemaFrame &,
+                               const sourcemeta::core::SchemaFrame::Location &,
+                               const sourcemeta::core::SchemaWalker &,
+                               const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (schema.defines("foo") && schema.defines("bar")) {
+      std::vector<sourcemeta::core::Pointer> locations;
+      locations.emplace_back(sourcemeta::core::Pointer{"foo"});
+      locations.emplace_back(sourcemeta::core::Pointer{"bar"});
+      return locations;
+    } else {
+      return false;
+    }
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -69,7 +136,9 @@ public:
     return schema.defines("bar");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("bar");
   }
 };
@@ -92,7 +161,9 @@ public:
     return !schema.defines("top") && location.pointer.empty();
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("top", sourcemeta::core::JSON{true});
   }
 };
@@ -114,7 +185,9 @@ public:
     return !schema.defines("here");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("here", sourcemeta::core::JSON{true});
   }
 };
@@ -138,7 +211,9 @@ public:
            location.pointer == sourcemeta::core::Pointer{"properties", "baz"};
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("baz", sourcemeta::core::JSON{true});
   }
 };
@@ -162,7 +237,9 @@ public:
            location.dialect == "http://json-schema.org/draft-03/schema#";
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("draft", sourcemeta::core::JSON{3});
   }
 };
@@ -184,7 +261,9 @@ public:
     return schema.defines("foo");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase("foo");
   }
 };
@@ -208,7 +287,9 @@ public:
     return schema.defines("$schema") && schema.size() == 1;
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.assign("foo", sourcemeta::core::JSON{true});
   }
 };
@@ -233,30 +314,6 @@ public:
   }
 };
 
-class ExampleRuleUnfixableWithDescription1 final
-    : public sourcemeta::core::SchemaTransformRule {
-public:
-  ExampleRuleUnfixableWithDescription1()
-      : sourcemeta::core::SchemaTransformRule(
-            "example_rule_unfixable_with_description_1",
-            "An example rule that cannot be fixed") {};
-
-  [[nodiscard]] auto condition(const sourcemeta::core::JSON &schema,
-                               const sourcemeta::core::JSON &,
-                               const sourcemeta::core::Vocabularies &,
-                               const sourcemeta::core::SchemaFrame &,
-                               const sourcemeta::core::SchemaFrame::Location &,
-                               const sourcemeta::core::SchemaWalker &,
-                               const sourcemeta::core::SchemaResolver &) const
-      -> sourcemeta::core::SchemaTransformRule::Result override {
-    if (schema.defines("foo")) {
-      return "The subschema cannot define foo";
-    } else {
-      return false;
-    }
-  }
-};
-
 class ExampleRuleDefinitionsToDefsNoRereference final
     : public sourcemeta::core::SchemaTransformRule {
 public:
@@ -276,7 +333,9 @@ public:
     return schema.defines("definitions") && !schema.defines("$defs");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.rename("definitions", "$defs");
   }
 };
@@ -300,7 +359,9 @@ public:
     return schema.defines("definitions") && !schema.defines("$defs");
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.rename("definitions", "$defs");
   }
 
@@ -333,7 +394,9 @@ public:
            (schema.defines("$id") || schema.defines("$anchor"));
   }
 
-  auto transform(sourcemeta::core::JSON &schema) const -> void override {
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
     schema.erase_keys({"$id", "$anchor"});
   }
 };
