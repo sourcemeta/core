@@ -1,5 +1,6 @@
 #include <sourcemeta/core/alterschema.h>
 #include <sourcemeta/core/build.h>
+#include <sourcemeta/core/editorschema.h>
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
@@ -9,6 +10,7 @@
 #include <sourcemeta/core/md5.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/parallel.h>
+#include <sourcemeta/core/schemaconfig.h>
 #include <sourcemeta/core/time.h>
 #include <sourcemeta/core/uri.h>
 #include <sourcemeta/core/uuid.h>

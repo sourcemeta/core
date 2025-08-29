@@ -34,7 +34,6 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_bundle_draft0_test.cc
     jsonschema_bundle_test.cc
     jsonschema_dependencies_test.cc
-    jsonschema_unidentify_test.cc
     jsonschema_metaschema_test.cc
     jsonschema_transform_rules.h
     jsonschema_transform_rule_test.cc

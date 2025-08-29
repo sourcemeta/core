@@ -179,6 +179,7 @@ TEST(JSONSchema_bundle, with_default_id) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.sourcemeta.com/default",
     "items": { "$ref": "test-2" },
     "$defs": {
       "https://www.sourcemeta.com/test-2": {
