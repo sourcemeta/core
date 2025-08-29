@@ -15,30 +15,27 @@ public:
             const sourcemeta::core::SchemaWalker &walker,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    if (!contains_any(vocabularies,
-                      {"https://json-schema.org/draft/2020-12/vocab/validation",
-                       "https://json-schema.org/draft/2019-09/vocab/validation",
-                       "http://json-schema.org/draft-07/schema#",
-                       "http://json-schema.org/draft-06/schema#",
-                       "http://json-schema.org/draft-04/schema#",
-                       "http://json-schema.org/draft-03/schema#",
-                       "http://json-schema.org/draft-02/schema#",
-                       "http://json-schema.org/draft-02/hyper-schema#",
-                       "http://json-schema.org/draft-01/schema#",
-                       "http://json-schema.org/draft-01/hyper-schema#"}) ||
-        !schema.is_object() || !schema.defines("enum") ||
-        !schema.at("enum").is_array()) {
-      return false;
-    }
+    ONLY_CONTINUE_IF(
+        contains_any(vocabularies,
+                     {"https://json-schema.org/draft/2020-12/vocab/validation",
+                      "https://json-schema.org/draft/2019-09/vocab/validation",
+                      "http://json-schema.org/draft-07/schema#",
+                      "http://json-schema.org/draft-06/schema#",
+                      "http://json-schema.org/draft-04/schema#",
+                      "http://json-schema.org/draft-03/schema#",
+                      "http://json-schema.org/draft-02/schema#",
+                      "http://json-schema.org/draft-02/hyper-schema#",
+                      "http://json-schema.org/draft-01/schema#",
+                      "http://json-schema.org/draft-01/hyper-schema#"}) &&
+        schema.is_object() && schema.defines("enum") &&
+        schema.at("enum").is_array());
 
     std::set<sourcemeta::core::JSON::Type> enum_types;
     for (const auto &value : schema.at("enum").as_array()) {
       enum_types.emplace(value.type());
     }
 
-    if (enum_types.empty()) {
-      return false;
-    }
+    ONLY_CONTINUE_IF(!enum_types.empty());
 
     std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
@@ -56,9 +53,7 @@ public:
       }
     }
 
-    if (positions.empty()) {
-      return false;
-    }
+    ONLY_CONTINUE_IF(!positions.empty());
 
     return APPLIES_TO_POINTERS(std::move(positions));
   }
