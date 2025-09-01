@@ -623,8 +623,7 @@ TEST(AlterSchema_lint_draft6, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "allOf": [ { "type": "string" } ]
+    "allOf": [ { "type": "integer" }, { "type": "string" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1508,7 +1507,7 @@ TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_2) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(
       traces, 0, "", "unnecessary_allof_wrapper_draft",
-      "Wrapping any keyword other than `$ref` in `allOf` is unnecessary and "
+      "Wrapping keywords other than `$ref` in `allOf` is often unnecessary and "
       "may even introduce a minor evaluation performance overhead");
 }
 
