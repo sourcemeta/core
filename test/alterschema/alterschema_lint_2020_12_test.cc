@@ -756,8 +756,7 @@ TEST(AlterSchema_lint_2020_12, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "integer",
-    "allOf": [ { "type": "string" } ]
+    "allOf": [ { "type": "integer" }, { "type": "string" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2138,8 +2137,53 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_9) {
   EXPECT_FALSE(result.first);
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "unnecessary_allof_wrapper_modern",
-                    "Wrapping any keyword in `allOf` is unnecessary and may "
+                    "Wrapping keywords in `allOf` is often unnecessary and may "
                     "even introduce a minor evaluation performance overhead");
+}
+
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_10) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "type": "number", "$ref": "https://example.com" },
+      { "type": "integer" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "number",
+    "$ref": "https://example.com",
+    "allOf": [
+      { "type": "integer" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_11) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "if": { "type": "string" }, "then": { "minLength": 1 } },
+      { "if": { "type": "integer" }, "then": { "minimum": 1 } }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "if": { "type": "string" }, "then": { "minLength": 1 } },
+      { "if": { "type": "integer" }, "then": { "minimum": 1 } }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }
 
 TEST(AlterSchema_lint_2020_12, multiple_of_default_1) {
@@ -3130,8 +3174,8 @@ TEST(AlterSchema_lint_2020_12, required_properties_in_properties_10) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": { "foo": true, "bar": true },
-    "required": [ "foo" ],
     "allOf": [
+      { "required": [ "foo" ] },
       { "required": [ "bar" ] }
     ]
   })JSON");
@@ -3154,8 +3198,8 @@ TEST(AlterSchema_lint_2020_12, required_properties_in_properties_11) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": { "foo": true, "bar": true, "baz": true },
-    "required": [ "foo" ],
     "allOf": [
+      { "required": [ "foo" ] },
       { "required": [ "bar", "baz" ] }
     ]
   })JSON");
