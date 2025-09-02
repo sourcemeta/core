@@ -152,7 +152,6 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   if (mode == AlterSchemaMode::StaticAnalysis) {
     bundle.add<BooleanTrue>();
     bundle.add<ConstAsEnum>();
-    bundle.add<EqualNumericBoundsToConst>();
     bundle.add<ExclusiveMaximumIntegerToMaximum>();
     bundle.add<ExclusiveMinimumIntegerToMinimum>();
     bundle.add<TypeArrayToAnyOf_2020_12>();
