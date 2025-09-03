@@ -151,10 +151,19 @@ TEST(JSONSchema_transformer, throw_on_rules_called_twice) {
     "foo": "bar"
   })JSON");
 
-  EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_official_walker,
-                            sourcemeta::core::schema_official_resolver,
-                            transformer_callback_noop),
-               std::runtime_error);
+  try {
+    bundle.apply(document, sourcemeta::core::schema_official_walker,
+                 sourcemeta::core::schema_official_resolver,
+                 transformer_callback_noop);
+    FAIL();
+  } catch (
+      const sourcemeta::core::SchemaTransformRuleProcessedTwiceError &error) {
+    EXPECT_EQ(error.name(), "example_rule_1");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "");
+    SUCCEED();
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_transformer, top_level_rule) {
