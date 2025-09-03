@@ -168,3 +168,11 @@ TEST(URI_fragment, set_pointer_bracket) {
   EXPECT_EQ(uri.fragment(), "/[foo/bar");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/%5Bfoo/bar");
 }
+
+TEST(URI_fragment, set_pointer_percentage) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo%bar");
+  // Escaping should only happen during recomposing
+  EXPECT_EQ(uri.fragment(), "/foo%bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25bar");
+}
