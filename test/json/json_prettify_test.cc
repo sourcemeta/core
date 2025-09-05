@@ -377,3 +377,127 @@ TEST(JSON_prettify, prettify_scientific_real) {
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "4321.77");
 }
+
+TEST(JSON_prettify, object_nested_with_0_spaces) {
+  sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
+  object.assign("bar", sourcemeta::core::JSON{1});
+  const sourcemeta::core::JSON document{{"foo", std::move(object)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 0);
+  EXPECT_EQ(stream.str(), "{\n\"foo\": {\n\"bar\": 1\n}\n}");
+}
+
+TEST(JSON_prettify, object_nested_with_1_space) {
+  sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
+  object.assign("bar", sourcemeta::core::JSON{1});
+  const sourcemeta::core::JSON document{{"foo", std::move(object)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 1);
+  EXPECT_EQ(stream.str(), "{\n \"foo\": {\n  \"bar\": 1\n }\n}");
+}
+
+TEST(JSON_prettify, object_nested_with_2_spaces) {
+  sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
+  object.assign("bar", sourcemeta::core::JSON{1});
+  const sourcemeta::core::JSON document{{"foo", std::move(object)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 2);
+  EXPECT_EQ(stream.str(), "{\n  \"foo\": {\n    \"bar\": 1\n  }\n}");
+}
+
+TEST(JSON_prettify, object_nested_with_3_spaces) {
+  sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
+  object.assign("bar", sourcemeta::core::JSON{1});
+  const sourcemeta::core::JSON document{{"foo", std::move(object)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 3);
+  EXPECT_EQ(stream.str(), "{\n   \"foo\": {\n      \"bar\": 1\n   }\n}");
+}
+
+TEST(JSON_prettify, object_nested_with_4_spaces) {
+  sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
+  object.assign("bar", sourcemeta::core::JSON{1});
+  const sourcemeta::core::JSON document{{"foo", std::move(object)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 4);
+  EXPECT_EQ(stream.str(), "{\n    \"foo\": {\n        \"bar\": 1\n    }\n}");
+}
+
+TEST(JSON_prettify, array_nested_with_0_spaces) {
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(sourcemeta::core::JSON{1});
+  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
+                                sourcemeta::core::JSON{3}};
+  document.push_back(std::move(nested));
+  document.push_back(sourcemeta::core::JSON{4});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 0);
+  EXPECT_EQ(stream.str(), "[\n1,\n[ 2, 3 ],\n4\n]");
+}
+
+TEST(JSON_prettify, array_nested_with_1_space) {
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(sourcemeta::core::JSON{1});
+  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
+                                sourcemeta::core::JSON{3}};
+  document.push_back(std::move(nested));
+  document.push_back(sourcemeta::core::JSON{4});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 1);
+  EXPECT_EQ(stream.str(), "[\n 1,\n [ 2, 3 ],\n 4\n]");
+}
+
+TEST(JSON_prettify, array_nested_with_2_spaces) {
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(sourcemeta::core::JSON{1});
+  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
+                                sourcemeta::core::JSON{3}};
+  document.push_back(std::move(nested));
+  document.push_back(sourcemeta::core::JSON{4});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 2);
+  EXPECT_EQ(stream.str(), "[\n  1,\n  [ 2, 3 ],\n  4\n]");
+}
+
+TEST(JSON_prettify, array_nested_with_3_spaces) {
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(sourcemeta::core::JSON{1});
+  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
+                                sourcemeta::core::JSON{3}};
+  document.push_back(std::move(nested));
+  document.push_back(sourcemeta::core::JSON{4});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 3);
+  EXPECT_EQ(stream.str(), "[\n   1,\n   [ 2, 3 ],\n   4\n]");
+}
+
+TEST(JSON_prettify, array_nested_with_4_spaces) {
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(sourcemeta::core::JSON{1});
+  sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
+                                sourcemeta::core::JSON{3}};
+  document.push_back(std::move(nested));
+  document.push_back(sourcemeta::core::JSON{4});
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 4);
+  EXPECT_EQ(stream.str(), "[\n    1,\n    [ 2, 3 ],\n    4\n]");
+}
+
+TEST(JSON_prettify, boolean_false_with_4_spaces) {
+  const sourcemeta::core::JSON document{false};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 4);
+  EXPECT_EQ(stream.str(), "false");
+}
+
+TEST(JSON_prettify, object_compare_with_4_spaces) {
+  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                        {"bar", sourcemeta::core::JSON{2}},
+                                        {"baz", sourcemeta::core::JSON{3}}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(
+      document, stream,
+      [](const auto &left, const auto &right) { return left < right; }, 4);
+  EXPECT_EQ(stream.str(),
+            "{\n    \"bar\": 2,\n    \"baz\": 3,\n    \"foo\": 1\n}");
+}
