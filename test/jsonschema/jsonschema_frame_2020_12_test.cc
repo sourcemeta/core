@@ -2437,6 +2437,51 @@ TEST(JSONSchema_frame_2020_12, cross_id_anonymous_nested) {
                           "https://json-schema.org/draft/2020-12/schema");
 }
 
+TEST(JSONSchema_frame_2020_12, relative_id_with_absolute_default_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "relative",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver,
+                "https://json-schema.org/draft/2020-12/schema",
+                "https://example.com/relative");
+
+  EXPECT_EQ(frame.locations().size(), 6);
+
+  // With current identifier
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(frame, "relative", "relative", "",
+                                       "relative", "", {""}, std::nullopt);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(frame, "relative#/$id", "relative",
+                                      "/$id", "relative", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(frame, "relative#/$schema", "relative",
+                                      "/$schema", "relative", "/$schema", {},
+                                      "");
+
+  // With default identifier
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(frame, "https://example.com/relative",
+                                       "relative", "", "relative", "", {""},
+                                       std::nullopt);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/relative#/$id", "relative", "/$id",
+      "relative", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/relative#/$schema", "relative", "/$schema",
+      "relative", "/$schema", {}, "");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+}
+
 TEST(JSONSchema_frame_2020_12, zero_paths) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.sourcemeta.com/schema",
