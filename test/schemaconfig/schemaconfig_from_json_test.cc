@@ -261,6 +261,17 @@ TEST(SchemaConfig_from_json, invalid_13) {
 
 TEST(SchemaConfig_from_json, invalid_14) {
   const auto input{sourcemeta::core::parse_json(R"JSON({
+    "baseUri": "relative",
+    "path": "./schemas"
+  })JSON")};
+
+  EXPECT_SCHEMACONFIG_FROM_JSON_PARSE_ERROR(
+      input, TEST_DIRECTORY, "The baseUri property must be an absolute URI",
+      "/baseUri");
+}
+
+TEST(SchemaConfig_from_json, invalid_15) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
     "resolve": {
       "foo": "%"
     },
