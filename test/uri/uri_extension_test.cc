@@ -52,6 +52,12 @@ TEST(URI_extension, absolute_trailing_period) {
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json");
 }
 
+TEST(URI_extension, empty_fragment) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo#"};
+  uri.extension(".json");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json#");
+}
+
 TEST(URI_extension, fragment_only) {
   sourcemeta::core::URI uri{"#foo"};
   uri.extension("json");
