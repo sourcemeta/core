@@ -870,6 +870,8 @@ TEST(JSONSchema_transformer, rereference_not_fixed_ref) {
     EXPECT_EQ(error.id(), "#/definitions/foo");
     EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/$ref");
     SUCCEED();
+  } catch (const sourcemeta::core::SchemaReferenceError &) {
+    FAIL();
   }
 
   EXPECT_EQ(entries.size(), 0);
