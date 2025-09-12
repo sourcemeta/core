@@ -545,3 +545,13 @@ TEST(JSONPointer_parse, regex_caret) {
   EXPECT_TRUE(pointer.at(2).is_property());
   EXPECT_EQ(pointer.at(2).to_property(), "foo");
 }
+
+TEST(JSONPointer_parse, regex_backslash) {
+  const sourcemeta::core::Pointer pointer =
+      // Needs escaping because here we are interpreting as a C string and not
+      // as a JSON string
+      sourcemeta::core::to_pointer("/[\\\\-]");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "[\\-]");
+}
