@@ -440,6 +440,8 @@ auto URI::recompose() const -> std::string {
          ++iterator) {
       // TODO: We shouldn't need to manually do these look-aheads here.
       // It should all be taking care off by the escaper logic
+
+      // TODO: There is also a caveat here: what if we have "foo%bar"?
       if (*iterator == '%') {
         auto next_1 = std::next(iterator, 1);
         auto next_2 = std::next(iterator, 2);
