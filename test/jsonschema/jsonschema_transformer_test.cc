@@ -506,6 +506,62 @@ TEST(JSONSchema_transformer, check_top_level) {
   EXPECT_FALSE(std::get<3>(entries.at(1)).description.has_value());
 }
 
+TEST(JSONSchema_transformer, check_top_level_with_id) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "foo": "bar"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+}
+
+TEST(JSONSchema_transformer, check_top_level_with_id_and_default_id) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "foo": "bar"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result = bundle.check(
+      document, sourcemeta::core::schema_official_walker,
+      sourcemeta::core::schema_official_resolver,
+      transformer_callback_trace(entries), std::nullopt, "https://other.com");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+}
+
 TEST(JSONSchema_transformer, check_multiple_pointers) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRuleWithManyPointers>();
