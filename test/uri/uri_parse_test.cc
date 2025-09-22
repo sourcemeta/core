@@ -31,6 +31,13 @@ TEST(URI_parse, syntax_error_4) {
                sourcemeta::core::URIParseError);
 }
 
+TEST(URI_parse, syntax_error_5) {
+  EXPECT_THROW(
+      sourcemeta::core::URI uri{
+          "https://www.example.com#/foo%bar"}, // unescaped "%"
+      sourcemeta::core::URIParseError);
+}
+
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L315
 
