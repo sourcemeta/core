@@ -1,6 +1,7 @@
 #include <sourcemeta/core/gzip.h>
 
 extern "C" {
+#include <archive.h>
 #include <zlib.h>
 }
 

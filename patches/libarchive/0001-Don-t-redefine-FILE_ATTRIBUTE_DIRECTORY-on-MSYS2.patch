@@ -1,0 +1,29 @@
+From 338104510e73969be4cef39d68618e0cf902660b Mon Sep 17 00:00:00 2001
+From: Juan Cruz Viotti <jv@jviotti.com>
+Date: Tue, 23 Sep 2025 14:22:09 -0400
+Subject: [PATCH] Don't redefine `FILE_ATTRIBUTE_DIRECTORY` on MSYS2
+
+Signed-off-by: Juan Cruz Viotti <jv@jviotti.com>
+---
+ libarchive/archive_read_support_format_rar.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/libarchive/archive_read_support_format_rar.c b/libarchive/archive_read_support_format_rar.c
+index 923ae5c6..7ced153f 100644
+--- a/libarchive/archive_read_support_format_rar.c
++++ b/libarchive/archive_read_support_format_rar.c
+@@ -155,8 +155,11 @@
+ 
+ /* Define this here for non-Windows platforms */
+ #if !((defined(__WIN32__) || defined(_WIN32) || defined(__WIN32)) && !defined(__CYGWIN__))
++/* Otherwise we end up redefining on MSYS2 */
++#ifndef FILE_ATTRIBUTE_DIRECTORY
+ #define FILE_ATTRIBUTE_DIRECTORY 0x10
+ #endif
++#endif
+ 
+ #undef minimum
+ #define minimum(a, b)	((a)<(b)?(a):(b))
+-- 
+2.51.0
+

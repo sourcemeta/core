@@ -1,4 +1,4 @@
-sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME gzip 
+sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME gzip
   PRIVATE_HEADERS error.h
   SOURCES gzip.cc)
 
@@ -7,3 +7,4 @@ if(SOURCEMETA_CORE_INSTALL)
 endif()
 
 target_link_libraries(sourcemeta_core_gzip PRIVATE ZLIB::ZLIB)
+target_link_libraries(sourcemeta_core_gzip PRIVATE Archive::Archive)
