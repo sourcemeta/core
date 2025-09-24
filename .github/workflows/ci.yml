@@ -96,7 +96,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         if: matrix.platform.shell == 'msys2 {0}'
         with:
-          install: cmake make gcc
+          install: cmake make gcc diffutils
 
       - uses: actions/checkout@v4
       - name: Install dependencies (macOS)
