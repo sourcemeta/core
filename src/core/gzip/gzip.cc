@@ -89,7 +89,7 @@ auto gunzip(std::istream &input, std::ostream &output) -> void {
     zstream.avail_out = static_cast<uInt>(buffer_output.size());
 
     code = inflate(&zstream, Z_NO_FLUSH);
-    if (code == Z_NEED_DICT || code == Z_DATA_ERROR || code == Z_MEM_ERROR) {
+    if (code != Z_OK && code != Z_STREAM_END) {
       inflateEnd(&zstream);
       throw GZIPError("Could not decompress input");
     } else {
@@ -103,8 +103,8 @@ auto gunzip(std::istream &input, std::ostream &output) -> void {
     }
   }
 
-  inflateEnd(&zstream);
-  if (code != Z_STREAM_END) {
+  code = inflateEnd(&zstream);
+  if (code != Z_OK) {
     throw GZIPError("Could not decompress input");
   }
 }
