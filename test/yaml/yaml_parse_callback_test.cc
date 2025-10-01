@@ -40,9 +40,9 @@ TEST(YAML_parse_callback, yaml_or_json_stub_test_2) {
   const auto input{std::filesystem::path{STUBS_PATH} / "test_1.json"};
   READ_YAML_OR_JSON_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, String, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, String, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, String, 2, 14, sourcemeta::core::JSON{"bar"});
-  EXPECT_TRACE(3, Pre, Integer, 3, 10, sourcemeta::core::JSON{"baz"});
+  EXPECT_TRACE(3, Pre, Integer, 3, 3, sourcemeta::core::JSON{"baz"});
   EXPECT_TRACE(4, Post, Integer, 3, 10, sourcemeta::core::JSON{2});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::read_json(input));
 }
