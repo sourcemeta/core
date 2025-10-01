@@ -262,6 +262,25 @@ TEST(JSON_auto, map_without_iterators) {
   EXPECT_EQ(value, back.value());
 }
 
+TEST(JSON_auto, map_of_map) {
+  const std::map<std::string, std::map<std::string, std::size_t>> value{
+      {"foo", {{"bar", 1}, {"baz", 2}}}};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": {
+      "bar": 1,
+      "baz": 2
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, std::map<std::string, std::size_t>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
 TEST(JSON_auto, map_without_iterators_and_transform) {
   const std::map<std::string, std::size_t> value{
       {"foo", 1}, {"bar", 2}, {"baz", 3}};
