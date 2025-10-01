@@ -30,12 +30,12 @@ TEST(JSONPointer_position, track_1) {
   sourcemeta::core::Pointer pointer_3{0, "foo"};
   EXPECT_TRUE(tracker.get(pointer_3).has_value());
   EXPECT_EQ(tracker.get(pointer_3).value(),
-            sourcemeta::core::PointerPositionTracker::Position({3, 12, 5, 5}));
+            sourcemeta::core::PointerPositionTracker::Position({3, 5, 5, 5}));
 
   sourcemeta::core::Pointer pointer_4{0, "foo", "bar"};
   EXPECT_TRUE(tracker.get(pointer_4).has_value());
   EXPECT_EQ(tracker.get(pointer_4).value(),
-            sourcemeta::core::PointerPositionTracker::Position({4, 14, 4, 14}));
+            sourcemeta::core::PointerPositionTracker::Position({4, 7, 4, 14}));
 }
 
 TEST(JSONPointer_position, to_json_1) {
@@ -53,8 +53,8 @@ TEST(JSONPointer_position, to_json_1) {
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "": [ 1, 1, 7, 1 ],
     "/0": [ 2, 3, 6, 3 ],
-    "/0/foo": [ 3, 12, 5, 5 ],
-    "/0/foo/bar": [ 4, 14, 4, 14 ]
+    "/0/foo": [ 3, 5, 5, 5 ],
+    "/0/foo/bar": [ 4, 7, 4, 14 ]
   })JSON")};
 
   EXPECT_EQ(tracker.to_json(), expected);
