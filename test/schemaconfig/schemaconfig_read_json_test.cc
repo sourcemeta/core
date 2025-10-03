@@ -28,3 +28,25 @@ TEST(SchemaConfig_read_json, valid_1) {
             "../single.json");
   EXPECT_EQ(manifest.extra.size(), 0);
 }
+
+TEST(SchemaConfig_read_json, valid_without_path) {
+  const auto path{std::filesystem::path{TEST_DIRECTORY} /
+                  "stub-valid-no-path.json"};
+  const auto manifest{sourcemeta::core::SchemaConfig::read_json(path)};
+
+  EXPECT_TRUE(manifest.title.has_value());
+  EXPECT_EQ(manifest.title.value(), "Test Config Without Path");
+  EXPECT_TRUE(manifest.description.has_value());
+  EXPECT_EQ(manifest.description.value(),
+            "A test configuration file without a path property");
+  EXPECT_FALSE(manifest.email.has_value());
+  EXPECT_FALSE(manifest.github.has_value());
+  EXPECT_FALSE(manifest.website.has_value());
+  EXPECT_EQ(manifest.absolute_path, TEST_DIRECTORY);
+  EXPECT_EQ(
+      manifest.base,
+      sourcemeta::core::URI::from_path(manifest.absolute_path).recompose());
+  EXPECT_FALSE(manifest.default_dialect.has_value());
+  EXPECT_EQ(manifest.resolve.size(), 0);
+  EXPECT_EQ(manifest.extra.size(), 0);
+}
