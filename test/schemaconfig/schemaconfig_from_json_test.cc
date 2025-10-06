@@ -288,3 +288,28 @@ TEST(SchemaConfig_from_json, invalid_14) {
       "The values in the resolve object must represent valid URIs",
       "/resolve/foo");
 }
+
+// For backwards compatibility when we add new fields
+TEST(SchemaConfig_from_json, unknown_field_ignored) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "title": "Test Project",
+    "unknown": 1
+  })JSON")};
+
+  const auto manifest{
+      sourcemeta::core::SchemaConfig::from_json(input, TEST_DIRECTORY)};
+
+  EXPECT_TRUE(manifest.title.has_value());
+  EXPECT_EQ(manifest.title.value(), "Test Project");
+  EXPECT_FALSE(manifest.description.has_value());
+  EXPECT_FALSE(manifest.email.has_value());
+  EXPECT_FALSE(manifest.github.has_value());
+  EXPECT_FALSE(manifest.website.has_value());
+  EXPECT_EQ(manifest.absolute_path, TEST_DIRECTORY);
+  EXPECT_EQ(
+      manifest.base,
+      sourcemeta::core::URI::from_path(manifest.absolute_path).recompose());
+  EXPECT_FALSE(manifest.default_dialect.has_value());
+  EXPECT_EQ(manifest.resolve.size(), 0);
+  EXPECT_EQ(manifest.extra.size(), 0);
+}
