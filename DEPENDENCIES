@@ -14,7 +14,6 @@ jsonschema-test-suite https://github.com/json-schema-org/JSON-Schema-Test-Suite 
 uriparser https://github.com/uriparser/uriparser bfe94f6e54d0abb5afa7bb0411940b7242cb835a
 yaml https://github.com/yaml/libyaml 0.2.5
 zlib https://github.com/madler/zlib 51b7f2abdade71cd9bb0e7a373ef2610ec6f9daf
-libarchive https://github.com/libarchive/libarchive v3.8.1
 boost-regex https://github.com/boostorg/regex boost-1.86.0
 googletest https://github.com/google/googletest a7f443b80b105f940225332ed3c31f2790092f47
 googlebenchmark https://github.com/google/benchmark 378fe693a1ef51500db21b11ff05a8018c5f0e55

@@ -78,7 +78,6 @@ if(SOURCEMETA_CORE_CONTRIB_ZLIB OR SOURCEMETA_CORE_GZIP)
 endif()
 
 if(SOURCEMETA_CORE_GZIP)
-  find_package(Archive REQUIRED)
   add_subdirectory(src/core/gzip)
 endif()
 

@@ -7,7 +7,6 @@
 
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/gzip_error.h>
-#include <sourcemeta/core/gzip_tar.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <istream>     // std::istream
