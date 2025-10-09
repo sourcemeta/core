@@ -3,6 +3,8 @@
 #include <sourcemeta/core/jsonpointer.h>
 
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 
 TEST(JSONPointer_pointer, general_traits) {
   EXPECT_TRUE(std::is_default_constructible<sourcemeta::core::Pointer>::value);
@@ -246,4 +248,93 @@ TEST(JSONPointer_pointer, push_back_index_move) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
   EXPECT_TRUE(pointer.at(1).is_index());
   EXPECT_EQ(pointer.at(1).to_index(), 0);
+}
+
+TEST(JSONPointer_pointer, hash_unordered_set) {
+  std::unordered_set<sourcemeta::core::Pointer> set;
+
+  // Test empty pointer
+  const sourcemeta::core::Pointer empty{};
+  // Test single token
+  const sourcemeta::core::Pointer single{"foo"};
+  // Test two tokens
+  const sourcemeta::core::Pointer two{"foo", "bar"};
+  // Test three or more tokens
+  const sourcemeta::core::Pointer three{"foo", "bar", "baz"};
+  const sourcemeta::core::Pointer four{"a", "b", "c", 1};
+  // Duplicate to test deduplication
+  const sourcemeta::core::Pointer two_dup{"foo", "bar"};
+
+  set.insert(empty);
+  set.insert(single);
+  set.insert(two);
+  set.insert(three);
+  set.insert(four);
+  set.insert(two_dup);
+
+  EXPECT_EQ(set.size(), 5);
+  EXPECT_TRUE(set.contains(empty));
+  EXPECT_TRUE(set.contains(single));
+  EXPECT_TRUE(set.contains(two));
+  EXPECT_TRUE(set.contains(three));
+  EXPECT_TRUE(set.contains(four));
+  EXPECT_TRUE(set.contains(two_dup));
+}
+
+TEST(JSONPointer_pointer, hash_unordered_map) {
+  std::unordered_map<sourcemeta::core::Pointer, int> map;
+
+  // Test empty pointer
+  const sourcemeta::core::Pointer empty{};
+  // Test single token
+  const sourcemeta::core::Pointer single{"foo"};
+  // Test two tokens
+  const sourcemeta::core::Pointer two{"foo", 0};
+  // Test three or more tokens
+  const sourcemeta::core::Pointer four{"a", "b", "c", 1};
+
+  map[empty] = 0;
+  map[single] = 1;
+  map[two] = 2;
+  map[four] = 4;
+
+  EXPECT_EQ(map.size(), 4);
+  EXPECT_EQ(map.at(empty), 0);
+  EXPECT_EQ(map.at(single), 1);
+  EXPECT_EQ(map.at(two), 2);
+  EXPECT_EQ(map.at(four), 4);
+}
+
+TEST(JSONPointer_pointer, hash_empty_consistency) {
+  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer empty_1{};
+  const sourcemeta::core::Pointer empty_2{};
+  EXPECT_EQ(hasher(empty_1), hasher(empty_2));
+}
+
+TEST(JSONPointer_pointer, hash_single_token_consistency) {
+  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer single_1{"foo"};
+  const sourcemeta::core::Pointer single_2{"foo"};
+  const sourcemeta::core::Pointer single_3{"bar"};
+  EXPECT_EQ(hasher(single_1), hasher(single_2));
+  EXPECT_NE(hasher(single_1), hasher(single_3));
+}
+
+TEST(JSONPointer_pointer, hash_two_token_consistency) {
+  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer two_1{"foo", "bar"};
+  const sourcemeta::core::Pointer two_2{"foo", "bar"};
+  const sourcemeta::core::Pointer two_3{"foo", "baz"};
+  EXPECT_EQ(hasher(two_1), hasher(two_2));
+  EXPECT_NE(hasher(two_1), hasher(two_3));
+}
+
+TEST(JSONPointer_pointer, hash_three_token_consistency) {
+  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer multi_1{"foo", "bar", 1};
+  const sourcemeta::core::Pointer multi_2{"foo", "bar", 1};
+  const sourcemeta::core::Pointer multi_3{"foo", "baz", 1};
+  EXPECT_EQ(hasher(multi_1), hasher(multi_2));
+  EXPECT_NE(hasher(multi_1), hasher(multi_3));
 }
