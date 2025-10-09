@@ -4,6 +4,8 @@
 #include <sourcemeta/core/jsonpointer.h>
 
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 
 static const std::string foo = "foo";
 static const std::string bar = "bar";
@@ -333,4 +335,99 @@ TEST(JSONWeakPointer_pointer, to_weak_pointer) {
 
   EXPECT_TRUE(result.at(2).is_property());
   EXPECT_EQ(result.at(2).to_property(), "baz");
+}
+
+TEST(JSONWeakPointer_pointer, hash_unordered_set) {
+  std::unordered_set<sourcemeta::core::WeakPointer> set;
+
+  // Test empty pointer
+  const sourcemeta::core::WeakPointer empty{};
+  // Test single token
+  const sourcemeta::core::WeakPointer single{std::cref(foo)};
+  // Test two tokens
+  const sourcemeta::core::WeakPointer two{std::cref(foo), std::cref(bar)};
+  // Test three or more tokens
+  const sourcemeta::core::WeakPointer three{std::cref(foo), std::cref(bar),
+                                            std::cref(baz)};
+  const sourcemeta::core::WeakPointer four{std::cref(foo), std::cref(bar),
+                                           std::cref(baz), 1};
+  // Duplicate to test deduplication
+  const sourcemeta::core::WeakPointer two_dup{std::cref(foo), std::cref(bar)};
+
+  set.insert(empty);
+  set.insert(single);
+  set.insert(two);
+  set.insert(three);
+  set.insert(four);
+  set.insert(two_dup);
+
+  EXPECT_EQ(set.size(), 5);
+  EXPECT_TRUE(set.contains(empty));
+  EXPECT_TRUE(set.contains(single));
+  EXPECT_TRUE(set.contains(two));
+  EXPECT_TRUE(set.contains(three));
+  EXPECT_TRUE(set.contains(four));
+  EXPECT_TRUE(set.contains(two_dup));
+}
+
+TEST(JSONWeakPointer_pointer, hash_unordered_map) {
+  std::unordered_map<sourcemeta::core::WeakPointer, int> map;
+
+  // Test empty pointer
+  const sourcemeta::core::WeakPointer empty{};
+  // Test single token
+  const sourcemeta::core::WeakPointer single{std::cref(foo)};
+  // Test two tokens
+  const sourcemeta::core::WeakPointer two{std::cref(foo), 0};
+  // Test three or more tokens
+  const sourcemeta::core::WeakPointer four{std::cref(foo), std::cref(bar),
+                                           std::cref(baz), 1};
+
+  map[empty] = 0;
+  map[single] = 1;
+  map[two] = 2;
+  map[four] = 4;
+
+  EXPECT_EQ(map.size(), 4);
+  EXPECT_EQ(map.at(empty), 0);
+  EXPECT_EQ(map.at(single), 1);
+  EXPECT_EQ(map.at(two), 2);
+  EXPECT_EQ(map.at(four), 4);
+}
+
+TEST(JSONWeakPointer_pointer, hash_empty_consistency) {
+  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer empty_1{};
+  const sourcemeta::core::WeakPointer empty_2{};
+  EXPECT_EQ(hasher(empty_1), hasher(empty_2));
+}
+
+TEST(JSONWeakPointer_pointer, hash_single_token_consistency) {
+  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer single_1{std::cref(foo)};
+  const sourcemeta::core::WeakPointer single_2{std::cref(foo)};
+  const sourcemeta::core::WeakPointer single_3{std::cref(bar)};
+  EXPECT_EQ(hasher(single_1), hasher(single_2));
+  EXPECT_NE(hasher(single_1), hasher(single_3));
+}
+
+TEST(JSONWeakPointer_pointer, hash_two_token_consistency) {
+  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer two_1{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer two_2{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer two_3{std::cref(foo), std::cref(baz)};
+  EXPECT_EQ(hasher(two_1), hasher(two_2));
+  EXPECT_NE(hasher(two_1), hasher(two_3));
+}
+
+TEST(JSONWeakPointer_pointer, hash_three_token_consistency) {
+  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer multi_1{std::cref(foo), std::cref(bar),
+                                              1};
+  const sourcemeta::core::WeakPointer multi_2{std::cref(foo), std::cref(bar),
+                                              1};
+  const sourcemeta::core::WeakPointer multi_3{std::cref(foo), std::cref(baz),
+                                              1};
+  EXPECT_EQ(hasher(multi_1), hasher(multi_2));
+  EXPECT_NE(hasher(multi_1), hasher(multi_3));
 }
