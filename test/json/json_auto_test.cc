@@ -718,3 +718,109 @@ TEST(JSON_auto, from_json_invalid_tuple_poly_element) {
           document)};
   EXPECT_FALSE(result.has_value());
 }
+
+TEST(JSON_auto, optional_pair) {
+  using Type = std::optional<std::pair<std::string, std::size_t>>;
+  const Type value{std::make_pair("foo", 42)};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "foo", 42 ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_map) {
+  using Type = std::optional<std::map<std::string, std::size_t>>;
+  const Type value{std::map<std::string, std::size_t>{{"foo", 1}, {"bar", 2}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1, "bar": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, vector_of_tuples) {
+  const std::vector<std::tuple<std::string, std::size_t, bool>> value{
+      {"foo", 1, true}, {"bar", 2, false}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    [ "foo", 1, true ],
+    [ "bar", 2, false ]
+  ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::vector<std::tuple<std::string, std::size_t, bool>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, map_of_tuples) {
+  const std::map<std::string, std::tuple<std::size_t, bool>> value{
+      {"foo", {1, true}}, {"bar", {2, false}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": [ 1, true ],
+    "bar": [ 2, false ]
+  })JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, std::tuple<std::size_t, bool>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, map_of_pairs) {
+  const std::map<std::string, std::pair<std::size_t, bool>> value{
+      {"foo", {1, true}}, {"bar", {2, false}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": [ 1, true ],
+    "bar": [ 2, false ]
+  })JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, std::pair<std::size_t, bool>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_vector_of_tuples) {
+  using Type = std::optional<std::vector<std::tuple<std::string, std::size_t>>>;
+  const Type value{std::vector<std::tuple<std::string, std::size_t>>{
+      {"foo", 1}, {"bar", 2}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    [ "foo", 1 ],
+    [ "bar", 2 ]
+  ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, pair_with_optional) {
+  using Type = std::pair<std::string, std::optional<std::size_t>>;
+  const Type value{"foo", 42};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "foo", 42 ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, tuple_with_pair) {
+  using Type = std::tuple<std::string, std::pair<std::size_t, bool>>;
+  const Type value{"foo", {42, true}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON([ "foo", [ 42, true ] ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
