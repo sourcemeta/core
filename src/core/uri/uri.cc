@@ -464,21 +464,26 @@ auto URI::recompose_without_fragment() const -> std::optional<std::string> {
   // Scheme
   const auto result_scheme{this->scheme()};
   if (result_scheme.has_value()) {
-    result << result_scheme.value();
-    if (this->is_urn() || this->is_tag() || this->is_mailto()) {
-      result << ":";
-    } else {
-      result << "://";
-    }
+    result << result_scheme.value() << ":";
   }
 
+  // Authority
   const auto user_info{this->userinfo()};
+  const auto result_host{this->host()};
+  const auto result_port{this->port()};
+  const bool has_authority{user_info.has_value() || result_host.has_value() ||
+                           result_port.has_value()};
+
+  // Add "//" prefix when we have authority (with or without scheme)
+  if (has_authority) {
+    result << "//";
+  }
+
   if (user_info.has_value()) {
     result << user_info.value() << "@";
   }
 
   // Host
-  const auto result_host{this->host()};
   if (result_host.has_value()) {
     if (this->is_ipv6()) {
       // By default uriparser will parse the IPv6 address without brackets
@@ -493,7 +498,6 @@ auto URI::recompose_without_fragment() const -> std::optional<std::string> {
   }
 
   // Port
-  const auto result_port{this->port()};
   if (result_port.has_value()) {
     result << ':' << result_port.value();
   }
@@ -501,7 +505,17 @@ auto URI::recompose_without_fragment() const -> std::optional<std::string> {
   // Path
   const auto result_path{this->path()};
   if (result_path.has_value()) {
-    result << result_path.value();
+    std::string path_str{result_path.value()};
+    // RFC 3986: If there's a scheme but no authority, the path cannot start
+    // with "//" to avoid confusion with network-path references. Also,
+    // uriparser sometimes adds a leading "/" to paths when normalizing URIs
+    // like "g:h", which should have path "h" not "/h". We strip the leading "/"
+    // in this case.
+    if (result_scheme.has_value() && !has_authority &&
+        path_str.starts_with("/") && !path_str.starts_with("//")) {
+      path_str = path_str.substr(1);
+    }
+    result << path_str;
   }
 
   // Query
@@ -581,6 +595,12 @@ auto URI::canonicalize() -> URI & {
 }
 
 auto URI::resolve_from(const URI &base) -> URI & {
+  // RFC 3986 Section 5.2.2: If the reference has a scheme, it's already
+  // absolute and should be used as-is (just normalize it)
+  if (this->is_absolute()) {
+    return *this;
+  }
+
   // Handle special case: fragment-only URI with a base that has no fragment
   if (this->is_fragment_only() && !base.fragment().has_value()) {
     this->data = base.data;
@@ -602,20 +622,35 @@ auto URI::resolve_from(const URI &base) -> URI & {
       copy.host_ = "placeholder";
     }
 
+    // IMPORTANT: We need to parse the reference WITHOUT normalization
+    // because normalization removes dot segments ("." and "./") which
+    // should only be removed AFTER resolution, not before.
+    // The issue is that uri_parse() calls uri_normalize(), so we need to
+    // parse the original data again without normalization.
+    UriUriA unnormalized_reference;
+    const char *error_position = nullptr;
+    if (uriParseSingleUriA(&unnormalized_reference, this->data.c_str(),
+                           &error_position) != URI_SUCCESS) {
+      throw URIParseError{
+          static_cast<std::uint64_t>(error_position - this->data.c_str() + 1)};
+    }
+
     UriUriA absoluteDest;
     // Looks like this function allocates to the output variable
     // even on failure.
     // See https://uriparser.github.io/doc/api/latest/
-    switch (uriAddBaseUriExA(&absoluteDest, &this->internal->uri,
+    switch (uriAddBaseUriExA(&absoluteDest, &unnormalized_reference,
                              &copy.internal->uri, URI_RESOLVE_STRICTLY)) {
       case URI_SUCCESS:
         break;
       case URI_ERROR_ADDBASE_REL_BASE:
         uriFreeUriMembersA(&absoluteDest);
+        uriFreeUriMembersA(&unnormalized_reference);
         assert(!copy.is_absolute());
         throw URIError{"Base URI is not absolute"};
       default:
         uriFreeUriMembersA(&absoluteDest);
+        uriFreeUriMembersA(&unnormalized_reference);
         throw URIError{"Could not resolve URI"};
     }
 
@@ -623,10 +658,12 @@ auto URI::resolve_from(const URI &base) -> URI & {
       uri_normalize(&absoluteDest);
       this->data = uri_to_string(&absoluteDest);
       uriFreeUriMembersA(&absoluteDest);
+      uriFreeUriMembersA(&unnormalized_reference);
       this->parse();
       return *this;
     } catch (...) {
       uriFreeUriMembersA(&absoluteDest);
+      uriFreeUriMembersA(&unnormalized_reference);
       throw;
     }
   }

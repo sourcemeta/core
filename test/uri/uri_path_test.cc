@@ -360,3 +360,89 @@ TEST(URI_path, append_path_chain) {
   uri.append_path("bar").append_path("baz");
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
 }
+
+TEST(URI_path_getter, rfc3986_path_with_colon) {
+  const sourcemeta::core::URI uri{"http://example.com/path:with:colons"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path:with:colons");
+}
+
+TEST(URI_path_getter, rfc3986_path_with_at_sign) {
+  const sourcemeta::core::URI uri{"http://example.com/path@with@at"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path@with@at");
+}
+
+TEST(URI_path_getter, rfc3986_path_with_equals) {
+  const sourcemeta::core::URI uri{"http://example.com/path=with=equals"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path=with=equals");
+}
+
+TEST(URI_path_getter, rfc3986_path_with_subdelims) {
+  const sourcemeta::core::URI uri{"http://example.com/path!$&'()*+,;="};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path!$&'()*+,;=");
+}
+
+TEST(URI_path_getter, rfc3986_empty_path_segments) {
+  const sourcemeta::core::URI uri{"http://example.com/a//b///c"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/a//b///c");
+}
+
+TEST(URI_path_getter, rfc3986_path_only_slashes) {
+  const sourcemeta::core::URI uri{"http://example.com////"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "////");
+}
+
+TEST(URI_path_getter, rfc3986_percent_encoded_path) {
+  const sourcemeta::core::URI uri{"http://example.com/path%20with%20spaces"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path%20with%20spaces");
+}
+
+TEST(URI_path_getter, rfc3986_percent_encoded_slash) {
+  const sourcemeta::core::URI uri{
+      "http://example.com/path%2Fwith%2Fencoded%2Fslashes"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path%2Fwith%2Fencoded%2Fslashes");
+}
+
+TEST(URI_path_getter, rfc3986_path_with_unreserved) {
+  const sourcemeta::core::URI uri{
+      "http://example.com/path-with_unreserved.chars~123"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path-with_unreserved.chars~123");
+}
+
+TEST(URI_path_getter, rfc3986_relative_path_no_slash) {
+  const sourcemeta::core::URI uri{"path/to/resource"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "path/to/resource");
+}
+
+TEST(URI_path_getter, rfc3986_relative_path_with_slash) {
+  const sourcemeta::core::URI uri{"/path/to/resource"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path/to/resource");
+}
+
+TEST(URI_path_getter, rfc3986_path_single_segment) {
+  const sourcemeta::core::URI uri{"http://example.com/segment"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/segment");
+}
+
+TEST(URI_path_getter, rfc3986_path_with_query_separator) {
+  const sourcemeta::core::URI uri{"http://example.com/path?query=value"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path");
+}
+
+TEST(URI_path_getter, rfc3986_path_with_fragment_separator) {
+  const sourcemeta::core::URI uri{"http://example.com/path#fragment"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/path");
+}
