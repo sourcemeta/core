@@ -1191,6 +1191,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar",
+          "position": null,
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1201,6 +1202,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1211,6 +1213,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/id",
+          "position": null,
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1221,6 +1224,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/type",
+          "position": null,
           "relativePointer": "/type",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1231,6 +1235,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "",
+          "position": null,
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1241,6 +1246,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/$id",
+          "position": null,
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1251,6 +1257,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1261,6 +1268,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties",
+          "position": null,
           "relativePointer": "/properties",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1271,6 +1279,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar",
+          "position": null,
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1281,6 +1290,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1291,6 +1301,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/id",
+          "position": null,
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1301,6 +1312,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/type",
+          "position": null,
           "relativePointer": "/type",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1311,6 +1323,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties/foo",
+          "position": null,
           "relativePointer": "/properties/foo",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1321,6 +1334,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties/foo/$ref",
+          "position": null,
           "relativePointer": "/properties/foo/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1332,6 +1346,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
       {
         "type": "static",
         "origin": "/$schema",
+        "position": null,
         "destination": "https://json-schema.org/draft/2020-12/schema",
         "base": "https://json-schema.org/draft/2020-12/schema",
         "fragment": null
@@ -1339,6 +1354,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
       {
         "type": "static",
         "origin": "/properties/bar/$schema",
+        "position": null,
         "destination": "http://json-schema.org/draft-04/schema",
         "base": "http://json-schema.org/draft-04/schema",
         "fragment": null
@@ -1346,6 +1362,7 @@ TEST(JSONSchema_frame, to_json_mode_instances) {
       {
         "type": "static",
         "origin": "/properties/foo/$ref",
+        "position": null,
         "destination": "https://www.sourcemeta.com/bar",
         "base": "https://www.sourcemeta.com/bar",
         "fragment": null
@@ -1400,6 +1417,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar",
+          "position": null,
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1410,6 +1428,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1420,6 +1439,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/id",
+          "position": null,
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1430,6 +1450,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/type",
+          "position": null,
           "relativePointer": "/type",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1440,6 +1461,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "",
+          "position": null,
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1450,6 +1472,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/$id",
+          "position": null,
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1460,6 +1483,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1470,6 +1494,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties",
+          "position": null,
           "relativePointer": "/properties",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1480,6 +1505,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar",
+          "position": null,
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1490,6 +1516,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1500,6 +1527,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/id",
+          "position": null,
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1510,6 +1538,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/type",
+          "position": null,
           "relativePointer": "/type",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1520,6 +1549,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties/foo",
+          "position": null,
           "relativePointer": "/properties/foo",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1530,6 +1560,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties/foo/$ref",
+          "position": null,
           "relativePointer": "/properties/foo/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1541,6 +1572,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
       {
         "type": "static",
         "origin": "/$schema",
+        "position": null,
         "destination": "https://json-schema.org/draft/2020-12/schema",
         "base": "https://json-schema.org/draft/2020-12/schema",
         "fragment": null
@@ -1548,6 +1580,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
       {
         "type": "static",
         "origin": "/properties/bar/$schema",
+        "position": null,
         "destination": "http://json-schema.org/draft-04/schema",
         "base": "http://json-schema.org/draft-04/schema",
         "fragment": null
@@ -1555,6 +1588,7 @@ TEST(JSONSchema_frame, to_json_mode_references) {
       {
         "type": "static",
         "origin": "/properties/foo/$ref",
+        "position": null,
         "destination": "https://www.sourcemeta.com/bar",
         "base": "https://www.sourcemeta.com/bar",
         "fragment": null
@@ -1598,6 +1632,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar",
+          "position": null,
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1608,6 +1643,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1618,6 +1654,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/id",
+          "position": null,
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1628,6 +1665,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/type",
+          "position": null,
           "relativePointer": "/type",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1638,6 +1676,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "",
+          "position": null,
           "relativePointer": "",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1648,6 +1687,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/$id",
+          "position": null,
           "relativePointer": "/$id",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1658,6 +1698,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1668,6 +1709,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties",
+          "position": null,
           "relativePointer": "/properties",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1678,6 +1720,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar",
+          "position": null,
           "relativePointer": "",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1688,6 +1731,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/$schema",
+          "position": null,
           "relativePointer": "/$schema",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1698,6 +1742,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/id",
+          "position": null,
           "relativePointer": "/id",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1708,6 +1753,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/bar",
           "pointer": "/properties/bar/type",
+          "position": null,
           "relativePointer": "/type",
           "dialect": "http://json-schema.org/draft-04/schema#",
           "baseDialect": "http://json-schema.org/draft-04/schema#"
@@ -1718,6 +1764,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties/foo",
+          "position": null,
           "relativePointer": "/properties/foo",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1728,6 +1775,7 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
           "root": "https://www.sourcemeta.com/test",
           "base": "https://www.sourcemeta.com/test",
           "pointer": "/properties/foo/$ref",
+          "position": null,
           "relativePointer": "/properties/foo/$ref",
           "dialect": "https://json-schema.org/draft/2020-12/schema",
           "baseDialect": "https://json-schema.org/draft/2020-12/schema"
@@ -1736,6 +1784,442 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
       "dynamic": {}
     },
     "references": [],
+    "instances": {}
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_frame, to_json_mode_references_with_tracking) {
+  sourcemeta::core::PointerPositionTracker tracker;
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/test",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "bar"
+      },
+      "bar": {
+        "id": "bar",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "string"
+      }
+    }
+  })JSON",
+                                   std::ref(tracker));
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  const auto result{frame.to_json(tracker)};
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "locations": {
+      "static": {
+        "https://www.sourcemeta.com/bar": {
+          "parent": "",
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar",
+          "position": [ 8, 7, 12, 7 ],
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/bar#/$schema": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/$schema",
+          "position": [ 10, 9, 10, 60 ],
+          "relativePointer": "/$schema",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/bar#/id": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/id",
+          "position": [ 9, 9, 9, 19 ],
+          "relativePointer": "/id",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/bar#/type": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/type",
+          "position": [ 11, 9, 11, 24 ],
+          "relativePointer": "/type",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "",
+          "position": [ 1, 1, 14, 3 ],
+          "relativePointer": "",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/$id": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/$id",
+          "position": [ 2, 5, 2, 44 ],
+          "relativePointer": "/$id",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/$schema": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/$schema",
+          "position": [ 3, 5, 3, 61 ],
+          "relativePointer": "/$schema",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/properties": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/properties",
+          "position": [ 4, 5, 13, 5 ],
+          "relativePointer": "/properties",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar": {
+          "parent": "",
+          "type": "subschema",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar",
+          "position": [ 8, 7, 12, 7 ],
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar/$schema": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/$schema",
+          "position": [ 10, 9, 10, 60 ],
+          "relativePointer": "/$schema",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar/id": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/id",
+          "position": [ 9, 9, 9, 19 ],
+          "relativePointer": "/id",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar/type": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/type",
+          "position": [ 11, 9, 11, 24 ],
+          "relativePointer": "/type",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/foo": {
+          "parent": "",
+          "type": "subschema",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/properties/foo",
+          "position": [ 5, 7, 7, 7 ],
+          "relativePointer": "/properties/foo",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/properties/foo/$ref": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/properties/foo/$ref",
+          "position": [ 6, 9, 6, 21 ],
+          "relativePointer": "/properties/foo/$ref",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        }
+      },
+      "dynamic": {}
+    },
+    "references": [
+      {
+        "type": "static",
+        "origin": "/$schema",
+        "position": [ 3, 5, 3, 61 ],
+        "destination": "https://json-schema.org/draft/2020-12/schema",
+        "base": "https://json-schema.org/draft/2020-12/schema",
+        "fragment": null
+      },
+      {
+        "type": "static",
+        "origin": "/properties/bar/$schema",
+        "position": [ 10, 9, 10, 60 ],
+        "destination": "http://json-schema.org/draft-04/schema",
+        "base": "http://json-schema.org/draft-04/schema",
+        "fragment": null
+      },
+      {
+        "type": "static",
+        "origin": "/properties/foo/$ref",
+        "position": [ 6, 9, 6, 21 ],
+        "destination": "https://www.sourcemeta.com/bar",
+        "base": "https://www.sourcemeta.com/bar",
+        "fragment": null
+      }
+    ],
+    "instances": {}
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_frame, to_json_mode_references_with_tracking_empty) {
+  sourcemeta::core::PointerPositionTracker tracker;
+
+  // Note we purposely don't pass the tracker to the document
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/test",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "bar"
+      },
+      "bar": {
+        "id": "bar",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  const auto result{frame.to_json(tracker)};
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "locations": {
+      "static": {
+        "https://www.sourcemeta.com/bar": {
+          "parent": "",
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar",
+          "position": null,
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/bar#/$schema": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/$schema",
+          "position": null,
+          "relativePointer": "/$schema",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/bar#/id": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/id",
+          "position": null,
+          "relativePointer": "/id",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/bar#/type": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/type",
+          "position": null,
+          "relativePointer": "/type",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test": {
+          "parent": null,
+          "type": "resource",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "",
+          "position": null,
+          "relativePointer": "",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/$id": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/$id",
+          "position": null,
+          "relativePointer": "/$id",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/$schema": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/$schema",
+          "position": null,
+          "relativePointer": "/$schema",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/properties": {
+          "parent": "",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/properties",
+          "position": null,
+          "relativePointer": "/properties",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar": {
+          "parent": "",
+          "type": "subschema",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar",
+          "position": null,
+          "relativePointer": "",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar/$schema": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/$schema",
+          "position": null,
+          "relativePointer": "/$schema",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar/id": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/id",
+          "position": null,
+          "relativePointer": "/id",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/bar/type": {
+          "parent": "/properties/bar",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/bar",
+          "pointer": "/properties/bar/type",
+          "position": null,
+          "relativePointer": "/type",
+          "dialect": "http://json-schema.org/draft-04/schema#",
+          "baseDialect": "http://json-schema.org/draft-04/schema#"
+        },
+        "https://www.sourcemeta.com/test#/properties/foo": {
+          "parent": "",
+          "type": "subschema",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/properties/foo",
+          "position": null,
+          "relativePointer": "/properties/foo",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        },
+        "https://www.sourcemeta.com/test#/properties/foo/$ref": {
+          "parent": "/properties/foo",
+          "type": "pointer",
+          "root": "https://www.sourcemeta.com/test",
+          "base": "https://www.sourcemeta.com/test",
+          "pointer": "/properties/foo/$ref",
+          "position": null,
+          "relativePointer": "/properties/foo/$ref",
+          "dialect": "https://json-schema.org/draft/2020-12/schema",
+          "baseDialect": "https://json-schema.org/draft/2020-12/schema"
+        }
+      },
+      "dynamic": {}
+    },
+    "references": [
+      {
+        "type": "static",
+        "origin": "/$schema",
+        "position": null,
+        "destination": "https://json-schema.org/draft/2020-12/schema",
+        "base": "https://json-schema.org/draft/2020-12/schema",
+        "fragment": null
+      },
+      {
+        "type": "static",
+        "origin": "/properties/bar/$schema",
+        "position": null,
+        "destination": "http://json-schema.org/draft-04/schema",
+        "base": "http://json-schema.org/draft-04/schema",
+        "fragment": null
+      },
+      {
+        "type": "static",
+        "origin": "/properties/foo/$ref",
+        "position": null,
+        "destination": "https://www.sourcemeta.com/bar",
+        "base": "https://www.sourcemeta.com/bar",
+        "fragment": null
+      }
+    ],
     "instances": {}
   })JSON");
 
