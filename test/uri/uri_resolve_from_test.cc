@@ -5,7 +5,8 @@
 TEST(URI_resolve_from, relative_base) {
   const sourcemeta::core::URI base{"../foo"};
   sourcemeta::core::URI relative{"../baz"};
-  EXPECT_THROW(relative.resolve_from(base), sourcemeta::core::URIError);
+  relative.resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "../baz");
 }
 
 TEST(URI_resolve_from, absolute_relative_with_slash) {
@@ -36,38 +37,24 @@ TEST(URI_resolve_from, change_fragment) {
   EXPECT_EQ(relative.recompose(), "https://foobar.com/foo/bar#qux");
 }
 
-TEST(URI_try_resolve_from, example_1) {
-  const sourcemeta::core::URI base{"https://foobar.com/foo/bar"};
-  sourcemeta::core::URI relative{"../baz"};
-  relative.try_resolve_from(base);
-  EXPECT_EQ(relative.recompose(), "https://foobar.com/baz");
-}
-
-TEST(URI_try_resolve_from, relative_base) {
-  const sourcemeta::core::URI base{"../foo"};
-  sourcemeta::core::URI relative{"../baz"};
-  relative.try_resolve_from(base);
-  EXPECT_EQ(relative.recompose(), "../baz");
-}
-
-TEST(URI_try_resolve_from, pointer_fragment_on_relative_path) {
+TEST(URI_resolve_from, fragment_on_relative_path) {
   const sourcemeta::core::URI base{"foo"};
   sourcemeta::core::URI relative{"#/bar"};
-  relative.try_resolve_from(base);
+  relative.resolve_from(base);
   EXPECT_EQ(relative.recompose(), "foo#/bar");
 }
 
-TEST(URI_try_resolve_from, base_relative_path_leading_slash) {
+TEST(URI_resolve_from, base_relative_path_leading_slash) {
   const sourcemeta::core::URI base{"/foo"};
   sourcemeta::core::URI relative{"#/bar"};
-  relative.try_resolve_from(base);
+  relative.resolve_from(base);
   EXPECT_EQ(relative.recompose(), "/foo#/bar");
 }
 
-TEST(URI_try_resolve_from, relative_path_from_relative_path) {
+TEST(URI_resolve_from, relative_path_from_relative_path) {
   const sourcemeta::core::URI base{"foo/bar/baz"};
   sourcemeta::core::URI relative{"qux"};
-  relative.try_resolve_from(base);
+  relative.resolve_from(base);
   EXPECT_EQ(relative.recompose(), "foo/bar/qux");
 }
 
