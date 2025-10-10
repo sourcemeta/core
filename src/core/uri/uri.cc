@@ -581,40 +581,73 @@ auto URI::canonicalize() -> URI & {
 }
 
 auto URI::resolve_from(const URI &base) -> URI & {
-  const bool is_file{base.scheme_ == "file"};
-  auto copy = base;
-  if (is_file) {
-    // Huge hack, but otherwise `uriparser` will resolve in a weird way
-    copy.host_ = "placeholder";
+  // Handle special case: fragment-only URI with a base that has no fragment
+  if (this->is_fragment_only() && !base.fragment().has_value()) {
+    this->data = base.data;
+    this->path_ = base.path_;
+    this->userinfo_ = base.userinfo_;
+    this->host_ = base.host_;
+    this->port_ = base.port_;
+    this->scheme_ = base.scheme_;
+    this->query_ = base.query_;
+    return *this;
   }
 
-  UriUriA absoluteDest;
-  // Looks like this function allocates to the output variable
-  // even on failure.
-  // See https://uriparser.github.io/doc/api/latest/
-  switch (uriAddBaseUriExA(&absoluteDest, &this->internal->uri,
-                           &copy.internal->uri, URI_RESOLVE_STRICTLY)) {
-    case URI_SUCCESS:
-      break;
-    case URI_ERROR_ADDBASE_REL_BASE:
+  // If the base is absolute, use the standard uriparser resolution
+  if (base.is_absolute()) {
+    const bool is_file{base.scheme_ == "file"};
+    auto copy = base;
+    if (is_file) {
+      // Huge hack, but otherwise `uriparser` will resolve in a weird way
+      copy.host_ = "placeholder";
+    }
+
+    UriUriA absoluteDest;
+    // Looks like this function allocates to the output variable
+    // even on failure.
+    // See https://uriparser.github.io/doc/api/latest/
+    switch (uriAddBaseUriExA(&absoluteDest, &this->internal->uri,
+                             &copy.internal->uri, URI_RESOLVE_STRICTLY)) {
+      case URI_SUCCESS:
+        break;
+      case URI_ERROR_ADDBASE_REL_BASE:
+        uriFreeUriMembersA(&absoluteDest);
+        assert(!copy.is_absolute());
+        throw URIError{"Base URI is not absolute"};
+      default:
+        uriFreeUriMembersA(&absoluteDest);
+        throw URIError{"Could not resolve URI"};
+    }
+
+    try {
+      uri_normalize(&absoluteDest);
+      this->data = uri_to_string(&absoluteDest);
       uriFreeUriMembersA(&absoluteDest);
-      assert(!copy.is_absolute());
-      throw URIError{"Base URI is not absolute"};
-    default:
+      this->parse();
+      return *this;
+    } catch (...) {
       uriFreeUriMembersA(&absoluteDest);
-      throw URIError{"Could not resolve URI"};
+      throw;
+    }
   }
 
-  try {
-    uri_normalize(&absoluteDest);
-    this->data = uri_to_string(&absoluteDest);
-    uriFreeUriMembersA(&absoluteDest);
+  // Handle relative base resolution
+  if (base.is_relative() && this->is_relative() && base.path_.has_value() &&
+      this->path_.has_value() &&
+      this->path_.value().find('/') == std::string::npos &&
+      !base.recompose().starts_with('/')) {
+    assert(base.is_relative());
+    URI absolute_base{"https://stub.local/" + base.recompose()};
+    assert(absolute_base.is_absolute());
+    auto copy = *this;
+    copy.resolve_from(absolute_base);
+    this->data = copy.recompose().substr(19);
     this->parse();
     return *this;
-  } catch (...) {
-    uriFreeUriMembersA(&absoluteDest);
-    throw;
   }
+
+  // If we can't resolve, leave the URI unchanged
+  return *this;
 }
 
 auto URI::relative_to(const URI &base) -> URI & {
@@ -694,39 +727,6 @@ auto URI::from_fragment(std::string_view fragment) -> URI {
   URI result{""};
   result.fragment(std::string{fragment});
   return result;
-}
-
-auto URI::try_resolve_from(const URI &base) -> URI & {
-  // TODO: This only handles a very specific case. We should generalize this
-  // function to perform proper base resolution on relative bases instead of
-  // doing these one-off workarounds
-
-  if (this->is_fragment_only() && !base.fragment().has_value()) {
-    this->data = base.data;
-    this->path_ = base.path_;
-    this->userinfo_ = base.userinfo_;
-    this->host_ = base.host_;
-    this->port_ = base.port_;
-    this->scheme_ = base.scheme_;
-    this->query_ = base.query_;
-    return *this;
-  } else if (base.is_absolute()) {
-    return this->resolve_from(base);
-  } else if (base.is_relative() && this->is_relative() &&
-             base.path_.has_value() && this->path_.has_value() &&
-             this->path_.value().find('/') == std::string::npos &&
-             !base.recompose().starts_with('/')) {
-    assert(base.is_relative());
-    URI absolute_base{"https://stub.local/" + base.recompose()};
-    assert(absolute_base.is_absolute());
-    auto copy = *this;
-    copy.resolve_from(absolute_base);
-    this->data = copy.recompose().substr(19);
-    this->parse();
-    return *this;
-  } else {
-    return *this;
-  }
 }
 
 auto URI::userinfo() const -> std::optional<std::string_view> {
