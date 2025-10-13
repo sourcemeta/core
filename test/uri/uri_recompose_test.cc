@@ -41,3 +41,13 @@ TEST(URI_recompose, empty_fragment) {
   const sourcemeta::core::URI uri{"#"};
   EXPECT_EQ(uri.recompose(), "#");
 }
+
+TEST(URI_recompose, empty_uri_default_constructor) {
+  const sourcemeta::core::URI uri;
+  EXPECT_EQ(uri.recompose(), "");
+}
+
+TEST(URI_recompose, empty_uri_string_constructor) {
+  const sourcemeta::core::URI uri{""};
+  EXPECT_EQ(uri.recompose(), "");
+}

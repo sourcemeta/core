@@ -147,3 +147,77 @@ TEST(URI_canonicalize, static_from_string) {
   const auto result{sourcemeta::core::URI::canonicalize(uri)};
   EXPECT_EQ(result, "http://example.com/TEST");
 }
+
+TEST(URI_canonicalize, path_with_dotdot_absolute) {
+  sourcemeta::core::URI uri{"http://example.com/foo/bar/../baz"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo/baz");
+}
+
+TEST(URI_canonicalize, path_with_multiple_dotdot_absolute) {
+  sourcemeta::core::URI uri{"http://example.com/foo/bar/qux/../../baz"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo/baz");
+}
+
+TEST(URI_canonicalize, path_with_dotdot_at_root) {
+  sourcemeta::core::URI uri{"http://example.com/../foo"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo");
+}
+
+TEST(URI_canonicalize, path_with_dot_segments) {
+  sourcemeta::core::URI uri{"http://example.com/foo/./bar"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo/bar");
+}
+
+TEST(URI_canonicalize, path_with_mixed_dot_segments) {
+  sourcemeta::core::URI uri{"http://example.com/foo/./bar/../baz"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo/baz");
+}
+
+TEST(URI_canonicalize, relative_path_with_dotdot) {
+  sourcemeta::core::URI uri{"../foo/bar"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "../foo/bar");
+}
+
+TEST(URI_canonicalize, relative_path_with_dotdot_middle) {
+  sourcemeta::core::URI uri{"foo/../bar"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "bar");
+}
+
+TEST(URI_canonicalize, relative_path_multiple_dotdot) {
+  sourcemeta::core::URI uri{"../../foo"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "../../foo");
+}
+
+TEST(URI_canonicalize, absolute_path_with_dotdot) {
+  sourcemeta::core::URI uri{"/foo/bar/../baz"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "/foo/baz");
+}
+
+TEST(URI_canonicalize, absolute_path_excess_dotdot) {
+  sourcemeta::core::URI uri{"/foo/../../bar"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "/bar");
+}
+
+TEST(URI_canonicalize, empty_uri_default_constructor) {
+  sourcemeta::core::URI uri;
+  uri.canonicalize();
+  EXPECT_TRUE(uri.empty());
+  EXPECT_EQ(uri.recompose(), "");
+}
+
+TEST(URI_canonicalize, empty_uri_string_constructor) {
+  sourcemeta::core::URI uri{""};
+  uri.canonicalize();
+  EXPECT_TRUE(uri.empty());
+  EXPECT_EQ(uri.recompose(), "");
+}

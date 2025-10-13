@@ -75,3 +75,33 @@ TEST(URI_extension, relative_multi_component_2) {
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "foo/bar.json");
 }
+
+TEST(URI_extension, path_with_dot_in_directory) {
+  sourcemeta::core::URI uri{"https://example.com/foo.bar/baz"};
+  uri.extension("json");
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo.bar/baz.json");
+}
+
+TEST(URI_extension, path_with_multiple_dots_in_filename) {
+  sourcemeta::core::URI uri{"https://example.com/foo.bar.baz.qux"};
+  uri.extension("json");
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo.bar.baz.json");
+}
+
+TEST(URI_extension, empty_extension_removes_existing) {
+  sourcemeta::core::URI uri{"https://example.com/foo.json"};
+  uri.extension("");
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo");
+}
+
+TEST(URI_extension, path_with_query_string) {
+  sourcemeta::core::URI uri{"https://example.com/foo?query=value"};
+  uri.extension("json");
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo.json?query=value");
+}
+
+TEST(URI_extension, path_ending_with_dot_in_directory) {
+  sourcemeta::core::URI uri{"https://example.com/foo./bar"};
+  uri.extension("json");
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo./bar.json");
+}

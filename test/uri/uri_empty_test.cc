@@ -2,7 +2,12 @@
 
 #include <sourcemeta/core/uri.h>
 
-TEST(URI_empty, empty) {
+TEST(URI_empty, empty_default_constructor) {
+  const sourcemeta::core::URI uri;
+  EXPECT_TRUE(uri.empty());
+}
+
+TEST(URI_empty, empty_string_constructor) {
   const sourcemeta::core::URI uri{""};
   EXPECT_TRUE(uri.empty());
 }

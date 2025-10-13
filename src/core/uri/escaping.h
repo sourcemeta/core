@@ -9,9 +9,6 @@
 
 namespace sourcemeta::core {
 
-// TODO: Escaping algorithm is broken here as we don't support lookaheads and we
-// can't properly avoid re-escaping %<hex><hex>
-
 enum class URIEscapeMode : std::uint8_t {
   // Escape every characted that is not in the URI "unreserved" ABNF category
   // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
@@ -30,59 +27,87 @@ enum class URIEscapeMode : std::uint8_t {
   // fragment    = *( pchar / "/" / "?" )
   //
   // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-  Fragment
+  Fragment,
+  // Like SkipSubDelims but also preserves ":" for Windows filesystem paths
+  // (drive letters like C:)
+  Filesystem
 };
 
-auto uri_escape(const char character, std::ostream &output,
-                const URIEscapeMode mode) -> void {
-  // unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-  // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-  if (std::isalnum(character) || character == '-' || character == '.' ||
-      character == '_' || character == '~') {
-    output << character;
-    return;
-  }
-
-  if (mode == URIEscapeMode::SkipSubDelims || mode == URIEscapeMode::Fragment) {
-    // sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" /
-    // "="
-    // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-    if (character == '!' || character == '$' || character == '&' ||
-        character == '\'' || character == '(' || character == ')' ||
-        character == '*' || character == '+' || character == ',' ||
-        character == ';' || character == '=') {
-      output << character;
-      return;
-    }
-  }
-
-  if (mode == URIEscapeMode::Fragment) {
-    // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-    if (
-        // pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
-        character == ':' || character == '@' ||
-        // fragment    = *( pchar / "/" / "?" )
-        character == '/' || character == '?') {
-      output << character;
-      return;
-    }
-  }
-
-  // percent encode -> % followed by the hex code of the character
-  output << '%' << std::hex << std::uppercase
-         << +(static_cast<unsigned char>(character));
-  return;
-}
-
-auto uri_escape(std::istream &input, std::ostream &output,
-                const URIEscapeMode mode) -> void {
+inline auto uri_escape(std::istream &input, std::ostream &output,
+                       const URIEscapeMode mode) -> void {
   char character = 0;
   while (input.get(character)) {
-    uri_escape(character, output, mode);
+    // Check if this is an already percent-encoded sequence (%HEX HEX)
+    // If so, preserve it as-is to avoid double-encoding
+    if (character == '%') {
+      const auto position = input.tellg();
+      char next_1 = 0;
+      char next_2 = 0;
+
+      if (input.get(next_1) && input.get(next_2) &&
+          std::isxdigit(static_cast<unsigned char>(next_1)) &&
+          std::isxdigit(static_cast<unsigned char>(next_2))) {
+        // Valid percent-encoded sequence - preserve it
+        output << character << next_1 << next_2;
+        continue;
+      }
+
+      // Not a valid percent-encoded sequence - restore position and escape %
+      input.seekg(position);
+    }
+
+    // unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+    // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
+    if (std::isalnum(static_cast<unsigned char>(character)) ||
+        character == '-' || character == '.' || character == '_' ||
+        character == '~') {
+      output << character;
+      continue;
+    }
+
+    if (mode == URIEscapeMode::SkipSubDelims ||
+        mode == URIEscapeMode::Fragment || mode == URIEscapeMode::Filesystem) {
+      // sub-delims = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";"
+      // / "="
+      // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
+      if (character == '!' || character == '$' || character == '&' ||
+          character == '\'' || character == '(' || character == ')' ||
+          character == '*' || character == '+' || character == ',' ||
+          character == ';' || character == '=') {
+        output << character;
+        continue;
+      }
+    }
+
+    if (mode == URIEscapeMode::Fragment) {
+      // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
+      // pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
+      // fragment = *( pchar / "/" / "?" )
+      if (character == ':' || character == '@' || character == '/' ||
+          character == '?') {
+        output << character;
+        continue;
+      }
+    }
+
+    if (mode == URIEscapeMode::Filesystem) {
+      // Preserve ":" for Windows drive letters (e.g., C:)
+      if (character == ':') {
+        output << character;
+        continue;
+      }
+    }
+
+    // Percent encode this character
+    output << '%' << std::hex << std::uppercase
+           << +(static_cast<unsigned char>(character));
   }
+
+  // Reset stream format flags
+  output << std::dec << std::nouppercase;
 }
 
-auto uri_unescape(std::istream &input, std::ostream &output) -> void {
+inline auto uri_unescape(std::istream &input, std::ostream &output) -> void {
   std::istream_iterator<char> iterator(input);
   std::istream_iterator<char> end;
   auto plus_1 = std::ranges::next(iterator, 1, end);
