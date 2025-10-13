@@ -2,20 +2,19 @@
 
 #include <sourcemeta/core/uri.h>
 
+#include "escaping.h"
+
+#include <algorithm> // std::ranges::transform
 #include <cassert>   // assert
+#include <cctype>    // std::tolower, std::toupper, std::isalnum, std::isxdigit
 #include <cstdint>   // std::uint64_t
 #include <optional>  // std::optional
-#include <sstream>   // std::ostringstream
+#include <ranges>    // std::ranges::transform
+#include <sstream>   // std::ostringstream, std::istringstream
 #include <stdexcept> // std::length_error, std::runtime_error
 #include <string>    // std::stoul, std::string
 
 namespace {
-
-auto uri_normalize(UriUriA *uri) -> void {
-  if (uriNormalizeSyntaxA(uri) != URI_SUCCESS) {
-    throw sourcemeta::core::URIError{"Could not normalize URI"};
-  }
-}
 
 auto uri_text_range(const UriTextRangeA *const range)
     -> std::optional<std::string_view> {
@@ -28,7 +27,7 @@ auto uri_text_range(const UriTextRangeA *const range)
                               range->afterLast - range->first)};
 }
 
-auto uri_parse_and_normalize(const std::string &data, UriUriA *uri) -> void {
+auto uri_parse(const std::string &data, UriUriA *uri) -> void {
   const char *error_position = nullptr;
   switch (uriParseSingleUriA(uri, data.c_str(), &error_position)) {
     case URI_ERROR_SYNTAX:
@@ -44,7 +43,8 @@ auto uri_parse_and_normalize(const std::string &data, UriUriA *uri) -> void {
       throw sourcemeta::core::URIError{"Unknown URI error"};
   }
 
-  uri_normalize(uri);
+  // We do NOT normalize here. Percent-encoding is unescaped when we extract
+  // components, and dot segment removal happens during resolution per RFC 3986.
 }
 
 } // namespace
@@ -60,28 +60,35 @@ auto URI::parse(const std::string &input) -> void {
   this->port_ = std::nullopt;
   this->fragment_ = std::nullopt;
   this->query_ = std::nullopt;
-  this->is_dot_reference_ = (input == "." || input == "./");
 
   // Parse using uriparser locally
   UriUriA uri;
-  uri_parse_and_normalize(input, &uri);
+  uri_parse(input, &uri);
 
-  // Scheme
+  // Scheme (schemes don't have percent-encoding, but normalize to lowercase)
   const auto scheme{uri_text_range(&uri.scheme)};
   if (scheme.has_value()) {
-    this->scheme_ = scheme.value();
+    std::string scheme_str{scheme.value()};
+    std::ranges::transform(scheme_str, scheme_str.begin(), [](unsigned char c) {
+      return static_cast<char>(std::tolower(c));
+    });
+    this->scheme_ = scheme_str;
   }
 
-  // Userinfo
+  // Userinfo (unescape percent-encoding)
   const auto userinfo{uri_text_range(&uri.userInfo)};
   if (userinfo.has_value()) {
-    this->userinfo_ = userinfo.value();
+    this->userinfo_ = uri_unescape_selective(userinfo.value());
   }
 
-  // Host
+  // Host (unescape percent-encoding and normalize to lowercase)
   const auto host{uri_text_range(&uri.hostText)};
   if (host.has_value()) {
-    this->host_ = host.value();
+    std::string host_str = uri_unescape_selective(host.value());
+    std::ranges::transform(host_str, host_str.begin(), [](unsigned char c) {
+      return static_cast<char>(std::tolower(c));
+    });
+    this->host_ = host_str;
   }
 
   // Port
@@ -92,16 +99,16 @@ auto URI::parse(const std::string &input) -> void {
     this->port_ = std::stoul(std::string{port_text.value()});
   }
 
-  // Query
+  // Query (unescape percent-encoding)
   const auto query{uri_text_range(&uri.query)};
   if (query.has_value()) {
-    this->query_ = query.value();
+    this->query_ = uri_unescape_selective(query.value());
   }
 
-  // Fragment
+  // Fragment (unescape percent-encoding)
   const auto fragment{uri_text_range(&uri.fragment)};
   if (fragment.has_value()) {
-    this->fragment_ = fragment.value();
+    this->fragment_ = uri_unescape_selective(fragment.value());
   }
 
   // Special case: /.. normalizes to /
@@ -161,7 +168,10 @@ auto URI::parse(const std::string &input) -> void {
       }
     }
 
-    this->path_ = path_value;
+    // Unescape percent-encoding in path
+    // For URNs and tags, also allow ":" and "@" to be unescaped
+    const bool is_urn_or_tag = this->is_urn() || this->is_tag();
+    this->path_ = uri_unescape_selective(path_value, is_urn_or_tag);
   } else {
     // No path segments from uriparser, but we might still need to set a path
     // For URIs like "https://example.com/" or just "/"

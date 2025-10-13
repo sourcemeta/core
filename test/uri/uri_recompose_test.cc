@@ -9,7 +9,8 @@ TEST(URI_recompose, example_1) {
 
 TEST(URI_recompose, example_2) {
   const sourcemeta::core::URI uri{"https://example.com/foo/../bar"};
-  EXPECT_EQ(uri.recompose(), "https://example.com/bar");
+  // Without canonicalize(), path with ".." is preserved
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo/../bar");
 }
 
 TEST(URI_recompose, example_3) {

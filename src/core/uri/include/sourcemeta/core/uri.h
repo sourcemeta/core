@@ -478,7 +478,6 @@ private:
   std::optional<std::string> scheme_{};
   std::optional<std::string> fragment_{};
   std::optional<std::string> query_{};
-  bool is_dot_reference_ = false;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

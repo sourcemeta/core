@@ -133,4 +133,49 @@ inline auto uri_unescape(std::istream &input, std::ostream &output) -> void {
   }
 }
 
+// Selective unescaping for URI normalization
+// Only unescapes unreserved characters, keeps reserved characters encoded
+// but normalizes hex digits to uppercase
+// unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+inline auto uri_unescape_selective(std::string_view input,
+                                   bool allow_colon_at = false) -> std::string {
+  std::string result;
+  result.reserve(input.size());
+
+  for (std::string::size_type i = 0; i < input.size(); ++i) {
+    if (input[i] == '%' && i + 2 < input.size() &&
+        std::isxdigit(static_cast<unsigned char>(input[i + 1])) &&
+        std::isxdigit(static_cast<unsigned char>(input[i + 2]))) {
+      // Parse the hex value
+      std::string hex{input[i + 1], input[i + 2]};
+      const auto value =
+          static_cast<unsigned char>(std::stoi(hex, nullptr, 16));
+
+      // Decode unreserved characters: ALPHA / DIGIT / "-" / "." / "_" / "~"
+      // For URNs/tags, also decode ":" and "@"
+      const bool is_unreserved = std::isalnum(value) || value == '-' ||
+                                 value == '.' || value == '_' || value == '~';
+      const bool is_urn_allowed =
+          allow_colon_at && (value == ':' || value == '@');
+
+      if (is_unreserved || is_urn_allowed) {
+        result += static_cast<char>(value);
+        i += 2; // Skip the two hex digits
+      } else {
+        // Keep it percent-encoded (but normalize to uppercase hex)
+        result += '%';
+        result += static_cast<char>(
+            std::toupper(static_cast<unsigned char>(input[i + 1])));
+        result += static_cast<char>(
+            std::toupper(static_cast<unsigned char>(input[i + 2])));
+        i += 2;
+      }
+    } else {
+      result += input[i];
+    }
+  }
+
+  return result;
+}
+
 } // namespace sourcemeta::core

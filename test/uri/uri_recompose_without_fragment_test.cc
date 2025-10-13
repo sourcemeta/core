@@ -11,8 +11,9 @@ TEST(URI_recompose_without_fragment, example_1) {
 TEST(URI_recompose_without_fragment, example_2) {
   const sourcemeta::core::URI uri{"https://example.com/foo/../bar"};
   EXPECT_TRUE(uri.recompose_without_fragment().has_value());
+  // Without canonicalize(), path with ".." is preserved
   EXPECT_EQ(uri.recompose_without_fragment().value(),
-            "https://example.com/bar");
+            "https://example.com/foo/../bar");
 }
 
 TEST(URI_recompose_without_fragment, urn) {

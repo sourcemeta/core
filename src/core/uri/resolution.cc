@@ -95,9 +95,10 @@ namespace sourcemeta::core {
 auto URI::resolve_from(const URI &base) -> URI & {
   // RFC 3986 Section 5.2.2: Transform References
 
-  // After resolution, this is no longer a dot reference
-  const bool was_dot_reference = this->is_dot_reference_;
-  this->is_dot_reference_ = false;
+  // Check if this is a dot reference ("." or "./") before we modify the path
+  const bool was_dot_reference =
+      this->path_.has_value() &&
+      (this->path_.value() == "." || this->path_.value() == "./");
 
   // Reference has a scheme - use as-is (already absolute)
   if (this->scheme_.has_value()) {
