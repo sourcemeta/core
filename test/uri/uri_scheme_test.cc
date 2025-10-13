@@ -32,8 +32,15 @@ TEST(URI_scheme, urn_with_fragment) {
 }
 
 TEST(URI_scheme, rfc3986_scheme_case_insensitive) {
-  const sourcemeta::core::URI uri1{"HTTP://example.com"};
-  const sourcemeta::core::URI uri2{"http://example.com"};
+  sourcemeta::core::URI uri1{"HTTP://example.com"};
+  sourcemeta::core::URI uri2{"http://example.com"};
+  // Without canonicalization, case is preserved
+  EXPECT_EQ(uri1.scheme().value(), "HTTP");
+  EXPECT_EQ(uri2.scheme().value(), "http");
+  EXPECT_NE(uri1.scheme().value(), uri2.scheme().value());
+  // After canonicalization, schemes are normalized to lowercase
+  uri1.canonicalize();
+  uri2.canonicalize();
   EXPECT_EQ(uri1.scheme().value(), "http");
   EXPECT_EQ(uri2.scheme().value(), "http");
   EXPECT_EQ(uri1.scheme().value(), uri2.scheme().value());

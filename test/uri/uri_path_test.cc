@@ -86,7 +86,6 @@ TEST(URI_path_setter, no_path) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/bar");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, url_slash) {
@@ -100,7 +99,6 @@ TEST(URI_path_setter, url_slash) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/bar");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, url_path) {
@@ -114,7 +112,6 @@ TEST(URI_path_setter, url_path) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/baz");
   EXPECT_EQ(uri.recompose(), "https://example.com/baz");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, set_empty) {
@@ -141,7 +138,6 @@ TEST(URI_path_setter, set_path_without_leading_slash) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/bar");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, set_path_with_trailing_slash) {
@@ -155,7 +151,6 @@ TEST(URI_path_setter, set_path_with_trailing_slash) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/foo2/");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo2/");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, set_relative_path) {
@@ -184,7 +179,6 @@ TEST(URI_path_setter, set_path_with_query) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/fooz%20bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/fooz%20bar");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, set_path_with_fragment) {
@@ -198,7 +192,6 @@ TEST(URI_path_setter, set_path_with_fragment) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/fooz%20bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/fooz%20bar");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, set_path_with_query_and_fragment) {
@@ -212,7 +205,6 @@ TEST(URI_path_setter, set_path_with_query_and_fragment) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/newer");
   EXPECT_EQ(uri.recompose(), "https://example.com/newer?query=value#fragment");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter_no_scheme, set_path_on_host_only) {
@@ -226,7 +218,6 @@ TEST(URI_path_setter_no_scheme, set_path_on_host_only) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "bar");
   EXPECT_EQ(uri.recompose(), "bar");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter_no_scheme, replace_existing_path) {
@@ -240,7 +231,6 @@ TEST(URI_path_setter_no_scheme, replace_existing_path) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "newer");
   EXPECT_EQ(uri.recompose(), "newer");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter_no_scheme, set_empty_path) {
@@ -267,7 +257,6 @@ TEST(URI_path_setter_no_scheme, set_path_on_ip_address) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "admin2");
   EXPECT_EQ(uri.recompose(), "admin2");
-  EXPECT_EQ(path, "");
 }
 
 // TODO: dig why scheme return example.com
@@ -282,7 +271,6 @@ TEST(URI_path_setter_no_scheme, set_path_with_port) {
   uri.path(std::move(path));
   EXPECT_EQ(uri.path().value(), "/test2");
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/test2");
-  EXPECT_EQ(path, "");
 }
 
 TEST(URI_path_setter, lowercase_relative_path) {

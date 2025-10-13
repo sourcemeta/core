@@ -61,8 +61,15 @@ TEST(URI_host, rfc3986_ipv6_localhost) {
 }
 
 TEST(URI_host, rfc3986_host_case_insensitive) {
-  const sourcemeta::core::URI uri1{"http://EXAMPLE.COM/path"};
-  const sourcemeta::core::URI uri2{"http://example.com/path"};
+  sourcemeta::core::URI uri1{"http://EXAMPLE.COM/path"};
+  sourcemeta::core::URI uri2{"http://example.com/path"};
+  // Without canonicalization, case is preserved
+  EXPECT_EQ(uri1.host().value(), "EXAMPLE.COM");
+  EXPECT_EQ(uri2.host().value(), "example.com");
+  EXPECT_NE(uri1.host().value(), uri2.host().value());
+  // After canonicalization, hosts are normalized to lowercase
+  uri1.canonicalize();
+  uri2.canonicalize();
   EXPECT_EQ(uri1.host().value(), "example.com");
   EXPECT_EQ(uri2.host().value(), "example.com");
   EXPECT_EQ(uri1.host().value(), uri2.host().value());
