@@ -65,14 +65,10 @@ auto URI::parse(const std::string &input) -> void {
   UriUriA uri;
   uri_parse(input, &uri);
 
-  // Scheme (schemes don't have percent-encoding, but normalize to lowercase)
+  // Scheme (preserve as-is, normalization happens during canonicalization)
   const auto scheme{uri_text_range(&uri.scheme)};
   if (scheme.has_value()) {
-    std::string scheme_str{scheme.value()};
-    std::ranges::transform(scheme_str, scheme_str.begin(), [](unsigned char c) {
-      return static_cast<char>(std::tolower(c));
-    });
-    this->scheme_ = scheme_str;
+    this->scheme_ = std::string{scheme.value()};
   }
 
   // Userinfo (unescape percent-encoding)
@@ -81,14 +77,10 @@ auto URI::parse(const std::string &input) -> void {
     this->userinfo_ = uri_unescape_selective(userinfo.value());
   }
 
-  // Host (unescape percent-encoding and normalize to lowercase)
+  // Host (unescape percent-encoding, preserve case)
   const auto host{uri_text_range(&uri.hostText)};
   if (host.has_value()) {
-    std::string host_str = uri_unescape_selective(host.value());
-    std::ranges::transform(host_str, host_str.begin(), [](unsigned char c) {
-      return static_cast<char>(std::tolower(c));
-    });
-    this->host_ = host_str;
+    this->host_ = uri_unescape_selective(host.value());
   }
 
   // Port

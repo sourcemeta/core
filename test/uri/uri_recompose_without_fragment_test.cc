@@ -60,3 +60,23 @@ TEST(URI_recompose_without_fragment, fragment_only) {
   const sourcemeta::core::URI uri{"#bar"};
   EXPECT_FALSE(uri.recompose_without_fragment().has_value());
 }
+
+TEST(URI_recompose_without_fragment, preserves_scheme_case) {
+  const sourcemeta::core::URI uri{"HtTpS://example.com/foo#bar"};
+  EXPECT_TRUE(uri.recompose_without_fragment().has_value());
+  EXPECT_EQ(uri.recompose_without_fragment().value(),
+            "HtTpS://example.com/foo");
+}
+
+TEST(URI_recompose_without_fragment, preserves_host_case) {
+  const sourcemeta::core::URI uri{"https://ExAmPlE.CoM/foo#bar"};
+  EXPECT_TRUE(uri.recompose_without_fragment().has_value());
+  EXPECT_EQ(uri.recompose_without_fragment().value(),
+            "https://ExAmPlE.CoM/foo");
+}
+
+TEST(URI_recompose_without_fragment, preserves_scheme_and_host_case) {
+  const sourcemeta::core::URI uri{"HtTp://ExAmPlE.CoM/foo#bar"};
+  EXPECT_TRUE(uri.recompose_without_fragment().has_value());
+  EXPECT_EQ(uri.recompose_without_fragment().value(), "HtTp://ExAmPlE.CoM/foo");
+}

@@ -364,3 +364,21 @@ TEST(URI_canonicalize, relative_path_nested_collapse) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "");
 }
+
+TEST(URI_canonicalize, ipv6_uppercase_to_lowercase) {
+  sourcemeta::core::URI uri{"http://[1080::8:800:200C:417A]/foo"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://[1080::8:800:200c:417a]/foo");
+}
+
+TEST(URI_canonicalize, ipv6_mixed_case_to_lowercase) {
+  sourcemeta::core::URI uri{"http://[::FFFF:129.144.52.38]:80/index.html"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://[::ffff:129.144.52.38]/index.html");
+}
+
+TEST(URI_canonicalize, ipv6_hex_uppercase_to_lowercase) {
+  sourcemeta::core::URI uri{"http://[2010:836B:4179::836B:4179]"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://[2010:836b:4179::836b:4179]");
+}

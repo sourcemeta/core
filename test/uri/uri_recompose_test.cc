@@ -52,3 +52,18 @@ TEST(URI_recompose, empty_uri_string_constructor) {
   const sourcemeta::core::URI uri{""};
   EXPECT_EQ(uri.recompose(), "");
 }
+
+TEST(URI_recompose, preserves_scheme_case) {
+  const sourcemeta::core::URI uri{"HtTpS://example.com/foo"};
+  EXPECT_EQ(uri.recompose(), "HtTpS://example.com/foo");
+}
+
+TEST(URI_recompose, preserves_host_case) {
+  const sourcemeta::core::URI uri{"https://ExAmPlE.CoM/foo"};
+  EXPECT_EQ(uri.recompose(), "https://ExAmPlE.CoM/foo");
+}
+
+TEST(URI_recompose, preserves_scheme_and_host_case) {
+  const sourcemeta::core::URI uri{"HtTp://ExAmPlE.CoM/foo"};
+  EXPECT_EQ(uri.recompose(), "HtTp://ExAmPlE.CoM/foo");
+}
