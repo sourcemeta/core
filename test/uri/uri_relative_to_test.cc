@@ -103,3 +103,17 @@ TEST(URI_relative_to, absolute_absolute_trailing_slash) {
   EXPECT_EQ(uri.recompose(),
             "https://github.com/apis-json/api-json/blob/develop/spec/");
 }
+
+TEST(URI_relative_to, sibling_paths_same_directory) {
+  const sourcemeta::core::URI base{"https://example.com/schemas/bar.json"};
+  sourcemeta::core::URI uri{"https://example.com/schemas/foo.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "foo.json");
+}
+
+TEST(URI_relative_to, double_slash_with_trailing_slash) {
+  const sourcemeta::core::URI base{"https://example.com/slash/"};
+  sourcemeta::core::URI uri{"https://example.com/slash/file.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "file.json");
+}
