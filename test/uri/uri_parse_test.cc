@@ -36,6 +36,40 @@ TEST(URI_parse, syntax_error_5) {
                sourcemeta::core::URIParseError);
 }
 
+TEST(URI_parse, urn_with_slash) {
+  // RFC 8141 explicitly allows "/" in URN NSS
+  sourcemeta::core::URI uri{"urn:example:foo/bar/baz"};
+  EXPECT_EQ(uri.scheme().value(), "urn");
+  EXPECT_EQ(uri.path().value(), "example:foo/bar/baz");
+  EXPECT_EQ(uri.recompose(), "urn:example:foo/bar/baz");
+}
+
+TEST(URI_parse, urn_with_numeric_path) {
+  // Example from RFC 8141
+  sourcemeta::core::URI uri{"urn:example:1/406/47452/2"};
+  EXPECT_EQ(uri.scheme().value(), "urn");
+  EXPECT_EQ(uri.path().value(), "example:1/406/47452/2");
+  EXPECT_EQ(uri.recompose(), "urn:example:1/406/47452/2");
+}
+
+TEST(URI_parse, urn_with_query) {
+  // RFC 8141 allows query components in URNs
+  sourcemeta::core::URI uri{"urn:example:foo?+bar"};
+  EXPECT_EQ(uri.scheme().value(), "urn");
+  EXPECT_EQ(uri.path().value(), "example:foo");
+  EXPECT_EQ(uri.query().value(), "+bar");
+  EXPECT_EQ(uri.recompose(), "urn:example:foo?+bar");
+}
+
+TEST(URI_parse, urn_with_fragment) {
+  // RFC 8141 allows fragments in URNs
+  sourcemeta::core::URI uri{"urn:example:foo#bar"};
+  EXPECT_EQ(uri.scheme().value(), "urn");
+  EXPECT_EQ(uri.path().value(), "example:foo");
+  EXPECT_EQ(uri.fragment().value(), "bar");
+  EXPECT_EQ(uri.recompose(), "urn:example:foo#bar");
+}
+
 TEST(URI_parse, syntax_error_percent_at_end) {
   EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%"},
                sourcemeta::core::URIParseError);
