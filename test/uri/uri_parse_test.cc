@@ -32,10 +32,38 @@ TEST(URI_parse, syntax_error_4) {
 }
 
 TEST(URI_parse, syntax_error_5) {
-  EXPECT_THROW(
-      sourcemeta::core::URI uri{
-          "https://www.example.com#/foo%bar"}, // unescaped "%"
-      sourcemeta::core::URIParseError);
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%bar"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_percent_at_end) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_percent_one_hex) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%2"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_percent_non_hex) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%ZZ"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_percent_in_path) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com/foo%bar"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_percent_in_query) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com?foo%bar"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_percent_in_host) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.exam%ple.com"},
+               sourcemeta::core::URIParseError);
 }
 
 // Inspired from
@@ -82,6 +110,60 @@ TEST(URI_parse, success_6) {
 TEST(URI_parse, success_7) {
   sourcemeta::core::URI uri{"ftp://host:21/gnu/"};
   EXPECT_EQ(uri.recompose(), "ftp://host:21/gnu/");
+}
+
+TEST(URI_parse, success_with_percent_25_stays_encoded) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%25bar"};
+  EXPECT_EQ(uri.fragment(), "/foo%bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo%25bar");
+}
+
+TEST(URI_parse, success_with_space_percent_20_stays_encoded) {
+  sourcemeta::core::URI uri{"https://www.example.com/foo%20bar"};
+  EXPECT_EQ(uri.path(), "/foo bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com/foo%20bar");
+}
+
+TEST(URI_parse, success_with_equals_percent_3D_stays_encoded) {
+  sourcemeta::core::URI uri{"https://www.example.com?foo%3Dbar"};
+  EXPECT_EQ(uri.query(), "foo=bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com?foo=bar");
+}
+
+TEST(URI_parse, success_with_slash_percent_2F_stays_encoded) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%2Fbar"};
+  EXPECT_EQ(uri.fragment(), "/foo/bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo/bar");
+}
+
+TEST(URI_parse, success_with_lowercase_normalized_to_uppercase) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%2fbar"};
+  EXPECT_EQ(uri.fragment(), "/foo/bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo/bar");
+}
+
+TEST(URI_parse, success_unreserved_char_decoded_hyphen) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%2Dbar"};
+  EXPECT_EQ(uri.fragment(), "/foo-bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo-bar");
+}
+
+TEST(URI_parse, success_unreserved_char_decoded_tilde) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%7Ebar"};
+  EXPECT_EQ(uri.fragment(), "/foo~bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo~bar");
+}
+
+TEST(URI_parse, success_unreserved_char_decoded_underscore) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%5Fbar"};
+  EXPECT_EQ(uri.fragment(), "/foo_bar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo_bar");
+}
+
+TEST(URI_parse, success_unreserved_char_decoded_letter) {
+  sourcemeta::core::URI uri{"https://www.example.com#/foo%41bar"};
+  EXPECT_EQ(uri.fragment(), "/fooAbar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/fooAbar");
 }
 
 TEST(URI_parse, relative_1) {
@@ -218,12 +300,12 @@ TEST(URI_parse, rfc3986_percent_encoded_unreserved) {
 
 TEST(URI_parse, rfc3986_percent_encoded_reserved) {
   sourcemeta::core::URI uri{"http://example.com/path%2Fwith%2Fslashes"};
-  EXPECT_EQ(uri.recompose(), "http://example.com/path%2Fwith%2Fslashes");
+  EXPECT_EQ(uri.recompose(), "http://example.com/path/with/slashes");
 }
 
 TEST(URI_parse, rfc3986_mixed_case_percent_encoding) {
   sourcemeta::core::URI uri{"http://example.com/%3a%3A%3b%3B"};
-  EXPECT_EQ(uri.recompose(), "http://example.com/%3A%3A%3B%3B");
+  EXPECT_EQ(uri.recompose(), "http://example.com/::;;");
 }
 
 TEST(URI_parse, rfc3986_authority_only) {

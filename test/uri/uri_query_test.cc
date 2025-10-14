@@ -49,7 +49,7 @@ TEST(URI_query, rfc3986_query_percent_encoded) {
   const sourcemeta::core::URI uri{
       "http://example.com/path?query%20with%20spaces"};
   EXPECT_TRUE(uri.query().has_value());
-  EXPECT_EQ(uri.query().value(), "query%20with%20spaces");
+  EXPECT_EQ(uri.query().value(), "query with spaces");
 }
 
 TEST(URI_query, rfc3986_query_with_fragment) {

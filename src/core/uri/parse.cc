@@ -358,11 +358,10 @@ auto URI::parse(const std::string &input) -> void {
     parse_authority(input, position, this->userinfo_, this->host_, this->port_);
   }
 
-  const auto is_urn_or_tag = this->is_urn() || this->is_tag();
   auto path = parse_path(input, position);
 
   if (path.has_value()) {
-    uri_unescape_selective_inplace(path.value(), is_urn_or_tag);
+    uri_unescape_selective_inplace(path.value());
     this->path_ = std::move(path.value());
   } else if (has_authority || this->scheme_.has_value()) {
     if (input.ends_with(URI_SLASH) || input == "/") {

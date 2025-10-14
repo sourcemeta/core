@@ -172,12 +172,12 @@ TEST(URI_path_setter, set_path_with_query) {
   sourcemeta::core::URI uri{"https://example.com"};
 
   uri.path("/foo%20bar?query=value#fragment");
-  EXPECT_EQ(uri.path().value(), "/foo%20bar");
+  EXPECT_EQ(uri.path().value(), "/foo bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo%20bar");
 
   std::string path{"/fooz%20bar?query=value#fragment"};
   uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "/fooz%20bar");
+  EXPECT_EQ(uri.path().value(), "/fooz bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/fooz%20bar");
 }
 
@@ -185,12 +185,12 @@ TEST(URI_path_setter, set_path_with_fragment) {
   sourcemeta::core::URI uri{"https://example.com"};
 
   uri.path("/foo%20bar#fragment");
-  EXPECT_EQ(uri.path().value(), "/foo%20bar");
+  EXPECT_EQ(uri.path().value(), "/foo bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo%20bar");
 
   std::string path{"/fooz%20bar#fragment"};
   uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "/fooz%20bar");
+  EXPECT_EQ(uri.path().value(), "/fooz bar");
   EXPECT_EQ(uri.recompose(), "https://example.com/fooz%20bar");
 }
 
@@ -388,14 +388,14 @@ TEST(URI_path_getter, rfc3986_path_only_slashes) {
 TEST(URI_path_getter, rfc3986_percent_encoded_path) {
   const sourcemeta::core::URI uri{"http://example.com/path%20with%20spaces"};
   EXPECT_TRUE(uri.path().has_value());
-  EXPECT_EQ(uri.path().value(), "/path%20with%20spaces");
+  EXPECT_EQ(uri.path().value(), "/path with spaces");
 }
 
 TEST(URI_path_getter, rfc3986_percent_encoded_slash) {
   const sourcemeta::core::URI uri{
       "http://example.com/path%2Fwith%2Fencoded%2Fslashes"};
   EXPECT_TRUE(uri.path().has_value());
-  EXPECT_EQ(uri.path().value(), "/path%2Fwith%2Fencoded%2Fslashes");
+  EXPECT_EQ(uri.path().value(), "/path/with/encoded/slashes");
 }
 
 TEST(URI_path_getter, rfc3986_path_with_unreserved) {
