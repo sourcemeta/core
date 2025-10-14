@@ -37,12 +37,14 @@ enum class URIEscapeMode : std::uint8_t {
 };
 
 inline auto uri_escape(std::istream &input, std::ostream &output,
-                       const URIEscapeMode mode) -> void {
+                       const URIEscapeMode mode,
+                       const bool preserve_percent_sequences = true) -> void {
   char character = 0;
   while (input.get(character)) {
-    // Check if this is an already percent-encoded sequence (%HEX HEX)
+    // Check if this is an already percent-encoded sequence (%HEXHEX)
     // If so, preserve it as-is to avoid double-encoding
-    if (character == URI_PERCENT) {
+    // (only when preserve_percent_sequences is true)
+    if (preserve_percent_sequences && character == URI_PERCENT) {
       const auto position = input.tellg();
       char next_1 = 0;
       char next_2 = 0;
@@ -131,14 +133,10 @@ inline auto uri_unescape(std::istream &input, std::ostream &output) -> void {
   }
 }
 
-// Selective unescaping for URI normalization (in-place modification)
-// Only unescapes unreserved characters, keeps reserved characters encoded
-// but normalizes hex digits to uppercase
-// unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+// Full unescaping for URI normalization (in-place modification)
+// Decodes all percent-encoded sequences
 // Modifies the input string in-place for zero-copy performance
-inline auto uri_unescape_selective_inplace(std::string &str,
-                                           bool allow_colon_at = false)
-    -> void {
+inline auto uri_unescape_selective_inplace(std::string &str) -> void {
   std::string::size_type write_pos = 0;
 
   for (std::string::size_type read_pos = 0; read_pos < str.size();) {
@@ -165,24 +163,10 @@ inline auto uri_unescape_selective_inplace(std::string &str,
       const auto value = static_cast<unsigned char>(
           (hex_to_int(first_digit) << 4) | hex_to_int(second_digit));
 
-      // Decode unreserved characters: ALPHA / DIGIT / "-" / "." / "_" / "~"
-      // For URNs/tags, also decode ":" and "@"
-      const auto is_unreserved = uri_is_unreserved(static_cast<char>(value));
-      const auto is_urn_allowed =
-          allow_colon_at && (value == URI_COLON || value == URI_AT);
-
-      if (is_unreserved || is_urn_allowed) {
-        str[write_pos++] = static_cast<char>(value);
-        read_pos += 3;
-      } else {
-        // Keep it percent-encoded (but normalize to uppercase hex)
-        str[write_pos++] = URI_PERCENT;
-        str[write_pos++] = static_cast<char>(
-            std::toupper(static_cast<unsigned char>(first_digit)));
-        str[write_pos++] = static_cast<char>(
-            std::toupper(static_cast<unsigned char>(second_digit)));
-        read_pos += 3;
-      }
+      // Decode all percent-encoded sequences
+      // Internal storage is always fully decoded
+      str[write_pos++] = static_cast<char>(value);
+      read_pos += 3;
     } else {
       str[write_pos++] = str[read_pos++];
     }
@@ -191,14 +175,11 @@ inline auto uri_unescape_selective_inplace(std::string &str,
   str.resize(write_pos);
 }
 
-// Selective unescaping for URI normalization (copy version for compatibility)
-// Only unescapes unreserved characters, keeps reserved characters encoded
-// but normalizes hex digits to uppercase
-// unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-inline auto uri_unescape_selective(std::string_view input,
-                                   bool allow_colon_at = false) -> std::string {
+// Full unescaping for URI normalization (copy version for compatibility)
+// Decodes all percent-encoded sequences
+inline auto uri_unescape_selective(std::string_view input) -> std::string {
   std::string result{input};
-  uri_unescape_selective_inplace(result, allow_colon_at);
+  uri_unescape_selective_inplace(result);
   return result;
 }
 

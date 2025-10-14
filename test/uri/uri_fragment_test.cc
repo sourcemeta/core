@@ -22,7 +22,7 @@ TEST(URI_fragment, https_with_empty_fragment) {
 TEST(URI_fragment, https_with_escaped_jsonpointer) {
   const sourcemeta::core::URI uri{"https://example.com/#/c%25d"};
   EXPECT_TRUE(uri.fragment().has_value());
-  EXPECT_EQ(uri.fragment().value(), "/c%25d");
+  EXPECT_EQ(uri.fragment().value(), "/c%d");
 }
 
 TEST(URI_fragment, invalid_fragment_with_pointer) {
@@ -164,7 +164,55 @@ TEST(URI_fragment, set_pointer_at) {
 TEST(URI_fragment, set_pointer_bracket) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
   uri.fragment("/[foo/bar");
-  // Escaping should only happen during recomposing
   EXPECT_EQ(uri.fragment(), "/[foo/bar");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/%5Bfoo/bar");
+}
+
+TEST(URI_fragment, set_pointer_percentage) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo%bar");
+  EXPECT_EQ(uri.fragment(), "/foo%bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25bar");
+}
+
+TEST(URI_fragment, set_percentage_at_end) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo%");
+  EXPECT_EQ(uri.fragment(), "/foo%");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25");
+}
+
+TEST(URI_fragment, set_percentage_with_one_hex) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo%2");
+  EXPECT_EQ(uri.fragment(), "/foo%2");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%252");
+}
+
+TEST(URI_fragment, set_multiple_percentages) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo%%bar");
+  EXPECT_EQ(uri.fragment(), "/foo%%bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25%25bar");
+}
+
+TEST(URI_fragment, set_percentage_followed_by_valid_hex_sequence) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo%2Fbar");
+  EXPECT_EQ(uri.fragment(), "/foo%2Fbar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%252Fbar");
+}
+
+TEST(URI_fragment, set_space_character) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo bar");
+  EXPECT_EQ(uri.fragment(), "/foo bar");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%20bar");
+}
+
+TEST(URI_fragment, set_non_ascii_character) {
+  sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
+  uri.fragment("/foo\xC3\xA9");
+  EXPECT_EQ(uri.fragment(), "/foo\xC3\xA9");
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%C3%A9");
 }

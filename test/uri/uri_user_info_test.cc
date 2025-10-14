@@ -42,7 +42,7 @@ TEST(URI_user_info, rfc3986_username_password) {
 TEST(URI_user_info, rfc3986_percent_encoded_userinfo) {
   sourcemeta::core::URI uri{"http://user%20name:pass%20word@host/path"};
   EXPECT_TRUE(uri.userinfo().has_value());
-  EXPECT_EQ(uri.userinfo().value(), "user%20name:pass%20word");
+  EXPECT_EQ(uri.userinfo().value(), "user name:pass word");
 }
 
 TEST(URI_user_info, rfc3986_userinfo_with_subdelims) {
@@ -65,5 +65,5 @@ TEST(URI_user_info, rfc3986_no_authority) {
 TEST(URI_user_info, rfc3986_userinfo_with_at_sign) {
   sourcemeta::core::URI uri{"http://user%40domain:pass@host/path"};
   EXPECT_TRUE(uri.userinfo().has_value());
-  EXPECT_EQ(uri.userinfo().value(), "user%40domain:pass");
+  EXPECT_EQ(uri.userinfo().value(), "user@domain:pass");
 }
