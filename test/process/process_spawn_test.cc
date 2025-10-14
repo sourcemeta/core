@@ -4,7 +4,7 @@
 
 #include <filesystem> // std::filesystem::path
 
-#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) && \
+#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) &&           \
     !defined(__MINGW32__) && !defined(__MINGW64__)
 // Windows-specific tests
 
@@ -36,8 +36,8 @@ TEST(Process_spawn, where_command_success) {
 
 TEST(Process_spawn, where_command_not_found) {
   // where.exe should fail to find a nonexistent program
-  const int exit_code{
-      sourcemeta::core::spawn("where.exe", {"this_program_definitely_does_not_exist"})};
+  const int exit_code{sourcemeta::core::spawn(
+      "where.exe", {"this_program_definitely_does_not_exist"})};
   EXPECT_NE(exit_code, 0);
 }
 
@@ -57,7 +57,8 @@ TEST(Process_spawn, nonexistent_program_throws_exception) {
 }
 
 TEST(Process_spawn, cmd_echo_with_arguments) {
-  const int exit_code{sourcemeta::core::spawn("cmd.exe", {"/c", "echo hello world"})};
+  const int exit_code{
+      sourcemeta::core::spawn("cmd.exe", {"/c", "echo hello world"})};
   EXPECT_EQ(exit_code, 0);
 }
 

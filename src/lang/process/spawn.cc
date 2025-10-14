@@ -6,13 +6,13 @@
 #include <span>             // std::span
 #include <vector>           // std::vector
 
-#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) && \
+#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) &&           \
     !defined(__MINGW32__) && !defined(__MINGW64__)
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h> // CreateProcess, PROCESS_INFORMATION, STARTUPINFO, WaitForSingleObject, GetExitCodeProcess
 #include <sstream>   // std::ostringstream
+#include <windows.h> // CreateProcess, PROCESS_INFORMATION, STARTUPINFO, WaitForSingleObject, GetExitCodeProcess
 #else
-#include <spawn.h>    // posix_spawnp, posix_spawnattr_t, posix_spawnattr_init, posix_spawnattr_destroy, posix_spawn_file_actions_t, posix_spawn_file_actions_init, posix_spawn_file_actions_destroy, pid_t
+#include <spawn.h> // posix_spawnp, posix_spawnattr_t, posix_spawnattr_init, posix_spawnattr_destroy, posix_spawn_file_actions_t, posix_spawn_file_actions_init, posix_spawn_file_actions_destroy, pid_t
 #include <sys/wait.h> // waitpid, WIFEXITED, WEXITSTATUS
 
 #if defined(__MSYS__) || defined(__CYGWIN__) || defined(__MINGW32__) ||        \
@@ -32,7 +32,7 @@ auto spawn(const std::string &program,
   assert(std::filesystem::exists(directory));
   assert(std::filesystem::is_directory(directory));
 
-#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) && \
+#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) &&           \
     !defined(__MINGW32__) && !defined(__MINGW64__)
   // Windows implementation using CreateProcess
   std::ostringstream command_line;
@@ -62,18 +62,18 @@ auto spawn(const std::string &program,
   const std::string working_dir = directory.string();
 
   // CreateProcess modifies the command line, so we need a non-const buffer
-  const BOOL success = CreateProcessA(
-      nullptr,                           // lpApplicationName
-      cmd_line.data(),                   // lpCommandLine (modifiable)
-      nullptr,                           // lpProcessAttributes
-      nullptr,                           // lpThreadAttributes
-      TRUE,                              // bInheritHandles
-      0,                                 // dwCreationFlags
-      nullptr,                           // lpEnvironment
-      working_dir.c_str(),               // lpCurrentDirectory
-      &startup_info,                     // lpStartupInfo
-      &process_info                      // lpProcessInformation
-  );
+  const BOOL success =
+      CreateProcessA(nullptr,             // lpApplicationName
+                     cmd_line.data(),     // lpCommandLine (modifiable)
+                     nullptr,             // lpProcessAttributes
+                     nullptr,             // lpThreadAttributes
+                     TRUE,                // bInheritHandles
+                     0,                   // dwCreationFlags
+                     nullptr,             // lpEnvironment
+                     working_dir.c_str(), // lpCurrentDirectory
+                     &startup_info,       // lpStartupInfo
+                     &process_info        // lpProcessInformation
+      );
 
   if (!success) {
     throw ProcessProgramNotNotFoundError{program};
