@@ -6,7 +6,13 @@
 #include <span>             // std::span
 #include <vector>           // std::vector
 
-#include <spawn.h> // posix_spawnp, posix_spawnattr_t, posix_spawnattr_init, posix_spawnattr_destroy, posix_spawn_file_actions_t, posix_spawn_file_actions_init, posix_spawn_file_actions_destroy, pid_t
+#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) && \
+    !defined(__MINGW32__) && !defined(__MINGW64__)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h> // CreateProcess, PROCESS_INFORMATION, STARTUPINFO, WaitForSingleObject, GetExitCodeProcess
+#include <sstream>   // std::ostringstream
+#else
+#include <spawn.h>    // posix_spawnp, posix_spawnattr_t, posix_spawnattr_init, posix_spawnattr_destroy, posix_spawn_file_actions_t, posix_spawn_file_actions_init, posix_spawn_file_actions_destroy, pid_t
 #include <sys/wait.h> // waitpid, WIFEXITED, WEXITSTATUS
 
 #if defined(__MSYS__) || defined(__CYGWIN__) || defined(__MINGW32__) ||        \
@@ -15,6 +21,7 @@
 #endif
 
 extern char **environ;
+#endif
 
 namespace sourcemeta::core {
 
@@ -25,6 +32,71 @@ auto spawn(const std::string &program,
   assert(std::filesystem::exists(directory));
   assert(std::filesystem::is_directory(directory));
 
+#if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) && \
+    !defined(__MINGW32__) && !defined(__MINGW64__)
+  // Windows implementation using CreateProcess
+  std::ostringstream command_line;
+  command_line << program;
+
+  for (const auto &argument : arguments) {
+    command_line << " ";
+    // Quote arguments that contain spaces
+    const std::string arg_str{argument};
+    if (arg_str.find(' ') != std::string::npos) {
+      command_line << "\"" << arg_str << "\"";
+    } else {
+      command_line << arg_str;
+    }
+  }
+
+  std::string cmd_line_str = command_line.str();
+  std::vector<char> cmd_line(cmd_line_str.begin(), cmd_line_str.end());
+  cmd_line.push_back('\0');
+
+  STARTUPINFOA startup_info{};
+  startup_info.cb = sizeof(startup_info);
+
+  PROCESS_INFORMATION process_info{};
+
+  // Convert directory path to string
+  const std::string working_dir = directory.string();
+
+  // CreateProcess modifies the command line, so we need a non-const buffer
+  const BOOL success = CreateProcessA(
+      nullptr,                           // lpApplicationName
+      cmd_line.data(),                   // lpCommandLine (modifiable)
+      nullptr,                           // lpProcessAttributes
+      nullptr,                           // lpThreadAttributes
+      TRUE,                              // bInheritHandles
+      0,                                 // dwCreationFlags
+      nullptr,                           // lpEnvironment
+      working_dir.c_str(),               // lpCurrentDirectory
+      &startup_info,                     // lpStartupInfo
+      &process_info                      // lpProcessInformation
+  );
+
+  if (!success) {
+    throw ProcessProgramNotNotFoundError{program};
+  }
+
+  // Wait for the process to complete
+  WaitForSingleObject(process_info.hProcess, INFINITE);
+
+  // Get exit code
+  DWORD exit_code;
+  if (!GetExitCodeProcess(process_info.hProcess, &exit_code)) {
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+    throw ProcessSpawnError{program, arguments};
+  }
+
+  // Clean up handles
+  CloseHandle(process_info.hProcess);
+  CloseHandle(process_info.hThread);
+
+  return static_cast<int>(exit_code);
+#else
+  // POSIX implementation
   std::vector<const char *> argv;
   argv.reserve(arguments.size() + 2);
   argv.push_back(program.c_str());
@@ -75,6 +147,7 @@ auto spawn(const std::string &program,
   }
 
   throw ProcessSpawnError{program, arguments};
+#endif
 }
 
 auto spawn(const std::string &program,
