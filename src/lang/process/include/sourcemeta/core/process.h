@@ -9,7 +9,7 @@
 #include <sourcemeta/core/process_error.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <filesystem> // std::filesystem::path, std::filesystem::current_path
+#include <filesystem>       // std::filesystem
 #include <initializer_list> // std::initializer_list
 #include <span>             // std::span
 #include <string_view>      // std::string_view

@@ -34,7 +34,6 @@ auto spawn(const std::string &program,
 
 #if defined(_WIN32) && !defined(__MSYS__) && !defined(__CYGWIN__) &&           \
     !defined(__MINGW32__) && !defined(__MINGW64__)
-  // Windows implementation using CreateProcess
   std::ostringstream command_line;
   command_line << program;
 
@@ -55,13 +54,8 @@ auto spawn(const std::string &program,
 
   STARTUPINFOA startup_info{};
   startup_info.cb = sizeof(startup_info);
-
   PROCESS_INFORMATION process_info{};
-
-  // Convert directory path to string
   const std::string working_dir = directory.string();
-
-  // CreateProcess modifies the command line, so we need a non-const buffer
   const BOOL success =
       CreateProcessA(nullptr,             // lpApplicationName
                      cmd_line.data(),     // lpCommandLine (modifiable)
@@ -79,10 +73,8 @@ auto spawn(const std::string &program,
     throw ProcessProgramNotNotFoundError{program};
   }
 
-  // Wait for the process to complete
   WaitForSingleObject(process_info.hProcess, INFINITE);
 
-  // Get exit code
   DWORD exit_code;
   if (!GetExitCodeProcess(process_info.hProcess, &exit_code)) {
     CloseHandle(process_info.hProcess);
@@ -90,13 +82,11 @@ auto spawn(const std::string &program,
     throw ProcessSpawnError{program, arguments};
   }
 
-  // Clean up handles
   CloseHandle(process_info.hProcess);
   CloseHandle(process_info.hThread);
 
   return static_cast<int>(exit_code);
 #else
-  // POSIX implementation
   std::vector<const char *> argv;
   argv.reserve(arguments.size() + 2);
   argv.push_back(program.c_str());
