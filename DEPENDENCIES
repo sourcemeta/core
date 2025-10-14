@@ -11,7 +11,6 @@ jsonschema-draft1 https://github.com/json-schema-org/json-schema-spec 2072feec9f
 jsonschema-draft0 https://github.com/json-schema-org/json-schema-spec 7ea575aef8d5c0183acbe6ff65b4c98ee9c236ec
 referencing-suite https://github.com/python-jsonschema/referencing-suite 61c4cc202b1e96ed5adcaf4842a595f68d659212
 jsonschema-test-suite https://github.com/json-schema-org/JSON-Schema-Test-Suite c2badb1298a8698f86dadf1aea7b44b3a894e5ac
-uriparser https://github.com/uriparser/uriparser uriparser-0.9.9
 yaml https://github.com/yaml/libyaml 0.2.5
 boost-regex https://github.com/boostorg/regex boost-1.86.0
 googletest https://github.com/google/googletest a7f443b80b105f940225332ed3c31f2790092f47

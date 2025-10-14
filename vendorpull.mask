@@ -28,5 +28,4 @@ vendor/jsonschema-draft6.mask
 vendor/jsonschema-draft7.mask
 vendor/jsontestsuite.mask
 vendor/referencing-suite.mask
-vendor/uriparser.mask
 vendor/yaml.mask

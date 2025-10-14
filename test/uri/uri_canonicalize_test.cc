@@ -338,7 +338,7 @@ TEST(URI_canonicalize, path_single_dotdot_at_root) {
 
 TEST(URI_canonicalize, path_dotdot_only_no_canonicalize) {
   const sourcemeta::core::URI uri{"/.."};
-  EXPECT_EQ(uri.recompose(), "/");
+  EXPECT_EQ(uri.recompose(), "/..");
 }
 
 TEST(URI_canonicalize, path_empty_segments_after_dotdot) {
