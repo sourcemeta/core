@@ -117,3 +117,25 @@ TEST(URI_relative_to, double_slash_with_trailing_slash) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "file.json");
 }
+
+TEST(URI_relative_to, different_directories_same_host_needs_dotdot) {
+  const sourcemeta::core::URI base{
+      "https://example.com/schemas/with-rebase-same-host.json"};
+  sourcemeta::core::URI uri{"https://example.com/bundling/single"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../bundling/single");
+}
+
+TEST(URI_relative_to, different_directories_same_host_needs_dotdot_2) {
+  const sourcemeta::core::URI base{"https://example.com/foo/bar/baz.json"};
+  sourcemeta::core::URI uri{"https://example.com/qux/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../qux/test.json");
+}
+
+TEST(URI_relative_to, different_directories_same_host_needs_dotdot_3) {
+  const sourcemeta::core::URI base{"https://example.com/a/b/c.json"};
+  sourcemeta::core::URI uri{"https://example.com/d.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../d.json");
+}
