@@ -26,18 +26,20 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
           "https://json-schema.org/draft/2020-12/vocab/core")) {
     if (schema.defines("$dynamicAnchor")) {
       const auto &anchor{schema.at("$dynamicAnchor")};
-      assert(anchor.is_string());
-      result.insert({anchor.to_string(), AnchorType::Dynamic});
+      if (anchor.is_string()) {
+        result.insert({anchor.to_string(), AnchorType::Dynamic});
+      }
     }
 
     if (schema.defines("$anchor")) {
       const auto &anchor{schema.at("$anchor")};
-      assert(anchor.is_string());
-      const auto anchor_string{anchor.to_string()};
-      const auto success = result.insert({anchor_string, AnchorType::Static});
-      assert(success.second || result.contains(anchor_string));
-      if (!success.second) {
-        result[anchor_string] = AnchorType::All;
+      if (anchor.is_string()) {
+        const auto anchor_string{anchor.to_string()};
+        const auto success = result.insert({anchor_string, AnchorType::Static});
+        assert(success.second || result.contains(anchor_string));
+        if (!success.second) {
+          result[anchor_string] = AnchorType::All;
+        }
       }
     }
   }
@@ -57,12 +59,13 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
 
     if (schema.defines("$anchor")) {
       const auto &anchor{schema.at("$anchor")};
-      assert(anchor.is_string());
-      const auto anchor_string{anchor.to_string()};
-      const auto success = result.insert({anchor_string, AnchorType::Static});
-      assert(success.second || result.contains(anchor_string));
-      if (!success.second) {
-        result[anchor_string] = AnchorType::All;
+      if (anchor.is_string()) {
+        const auto anchor_string{anchor.to_string()};
+        const auto success = result.insert({anchor_string, AnchorType::Static});
+        assert(success.second || result.contains(anchor_string));
+        if (!success.second) {
+          result[anchor_string] = AnchorType::All;
+        }
       }
     }
   }
@@ -869,23 +872,24 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       const auto nearest_bases{
           find_nearest_bases(base_uris, entry.common.pointer, entry.id)};
       if (entry.common.subschema.get().defines("$ref")) {
-        assert(entry.common.subschema.get().at("$ref").is_string());
-        const auto &original{
-            entry.common.subschema.get().at("$ref").to_string()};
-        sourcemeta::core::URI ref{original};
-        if (!nearest_bases.first.empty()) {
-          ref.resolve_from(nearest_bases.first.front());
-        }
+        if (entry.common.subschema.get().at("$ref").is_string()) {
+          const auto &original{
+              entry.common.subschema.get().at("$ref").to_string()};
+          sourcemeta::core::URI ref{original};
+          if (!nearest_bases.first.empty()) {
+            ref.resolve_from(nearest_bases.first.front());
+          }
 
-        ref.canonicalize();
-        this->references_.insert_or_assign(
-            {SchemaReferenceType::Static,
-             entry.common.pointer.concat({"$ref"})},
-            SchemaFrame::ReferencesEntry{.original = original,
-                                         .destination = ref.recompose(),
-                                         .base =
-                                             ref.recompose_without_fragment(),
-                                         .fragment = fragment_string(ref)});
+          ref.canonicalize();
+          this->references_.insert_or_assign(
+              {SchemaReferenceType::Static,
+               entry.common.pointer.concat({"$ref"})},
+              SchemaFrame::ReferencesEntry{.original = original,
+                                           .destination = ref.recompose(),
+                                           .base =
+                                               ref.recompose_without_fragment(),
+                                           .fragment = fragment_string(ref)});
+        }
       }
 
       if (entry.common.vocabularies.contains(
@@ -925,39 +929,40 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       if (entry.common.vocabularies.contains(
               "https://json-schema.org/draft/2020-12/vocab/core") &&
           entry.common.subschema.get().defines("$dynamicRef")) {
-        assert(entry.common.subschema.get().at("$dynamicRef").is_string());
-        const auto &original{
-            entry.common.subschema.get().at("$dynamicRef").to_string()};
-        sourcemeta::core::URI ref{original};
-        if (!nearest_bases.first.empty()) {
-          ref.resolve_from(nearest_bases.first.front());
+        if (entry.common.subschema.get().at("$dynamicRef").is_string()) {
+          const auto &original{
+              entry.common.subschema.get().at("$dynamicRef").to_string()};
+          sourcemeta::core::URI ref{original};
+          if (!nearest_bases.first.empty()) {
+            ref.resolve_from(nearest_bases.first.front());
+          }
+
+          ref.canonicalize();
+          auto ref_string{ref.recompose()};
+
+          // Note that here we cannot enforce the bookending requirement,
+          // as the dynamic reference may point to a schema resource that
+          // is not part of or bundled within the schema we are analyzing here.
+
+          const auto has_fragment{ref.fragment().has_value()};
+          const auto maybe_static_frame{
+              this->locations_.find({SchemaReferenceType::Static, ref_string})};
+          const auto maybe_dynamic_frame{this->locations_.find(
+              {SchemaReferenceType::Dynamic, ref_string})};
+          const auto behaves_as_static{
+              !has_fragment ||
+              (has_fragment && maybe_static_frame != this->locations_.end() &&
+               maybe_dynamic_frame == this->locations_.end())};
+          this->references_.insert_or_assign(
+              {behaves_as_static ? SchemaReferenceType::Static
+                                 : SchemaReferenceType::Dynamic,
+               entry.common.pointer.concat({"$dynamicRef"})},
+              SchemaFrame::ReferencesEntry{.original = original,
+                                           .destination = std::move(ref_string),
+                                           .base =
+                                               ref.recompose_without_fragment(),
+                                           .fragment = fragment_string(ref)});
         }
-
-        ref.canonicalize();
-        auto ref_string{ref.recompose()};
-
-        // Note that here we cannot enforce the bookending requirement,
-        // as the dynamic reference may point to a schema resource that
-        // is not part of or bundled within the schema we are analyzing here.
-
-        const auto has_fragment{ref.fragment().has_value()};
-        const auto maybe_static_frame{
-            this->locations_.find({SchemaReferenceType::Static, ref_string})};
-        const auto maybe_dynamic_frame{
-            this->locations_.find({SchemaReferenceType::Dynamic, ref_string})};
-        const auto behaves_as_static{
-            !has_fragment ||
-            (has_fragment && maybe_static_frame != this->locations_.end() &&
-             maybe_dynamic_frame == this->locations_.end())};
-        this->references_.insert_or_assign(
-            {behaves_as_static ? SchemaReferenceType::Static
-                               : SchemaReferenceType::Dynamic,
-             entry.common.pointer.concat({"$dynamicRef"})},
-            SchemaFrame::ReferencesEntry{.original = original,
-                                         .destination = std::move(ref_string),
-                                         .base =
-                                             ref.recompose_without_fragment(),
-                                         .fragment = fragment_string(ref)});
       }
     }
   }
