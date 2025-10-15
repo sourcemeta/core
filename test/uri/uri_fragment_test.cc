@@ -216,3 +216,41 @@ TEST(URI_fragment, set_non_ascii_character) {
   EXPECT_EQ(uri.fragment(), "/foo\xC3\xA9");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%C3%A9");
 }
+
+TEST(URI_fragment, getter_setter_invariant_simple) {
+  sourcemeta::core::URI uri{"https://example.com/path#foo"};
+  EXPECT_TRUE(uri.fragment().has_value());
+  EXPECT_EQ(uri.fragment().value(), "foo");
+
+  const auto original_fragment{uri.fragment().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.fragment(original_fragment);
+
+  EXPECT_EQ(uri.fragment().value(), original_fragment);
+  EXPECT_EQ(uri.recompose(), original_recompose);
+}
+
+TEST(URI_fragment, getter_setter_invariant_with_pointer) {
+  sourcemeta::core::URI uri{"https://example.com#/foo/bar"};
+  EXPECT_TRUE(uri.fragment().has_value());
+
+  const auto original_fragment{uri.fragment().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.fragment(original_fragment);
+
+  EXPECT_EQ(uri.fragment().value(), original_fragment);
+  EXPECT_EQ(uri.recompose(), original_recompose);
+}
+
+TEST(URI_fragment, getter_setter_invariant_empty) {
+  sourcemeta::core::URI uri{"https://example.com#"};
+  EXPECT_TRUE(uri.fragment().has_value());
+  EXPECT_EQ(uri.fragment().value(), "");
+
+  const auto original_fragment{uri.fragment().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.fragment(original_fragment);
+
+  EXPECT_EQ(uri.fragment().value(), original_fragment);
+  EXPECT_EQ(uri.recompose(), original_recompose);
+}
