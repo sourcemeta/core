@@ -211,26 +211,26 @@ TEST(URI_path_setter_no_scheme, set_path_on_host_only) {
   sourcemeta::core::URI uri{"example.com"};
 
   uri.path("/foo");
-  EXPECT_EQ(uri.path().value(), "foo");
-  EXPECT_EQ(uri.recompose(), "foo");
+  EXPECT_EQ(uri.path().value(), "/foo");
+  EXPECT_EQ(uri.recompose(), "/foo");
 
   std::string path{"/bar"};
   uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "bar");
-  EXPECT_EQ(uri.recompose(), "bar");
+  EXPECT_EQ(uri.path().value(), "/bar");
+  EXPECT_EQ(uri.recompose(), "/bar");
 }
 
 TEST(URI_path_setter_no_scheme, replace_existing_path) {
   sourcemeta::core::URI uri{"example.com/old"};
 
   uri.path("/new");
-  EXPECT_EQ(uri.path().value(), "new");
-  EXPECT_EQ(uri.recompose(), "new");
+  EXPECT_EQ(uri.path().value(), "/new");
+  EXPECT_EQ(uri.recompose(), "/new");
 
   std::string path{"/newer"};
   uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "newer");
-  EXPECT_EQ(uri.recompose(), "newer");
+  EXPECT_EQ(uri.path().value(), "/newer");
+  EXPECT_EQ(uri.recompose(), "/newer");
 }
 
 TEST(URI_path_setter_no_scheme, set_empty_path) {
@@ -250,13 +250,13 @@ TEST(URI_path_setter_no_scheme, set_path_on_ip_address) {
   sourcemeta::core::URI uri{"192.168.0.1"};
 
   uri.path("/admin");
-  EXPECT_EQ(uri.path().value(), "admin");
-  EXPECT_EQ(uri.recompose(), "admin");
+  EXPECT_EQ(uri.path().value(), "/admin");
+  EXPECT_EQ(uri.recompose(), "/admin");
 
   std::string path{"/admin2"};
   uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "admin2");
-  EXPECT_EQ(uri.recompose(), "admin2");
+  EXPECT_EQ(uri.path().value(), "/admin2");
+  EXPECT_EQ(uri.recompose(), "/admin2");
 }
 
 // TODO: dig why scheme return example.com
@@ -433,4 +433,60 @@ TEST(URI_path_getter, rfc3986_path_with_fragment_separator) {
   const sourcemeta::core::URI uri{"http://example.com/path#fragment"};
   EXPECT_TRUE(uri.path().has_value());
   EXPECT_EQ(uri.path().value(), "/path");
+}
+
+TEST(URI_path_setter, getter_setter_invariant_relative_with_leading_slash) {
+  sourcemeta::core::URI uri{"/test/no-serve/schema"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/test/no-serve/schema");
+  EXPECT_EQ(uri.recompose(), "/test/no-serve/schema");
+
+  const auto original_path{uri.path().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.path(original_path);
+
+  EXPECT_EQ(uri.path().value(), original_path);
+  EXPECT_EQ(uri.recompose(), original_recompose);
+}
+
+TEST(URI_path_setter, getter_setter_invariant_relative_without_leading_slash) {
+  sourcemeta::core::URI uri{"test/no-serve/schema"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "test/no-serve/schema");
+  EXPECT_EQ(uri.recompose(), "test/no-serve/schema");
+
+  const auto original_path{uri.path().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.path(original_path);
+
+  EXPECT_EQ(uri.path().value(), original_path);
+  EXPECT_EQ(uri.recompose(), original_recompose);
+}
+
+TEST(URI_path_setter, getter_setter_invariant_absolute_uri) {
+  sourcemeta::core::URI uri{"http://example.com/foo/bar"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/foo/bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo/bar");
+
+  const auto original_path{uri.path().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.path(original_path);
+
+  EXPECT_EQ(uri.path().value(), original_path);
+  EXPECT_EQ(uri.recompose(), original_recompose);
+}
+
+TEST(URI_path_setter, getter_setter_invariant_relative_dotdot) {
+  sourcemeta::core::URI uri{"../foo/bar"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "../foo/bar");
+  EXPECT_EQ(uri.recompose(), "../foo/bar");
+
+  const auto original_path{uri.path().value()};
+  const auto original_recompose{uri.recompose()};
+  uri.path(original_path);
+
+  EXPECT_EQ(uri.path().value(), original_path);
+  EXPECT_EQ(uri.recompose(), original_recompose);
 }
