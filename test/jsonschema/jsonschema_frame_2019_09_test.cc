@@ -2159,3 +2159,96 @@ TEST(JSONSchema_frame_2019_09, relative_id_leading_slash) {
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
 }
+
+TEST(JSONSchema_frame_2019_09,
+     ref_does_not_invalidate_sibling_subschemas_and_refs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/definitions/enabled",
+        "properties": {
+          "bar": {
+            "$ref": "#/definitions/config",
+            "additionalProperties": {
+              "$ref": "#/definitions/threshold"
+            }
+          }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 10);
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {""}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties", "/properties",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/properties/foo", "/properties/foo",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {"/foo"}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/foo/$ref", "/properties/foo/$ref",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {}, "/properties/foo");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/foo/properties", "/properties/foo/properties",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {}, "/properties/foo");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/properties/foo/properties/bar",
+      "/properties/foo/properties/bar",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {"/foo/bar"},
+      "/properties/foo");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/foo/properties/bar/$ref",
+      "/properties/foo/properties/bar/$ref",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {},
+      "/properties/foo/properties/bar");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/properties/foo/properties/bar/additionalProperties",
+      "/properties/foo/properties/bar/additionalProperties",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema",
+      {"/foo/bar/~?additionalProperties~/~P~"},
+      "/properties/foo/properties/bar");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/foo/properties/bar/additionalProperties/$ref",
+      "/properties/foo/properties/bar/additionalProperties/$ref",
+      "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", {},
+      "/properties/foo/properties/bar/additionalProperties");
+
+  EXPECT_EQ(frame.references().size(), 4);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
+                          "#/definitions/enabled", std::nullopt,
+                          "/definitions/enabled", "#/definitions/enabled");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/properties/bar/$ref",
+                          "#/definitions/config", std::nullopt,
+                          "/definitions/config", "#/definitions/config");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/properties/foo/properties/bar/additionalProperties/$ref",
+      "#/definitions/threshold", std::nullopt, "/definitions/threshold",
+      "#/definitions/threshold");
+}
