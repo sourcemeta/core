@@ -88,13 +88,19 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
     return;
   }
 
-  const auto ref_overrides{
-      level > 0 && subschema.defines("$ref") &&
+  const auto has_overriding_ref{
+      subschema.defines("$ref") &&
       ref_overrides_adjacent_keywords(current_base_dialect)};
   for (auto &pair : subschema.as_object()) {
     const auto keyword_info{walker(pair.first, vocabularies)};
-    if (ref_overrides &&
-        keyword_info.type != sourcemeta::core::SchemaKeywordType::Reference) {
+
+    // Ignore the current keyword sibling to `$ref in Draft 7 and older `if its
+    // not a top-level container
+    if (has_overriding_ref &&
+        keyword_info.type != sourcemeta::core::SchemaKeywordType::Reference &&
+        (level > 0 ||
+         keyword_info.type !=
+             sourcemeta::core::SchemaKeywordType::LocationMembers)) {
       continue;
     }
 

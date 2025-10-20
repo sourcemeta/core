@@ -669,6 +669,110 @@ TEST(JSONSchema_frame_draft7, ref_with_id) {
                           "/definitions/string", "#/definitions/string");
 }
 
+TEST(JSONSchema_frame_draft7, ref_with_definitions) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/string",
+    "definitions": {
+      "string": { "type": "string" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 6);
+
+  // JSON Pointers
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {""}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions", "/definitions",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/definitions/string", "/definitions/string",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {""}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions/string/type", "/definitions/string/type",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "/definitions/string");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-07/schema",
+      "http://json-schema.org/draft-07/schema", std::nullopt,
+      "http://json-schema.org/draft-07/schema#");
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", std::nullopt,
+                          "/definitions/string", "#/definitions/string");
+}
+
+TEST(JSONSchema_frame_draft7, ref_with_properties) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/properties/string",
+    "properties": {
+      "string": { "type": "string" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 6);
+
+  // JSON Pointers
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {""}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties", "/properties",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/string", "/properties/string",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/string/type", "/properties/string/type",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-07/schema",
+      "http://json-schema.org/draft-07/schema", std::nullopt,
+      "http://json-schema.org/draft-07/schema#");
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/properties/string", std::nullopt,
+                          "/properties/string", "#/properties/string");
+}
+
 TEST(JSONSchema_frame_draft7, relative_base_uri_without_ref) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
