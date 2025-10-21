@@ -187,7 +187,8 @@ auto sourcemeta::core::reidentify(JSON &schema,
                                   const std::string &base_dialect) -> void {
   assert(is_schema(schema));
   assert(schema.is_object());
-  schema.assign(id_keyword(base_dialect), JSON{new_identifier});
+  const auto keyword{id_keyword(base_dialect)};
+  schema.assign(keyword, JSON{new_identifier});
 
   if (schema.defines("$ref")) {
     // Workaround top-level `$ref` with `allOf`
@@ -197,31 +198,20 @@ auto sourcemeta::core::reidentify(JSON &schema,
         base_dialect == "http://json-schema.org/draft-06/hyper-schema#" ||
         base_dialect == "http://json-schema.org/draft-04/schema#" ||
         base_dialect == "http://json-schema.org/draft-04/hyper-schema#") {
-      // Note that if the schema already has an `allOf`, we can safely
-      // remove it, as it was by definition ignored by `$ref` already
-      if (schema.defines("allOf")) {
-        schema.erase("allOf");
-      }
-
+      auto copy = schema;
+      copy.erase_keys({"$schema", keyword});
+      schema.clear_except({"$schema", keyword});
       schema.assign("allOf", JSON::make_array());
-      auto conjunction{JSON::make_object()};
-      conjunction.assign("$ref", schema.at("$ref"));
-      schema.at("allOf").push_back(std::move(conjunction));
-      schema.erase("$ref");
+      schema.at("allOf").push_back(std::move(copy));
     }
 
     // Workaround top-level `$ref` with `extends`
     if (base_dialect == "http://json-schema.org/draft-03/schema#" ||
         base_dialect == "http://json-schema.org/draft-03/hyper-schema#") {
-      // Note that if the schema already has an `extends`, we can safely
-      // remove it, as it was by definition ignored by `$ref` already
-      if (schema.defines("extends")) {
-        schema.erase("extends");
-      }
-
-      schema.assign("extends", JSON::make_object());
-      schema.at("extends").assign("$ref", schema.at("$ref"));
-      schema.erase("$ref");
+      auto copy = schema;
+      copy.erase_keys({"$schema", keyword});
+      schema.clear_except({"$schema", keyword});
+      schema.assign("extends", std::move(copy));
     }
   }
 

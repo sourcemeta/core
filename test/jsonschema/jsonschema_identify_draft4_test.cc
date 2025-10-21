@@ -246,7 +246,39 @@ TEST(JSONSchema_identify_draft4, reidentify_set_with_top_level_ref_and_allof) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "allOf": [ { "$ref": "https://example.com/schema" } ]
+    "allOf": [
+      {
+        "$ref": "https://example.com/schema",
+        "allOf": [ { "type": "string" } ]
+      }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_identify_draft4, reidentify_set_with_top_level_ref_and_others) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "https://example.com/schema",
+    "title": "I will be removed",
+    "id": "https://example.com/i-will-be-removed-too",
+    "type": "string"
+  })JSON");
+
+  sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
+                               sourcemeta::core::schema_official_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "id": "https://example.com/my-new-id",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      {
+        "$ref": "https://example.com/schema",
+        "title": "I will be removed",
+        "type": "string"
+      }
+    ]
   })JSON");
 
   EXPECT_EQ(document, expected);
