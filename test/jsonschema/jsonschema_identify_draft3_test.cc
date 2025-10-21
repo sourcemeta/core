@@ -227,7 +227,7 @@ TEST(JSONSchema_identify_draft3, reidentify_set_with_top_level_ref) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",
     "$schema": "http://json-schema.org/draft-03/schema#",
-    "extends": { "$ref": "https://example.com/schema" }
+    "$ref": "https://example.com/schema"
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -247,7 +247,8 @@ TEST(JSONSchema_identify_draft3,
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",
     "$schema": "http://json-schema.org/draft-03/schema#",
-    "extends": { "$ref": "https://example.com/schema" }
+    "$ref": "https://example.com/schema",
+    "extends": { "type": "string" }
   })JSON");
 
   EXPECT_EQ(document, expected);
