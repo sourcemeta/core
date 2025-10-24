@@ -2641,3 +2641,315 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_10) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft7, dependencies_default_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "dependencies": {},
+    "items": {
+      "$ref": "#/dependencies"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_draft_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      {
+        "items": {
+          "type": "string"
+        }
+      }
+    ],
+    "properties": {
+      "foo": {
+        "$ref": "#/allOf/0/items"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/items"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7,
+     unnecessary_allof_wrapper_draft_with_entire_branch_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      {
+        "minLength": 5,
+        "maxLength": 10
+      }
+    ],
+    "items": {
+      "$ref": "#/allOf/0"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      {
+        "minLength": 5,
+        "maxLength": 10
+      }
+    ],
+    "items": {
+      "$ref": "#/allOf/0"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7,
+     additional_items_with_schema_items_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "number"
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/additionalItems"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "number"
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/additionalItems"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(
+    AlterSchema_lint_draft7,
+    unnecessary_allof_wrapper_reference_to_nested_schema_inside_moved_keyword) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      {
+        "items": {
+          "properties": {
+            "nested": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "additionalProperties": {
+      "$ref": "#/allOf/0/items/properties/nested"
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "properties": {
+        "nested": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": {
+      "$ref": "#/items/properties/nested"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7,
+     additional_items_reference_to_nested_schema_inside_additional_items) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "object",
+      "properties": {
+        "nested": {
+          "type": "number"
+        }
+      }
+    },
+    "properties": {
+      "test": {
+        "$ref": "#/additionalItems/properties/nested"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "object",
+      "properties": {
+        "nested": {
+          "type": "number"
+        }
+      }
+    },
+    "properties": {
+      "test": {
+        "$ref": "#/additionalItems/properties/nested"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(
+    AlterSchema_lint_draft7,
+    unnecessary_allof_wrapper_branch_with_outgoing_reference_should_be_removed) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      {
+        "minLength": 5,
+        "properties": {
+          "ref": {
+            "$ref": "#/definitions/external"
+          }
+        }
+      }
+    ],
+    "definitions": {
+      "external": {
+        "type": "number"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "minLength": 5,
+    "properties": {
+      "ref": {
+        "$ref": "#/definitions/external"
+      }
+    },
+    "definitions": {
+      "external": {
+        "type": "number"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(
+    AlterSchema_lint_draft7,
+    additional_items_with_schema_items_and_outgoing_reference_should_be_removed) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "$ref": "#/definitions/myType"
+    },
+    "definitions": {
+      "myType": {
+        "type": "number"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "definitions": {
+      "myType": {
+        "type": "number"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7,
+     additional_items_with_recursive_self_reference_should_be_removed) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "items": {
+        "$ref": "#/additionalItems"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
