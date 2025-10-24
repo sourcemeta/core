@@ -960,3 +960,85 @@ TEST(JSON_object, erase_must_not_affect_ordering) {
   std::advance(after_iterator, 1);
   EXPECT_EQ(after_iterator->first, "z");
 }
+
+TEST(JSON_object, reorder_empty) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+}
+
+TEST(JSON_object, reorder_single_element) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("apple", sourcemeta::core::JSON{1});
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_EQ(document.size(), 1);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+}
+
+TEST(JSON_object, reorder_ascending) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("zebra", sourcemeta::core::JSON{1});
+  document.assign("apple", sourcemeta::core::JSON{2});
+  document.assign("banana", sourcemeta::core::JSON{3});
+
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+
+  EXPECT_EQ(document.size(), 3);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "banana");
+  EXPECT_EQ(iterator->second.to_integer(), 3);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "zebra");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+}
+
+TEST(JSON_object, reorder_descending) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("apple", sourcemeta::core::JSON{1});
+  document.assign("zebra", sourcemeta::core::JSON{2});
+  document.assign("banana", sourcemeta::core::JSON{3});
+
+  document.reorder(
+      [](const auto &left, const auto &right) { return left > right; });
+
+  EXPECT_EQ(document.size(), 3);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "zebra");
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "banana");
+  EXPECT_EQ(iterator->second.to_integer(), 3);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+}
+
+TEST(JSON_object, reorder_already_ordered) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("apple", sourcemeta::core::JSON{1});
+  document.assign("banana", sourcemeta::core::JSON{2});
+  document.assign("cherry", sourcemeta::core::JSON{3});
+
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+
+  EXPECT_EQ(document.size(), 3);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "banana");
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "cherry");
+  EXPECT_EQ(iterator->second.to_integer(), 3);
+}

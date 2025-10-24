@@ -251,24 +251,24 @@ TEST(JSON_prettify, object_integers) {
 }
 
 TEST(JSON_prettify, object_integers_order_1) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
-  std::ostringstream stream;
-  sourcemeta::core::prettify(
-      document, stream,
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
       [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "{\n  \"bar\": 2,\n  \"baz\": 3,\n  \"foo\": 1\n}");
 }
 
 TEST(JSON_prettify, object_integers_order_2) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
-  std::ostringstream stream;
-  sourcemeta::core::prettify(
-      document, stream,
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
       [](const auto &left, const auto &right) { return left > right; });
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "{\n  \"foo\": 1,\n  \"baz\": 3,\n  \"bar\": 2\n}");
 }
 
@@ -490,14 +490,14 @@ TEST(JSON_prettify, boolean_false_with_4_spaces) {
   EXPECT_EQ(stream.str(), "false");
 }
 
-TEST(JSON_prettify, object_compare_with_4_spaces) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
+TEST(JSON_prettify, object_reorder_with_4_spaces) {
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
   std::ostringstream stream;
-  sourcemeta::core::prettify(
-      document, stream,
-      [](const auto &left, const auto &right) { return left < right; }, 4);
+  sourcemeta::core::prettify(document, stream, 4);
   EXPECT_EQ(stream.str(),
             "{\n    \"bar\": 2,\n    \"baz\": 3,\n    \"foo\": 1\n}");
 }
