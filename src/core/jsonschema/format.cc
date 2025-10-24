@@ -4,7 +4,6 @@
 #include <limits>        // std::numeric_limits
 #include <string>        // std::string
 #include <unordered_map> // std::unordered_map
-#include <vector>        // std::vector
 
 namespace {
 
@@ -145,13 +144,20 @@ auto keyword_compare(const sourcemeta::core::JSON::String &left,
 
 namespace sourcemeta::core {
 
-auto schema_format(JSON &document) -> void {
-  const auto pointer_walker{sourcemeta::core::PointerWalker{document}};
-  std::vector<sourcemeta::core::Pointer> pointers{pointer_walker.cbegin(),
-                                                  pointer_walker.cend()};
+auto format(JSON &schema, const SchemaWalker &walker,
+            const SchemaResolver &resolver,
+            const std::optional<JSON::String> &default_dialect) -> void {
+  assert(is_schema(schema));
+  SchemaFrame frame{SchemaFrame::Mode::Locations};
+  frame.analyse(schema, walker, resolver, default_dialect);
 
-  for (const auto &pointer : pointers) {
-    auto &value{get(document, pointer)};
+  for (const auto &entry : frame.locations()) {
+    if (entry.second.type != SchemaFrame::LocationType::Resource &&
+        entry.second.type != SchemaFrame::LocationType::Subschema) {
+      continue;
+    }
+
+    auto &value{get(schema, entry.second.pointer)};
     if (value.is_object()) {
       value.reorder(keyword_compare);
     }
