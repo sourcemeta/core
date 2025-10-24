@@ -148,24 +148,24 @@ TEST(JSON_stringify, object_integers) {
 }
 
 TEST(JSON_stringify, object_integers_order_1) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
-  std::ostringstream stream;
-  sourcemeta::core::stringify(
-      document, stream,
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
       [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "{\"bar\":2,\"baz\":3,\"foo\":1}");
 }
 
 TEST(JSON_stringify, object_integers_order_2) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
-  std::ostringstream stream;
-  sourcemeta::core::stringify(
-      document, stream,
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
       [](const auto &left, const auto &right) { return left > right; });
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "{\"foo\":1,\"baz\":3,\"bar\":2}");
 }
 

@@ -365,26 +365,26 @@ auto vocabularies(const SchemaResolver &resolver,
 
 /// @ingroup jsonschema
 ///
-/// An opinionated JSON Schema aware key comparison for use with
-/// sourcemeta::core::prettify or sourcemeta::core::stringify for
-/// formatting purposes. For example:
+/// Format a JSON Schema document by reordering all object properties throughout
+/// the entire document according to an opinionated JSON Schema aware ordering.
+/// This function modifies the document in-place. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonschema.h>
 /// #include <iostream>
 /// #include <sstream>
 ///
-/// const sourcemeta::core::JSON document =
+/// sourcemeta::core::JSON document =
 ///   sourcemeta::core::parse_json(
 ///     "{ \"type\": \"string\", \"minLength\": 3 }");
+/// sourcemeta::core::schema_format(document);
 /// std::ostringstream stream;
-/// sourcemeta::core::prettify(document, stream,
-///   sourcemeta::core::schema_format_compare);
+/// sourcemeta::core::prettify(document, stream);
 /// std::cout << stream.str() << std::endl;
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_format_compare(const JSON::String &left, const JSON::String &right)
-    -> bool;
+auto schema_format(JSON &document) -> void;
 
 /// @ingroup jsonschema
 ///
