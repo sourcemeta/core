@@ -367,7 +367,7 @@ auto vocabularies(const SchemaResolver &resolver,
 ///
 /// Format a JSON Schema document by reordering all object properties throughout
 /// the entire document according to an opinionated JSON Schema aware ordering.
-/// This function modifies the document in-place. For example:
+/// This function modifies the schema in-place. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -375,16 +375,20 @@ auto vocabularies(const SchemaResolver &resolver,
 /// #include <iostream>
 /// #include <sstream>
 ///
-/// sourcemeta::core::JSON document =
+/// sourcemeta::core::JSON schema =
 ///   sourcemeta::core::parse_json(
 ///     "{ \"type\": \"string\", \"minLength\": 3 }");
-/// sourcemeta::core::schema_format(document);
+/// sourcemeta::core::format(schema, sourcemeta::core::schema_official_walker,
+///                          sourcemeta::core::schema_official_resolver);
 /// std::ostringstream stream;
-/// sourcemeta::core::prettify(document, stream);
+/// sourcemeta::core::prettify(schema, stream);
 /// std::cout << stream.str() << std::endl;
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_format(JSON &document) -> void;
+auto format(JSON &schema, const SchemaWalker &walker,
+            const SchemaResolver &resolver,
+            const std::optional<JSON::String> &default_dialect = std::nullopt)
+    -> void;
 
 /// @ingroup jsonschema
 ///
