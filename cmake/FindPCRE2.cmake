@@ -31,7 +31,12 @@ if(NOT PCRE2_FOUND)
   set(PCRE2GREP_BUFSIZE 20480)
   set(PCRE2GREP_MAX_BUFSIZE 1048576)
   set(NEWLINE_DEFAULT 2)
-  set(PCRE2_EXPORT)
+
+  if(WIN32 AND BUILD_SHARED_LIBS)
+    set(PCRE2_EXPORT "__declspec(dllexport)")
+  else()
+    set(PCRE2_EXPORT)
+  endif()
 
   set(SUPPORT_PCRE2_8 1)
   set(SUPPORT_UNICODE 1)
@@ -126,9 +131,7 @@ if(NOT PCRE2_FOUND)
   target_compile_definitions(pcre2 PRIVATE SUPPORT_UNICODE=1)
   target_compile_definitions(pcre2 PRIVATE SUPPORT_JIT=1)
 
-  if(BUILD_SHARED_LIBS)
-    target_compile_definitions(pcre2 PUBLIC PCRE2_EXP_DECL=extern)
-  else()
+  if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(pcre2 PUBLIC PCRE2_STATIC=1)
   endif()
 
@@ -146,7 +149,8 @@ if(NOT PCRE2_FOUND)
       PUBLIC_HEADER "${PCRE2_PUBLIC_HEADER}"
       C_VISIBILITY_PRESET "default"
       C_VISIBILITY_INLINES_HIDDEN FALSE
-      EXPORT_NAME pcre2)
+      EXPORT_NAME pcre2
+      WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 
   if(SOURCEMETA_CORE_INSTALL)
     include(GNUInstallDirs)
