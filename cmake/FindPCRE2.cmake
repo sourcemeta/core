@@ -95,7 +95,7 @@ if(NOT PCRE2_FOUND)
   set(SLJIT_DIR "${PCRE2_DIR}/deps/sljit/sljit_src")
   set(SLJIT_SOURCES "${SLJIT_DIR}/sljitLir.c")
 
-  add_library(sljit ${SLJIT_SOURCES})
+  add_library(sljit STATIC ${SLJIT_SOURCES})
 
   target_include_directories(sljit PUBLIC
     "$<BUILD_INTERFACE:${SLJIT_DIR}>"
