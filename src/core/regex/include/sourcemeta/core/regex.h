@@ -12,19 +12,23 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <boost/regex.hpp>
+#include <unicode/regex.h>
+#include <unicode/unistr.h>
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
 
-#include <cassert>  // assert
-#include <cstdint>  // std::uint8_t, std::uint64_t
-#include <optional> // std::optional
-#include <regex>    // std::regex
-#include <string>   // std::stoull
-#include <utility>  // std::pair
-#include <variant>  // std::variant
+#include <algorithm> // std::ranges::any_of
+#include <cassert>   // assert
+#include <cstdint>   // std::uint8_t, std::uint64_t
+#include <memory>    // std::shared_ptr, std::unique_ptr
+#include <optional>  // std::optional
+#include <regex>     // std::regex
+#include <string>    // std::stoull
+#include <utility>   // std::pair
+#include <variant>   // std::variant
 
 /// @defgroup regex Regex
 /// @brief An opinionated regex ECMA 262 implementation for JSON Schema
@@ -60,11 +64,14 @@ struct RegexTypeNoop {
 };
 
 /// @ingroup regex
+using RegexTypeICU = std::shared_ptr<icu::RegexPattern>;
+
+/// @ingroup regex
 template <typename T>
-using Regex =
-    std::variant<RegexTypeBoost<typename T::value_type>, RegexTypePrefix<T>,
-                 RegexTypeNonEmpty, RegexTypeRange,
-                 RegexTypeStd<typename T::value_type>, RegexTypeNoop>;
+using Regex = std::variant<RegexTypeBoost<typename T::value_type>,
+                           RegexTypePrefix<T>, RegexTypeNonEmpty,
+                           RegexTypeRange, RegexTypeStd<typename T::value_type>,
+                           RegexTypeICU, RegexTypeNoop>;
 #if !defined(DOXYGEN)
 // For fast internal dispatching. It must stay in sync with the variant above
 enum class RegexIndex : std::uint8_t {
@@ -73,9 +80,40 @@ enum class RegexIndex : std::uint8_t {
   NonEmpty,
   Range,
   Std,
+  ICU,
   Noop
 };
 #endif
+
+/// @ingroup regex
+///
+/// Heuristically detect if a regular expression pattern seems to require
+/// Unicode support. Patterns appear to require Unicode support if they contain
+/// Unicode property escapes (`\p{}`), Unicode codepoint escapes (`\u` or
+/// `\u{}`), non-ASCII characters, or the dot metacharacter (which should match
+/// Unicode codepoints). This is a best-effort heuristic detection and may have
+/// false positives in edge cases. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/regex.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::seems_unicode("\\p{Letter}"));
+/// assert(sourcemeta::core::seems_unicode("\\u0041"));
+/// assert(sourcemeta::core::seems_unicode("café"));
+/// assert(sourcemeta::core::seems_unicode(".+"));
+/// assert(!sourcemeta::core::seems_unicode("^[a-z]+$"));
+/// ```
+template <typename T> auto seems_unicode(const T &pattern) -> bool {
+  return pattern.find("\\p{") != T::npos || pattern.find("\\u{") != T::npos ||
+         pattern.find("\\u") != T::npos ||
+         std::ranges::any_of(pattern,
+                             [](const auto character) {
+                               return static_cast<unsigned char>(character) >
+                                      127;
+                             }) ||
+         pattern.find(".") != T::npos;
+}
 
 /// @ingroup regex
 ///
@@ -117,6 +155,35 @@ auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
     const std::uint64_t maximum{std::stoull(matches_range[2].str())};
     assert(minimum <= maximum);
     return RegexTypeRange{minimum, maximum};
+  }
+
+  if (seems_unicode(pattern)) {
+    T icu_compatible_pattern{pattern};
+    std::size_t position{0};
+    // ICU uses \x{} syntax for Unicode codepoint escapes, while ECMAScript
+    // uses \u{}. Convert the pattern to ICU-compatible syntax.
+    while ((position = icu_compatible_pattern.find("\\u{", position)) !=
+           T::npos) {
+      icu_compatible_pattern.replace(position, 3, "\\x{");
+      position += 3;
+    }
+
+    UErrorCode status{U_ZERO_ERROR};
+    UParseError parse_error;
+    icu::UnicodeString icu_pattern{
+        icu::UnicodeString::fromUTF8(icu_compatible_pattern)};
+
+    auto *regex_pattern{icu::RegexPattern::compile(icu_pattern, UREGEX_DOTALL,
+                                                   parse_error, status)};
+
+    if (U_FAILURE(status) || regex_pattern == nullptr) {
+      if (regex_pattern != nullptr) {
+        delete regex_pattern;
+      }
+      return std::nullopt;
+    }
+
+    return std::shared_ptr<icu::RegexPattern>(regex_pattern);
   }
 
   RegexTypeBoost<typename T::value_type> result{
@@ -192,6 +259,29 @@ auto matches(const Regex<T> &regex, const T &value) -> bool {
     case RegexIndex::Std:
       return std::regex_search(
           value, *std::get_if<RegexTypeStd<typename T::value_type>>(&regex));
+    case RegexIndex::ICU: {
+      const auto *icu_regex{std::get_if<RegexTypeICU>(&regex)};
+      if (!icu_regex || !(*icu_regex)) {
+        return false;
+      }
+
+      icu::UnicodeString icu_input{icu::UnicodeString::fromUTF8(value)};
+      UErrorCode status{U_ZERO_ERROR};
+      std::unique_ptr<icu::RegexMatcher> matcher{
+          (*icu_regex)->matcher(icu_input, status)};
+
+      if (U_FAILURE(status) || !matcher) {
+        return false;
+      }
+
+      auto result{matcher->find(status)};
+
+      if (U_FAILURE(status)) {
+        return false;
+      }
+
+      return result;
+    }
     case RegexIndex::Noop:
       return true;
   }

@@ -82,6 +82,7 @@ endif()
 
 if(SOURCEMETA_CORE_REGEX)
   find_package(BoostRegex REQUIRED)
+  find_package(ICU REQUIRED)
   add_subdirectory(src/core/regex)
 endif()
 
