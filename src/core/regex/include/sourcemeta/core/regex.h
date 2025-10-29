@@ -18,6 +18,8 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include <pcre2.h>
+
 #include <cassert>  // assert
 #include <cstdint>  // std::uint8_t, std::uint64_t
 #include <optional> // std::optional

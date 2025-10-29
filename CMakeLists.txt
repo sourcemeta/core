@@ -81,6 +81,7 @@ if(SOURCEMETA_CORE_MD5)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
+  find_package(PCRE2 REQUIRED)
   find_package(BoostRegex REQUIRED)
   add_subdirectory(src/core/regex)
 endif()
