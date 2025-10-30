@@ -7,3 +7,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME regex
 
 target_link_libraries(sourcemeta_core_regex_unit
   PRIVATE sourcemeta::core::regex)
+
+if(MSVC)
+  target_compile_options(sourcemeta_core_regex_unit PRIVATE /utf-8)
+endif()

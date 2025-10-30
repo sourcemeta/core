@@ -7,8 +7,7 @@ function(sourcemeta_add_default_options visibility target)
       /W4
       /WL
       /MP
-      /sdl
-      /utf-8)
+      /sdl)
   elseif(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     target_compile_options("${target}" ${visibility}
       -Wall
