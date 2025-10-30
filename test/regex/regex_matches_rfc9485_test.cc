@@ -10,6 +10,30 @@
 #pragma warning(disable : 4566)
 #endif
 
+TEST(Regex_matches, rfc9485_edge_dollar_literal) {
+  // NOTE: This test deviates from RFC 9485, which allows $ as literal in
+  // middle. We prefer ECMA-262 compliance where $ is ALWAYS an assertion.
+  const auto regex{sourcemeta::core::to_regex("a$b")};
+  EXPECT_TRUE(regex.has_value());
+  // In ECMA-262, $ is always an end assertion, never a literal
+  // Pattern "a$b" means: match "a", assert end, match "b"
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a$b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(Regex_matches, rfc9485_preprocessing_escaped_backslash_dollar) {
+  // NOTE: This test deviates from RFC 9485, which treats $ as literal in
+  // middle. We prefer ECMA-262 compliance where $ is ALWAYS an assertion.
+  const auto regex{sourcemeta::core::to_regex("\\\\$foo")};
+  EXPECT_TRUE(regex.has_value());
+  // In ECMA-262: \\ = literal backslash, $ = end assertion, foo = literal "foo"
+  // Pattern "\\$foo" means: match backslash, assert end, match "foo"
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\\$foo"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$foo"));
+}
+
 TEST(Regex_matches, rfc9485_literal_single_char) {
   const auto regex{sourcemeta::core::to_regex("a")};
   EXPECT_TRUE(regex.has_value());
@@ -693,12 +717,6 @@ TEST(Regex_matches, rfc9485_edge_caret_literal) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a^b"));
 }
 
-TEST(Regex_matches, rfc9485_edge_dollar_literal) {
-  const auto regex{sourcemeta::core::to_regex("a$b")};
-  EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a$b"));
-}
-
 TEST(Regex_matches, rfc9485_edge_quantifier_zero_exact) {
   const auto regex{sourcemeta::core::to_regex("a{0}b")};
   EXPECT_TRUE(regex.has_value());
@@ -959,13 +977,6 @@ TEST(Regex_matches, rfc9485_preprocessing_mixed_escaped_and_unicode) {
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\p{L} A"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "A A"));
-}
-
-TEST(Regex_matches, rfc9485_preprocessing_escaped_backslash_dollar) {
-  const auto regex{sourcemeta::core::to_regex("\\\\$foo")};
-  EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\$foo"));
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$foo"));
 }
 
 TEST(Regex_matches, rfc9485_quantifier_star_any_string) {

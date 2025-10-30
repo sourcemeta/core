@@ -13,7 +13,7 @@
 #include <variant>  // std::variant
 
 /// @defgroup regex Regex
-/// @brief An opinionated and permissive ECMA 262 + RFC 9485 regex
+/// @brief An opinionated and permissive ECMA 262 + RFC 9485 (best effort) regex
 /// implementation for JSON Schema
 ///
 /// This functionality is included as follows:

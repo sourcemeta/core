@@ -1056,7 +1056,10 @@ TEST(Regex_matches, ecma262_caret_after_opening_paren) {
 TEST(Regex_matches, ecma262_dollar_then_caret) {
   const auto regex{sourcemeta::core::to_regex("a$^b")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a$^b"));
+  // In ECMA-262, $ and ^ are always assertions
+  // Pattern "a$^b" means: match "a", assert end, assert start, match "b"
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a$^b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
