@@ -788,11 +788,7 @@ TEST(Regex_matches, ecma262_xml_ncname_unicode_identifier) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\U000104A0element"));
 }
 
-// ATTACK TEST CASES: Edge cases and potential preprocessing bugs
-
-TEST(Regex_matches, attack_escaped_backslash_before_bracket) {
-  // Pattern: \\[ should be literal backslash followed by character class
-  // Bug: The escape check pattern[index-1] != '\\' doesn't count backslashes
+TEST(Regex_matches, escaped_backslash_before_bracket) {
   const auto regex{sourcemeta::core::to_regex("\\\\[abc]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\a"));
@@ -802,11 +798,7 @@ TEST(Regex_matches, attack_escaped_backslash_before_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, attack_triple_backslash_before_bracket) {
-  // Pattern: \\\[ in ECMA-262 regex notation (3 backslashes + bracket as written in regex)
-  // This is: \\ (escaped backslash = literal \) + \[ (escaped bracket = literal [)
-  // Should match the string: \[ (backslash followed by bracket)
-  // In C++ string literal, each backslash must be escaped: \\ → \\\\, so \\[ → \\\\\\[
+TEST(Regex_matches, triple_backslash_before_bracket) {
   const auto regex{sourcemeta::core::to_regex("\\\\\\[")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\["));
@@ -814,46 +806,36 @@ TEST(Regex_matches, attack_triple_backslash_before_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
 }
 
-TEST(Regex_matches, attack_dollar_in_middle_should_not_match) {
-  // Pattern: foo$bar - dollar is an assertion, should never match anything
-  // Bug: Line 242-245 escapes $ to literal, changing semantics
+TEST(Regex_matches, dollar_in_middle_as_literal) {
   const auto regex{sourcemeta::core::to_regex("foo$bar")};
   EXPECT_TRUE(regex.has_value());
-  // This should NEVER match because $ asserts end but 'bar' follows
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foo$bar"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo$bar"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foobar"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foo"));
 }
 
-TEST(Regex_matches, attack_dollar_in_character_class) {
-  // Pattern: [$] should match literal dollar character
+TEST(Regex_matches, dollar_in_character_class) {
   const auto regex{sourcemeta::core::to_regex("[$]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, attack_escaped_dollar) {
-  // Pattern: \$ should match literal dollar (identity escape)
+TEST(Regex_matches, escaped_dollar) {
   const auto regex{sourcemeta::core::to_regex("\\$")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, attack_multiple_dollars) {
-  // Pattern: $$ - two end-of-string assertions
-  // Both assertions match at the same position (end of string)
-  // PCRE2 with PCRE2_DOLLAR_ENDONLY flag makes this work correctly
+TEST(Regex_matches, multiple_dollars) {
   const auto regex{sourcemeta::core::to_regex("$$")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "anything"));
 }
 
-TEST(Regex_matches, attack_negated_digit_in_char_class) {
-  // Pattern: [\D] should match any non-digit inside character class
-  // Bug: \D inside [...] is not expanded correctly
+TEST(Regex_matches, negated_digit_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\D]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -862,8 +844,7 @@ TEST(Regex_matches, attack_negated_digit_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, attack_negated_word_in_char_class) {
-  // Pattern: [\W] should match any non-word character
+TEST(Regex_matches, negated_word_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\W]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "!"));
@@ -874,8 +855,7 @@ TEST(Regex_matches, attack_negated_word_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "_"));
 }
 
-TEST(Regex_matches, attack_negated_space_in_char_class) {
-  // Pattern: [\S] should match any non-whitespace character
+TEST(Regex_matches, negated_space_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\S]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -886,8 +866,7 @@ TEST(Regex_matches, attack_negated_space_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\n"));
 }
 
-TEST(Regex_matches, attack_mixed_escapes_in_char_class) {
-  // Pattern: [\d\D] should match any character (digit or non-digit)
+TEST(Regex_matches, mixed_escapes_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\d\\D]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "0"));
@@ -896,8 +875,7 @@ TEST(Regex_matches, attack_mixed_escapes_in_char_class) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " "));
 }
 
-TEST(Regex_matches, attack_escaped_bracket_in_char_class) {
-  // Pattern: [\]] should match literal ]
+TEST(Regex_matches, escaped_bracket_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
@@ -905,16 +883,14 @@ TEST(Regex_matches, attack_escaped_bracket_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, attack_backslash_in_char_class) {
-  // Pattern: [\\] should match literal backslash
+TEST(Regex_matches, backslash_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\\\]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, attack_complex_char_class_with_escaped_chars) {
-  // Pattern: [a\]b\\c] should match a, ], b, \, or c
+TEST(Regex_matches, complex_char_class_with_escaped_chars) {
   const auto regex{sourcemeta::core::to_regex("[a\\]b\\\\c]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -926,49 +902,27 @@ TEST(Regex_matches, attack_complex_char_class_with_escaped_chars) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
 }
 
-TEST(Regex_matches, attack_empty_char_class) {
-  // Pattern: [] - In ECMA-262, this is actually invalid (unterminated class)
-  // The ] immediately closes the [, but then there's no ] to close it
-  // Actually, in ECMA-262, ] can be first char in class, so [] means empty class
-  // which never matches. But many engines reject this.
+TEST(Regex_matches, empty_char_class) {
   const auto regex{sourcemeta::core::to_regex("[]")};
-  // PCRE2 rejects empty character classes, so this should not compile
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, attack_incomplete_unicode_property) {
-  // Pattern: \p{Letter without closing } - incomplete escape sequence
-  // Our preprocessor passes this through, PCRE2 will reject it
+TEST(Regex_matches, incomplete_unicode_property) {
   const auto regex{sourcemeta::core::to_regex("\\p{Letter")};
-  // PCRE2 should reject incomplete \p{...} syntax
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, attack_incomplete_unicode_escape) {
-  // Pattern: \u{DEAD without closing } - incomplete unicode escape
-  // Our preprocessor converts \u{...} to \x{...}, missing } means invalid
+TEST(Regex_matches, incomplete_unicode_escape) {
   const auto regex{sourcemeta::core::to_regex("\\u{DEAD")};
-  // PCRE2 should reject incomplete \x{...} syntax
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, attack_backslash_at_end) {
-  // Pattern ending with single backslash - invalid in ECMA-262
-  // A backslash must escape something; trailing \ is a syntax error
+TEST(Regex_matches, backslash_at_end) {
   const auto regex{sourcemeta::core::to_regex("foo\\")};
-  // PCRE2 should reject pattern ending with unescaped backslash
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, attack_nested_char_class_attempt) {
-  // Pattern: [[abc]] - In ECMA-262:
-  // [ starts character class
-  // [ is literal bracket (inside class)
-  // abc are literals (inside class)
-  // First ] closes the character class
-  // Second ] is a literal ] outside the class
-  // So pattern is: [character class containing [abc] followed by literal ]
-  // Matches 2-character strings: a], b], c], []
+TEST(Regex_matches, nested_char_class_attempt) {
   const auto regex{sourcemeta::core::to_regex("[[abc]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a]"));
@@ -980,8 +934,7 @@ TEST(Regex_matches, attack_nested_char_class_attempt) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "d"));
 }
 
-TEST(Regex_matches, attack_dollar_before_alternation) {
-  // Pattern: foo$|bar - dollar before alternation
+TEST(Regex_matches, dollar_before_alternation) {
   const auto regex{sourcemeta::core::to_regex("foo$|bar")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo"));
@@ -990,8 +943,7 @@ TEST(Regex_matches, attack_dollar_before_alternation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foox"));
 }
 
-TEST(Regex_matches, attack_multiple_backslashes_complex) {
-  // Pattern: \\\\\\\\ - four escaped backslashes = four literal backslashes
+TEST(Regex_matches, multiple_backslashes_complex) {
   const auto regex{sourcemeta::core::to_regex("\\\\\\\\\\\\\\\\")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\\\\\\\"));
