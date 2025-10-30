@@ -27,7 +27,22 @@ inline auto translate_unicode_property(const std::string_view property_name,
     -> std::optional<std::string> {
   const char prefix{negated ? 'P' : 'p'};
 
-  if (property_name == "Letter") {
+  // NOLINTNEXTLINE(bugprone-branch-clone)
+  if (property_name == "digit") {
+    return std::string("\\") + prefix + "{Nd}";
+  }
+  // NOLINTNEXTLINE(bugprone-branch-clone)
+  else if (property_name == "space") {
+    return std::string("\\") + prefix + "{White_Space}";
+  } else if (property_name == "ASCII") {
+    return std::string("\\") + prefix + "{ASCII}";
+  } else if (property_name == "Hex_Digit") {
+    return std::string("\\") + prefix + "{Hex_Digit}";
+  } else if (property_name == "Alphabetic") {
+    return std::string("\\") + prefix + "{Alphabetic}";
+  } else if (property_name == "White_Space") {
+    return std::string("\\") + prefix + "{White_Space}";
+  } else if (property_name == "Letter") {
     return std::string("\\") + prefix + "{L}";
   } else if (property_name == "Uppercase_Letter") {
     return std::string("\\") + prefix + "{Lu}";

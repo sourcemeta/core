@@ -410,6 +410,51 @@ TEST(Regex_matches, ecma262_unicode_digit_property) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "৪২"));
 }
 
+TEST(Regex_matches, ecma262_unicode_digit_property_lowercase) {
+  const auto regex{sourcemeta::core::to_regex("^\\p{digit}+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "42"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "-%#"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "৪২"));
+}
+
+TEST(Regex_matches, ecma262_unicode_space_property_lowercase) {
+  const auto regex{sourcemeta::core::to_regex("^\\p{space}+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " \t"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_unicode_ASCII_property) {
+  const auto regex{sourcemeta::core::to_regex("^\\p{ASCII}+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc123"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "café"));
+}
+
+TEST(Regex_matches, ecma262_unicode_Hex_Digit_property) {
+  const auto regex{sourcemeta::core::to_regex("^\\p{Hex_Digit}+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      sourcemeta::core::matches(regex.value(), "0123456789abcdefABCDEF"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "xyz"));
+}
+
+TEST(Regex_matches, ecma262_unicode_Alphabetic_property) {
+  const auto regex{sourcemeta::core::to_regex("^\\p{Alphabetic}+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ABC"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "123"));
+}
+
+TEST(Regex_matches, ecma262_unicode_White_Space_property) {
+  const auto regex{sourcemeta::core::to_regex("^\\p{White_Space}+$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " \t\n"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
 TEST(Regex_matches, ecma262_escaped_backslash_before_charclass) {
   const auto regex{sourcemeta::core::to_regex("\\\\[abc]")};
   EXPECT_TRUE(regex.has_value());
