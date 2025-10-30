@@ -4,6 +4,12 @@
 
 #include <string>
 
+#ifdef _MSC_VER
+// Disable warning about Unicode characters not representable in Windows-1252
+#pragma warning(push)
+#pragma warning(disable : 4566)
+#endif
+
 TEST(Regex_matches, rfc9485_literal_single_char) {
   const auto regex{sourcemeta::core::to_regex("a")};
   EXPECT_TRUE(regex.has_value());
@@ -995,3 +1001,7 @@ TEST(Regex_matches, rfc9485_unicode_range_4byte_deseret) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\U0001044F"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "A"));
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
