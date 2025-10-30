@@ -10,24 +10,16 @@ namespace sourcemeta::core {
 
 namespace {
 
-// Count the number of consecutive backslashes before the given index
-inline auto count_preceding_backslashes(const std::string &pattern,
-                                        const std::size_t index)
-    -> std::size_t {
-  std::size_t count{0};
-  std::size_t pos{index};
-  while (pos > 0 && pattern[pos - 1] == '\\') {
-    ++count;
-    --pos;
-  }
-  return count;
-}
-
-// Check if a character at the given index is escaped
-// A character is escaped if preceded by an odd number of backslashes
 inline auto is_escaped(const std::string &pattern, const std::size_t index)
     -> bool {
-  return (count_preceding_backslashes(pattern, index) % 2) == 1;
+  std::size_t count{0};
+  std::size_t position{index};
+  while (position > 0 && pattern[position - 1] == '\\') {
+    ++count;
+    --position;
+  }
+
+  return (count % 2) == 1;
 }
 
 inline auto translate_unicode_property(const std::string_view property_name,
@@ -122,8 +114,6 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
   for (std::size_t index{0}; index < pattern.size(); ++index) {
     if (pattern[index] == '[' && !is_escaped(pattern, index)) {
       if (in_char_class) {
-        // Escape [ inside character class to prevent PCRE2 POSIX class
-        // interpretation
         result += "\\[";
       } else {
         in_char_class = true;
@@ -138,8 +128,6 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
       continue;
     }
 
-    // RFC 9485 (I-RegExp): $ in the middle of a pattern should be literal
-    // But $ at end, or before |, ), or another $ should remain an assertion
     if (!in_char_class && pattern[index] == '$' && index + 1 < pattern.size()) {
       const char next_char{pattern[index + 1]};
       // Only escape if not before alternation, closing paren, or another $
@@ -153,16 +141,11 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
       const char next_char{pattern[index + 1]};
 
       if (next_char == '\\') {
-        // Pass through escaped backslash as-is (PCRE2 and ECMA-262 both use
-        // same syntax)
         result += "\\\\";
         ++index;
         continue;
       }
 
-      // For escaped brackets in ECMA-262: \[ → literal [
-      // In PCRE2: \[ → literal [ (same syntax)
-      // So pass through as-is
       if (next_char == '[' || next_char == ']') {
         result += '\\';
         result += next_char;
