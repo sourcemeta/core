@@ -35,9 +35,6 @@ struct RegexTypeNonEmpty {
 using RegexTypeRange = std::pair<std::uint64_t, std::uint64_t>;
 
 /// @ingroup regex
-using RegexTypeStd = std::basic_regex<char>;
-
-/// @ingroup regex
 struct RegexTypePCRE2 {
   std::shared_ptr<pcre2_code> code;
   auto operator==(const RegexTypePCRE2 &other) const noexcept -> bool {
@@ -52,14 +49,13 @@ struct RegexTypeNoop {
 
 /// @ingroup regex
 using Regex = std::variant<RegexTypePrefix, RegexTypeNonEmpty, RegexTypeRange,
-                           RegexTypeStd, RegexTypePCRE2, RegexTypeNoop>;
+                           RegexTypePCRE2, RegexTypeNoop>;
 #if !defined(DOXYGEN)
 // For fast internal dispatching. It must stay in sync with the variant above
 enum class RegexIndex : std::uint8_t {
   Prefix = 0,
   NonEmpty,
   Range,
-  Std,
   PCRE2,
   Noop
 };

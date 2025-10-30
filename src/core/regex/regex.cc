@@ -373,12 +373,7 @@ auto to_regex(const std::string &pattern) -> std::optional<Regex> {
     return RegexTypePCRE2{pcre2_regex};
   }
 
-  try {
-    return RegexTypeStd{pattern, std::regex::ECMAScript | std::regex::nosubs |
-                                     std::regex::optimize};
-  } catch (const std::regex_error &) {
-    return std::nullopt;
-  }
+  return std::nullopt;
 }
 
 auto matches(const Regex &regex, const std::string &value) -> bool {
@@ -390,8 +385,6 @@ auto matches(const Regex &regex, const std::string &value) -> bool {
     case RegexIndex::Range:
       return value.size() >= std::get_if<RegexTypeRange>(&regex)->first &&
              value.size() <= std::get_if<RegexTypeRange>(&regex)->second;
-    case RegexIndex::Std:
-      return std::regex_search(value, *std::get_if<RegexTypeStd>(&regex));
     case RegexIndex::PCRE2: {
       const RegexTypePCRE2 *pcre2_regex{std::get_if<RegexTypePCRE2>(&regex)};
       pcre2_match_data *match_data{pcre2_match_data_create_from_pattern(
