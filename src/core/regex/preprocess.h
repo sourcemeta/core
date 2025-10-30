@@ -1,10 +1,118 @@
 #ifndef SOURCEMETA_CORE_REGEX_PREPROCESS_H_
 #define SOURCEMETA_CORE_REGEX_PREPROCESS_H_
 
-#include <cstddef> // std::size_t
-#include <string>  // std::string
+#include <cstddef>     // std::size_t
+#include <optional>    // std::optional
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 namespace sourcemeta::core {
+
+namespace {
+
+// Count the number of consecutive backslashes before the given index
+inline auto count_preceding_backslashes(const std::string &pattern,
+                                        const std::size_t index)
+    -> std::size_t {
+  std::size_t count{0};
+  std::size_t pos{index};
+  while (pos > 0 && pattern[pos - 1] == '\\') {
+    ++count;
+    --pos;
+  }
+  return count;
+}
+
+// Check if a character at the given index is escaped
+// A character is escaped if preceded by an odd number of backslashes
+inline auto is_escaped(const std::string &pattern, const std::size_t index)
+    -> bool {
+  return (count_preceding_backslashes(pattern, index) % 2) == 1;
+}
+
+inline auto translate_unicode_property(const std::string_view property_name,
+                                       const bool negated)
+    -> std::optional<std::string> {
+  const char prefix{negated ? 'P' : 'p'};
+
+  if (property_name == "Letter") {
+    return std::string("\\") + prefix + "{L}";
+  } else if (property_name == "Uppercase_Letter") {
+    return std::string("\\") + prefix + "{Lu}";
+  } else if (property_name == "Lowercase_Letter") {
+    return std::string("\\") + prefix + "{Ll}";
+  } else if (property_name == "Titlecase_Letter") {
+    return std::string("\\") + prefix + "{Lt}";
+  } else if (property_name == "Modifier_Letter") {
+    return std::string("\\") + prefix + "{Lm}";
+  } else if (property_name == "Other_Letter") {
+    return std::string("\\") + prefix + "{Lo}";
+  } else if (property_name == "Mark") {
+    return std::string("\\") + prefix + "{M}";
+  } else if (property_name == "Nonspacing_Mark") {
+    return std::string("\\") + prefix + "{Mn}";
+  } else if (property_name == "Spacing_Mark") {
+    return std::string("\\") + prefix + "{Mc}";
+  } else if (property_name == "Enclosing_Mark") {
+    return std::string("\\") + prefix + "{Me}";
+  } else if (property_name == "Number") {
+    return std::string("\\") + prefix + "{N}";
+  } else if (property_name == "Decimal_Number") {
+    return std::string("\\") + prefix + "{Nd}";
+  } else if (property_name == "Letter_Number") {
+    return std::string("\\") + prefix + "{Nl}";
+  } else if (property_name == "Other_Number") {
+    return std::string("\\") + prefix + "{No}";
+  } else if (property_name == "Punctuation") {
+    return std::string("\\") + prefix + "{P}";
+  } else if (property_name == "Connector_Punctuation") {
+    return std::string("\\") + prefix + "{Pc}";
+  } else if (property_name == "Dash_Punctuation") {
+    return std::string("\\") + prefix + "{Pd}";
+  } else if (property_name == "Open_Punctuation") {
+    return std::string("\\") + prefix + "{Ps}";
+  } else if (property_name == "Close_Punctuation") {
+    return std::string("\\") + prefix + "{Pe}";
+  } else if (property_name == "Initial_Punctuation") {
+    return std::string("\\") + prefix + "{Pi}";
+  } else if (property_name == "Final_Punctuation") {
+    return std::string("\\") + prefix + "{Pf}";
+  } else if (property_name == "Other_Punctuation") {
+    return std::string("\\") + prefix + "{Po}";
+  } else if (property_name == "Symbol") {
+    return std::string("\\") + prefix + "{S}";
+  } else if (property_name == "Math_Symbol") {
+    return std::string("\\") + prefix + "{Sm}";
+  } else if (property_name == "Currency_Symbol") {
+    return std::string("\\") + prefix + "{Sc}";
+  } else if (property_name == "Modifier_Symbol") {
+    return std::string("\\") + prefix + "{Sk}";
+  } else if (property_name == "Other_Symbol") {
+    return std::string("\\") + prefix + "{So}";
+  } else if (property_name == "Separator") {
+    return std::string("\\") + prefix + "{Z}";
+  } else if (property_name == "Space_Separator") {
+    return std::string("\\") + prefix + "{Zs}";
+  } else if (property_name == "Line_Separator") {
+    return std::string("\\") + prefix + "{Zl}";
+  } else if (property_name == "Paragraph_Separator") {
+    return std::string("\\") + prefix + "{Zp}";
+  } else if (property_name == "Other") {
+    return std::string("\\") + prefix + "{C}";
+  } else if (property_name == "Control") {
+    return std::string("\\") + prefix + "{Cc}";
+  } else if (property_name == "Format") {
+    return std::string("\\") + prefix + "{Cf}";
+  } else if (property_name == "Unassigned") {
+    return std::string("\\") + prefix + "{Cn}";
+  } else if (property_name == "Private_Use") {
+    return std::string("\\") + prefix + "{Co}";
+  }
+
+  return std::nullopt;
+}
+
+} // namespace
 
 inline auto preprocess_regex(const std::string &pattern) -> std::string {
   std::string result;
@@ -12,13 +120,18 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
   bool in_char_class{false};
 
   for (std::size_t index{0}; index < pattern.size(); ++index) {
-    if (pattern[index] == '[' && (index == 0 || pattern[index - 1] != '\\')) {
-      in_char_class = true;
-      result += pattern[index];
+    if (pattern[index] == '[' && !is_escaped(pattern, index)) {
+      if (in_char_class) {
+        // Escape [ inside character class to prevent PCRE2 POSIX class interpretation
+        result += "\\[";
+      } else {
+        in_char_class = true;
+        result += pattern[index];
+      }
       continue;
     }
 
-    if (pattern[index] == ']' && (index == 0 || pattern[index - 1] != '\\')) {
+    if (pattern[index] == ']' && !is_escaped(pattern, index)) {
       in_char_class = false;
       result += pattern[index];
       continue;
@@ -28,7 +141,18 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
       const char next_char{pattern[index + 1]};
 
       if (next_char == '\\') {
+        // Pass through escaped backslash as-is (PCRE2 and ECMA-262 both use same syntax)
         result += "\\\\";
+        ++index;
+        continue;
+      }
+
+      // For escaped brackets in ECMA-262: \[ → literal [
+      // In PCRE2: \[ → literal [ (same syntax)
+      // So pass through as-is
+      if (next_char == '[' || next_char == ']') {
+        result += '\\';
+        result += next_char;
         ++index;
         continue;
       }
@@ -71,8 +195,9 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
         }
       }
 
-      if (next_char == 'p' && index + 2 < pattern.size() &&
-          pattern[index + 2] == '{') {
+      if ((next_char == 'p' || next_char == 'P') &&
+          index + 2 < pattern.size() && pattern[index + 2] == '{') {
+        const bool negated{next_char == 'P'};
         const std::size_t start_index{index};
         index += 3;
         std::string property_name;
@@ -82,171 +207,10 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
         }
 
         if (index < pattern.size()) {
-          if (property_name == "Letter") {
-            result += "\\p{L}";
-          } else if (property_name == "Uppercase_Letter") {
-            result += "\\p{Lu}";
-          } else if (property_name == "Lowercase_Letter") {
-            result += "\\p{Ll}";
-          } else if (property_name == "Titlecase_Letter") {
-            result += "\\p{Lt}";
-          } else if (property_name == "Modifier_Letter") {
-            result += "\\p{Lm}";
-          } else if (property_name == "Other_Letter") {
-            result += "\\p{Lo}";
-          } else if (property_name == "Mark") {
-            result += "\\p{M}";
-          } else if (property_name == "Nonspacing_Mark") {
-            result += "\\p{Mn}";
-          } else if (property_name == "Spacing_Mark") {
-            result += "\\p{Mc}";
-          } else if (property_name == "Enclosing_Mark") {
-            result += "\\p{Me}";
-          } else if (property_name == "Number") {
-            result += "\\p{N}";
-          } else if (property_name == "Decimal_Number") {
-            result += "\\p{Nd}";
-          } else if (property_name == "Letter_Number") {
-            result += "\\p{Nl}";
-          } else if (property_name == "Other_Number") {
-            result += "\\p{No}";
-          } else if (property_name == "Punctuation") {
-            result += "\\p{P}";
-          } else if (property_name == "Connector_Punctuation") {
-            result += "\\p{Pc}";
-          } else if (property_name == "Dash_Punctuation") {
-            result += "\\p{Pd}";
-          } else if (property_name == "Open_Punctuation") {
-            result += "\\p{Ps}";
-          } else if (property_name == "Close_Punctuation") {
-            result += "\\p{Pe}";
-          } else if (property_name == "Initial_Punctuation") {
-            result += "\\p{Pi}";
-          } else if (property_name == "Final_Punctuation") {
-            result += "\\p{Pf}";
-          } else if (property_name == "Other_Punctuation") {
-            result += "\\p{Po}";
-          } else if (property_name == "Symbol") {
-            result += "\\p{S}";
-          } else if (property_name == "Math_Symbol") {
-            result += "\\p{Sm}";
-          } else if (property_name == "Currency_Symbol") {
-            result += "\\p{Sc}";
-          } else if (property_name == "Modifier_Symbol") {
-            result += "\\p{Sk}";
-          } else if (property_name == "Other_Symbol") {
-            result += "\\p{So}";
-          } else if (property_name == "Separator") {
-            result += "\\p{Z}";
-          } else if (property_name == "Space_Separator") {
-            result += "\\p{Zs}";
-          } else if (property_name == "Line_Separator") {
-            result += "\\p{Zl}";
-          } else if (property_name == "Paragraph_Separator") {
-            result += "\\p{Zp}";
-          } else if (property_name == "Other") {
-            result += "\\p{C}";
-          } else if (property_name == "Control") {
-            result += "\\p{Cc}";
-          } else if (property_name == "Format") {
-            result += "\\p{Cf}";
-          } else if (property_name == "Unassigned") {
-            result += "\\p{Cn}";
-          } else if (property_name == "Private_Use") {
-            result += "\\p{Co}";
-          } else {
-            result += pattern.substr(start_index, index - start_index + 1);
-          }
-        } else {
-          index = start_index;
-          result += pattern[index];
-        }
-        continue;
-      }
-
-      if (next_char == 'P' && index + 2 < pattern.size() &&
-          pattern[index + 2] == '{') {
-        const std::size_t start_index{index};
-        index += 3;
-        std::string property_name;
-        while (index < pattern.size() && pattern[index] != '}') {
-          property_name += pattern[index];
-          ++index;
-        }
-
-        if (index < pattern.size()) {
-          if (property_name == "Letter") {
-            result += "\\P{L}";
-          } else if (property_name == "Uppercase_Letter") {
-            result += "\\P{Lu}";
-          } else if (property_name == "Lowercase_Letter") {
-            result += "\\P{Ll}";
-          } else if (property_name == "Titlecase_Letter") {
-            result += "\\P{Lt}";
-          } else if (property_name == "Modifier_Letter") {
-            result += "\\P{Lm}";
-          } else if (property_name == "Other_Letter") {
-            result += "\\P{Lo}";
-          } else if (property_name == "Mark") {
-            result += "\\P{M}";
-          } else if (property_name == "Nonspacing_Mark") {
-            result += "\\P{Mn}";
-          } else if (property_name == "Spacing_Mark") {
-            result += "\\P{Mc}";
-          } else if (property_name == "Enclosing_Mark") {
-            result += "\\P{Me}";
-          } else if (property_name == "Number") {
-            result += "\\P{N}";
-          } else if (property_name == "Decimal_Number") {
-            result += "\\P{Nd}";
-          } else if (property_name == "Letter_Number") {
-            result += "\\P{Nl}";
-          } else if (property_name == "Other_Number") {
-            result += "\\P{No}";
-          } else if (property_name == "Punctuation") {
-            result += "\\P{P}";
-          } else if (property_name == "Connector_Punctuation") {
-            result += "\\P{Pc}";
-          } else if (property_name == "Dash_Punctuation") {
-            result += "\\P{Pd}";
-          } else if (property_name == "Open_Punctuation") {
-            result += "\\P{Ps}";
-          } else if (property_name == "Close_Punctuation") {
-            result += "\\P{Pe}";
-          } else if (property_name == "Initial_Punctuation") {
-            result += "\\P{Pi}";
-          } else if (property_name == "Final_Punctuation") {
-            result += "\\P{Pf}";
-          } else if (property_name == "Other_Punctuation") {
-            result += "\\P{Po}";
-          } else if (property_name == "Symbol") {
-            result += "\\P{S}";
-          } else if (property_name == "Math_Symbol") {
-            result += "\\P{Sm}";
-          } else if (property_name == "Currency_Symbol") {
-            result += "\\P{Sc}";
-          } else if (property_name == "Modifier_Symbol") {
-            result += "\\P{Sk}";
-          } else if (property_name == "Other_Symbol") {
-            result += "\\P{So}";
-          } else if (property_name == "Separator") {
-            result += "\\P{Z}";
-          } else if (property_name == "Space_Separator") {
-            result += "\\P{Zs}";
-          } else if (property_name == "Line_Separator") {
-            result += "\\P{Zl}";
-          } else if (property_name == "Paragraph_Separator") {
-            result += "\\P{Zp}";
-          } else if (property_name == "Other") {
-            result += "\\P{C}";
-          } else if (property_name == "Control") {
-            result += "\\P{Cc}";
-          } else if (property_name == "Format") {
-            result += "\\P{Cf}";
-          } else if (property_name == "Unassigned") {
-            result += "\\P{Cn}";
-          } else if (property_name == "Private_Use") {
-            result += "\\P{Co}";
+          const auto translated{
+              translate_unicode_property(property_name, negated)};
+          if (translated.has_value()) {
+            result += translated.value();
           } else {
             result += pattern.substr(start_index, index - start_index + 1);
           }
@@ -309,11 +273,6 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
         ++index;
         continue;
       }
-    }
-
-    if (pattern[index] == '$' && index + 1 < pattern.size()) {
-      result += "\\$";
-      continue;
     }
 
     result += pattern[index];
