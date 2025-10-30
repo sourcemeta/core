@@ -4,7 +4,6 @@
 #include <cstdint>  // std::uint8_t, std::uint64_t
 #include <memory>   // std::shared_ptr
 #include <optional> // std::optional
-#include <regex>    // std::basic_regex
 #include <string>   // std::string
 #include <utility>  // std::pair
 #include <variant>  // std::variant

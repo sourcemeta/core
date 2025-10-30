@@ -5,8 +5,8 @@
 #include <cassert> // assert
 #include <cstddef> // std::size_t
 #include <cstdint> // std::uint64_t
-#include <regex> // std::regex, std::smatch, std::regex_match, std::regex_search, std::regex_error
-#include <string> // std::string, std::stoull
+#include <regex>   // std::regex, std::smatch, std::regex_match
+#include <string>  // std::string, std::stoull
 
 namespace {
 
