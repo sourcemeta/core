@@ -364,14 +364,12 @@ auto to_regex(const std::string &pattern) -> std::optional<Regex> {
   pcre2_code *pcre2_regex_raw{pcre2_compile(
       reinterpret_cast<PCRE2_SPTR>(pcre2_pattern.c_str()), pcre2_pattern.size(),
       PCRE2_UTF | PCRE2_UCP | PCRE2_NO_AUTO_CAPTURE | PCRE2_DOTALL |
-          PCRE2_DOLLAR_ENDONLY,
+          PCRE2_DOLLAR_ENDONLY | PCRE2_NEVER_BACKSLASH_C | PCRE2_NO_UTF_CHECK,
       &pcre2_error_code, &pcre2_error_offset, nullptr)};
 
   if (pcre2_regex_raw != nullptr) {
     std::shared_ptr<pcre2_code> pcre2_regex{pcre2_regex_raw, pcre2_code_free};
-    const int jit_result{
-        pcre2_jit_compile(pcre2_regex.get(), PCRE2_JIT_COMPLETE)};
-    static_cast<void>(jit_result);
+    pcre2_jit_compile(pcre2_regex.get(), PCRE2_JIT_COMPLETE);
     return RegexTypePCRE2{std::shared_ptr<void>(pcre2_regex)};
   }
 
@@ -390,12 +388,12 @@ auto matches(const Regex &regex, const std::string &value) -> bool {
     case RegexIndex::PCRE2: {
       const RegexTypePCRE2 *pcre2_regex{std::get_if<RegexTypePCRE2>(&regex)};
       auto *pcre2_code_ptr{static_cast<pcre2_code *>(pcre2_regex->code.get())};
-      pcre2_match_data *match_data{
-          pcre2_match_data_create_from_pattern(pcre2_code_ptr, nullptr)};
+      // Re-use this to avoid creating and destroying the `struct`on every call
+      thread_local pcre2_match_data *match_data{
+          pcre2_match_data_create(1, nullptr)};
       const int match_result{pcre2_match(
           pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.c_str()),
-          value.size(), 0, 0, match_data, nullptr)};
-      pcre2_match_data_free(match_data);
+          value.size(), 0, PCRE2_NO_UTF_CHECK, match_data, nullptr)};
       return match_result >= 0;
     }
     case RegexIndex::Noop:
