@@ -806,10 +806,10 @@ TEST(Regex_matches, ecma262_triple_backslash_before_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
 }
 
-TEST(Regex_matches, ecma262_dollar_in_middle_as_literal) {
+TEST(Regex_matches, ecma262_dollar_in_middle_never_matches) {
   const auto regex{sourcemeta::core::to_regex("foo$bar")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo$bar"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foo$bar"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foobar"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foo"));
 }
@@ -969,7 +969,10 @@ TEST(Regex_matches, ecma262_right_bracket_negated_class) {
 TEST(Regex_matches, ecma262_dollar_before_opening_paren) {
   const auto regex{sourcemeta::core::to_regex("$(abc)")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$abc"));
+  // In ECMA-262, $ is always an end assertion
+  // Pattern "$(abc)" means: assert end, then match "abc"
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$abc"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
 }
 
@@ -985,8 +988,12 @@ TEST(Regex_matches, ecma262_caret_not_at_start_of_class) {
 TEST(Regex_matches, ecma262_caret_in_middle_of_pattern) {
   const auto regex{sourcemeta::core::to_regex("a^b")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a^b"));
+  // In ECMA-262, ^ is always a start assertion, never a literal
+  // Pattern "a^b" means: match "a", assert start, match "b"
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a^b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
 TEST(Regex_matches, ecma262_backslash_before_digit_escape) {
@@ -1016,8 +1023,13 @@ TEST(Regex_matches, ecma262_dash_at_start_of_class) {
 TEST(Regex_matches, ecma262_double_caret) {
   const auto regex{sourcemeta::core::to_regex("^^abc")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^abc"));
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+  // In ECMA-262, ^ is always a start assertion
+  // Pattern "^^abc" means: assert start, assert start (redundant), match "abc"
+  // This matches strings starting with "abc"
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abcdef"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "^abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "xabc"));
 }
 
 TEST(Regex_matches, ecma262_caret_after_alternation) {
@@ -1186,8 +1198,11 @@ TEST(Regex_matches, ecma262_hex_escape) {
 TEST(Regex_matches, ecma262_dollar_before_bracket) {
   const auto regex{sourcemeta::core::to_regex("$[abc]")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$a"));
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$b"));
+  // In ECMA-262, $ is always an end assertion
+  // Pattern "$[abc]" means: assert end, then match one of a/b/c
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
@@ -1231,7 +1246,10 @@ TEST(Regex_matches, ecma262_dollar_at_start) {
 TEST(Regex_matches, ecma262_caret_at_end) {
   const auto regex{sourcemeta::core::to_regex("abc^")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc^"));
+  // In ECMA-262, ^ is always a start assertion
+  // Pattern "abc^" means: match "abc", then assert start
+  // This can NEVER match anything
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc^"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
 }
 
@@ -1294,8 +1312,13 @@ TEST(Regex_matches, ecma262_caret_dollar_together) {
 TEST(Regex_matches, ecma262_multiple_carets_at_start) {
   const auto regex{sourcemeta::core::to_regex("^^^abc")};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^^abc"));
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+  // In ECMA-262, ^ is always a start assertion
+  // Pattern "^^^abc" means: assert start three times (redundant), match "abc"
+  // This matches strings starting with "abc"
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abcdef"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "^^abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "xabc"));
 }
 
 TEST(Regex_matches, ecma262_multiple_dollars_at_end) {
