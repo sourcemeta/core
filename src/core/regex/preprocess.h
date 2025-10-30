@@ -128,11 +128,24 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
       continue;
     }
 
+    // RFC 9485 (I-RegExp): $ in the middle of a pattern should be literal
+    // But $ at end, or before |, ), or another $ should remain an assertion
     if (!in_char_class && pattern[index] == '$' && index + 1 < pattern.size()) {
       const char next_char{pattern[index + 1]};
       // Only escape if not before alternation, closing paren, or another $
       if (next_char != '|' && next_char != ')' && next_char != '$') {
         result += "\\$";
+        continue;
+      }
+    }
+
+    // RFC 9485 (I-RegExp): ^ not at start should be literal
+    // But ^ at start or after | or ( should remain an assertion
+    if (!in_char_class && pattern[index] == '^' && index > 0) {
+      const char prev_char{pattern[index - 1]};
+      // Only escape if not after alternation or opening paren
+      if (prev_char != '|' && prev_char != '(') {
+        result += "\\^";
         continue;
       }
     }
@@ -146,7 +159,8 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
         continue;
       }
 
-      if (next_char == '[' || next_char == ']') {
+      if (next_char == '[' || next_char == ']' || next_char == '^' ||
+          next_char == '$') {
         result += '\\';
         result += next_char;
         ++index;

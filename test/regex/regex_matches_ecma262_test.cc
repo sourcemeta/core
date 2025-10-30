@@ -788,7 +788,7 @@ TEST(Regex_matches, ecma262_xml_ncname_unicode_identifier) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\U000104A0element"));
 }
 
-TEST(Regex_matches, escaped_backslash_before_bracket) {
+TEST(Regex_matches, ecma262_escaped_backslash_before_bracket) {
   const auto regex{sourcemeta::core::to_regex("\\\\[abc]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\a"));
@@ -798,7 +798,7 @@ TEST(Regex_matches, escaped_backslash_before_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, triple_backslash_before_bracket) {
+TEST(Regex_matches, ecma262_triple_backslash_before_bracket) {
   const auto regex{sourcemeta::core::to_regex("\\\\\\[")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\["));
@@ -806,7 +806,7 @@ TEST(Regex_matches, triple_backslash_before_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
 }
 
-TEST(Regex_matches, dollar_in_middle_as_literal) {
+TEST(Regex_matches, ecma262_dollar_in_middle_as_literal) {
   const auto regex{sourcemeta::core::to_regex("foo$bar")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo$bar"));
@@ -814,28 +814,28 @@ TEST(Regex_matches, dollar_in_middle_as_literal) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foo"));
 }
 
-TEST(Regex_matches, dollar_in_character_class) {
+TEST(Regex_matches, ecma262_dollar_in_character_class) {
   const auto regex{sourcemeta::core::to_regex("[$]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, escaped_dollar) {
+TEST(Regex_matches, ecma262_escaped_dollar) {
   const auto regex{sourcemeta::core::to_regex("\\$")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, multiple_dollars) {
+TEST(Regex_matches, ecma262_multiple_dollars) {
   const auto regex{sourcemeta::core::to_regex("$$")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "anything"));
 }
 
-TEST(Regex_matches, negated_digit_in_char_class) {
+TEST(Regex_matches, ecma262_negated_digit_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\D]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -844,7 +844,7 @@ TEST(Regex_matches, negated_digit_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, negated_word_in_char_class) {
+TEST(Regex_matches, ecma262_negated_word_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\W]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "!"));
@@ -855,7 +855,7 @@ TEST(Regex_matches, negated_word_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "_"));
 }
 
-TEST(Regex_matches, negated_space_in_char_class) {
+TEST(Regex_matches, ecma262_negated_space_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\S]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -866,7 +866,7 @@ TEST(Regex_matches, negated_space_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\n"));
 }
 
-TEST(Regex_matches, mixed_escapes_in_char_class) {
+TEST(Regex_matches, ecma262_mixed_escapes_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\d\\D]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "0"));
@@ -875,7 +875,7 @@ TEST(Regex_matches, mixed_escapes_in_char_class) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " "));
 }
 
-TEST(Regex_matches, escaped_bracket_in_char_class) {
+TEST(Regex_matches, ecma262_escaped_bracket_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
@@ -883,14 +883,14 @@ TEST(Regex_matches, escaped_bracket_in_char_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, backslash_in_char_class) {
+TEST(Regex_matches, ecma262_backslash_in_char_class) {
   const auto regex{sourcemeta::core::to_regex("[\\\\]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, complex_char_class_with_escaped_chars) {
+TEST(Regex_matches, ecma262_complex_char_class_with_escaped_chars) {
   const auto regex{sourcemeta::core::to_regex("[a\\]b\\\\c]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -902,27 +902,27 @@ TEST(Regex_matches, complex_char_class_with_escaped_chars) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
 }
 
-TEST(Regex_matches, empty_char_class) {
+TEST(Regex_matches, ecma262_empty_char_class) {
   const auto regex{sourcemeta::core::to_regex("[]")};
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, incomplete_unicode_property) {
+TEST(Regex_matches, ecma262_incomplete_unicode_property) {
   const auto regex{sourcemeta::core::to_regex("\\p{Letter")};
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, incomplete_unicode_escape) {
+TEST(Regex_matches, ecma262_incomplete_unicode_escape) {
   const auto regex{sourcemeta::core::to_regex("\\u{DEAD")};
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, backslash_at_end) {
+TEST(Regex_matches, ecma262_backslash_at_end) {
   const auto regex{sourcemeta::core::to_regex("foo\\")};
   EXPECT_FALSE(regex.has_value());
 }
 
-TEST(Regex_matches, nested_char_class_attempt) {
+TEST(Regex_matches, ecma262_nested_char_class_attempt) {
   const auto regex{sourcemeta::core::to_regex("[[abc]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a]"));
@@ -934,7 +934,7 @@ TEST(Regex_matches, nested_char_class_attempt) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "d"));
 }
 
-TEST(Regex_matches, dollar_before_alternation) {
+TEST(Regex_matches, ecma262_dollar_before_alternation) {
   const auto regex{sourcemeta::core::to_regex("foo$|bar")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo"));
@@ -943,9 +943,364 @@ TEST(Regex_matches, dollar_before_alternation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "foox"));
 }
 
-TEST(Regex_matches, multiple_backslashes_complex) {
+TEST(Regex_matches, ecma262_multiple_backslashes_complex) {
   const auto regex{sourcemeta::core::to_regex("\\\\\\\\\\\\\\\\")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\\\\\\\"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\\\\"));
+}
+
+TEST(Regex_matches, ecma262_right_bracket_as_first_char_in_class) {
+  const auto regex{sourcemeta::core::to_regex("[]]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_right_bracket_negated_class) {
+  const auto regex{sourcemeta::core::to_regex("[^]]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "]"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "["));
+}
+
+TEST(Regex_matches, ecma262_dollar_before_opening_paren) {
+  const auto regex{sourcemeta::core::to_regex("$(abc)")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_caret_not_at_start_of_class) {
+  const auto regex{sourcemeta::core::to_regex("[a^b]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "c"));
+}
+
+TEST(Regex_matches, ecma262_caret_in_middle_of_pattern) {
+  const auto regex{sourcemeta::core::to_regex("a^b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a^b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(Regex_matches, ecma262_backslash_before_digit_escape) {
+  const auto regex{sourcemeta::core::to_regex("\\\\\\d")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\0"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\9"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "0"));
+}
+
+TEST(Regex_matches, ecma262_dash_at_end_of_class) {
+  const auto regex{sourcemeta::core::to_regex("[abc-]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "d"));
+}
+
+TEST(Regex_matches, ecma262_dash_at_start_of_class) {
+  const auto regex{sourcemeta::core::to_regex("[-abc]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "d"));
+}
+
+TEST(Regex_matches, ecma262_double_caret) {
+  const auto regex{sourcemeta::core::to_regex("^^abc")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_caret_after_alternation) {
+  const auto regex{sourcemeta::core::to_regex("a|^b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "xb"));
+}
+
+TEST(Regex_matches, ecma262_caret_after_opening_paren) {
+  const auto regex{sourcemeta::core::to_regex("(^abc)")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "xabc"));
+}
+
+TEST(Regex_matches, ecma262_dollar_then_caret) {
+  const auto regex{sourcemeta::core::to_regex("a$^b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a$^b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(Regex_matches, ecma262_backspace_in_char_class) {
+  const auto regex{sourcemeta::core::to_regex("[\\b]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
+}
+
+TEST(Regex_matches, ecma262_whitespace_and_non_whitespace_class) {
+  const auto regex{sourcemeta::core::to_regex("[\\s\\S]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " "));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "5"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\n"));
+}
+
+TEST(Regex_matches, ecma262_word_boundary_outside_class) {
+  const auto regex{sourcemeta::core::to_regex("\\bword\\b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "word"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " word "));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "sword"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "words"));
+}
+
+TEST(Regex_matches, ecma262_unmatched_closing_paren) {
+  const auto regex{sourcemeta::core::to_regex("abc)")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_unmatched_opening_paren) {
+  const auto regex{sourcemeta::core::to_regex("(abc")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_quantifier_on_assertion) {
+  const auto regex{sourcemeta::core::to_regex("^*")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_escaped_closing_bracket_in_class) {
+  const auto regex{sourcemeta::core::to_regex("[a\\]b]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "c"));
+}
+
+TEST(Regex_matches, ecma262_negated_empty_class) {
+  const auto regex{sourcemeta::core::to_regex("[^]")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_unicode_hex_too_large) {
+  const auto regex{sourcemeta::core::to_regex("\\u{110000}")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_multiple_backslashes_before_d) {
+  const auto regex{sourcemeta::core::to_regex("\\\\\\\\d")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\\\d"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\\\\5"));
+}
+
+TEST(Regex_matches, ecma262_backslash_before_closing_bracket) {
+  const auto regex{sourcemeta::core::to_regex("[abc\\]")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_empty_alternation_branch) {
+  const auto regex{sourcemeta::core::to_regex("a||b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+}
+
+TEST(Regex_matches, ecma262_pipe_at_start) {
+  const auto regex{sourcemeta::core::to_regex("|abc")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+}
+
+TEST(Regex_matches, ecma262_pipe_at_end) {
+  const auto regex{sourcemeta::core::to_regex("abc|")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+}
+
+TEST(Regex_matches, ecma262_dot_matches_any_except_newline) {
+  const auto regex{sourcemeta::core::to_regex("a.b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "axb"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a5b"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a b"));
+}
+
+TEST(Regex_matches, ecma262_escaped_dot_in_char_class) {
+  const auto regex{sourcemeta::core::to_regex("[.]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "."));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_non_greedy_star) {
+  const auto regex{sourcemeta::core::to_regex("a*?")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaa"));
+}
+
+TEST(Regex_matches, ecma262_non_greedy_plus) {
+  const auto regex{sourcemeta::core::to_regex("a+?")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaa"));
+}
+
+TEST(Regex_matches, ecma262_lowercase_range) {
+  const auto regex{sourcemeta::core::to_regex("[a-z]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "m"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "z"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "A"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
+}
+
+TEST(Regex_matches, ecma262_hex_escape) {
+  const auto regex{sourcemeta::core::to_regex("\\x41")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "B"));
+}
+
+TEST(Regex_matches, ecma262_dollar_before_bracket) {
+  const auto regex{sourcemeta::core::to_regex("$[abc]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_quantifier_on_group) {
+  const auto regex{sourcemeta::core::to_regex("(ab)+")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abab"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_nested_groups) {
+  const auto regex{sourcemeta::core::to_regex("((abc))")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(Regex_matches, ecma262_escaped_pipe) {
+  const auto regex{sourcemeta::core::to_regex("a\\|b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a|b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
+}
+
+TEST(Regex_matches, ecma262_escaped_paren) {
+  const auto regex{sourcemeta::core::to_regex("\\(abc\\)")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "(abc)"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_dollar_at_start) {
+  const auto regex{sourcemeta::core::to_regex("$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "anything"));
+}
+
+TEST(Regex_matches, ecma262_caret_at_end) {
+  const auto regex{sourcemeta::core::to_regex("abc^")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc^"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_escaped_quantifiers) {
+  const auto regex{sourcemeta::core::to_regex("\\*\\+\\?")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "*+?"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_escaped_curly_brace) {
+  const auto regex{sourcemeta::core::to_regex("\\{3\\}")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "{3}"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "333"));
+}
+
+TEST(Regex_matches, ecma262_question_quantifier) {
+  const auto regex{sourcemeta::core::to_regex("ab?c")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ac"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abbc"));
+}
+
+TEST(Regex_matches, ecma262_zero_quantifier) {
+  const auto regex{sourcemeta::core::to_regex("a{0}b")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "xyzb"));
+}
+
+TEST(Regex_matches, ecma262_spaces_are_literal) {
+  const auto regex{sourcemeta::core::to_regex("a b c")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a b c"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_tab_is_literal) {
+  const auto regex{sourcemeta::core::to_regex("a\tb")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a\tb"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(Regex_matches, ecma262_backslash_before_closing_paren) {
+  const auto regex{sourcemeta::core::to_regex("(abc\\)")};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(Regex_matches, ecma262_caret_dollar_together) {
+  const auto regex{sourcemeta::core::to_regex("^$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_multiple_carets_at_start) {
+  const auto regex{sourcemeta::core::to_regex("^^^abc")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^^abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
+TEST(Regex_matches, ecma262_multiple_dollars_at_end) {
+  const auto regex{sourcemeta::core::to_regex("abc$$$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc$"));
 }
