@@ -4,12 +4,6 @@
 
 #include <string>
 
-#ifdef _MSC_VER
-// Disable warning about Unicode characters not representable in Windows-1252
-#pragma warning(push)
-#pragma warning(disable : 4566)
-#endif
-
 TEST(Regex_matches, ecma262_anchor_start) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
@@ -1336,7 +1330,3 @@ TEST(Regex_matches, ecma262_multiple_dollars_at_end) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc$"));
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
