@@ -122,7 +122,8 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
   for (std::size_t index{0}; index < pattern.size(); ++index) {
     if (pattern[index] == '[' && !is_escaped(pattern, index)) {
       if (in_char_class) {
-        // Escape [ inside character class to prevent PCRE2 POSIX class interpretation
+        // Escape [ inside character class to prevent PCRE2 POSIX class
+        // interpretation
         result += "\\[";
       } else {
         in_char_class = true;
@@ -152,7 +153,8 @@ inline auto preprocess_regex(const std::string &pattern) -> std::string {
       const char next_char{pattern[index + 1]};
 
       if (next_char == '\\') {
-        // Pass through escaped backslash as-is (PCRE2 and ECMA-262 both use same syntax)
+        // Pass through escaped backslash as-is (PCRE2 and ECMA-262 both use
+        // same syntax)
         result += "\\\\";
         ++index;
         continue;

@@ -1,6 +1,10 @@
 #ifndef SOURCEMETA_CORE_REGEX_H_
 #define SOURCEMETA_CORE_REGEX_H_
 
+#ifndef SOURCEMETA_CORE_REGEX_EXPORT
+#include <sourcemeta/core/regex_export.h>
+#endif
+
 #include <cstdint>  // std::uint8_t, std::uint64_t
 #include <memory>   // std::shared_ptr
 #include <optional> // std::optional
@@ -79,6 +83,7 @@ enum class RegexIndex : std::uint8_t {
 ///   sourcemeta::core::to_regex("^foo")};
 /// assert(regex.has_value());
 /// ```
+SOURCEMETA_CORE_REGEX_EXPORT
 auto to_regex(const std::string &pattern) -> std::optional<Regex>;
 
 /// @ingroup regex
@@ -94,6 +99,7 @@ auto to_regex(const std::string &pattern) -> std::optional<Regex>;
 /// assert(regex.has_value());
 /// assert(sourcemeta::core::matches(regex.value(), "foo bar"));
 /// ```
+SOURCEMETA_CORE_REGEX_EXPORT
 auto matches(const Regex &regex, const std::string &value) -> bool;
 
 /// @ingroup regex
@@ -108,6 +114,7 @@ auto matches(const Regex &regex, const std::string &value) -> bool;
 ///
 /// assert(sourcemeta::core::matches_if_valid("^foo", "foo bar"));
 /// ```
+SOURCEMETA_CORE_REGEX_EXPORT
 auto matches_if_valid(const std::string &pattern, const std::string &value)
     -> bool;
 
