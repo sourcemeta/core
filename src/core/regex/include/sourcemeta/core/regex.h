@@ -22,6 +22,7 @@
 
 #include <cassert>  // assert
 #include <cstdint>  // std::uint8_t, std::uint64_t
+#include <memory>   // std::shared_ptr
 #include <optional> // std::optional
 #include <regex>    // std::regex
 #include <string>   // std::stoull
@@ -57,16 +58,24 @@ using RegexTypeRange = std::pair<std::uint64_t, std::uint64_t>;
 template <typename T> using RegexTypeStd = std::basic_regex<T>;
 
 /// @ingroup regex
+struct RegexTypePCRE2 {
+  std::shared_ptr<pcre2_code> code;
+  auto operator==(const RegexTypePCRE2 &other) const noexcept -> bool {
+    return this->code == other.code;
+  }
+};
+
+/// @ingroup regex
 struct RegexTypeNoop {
   auto operator==(const RegexTypeNoop &) const noexcept -> bool = default;
 };
 
 /// @ingroup regex
 template <typename T>
-using Regex =
-    std::variant<RegexTypeBoost<typename T::value_type>, RegexTypePrefix<T>,
-                 RegexTypeNonEmpty, RegexTypeRange,
-                 RegexTypeStd<typename T::value_type>, RegexTypeNoop>;
+using Regex = std::variant<RegexTypeBoost<typename T::value_type>,
+                           RegexTypePrefix<T>, RegexTypeNonEmpty,
+                           RegexTypeRange, RegexTypeStd<typename T::value_type>,
+                           RegexTypePCRE2, RegexTypeNoop>;
 #if !defined(DOXYGEN)
 // For fast internal dispatching. It must stay in sync with the variant above
 enum class RegexIndex : std::uint8_t {
@@ -75,6 +84,7 @@ enum class RegexIndex : std::uint8_t {
   NonEmpty,
   Range,
   Std,
+  PCRE2,
   Noop
 };
 #endif
@@ -121,6 +131,26 @@ auto to_regex(const T &pattern) -> std::optional<Regex<T>> {
     return RegexTypeRange{minimum, maximum};
   }
 
+  // Try PCRE2 first with JIT and Unicode support
+  int pcre2_error_code{0};
+  PCRE2_SIZE pcre2_error_offset{0};
+  pcre2_code *pcre2_regex_raw{pcre2_compile(
+      reinterpret_cast<PCRE2_SPTR>(pattern.c_str()), pattern.size(),
+      PCRE2_UTF | PCRE2_UCP | PCRE2_NO_AUTO_CAPTURE | PCRE2_DOTALL,
+      &pcre2_error_code, &pcre2_error_offset, nullptr)};
+
+  if (pcre2_regex_raw != nullptr) {
+    // Wrap in shared_ptr with custom deleter for automatic cleanup
+    std::shared_ptr<pcre2_code> pcre2_regex{pcre2_regex_raw, pcre2_code_free};
+    // Enable JIT compilation for better performance
+    const int jit_result{
+        pcre2_jit_compile(pcre2_regex.get(), PCRE2_JIT_COMPLETE)};
+    // JIT compilation is optional - if it fails, we can still use the regex
+    static_cast<void>(jit_result);
+    return RegexTypePCRE2{pcre2_regex};
+  }
+
+  // Fall back to Boost if PCRE2 fails
   RegexTypeBoost<typename T::value_type> result{
       pattern,
       boost::regex::no_except |
@@ -194,6 +224,16 @@ auto matches(const Regex<T> &regex, const T &value) -> bool {
     case RegexIndex::Std:
       return std::regex_search(
           value, *std::get_if<RegexTypeStd<typename T::value_type>>(&regex));
+    case RegexIndex::PCRE2: {
+      const RegexTypePCRE2 *pcre2_regex{std::get_if<RegexTypePCRE2>(&regex)};
+      pcre2_match_data *match_data{pcre2_match_data_create_from_pattern(
+          pcre2_regex->code.get(), nullptr)};
+      const int match_result{pcre2_match(
+          pcre2_regex->code.get(), reinterpret_cast<PCRE2_SPTR>(value.c_str()),
+          value.size(), 0, 0, match_data, nullptr)};
+      pcre2_match_data_free(match_data);
+      return match_result >= 0;
+    }
     case RegexIndex::Noop:
       return true;
   }
