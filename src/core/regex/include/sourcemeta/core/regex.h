@@ -1,8 +1,6 @@
 #ifndef SOURCEMETA_CORE_REGEX_H_
 #define SOURCEMETA_CORE_REGEX_H_
 
-#include <pcre2.h>
-
 #include <cstdint>  // std::uint8_t, std::uint64_t
 #include <memory>   // std::shared_ptr
 #include <optional> // std::optional
@@ -36,7 +34,7 @@ using RegexTypeRange = std::pair<std::uint64_t, std::uint64_t>;
 
 /// @ingroup regex
 struct RegexTypePCRE2 {
-  std::shared_ptr<pcre2_code> code;
+  std::shared_ptr<void> code;
   auto operator==(const RegexTypePCRE2 &other) const noexcept -> bool {
     return this->code == other.code;
   }

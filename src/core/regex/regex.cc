@@ -1,5 +1,7 @@
 #include <sourcemeta/core/regex.h>
 
+#include <pcre2.h>
+
 #include <cassert> // assert
 #include <cstddef> // std::size_t
 #include <cstdint> // std::uint64_t
@@ -370,7 +372,7 @@ auto to_regex(const std::string &pattern) -> std::optional<Regex> {
     const int jit_result{
         pcre2_jit_compile(pcre2_regex.get(), PCRE2_JIT_COMPLETE)};
     static_cast<void>(jit_result);
-    return RegexTypePCRE2{pcre2_regex};
+    return RegexTypePCRE2{std::shared_ptr<void>(pcre2_regex)};
   }
 
   return std::nullopt;
@@ -387,10 +389,11 @@ auto matches(const Regex &regex, const std::string &value) -> bool {
              value.size() <= std::get_if<RegexTypeRange>(&regex)->second;
     case RegexIndex::PCRE2: {
       const RegexTypePCRE2 *pcre2_regex{std::get_if<RegexTypePCRE2>(&regex)};
-      pcre2_match_data *match_data{pcre2_match_data_create_from_pattern(
-          pcre2_regex->code.get(), nullptr)};
+      auto *pcre2_code_ptr{static_cast<pcre2_code *>(pcre2_regex->code.get())};
+      pcre2_match_data *match_data{
+          pcre2_match_data_create_from_pattern(pcre2_code_ptr, nullptr)};
       const int match_result{pcre2_match(
-          pcre2_regex->code.get(), reinterpret_cast<PCRE2_SPTR>(value.c_str()),
+          pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.c_str()),
           value.size(), 0, 0, match_data, nullptr)};
       pcre2_match_data_free(match_data);
       return match_result >= 0;
