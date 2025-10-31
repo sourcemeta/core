@@ -35,19 +35,23 @@ auto interpret_scalar(const std::string_view input,
 
 auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
                          const sourcemeta::core::JSON::ParseCallback &callback,
-                         const sourcemeta::core::JSON &context)
+                         const sourcemeta::core::JSON &context,
+                         const yaml_mark_t *override_start_mark = nullptr)
     -> sourcemeta::core::JSON;
 
 auto consume_scalar_event(yaml_event_t *event,
                           const sourcemeta::core::JSON::ParseCallback &callback,
-                          const sourcemeta::core::JSON &context)
+                          const sourcemeta::core::JSON &context,
+                          const yaml_mark_t *override_start_mark = nullptr)
     -> sourcemeta::core::JSON {
   const std::string_view input{
       reinterpret_cast<char *>(event->data.scalar.value),
       event->data.scalar.length};
 
-  const std::uint64_t start_line{event->start_mark.line + 1};
-  const std::uint64_t start_column{event->start_mark.column + 1};
+  const yaml_mark_t &start_mark{override_start_mark ? *override_start_mark
+                                                    : event->start_mark};
+  const std::uint64_t start_line{start_mark.line + 1};
+  const std::uint64_t start_column{start_mark.column + 1};
   const std::uint64_t end_line{event->end_mark.line + 1};
   const std::uint64_t end_column{event->end_mark.column};
 
@@ -77,9 +81,13 @@ auto consume_scalar_event(yaml_event_t *event,
 auto consume_sequence_events(
     yaml_parser_t *parser, yaml_event_t *start_event,
     const sourcemeta::core::JSON::ParseCallback &callback,
-    const sourcemeta::core::JSON &context) -> sourcemeta::core::JSON {
-  const std::uint64_t start_line{start_event->start_mark.line + 1};
-  const std::uint64_t start_column{start_event->start_mark.column + 1};
+    const sourcemeta::core::JSON &context,
+    const yaml_mark_t *override_start_mark = nullptr)
+    -> sourcemeta::core::JSON {
+  const yaml_mark_t &start_mark{override_start_mark ? *override_start_mark
+                                                    : start_event->start_mark};
+  const std::uint64_t start_line{start_mark.line + 1};
+  const std::uint64_t start_column{start_mark.column + 1};
 
   if (callback) {
     callback(sourcemeta::core::JSON::ParsePhase::Pre,
@@ -121,9 +129,13 @@ auto consume_sequence_events(
 auto consume_mapping_events(
     yaml_parser_t *parser, yaml_event_t *start_event,
     const sourcemeta::core::JSON::ParseCallback &callback,
-    const sourcemeta::core::JSON &context) -> sourcemeta::core::JSON {
-  const std::uint64_t start_line{start_event->start_mark.line + 1};
-  const std::uint64_t start_column{start_event->start_mark.column + 1};
+    const sourcemeta::core::JSON &context,
+    const yaml_mark_t *override_start_mark = nullptr)
+    -> sourcemeta::core::JSON {
+  const yaml_mark_t &start_mark{override_start_mark ? *override_start_mark
+                                                    : start_event->start_mark};
+  const std::uint64_t start_line{start_mark.line + 1};
+  const std::uint64_t start_column{start_mark.column + 1};
 
   if (callback) {
     callback(sourcemeta::core::JSON::ParsePhase::Pre,
@@ -161,6 +173,7 @@ auto consume_mapping_events(
 
     const std::string key{reinterpret_cast<char *>(key_event.data.scalar.value),
                           key_event.data.scalar.length};
+    const yaml_mark_t key_start_mark{key_event.start_mark};
     yaml_event_delete(&key_event);
 
     yaml_event_t value_event;
@@ -169,30 +182,35 @@ auto consume_mapping_events(
     }
 
     auto value{consume_value_event(parser, &value_event, callback,
-                                   sourcemeta::core::JSON{key})};
+                                   sourcemeta::core::JSON{key},
+                                   &key_start_mark)};
     result.assign(key, std::move(value));
   }
 }
 
 auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
                          const sourcemeta::core::JSON::ParseCallback &callback,
-                         const sourcemeta::core::JSON &context)
+                         const sourcemeta::core::JSON &context,
+                         const yaml_mark_t *override_start_mark)
     -> sourcemeta::core::JSON {
   sourcemeta::core::JSON result{nullptr};
 
   switch (event->type) {
     case YAML_SCALAR_EVENT:
-      result = consume_scalar_event(event, callback, context);
+      result =
+          consume_scalar_event(event, callback, context, override_start_mark);
       yaml_event_delete(event);
       break;
 
     case YAML_SEQUENCE_START_EVENT:
-      result = consume_sequence_events(parser, event, callback, context);
+      result = consume_sequence_events(parser, event, callback, context,
+                                       override_start_mark);
       yaml_event_delete(event);
       break;
 
     case YAML_MAPPING_START_EVENT:
-      result = consume_mapping_events(parser, event, callback, context);
+      result = consume_mapping_events(parser, event, callback, context,
+                                      override_start_mark);
       yaml_event_delete(event);
       break;
 
