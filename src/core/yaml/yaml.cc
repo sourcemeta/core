@@ -111,14 +111,15 @@ auto internal_parse_json(yaml_parser_t *parser) -> sourcemeta::core::JSON {
 namespace sourcemeta::core {
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
-    -> JSON {
+auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
+                const JSON::ParseCallback &) -> JSON {
   std::basic_ostringstream<JSON::Char, JSON::CharTraits> buffer;
   buffer << stream.rdbuf();
   return parse_yaml(buffer.str());
 }
 
-auto parse_yaml(const JSON::String &input) -> JSON {
+auto parse_yaml(const JSON::String &input, const JSON::ParseCallback &)
+    -> JSON {
   yaml_parser_t parser;
   if (!yaml_parser_initialize(&parser)) {
     throw YAMLError("Could not initialize the YAML parser");
@@ -139,7 +140,8 @@ auto parse_yaml(const JSON::String &input) -> JSON {
   }
 }
 
-auto read_yaml(const std::filesystem::path &path) -> JSON {
+auto read_yaml(const std::filesystem::path &path, const JSON::ParseCallback &)
+    -> JSON {
   auto stream = read_file(path);
   std::ostringstream buffer;
   buffer << stream.rdbuf();
