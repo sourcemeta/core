@@ -271,3 +271,56 @@ TEST(JSONSchema_identify, reidentify_boolean) {
                                    sourcemeta::core::schema_official_resolver),
       sourcemeta::core::SchemaUnknownBaseDialectError);
 }
+
+TEST(JSONSchema_identify, draft7_top_level_id_and_ref_strict) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schema",
+    "$ref": "foo"
+  })JSON");
+
+  std::optional<std::string> id{sourcemeta::core::identify(
+      document, "http://json-schema.org/draft-07/schema#",
+      sourcemeta::core::SchemaIdentificationStrategy::Strict)};
+  EXPECT_FALSE(id.has_value());
+}
+
+TEST(JSONSchema_identify, draft7_top_level_id_and_ref_loose) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/schema",
+    "$ref": "foo"
+  })JSON");
+
+  std::optional<std::string> id{sourcemeta::core::identify(
+      document, "http://json-schema.org/draft-07/schema#",
+      sourcemeta::core::SchemaIdentificationStrategy::Loose)};
+  EXPECT_TRUE(id.has_value());
+  EXPECT_EQ(id.value(), "https://example.com/schema");
+}
+
+TEST(JSONSchema_identify, draft7_ref_with_wrong_id_keyword_strict) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "id": "https://example.com/schema",
+    "$ref": "foo"
+  })JSON");
+
+  std::optional<std::string> id{sourcemeta::core::identify(
+      document, "http://json-schema.org/draft-07/schema#",
+      sourcemeta::core::SchemaIdentificationStrategy::Strict)};
+  EXPECT_FALSE(id.has_value());
+}
+
+TEST(JSONSchema_identify, draft7_ref_with_wrong_id_keyword_loose) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "id": "https://example.com/schema",
+    "$ref": "foo"
+  })JSON");
+
+  std::optional<std::string> id{sourcemeta::core::identify(
+      document, "http://json-schema.org/draft-07/schema#",
+      sourcemeta::core::SchemaIdentificationStrategy::Loose)};
+  EXPECT_FALSE(id.has_value());
+}
