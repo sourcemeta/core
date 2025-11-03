@@ -31,9 +31,9 @@ public:
                      })));
 
     if (schema.defines("else")) {
-      return APPLIES_TO_KEYWORDS("if", "then", "else");
+      return APPLIES_TO_KEYWORDS("then", "if", "else");
     } else {
-      return APPLIES_TO_KEYWORDS("if", "then");
+      return APPLIES_TO_KEYWORDS("then", "if");
     }
   }
 
