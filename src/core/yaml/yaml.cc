@@ -8,7 +8,9 @@
 #include <sstream>       // std::ostringstream, std::istringstream
 #include <string>        // std::string
 #include <string_view>   // std::string_view
+#include <tuple>         // std::tuple
 #include <unordered_map> // std::unordered_map
+#include <vector>        // std::vector
 
 namespace {
 
@@ -53,7 +55,15 @@ auto interpret_scalar(const std::string_view input,
   }
 }
 
-using AnchorMap = std::unordered_map<std::string, sourcemeta::core::JSON>;
+struct AnchoredValue {
+  sourcemeta::core::JSON value;
+  std::vector<std::tuple<sourcemeta::core::JSON::ParsePhase,
+                         sourcemeta::core::JSON::Type, std::uint64_t,
+                         std::uint64_t, sourcemeta::core::JSON>>
+      callbacks;
+};
+
+using AnchorMap = std::unordered_map<std::string, AnchoredValue>;
 
 auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
                          const sourcemeta::core::JSON::ParseCallback &callback,
@@ -103,17 +113,28 @@ auto consume_scalar_event(yaml_event_t *event,
     type = sourcemeta::core::JSON::Type::String;
   }
 
+  std::vector<std::tuple<sourcemeta::core::JSON::ParsePhase,
+                         sourcemeta::core::JSON::Type, std::uint64_t,
+                         std::uint64_t, sourcemeta::core::JSON>>
+      recorded_callbacks;
+
   if (callback) {
     callback(sourcemeta::core::JSON::ParsePhase::Pre, type, start_line,
              start_column, context);
+    recorded_callbacks.emplace_back(sourcemeta::core::JSON::ParsePhase::Pre,
+                                    type, start_line, start_column, context);
     callback(sourcemeta::core::JSON::ParsePhase::Post, type, end_line,
              end_column, result);
+    recorded_callbacks.emplace_back(sourcemeta::core::JSON::ParsePhase::Post,
+                                    type, end_line, end_column, result);
   }
 
   if (event->data.scalar.anchor) {
     const std::string anchor_name{
         reinterpret_cast<char *>(event->data.scalar.anchor)};
-    anchors.insert_or_assign(anchor_name, result);
+    anchors.insert_or_assign(
+        anchor_name, AnchoredValue{.value = result,
+                                   .callbacks = std::move(recorded_callbacks)});
   }
 
   return result;
@@ -130,10 +151,29 @@ auto consume_sequence_events(
   const std::uint64_t start_line{start_mark.line + 1};
   const std::uint64_t start_column{start_mark.column + 1};
 
-  if (callback) {
-    callback(sourcemeta::core::JSON::ParsePhase::Pre,
-             sourcemeta::core::JSON::Type::Array, start_line, start_column,
-             context);
+  const bool has_anchor{start_event->data.sequence_start.anchor != nullptr};
+  std::vector<std::tuple<sourcemeta::core::JSON::ParsePhase,
+                         sourcemeta::core::JSON::Type, std::uint64_t,
+                         std::uint64_t, sourcemeta::core::JSON>>
+      recorded_callbacks;
+
+  sourcemeta::core::JSON::ParseCallback effective_callback;
+  if (has_anchor && callback) {
+    effective_callback =
+        [&](const sourcemeta::core::JSON::ParsePhase phase,
+            const sourcemeta::core::JSON::Type type, const std::uint64_t line,
+            const std::uint64_t column, const sourcemeta::core::JSON &value) {
+          recorded_callbacks.emplace_back(phase, type, line, column, value);
+          callback(phase, type, line, column, value);
+        };
+  } else {
+    effective_callback = callback;
+  }
+
+  if (effective_callback) {
+    effective_callback(sourcemeta::core::JSON::ParsePhase::Pre,
+                       sourcemeta::core::JSON::Type::Array, start_line,
+                       start_column, context);
   }
 
   auto result{sourcemeta::core::JSON::make_array()};
@@ -150,23 +190,26 @@ auto consume_sequence_events(
       const std::uint64_t end_column{event.end_mark.column};
       yaml_event_delete(&event);
 
-      if (callback) {
-        callback(sourcemeta::core::JSON::ParsePhase::Post,
-                 sourcemeta::core::JSON::Type::Array, end_line, end_column,
-                 result);
+      if (effective_callback) {
+        effective_callback(sourcemeta::core::JSON::ParsePhase::Post,
+                           sourcemeta::core::JSON::Type::Array, end_line,
+                           end_column, result);
       }
 
-      if (start_event->data.sequence_start.anchor) {
+      if (has_anchor) {
         const std::string anchor_name{
             reinterpret_cast<char *>(start_event->data.sequence_start.anchor)};
-        anchors.insert_or_assign(anchor_name, result);
+        anchors.insert_or_assign(
+            anchor_name,
+            AnchoredValue{.value = result,
+                          .callbacks = std::move(recorded_callbacks)});
       }
 
       return result;
     }
 
     auto value{consume_value_event(
-        parser, &event, callback,
+        parser, &event, effective_callback,
         sourcemeta::core::JSON{static_cast<std::int64_t>(index)}, anchors)};
     result.push_back(std::move(value));
     index++;
@@ -184,10 +227,29 @@ auto consume_mapping_events(
   const std::uint64_t start_line{start_mark.line + 1};
   const std::uint64_t start_column{start_mark.column + 1};
 
-  if (callback) {
-    callback(sourcemeta::core::JSON::ParsePhase::Pre,
-             sourcemeta::core::JSON::Type::Object, start_line, start_column,
-             context);
+  const bool has_anchor{start_event->data.mapping_start.anchor != nullptr};
+  std::vector<std::tuple<sourcemeta::core::JSON::ParsePhase,
+                         sourcemeta::core::JSON::Type, std::uint64_t,
+                         std::uint64_t, sourcemeta::core::JSON>>
+      recorded_callbacks;
+
+  sourcemeta::core::JSON::ParseCallback effective_callback;
+  if (has_anchor && callback) {
+    effective_callback =
+        [&](const sourcemeta::core::JSON::ParsePhase phase,
+            const sourcemeta::core::JSON::Type type, const std::uint64_t line,
+            const std::uint64_t column, const sourcemeta::core::JSON &value) {
+          recorded_callbacks.emplace_back(phase, type, line, column, value);
+          callback(phase, type, line, column, value);
+        };
+  } else {
+    effective_callback = callback;
+  }
+
+  if (effective_callback) {
+    effective_callback(sourcemeta::core::JSON::ParsePhase::Pre,
+                       sourcemeta::core::JSON::Type::Object, start_line,
+                       start_column, context);
   }
 
   auto result{sourcemeta::core::JSON::make_object()};
@@ -203,16 +265,19 @@ auto consume_mapping_events(
       const std::uint64_t end_column{key_event.end_mark.column};
       yaml_event_delete(&key_event);
 
-      if (callback) {
-        callback(sourcemeta::core::JSON::ParsePhase::Post,
-                 sourcemeta::core::JSON::Type::Object, end_line, end_column,
-                 result);
+      if (effective_callback) {
+        effective_callback(sourcemeta::core::JSON::ParsePhase::Post,
+                           sourcemeta::core::JSON::Type::Object, end_line,
+                           end_column, result);
       }
 
-      if (start_event->data.mapping_start.anchor) {
+      if (has_anchor) {
         const std::string anchor_name{
             reinterpret_cast<char *>(start_event->data.mapping_start.anchor)};
-        anchors.insert_or_assign(anchor_name, result);
+        anchors.insert_or_assign(
+            anchor_name,
+            AnchoredValue{.value = result,
+                          .callbacks = std::move(recorded_callbacks)});
       }
 
       return result;
@@ -234,7 +299,7 @@ auto consume_mapping_events(
       throw sourcemeta::core::YAMLParseError("Failed to parse YAML event");
     }
 
-    auto value{consume_value_event(parser, &value_event, callback,
+    auto value{consume_value_event(parser, &value_event, effective_callback,
                                    sourcemeta::core::JSON{key}, anchors,
                                    &key_start_mark)};
     result.assign(key, std::move(value));
@@ -275,11 +340,30 @@ auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
 
       const auto anchor_it{anchors.find(anchor_name)};
       if (anchor_it == anchors.end()) {
-        throw sourcemeta::core::YAMLParseError(
-            "YAML alias references undefined anchor: " + anchor_name);
+        throw sourcemeta::core::YAMLUnknownAnchorError(anchor_name);
       }
 
-      result = anchor_it->second;
+      result = anchor_it->second.value;
+
+      if (callback) {
+        const auto &callbacks{anchor_it->second.callbacks};
+        if (result.is_object() || result.is_array()) {
+          for (std::size_t index = 1; index < callbacks.size() - 1; index++) {
+            callback(
+                std::get<0>(callbacks[index]), std::get<1>(callbacks[index]),
+                std::get<2>(callbacks[index]), std::get<3>(callbacks[index]),
+                std::get<4>(callbacks[index]));
+          }
+        } else {
+          if (!callbacks.empty()) {
+            const auto &post_trace = callbacks.back();
+            callback(std::get<0>(post_trace), std::get<1>(post_trace),
+                     std::get<2>(post_trace), std::get<3>(post_trace),
+                     std::get<4>(post_trace));
+          }
+        }
+      }
+
       break;
     }
 
@@ -332,8 +416,6 @@ auto parse_yaml_from_events(
   }
   yaml_event_delete(&event);
 
-  // Don't consume next event - could be STREAM_END or another DOCUMENT_START
-  // Let the caller handle it
   return result;
 }
 
@@ -375,18 +457,16 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   try {
     const auto result{parse_yaml_from_events(&parser, callback)};
 
-    // Check if there's another document in the stream
     yaml_event_t peek_event;
     if (yaml_parser_parse(&parser, &peek_event)) {
       if (peek_event.type == YAML_DOCUMENT_START_EVENT) {
-        // Another document exists - seek stream to its start
         const std::size_t next_doc_position = peek_event.start_mark.index;
         const auto bytes_to_seek_back =
             static_cast<std::streamoff>(next_doc_position) -
             static_cast<std::streamoff>(context.total_bytes_read);
         yaml_event_delete(&peek_event);
         yaml_parser_delete(&parser);
-        stream.clear(); // Clear EOF and error flags
+        stream.clear();
         stream.seekg(bytes_to_seek_back, std::ios::cur);
         return result;
       }
