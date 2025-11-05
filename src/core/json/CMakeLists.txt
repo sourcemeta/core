@@ -8,3 +8,4 @@ endif()
 
 target_link_libraries(sourcemeta_core_json PRIVATE sourcemeta::core::io)
 target_link_libraries(sourcemeta_core_json PRIVATE mpdecimal)
+target_link_libraries(sourcemeta_core_json PRIVATE mpdecimalxx)
