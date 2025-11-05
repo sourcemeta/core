@@ -6,6 +6,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 option(SOURCEMETA_CORE_LANG_IO "Build the Sourcemeta Core language I/O library" ON)
 option(SOURCEMETA_CORE_LANG_PROCESS "Build the Sourcemeta Core language Process library" ON)
 option(SOURCEMETA_CORE_LANG_PARALLEL "Build the Sourcemeta Core language parallel library" ON)
+option(SOURCEMETA_CORE_LANG_NUMERIC "Build the Sourcemeta Core language numeric library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
 option(SOURCEMETA_CORE_UUID "Build the Sourcemeta Core UUID library" ON)
 option(SOURCEMETA_CORE_MD5 "Build the Sourcemeta Core MD5 library" ON)
@@ -68,6 +69,11 @@ if(SOURCEMETA_CORE_LANG_PARALLEL)
   add_subdirectory(src/lang/parallel)
 endif()
 
+if(SOURCEMETA_CORE_LANG_NUMERIC)
+  find_package(mpdecimal REQUIRED)
+  add_subdirectory(src/lang/numeric)
+endif()
+
 if(SOURCEMETA_CORE_TIME)
   add_subdirectory(src/core/time)
 endif()
@@ -90,7 +96,6 @@ if(SOURCEMETA_CORE_URI)
 endif()
 
 if(SOURCEMETA_CORE_JSON)
-  find_package(mpdecimal REQUIRED)
   add_subdirectory(src/core/json)
 endif()
 
@@ -172,6 +177,10 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_LANG_PARALLEL)
     add_subdirectory(test/parallel)
+  endif()
+
+  if(SOURCEMETA_CORE_LANG_NUMERIC)
+    add_subdirectory(test/numeric)
   endif()
 
   if(SOURCEMETA_CORE_TIME)
