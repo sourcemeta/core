@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(core VERSION 0.0.0 LANGUAGES C CXX DESCRIPTION "Sourcemeta Core")
+project(core VERSION 0.0.0 LANGUAGES C CXX ASM_MASM DESCRIPTION "Sourcemeta Core")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Options
@@ -90,6 +90,7 @@ if(SOURCEMETA_CORE_URI)
 endif()
 
 if(SOURCEMETA_CORE_JSON)
+  find_package(mpdecimal REQUIRED)
   add_subdirectory(src/core/json)
 endif()
 
