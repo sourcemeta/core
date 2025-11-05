@@ -191,3 +191,33 @@ TEST(YAML_parse, istringstream) {
 
   EXPECT_EQ(result, expected);
 }
+
+TEST(YAML_parse, multi_document_unix_line_endings) {
+  std::istringstream stream{"---\nfoo\n---\nbar\n---\nbaz"};
+
+  const auto doc1{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc1, sourcemeta::core::JSON{"foo"});
+
+  const auto doc2{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc2, sourcemeta::core::JSON{"bar"});
+
+  const auto doc3{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(YAML_parse, multi_document_windows_line_endings) {
+  std::istringstream stream{"---\r\nfoo\r\n---\r\nbar\r\n---\r\nbaz"};
+
+  const auto doc1{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc1, sourcemeta::core::JSON{"foo"});
+
+  const auto doc2{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc2, sourcemeta::core::JSON{"bar"});
+
+  const auto doc3{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}

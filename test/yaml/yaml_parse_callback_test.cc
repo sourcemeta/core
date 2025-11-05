@@ -299,8 +299,8 @@ TEST(YAML_parse_callback, yaml_empty_values) {
   const auto input{"empty_key:"};
   PARSE_YAML_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, String, 1, 1, sourcemeta::core::JSON{"empty_key"});
-  EXPECT_TRACE(2, Post, String, 1, 10, sourcemeta::core::JSON{""});
+  EXPECT_TRACE(1, Pre, Null, 1, 1, sourcemeta::core::JSON{"empty_key"});
+  EXPECT_TRACE(2, Post, Null, 1, 10, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(3, Post, Object, 2, 0, sourcemeta::core::parse_yaml(input));
 }
 
