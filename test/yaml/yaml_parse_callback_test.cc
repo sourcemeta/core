@@ -377,3 +377,77 @@ TEST(YAML_parse_callback, yaml_or_json_stub_test_2) {
   EXPECT_TRACE(4, Post, Integer, 3, 10, sourcemeta::core::JSON{2});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::read_json(input));
 }
+
+TEST(YAML_parse_callback, yaml_simple_anchor_and_alias) {
+  const auto input{"anchor: &node foo\nalias: *node"};
+  PARSE_YAML_WITH_TRACES(document, input, 5);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, String, 1, 1, sourcemeta::core::JSON{"anchor"});
+  EXPECT_TRACE(2, Post, String, 1, 17, sourcemeta::core::JSON{"foo"});
+  // Replayed Post callback for alias with original position
+  EXPECT_TRACE(3, Post, String, 1, 17, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(4, Post, Object, 3, 0, sourcemeta::core::parse_yaml(input));
+}
+
+TEST(YAML_parse_callback, yaml_anchor_object_with_alias) {
+  const auto input{"original: &obj {x: 1, y: 2}\ncopy: *obj"};
+  PARSE_YAML_WITH_TRACES(document, input, 12);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Object, 1, 1, sourcemeta::core::JSON{"original"});
+  EXPECT_TRACE(2, Pre, Integer, 1, 17, sourcemeta::core::JSON{"x"});
+  EXPECT_TRACE(3, Post, Integer, 1, 20, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(4, Pre, Integer, 1, 23, sourcemeta::core::JSON{"y"});
+  EXPECT_TRACE(5, Post, Integer, 1, 26, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(6, Post, Object, 1, 27,
+               sourcemeta::core::parse_yaml("{x: 1, y: 2}"));
+  // Alias replay - internal structure only
+  EXPECT_TRACE(7, Pre, Integer, 1, 17, sourcemeta::core::JSON{"x"});
+  EXPECT_TRACE(8, Post, Integer, 1, 20, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(9, Pre, Integer, 1, 23, sourcemeta::core::JSON{"y"});
+  EXPECT_TRACE(10, Post, Integer, 1, 26, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(11, Post, Object, 3, 0, sourcemeta::core::parse_yaml(input));
+}
+
+TEST(YAML_parse_callback, yaml_anchor_array_with_multiple_aliases) {
+  const auto input{"items: &list [a, b, c]\nfirst: *list\nsecond: *list"};
+  PARSE_YAML_WITH_TRACES(document, input, 22);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Array, 1, 1, sourcemeta::core::JSON{"items"});
+  EXPECT_TRACE(2, Pre, String, 1, 15, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(3, Post, String, 1, 15, sourcemeta::core::JSON{"a"});
+  EXPECT_TRACE(4, Pre, String, 1, 18, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(5, Post, String, 1, 18, sourcemeta::core::JSON{"b"});
+  EXPECT_TRACE(6, Pre, String, 1, 21, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(7, Post, String, 1, 21, sourcemeta::core::JSON{"c"});
+  EXPECT_TRACE(8, Post, Array, 1, 22,
+               sourcemeta::core::parse_yaml("[a, b, c]"));
+  // Replayed internal structure for "first"
+  EXPECT_TRACE(9, Pre, String, 1, 15, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(10, Post, String, 1, 15, sourcemeta::core::JSON{"a"});
+  EXPECT_TRACE(11, Pre, String, 1, 18, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(12, Post, String, 1, 18, sourcemeta::core::JSON{"b"});
+  EXPECT_TRACE(13, Pre, String, 1, 21, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(14, Post, String, 1, 21, sourcemeta::core::JSON{"c"});
+  // Replayed internal structure for "second"
+  EXPECT_TRACE(15, Pre, String, 1, 15, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(16, Post, String, 1, 15, sourcemeta::core::JSON{"a"});
+  EXPECT_TRACE(17, Pre, String, 1, 18, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(18, Post, String, 1, 18, sourcemeta::core::JSON{"b"});
+  EXPECT_TRACE(19, Pre, String, 1, 21, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(20, Post, String, 1, 21, sourcemeta::core::JSON{"c"});
+  EXPECT_TRACE(21, Post, Object, 4, 0, sourcemeta::core::parse_yaml(input));
+}
+
+TEST(YAML_parse_callback, yaml_nested_anchor_and_alias) {
+  const auto input{"outer:\n  inner: &val 42\n  ref: *val"};
+  PARSE_YAML_WITH_TRACES(document, input, 7);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Object, 1, 1, sourcemeta::core::JSON{"outer"});
+  EXPECT_TRACE(2, Pre, Integer, 2, 3, sourcemeta::core::JSON{"inner"});
+  EXPECT_TRACE(3, Post, Integer, 2, 16, sourcemeta::core::JSON{42});
+  // Replayed Post callback for alias with original position
+  EXPECT_TRACE(4, Post, Integer, 2, 16, sourcemeta::core::JSON{42});
+  EXPECT_TRACE(5, Post, Object, 4, 0,
+               sourcemeta::core::parse_yaml("inner: &val 42\nref: *val"));
+  EXPECT_TRACE(6, Post, Object, 4, 0, sourcemeta::core::parse_yaml(input));
+}

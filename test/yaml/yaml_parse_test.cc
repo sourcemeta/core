@@ -134,6 +134,19 @@ TEST(YAML_parse, invalid_1) {
                sourcemeta::core::YAMLParseError);
 }
 
+TEST(YAML_parse, undefined_anchor) {
+  const std::string input{"alias: *unknown"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL() << "Expected YAMLUnknownAnchorError to be thrown";
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "unknown");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL() << "Expected YAMLUnknownAnchorError, got different exception";
+  }
+}
+
 TEST(YAML_parse, stub_test_1) {
   const auto result{sourcemeta::core::read_yaml(
       std::filesystem::path{STUBS_PATH} / "test_1.yaml")};
