@@ -77,6 +77,9 @@ if(NOT mpdecimal_FOUND)
 
   if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     target_compile_options(mpdecimal PRIVATE -Wall -Wextra -Wno-unknown-pragmas)
+    if(BUILD_SHARED_LIBS)
+      target_compile_options(mpdecimal PUBLIC -fvisibility=default)
+    endif()
   endif()
 
   if(MSVC)
@@ -95,6 +98,7 @@ if(NOT mpdecimal_FOUND)
       PUBLIC_HEADER "${MPDECIMAL_PUBLIC_HEADER}"
       C_VISIBILITY_PRESET "default"
       C_VISIBILITY_INLINES_HIDDEN FALSE
+      POSITION_INDEPENDENT_CODE ON
       EXPORT_NAME mpdecimal)
 
   set(MPDECIMALXX_DIR "${MPDECIMAL_DIR}/libmpdec++")
@@ -121,6 +125,12 @@ if(NOT mpdecimal_FOUND)
     endif()
   endif()
 
+  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+    if(BUILD_SHARED_LIBS)
+      target_compile_options(mpdecimalxx PUBLIC -fvisibility=default)
+    endif()
+  endif()
+
   if(MSVC)
     if(BUILD_SHARED_LIBS)
       target_compile_definitions(mpdecimalxx PRIVATE BUILD_LIBMPDECXX)
@@ -137,6 +147,7 @@ if(NOT mpdecimal_FOUND)
       PUBLIC_HEADER "${MPDECIMALXX_PUBLIC_HEADER}"
       CXX_VISIBILITY_PRESET "default"
       VISIBILITY_INLINES_HIDDEN FALSE
+      POSITION_INDEPENDENT_CODE ON
       EXPORT_NAME mpdecimalxx)
 
   if(SOURCEMETA_CORE_INSTALL)
