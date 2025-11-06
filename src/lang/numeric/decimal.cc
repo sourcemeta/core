@@ -4,7 +4,6 @@
 #include <limits>  // std::numeric_limits
 #include <utility> // std::move
 
-#include <decimal.hh>  // decimal::Decimal
 #include <mpdecimal.h> // MPD_*
 
 namespace sourcemeta::core {

@@ -10,7 +10,14 @@
 #include <string>   // std::string
 #include <string_view> // std::string_view
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 #include <decimal.hh> // decimal::Decimal
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 namespace sourcemeta::core {
 
