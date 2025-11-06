@@ -160,7 +160,16 @@ public:
   [[nodiscard]] auto operator>=(const Decimal &other) const -> bool;
 
 private:
+// Exporting symbols that depends on the standard C++ library is considered
+// safe.
+// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251 4275)
+#endif
   decimal::Decimal data;
+#if defined(_MSC_VER)
+#pragma warning(default : 4251 4275)
+#endif
 };
 
 template <typename T>
