@@ -7,6 +7,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema.h>
 #include <sourcemeta/core/md5.h>
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/schemaconfig.h>
