@@ -37,9 +37,9 @@ function(sourcemeta_add_default_options visibility target)
       -Wsign-compare
       -Wsign-conversion
       -Wunknown-pragmas
-      -Wnon-virtual-dtor
-      -Woverloaded-virtual
-      -Winvalid-offsetof
+      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Wnon-virtual-dtor>
+      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Woverloaded-virtual>
+      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Winvalid-offsetof>
       -funroll-loops
       -fstrict-aliasing
       -ftree-vectorize
@@ -84,11 +84,11 @@ function(sourcemeta_add_default_options visibility target)
     target_compile_options("${target}" ${visibility}
       -fno-trapping-math
       # Newer versions of GCC (i.e. 14) seem to print a lot of false-positives here
-      -Wno-dangling-reference
+      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Wno-dangling-reference>
       # GCC seems to print a lot of false-positives here
       -Wno-free-nonheap-object
       # Disables runtime type information
-      -fno-rtti)
+      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-fno-rtti>)
   endif()
 endfunction()
 

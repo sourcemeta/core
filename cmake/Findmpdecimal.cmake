@@ -52,6 +52,13 @@ if(NOT mpdecimal_FOUND)
   endif()
 
   add_library(mpdecimal ${MPDECIMAL_SOURCES})
+  sourcemeta_add_default_options(PRIVATE mpdecimal)
+
+  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
+    target_compile_options(mpdecimal PRIVATE -Wno-sign-conversion)
+    target_compile_options(mpdecimal PRIVATE -Wno-implicit-fallthrough)
+    target_compile_options(mpdecimal PRIVATE -Wno-conversion)
+  endif()
 
   target_include_directories(mpdecimal PRIVATE
     "${MPDECIMAL_SOURCE_DIR}")
