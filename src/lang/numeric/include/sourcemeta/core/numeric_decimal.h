@@ -6,18 +6,11 @@
 #endif
 
 #include <concepts> // std::integral
+#include <cstddef>  // std::byte
 #include <cstdint>  // std::int32_t, std::int64_t, std::uint32_t, std::uint64_t
 #include <string>   // std::string
 #include <string_view> // std::string_view
-
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-#include <decimal.hh> // decimal::Decimal
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
+#include <type_traits> // std::is_signed_v
 
 namespace sourcemeta::core {
 
@@ -26,18 +19,34 @@ namespace sourcemeta::core {
 class SOURCEMETA_CORE_NUMERIC_EXPORT Decimal {
 public:
   /// Construct a decimal number initialized to zero
-  Decimal() noexcept : data{0} {}
+  Decimal() noexcept;
+
+  /// Destructor
+  ~Decimal();
 
   /// Copy constructor
-  Decimal(const Decimal &other) = default;
+  Decimal(const Decimal &other);
 
   /// Move constructor
-  Decimal(Decimal &&other) noexcept = default;
+  Decimal(Decimal &&other) noexcept;
 
-  /// Construct a decimal number from an integral type
+  /// Construct a decimal number from a signed integral type
   template <typename T>
-    requires std::integral<T>
-  Decimal(const T value) : data{value} {}
+    requires std::integral<T> && std::is_signed_v<T> &&
+             (!std::same_as<T, std::int64_t>)
+  Decimal(const T value) : Decimal{static_cast<std::int64_t>(value)} {}
+
+  /// Construct a decimal number from a 64-bit signed integer
+  Decimal(std::int64_t value);
+
+  /// Construct a decimal number from an unsigned integral type
+  template <typename T>
+    requires std::integral<T> && std::is_unsigned_v<T> &&
+             (!std::same_as<T, std::uint64_t>)
+  Decimal(const T value) : Decimal{static_cast<std::uint64_t>(value)} {}
+
+  /// Construct a decimal number from a 64-bit unsigned integer
+  Decimal(std::uint64_t value);
 
   /// Construct a decimal number from a C-string
   explicit Decimal(const char *const value);
@@ -49,10 +58,10 @@ public:
   explicit Decimal(const std::string_view value);
 
   /// Copy assignment operator
-  auto operator=(const Decimal &other) -> Decimal & = default;
+  auto operator=(const Decimal &other) -> Decimal &;
 
   /// Move assignment operator
-  auto operator=(Decimal &&other) noexcept -> Decimal & = default;
+  auto operator=(Decimal &&other) noexcept -> Decimal &;
 
   /// Create a NaN (Not a Number) value
   [[nodiscard]] static auto nan() -> Decimal;
@@ -201,16 +210,13 @@ public:
   [[nodiscard]] auto operator>=(const Decimal &other) const -> bool;
 
 private:
-// Exporting symbols that depends on the standard C++ library is considered
-// safe.
-// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
-#if defined(_MSC_VER)
-#pragma warning(disable : 4251 4275)
-#endif
-  decimal::Decimal data;
-#if defined(_MSC_VER)
-#pragma warning(default : 4251 4275)
-#endif
+  struct Data;
+  static constexpr std::size_t STORAGE_SIZE = 256;
+  // NOLINTNEXTLINE(modernize-avoid-c-arrays)
+  alignas(std::max_align_t) std::byte storage[STORAGE_SIZE];
+
+  [[nodiscard]] auto data() -> Data *;
+  [[nodiscard]] auto data() const -> const Data *;
 };
 
 template <typename T>

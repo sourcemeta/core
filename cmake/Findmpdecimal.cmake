@@ -102,56 +102,6 @@ if(NOT mpdecimal_FOUND)
       POSITION_INDEPENDENT_CODE ON
       EXPORT_NAME mpdecimal)
 
-  set(MPDECIMALXX_DIR "${MPDECIMAL_DIR}/libmpdec++")
-  set(MPDECIMALXX_PUBLIC_HEADER "${MPDECIMALXX_DIR}/decimal.hh")
-  set(MPDECIMALXX_SOURCES "${MPDECIMALXX_DIR}/decimal.cc")
-
-  add_library(mpdecimalxx ${MPDECIMALXX_SOURCES})
-
-  target_include_directories(mpdecimalxx PRIVATE
-    "${MPDECIMALXX_DIR}"
-    "${MPDECIMAL_SOURCE_DIR}")
-
-  target_include_directories(mpdecimalxx PUBLIC
-    "$<BUILD_INTERFACE:${MPDECIMALXX_DIR}>"
-    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
-
-  target_link_libraries(mpdecimalxx PUBLIC mpdecimal)
-
-  if(UNIX)
-    find_package(Threads REQUIRED)
-    target_link_libraries(mpdecimalxx PRIVATE Threads::Threads)
-    if(NOT APPLE)
-      target_link_libraries(mpdecimalxx PRIVATE m)
-    endif()
-  endif()
-
-  if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
-    if(BUILD_SHARED_LIBS)
-      target_compile_options(mpdecimalxx PUBLIC -fvisibility=default)
-    endif()
-  endif()
-
-  if(MSVC)
-    if(BUILD_SHARED_LIBS)
-      target_compile_definitions(mpdecimalxx PRIVATE BUILD_LIBMPDECXX)
-    else()
-      target_compile_options(mpdecimalxx PRIVATE /wd4273)
-      target_compile_definitions(mpdecimalxx PUBLIC BUILD_LIBMPDECXX)
-    endif()
-  endif()
-
-  add_library(mpdecimal::mpdecimalxx ALIAS mpdecimalxx)
-
-  set_target_properties(mpdecimalxx
-    PROPERTIES
-      OUTPUT_NAME mpdecimalxx
-      PUBLIC_HEADER "${MPDECIMALXX_PUBLIC_HEADER}"
-      CXX_VISIBILITY_PRESET "default"
-      VISIBILITY_INLINES_HIDDEN FALSE
-      POSITION_INDEPENDENT_CODE ON
-      EXPORT_NAME mpdecimalxx)
-
   if(SOURCEMETA_CORE_INSTALL)
     include(GNUInstallDirs)
     install(TARGETS mpdecimal
@@ -176,35 +126,6 @@ if(NOT mpdecimal_FOUND)
     install(FILES
       "${CMAKE_CURRENT_BINARY_DIR}/mpdecimal-config.cmake"
       DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mpdecimal"
-      COMPONENT sourcemeta_core_dev)
-
-    install(TARGETS mpdecimalxx
-      EXPORT mpdecimalxx
-      PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-        COMPONENT sourcemeta_core_dev
-      RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        COMPONENT sourcemeta_core
-      LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        COMPONENT sourcemeta_core
-        NAMELINK_COMPONENT sourcemeta_core_dev
-      ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        COMPONENT sourcemeta_core_dev)
-    install(EXPORT mpdecimalxx
-      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mpdecimalxx"
-      NAMESPACE mpdecimal::
-      COMPONENT sourcemeta_core_dev)
-
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/mpdecimalxx-config.cmake
-      "include(CMakeFindDependencyMacro)\n"
-      "find_dependency(mpdecimal CONFIG)\n"
-      "if(UNIX)\n"
-      "  find_dependency(Threads)\n"
-      "endif()\n"
-      "include(\"\${CMAKE_CURRENT_LIST_DIR}/mpdecimalxx.cmake\")\n"
-      "check_required_components(\"mpdecimalxx\")\n")
-    install(FILES
-      "${CMAKE_CURRENT_BINARY_DIR}/mpdecimalxx-config.cmake"
-      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mpdecimalxx"
       COMPONENT sourcemeta_core_dev)
   endif()
 
