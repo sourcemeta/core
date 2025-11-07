@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/numeric.h>
 
+#include <cmath>  // std::isnan, std::isinf
 #include <string> // std::string
 
 TEST(Numeric_decimal, add_small_integers) {
@@ -384,6 +385,277 @@ TEST(Numeric_decimal, is_integer_predicate) {
 TEST(Numeric_decimal, is_finite_predicate) {
   const sourcemeta::core::Decimal value{123};
   EXPECT_TRUE(value.is_finite());
+}
+
+TEST(Numeric_decimal, is_real_not_integer) {
+  const sourcemeta::core::Decimal positive{3};
+  const sourcemeta::core::Decimal negative{-5};
+  const sourcemeta::core::Decimal zero{0};
+  EXPECT_FALSE(positive.is_real());
+  EXPECT_FALSE(negative.is_real());
+  EXPECT_FALSE(zero.is_real());
+}
+
+TEST(Numeric_decimal, is_real_decimal) {
+  const sourcemeta::core::Decimal value1{"3.1"};
+  const sourcemeta::core::Decimal value2{"-2.5"};
+  EXPECT_TRUE(value1.is_real());
+  EXPECT_TRUE(value2.is_real());
+}
+
+TEST(Numeric_decimal, is_real_decimal_with_zero_fraction) {
+  const sourcemeta::core::Decimal value{"3.0"};
+  EXPECT_FALSE(value.is_real());
+}
+
+TEST(Numeric_decimal, is_real_special_values) {
+  const sourcemeta::core::Decimal nan_value{"NaN"};
+  const sourcemeta::core::Decimal inf_value{"Infinity"};
+  const sourcemeta::core::Decimal neg_inf_value{"-Infinity"};
+  EXPECT_FALSE(nan_value.is_real());
+  EXPECT_FALSE(inf_value.is_real());
+  EXPECT_FALSE(neg_inf_value.is_real());
+}
+
+TEST(Numeric_decimal, is_nan_predicate) {
+  const sourcemeta::core::Decimal nan_value{"NaN"};
+  const sourcemeta::core::Decimal normal_value{42};
+  EXPECT_TRUE(nan_value.is_nan());
+  EXPECT_FALSE(normal_value.is_nan());
+}
+
+TEST(Numeric_decimal, is_infinite_predicate) {
+  const sourcemeta::core::Decimal inf_value{"Infinity"};
+  const sourcemeta::core::Decimal normal_value{42};
+  EXPECT_TRUE(inf_value.is_infinite());
+  EXPECT_FALSE(normal_value.is_infinite());
+}
+
+TEST(Numeric_decimal, is_signed_predicate) {
+  const sourcemeta::core::Decimal positive{42};
+  const sourcemeta::core::Decimal negative{-42};
+  const sourcemeta::core::Decimal zero{0};
+  const sourcemeta::core::Decimal negative_zero{"-0"};
+  EXPECT_FALSE(positive.is_signed());
+  EXPECT_TRUE(negative.is_signed());
+  EXPECT_FALSE(zero.is_signed());
+  EXPECT_TRUE(negative_zero.is_signed());
+}
+
+TEST(Numeric_decimal, to_integral_rounds_down) {
+  const sourcemeta::core::Decimal value{"42.3"};
+  const sourcemeta::core::Decimal expected{42};
+  EXPECT_EQ(value.to_integral(), expected);
+}
+
+TEST(Numeric_decimal, to_integral_rounds_up) {
+  const sourcemeta::core::Decimal value{"42.7"};
+  const sourcemeta::core::Decimal expected{43};
+  EXPECT_EQ(value.to_integral(), expected);
+}
+
+TEST(Numeric_decimal, to_integral_half_even) {
+  const sourcemeta::core::Decimal value1{"42.5"};
+  const sourcemeta::core::Decimal expected1{42};
+  const sourcemeta::core::Decimal value2{"43.5"};
+  const sourcemeta::core::Decimal expected2{44};
+  EXPECT_EQ(value1.to_integral(), expected1);
+  EXPECT_EQ(value2.to_integral(), expected2);
+}
+
+TEST(Numeric_decimal, to_integral_already_integer) {
+  const sourcemeta::core::Decimal value{100};
+  const sourcemeta::core::Decimal expected{100};
+  EXPECT_EQ(value.to_integral(), expected);
+}
+
+TEST(Numeric_decimal, factory_nan) {
+  const auto nan_value{sourcemeta::core::Decimal::nan()};
+  EXPECT_TRUE(nan_value.is_nan());
+  EXPECT_FALSE(nan_value.is_finite());
+  EXPECT_FALSE(nan_value.is_infinite());
+}
+
+TEST(Numeric_decimal, factory_infinity) {
+  const auto inf_value{sourcemeta::core::Decimal::infinity()};
+  EXPECT_TRUE(inf_value.is_infinite());
+  EXPECT_FALSE(inf_value.is_nan());
+  EXPECT_FALSE(inf_value.is_finite());
+  EXPECT_FALSE(inf_value.is_signed());
+}
+
+TEST(Numeric_decimal, factory_negative_infinity) {
+  const auto neg_inf{sourcemeta::core::Decimal::negative_infinity()};
+  EXPECT_TRUE(neg_inf.is_infinite());
+  EXPECT_FALSE(neg_inf.is_nan());
+  EXPECT_FALSE(neg_inf.is_finite());
+  EXPECT_TRUE(neg_inf.is_signed());
+}
+
+TEST(Numeric_decimal, is_float_simple_values) {
+  const sourcemeta::core::Decimal value1{3};
+  const sourcemeta::core::Decimal value2{"3.14"};
+  const sourcemeta::core::Decimal value3{"-2.5"};
+  EXPECT_TRUE(value1.is_float());
+  EXPECT_TRUE(value2.is_float());
+  EXPECT_TRUE(value3.is_float());
+}
+
+TEST(Numeric_decimal, is_float_special_values) {
+  const auto nan_value{sourcemeta::core::Decimal::nan()};
+  const auto inf_value{sourcemeta::core::Decimal::infinity()};
+  const auto neg_inf{sourcemeta::core::Decimal::negative_infinity()};
+  EXPECT_TRUE(nan_value.is_float());
+  EXPECT_TRUE(inf_value.is_float());
+  EXPECT_TRUE(neg_inf.is_float());
+}
+
+TEST(Numeric_decimal, is_float_high_precision_loss) {
+  const sourcemeta::core::Decimal value{"3.141592653589793238462643383279"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_double_simple_values) {
+  const sourcemeta::core::Decimal value1{3};
+  const sourcemeta::core::Decimal value2{"3.14"};
+  const sourcemeta::core::Decimal value3{"-2.5"};
+  EXPECT_TRUE(value1.is_double());
+  EXPECT_TRUE(value2.is_double());
+  EXPECT_TRUE(value3.is_double());
+}
+
+TEST(Numeric_decimal, is_double_special_values) {
+  const auto nan_value{sourcemeta::core::Decimal::nan()};
+  const auto inf_value{sourcemeta::core::Decimal::infinity()};
+  const auto neg_inf{sourcemeta::core::Decimal::negative_infinity()};
+  EXPECT_TRUE(nan_value.is_double());
+  EXPECT_TRUE(inf_value.is_double());
+  EXPECT_TRUE(neg_inf.is_double());
+}
+
+TEST(Numeric_decimal, is_double_high_precision_loss) {
+  const sourcemeta::core::Decimal value{
+      "3.14159265358979323846264338327950288419716939937510"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, to_float_simple) {
+  const sourcemeta::core::Decimal value{"3.14"};
+  EXPECT_FLOAT_EQ(value.to_float(), 3.14f);
+}
+
+TEST(Numeric_decimal, to_float_integer) {
+  const sourcemeta::core::Decimal value{42};
+  EXPECT_FLOAT_EQ(value.to_float(), 42.0f);
+}
+
+TEST(Numeric_decimal, to_double_simple) {
+  const sourcemeta::core::Decimal value{"3.14159"};
+  EXPECT_DOUBLE_EQ(value.to_double(), 3.14159);
+}
+
+TEST(Numeric_decimal, to_double_integer) {
+  const sourcemeta::core::Decimal value{42};
+  EXPECT_DOUBLE_EQ(value.to_double(), 42.0);
+}
+
+TEST(Numeric_decimal, to_float_nan) {
+  const auto nan_value{sourcemeta::core::Decimal::nan()};
+  const float result{nan_value.to_float()};
+  EXPECT_TRUE(std::isnan(result));
+}
+
+TEST(Numeric_decimal, to_float_infinity) {
+  const auto inf_value{sourcemeta::core::Decimal::infinity()};
+  const float result{inf_value.to_float()};
+  EXPECT_TRUE(std::isinf(result));
+  EXPECT_GT(result, 0.0f);
+}
+
+TEST(Numeric_decimal, to_float_negative_infinity) {
+  const auto neg_inf{sourcemeta::core::Decimal::negative_infinity()};
+  const float result{neg_inf.to_float()};
+  EXPECT_TRUE(std::isinf(result));
+  EXPECT_LT(result, 0.0f);
+}
+
+TEST(Numeric_decimal, to_double_nan) {
+  const auto nan_value{sourcemeta::core::Decimal::nan()};
+  const double result{nan_value.to_double()};
+  EXPECT_TRUE(std::isnan(result));
+}
+
+TEST(Numeric_decimal, to_double_infinity) {
+  const auto inf_value{sourcemeta::core::Decimal::infinity()};
+  const double result{inf_value.to_double()};
+  EXPECT_TRUE(std::isinf(result));
+  EXPECT_GT(result, 0.0);
+}
+
+TEST(Numeric_decimal, to_double_negative_infinity) {
+  const auto neg_inf{sourcemeta::core::Decimal::negative_infinity()};
+  const double result{neg_inf.to_double()};
+  EXPECT_TRUE(std::isinf(result));
+  EXPECT_LT(result, 0.0);
+}
+
+TEST(Numeric_decimal, divisible_by_integer_true) {
+  const sourcemeta::core::Decimal dividend{10};
+  const sourcemeta::core::Decimal divisor{5};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_integer_false) {
+  const sourcemeta::core::Decimal dividend{10};
+  const sourcemeta::core::Decimal divisor{3};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_zero) {
+  const sourcemeta::core::Decimal dividend{10};
+  const sourcemeta::core::Decimal divisor{0};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_decimal_true) {
+  const sourcemeta::core::Decimal dividend{"4.5"};
+  const sourcemeta::core::Decimal divisor{"1.5"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_decimal_false) {
+  const sourcemeta::core::Decimal dividend{"5.0"};
+  const sourcemeta::core::Decimal divisor{"1.3"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_half) {
+  const sourcemeta::core::Decimal dividend{7};
+  const sourcemeta::core::Decimal divisor{"0.5"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_half_odd) {
+  const sourcemeta::core::Decimal dividend{8};
+  const sourcemeta::core::Decimal divisor{"0.5"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_self) {
+  const sourcemeta::core::Decimal value{"3.14159"};
+  EXPECT_TRUE(value.divisible_by(value));
+}
+
+TEST(Numeric_decimal, divisible_by_one) {
+  const sourcemeta::core::Decimal dividend{123};
+  const sourcemeta::core::Decimal divisor{1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_negative) {
+  const sourcemeta::core::Decimal dividend{-10};
+  const sourcemeta::core::Decimal divisor{5};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
 TEST(Numeric_decimal, add_integer_to_decimal) {
@@ -788,25 +1060,25 @@ TEST(Numeric_decimal, is_uint64_false_too_large) {
 TEST(Numeric_decimal, exception_conversion_syntax_invalid_string) {
   EXPECT_THROW(
       { const sourcemeta::core::Decimal value{"not_a_number"}; },
-      decimal::ConversionSyntax);
+      sourcemeta::core::DecimalParseError);
 }
 
 TEST(Numeric_decimal, exception_conversion_syntax_empty_string) {
   EXPECT_THROW(
       { const sourcemeta::core::Decimal value{""}; },
-      decimal::ConversionSyntax);
+      sourcemeta::core::DecimalParseError);
 }
 
 TEST(Numeric_decimal, exception_conversion_syntax_invalid_exponent) {
   EXPECT_THROW(
       { const sourcemeta::core::Decimal value{"123e"}; },
-      decimal::ConversionSyntax);
+      sourcemeta::core::DecimalParseError);
 }
 
 TEST(Numeric_decimal, exception_conversion_syntax_multiple_dots) {
   EXPECT_THROW(
       { const sourcemeta::core::Decimal value{"12.34.56"}; },
-      decimal::ConversionSyntax);
+      sourcemeta::core::DecimalParseError);
 }
 
 TEST(Numeric_decimal, exception_division_by_zero_divide) {
@@ -814,13 +1086,15 @@ TEST(Numeric_decimal, exception_division_by_zero_divide) {
   const sourcemeta::core::Decimal denominator{0};
   EXPECT_THROW(
       { const auto result = numerator / denominator; },
-      decimal::DivisionByZero);
+      sourcemeta::core::NumericDivisionByZeroError);
 }
 
 TEST(Numeric_decimal, exception_division_by_zero_divide_assign) {
   sourcemeta::core::Decimal numerator{10};
   const sourcemeta::core::Decimal denominator{0};
-  EXPECT_THROW({ numerator /= denominator; }, decimal::DivisionByZero);
+  EXPECT_THROW(
+      { numerator /= denominator; },
+      sourcemeta::core::NumericDivisionByZeroError);
 }
 
 TEST(Numeric_decimal, exception_invalid_operation_modulo_by_zero) {
@@ -828,23 +1102,43 @@ TEST(Numeric_decimal, exception_invalid_operation_modulo_by_zero) {
   const sourcemeta::core::Decimal denominator{0};
   EXPECT_THROW(
       { const auto result = numerator % denominator; },
-      decimal::InvalidOperation);
+      sourcemeta::core::NumericInvalidOperationError);
 }
 
 TEST(Numeric_decimal, exception_invalid_operation_modulo_assign_by_zero) {
   sourcemeta::core::Decimal numerator{10};
   const sourcemeta::core::Decimal denominator{0};
-  EXPECT_THROW({ numerator %= denominator; }, decimal::InvalidOperation);
+  EXPECT_THROW(
+      { numerator %= denominator; },
+      sourcemeta::core::NumericInvalidOperationError);
 }
 
 TEST(Numeric_decimal, exception_invalid_operation_zero_divided_by_zero) {
   const sourcemeta::core::Decimal zero{0};
   EXPECT_THROW(
-      { const auto result = zero / zero; }, decimal::IEEEInvalidOperation);
+      { const auto result = zero / zero; },
+      sourcemeta::core::NumericInvalidOperationError);
 }
 
 TEST(Numeric_decimal, exception_invalid_operation_zero_modulo_zero) {
   const sourcemeta::core::Decimal zero{0};
   EXPECT_THROW(
-      { const auto result = zero % zero; }, decimal::IEEEInvalidOperation);
+      { const auto result = zero % zero; },
+      sourcemeta::core::NumericInvalidOperationError);
+}
+
+TEST(Numeric_decimal, exception_overflow_multiplication) {
+  const sourcemeta::core::Decimal large{"9e999999"};
+  const sourcemeta::core::Decimal multiplier{10};
+  EXPECT_THROW(
+      { const auto result = large * multiplier; },
+      sourcemeta::core::NumericOverflowError);
+}
+
+TEST(Numeric_decimal, exception_overflow_addition) {
+  const sourcemeta::core::Decimal large{"9e999999"};
+  const sourcemeta::core::Decimal addend{"9e999999"};
+  EXPECT_THROW(
+      { const auto result = large + addend; },
+      sourcemeta::core::NumericOverflowError);
 }

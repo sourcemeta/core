@@ -54,6 +54,15 @@ public:
   /// Move assignment operator
   auto operator=(Decimal &&other) noexcept -> Decimal & = default;
 
+  /// Create a NaN (Not a Number) value
+  [[nodiscard]] static auto nan() -> Decimal;
+
+  /// Create a positive infinity value
+  [[nodiscard]] static auto infinity() -> Decimal;
+
+  /// Create a negative infinity value
+  [[nodiscard]] static auto negative_infinity() -> Decimal;
+
   /// Convert the decimal number to scientific notation string
   [[nodiscard]] auto to_scientific_string() const -> std::string;
 
@@ -72,6 +81,12 @@ public:
   /// Convert the decimal number to a 32-bit unsigned integer
   [[nodiscard]] auto to_uint32() const -> std::uint32_t;
 
+  /// Convert the decimal number to a 32-bit float
+  [[nodiscard]] auto to_float() const -> float;
+
+  /// Convert the decimal number to a 64-bit double
+  [[nodiscard]] auto to_double() const -> double;
+
   /// Check if the decimal number is zero
   [[nodiscard]] auto is_zero() const -> bool;
 
@@ -80,6 +95,17 @@ public:
 
   /// Check if the decimal number is finite
   [[nodiscard]] auto is_finite() const -> bool;
+
+  /// Check if the decimal number is a real number (finite and not NaN)
+  [[nodiscard]] auto is_real() const -> bool;
+
+  /// Check if the decimal number can be represented as a 32-bit float without
+  /// precision loss
+  [[nodiscard]] auto is_float() const -> bool;
+
+  /// Check if the decimal number can be represented as a 64-bit double without
+  /// precision loss
+  [[nodiscard]] auto is_double() const -> bool;
 
   /// Check if the decimal number fits in a 32-bit signed integer
   [[nodiscard]] auto is_int32() const -> bool;
@@ -92,6 +118,21 @@ public:
 
   /// Check if the decimal number fits in a 64-bit unsigned integer
   [[nodiscard]] auto is_uint64() const -> bool;
+
+  /// Check if the decimal number is NaN (Not a Number)
+  [[nodiscard]] auto is_nan() const -> bool;
+
+  /// Check if the decimal number is infinite
+  [[nodiscard]] auto is_infinite() const -> bool;
+
+  /// Check if the decimal number is signed (negative, including -0)
+  [[nodiscard]] auto is_signed() const -> bool;
+
+  /// Round the decimal number to an integral value
+  [[nodiscard]] auto to_integral() const -> Decimal;
+
+  /// Check if this decimal number is divisible by another
+  [[nodiscard]] auto divisible_by(const Decimal &divisor) const -> bool;
 
   /// Add another decimal number to this one
   auto operator+=(const Decimal &other) -> Decimal &;
