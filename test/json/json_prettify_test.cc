@@ -501,3 +501,195 @@ TEST(JSON_prettify, object_reorder_with_4_spaces) {
   EXPECT_EQ(stream.str(),
             "{\n    \"bar\": 2,\n    \"baz\": 3,\n    \"foo\": 1\n}");
 }
+
+TEST(JSON_prettify, decimal_positive_integer) {
+  const sourcemeta::core::Decimal value{12345};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "12345");
+}
+
+TEST(JSON_prettify, decimal_negative_integer) {
+  const sourcemeta::core::Decimal value{-67890};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "-67890");
+}
+
+TEST(JSON_prettify, decimal_zero) {
+  const sourcemeta::core::Decimal value{0};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "0");
+}
+
+TEST(JSON_prettify, decimal_fractional) {
+  const sourcemeta::core::Decimal value{"3.14159"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "3.14159");
+}
+
+TEST(JSON_prettify, decimal_negative_fractional) {
+  const sourcemeta::core::Decimal value{"-2.71828"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "-2.71828");
+}
+
+TEST(JSON_prettify, decimal_large_integer) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567890"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "123456789012345678901234567890");
+}
+
+TEST(JSON_prettify, decimal_large_negative_integer) {
+  const sourcemeta::core::Decimal value{"-987654321098765432109876543210"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "-987654321098765432109876543210");
+}
+
+TEST(JSON_prettify, decimal_high_precision_fractional) {
+  const sourcemeta::core::Decimal value{
+      "3.141592653589793238462643383279502884197"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197");
+}
+
+TEST(JSON_prettify, decimal_very_small_fractional) {
+  const sourcemeta::core::Decimal value{"0.000000000000000000000000000001"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "1e-30");
+}
+
+TEST(JSON_prettify, decimal_scientific_notation) {
+  const sourcemeta::core::Decimal value{"1.23e10"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "12.3e+9");
+}
+
+TEST(JSON_prettify, decimal_in_array) {
+  const sourcemeta::core::Decimal value1{100};
+  const sourcemeta::core::Decimal value2{"999.999"};
+  const sourcemeta::core::Decimal value3{"-42"};
+  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
+                                        sourcemeta::core::JSON{value2},
+                                        sourcemeta::core::JSON{value3}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "[ 100, 999.999, -42 ]");
+}
+
+TEST(JSON_prettify, decimal_large_numbers_in_array) {
+  const sourcemeta::core::Decimal value1{"123456789012345678901234567890"};
+  const sourcemeta::core::Decimal value2{
+      "98765432109876543210.98765432109876543210"};
+  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
+                                        sourcemeta::core::JSON{value2}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(),
+            "[ 123456789012345678901234567890, 98765432109876543210."
+            "98765432109876543210 ]");
+}
+
+TEST(JSON_prettify, decimal_nested_in_array) {
+  const sourcemeta::core::Decimal value1{"111.111"};
+  const sourcemeta::core::Decimal value2{"222.222"};
+  sourcemeta::core::JSON inner_array{sourcemeta::core::JSON{value1},
+                                     sourcemeta::core::JSON{value2}};
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(std::move(inner_array));
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "[\n  [ 111.111, 222.222 ]\n]");
+}
+
+TEST(JSON_prettify, decimal_in_object) {
+  const sourcemeta::core::Decimal value1{"12345"};
+  const sourcemeta::core::Decimal value2{"-67.89"};
+  sourcemeta::core::JSON document{
+      {"integer", sourcemeta::core::JSON{value1}},
+      {"fractional", sourcemeta::core::JSON{value2}}};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(),
+            "{\n  \"fractional\": -67.89,\n  \"integer\": 12345\n}");
+}
+
+TEST(JSON_prettify, decimal_large_numbers_in_object) {
+  const sourcemeta::core::Decimal big_int{"999999999999999999999999999999"};
+  const sourcemeta::core::Decimal big_real{
+      "123456789.123456789123456789123456789"};
+  sourcemeta::core::JSON document{
+      {"bigInt", sourcemeta::core::JSON{big_int}},
+      {"bigReal", sourcemeta::core::JSON{big_real}}};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(),
+            "{\n  \"bigInt\": 999999999999999999999999999999,\n  \"bigReal\": "
+            "123456789.123456789123456789123456789\n}");
+}
+
+TEST(JSON_prettify, decimal_mixed_with_other_types_in_object) {
+  const sourcemeta::core::Decimal decimal_value{"3.14159"};
+  sourcemeta::core::JSON document{
+      {"string", sourcemeta::core::JSON{"hello"}},
+      {"integer", sourcemeta::core::JSON{42}},
+      {"decimal", sourcemeta::core::JSON{decimal_value}},
+      {"boolean", sourcemeta::core::JSON{true}}};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(),
+            "{\n  \"boolean\": true,\n  \"decimal\": 3.14159,\n  \"integer\": "
+            "42,\n  \"string\": \"hello\"\n}");
+}
+
+TEST(JSON_prettify, decimal_nested_in_object_with_array) {
+  const sourcemeta::core::Decimal value1{"111"};
+  const sourcemeta::core::Decimal value2{"222.222"};
+  sourcemeta::core::JSON array{sourcemeta::core::JSON::Array{}};
+  array.push_back(sourcemeta::core::JSON{value1});
+  array.push_back(sourcemeta::core::JSON{value2});
+  const sourcemeta::core::JSON document{{"decimals", std::move(array)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), "{\n  \"decimals\": [ 111, 222.222 ]\n}");
+}
+
+TEST(JSON_prettify, decimal_large_numbers_nested_with_indentation) {
+  const sourcemeta::core::Decimal big1{"111111111111111111111111111111"};
+  const sourcemeta::core::Decimal big2{"222222222222222222222222222222"};
+  sourcemeta::core::JSON inner_object{{"first", sourcemeta::core::JSON{big1}},
+                                      {"second", sourcemeta::core::JSON{big2}}};
+  inner_object.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  sourcemeta::core::JSON document{{"nested", std::move(inner_object)}};
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream, 4);
+  EXPECT_EQ(stream.str(),
+            "{\n    \"nested\": {\n        \"first\": "
+            "111111111111111111111111111111,\n        \"second\": "
+            "222222222222222222222222222222\n    }\n}");
+}

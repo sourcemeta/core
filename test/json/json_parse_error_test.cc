@@ -24,13 +24,6 @@
   __EXPECT_PARSE_ERROR(input, expected_line, expected_column, JSONParseError,  \
                        "Failed to parse the JSON document");
 
-#define EXPECT_PARSE_ERROR_INTEGER_LIMIT(input, expected_line,                 \
-                                         expected_column)                      \
-  __EXPECT_PARSE_ERROR(input, expected_line, expected_column,                  \
-                       JSONParseIntegerLimitError,                             \
-                       "The JSON value is not representable by the IETF RFC "  \
-                       "8259 interoperable signed integer range");
-
 TEST(JSON_parse_error, boolean_true_invalid) {
   std::istringstream input{"trrue"};
   EXPECT_PARSE_ERROR(input, 1, 3);
@@ -533,16 +526,6 @@ TEST(JSON_parse_error, integer_negative_with_leading_zero) {
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, integer_slightly_over_64_bit_positive_limit) {
-  std::istringstream input{"9223372036854776000"};
-  EXPECT_PARSE_ERROR_INTEGER_LIMIT(input, 1, 1);
-}
-
-TEST(JSON_parse_error, integer_slightly_over_64_bit_positive_limit_in_object) {
-  std::istringstream input{"{\"foo\":9223372036854776000}"};
-  EXPECT_PARSE_ERROR_INTEGER_LIMIT(input, 1, 8);
-}
-
 TEST(JSON_parse_error, integer_negative_with_leading_zero_and_space) {
   std::istringstream input{"[-0 5]"};
   EXPECT_PARSE_ERROR(input, 1, 5);
@@ -568,9 +551,29 @@ TEST(JSON_parse_error, multiple_leading_zeroes_real_number) {
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, huge_negative_exponent) {
-  std::istringstream input{"123.456e-789"};
+TEST(JSON_parse_error, decimal_invalid_standalone_exponent) {
+  std::istringstream input{"e10"};
   EXPECT_PARSE_ERROR(input, 1, 1);
+}
+
+TEST(JSON_parse_error, decimal_invalid_standalone_negative_sign) {
+  std::istringstream input{"-"};
+  EXPECT_PARSE_ERROR(input, 1, 2);
+}
+
+TEST(JSON_parse_error, decimal_invalid_standalone_decimal_point) {
+  std::istringstream input{"."};
+  EXPECT_PARSE_ERROR(input, 1, 1);
+}
+
+TEST(JSON_parse_error, decimal_exponent_no_digits) {
+  std::istringstream input{"1e"};
+  EXPECT_PARSE_ERROR(input, 1, 3);
+}
+
+TEST(JSON_parse_error, decimal_exponent_sign_no_digits) {
+  std::istringstream input{"1e+"};
+  EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
 TEST(JSON_parse_error, exponential_notation_error_double_upper_e) {

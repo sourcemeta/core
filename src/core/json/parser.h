@@ -4,10 +4,13 @@
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/json_value.h>
 
+#include <sourcemeta/core/numeric.h>
+
 #include "grammar.h"
 
 #include <cassert>    // assert
 #include <cctype>     // std::isxdigit
+#include <cmath>      // std::isinf, std::isnan
 #include <cstddef>    // std::size_t
 #include <cstdint>    // std::uint64_t
 #include <functional> // std::reference_wrapper
@@ -291,21 +294,34 @@ auto parse_string(
 template <typename CharT, typename Traits>
 auto parse_number_integer(const std::uint64_t line, const std::uint64_t column,
                           const std::basic_string<CharT, Traits> &string)
-    -> std::int64_t {
+    -> JSON {
   try {
-    return std::stoll(string);
+    return JSON{static_cast<std::int64_t>(std::stoll(string))};
   } catch (const std::out_of_range &) {
-    throw JSONParseIntegerLimitError(line, column);
+    try {
+      return JSON{Decimal{string}};
+    } catch (const DecimalParseError &) {
+      throw JSONParseError(line, column);
+    }
   }
 }
 
 template <typename CharT, typename Traits>
 auto parse_number_real(const std::uint64_t line, const std::uint64_t column,
-                       const std::basic_string<CharT, Traits> &string)
-    -> double {
+                       const std::basic_string<CharT, Traits> &string) -> JSON {
   try {
-    return std::stod(string);
-  } catch (const std::out_of_range &) {
+    const Decimal decimal{string};
+    if (decimal.is_double()) {
+      const auto double_value{decimal.to_double()};
+      if (std::isinf(double_value) || std::isnan(double_value)) {
+        throw JSONParseError(line, column);
+      }
+
+      return JSON{double_value};
+    }
+
+    return JSON{decimal};
+  } catch (const DecimalParseError &) {
     throw JSONParseError(line, column);
   }
 }
@@ -316,7 +332,7 @@ auto parse_number_exponent_rest(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -349,7 +365,7 @@ auto parse_number_exponent(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -378,7 +394,7 @@ auto parse_number_exponent_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -417,7 +433,7 @@ auto parse_number_fractional(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -461,7 +477,7 @@ auto parse_number_fractional_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.peek())};
   switch (character) {
@@ -764,6 +780,10 @@ do_parse:
           CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
                                      JSON{nullptr});
           CALLBACK_POST(Integer, value);
+        } else if (value.is_decimal()) {
+          CALLBACK_PRE_WITH_POSITION(Decimal, current_line, current_column,
+                                     JSON{nullptr});
+          CALLBACK_POST(Decimal, value);
         } else {
           CALLBACK_PRE_WITH_POSITION(Real, current_line, current_column,
                                      JSON{nullptr});
@@ -889,6 +909,9 @@ do_parse_array_item:
         if (value.is_integer()) {
           CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
                                      JSON{frames.top().get().size()});
+        } else if (value.is_decimal()) {
+          CALLBACK_PRE_WITH_POSITION(Decimal, current_line, current_column,
+                                     JSON{frames.top().get().size()});
         } else {
           CALLBACK_PRE_WITH_POSITION(Real, current_line, current_column,
                                      JSON{frames.top().get().size()});
@@ -898,6 +921,8 @@ do_parse_array_item:
 
         if (value.is_integer()) {
           CALLBACK_POST(Integer, frames.top().get().back());
+        } else if (value.is_decimal()) {
+          CALLBACK_POST(Decimal, frames.top().get().back());
         } else {
           CALLBACK_POST(Real, frames.top().get().back());
         }
@@ -1100,6 +1125,8 @@ do_parse_object_property_value:
             internal::parse_number(line, column, stream, character)};
         if (value.is_integer()) {
           CALLBACK_PRE_WITH_POSITION(Integer, key_line, key_column, JSON{key});
+        } else if (value.is_decimal()) {
+          CALLBACK_PRE_WITH_POSITION(Decimal, key_line, key_column, JSON{key});
         } else {
           CALLBACK_PRE_WITH_POSITION(Real, key_line, key_column, JSON{key});
         }
@@ -1108,6 +1135,8 @@ do_parse_object_property_value:
 
         if (value.is_integer()) {
           CALLBACK_POST(Integer, frames.top().get().at(key));
+        } else if (value.is_decimal()) {
+          CALLBACK_POST(Decimal, frames.top().get().at(key));
         } else {
           CALLBACK_POST(Real, frames.top().get().at(key));
         }
