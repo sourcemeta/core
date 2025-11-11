@@ -858,6 +858,42 @@ TEST(AlterSchema_lint_draft7, minimum_real_for_integer_1) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft7, maximum_real_for_integer_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "maximum": 9.99999999999999999999999999999e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "maximum": 9.99999999999999999999999999999e+400
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, minimum_real_for_integer_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "minimum": 9.99999999999999999999999999999e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "minimum": 99.9999999999999999999999999999e+399
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft7, dependent_required_tautology_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1451,6 +1487,82 @@ TEST(AlterSchema_lint_draft7, exclusive_minimum_integer_to_minimum_5) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft7, exclusive_maximum_integer_to_maximum_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "exclusiveMaximum": 1.0e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "multipleOf": 1,
+    "maximum": 10.00000000000000e+399
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, exclusive_maximum_integer_to_maximum_decimal_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "exclusiveMaximum": 9.99999999999999999999999999999e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "multipleOf": 1,
+    "maximum": 100.0000000000000e+399
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, exclusive_minimum_integer_to_minimum_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "exclusiveMinimum": 1.0e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "multipleOf": 1,
+    "minimum": 1.0e+400
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, exclusive_minimum_integer_to_minimum_decimal_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "exclusiveMinimum": 9.99999999999999999999999999999e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "multipleOf": 1,
+    "minimum": 1.0e+401
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft7, boolean_true_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1567,6 +1679,42 @@ TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_2) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
     "const": 3
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "integer",
+    "minimum": 1.0e400,
+    "maximum": 1.0e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "const": 1.0e+400
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_decimal_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "number",
+    "minimum": 1.23456789012345678901234567890e500,
+    "maximum": 1.23456789012345678901234567890e500
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "const": 1.23456789012345678901234567890e+500
   })JSON");
 
   EXPECT_EQ(document, expected);

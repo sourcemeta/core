@@ -1473,6 +1473,62 @@ TEST(AlterSchema_lint_draft6, equal_numeric_bounds_to_const_2) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "integer",
+    "exclusiveMaximum": 1.0e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "integer",
+    "multipleOf": 1,
+    "maximum": 10.00000000000000e+399
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "integer",
+    "exclusiveMinimum": 1.0e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "integer",
+    "multipleOf": 1,
+    "minimum": 1.0e+400
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, equal_numeric_bounds_to_const_decimal_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "integer",
+    "minimum": 1.0e400,
+    "maximum": 1.0e400
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "const": 1.0e+400
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
