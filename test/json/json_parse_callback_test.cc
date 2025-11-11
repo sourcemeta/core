@@ -360,10 +360,10 @@ TEST(JSON_parse_callback, decimals_mixed_in_object) {
 TEST(JSON_parse_callback, decimal_big_real) {
   const auto input{"3.14159265358979323846264338327950288419716939937510"};
   PARSE_WITH_TRACES(document, input, 2);
-  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Post, Decimal, 1, 52,
-               sourcemeta::core::JSON{sourcemeta::core::Decimal{
-                   "3.14159265358979323846264338327950288419716939937510"}});
+  EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Real, 1, 52,
+               sourcemeta::core::JSON{
+                   3.14159265358979323846264338327950288419716939937510});
 }
 
 TEST(JSON_parse_callback, nested_decimals) {

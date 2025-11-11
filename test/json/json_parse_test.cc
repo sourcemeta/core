@@ -1277,7 +1277,7 @@ TEST(JSON_parse, rfc8259_example_2) {
 
   // Member types
   EXPECT_TRUE(value.at(0).at("precision").is_string());
-  EXPECT_TRUE(value.at(0).at("Latitude").is_decimal());
+  EXPECT_TRUE(value.at(0).at("Latitude").is_real());
   EXPECT_TRUE(value.at(0).at("Longitude").is_real());
   EXPECT_TRUE(value.at(0).at("Address").is_string());
   EXPECT_TRUE(value.at(0).at("City").is_string());
@@ -1287,7 +1287,7 @@ TEST(JSON_parse, rfc8259_example_2) {
 
   // Member values
   EXPECT_EQ(value.at(0).at("precision").to_string(), "zip");
-  EXPECT_EQ(value.at(0).at("Latitude").to_decimal().to_string(), "37.7668");
+  EXPECT_EQ(value.at(0).at("Latitude").to_real(), 37.7668);
   EXPECT_EQ(value.at(0).at("Longitude").to_real(), -122.3959);
   EXPECT_EQ(value.at(0).at("Address").to_string(), "");
   EXPECT_EQ(value.at(0).at("City").to_string(), "SAN FRANCISCO");
@@ -1311,7 +1311,7 @@ TEST(JSON_parse, rfc8259_example_2) {
 
   // Member types
   EXPECT_TRUE(value.at(1).at("precision").is_string());
-  EXPECT_TRUE(value.at(1).at("Latitude").is_decimal());
+  EXPECT_TRUE(value.at(1).at("Latitude").is_real());
   EXPECT_TRUE(value.at(1).at("Longitude").is_real());
   EXPECT_TRUE(value.at(1).at("Address").is_string());
   EXPECT_TRUE(value.at(1).at("City").is_string());
@@ -1321,7 +1321,7 @@ TEST(JSON_parse, rfc8259_example_2) {
 
   // Member values
   EXPECT_EQ(value.at(1).at("precision").to_string(), "zip");
-  EXPECT_EQ(value.at(1).at("Latitude").to_decimal().to_string(), "37.371991");
+  EXPECT_EQ(value.at(1).at("Latitude").to_real(), 37.371991);
   EXPECT_EQ(value.at(1).at("Longitude").to_real(), -122.026020);
   EXPECT_EQ(value.at(1).at("Address").to_string(), "");
   EXPECT_EQ(value.at(1).at("City").to_string(), "SUNNYVALE");
@@ -1419,16 +1419,15 @@ TEST(JSON_parse, big_integer_in_object) {
 TEST(JSON_parse, big_real_number) {
   std::istringstream input{"1.234567890123456789012345678901234567890"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_decimal());
-  EXPECT_EQ(document.to_decimal().to_string(),
-            "1.234567890123456789012345678901234567890");
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 1.234567890123456789012345678901234567890);
 }
 
 TEST(JSON_parse, very_small_real_number) {
   std::istringstream input{"0.000000000000000000000000000001"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_decimal());
-  EXPECT_EQ(document.to_decimal().to_string(), "1e-30");
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 0.000000000000000000000000000001);
 }
 
 TEST(JSON_parse, big_real_in_array) {
@@ -1439,9 +1438,9 @@ TEST(JSON_parse, big_real_in_array) {
   EXPECT_EQ(document.size(), 3);
   EXPECT_TRUE(document.at(0).is_real());
   EXPECT_EQ(document.at(0).to_real(), 1.5);
-  EXPECT_TRUE(document.at(1).is_decimal());
-  EXPECT_EQ(document.at(1).to_decimal().to_string(),
-            "1.234567890123456789012345678901234567890");
+  EXPECT_TRUE(document.at(1).is_real());
+  EXPECT_EQ(document.at(1).to_real(),
+            1.234567890123456789012345678901234567890);
   EXPECT_TRUE(document.at(2).is_real());
   EXPECT_EQ(document.at(2).to_real(), 2.5);
 }
@@ -1452,9 +1451,9 @@ TEST(JSON_parse, big_real_in_object) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
-  EXPECT_TRUE(document.at("pi").is_decimal());
-  EXPECT_EQ(document.at("pi").to_decimal().to_string(),
-            "3.14159265358979323846264338327950288419716939937510");
+  EXPECT_TRUE(document.at("pi").is_real());
+  EXPECT_EQ(document.at("pi").to_real(),
+            3.14159265358979323846264338327950288419716939937510);
 }
 
 TEST(JSON_parse, big_number_with_exponent) {
@@ -1491,7 +1490,7 @@ TEST(JSON_parse, nested_big_integers_and_reals) {
   EXPECT_TRUE(document.at("data").at(0).at("big_int").is_decimal());
   EXPECT_EQ(document.at("data").at(0).at("big_int").to_decimal().to_string(),
             "9223372036854776000");
-  EXPECT_TRUE(document.at("data").at(0).at("big_real").is_decimal());
-  EXPECT_EQ(document.at("data").at(0).at("big_real").to_decimal().to_string(),
-            "3.14159265358979323846264338327950288419716939937510");
+  EXPECT_TRUE(document.at("data").at(0).at("big_real").is_real());
+  EXPECT_EQ(document.at("data").at(0).at("big_real").to_real(),
+            3.14159265358979323846264338327950288419716939937510);
 }

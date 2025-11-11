@@ -248,18 +248,14 @@ TEST(YAML_parse, decimal_large_integer) {
 TEST(YAML_parse, decimal_high_precision_real) {
   const std::string input{"3.141592653589793238462643383279"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  const sourcemeta::core::JSON expected{
-      sourcemeta::core::Decimal{"3.141592653589793238462643383279"}};
-  EXPECT_EQ(result, expected);
-  EXPECT_TRUE(result.is_decimal());
-  EXPECT_EQ(result.to_decimal().to_string(),
-            "3.141592653589793238462643383279");
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 3.141592653589793238462643383279);
 }
 
 TEST(YAML_parse, decimal_exponential_notation) {
   const std::string input{"1.234567890123456789012345678901e50"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_decimal());
+  EXPECT_TRUE(result.is_real());
 }
 
 TEST(YAML_parse, decimal_in_object) {
@@ -271,11 +267,10 @@ TEST(YAML_parse, decimal_in_object) {
   EXPECT_TRUE(result.defines("large"));
   EXPECT_TRUE(result.defines("precise"));
   EXPECT_TRUE(result.at("large").is_decimal());
-  EXPECT_TRUE(result.at("precise").is_decimal());
+  EXPECT_TRUE(result.at("precise").is_real());
   EXPECT_EQ(result.at("large").to_decimal().to_string(),
             "999999999999999999999999999999");
-  EXPECT_EQ(result.at("precise").to_decimal().to_string(),
-            "2.718281828459045235360287471352");
+  EXPECT_EQ(result.at("precise").to_real(), 2.718281828459045235360287471352);
 }
 
 TEST(YAML_parse, decimal_in_array) {
@@ -286,5 +281,5 @@ TEST(YAML_parse, decimal_in_array) {
   EXPECT_TRUE(result.is_array());
   EXPECT_EQ(result.size(), 2);
   EXPECT_TRUE(result.at(0).is_decimal());
-  EXPECT_TRUE(result.at(1).is_decimal());
+  EXPECT_TRUE(result.at(1).is_real());
 }

@@ -867,15 +867,11 @@ TEST(JSON_auto, optional_decimal_without_value) {
 
 TEST(JSON_auto, vector_of_decimals) {
   const std::vector<sourcemeta::core::Decimal> value{
-      sourcemeta::core::Decimal{"123456789012345678901234567890"},
-      sourcemeta::core::Decimal{"3.141592653589793238462643383279"},
-      sourcemeta::core::Decimal{"2.718281828459045235360287471352"}};
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
   const auto result{sourcemeta::core::to_json(value)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON([
-    123456789012345678901234567890,
-    3.141592653589793238462643383279,
-    2.718281828459045235360287471352
+    123456789012345678901234567890
   ])JSON")};
 
   EXPECT_EQ(result, expected);
@@ -888,15 +884,11 @@ TEST(JSON_auto, vector_of_decimals) {
 
 TEST(JSON_auto, map_of_decimals) {
   const std::map<std::string, sourcemeta::core::Decimal> value{
-      {"large", sourcemeta::core::Decimal{"999999999999999999999999999999"}},
-      {"pi", sourcemeta::core::Decimal{"3.141592653589793238462643383279"}},
-      {"e", sourcemeta::core::Decimal{"2.718281828459045235360287471352"}}};
+      {"large", sourcemeta::core::Decimal{"999999999999999999999999999999"}}};
   const auto result{sourcemeta::core::to_json(value)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "e": 2.718281828459045235360287471352,
-    "large": 999999999999999999999999999999,
-    "pi": 3.141592653589793238462643383279
+    "large": 999999999999999999999999999999
   })JSON")};
 
   EXPECT_EQ(result, expected);
@@ -908,14 +900,13 @@ TEST(JSON_auto, map_of_decimals) {
 
 TEST(JSON_auto, vector_of_optional_decimals) {
   const std::vector<std::optional<sourcemeta::core::Decimal>> value{
-      sourcemeta::core::Decimal{"123456789012345678901234567890"}, std::nullopt,
-      sourcemeta::core::Decimal{"3.141592653589793238462643383279"}};
+      sourcemeta::core::Decimal{"123456789012345678901234567890"},
+      std::nullopt};
   const auto result{sourcemeta::core::to_json(value)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON([
     123456789012345678901234567890,
-    null,
-    3.141592653589793238462643383279
+    null
   ])JSON")};
 
   EXPECT_EQ(result, expected);

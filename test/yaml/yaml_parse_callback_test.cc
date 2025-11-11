@@ -463,10 +463,9 @@ TEST(YAML_parse_callback, decimal_large_integer) {
 TEST(YAML_parse_callback, decimal_high_precision_real) {
   const auto input{"3.141592653589793238462643383279"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
-  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Post, Decimal, 1, 32,
-               sourcemeta::core::JSON{sourcemeta::core::Decimal{
-                   "3.141592653589793238462643383279"}});
+  EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Real, 1, 32,
+               sourcemeta::core::JSON{3.141592653589793238462643383279});
 }
 
 TEST(YAML_parse_callback, decimal_in_object) {

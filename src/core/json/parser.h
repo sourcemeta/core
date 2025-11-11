@@ -310,18 +310,14 @@ template <typename CharT, typename Traits>
 auto parse_number_real(const std::uint64_t line, const std::uint64_t column,
                        const std::basic_string<CharT, Traits> &string) -> JSON {
   try {
-    const Decimal decimal{string};
-    if (decimal.is_double()) {
-      const auto double_value{decimal.to_double()};
-      if (std::isinf(double_value) || std::isnan(double_value)) {
-        throw JSONParseError(line, column);
-      }
-
-      return JSON{double_value};
+    return JSON{std::stod(string)};
+  } catch (const std::out_of_range &) {
+    try {
+      return JSON{Decimal{string}};
+    } catch (const DecimalParseError &) {
+      throw JSONParseError(line, column);
     }
-
-    return JSON{decimal};
-  } catch (const DecimalParseError &) {
+  } catch (const std::invalid_argument &) {
     throw JSONParseError(line, column);
   }
 }
