@@ -1,14 +1,18 @@
 #include <sourcemeta/core/numeric_decimal.h>
 #include <sourcemeta/core/numeric_error.h>
 
-#include <cassert> // assert
-#include <cmath>   // std::isfinite
-#include <cstdint> // std::int64_t, std::uint64_t
-#include <cstring> // std::strlen
-#include <limits>  // std::numeric_limits
-#include <new>     // placement new
-#include <string>  // std::string, std::stof, std::stod
-#include <utility> // std::move
+#include <cassert>     // assert
+#include <cmath>       // std::isfinite
+#include <cstdint>     // std::int64_t, std::uint64_t
+#include <cstring>     // std::strlen
+#include <iomanip>     // std::setprecision
+#include <limits>      // std::numeric_limits
+#include <new>         // new
+#include <sstream>     // std::ostringstream
+#include <stdexcept>   // std::out_of_range
+#include <string>      // std::string, std::stof, std::stod
+#include <type_traits> // std::is_same_v
+#include <utility>     // std::move
 
 #include <mpdecimal.h> // mpd_*
 
@@ -56,6 +60,41 @@ thread_local mpd_context_t max_context = []() {
   mpd_maxcontext(&context);
   return context;
 }();
+
+template <typename FloatingPointType>
+auto is_representable_as_floating_point(
+    const mpd_t *const mpd_value, const sourcemeta::core::Decimal &decimal)
+    -> bool {
+  if (mpd_isnan(mpd_value) || mpd_isinfinite(mpd_value)) {
+    return true;
+  }
+
+  if (!mpd_isfinite(mpd_value)) {
+    return false;
+  }
+
+  const std::string decimal_string{decimal.to_scientific_string()};
+  FloatingPointType converted_value;
+  try {
+    if constexpr (std::is_same_v<FloatingPointType, float>) {
+      converted_value = std::stof(decimal_string);
+    } else if constexpr (std::is_same_v<FloatingPointType, double>) {
+      converted_value = std::stod(decimal_string);
+    }
+  } catch (const std::out_of_range &) {
+    return false;
+  }
+
+  if (!std::isfinite(converted_value)) {
+    return false;
+  }
+
+  std::ostringstream oss;
+  oss << std::setprecision(std::numeric_limits<FloatingPointType>::max_digits10)
+      << converted_value;
+  const sourcemeta::core::Decimal roundtrip{oss.str()};
+  return decimal == roundtrip;
+}
 
 } // namespace
 
@@ -294,15 +333,13 @@ auto Decimal::to_uint32() const -> std::uint32_t {
 }
 
 auto Decimal::to_float() const -> float {
-  assert(this->is_float());
-  const std::string str{this->to_scientific_string()};
-  return std::stof(str);
+  const std::string scientific_notation{this->to_scientific_string()};
+  return std::stof(scientific_notation);
 }
 
 auto Decimal::to_double() const -> double {
-  assert(this->is_double());
-  const std::string str{this->to_scientific_string()};
-  return std::stod(str);
+  const std::string scientific_notation{this->to_scientific_string()};
+  return std::stod(scientific_notation);
 }
 
 auto Decimal::is_zero() const -> bool {
@@ -323,41 +360,12 @@ auto Decimal::is_real() const -> bool {
 }
 
 auto Decimal::is_float() const -> bool {
-  if (mpd_isnan(&this->data()->value) || mpd_isinfinite(&this->data()->value)) {
-    return true;
-  }
-
-  if (!mpd_isfinite(&this->data()->value)) {
-    return false;
-  }
-
-  const std::string str{this->to_scientific_string()};
-  const float float_value{std::stof(str)};
-  if (!std::isfinite(float_value)) {
-    return false;
-  }
-
-  const Decimal roundtrip{std::to_string(float_value)};
-  return *this == roundtrip;
+  return is_representable_as_floating_point<float>(&this->data()->value, *this);
 }
 
 auto Decimal::is_double() const -> bool {
-  if (mpd_isnan(&this->data()->value) || mpd_isinfinite(&this->data()->value)) {
-    return true;
-  }
-
-  if (!mpd_isfinite(&this->data()->value)) {
-    return false;
-  }
-
-  const std::string str{this->to_scientific_string()};
-  const double double_value{std::stod(str)};
-  if (!std::isfinite(double_value)) {
-    return false;
-  }
-
-  const Decimal roundtrip{std::to_string(double_value)};
-  return *this == roundtrip;
+  return is_representable_as_floating_point<double>(&this->data()->value,
+                                                    *this);
 }
 
 auto Decimal::is_int32() const -> bool {
