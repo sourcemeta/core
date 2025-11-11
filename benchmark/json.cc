@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 
-#include <cassert> // assert
+#include <algorithm> // std::ranges
+#include <cassert>   // assert
 
 #include <sourcemeta/core/json.h>
 
@@ -88,6 +89,120 @@ static void JSON_Parse_1(benchmark::State &state) {
   for (auto _ : state) {
     auto result{sourcemeta::core::parse_json(document)};
     assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Real(benchmark::State &state) {
+  const auto document{R"JSON([
+    1.0,
+    2.0,
+    3.5,
+    4.25,
+    5.125,
+    6.0625,
+    7.5,
+    8.75,
+    9.375,
+    10.5,
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+    1024.0,
+    2048.5,
+    4096.25,
+    8192.125,
+    16384.0625,
+    -1.0,
+    -2.5,
+    -3.25,
+    -4.125,
+    -5.0625,
+    100.5,
+    200.25,
+    300.125,
+    400.0625,
+    500.03125,
+    1.0,
+    2.0,
+    3.5,
+    4.25,
+    5.125,
+    6.0625,
+    7.5,
+    8.75,
+    9.375,
+    10.5,
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+    1024.0,
+    2048.5,
+    4096.25,
+    8192.125,
+    16384.0625,
+    -1.0,
+    -2.5,
+    -3.25,
+    -4.125,
+    -5.0625,
+    100.5,
+    200.25,
+    300.125,
+    400.0625,
+    500.03125,
+    1.0,
+    2.0,
+    3.5,
+    4.25,
+    5.125,
+    6.0625,
+    7.5,
+    8.75,
+    9.375,
+    10.5,
+    0.5,
+    0.25,
+    0.125,
+    0.0625,
+    0.03125,
+    1024.0,
+    2048.5,
+    4096.25,
+    8192.125,
+    16384.0625,
+    -1.0,
+    -2.5,
+    -3.25,
+    -4.125,
+    -5.0625,
+    100.5,
+    200.25,
+    300.125,
+    400.0625,
+    500.03125,
+    1.0,
+    2.0,
+    3.5,
+    4.25,
+    5.125,
+    6.0625,
+    7.5,
+    8.75,
+    9.375,
+    10.5
+  ])JSON"};
+
+  assert(std::ranges::all_of(sourcemeta::core::parse_json(document).as_array(),
+                             [](const auto &item) { return item.is_real(); }));
+
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
     benchmark::DoNotOptimize(result);
   }
 }
@@ -311,6 +426,7 @@ static void JSON_Object_Defines_Miss_Too_Large(benchmark::State &state) {
 
 BENCHMARK(JSON_Array_Of_Objects_Unique);
 BENCHMARK(JSON_Parse_1);
+BENCHMARK(JSON_Parse_Real);
 BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock);
 BENCHMARK(JSON_Equality_Helm_Chart_Lock);
 BENCHMARK(JSON_String_Equal)->Args({10})->Args({100});
