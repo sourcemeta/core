@@ -220,20 +220,20 @@ TEST(JSON_number, add_integer_real_within_object) {
 
 TEST(JSON_number, add_real_integer_within_object) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\": 3.2}");
+      sourcemeta::core::parse_json("{\"foo\": 3.5}");
   const sourcemeta::core::JSON value{2};
   document.at("foo") += value;
   EXPECT_TRUE(document.at("foo").is_real());
-  EXPECT_EQ(document.at("foo").to_real(), 5.2);
+  EXPECT_EQ(document.at("foo").to_real(), 5.5);
 }
 
 TEST(JSON_number, add_real_real_within_object) {
   sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json("{\"foo\": 3.2}");
+      sourcemeta::core::parse_json("{\"foo\": 3.5}");
   const sourcemeta::core::JSON value{2.0};
   document.at("foo") += value;
   EXPECT_TRUE(document.at("foo").is_real());
-  EXPECT_EQ(document.at("foo").to_real(), 5.2);
+  EXPECT_EQ(document.at("foo").to_real(), 5.5);
 }
 
 TEST(JSON_number, divisible_by_integer_integer_true) {

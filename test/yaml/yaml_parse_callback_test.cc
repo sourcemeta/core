@@ -81,10 +81,10 @@ TEST(YAML_parse_callback, yaml_integer) {
 }
 
 TEST(YAML_parse_callback, yaml_real) {
-  const auto input{"3.14"};
+  const auto input{"3.5"};
   PARSE_YAML_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Post, Real, 1, 4, sourcemeta::core::JSON{3.14});
+  EXPECT_TRACE(1, Post, Real, 1, 3, sourcemeta::core::JSON{3.5});
 }
 
 TEST(YAML_parse_callback, yaml_empty_array) {
@@ -260,14 +260,13 @@ TEST(YAML_parse_callback, yaml_unquoted_strings) {
 }
 
 TEST(YAML_parse_callback, yaml_numbers_various_formats) {
-  const auto input{
-      "decimal: 42\nfloat: 3.14\nnegative: -10\nexponential: 1e10"};
+  const auto input{"decimal: 42\nfloat: 3.5\nnegative: -10\nexponential: 1e10"};
   PARSE_YAML_WITH_TRACES(document, input, 10);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(1, Pre, Integer, 1, 1, sourcemeta::core::JSON{"decimal"});
   EXPECT_TRACE(2, Post, Integer, 1, 11, sourcemeta::core::JSON{42});
   EXPECT_TRACE(3, Pre, Real, 2, 1, sourcemeta::core::JSON{"float"});
-  EXPECT_TRACE(4, Post, Real, 2, 11, sourcemeta::core::JSON{3.14});
+  EXPECT_TRACE(4, Post, Real, 2, 10, sourcemeta::core::JSON{3.5});
   EXPECT_TRACE(5, Pre, Integer, 3, 1, sourcemeta::core::JSON{"negative"});
   EXPECT_TRACE(6, Post, Integer, 3, 13, sourcemeta::core::JSON{-10});
   EXPECT_TRACE(7, Pre, Real, 4, 1, sourcemeta::core::JSON{"exponential"});

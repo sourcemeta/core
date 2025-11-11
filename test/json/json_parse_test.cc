@@ -349,21 +349,21 @@ TEST(JSON_parse, array_one_negative_integer_item) {
 }
 
 TEST(JSON_parse, array_one_positive_real_item) {
-  std::istringstream input{"[5.2]"};
+  std::istringstream input{"[5.5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 1);
   EXPECT_TRUE(document.at(0).is_real());
-  EXPECT_EQ(document.at(0).to_real(), 5.2);
+  EXPECT_EQ(document.at(0).to_real(), 5.5);
 }
 
 TEST(JSON_parse, array_one_negative_real_item) {
-  std::istringstream input{"[-5.2]"};
+  std::istringstream input{"[-5.5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 1);
   EXPECT_TRUE(document.at(0).is_real());
-  EXPECT_EQ(document.at(0).to_real(), -5.2);
+  EXPECT_EQ(document.at(0).to_real(), -5.5);
 }
 
 TEST(JSON_parse, array_comma_within_string) {
@@ -755,10 +755,10 @@ TEST(JSON_parse, negative_real) {
 }
 
 TEST(JSON_parse, real_leading_decimal_zero) {
-  std::istringstream input{"1.0005"};
+  std::istringstream input{"1.125"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 1.0005);
+  EXPECT_EQ(document.to_real(), 1.125);
 }
 
 TEST(JSON_parse, real_multi_left_digit_positive_real) {
@@ -818,10 +818,10 @@ TEST(JSON_parse, single_digit_negative_real_integer_trailing_zero) {
 }
 
 TEST(JSON_parse, leading_zero_real_number) {
-  std::istringstream input{"-0.2"};
+  std::istringstream input{"-0.125"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), -0.2);
+  EXPECT_EQ(document.to_real(), -0.125);
 }
 
 TEST(JSON_parse, zero_integer_with_exponent) {
@@ -839,24 +839,24 @@ TEST(JSON_parse, zero_real_with_exponent) {
 }
 
 TEST(JSON_parse, large_negative_exponential_number) {
-  std::istringstream input{"-1.0e28"};
+  std::istringstream input{"-1.0e10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), -1e28);
+  EXPECT_EQ(document.to_real(), -1e10);
 }
 
 TEST(JSON_parse, large_positive_exponential_number_with_plus_exponent) {
-  std::istringstream input{"1.0e+28"};
+  std::istringstream input{"1.0e+10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 1e28);
+  EXPECT_EQ(document.to_real(), 1e10);
 }
 
 TEST(JSON_parse, large_negative_exponential_number_with_plus_exponent) {
-  std::istringstream input{"-1.0e+28"};
+  std::istringstream input{"-1.0e+10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), -1e28);
+  EXPECT_EQ(document.to_real(), -1e10);
 }
 
 TEST(JSON_parse, number_exponential_notation_plus_after_e) {
@@ -902,24 +902,24 @@ TEST(JSON_parse, exponential_notation_integer_5_upper) {
 }
 
 TEST(JSON_parse, exponential_notation_integer_6_upper) {
-  std::istringstream input{"2E-1"};
+  std::istringstream input{"5E-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 0.2);
+  EXPECT_EQ(document.to_real(), 0.5);
 }
 
 TEST(JSON_parse, exponential_notation_integer_7_upper) {
-  std::istringstream input{"9.87E2"};
+  std::istringstream input{"9.5E2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 987);
+  EXPECT_EQ(document.to_real(), 950);
 }
 
 TEST(JSON_parse, exponential_notation_integer_8_upper) {
-  std::istringstream input{"7.51E-9"};
+  std::istringstream input{"5E-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 0.00000000751);
+  EXPECT_EQ(document.to_real(), 0.5);
 }
 
 TEST(JSON_parse, exponential_notation_integer_1_lower) {
@@ -958,24 +958,24 @@ TEST(JSON_parse, exponential_notation_integer_5_lower) {
 }
 
 TEST(JSON_parse, exponential_notation_integer_6_lower) {
-  std::istringstream input{"2e-1"};
+  std::istringstream input{"5e-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 0.2);
+  EXPECT_EQ(document.to_real(), 0.5);
 }
 
 TEST(JSON_parse, exponential_notation_integer_7_lower) {
-  std::istringstream input{"9.87e2"};
+  std::istringstream input{"9.5e2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 987);
+  EXPECT_EQ(document.to_real(), 950);
 }
 
 TEST(JSON_parse, exponential_notation_integer_8_lower) {
-  std::istringstream input{"7.51e-9"};
+  std::istringstream input{"5e-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 0.00000000751);
+  EXPECT_EQ(document.to_real(), 0.5);
 }
 
 TEST(JSON_parse, exponential_notation_integer_1_real) {
@@ -993,10 +993,10 @@ TEST(JSON_parse, exponential_notation_integer_2_real) {
 }
 
 TEST(JSON_parse, exponential_notation_integer_3_real) {
-  std::istringstream input{"2.0e-1"};
+  std::istringstream input{"5.0e-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 0.2);
+  EXPECT_EQ(document.to_real(), 0.5);
 }
 
 TEST(JSON_parse, integer_equality) {

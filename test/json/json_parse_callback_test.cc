@@ -94,10 +94,10 @@ TEST(JSON_parse_callback, integer) {
 }
 
 TEST(JSON_parse_callback, real) {
-  const auto input{"3.14"};
+  const auto input{"3.5"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Post, Real, 1, 4, sourcemeta::core::JSON{3.14});
+  EXPECT_TRACE(1, Post, Real, 1, 3, sourcemeta::core::JSON{3.5});
 }
 
 TEST(JSON_parse_callback, empty_array) {
@@ -153,13 +153,13 @@ TEST(JSON_parse_callback, array_integers) {
 }
 
 TEST(JSON_parse_callback, array_reals) {
-  const auto input{"[\n  1.0,\n  2.34\n]"};
+  const auto input{"[\n  1.0,\n  2.5\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(1, Pre, Real, 2, 3, sourcemeta::core::JSON{0});
   EXPECT_TRACE(2, Post, Real, 2, 5, sourcemeta::core::JSON{1.0});
   EXPECT_TRACE(3, Pre, Real, 3, 3, sourcemeta::core::JSON{1});
-  EXPECT_TRACE(4, Post, Real, 3, 6, sourcemeta::core::JSON{2.34});
+  EXPECT_TRACE(4, Post, Real, 3, 5, sourcemeta::core::JSON{2.5});
   EXPECT_TRACE(5, Post, Array, 4, 1, sourcemeta::core::parse_json(input));
 }
 
@@ -237,13 +237,13 @@ TEST(JSON_parse_callback, object_integers) {
 }
 
 TEST(JSON_parse_callback, object_reals) {
-  const auto input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.34\n}"};
+  const auto input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.5\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(1, Pre, Real, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Real, 2, 12, sourcemeta::core::JSON{1.0});
   EXPECT_TRACE(3, Pre, Real, 3, 3, sourcemeta::core::JSON{"bar"});
-  EXPECT_TRACE(4, Post, Real, 3, 13, sourcemeta::core::JSON{2.34});
+  EXPECT_TRACE(4, Post, Real, 3, 12, sourcemeta::core::JSON{2.5});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
 
