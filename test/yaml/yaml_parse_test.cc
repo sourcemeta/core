@@ -234,3 +234,52 @@ TEST(YAML_parse, multi_document_windows_line_endings) {
 
   EXPECT_EQ(stream.peek(), EOF);
 }
+
+TEST(YAML_parse, decimal_large_integer) {
+  const std::string input{"123456789012345678901234567890"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "123456789012345678901234567890");
+}
+
+TEST(YAML_parse, decimal_high_precision_real) {
+  const std::string input{"3.141592653589793238462643383279"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 3.141592653589793238462643383279);
+}
+
+TEST(YAML_parse, decimal_exponential_notation) {
+  const std::string input{"1.234567890123456789012345678901e50"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+}
+
+TEST(YAML_parse, decimal_in_object) {
+  const std::string input{"large: 999999999999999999999999999999\n"
+                          "precise: 2.718281828459045235360287471352"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("large"));
+  EXPECT_TRUE(result.defines("precise"));
+  EXPECT_TRUE(result.at("large").is_decimal());
+  EXPECT_TRUE(result.at("precise").is_real());
+  EXPECT_EQ(result.at("large").to_decimal().to_string(),
+            "999999999999999999999999999999");
+  EXPECT_EQ(result.at("precise").to_real(), 2.718281828459045235360287471352);
+}
+
+TEST(YAML_parse, decimal_in_array) {
+  const std::string input{"- 123456789012345678901234567890\n"
+                          "- 9.87654321098765432109876543210e100"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_decimal());
+  EXPECT_TRUE(result.at(1).is_real());
+}

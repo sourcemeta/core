@@ -1369,3 +1369,128 @@ TEST(JSON_parse, read_file) {
   EXPECT_TRUE(document.at("foo").is_integer());
   EXPECT_EQ(document.at("foo").to_integer(), 1);
 }
+
+TEST(JSON_parse, big_integer_beyond_64_bit) {
+  std::istringstream input{"9223372036854776000"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal().to_string(), "9223372036854776000");
+}
+
+TEST(JSON_parse, big_negative_integer_beyond_64_bit) {
+  std::istringstream input{"-9223372036854776000"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal().to_string(), "-9223372036854776000");
+}
+
+TEST(JSON_parse, very_large_integer) {
+  std::istringstream input{"123456789012345678901234567890"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal().to_string(),
+            "123456789012345678901234567890");
+}
+
+TEST(JSON_parse, big_integer_in_array) {
+  std::istringstream input{"[1, 9223372036854776000, 3]"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_TRUE(document.at(0).is_integer());
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_TRUE(document.at(1).is_decimal());
+  EXPECT_EQ(document.at(1).to_decimal().to_string(), "9223372036854776000");
+  EXPECT_TRUE(document.at(2).is_integer());
+  EXPECT_EQ(document.at(2).to_integer(), 3);
+}
+
+TEST(JSON_parse, big_integer_in_object) {
+  std::istringstream input{"{\"big\":9223372036854776000,\"small\":42}"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_TRUE(document.at("big").is_decimal());
+  EXPECT_EQ(document.at("big").to_decimal().to_string(), "9223372036854776000");
+  EXPECT_TRUE(document.at("small").is_integer());
+  EXPECT_EQ(document.at("small").to_integer(), 42);
+}
+
+TEST(JSON_parse, big_real_number) {
+  std::istringstream input{"1.234567890123456789012345678901234567890"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 1.234567890123456789012345678901234567890);
+}
+
+TEST(JSON_parse, very_small_real_number) {
+  std::istringstream input{"0.000000000000000000000000000001"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 0.000000000000000000000000000001);
+}
+
+TEST(JSON_parse, big_real_in_array) {
+  std::istringstream input{
+      "[1.5, 1.234567890123456789012345678901234567890, 2.5]"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_TRUE(document.at(0).is_real());
+  EXPECT_EQ(document.at(0).to_real(), 1.5);
+  EXPECT_TRUE(document.at(1).is_real());
+  EXPECT_EQ(document.at(1).to_real(),
+            1.234567890123456789012345678901234567890);
+  EXPECT_TRUE(document.at(2).is_real());
+  EXPECT_EQ(document.at(2).to_real(), 2.5);
+}
+
+TEST(JSON_parse, big_real_in_object) {
+  std::istringstream input{
+      "{\"pi\":3.14159265358979323846264338327950288419716939937510}"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.at("pi").is_real());
+  EXPECT_EQ(document.at("pi").to_real(),
+            3.14159265358979323846264338327950288419716939937510);
+}
+
+TEST(JSON_parse, big_number_with_exponent) {
+  std::istringstream input{"1.5e10"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_DOUBLE_EQ(document.to_real(), 1.5e10);
+}
+
+TEST(JSON_parse, big_number_with_negative_exponent) {
+  std::istringstream input{"1.5e-10"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_DOUBLE_EQ(document.to_real(), 1.5e-10);
+}
+
+TEST(JSON_parse, read_json_stub_bigint) {
+  const sourcemeta::core::JSON document{sourcemeta::core::read_json(
+      std::filesystem::path{TEST_DIRECTORY} / "stub_bigint.json")};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal().to_string(), "9223372036854776000");
+}
+
+TEST(JSON_parse, nested_big_integers_and_reals) {
+  std::istringstream input{
+      "{\"data\":[{\"big_int\":9223372036854776000,"
+      "\"big_real\":3.14159265358979323846264338327950288419716939937510}]}"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_object());
+  EXPECT_TRUE(document.at("data").is_array());
+  EXPECT_EQ(document.at("data").size(), 1);
+  EXPECT_TRUE(document.at("data").at(0).is_object());
+  EXPECT_EQ(document.at("data").at(0).size(), 2);
+  EXPECT_TRUE(document.at("data").at(0).at("big_int").is_decimal());
+  EXPECT_EQ(document.at("data").at(0).at("big_int").to_decimal().to_string(),
+            "9223372036854776000");
+  EXPECT_TRUE(document.at("data").at(0).at("big_real").is_real());
+  EXPECT_EQ(document.at("data").at(0).at("big_real").to_real(),
+            3.14159265358979323846264338327950288419716939937510);
+}

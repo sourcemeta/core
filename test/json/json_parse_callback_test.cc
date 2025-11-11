@@ -299,3 +299,95 @@ TEST(JSON_parse_callback, read_json_stub_valid) {
   EXPECT_TRACE(2, Post, Integer, 1, 10, sourcemeta::core::JSON{1});
   EXPECT_TRACE(3, Post, Object, 1, 12, sourcemeta::core::read_json(input));
 }
+
+TEST(JSON_parse_callback, decimal_simple) {
+  const auto input{"9223372036854776000"};
+  PARSE_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(
+      1, Post, Decimal, 1, 19,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+}
+
+TEST(JSON_parse_callback, decimal_negative) {
+  const auto input{"-9223372036854776000"};
+  PARSE_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Decimal, 1, 20,
+               sourcemeta::core::JSON{
+                   sourcemeta::core::Decimal{"-9223372036854776000"}});
+}
+
+TEST(JSON_parse_callback, decimal_in_array) {
+  const auto input{"[1, 9223372036854776000, 3]"};
+  PARSE_WITH_TRACES(document, input, 8);
+  EXPECT_TRACE(0, Pre, Array, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Integer, 1, 2, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(2, Post, Integer, 1, 2, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(3, Pre, Decimal, 1, 5, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(
+      4, Post, Decimal, 1, 23,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(5, Pre, Integer, 1, 26, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(6, Post, Integer, 1, 26, sourcemeta::core::JSON{3});
+  EXPECT_TRACE(7, Post, Array, 1, 27, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, decimal_in_object) {
+  const auto input{"{\"big\":9223372036854776000}"};
+  PARSE_WITH_TRACES(document, input, 4);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Decimal, 1, 2, sourcemeta::core::JSON{"big"});
+  EXPECT_TRACE(
+      2, Post, Decimal, 1, 26,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(3, Post, Object, 1, 27, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, decimals_mixed_in_object) {
+  const auto input{"{\"big\":9223372036854776000,\"small\":42}"};
+  PARSE_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Decimal, 1, 2, sourcemeta::core::JSON{"big"});
+  EXPECT_TRACE(
+      2, Post, Decimal, 1, 26,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(3, Pre, Integer, 1, 28, sourcemeta::core::JSON{"small"});
+  EXPECT_TRACE(4, Post, Integer, 1, 37, sourcemeta::core::JSON{42});
+  EXPECT_TRACE(5, Post, Object, 1, 38, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, decimal_big_real) {
+  const auto input{"3.14159265358979323846264338327950288419716939937510"};
+  PARSE_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Real, 1, 52,
+               sourcemeta::core::JSON{
+                   3.14159265358979323846264338327950288419716939937510});
+}
+
+TEST(JSON_parse_callback, nested_decimals) {
+  const auto input{"{\"data\":[{\"big_int\":9223372036854776000}]}"};
+  PARSE_WITH_TRACES(document, input, 8);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Array, 1, 2, sourcemeta::core::JSON{"data"});
+  EXPECT_TRACE(2, Pre, Object, 1, 10, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(3, Pre, Decimal, 1, 11, sourcemeta::core::JSON{"big_int"});
+  EXPECT_TRACE(
+      4, Post, Decimal, 1, 39,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(5, Post, Object, 1, 40,
+               sourcemeta::core::parse_json(input).at("data").at(0));
+  EXPECT_TRACE(6, Post, Array, 1, 41,
+               sourcemeta::core::parse_json(input).at("data"));
+  EXPECT_TRACE(7, Post, Object, 1, 42, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, read_json_stub_bigint) {
+  const auto input{std::filesystem::path{TEST_DIRECTORY} / "stub_bigint.json"};
+  READ_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(
+      1, Post, Decimal, 1, 19,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+}

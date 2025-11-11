@@ -450,3 +450,31 @@ TEST(YAML_parse_callback, yaml_nested_anchor_and_alias) {
                sourcemeta::core::parse_yaml("inner: &val 42\nref: *val"));
   EXPECT_TRACE(6, Post, Object, 4, 0, sourcemeta::core::parse_yaml(input));
 }
+
+TEST(YAML_parse_callback, decimal_large_integer) {
+  const auto input{"123456789012345678901234567890"};
+  PARSE_YAML_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Decimal, 1, 30,
+               sourcemeta::core::JSON{sourcemeta::core::Decimal{
+                   "123456789012345678901234567890"}});
+}
+
+TEST(YAML_parse_callback, decimal_high_precision_real) {
+  const auto input{"3.141592653589793238462643383279"};
+  PARSE_YAML_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Real, 1, 32,
+               sourcemeta::core::JSON{3.141592653589793238462643383279});
+}
+
+TEST(YAML_parse_callback, decimal_in_object) {
+  const auto input{"large: 999999999999999999999999999999"};
+  PARSE_YAML_WITH_TRACES(document, input, 4);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Decimal, 1, 1, sourcemeta::core::JSON{"large"});
+  EXPECT_TRACE(2, Post, Decimal, 1, 37,
+               sourcemeta::core::JSON{sourcemeta::core::Decimal{
+                   "999999999999999999999999999999"}});
+  EXPECT_TRACE(3, Post, Object, 2, 0, sourcemeta::core::parse_yaml(input));
+}
