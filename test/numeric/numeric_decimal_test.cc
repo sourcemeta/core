@@ -979,6 +979,11 @@ TEST(Numeric_decimal, to_string_negative) {
   EXPECT_EQ(value.to_string(), "-999");
 }
 
+TEST(Numeric_decimal, to_string_negative_decimal) {
+  const sourcemeta::core::Decimal value{"-67.89"};
+  EXPECT_EQ(value.to_string(), "-67.89");
+}
+
 TEST(Numeric_decimal, to_string_large_number) {
   const sourcemeta::core::Decimal value{"123456789012345678901234567890"};
   EXPECT_EQ(value.to_string(), "123456789012345678901234567890");
@@ -1141,4 +1146,152 @@ TEST(Numeric_decimal, exception_overflow_addition) {
   EXPECT_THROW(
       { const auto result = large + addend; },
       sourcemeta::core::NumericOverflowError);
+}
+
+TEST(Numeric_decimal, copy_constructor_preserves_negative_sign) {
+  const sourcemeta::core::Decimal original{"-123.456"};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_EQ(copy.to_string(), "-123.456");
+  EXPECT_TRUE(copy.is_signed());
+}
+
+TEST(Numeric_decimal, move_constructor_preserves_negative_sign) {
+  sourcemeta::core::Decimal original{"-789.012"};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  EXPECT_EQ(moved.to_string(), "-789.012");
+  EXPECT_TRUE(moved.is_signed());
+}
+
+TEST(Numeric_decimal, copy_assignment_preserves_negative_sign) {
+  const sourcemeta::core::Decimal original{"-999.999"};
+  sourcemeta::core::Decimal target{42};
+  target = original;
+  EXPECT_EQ(target.to_string(), "-999.999");
+  EXPECT_TRUE(target.is_signed());
+}
+
+TEST(Numeric_decimal, move_assignment_preserves_negative_sign) {
+  sourcemeta::core::Decimal original{"-111.222"};
+  sourcemeta::core::Decimal target{99};
+  target = std::move(original);
+  EXPECT_EQ(target.to_string(), "-111.222");
+  EXPECT_TRUE(target.is_signed());
+}
+
+TEST(Numeric_decimal, multiple_copies_preserve_negative_sign) {
+  const sourcemeta::core::Decimal first{"-55.55"};
+  const sourcemeta::core::Decimal second{first};
+  const sourcemeta::core::Decimal third{second};
+  const sourcemeta::core::Decimal fourth{third};
+  EXPECT_EQ(fourth.to_string(), "-55.55");
+  EXPECT_TRUE(fourth.is_signed());
+}
+
+TEST(Numeric_decimal, copy_then_move_preserves_negative_sign) {
+  const sourcemeta::core::Decimal original{"-333.333"};
+  sourcemeta::core::Decimal copy{original};
+  const sourcemeta::core::Decimal moved{std::move(copy)};
+  EXPECT_EQ(moved.to_string(), "-333.333");
+  EXPECT_TRUE(moved.is_signed());
+}
+
+TEST(Numeric_decimal, move_then_copy_preserves_negative_sign) {
+  sourcemeta::core::Decimal original{"-444.444"};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  const sourcemeta::core::Decimal copy{moved};
+  EXPECT_EQ(copy.to_string(), "-444.444");
+  EXPECT_TRUE(copy.is_signed());
+}
+
+TEST(Numeric_decimal, negative_integer_copy) {
+  const sourcemeta::core::Decimal original{-12345};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_EQ(copy.to_int64(), -12345);
+  EXPECT_TRUE(copy.is_signed());
+}
+
+TEST(Numeric_decimal, negative_integer_move) {
+  sourcemeta::core::Decimal original{-98765};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  EXPECT_EQ(moved.to_int64(), -98765);
+  EXPECT_TRUE(moved.is_signed());
+}
+
+TEST(Numeric_decimal, very_small_negative_copy) {
+  const sourcemeta::core::Decimal original{"-0.000000000000001"};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_TRUE(copy.is_signed());
+  EXPECT_TRUE(copy < sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, very_small_negative_move) {
+  sourcemeta::core::Decimal original{"-0.000000000000001"};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  EXPECT_TRUE(moved.is_signed());
+  EXPECT_TRUE(moved < sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, large_negative_number_copy) {
+  const sourcemeta::core::Decimal original{"-999999999999999999999999999999"};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_EQ(copy.to_string(), "-999999999999999999999999999999");
+  EXPECT_TRUE(copy.is_signed());
+}
+
+TEST(Numeric_decimal, large_negative_number_move) {
+  sourcemeta::core::Decimal original{"-888888888888888888888888888888"};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  EXPECT_EQ(moved.to_string(), "-888888888888888888888888888888");
+  EXPECT_TRUE(moved.is_signed());
+}
+
+TEST(Numeric_decimal, negative_scientific_notation_copy) {
+  const sourcemeta::core::Decimal original{"-1.23e50"};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_TRUE(copy.is_signed());
+  EXPECT_TRUE(copy < sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, negative_scientific_notation_move) {
+  sourcemeta::core::Decimal original{"-9.87e-20"};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  EXPECT_TRUE(moved.is_signed());
+  EXPECT_TRUE(moved < sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, assignment_chain_with_negative) {
+  const sourcemeta::core::Decimal original{"-777.777"};
+  sourcemeta::core::Decimal first{1};
+  sourcemeta::core::Decimal second{2};
+  sourcemeta::core::Decimal third{3};
+  first = original;
+  second = first;
+  third = second;
+  EXPECT_EQ(third.to_string(), "-777.777");
+  EXPECT_TRUE(third.is_signed());
+}
+
+TEST(Numeric_decimal, positive_not_signed_after_copy) {
+  const sourcemeta::core::Decimal original{"123.456"};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_FALSE(copy.is_signed());
+}
+
+TEST(Numeric_decimal, positive_not_signed_after_move) {
+  sourcemeta::core::Decimal original{"789.012"};
+  const sourcemeta::core::Decimal moved{std::move(original)};
+  EXPECT_FALSE(moved.is_signed());
+}
+
+TEST(Numeric_decimal, zero_not_signed_after_copy) {
+  const sourcemeta::core::Decimal original{0};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_FALSE(copy.is_signed());
+}
+
+TEST(Numeric_decimal, negative_zero_preserves_sign) {
+  const sourcemeta::core::Decimal original{"-0"};
+  const sourcemeta::core::Decimal copy{original};
+  EXPECT_TRUE(copy.is_signed());
+  EXPECT_TRUE(copy.is_zero());
 }

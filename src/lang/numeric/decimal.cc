@@ -82,15 +82,16 @@ Decimal::~Decimal() {
 
 Decimal::Decimal(const Decimal &other) {
   new (this->storage) Data{};
-  this->data()->value.flags = MPD_STATIC | MPD_STATIC_DATA;
+  this->data()->value.flags =
+      (other.data()->value.flags & MPD_NEG) | MPD_STATIC | MPD_STATIC_DATA;
   this->data()->value.exp = 0;
   this->data()->value.digits = 0;
   this->data()->value.len = 0;
   this->data()->value.alloc = Data::STATIC_BUFFER_SIZE;
   this->data()->value.data = this->data()->buffer;
 
-  if (!mpd_qcopy(&this->data()->value, &other.data()->value,
-                 &decimal_context.status)) {
+  std::uint32_t status = 0;
+  if (!mpd_qcopy(&this->data()->value, &other.data()->value, &status)) {
     throw NumericOutOfMemoryError{};
   }
 }
@@ -99,7 +100,8 @@ Decimal::Decimal(Decimal &&other) noexcept {
   new (this->storage) Data{};
   if (other.data()->value.data == other.data()->buffer) {
     // Other uses static storage, copy the data
-    this->data()->value.flags = MPD_STATIC | MPD_STATIC_DATA;
+    this->data()->value.flags =
+        (other.data()->value.flags & MPD_NEG) | MPD_STATIC | MPD_STATIC_DATA;
     this->data()->value.exp = other.data()->value.exp;
     this->data()->value.digits = other.data()->value.digits;
     this->data()->value.len = other.data()->value.len;
@@ -144,7 +146,8 @@ auto Decimal::operator=(Decimal &&other) noexcept -> Decimal & {
 
     if (other.data()->value.data == other.data()->buffer) {
       // Other uses static storage, copy the data
-      this->data()->value.flags = MPD_STATIC | MPD_STATIC_DATA;
+      this->data()->value.flags =
+          (other.data()->value.flags & MPD_NEG) | MPD_STATIC | MPD_STATIC_DATA;
       this->data()->value.exp = other.data()->value.exp;
       this->data()->value.digits = other.data()->value.digits;
       this->data()->value.len = other.data()->value.len;
