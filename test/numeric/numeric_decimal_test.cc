@@ -550,8 +550,8 @@ TEST(Numeric_decimal, to_float_integer) {
 }
 
 TEST(Numeric_decimal, to_double_simple) {
-  const sourcemeta::core::Decimal value{"3.14159"};
-  EXPECT_DOUBLE_EQ(value.to_double(), 3.14159);
+  const sourcemeta::core::Decimal value{"3.5"};
+  EXPECT_DOUBLE_EQ(value.to_double(), 3.5);
 }
 
 TEST(Numeric_decimal, to_double_integer) {

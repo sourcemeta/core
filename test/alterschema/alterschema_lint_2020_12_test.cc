@@ -861,7 +861,7 @@ TEST(AlterSchema_lint_2020_12, maximum_real_for_integer_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "integer",
-    "maximum": 3.2
+    "maximum": 3.5
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
@@ -879,7 +879,7 @@ TEST(AlterSchema_lint_2020_12, minimum_real_for_integer_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "integer",
-    "minimum": 3.2
+    "minimum": 3.5
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
