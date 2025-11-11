@@ -48,6 +48,12 @@ public:
   /// Construct a decimal number from a 64-bit unsigned integer
   Decimal(std::uint64_t value);
 
+  /// Construct a decimal number from a 32-bit float
+  explicit Decimal(float value);
+
+  /// Construct a decimal number from a 64-bit double
+  explicit Decimal(double value);
+
   /// Construct a decimal number from a C-string
   explicit Decimal(const char *const value);
 
