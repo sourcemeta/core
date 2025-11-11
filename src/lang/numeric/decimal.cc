@@ -16,6 +16,17 @@
 
 #include <mpdecimal.h> // mpd_*
 
+namespace {
+template <typename FloatingPointType>
+  requires std::is_floating_point_v<FloatingPointType>
+auto floating_point_to_string(const FloatingPointType value) -> std::string {
+  std::ostringstream oss;
+  oss << std::setprecision(std::numeric_limits<FloatingPointType>::max_digits10)
+      << value;
+  return oss.str();
+}
+} // namespace
+
 namespace sourcemeta::core {
 
 struct Decimal::Data {
@@ -247,6 +258,12 @@ Decimal::Decimal(const std::uint64_t integral_value) {
     throw NumericOutOfMemoryError{};
   }
 }
+
+Decimal::Decimal(const float floating_point_value)
+    : Decimal{floating_point_to_string(floating_point_value)} {}
+
+Decimal::Decimal(const double floating_point_value)
+    : Decimal{floating_point_to_string(floating_point_value)} {}
 
 Decimal::Decimal(const char *const string_value) {
   new (this->storage) Data{};
