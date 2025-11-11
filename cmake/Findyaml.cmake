@@ -30,6 +30,17 @@ if(NOT Yaml_FOUND)
     target_compile_options(yaml PRIVATE -Wno-unused-value)
   endif()
 
+  if(SOURCEMETA_COMPILER_MSVC)
+    target_compile_options(yaml PRIVATE /wd4996)
+    target_compile_options(yaml PRIVATE /wd4456)
+    target_compile_options(yaml PRIVATE /wd4457)
+    target_compile_options(yaml PRIVATE /wd4267)
+    target_compile_options(yaml PRIVATE /wd4244)
+    target_compile_options(yaml PRIVATE /wd4100)
+    target_compile_options(yaml PRIVATE /wd4245)
+    target_compile_options(yaml PRIVATE /wd4701)
+  endif()
+
   if(SOURCEMETA_OS_LINUX)
     message(STATUS "Compiling libyaml with _GNU_SOURCE")
     # See https://github.com/3DSGuy/Project_CTR/issues/122

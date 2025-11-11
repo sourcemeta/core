@@ -2,12 +2,12 @@ function(sourcemeta_add_default_options visibility target)
   if(SOURCEMETA_COMPILER_MSVC)
     # See https://learn.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-by-category
     target_compile_options("${target}" ${visibility}
-      /options:strict
-      /permissive-
-      /W4
-      /WL
-      /MP
-      /sdl)
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/options:strict>
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/permissive->
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/W4>
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/WL>
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/MP>
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/sdl>)
   elseif(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     target_compile_options("${target}" ${visibility}
       -Wall

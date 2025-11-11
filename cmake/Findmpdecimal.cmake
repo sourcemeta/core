@@ -60,6 +60,12 @@ if(NOT mpdecimal_FOUND)
     target_compile_options(mpdecimal PRIVATE -Wno-conversion)
   endif()
 
+  if(SOURCEMETA_COMPILER_MSVC)
+    target_compile_options(mpdecimal PRIVATE /wd4200)
+    target_compile_options(mpdecimal PRIVATE /wd4702)
+    target_compile_options(mpdecimal PRIVATE /wd4996)
+  endif()
+
   target_include_directories(mpdecimal PRIVATE
     "${MPDECIMAL_SOURCE_DIR}")
 
