@@ -497,7 +497,7 @@ TEST(Numeric_decimal, is_float_simple_values) {
   const sourcemeta::core::Decimal value2{"3.14"};
   const sourcemeta::core::Decimal value3{"-2.5"};
   EXPECT_TRUE(value1.is_float());
-  EXPECT_TRUE(value2.is_float());
+  EXPECT_FALSE(value2.is_float());
   EXPECT_TRUE(value3.is_float());
 }
 
@@ -515,12 +515,92 @@ TEST(Numeric_decimal, is_float_high_precision_loss) {
   EXPECT_FALSE(value.is_float());
 }
 
+TEST(Numeric_decimal, is_float_large_exponent_in_range) {
+  const sourcemeta::core::Decimal value{"1.5e30"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_large_negative_exponent_in_range) {
+  const sourcemeta::core::Decimal value{"1.5e-30"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_too_large) {
+  const sourcemeta::core::Decimal value{"1e100"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_too_small) {
+  const sourcemeta::core::Decimal value{"1e-100"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_near_max_float) {
+  const sourcemeta::core::Decimal value{"3.4e38"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_exceeds_max_float) {
+  const sourcemeta::core::Decimal value{"4e38"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_near_min_float) {
+  const sourcemeta::core::Decimal value{"1.2e-38"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_below_min_float) {
+  const sourcemeta::core::Decimal value{"1e-50"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_6_significant_digits) {
+  const sourcemeta::core::Decimal value{"1.234375"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_7_significant_digits_no_loss) {
+  const sourcemeta::core::Decimal value{"1.2343750"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_many_digits_with_loss) {
+  const sourcemeta::core::Decimal value{"1.23456789"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_big_integer_in_float_range) {
+  const sourcemeta::core::Decimal value{"16777216"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_big_integer_exceeds_precision) {
+  const sourcemeta::core::Decimal value{"16777217"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_small_value_with_exponent) {
+  const sourcemeta::core::Decimal value{"1.0e-10"};
+  EXPECT_FALSE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_zero) {
+  const sourcemeta::core::Decimal value{"0.0"};
+  EXPECT_TRUE(value.is_float());
+}
+
+TEST(Numeric_decimal, is_float_negative_zero) {
+  const sourcemeta::core::Decimal value{"-0.0"};
+  EXPECT_TRUE(value.is_float());
+}
+
 TEST(Numeric_decimal, is_double_simple_values) {
   const sourcemeta::core::Decimal value1{3};
   const sourcemeta::core::Decimal value2{"3.14"};
   const sourcemeta::core::Decimal value3{"-2.5"};
   EXPECT_TRUE(value1.is_double());
-  EXPECT_TRUE(value2.is_double());
+  EXPECT_FALSE(value2.is_double());
   EXPECT_TRUE(value3.is_double());
 }
 
@@ -537,6 +617,86 @@ TEST(Numeric_decimal, is_double_high_precision_loss) {
   const sourcemeta::core::Decimal value{
       "3.14159265358979323846264338327950288419716939937510"};
   EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_large_exponent_in_range) {
+  const sourcemeta::core::Decimal value{"1.5e100"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_large_negative_exponent_in_range) {
+  const sourcemeta::core::Decimal value{"1.5e-100"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_too_large) {
+  const sourcemeta::core::Decimal value{"1e500"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_too_small) {
+  const sourcemeta::core::Decimal value{"1e-500"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_near_max_double) {
+  const sourcemeta::core::Decimal value{"1.7e308"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_exceeds_max_double) {
+  const sourcemeta::core::Decimal value{"2e308"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_near_min_double) {
+  const sourcemeta::core::Decimal value{"2.2e-308"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_below_min_double) {
+  const sourcemeta::core::Decimal value{"1e-400"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_15_significant_digits) {
+  const sourcemeta::core::Decimal value{"1.23456789012345"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_16_significant_digits_no_loss) {
+  const sourcemeta::core::Decimal value{"1.234567890123456"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_many_digits_with_loss) {
+  const sourcemeta::core::Decimal value{"1.234567890123456789"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_big_integer_in_double_range) {
+  const sourcemeta::core::Decimal value{"9007199254740992"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_big_integer_exceeds_precision) {
+  const sourcemeta::core::Decimal value{"9007199254740993"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_small_value_with_exponent) {
+  const sourcemeta::core::Decimal value{"1.0e-28"};
+  EXPECT_FALSE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_zero) {
+  const sourcemeta::core::Decimal value{"0.0"};
+  EXPECT_TRUE(value.is_double());
+}
+
+TEST(Numeric_decimal, is_double_negative_zero) {
+  const sourcemeta::core::Decimal value{"-0.0"};
+  EXPECT_TRUE(value.is_double());
 }
 
 TEST(Numeric_decimal, to_float_simple) {
