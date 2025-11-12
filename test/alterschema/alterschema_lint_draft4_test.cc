@@ -1688,8 +1688,7 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_1) {
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/foo"
+    "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1708,7 +1707,6 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/foo",
     "description": "A string field"
   })JSON");
 
@@ -1729,7 +1727,6 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_3) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/foo",
     "description": "Documentation"
   })JSON");
 
@@ -1747,7 +1744,6 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_4) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/foo",
     "description": "Documentation only"
   })JSON");
 
@@ -1763,8 +1759,7 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_5) {
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/foo"
+    "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1790,7 +1785,6 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_6) {
     "type": "object",
     "properties": {
       "nested": {
-        "$ref": "#/definitions/foo",
         "description": "ignored sibling"
       }
     }
@@ -2267,8 +2261,7 @@ TEST(AlterSchema_lint_draft4, unknown_keywords_prefix_10) {
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "$ref": "#/definitions/foo"
+    "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
 
   EXPECT_EQ(document, expected);
