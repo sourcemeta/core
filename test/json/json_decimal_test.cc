@@ -473,6 +473,60 @@ TEST(JSON_decimal, is_positive_very_small_negative) {
   EXPECT_FALSE(document.is_positive());
 }
 
+TEST(JSON_decimal, is_integral_positive_integer) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"1234567890123456789012345678900000"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_zero) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{0}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_negative_integer) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"-1234567890123456789012345678900000"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_positive_real_with_zero_fractional) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"1234567890123456789012345678900000.0"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_negative_real_with_zero_fractional) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"-1234567890123456789012345678900000.0"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_positive_real) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"1234567890123456789012345678900000.1"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_negative_real) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"-1234567890123456789012345678900000.1"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_decimal, is_integral_zero_real) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"0.1"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
 TEST(JSON_decimal, construction_rejects_nan) {
   const sourcemeta::core::Decimal value{sourcemeta::core::Decimal::nan()};
   EXPECT_THROW(sourcemeta::core::JSON{value}, std::invalid_argument);
