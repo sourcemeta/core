@@ -58,6 +58,90 @@ TEST(JSON_real, float_infinity) {
   EXPECT_THROW(sourcemeta::core::JSON{value}, std::invalid_argument);
 }
 
+TEST(JSON_real, copy_constructor_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON source{
+            std::numeric_limits<double>::quiet_NaN()};
+        const sourcemeta::core::JSON copy{source};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, move_constructor_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON source{std::numeric_limits<double>::infinity()};
+        const sourcemeta::core::JSON moved{std::move(source)};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, copy_assignment_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON source{
+            std::numeric_limits<double>::quiet_NaN()};
+        sourcemeta::core::JSON target{1.0};
+        target = source;
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, move_assignment_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON source{std::numeric_limits<double>::infinity()};
+        sourcemeta::core::JSON target{1.0};
+        target = std::move(source);
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, addition_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON left{
+            std::numeric_limits<double>::infinity()};
+        const sourcemeta::core::JSON right{1.0};
+        const auto result{left + right};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, subtraction_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON left{
+            -std::numeric_limits<double>::infinity()};
+        const sourcemeta::core::JSON right{1.0};
+        const auto result{left - right};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, addition_assignment_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON document{
+            std::numeric_limits<double>::infinity()};
+        const sourcemeta::core::JSON addend{1.0};
+        document += addend;
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_real, subtraction_assignment_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON document{
+            -std::numeric_limits<double>::infinity()};
+        const sourcemeta::core::JSON subtrahend{1.0};
+        document -= subtrahend;
+      },
+      std::invalid_argument);
+}
+
 TEST(JSON_real, estimated_byte_size_3_14) {
   const sourcemeta::core::JSON document{3.14};
   EXPECT_EQ(document.estimated_byte_size(), 8);

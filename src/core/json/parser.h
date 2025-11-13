@@ -316,6 +316,8 @@ auto parse_number_real(const std::uint64_t line, const std::uint64_t column,
       return JSON{Decimal{string}};
     } catch (const DecimalParseError &) {
       throw JSONParseError(line, column);
+    } catch (const std::invalid_argument &) {
+      throw JSONParseError(line, column);
     }
   } catch (const std::invalid_argument &) {
     throw JSONParseError(line, column);
