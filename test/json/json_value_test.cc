@@ -12,6 +12,10 @@ TEST(JSON_value, general_traits) {
   EXPECT_TRUE(std::is_nothrow_destructible<sourcemeta::core::JSON>::value);
 }
 
+// BIG WARNING! Increase this number will make projects like Blaze slower,
+// as it will affect cache lines when dealing with JSON documents
+TEST(JSON_value, size) { EXPECT_EQ(sizeof(sourcemeta::core::JSON), 264); }
+
 TEST(JSON_value, copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON>::value);
   EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::JSON>::value);
