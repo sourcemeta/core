@@ -382,6 +382,21 @@ TEST(Numeric_decimal, is_integer_predicate) {
   EXPECT_FALSE(decimal.is_integer());
 }
 
+TEST(Numeric_decimal, is_integer_real_with_zero_positive) {
+  const sourcemeta::core::Decimal value{"42.0"};
+  EXPECT_TRUE(value.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_real_with_zero_negative) {
+  const sourcemeta::core::Decimal value{"-42.0"};
+  EXPECT_TRUE(value.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_real_with_zero_zero) {
+  const sourcemeta::core::Decimal value{"0.0"};
+  EXPECT_TRUE(value.is_integer());
+}
+
 TEST(Numeric_decimal, is_finite_predicate) {
   const sourcemeta::core::Decimal value{123};
   EXPECT_TRUE(value.is_finite());

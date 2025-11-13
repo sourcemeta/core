@@ -106,6 +106,7 @@ public:
   [[nodiscard]] auto is_zero() const -> bool;
 
   /// Check if the decimal number represents an integer value
+  /// NOTE: This returns `true` for values like `3.0`
   [[nodiscard]] auto is_integer() const -> bool;
 
   /// Check if the decimal number is finite
