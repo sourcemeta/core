@@ -27,13 +27,14 @@ namespace sourcemeta::core {
 #if defined(_WIN32)
 // See
 // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/beginthread-beginthreadex?view=msvc-170
-inline unsigned __stdcall parallel_for_each_windows_thread_start(
-    void *argument) {
+// clang-format off
+inline unsigned __stdcall parallel_for_each_windows_thread_start(void *argument) {
   auto *function_ptr = static_cast<std::function<void()> *>(argument);
   (*function_ptr)();
   delete function_ptr;
   return 0;
 }
+// clang-format on
 #endif
 #endif
 

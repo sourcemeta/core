@@ -9,9 +9,12 @@ namespace sourcemeta::core {
 static auto
 contains_any(const Vocabularies &container,
              const std::set<typename Vocabularies::key_type> &values) -> bool {
-  return std::ranges::any_of(container, [&values](const auto &element) {
-    return values.contains(element.first);
-  });
+  for (const auto &element : container.all_vocabularies()) {
+    if (values.contains(element.first)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 template <typename... Args>
