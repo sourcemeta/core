@@ -293,14 +293,18 @@ auto parse_string(
 
 template <typename CharT, typename Traits>
 auto parse_number_integer(const std::uint64_t line, const std::uint64_t column,
-                          const std::basic_string<CharT, Traits> &string)
-    -> JSON {
+                          const std::basic_string<CharT, Traits> &string,
+                          const JSON::ParseOptions &options) -> JSON {
   try {
     return JSON{static_cast<std::int64_t>(std::stoll(string))};
   } catch (const std::out_of_range &) {
-    try {
-      return JSON{Decimal{string}};
-    } catch (const DecimalParseError &) {
+    if (options.use_decimal) {
+      try {
+        return JSON{Decimal{string}};
+      } catch (const DecimalParseError &) {
+        throw JSONParseError(line, column);
+      }
+    } else {
       throw JSONParseError(line, column);
     }
   }
@@ -308,13 +312,18 @@ auto parse_number_integer(const std::uint64_t line, const std::uint64_t column,
 
 template <typename CharT, typename Traits>
 auto parse_number_real(const std::uint64_t line, const std::uint64_t column,
-                       const std::basic_string<CharT, Traits> &string) -> JSON {
+                       const std::basic_string<CharT, Traits> &string,
+                       const JSON::ParseOptions &options) -> JSON {
   try {
     return JSON{std::stod(string)};
   } catch (const std::out_of_range &) {
-    try {
-      return JSON{Decimal{string}};
-    } catch (const DecimalParseError &) {
+    if (options.use_decimal) {
+      try {
+        return JSON{Decimal{string}};
+      } catch (const DecimalParseError &) {
+        throw JSONParseError(line, column);
+      }
+    } else {
       throw JSONParseError(line, column);
     }
   } catch (const std::invalid_argument &) {
@@ -328,7 +337,8 @@ auto parse_number_exponent_rest(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -348,7 +358,7 @@ auto parse_number_exponent_rest(
         column += 1;
         break;
       default:
-        return parse_number_real(line, original_column, result.str());
+        return parse_number_real(line, original_column, result.str(), options);
     }
   }
 
@@ -361,7 +371,8 @@ auto parse_number_exponent(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -378,7 +389,7 @@ auto parse_number_exponent(
     case internal::token_number_nine<typename JSON::Char>:
       result.put(character);
       return parse_number_exponent_rest(line, column, original_column, stream,
-                                        result);
+                                        result, options);
     default:
       throw JSONParseError(line, column);
   }
@@ -390,7 +401,8 @@ auto parse_number_exponent_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -399,11 +411,11 @@ auto parse_number_exponent_first(
       // Exponents are positive by default,
       // so no need to write the plus sign.
       return parse_number_exponent(line, column, original_column, stream,
-                                   result);
+                                   result, options);
     case internal::token_number_minus<typename JSON::Char>:
       result.put(character);
       return parse_number_exponent(line, column, original_column, stream,
-                                   result);
+                                   result, options);
 
     case internal::token_number_zero<typename JSON::Char>:
     case internal::token_number_one<typename JSON::Char>:
@@ -417,7 +429,7 @@ auto parse_number_exponent_first(
     case internal::token_number_nine<typename JSON::Char>:
       result.put(character);
       return parse_number_exponent_rest(line, column, original_column, stream,
-                                        result);
+                                        result, options);
     default:
       throw JSONParseError(line, column);
   }
@@ -429,7 +441,8 @@ auto parse_number_fractional(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -443,7 +456,7 @@ auto parse_number_fractional(
         stream.ignore(1);
         column += 1;
         return parse_number_exponent_first(line, column, original_column,
-                                           stream, result);
+                                           stream, result, options);
 
       case internal::token_number_zero<typename JSON::Char>:
       case internal::token_number_one<typename JSON::Char>:
@@ -460,7 +473,7 @@ auto parse_number_fractional(
         column += 1;
         break;
       default:
-        return parse_number_real(line, original_column, result.str());
+        return parse_number_real(line, original_column, result.str(), options);
     }
   }
 
@@ -473,7 +486,8 @@ auto parse_number_fractional_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.peek())};
   switch (character) {
@@ -498,9 +512,9 @@ auto parse_number_fractional_first(
       stream.ignore(1);
       column += 1;
       return parse_number_fractional(line, column, original_column, stream,
-                                     result);
+                                     result, options);
     default:
-      return parse_number_real(line, original_column, result.str());
+      return parse_number_real(line, original_column, result.str(), options);
   }
 }
 
@@ -510,7 +524,8 @@ auto parse_number_maybe_fractional(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.peek())};
   switch (character) {
@@ -522,14 +537,14 @@ auto parse_number_maybe_fractional(
       stream.ignore(1);
       column += 1;
       return JSON{parse_number_fractional_first(line, column, original_column,
-                                                stream, result)};
+                                                stream, result, options)};
     case internal::token_number_exponent_uppercase<typename JSON::Char>:
     case internal::token_number_exponent_lowercase<typename JSON::Char>:
       result.put(character);
       stream.ignore(1);
       column += 1;
       return JSON{parse_number_exponent_first(line, column, original_column,
-                                              stream, result)};
+                                              stream, result, options)};
     case internal::token_number_one<typename JSON::Char>:
     case internal::token_number_two<typename JSON::Char>:
     case internal::token_number_three<typename JSON::Char>:
@@ -542,7 +557,8 @@ auto parse_number_maybe_fractional(
       column += 1;
       throw JSONParseError(line, column);
     default:
-      return JSON{parse_number_integer(line, original_column, result.str())};
+      return JSON{
+          parse_number_integer(line, original_column, result.str(), options)};
   }
 }
 
@@ -552,7 +568,8 @@ auto parse_number_any_rest(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -565,14 +582,14 @@ auto parse_number_any_rest(
         stream.ignore(1);
         column += 1;
         return JSON{parse_number_fractional_first(line, column, original_column,
-                                                  stream, result)};
+                                                  stream, result, options)};
       case internal::token_number_exponent_uppercase<typename JSON::Char>:
       case internal::token_number_exponent_lowercase<typename JSON::Char>:
         result.put(character);
         stream.ignore(1);
         column += 1;
         return JSON{parse_number_exponent_first(line, column, original_column,
-                                                stream, result)};
+                                                stream, result, options)};
       case internal::token_number_zero<typename JSON::Char>:
       case internal::token_number_one<typename JSON::Char>:
       case internal::token_number_two<typename JSON::Char>:
@@ -588,7 +605,8 @@ auto parse_number_any_rest(
         column += 1;
         break;
       default:
-        return JSON{parse_number_integer(line, original_column, result.str())};
+        return JSON{
+            parse_number_integer(line, original_column, result.str(), options)};
     }
   }
 
@@ -601,7 +619,8 @@ auto parse_number_any_negative_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    const JSON::ParseOptions &options) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -612,7 +631,7 @@ auto parse_number_any_negative_first(
     case internal::token_number_zero<typename JSON::Char>:
       result.put(character);
       return parse_number_maybe_fractional(line, column, original_column,
-                                           stream, result);
+                                           stream, result, options);
     case internal::token_number_one<typename JSON::Char>:
     case internal::token_number_two<typename JSON::Char>:
     case internal::token_number_three<typename JSON::Char>:
@@ -624,7 +643,7 @@ auto parse_number_any_negative_first(
     case internal::token_number_nine<typename JSON::Char>:
       result.put(character);
       return parse_number_any_rest(line, column, original_column, stream,
-                                   result);
+                                   result, options);
     default:
       throw JSONParseError(line, column);
   }
@@ -633,7 +652,8 @@ auto parse_number_any_negative_first(
 auto parse_number(
     const std::uint64_t line, std::uint64_t &column,
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
-    const typename JSON::Char first) -> JSON {
+    const typename JSON::Char first, const JSON::ParseOptions &options)
+    -> JSON {
   std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                            typename JSON::Allocator<typename JSON::Char>>
       result;
@@ -645,13 +665,14 @@ auto parse_number(
   switch (first) {
     case internal::token_number_minus<typename JSON::Char>:
       return parse_number_any_negative_first(line, column, column, stream,
-                                             result);
+                                             result, options);
     case internal::token_number_zero<typename JSON::Char>:
-      return parse_number_maybe_fractional(line, column, column, stream,
-                                           result);
+      return parse_number_maybe_fractional(line, column, column, stream, result,
+                                           options);
     // Any other digit
     default:
-      return parse_number_any_rest(line, column, column, stream, result);
+      return parse_number_any_rest(line, column, column, stream, result,
+                                   options);
   }
 }
 
@@ -685,7 +706,8 @@ namespace sourcemeta::core {
 auto internal_parse_json(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::uint64_t &line, std::uint64_t &column,
-    const JSON::ParseCallback &callback) -> JSON {
+    const JSON::ParseCallback &callback, const JSON::ParseOptions &options)
+    -> JSON {
   // Globals
   using Result = JSON;
   enum class Container : std::uint8_t { Array, Object };
@@ -771,7 +793,7 @@ do_parse:
         const auto current_line{line};
         const auto current_column{column};
         const auto value{
-            internal::parse_number(line, column, stream, character)};
+            internal::parse_number(line, column, stream, character, options)};
         if (value.is_integer()) {
           CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
                                      JSON{nullptr});
@@ -789,7 +811,7 @@ do_parse:
         return value;
       }
 
-      return internal::parse_number(line, column, stream, character);
+      return internal::parse_number(line, column, stream, character, options);
 
     // Insignificant whitespace is allowed before or after any token.
     // See
@@ -901,7 +923,7 @@ do_parse_array_item:
         const auto current_line{line};
         const auto current_column{column};
         const auto value{
-            internal::parse_number(line, column, stream, character)};
+            internal::parse_number(line, column, stream, character, options)};
         if (value.is_integer()) {
           CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
                                      JSON{frames.top().get().size()});
@@ -924,7 +946,7 @@ do_parse_array_item:
         }
       } else {
         frames.top().get().push_back(
-            internal::parse_number(line, column, stream, character));
+            internal::parse_number(line, column, stream, character, options));
       }
 
       goto do_parse_array_item_separator;
@@ -1118,7 +1140,7 @@ do_parse_object_property_value:
     case internal::token_number_nine<typename JSON::Char>:
       if (callback) {
         const auto value{
-            internal::parse_number(line, column, stream, character)};
+            internal::parse_number(line, column, stream, character, options)};
         if (value.is_integer()) {
           CALLBACK_PRE_WITH_POSITION(Integer, key_line, key_column, JSON{key});
         } else if (value.is_decimal()) {
@@ -1138,7 +1160,8 @@ do_parse_object_property_value:
         }
       } else {
         frames.top().get().assign(
-            key, internal::parse_number(line, column, stream, character));
+            key,
+            internal::parse_number(line, column, stream, character, options));
       }
 
       goto do_parse_object_property_end;
@@ -1222,11 +1245,12 @@ auto internal_parse_json(
     const std::basic_string<typename JSON::Char, typename JSON::CharTraits>
         &input,
     std::uint64_t &line, std::uint64_t &column,
-    const JSON::ParseCallback &callback) -> JSON {
+    const JSON::ParseCallback &callback, const JSON::ParseOptions &options)
+    -> JSON {
   std::basic_istringstream<typename JSON::Char, typename JSON::CharTraits,
                            typename JSON::Allocator<typename JSON::Char>>
       stream{input};
-  return internal_parse_json(stream, line, column, callback);
+  return internal_parse_json(stream, line, column, callback, options);
 }
 
 } // namespace sourcemeta::core

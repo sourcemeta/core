@@ -20,36 +20,41 @@ namespace sourcemeta::core {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
                 std::uint64_t &line, std::uint64_t &column,
-                const JSON::ParseCallback &callback) -> JSON {
-  return internal_parse_json(stream, line, column, callback);
+                const JSON::ParseCallback &callback,
+                const JSON::ParseOptions &options) -> JSON {
+  return internal_parse_json(stream, line, column, callback, options);
 }
 
 auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
                 std::uint64_t &line, std::uint64_t &column,
-                const JSON::ParseCallback &callback) -> JSON {
-  return internal_parse_json(input, line, column, callback);
+                const JSON::ParseCallback &callback,
+                const JSON::ParseOptions &options) -> JSON {
+  return internal_parse_json(input, line, column, callback, options);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
-                const JSON::ParseCallback &callback) -> JSON {
+                const JSON::ParseCallback &callback,
+                const JSON::ParseOptions &options) -> JSON {
   std::uint64_t line{1};
   std::uint64_t column{0};
-  return parse_json(stream, line, column, callback);
+  return parse_json(stream, line, column, callback, options);
 }
 
 auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
-                const JSON::ParseCallback &callback) -> JSON {
+                const JSON::ParseCallback &callback,
+                const JSON::ParseOptions &options) -> JSON {
   std::uint64_t line{1};
   std::uint64_t column{0};
-  return parse_json(input, line, column, callback);
+  return parse_json(input, line, column, callback, options);
 }
 
 auto read_json(const std::filesystem::path &path,
-               const JSON::ParseCallback &callback) -> JSON {
+               const JSON::ParseCallback &callback,
+               const JSON::ParseOptions &options) -> JSON {
   auto stream{read_file<JSON::Char, JSON::CharTraits>(path)};
   try {
-    return parse_json(stream, callback);
+    return parse_json(stream, callback, options);
   } catch (const JSONParseError &error) {
     // For producing better error messages
     throw JSONFileParseError(path, error);

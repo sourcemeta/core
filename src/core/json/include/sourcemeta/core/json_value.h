@@ -72,6 +72,13 @@ public:
   /// See https://en.cppreference.com/w/cpp/named_req/Compare
   using KeyComparison = std::function<bool(const String &, const String &)>;
 
+  /// Options for parsing JSON documents.
+  struct ParseOptions {
+    /// Whether to enable higher precision number fallback parsing (which might
+    /// come with a performance overhead)
+    bool use_decimal{true};
+  };
+
   /*
     Constructors
    */

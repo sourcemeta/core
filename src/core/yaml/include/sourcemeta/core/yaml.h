@@ -42,7 +42,9 @@ namespace sourcemeta::core {
 /// ```
 SOURCEMETA_CORE_YAML_EXPORT
 auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
-                const JSON::ParseCallback &callback = nullptr) -> JSON;
+                const JSON::ParseCallback &callback = nullptr,
+                const JSON::ParseOptions &options = JSON::ParseOptions{})
+    -> JSON;
 
 /// @ingroup yaml
 ///
@@ -63,7 +65,9 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
 /// ```
 SOURCEMETA_CORE_YAML_EXPORT
 auto parse_yaml(const JSON::String &input,
-                const JSON::ParseCallback &callback = nullptr) -> JSON;
+                const JSON::ParseCallback &callback = nullptr,
+                const JSON::ParseOptions &options = JSON::ParseOptions{})
+    -> JSON;
 
 /// @ingroup yaml
 ///
@@ -85,7 +89,9 @@ auto parse_yaml(const JSON::String &input,
 /// ```
 SOURCEMETA_CORE_YAML_EXPORT
 auto read_yaml(const std::filesystem::path &path,
-               const JSON::ParseCallback &callback = nullptr) -> JSON;
+               const JSON::ParseCallback &callback = nullptr,
+               const JSON::ParseOptions &options = JSON::ParseOptions{})
+    -> JSON;
 
 /// @ingroup yaml
 ///
@@ -107,7 +113,9 @@ auto read_yaml(const std::filesystem::path &path,
 /// ```
 SOURCEMETA_CORE_YAML_EXPORT
 auto read_yaml_or_json(const std::filesystem::path &path,
-                       const JSON::ParseCallback &callback = nullptr) -> JSON;
+                       const JSON::ParseCallback &callback = nullptr,
+                       const JSON::ParseOptions &options = JSON::ParseOptions{})
+    -> JSON;
 
 } // namespace sourcemeta::core
 

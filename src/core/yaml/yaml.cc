@@ -15,7 +15,8 @@
 namespace {
 
 auto interpret_scalar(const std::string_view input,
-                      const yaml_scalar_style_t style)
+                      const yaml_scalar_style_t style,
+                      const sourcemeta::core::JSON::ParseOptions &options)
     -> sourcemeta::core::JSON {
   if (style == YAML_SINGLE_QUOTED_SCALAR_STYLE ||
       style == YAML_DOUBLE_QUOTED_SCALAR_STYLE ||
@@ -43,7 +44,7 @@ auto interpret_scalar(const std::string_view input,
   std::istringstream stream{std::string{input}};
 
   try {
-    auto result{sourcemeta::core::parse_json(stream)};
+    auto result{sourcemeta::core::parse_json(stream, nullptr, options)};
 
     if (stream.peek() != std::char_traits<char>::eof()) {
       return sourcemeta::core::JSON{input};
@@ -69,6 +70,7 @@ auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
                          const sourcemeta::core::JSON::ParseCallback &callback,
                          const sourcemeta::core::JSON &context,
                          AnchorMap &anchors,
+                         const sourcemeta::core::JSON::ParseOptions &options,
                          const yaml_mark_t *override_start_mark = nullptr)
     -> sourcemeta::core::JSON;
 
@@ -76,6 +78,7 @@ auto consume_scalar_event(yaml_event_t *event,
                           const sourcemeta::core::JSON::ParseCallback &callback,
                           const sourcemeta::core::JSON &context,
                           AnchorMap &anchors,
+                          const sourcemeta::core::JSON::ParseOptions &options,
                           const yaml_mark_t *override_start_mark = nullptr)
     -> sourcemeta::core::JSON {
   const std::string_view input{
@@ -96,10 +99,10 @@ auto consume_scalar_event(yaml_event_t *event,
     if (tag == "!" || tag == "tag:yaml.org,2002:str" || tag == "!!str") {
       result = sourcemeta::core::JSON{input};
     } else {
-      result = interpret_scalar(input, event->data.scalar.style);
+      result = interpret_scalar(input, event->data.scalar.style, options);
     }
   } else {
-    result = interpret_scalar(input, event->data.scalar.style);
+    result = interpret_scalar(input, event->data.scalar.style, options);
   }
 
   sourcemeta::core::JSON::Type type{sourcemeta::core::JSON::Type::Null};
@@ -146,6 +149,7 @@ auto consume_sequence_events(
     yaml_parser_t *parser, yaml_event_t *start_event,
     const sourcemeta::core::JSON::ParseCallback &callback,
     const sourcemeta::core::JSON &context, AnchorMap &anchors,
+    const sourcemeta::core::JSON::ParseOptions &options,
     const yaml_mark_t *override_start_mark = nullptr)
     -> sourcemeta::core::JSON {
   const yaml_mark_t &start_mark{override_start_mark ? *override_start_mark
@@ -212,7 +216,8 @@ auto consume_sequence_events(
 
     auto value{consume_value_event(
         parser, &event, effective_callback,
-        sourcemeta::core::JSON{static_cast<std::int64_t>(index)}, anchors)};
+        sourcemeta::core::JSON{static_cast<std::int64_t>(index)}, anchors,
+        options)};
     result.push_back(std::move(value));
     index++;
   }
@@ -222,6 +227,7 @@ auto consume_mapping_events(
     yaml_parser_t *parser, yaml_event_t *start_event,
     const sourcemeta::core::JSON::ParseCallback &callback,
     const sourcemeta::core::JSON &context, AnchorMap &anchors,
+    const sourcemeta::core::JSON::ParseOptions &options,
     const yaml_mark_t *override_start_mark = nullptr)
     -> sourcemeta::core::JSON {
   const yaml_mark_t &start_mark{override_start_mark ? *override_start_mark
@@ -303,7 +309,7 @@ auto consume_mapping_events(
 
     auto value{consume_value_event(parser, &value_event, effective_callback,
                                    sourcemeta::core::JSON{key}, anchors,
-                                   &key_start_mark)};
+                                   options, &key_start_mark)};
     result.assign(key, std::move(value));
   }
 }
@@ -312,26 +318,27 @@ auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
                          const sourcemeta::core::JSON::ParseCallback &callback,
                          const sourcemeta::core::JSON &context,
                          AnchorMap &anchors,
+                         const sourcemeta::core::JSON::ParseOptions &options,
                          const yaml_mark_t *override_start_mark)
     -> sourcemeta::core::JSON {
   sourcemeta::core::JSON result{nullptr};
 
   switch (event->type) {
     case YAML_SCALAR_EVENT:
-      result = consume_scalar_event(event, callback, context, anchors,
+      result = consume_scalar_event(event, callback, context, anchors, options,
                                     override_start_mark);
       yaml_event_delete(event);
       break;
 
     case YAML_SEQUENCE_START_EVENT:
       result = consume_sequence_events(parser, event, callback, context,
-                                       anchors, override_start_mark);
+                                       anchors, options, override_start_mark);
       yaml_event_delete(event);
       break;
 
     case YAML_MAPPING_START_EVENT:
       result = consume_mapping_events(parser, event, callback, context, anchors,
-                                      override_start_mark);
+                                      options, override_start_mark);
       yaml_event_delete(event);
       break;
 
@@ -379,7 +386,8 @@ auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
 
 auto parse_yaml_from_events(
     yaml_parser_t *parser,
-    const sourcemeta::core::JSON::ParseCallback &callback)
+    const sourcemeta::core::JSON::ParseCallback &callback,
+    const sourcemeta::core::JSON::ParseOptions &options)
     -> sourcemeta::core::JSON {
   AnchorMap anchors;
   yaml_event_t event;
@@ -407,7 +415,8 @@ auto parse_yaml_from_events(
   }
 
   auto result{consume_value_event(parser, &event, callback,
-                                  sourcemeta::core::JSON{nullptr}, anchors)};
+                                  sourcemeta::core::JSON{nullptr}, anchors,
+                                  options)};
 
   if (!yaml_parser_parse(parser, &event)) {
     throw sourcemeta::core::YAMLParseError("Failed to parse YAML document end");
@@ -446,7 +455,8 @@ auto yaml_stream_reader(void *data, unsigned char *buffer, std::size_t size,
 namespace sourcemeta::core {
 
 auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
-                const JSON::ParseCallback &callback) -> JSON {
+                const JSON::ParseCallback &callback,
+                const JSON::ParseOptions &options) -> JSON {
   yaml_parser_t parser;
   if (!yaml_parser_initialize(&parser)) {
     throw YAMLError("Could not initialize the YAML parser");
@@ -457,7 +467,7 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   yaml_parser_set_input(&parser, yaml_stream_reader, &context);
 
   try {
-    const auto result{parse_yaml_from_events(&parser, callback)};
+    const auto result{parse_yaml_from_events(&parser, callback, options)};
 
     yaml_event_t peek_event;
     if (yaml_parser_parse(&parser, &peek_event)) {
@@ -483,8 +493,8 @@ auto parse_yaml(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   }
 }
 
-auto parse_yaml(const JSON::String &input, const JSON::ParseCallback &callback)
-    -> JSON {
+auto parse_yaml(const JSON::String &input, const JSON::ParseCallback &callback,
+                const JSON::ParseOptions &options) -> JSON {
   yaml_parser_t parser;
   if (!yaml_parser_initialize(&parser)) {
     throw YAMLError("Could not initialize the YAML parser");
@@ -496,7 +506,7 @@ auto parse_yaml(const JSON::String &input, const JSON::ParseCallback &callback)
       input.size());
 
   try {
-    const auto result{parse_yaml_from_events(&parser, callback)};
+    const auto result{parse_yaml_from_events(&parser, callback, options)};
     yaml_parser_delete(&parser);
     return result;
   } catch (...) {
@@ -506,18 +516,20 @@ auto parse_yaml(const JSON::String &input, const JSON::ParseCallback &callback)
 }
 
 auto read_yaml(const std::filesystem::path &path,
-               const JSON::ParseCallback &callback) -> JSON {
+               const JSON::ParseCallback &callback,
+               const JSON::ParseOptions &options) -> JSON {
   auto stream = read_file(path);
   std::ostringstream buffer;
   buffer << stream.rdbuf();
-  return parse_yaml(buffer.str(), callback);
+  return parse_yaml(buffer.str(), callback, options);
 }
 
 auto read_yaml_or_json(const std::filesystem::path &path,
-                       const JSON::ParseCallback &callback) -> JSON {
+                       const JSON::ParseCallback &callback,
+                       const JSON::ParseOptions &options) -> JSON {
   return path.extension() == ".yaml" || path.extension() == ".yml"
-             ? read_yaml(path, callback)
-             : read_json(path, callback);
+             ? read_yaml(path, callback, options)
+             : read_json(path, callback, options);
 }
 
 } // namespace sourcemeta::core
