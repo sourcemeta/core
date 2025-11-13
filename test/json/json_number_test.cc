@@ -383,24 +383,24 @@ TEST(JSON_number, big_real) {
   EXPECT_EQ(document.to_real(), 1e308);
 }
 
-TEST(JSON_number, is_integer_real_integer) {
+TEST(JSON_number, is_integral_integer) {
   const sourcemeta::core::JSON document{5};
-  EXPECT_FALSE(document.is_integer_real());
+  EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_number, is_integer_real_non_integer_real) {
+TEST(JSON_number, is_integral_non_integer_real) {
   const sourcemeta::core::JSON document{5.3};
-  EXPECT_FALSE(document.is_integer_real());
+  EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_number, is_integer_real_integer_real) {
+TEST(JSON_number, is_integral_integer_real) {
   const sourcemeta::core::JSON document{5.0};
-  EXPECT_TRUE(document.is_integer_real());
+  EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_number, is_integer_real_non_number) {
+TEST(JSON_number, is_integral_non_number) {
   const sourcemeta::core::JSON document{true};
-  EXPECT_FALSE(document.is_integer_real());
+  EXPECT_FALSE(document.is_integral());
 }
 
 TEST(JSON_number, as_integer_integer) {
