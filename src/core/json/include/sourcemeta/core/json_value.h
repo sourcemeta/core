@@ -1749,7 +1749,10 @@ private:
     String data_string;
     Array data_array;
     Object data_object;
-    Decimal data_decimal;
+    // Move Decimal to the heap to reduce the size of the JSON class.
+    // Dealing with arbitrary precision numbers is not common, so we pay the
+    // indirection cost only when needed.
+    Decimal *data_decimal;
   };
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
