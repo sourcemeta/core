@@ -93,11 +93,11 @@ JSON::JSON(const Object &value) : current_type{Type::Object} {
 }
 
 JSON::JSON(const Decimal &value) : current_type{Type::Decimal} {
-  new (&this->data_decimal) Decimal{value};
+  this->data_decimal = new Decimal{value};
 }
 
 JSON::JSON(Decimal &&value) : current_type{Type::Decimal} {
-  new (&this->data_decimal) Decimal{std::move(value)};
+  this->data_decimal = new Decimal{std::move(value)};
 }
 
 JSON::JSON(const JSON &other) : current_type{other.current_type} {
@@ -121,7 +121,7 @@ JSON::JSON(const JSON &other) : current_type{other.current_type} {
       new (&this->data_object) Object{other.data_object};
       break;
     case Type::Decimal:
-      new (&this->data_decimal) Decimal{other.data_decimal};
+      this->data_decimal = new Decimal{*other.data_decimal};
       break;
     default:
       break;
@@ -152,7 +152,8 @@ JSON::JSON(JSON &&other) noexcept : current_type{other.current_type} {
       other.current_type = Type::Null;
       break;
     case Type::Decimal:
-      new (&this->data_decimal) Decimal{std::move(other.data_decimal)};
+      this->data_decimal = other.data_decimal;
+      other.data_decimal = nullptr;
       other.current_type = Type::Null;
       break;
     default:
@@ -183,7 +184,7 @@ auto JSON::operator=(const JSON &other) -> JSON & {
       new (&this->data_object) Object{other.data_object};
       break;
     case Type::Decimal:
-      new (&this->data_decimal) Decimal{other.data_decimal};
+      this->data_decimal = new Decimal{*other.data_decimal};
       break;
     default:
       break;
@@ -218,7 +219,8 @@ auto JSON::operator=(JSON &&other) noexcept -> JSON & {
       other.current_type = Type::Null;
       break;
     case Type::Decimal:
-      new (&this->data_decimal) Decimal{std::move(other.data_decimal)};
+      this->data_decimal = other.data_decimal;
+      other.data_decimal = nullptr;
       other.current_type = Type::Null;
       break;
     default:
@@ -340,7 +342,7 @@ auto JSON::operator==(const JSON &other) const noexcept -> bool {
     case Type::Real:
       return this->data_real == other.data_real;
     case Type::Decimal:
-      return this->data_decimal == other.data_decimal;
+      return *this->data_decimal == *other.data_decimal;
     case Type::String:
       return this->data_string == other.data_string;
     case Type::Array:
@@ -487,7 +489,7 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
 
 [[nodiscard]] auto JSON::to_decimal() const noexcept -> const Decimal & {
   assert(this->is_decimal());
-  return this->data_decimal;
+  return *this->data_decimal;
 }
 
 [[nodiscard]] auto JSON::to_string() const noexcept -> const JSON::String & {
@@ -1007,7 +1009,7 @@ auto JSON::maybe_destruct_union() -> void {
       this->data_object.~JSONObject();
       break;
     case Type::Decimal:
-      this->data_decimal.~Decimal();
+      delete this->data_decimal;
       break;
     default:
       break;
