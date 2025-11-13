@@ -93,10 +93,18 @@ JSON::JSON(const Object &value) : current_type{Type::Object} {
 }
 
 JSON::JSON(const Decimal &value) : current_type{Type::Decimal} {
+  if (value.is_nan() || value.is_infinite()) {
+    throw std::invalid_argument("JSON does not support Infinity or NaN");
+  }
+
   this->data_decimal = new Decimal{value};
 }
 
 JSON::JSON(Decimal &&value) : current_type{Type::Decimal} {
+  if (value.is_nan() || value.is_infinite()) {
+    throw std::invalid_argument("JSON does not support Infinity or NaN");
+  }
+
   this->data_decimal = new Decimal{std::move(value)};
 }
 
@@ -484,11 +492,17 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
 
 [[nodiscard]] auto JSON::to_real() const noexcept -> Real {
   assert(this->is_real());
+  // This MUST not happen
+  assert(!std::isinf(this->data_real));
+  assert(!std::isnan(this->data_real));
   return this->data_real;
 }
 
 [[nodiscard]] auto JSON::to_decimal() const noexcept -> const Decimal & {
   assert(this->is_decimal());
+  // This MUST not happen
+  assert(this->data_decimal->is_finite());
+  assert(!this->data_decimal->is_nan());
   return *this->data_decimal;
 }
 

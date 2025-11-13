@@ -732,3 +732,18 @@ TEST(JSON_parse_error, read_json_non_existent) {
     FAIL() << "The parse function was expected to throw a filesystem error";
   }
 }
+
+TEST(JSON_parse_error, parsing_infinity_keyword_fails) {
+  std::istringstream input{"Infinity"};
+  EXPECT_PARSE_ERROR(input, 1, 1);
+}
+
+TEST(JSON_parse_error, parsing_negative_infinity_keyword_fails) {
+  std::istringstream input{"-Infinity"};
+  EXPECT_PARSE_ERROR(input, 1, 2);
+}
+
+TEST(JSON_parse_error, parsing_nan_keyword_fails) {
+  std::istringstream input{"NaN"};
+  EXPECT_PARSE_ERROR(input, 1, 1);
+}

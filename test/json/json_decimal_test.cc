@@ -472,3 +472,116 @@ TEST(JSON_decimal, is_positive_very_small_negative) {
       sourcemeta::core::Decimal{"-0.0000000001"}};
   EXPECT_FALSE(document.is_positive());
 }
+
+TEST(JSON_decimal, construction_rejects_nan) {
+  const sourcemeta::core::Decimal value{sourcemeta::core::Decimal::nan()};
+  EXPECT_THROW(sourcemeta::core::JSON{value}, std::invalid_argument);
+}
+
+TEST(JSON_decimal, construction_rejects_positive_infinity) {
+  const sourcemeta::core::Decimal value{sourcemeta::core::Decimal::infinity()};
+  EXPECT_THROW(sourcemeta::core::JSON{value}, std::invalid_argument);
+}
+
+TEST(JSON_decimal, construction_rejects_negative_infinity) {
+  const sourcemeta::core::Decimal value{
+      sourcemeta::core::Decimal::negative_infinity()};
+  EXPECT_THROW(sourcemeta::core::JSON{value}, std::invalid_argument);
+}
+
+TEST(JSON_decimal, construction_move_rejects_nan) {
+  sourcemeta::core::Decimal value{sourcemeta::core::Decimal::nan()};
+  EXPECT_THROW(sourcemeta::core::JSON{std::move(value)}, std::invalid_argument);
+}
+
+TEST(JSON_decimal, construction_move_rejects_positive_infinity) {
+  sourcemeta::core::Decimal value{sourcemeta::core::Decimal::infinity()};
+  EXPECT_THROW(sourcemeta::core::JSON{std::move(value)}, std::invalid_argument);
+}
+
+TEST(JSON_decimal, construction_move_rejects_negative_infinity) {
+  sourcemeta::core::Decimal value{
+      sourcemeta::core::Decimal::negative_infinity()};
+  EXPECT_THROW(sourcemeta::core::JSON{std::move(value)}, std::invalid_argument);
+}
+
+TEST(JSON_decimal, copy_constructor_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON source{sourcemeta::core::Decimal::nan()};
+        const sourcemeta::core::JSON copy{source};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, move_constructor_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON source{sourcemeta::core::Decimal::infinity()};
+        const sourcemeta::core::JSON moved{std::move(source)};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, copy_assignment_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON source{sourcemeta::core::Decimal::nan()};
+        sourcemeta::core::JSON target{sourcemeta::core::Decimal{1}};
+        target = source;
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, move_assignment_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON source{sourcemeta::core::Decimal::infinity()};
+        sourcemeta::core::JSON target{sourcemeta::core::Decimal{1}};
+        target = std::move(source);
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, addition_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON left{
+            sourcemeta::core::Decimal::infinity()};
+        const sourcemeta::core::JSON right{sourcemeta::core::Decimal{1}};
+        const auto result{left + right};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, subtraction_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        const sourcemeta::core::JSON left{
+            sourcemeta::core::Decimal::negative_infinity()};
+        const sourcemeta::core::JSON right{sourcemeta::core::Decimal{1}};
+        const auto result{left - right};
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, addition_assignment_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON document{sourcemeta::core::Decimal::infinity()};
+        const sourcemeta::core::JSON addend{sourcemeta::core::Decimal{1}};
+        document += addend;
+      },
+      std::invalid_argument);
+}
+
+TEST(JSON_decimal, subtraction_assignment_operator_cannot_create_invalid_json) {
+  EXPECT_THROW(
+      {
+        sourcemeta::core::JSON document{
+            sourcemeta::core::Decimal::negative_infinity()};
+        const sourcemeta::core::JSON subtrahend{sourcemeta::core::Decimal{1}};
+        document -= subtrahend;
+      },
+      std::invalid_argument);
+}
