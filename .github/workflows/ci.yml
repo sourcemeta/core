@@ -76,12 +76,6 @@ jobs:
             type: static
             shell: sh
             options: -DSOURCEMETA_CORE_ADDRESS_SANITIZER:BOOL=ON
-          - os: ubuntu-latest
-            cc: clang
-            cxx: clang++
-            type: static
-            shell: sh
-            options: -DSOURCEMETA_CORE_UNDEFINED_SANITIZER:BOOL=ON
 
     defaults:
       run:

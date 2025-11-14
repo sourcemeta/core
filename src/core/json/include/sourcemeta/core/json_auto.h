@@ -36,6 +36,12 @@ template <std::size_t N>
 struct json_auto_is_bitset<std::bitset<N>> : std::true_type {};
 
 /// @ingroup json
+template <typename T> struct json_auto_bitset_size;
+template <std::size_t N>
+struct json_auto_bitset_size<std::bitset<N>>
+    : std::integral_constant<std::size_t, N> {};
+
+/// @ingroup json
 template <typename T>
 concept json_auto_has_method_from = requires(const JSON &value) {
   { T::from_json(value) } -> std::same_as<std::optional<T>>;
@@ -281,15 +287,33 @@ auto from_json(const JSON &value) -> std::optional<T> {
 /// @ingroup json
 template <typename T>
   requires json_auto_is_bitset<T>::value
-auto to_json(const T &value) -> JSON {
-  return JSON{value.to_string()};
+auto to_json(const T &bitset) -> JSON {
+  constexpr std::size_t N{json_auto_bitset_size<T>::value};
+  if constexpr (N <= 64) {
+    return JSON{static_cast<std::int64_t>(bitset.to_ullong())};
+  } else {
+    return JSON{bitset.to_string()};
+  }
 }
 
 /// @ingroup json
 template <typename T>
   requires json_auto_is_bitset<T>::value
 auto from_json(const JSON &value) -> std::optional<T> {
-  return T{value.to_string()};
+  constexpr std::size_t N{json_auto_bitset_size<T>::value};
+  if constexpr (N <= 64) {
+    if (value.is_integer()) {
+      return T{static_cast<unsigned long long>(value.to_integer())};
+    } else {
+      return std::nullopt;
+    }
+  } else {
+    if (value.is_string()) {
+      return T{value.to_string()};
+    } else {
+      return std::nullopt;
+    }
+  }
 }
 
 /// @ingroup json
