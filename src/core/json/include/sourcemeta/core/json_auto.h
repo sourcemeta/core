@@ -280,8 +280,13 @@ auto from_json(const JSON &value) -> std::optional<T> {
 
 /// @ingroup json
 template <typename T>
-  requires json_auto_is_bitset<T>::value
-auto to_json(const T &value) -> JSON {
+  requires json_auto_is_bitset<T>::
+      value
+#if defined(__clang__) || defined(__GNUC__)
+    __attribute__((no_sanitize("undefined")))
+#endif
+    auto
+    to_json(const T &value) -> JSON {
   if constexpr (T{}.size() <= 64) {
     return JSON{static_cast<std::int64_t>(value.to_ullong())};
   } else {
