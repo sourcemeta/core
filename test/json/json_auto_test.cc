@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <bitset>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -912,6 +913,83 @@ TEST(JSON_auto, vector_of_optional_decimals) {
   EXPECT_EQ(result, expected);
   const auto back{sourcemeta::core::from_json<
       std::vector<std::optional<sourcemeta::core::Decimal>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_8) {
+  const std::bitset<8> value{"10110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{181}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<8>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_16) {
+  const std::bitset<16> value{"1011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{46517}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<16>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_32) {
+  const std::bitset<32> value{"10110101101101011011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::JSON{static_cast<std::int64_t>(3048584629)}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<32>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_8_all_zeros) {
+  const std::bitset<8> value{"00000000"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{0}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<8>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_8_all_ones) {
+  const std::bitset<8> value{"11111111"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{255}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<8>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_64) {
+  const std::bitset<64> value{
+      "1011010110110101101101011011010110110101101101011011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<64>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_128) {
+  const std::bitset<128> value{
+      "1011010110110101101101011011010110110101101101011011010110110101101101"
+      "0110110101101101011011010110110101101101011011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_string());
+  const auto back{sourcemeta::core::from_json<std::bitset<128>>(result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
 }

@@ -4,6 +4,7 @@
 #include <sourcemeta/core/json_value.h>
 
 #include <algorithm>  // std::sort
+#include <bitset>     // std::bitset
 #include <cassert>    // assert
 #include <chrono>     // std::chrono
 #include <concepts>   // std::same_as, std::constructible_from
@@ -28,6 +29,11 @@ template <typename T> struct json_auto_is_basic_string : std::false_type {};
 template <typename CharT, typename Traits, typename Alloc>
 struct json_auto_is_basic_string<std::basic_string<CharT, Traits, Alloc>>
     : std::true_type {};
+
+/// @ingroup json
+template <typename T> struct json_auto_is_bitset : std::false_type {};
+template <std::size_t N>
+struct json_auto_is_bitset<std::bitset<N>> : std::true_type {};
 
 /// @ingroup json
 template <typename T>
@@ -269,6 +275,32 @@ auto from_json(const JSON &value) -> std::optional<T> {
     return value.to_string();
   } else {
     return std::nullopt;
+  }
+}
+
+/// @ingroup json
+template <typename T>
+  requires json_auto_is_bitset<T>::value
+auto to_json(const T &value) -> JSON {
+  if constexpr (T{}.size() <= 64) {
+    return JSON{static_cast<std::int64_t>(value.to_ullong())};
+  } else {
+    return JSON{value.to_string()};
+  }
+}
+
+/// @ingroup json
+template <typename T>
+  requires json_auto_is_bitset<T>::value
+auto from_json(const JSON &value) -> std::optional<T> {
+  if constexpr (T{}.size() <= 64) {
+    if (value.is_integer()) {
+      return T{static_cast<unsigned long long>(value.to_integer())};
+    } else {
+      return T{value.to_string()};
+    }
+  } else {
+    return T{value.to_string()};
   }
 }
 
