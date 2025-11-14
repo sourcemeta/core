@@ -278,32 +278,18 @@ auto from_json(const JSON &value) -> std::optional<T> {
   }
 }
 
-#ifndef DOXYGEN
-namespace detail {
-template <typename T>
-#if defined(__has_attribute)
-#if __has_attribute(no_sanitize)
-__attribute__((no_sanitize("shift")))
-#endif
-#endif
-inline auto
-bitset_to_ullong_impl(const T &value) -> unsigned long long {
-  return value.to_ullong();
-}
-} // namespace detail
-#endif
-
 /// @ingroup json
 template <typename T>
   requires json_auto_is_bitset<T>::value
 auto to_json(const T &value) -> JSON {
   if constexpr (T{}.size() <= 64) {
-#ifndef DOXYGEN
-    return JSON{
-        static_cast<std::int64_t>(detail::bitset_to_ullong_impl(value))};
-#else
-    return JSON{static_cast<std::int64_t>(value.to_ullong())};
-#endif
+    unsigned long long result{0};
+    for (std::size_t index{0}; index < value.size(); ++index) {
+      if (value.test(index)) {
+        result |= (1ULL << index);
+      }
+    }
+    return JSON{static_cast<std::int64_t>(result)};
   } else {
     return JSON{value.to_string()};
   }
