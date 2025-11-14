@@ -289,15 +289,7 @@ auto to_json(const T &value) -> JSON {
 template <typename T>
   requires json_auto_is_bitset<T>::value
 auto from_json(const JSON &value) -> std::optional<T> {
-  if constexpr (T{}.size() <= 64) {
-    if (value.is_integer()) {
-      return T{static_cast<unsigned long long>(value.to_integer())};
-    } else {
-      return T{value.to_string()};
-    }
-  } else {
-    return T{value.to_string()};
-  }
+  return T{value.to_string()};
 }
 
 /// @ingroup json
