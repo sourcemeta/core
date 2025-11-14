@@ -384,17 +384,67 @@ TEST(Numeric_decimal, is_integer_predicate) {
 
 TEST(Numeric_decimal, is_integer_real_with_zero_positive) {
   const sourcemeta::core::Decimal value{"42.0"};
-  EXPECT_TRUE(value.is_integer());
+  EXPECT_FALSE(value.is_integer());
 }
 
 TEST(Numeric_decimal, is_integer_real_with_zero_negative) {
   const sourcemeta::core::Decimal value{"-42.0"};
-  EXPECT_TRUE(value.is_integer());
+  EXPECT_FALSE(value.is_integer());
 }
 
 TEST(Numeric_decimal, is_integer_real_with_zero_zero) {
   const sourcemeta::core::Decimal value{"0.0"};
-  EXPECT_TRUE(value.is_integer());
+  EXPECT_FALSE(value.is_integer());
+}
+
+TEST(Numeric_decimal, is_integral_integer) {
+  const sourcemeta::core::Decimal value{3};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_integer_negative) {
+  const sourcemeta::core::Decimal value{-42};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_real_with_zero_positive) {
+  const sourcemeta::core::Decimal value{"3.0"};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_real_with_zero_negative) {
+  const sourcemeta::core::Decimal value{"-42.0"};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_real_with_zero_zero) {
+  const sourcemeta::core::Decimal value{"0.0"};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_non_integral_positive) {
+  const sourcemeta::core::Decimal value{"3.1"};
+  EXPECT_FALSE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_non_integral_negative) {
+  const sourcemeta::core::Decimal value{"-42.5"};
+  EXPECT_FALSE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_large_integer) {
+  const sourcemeta::core::Decimal value{"999999999999999999999"};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_large_real_with_zero) {
+  const sourcemeta::core::Decimal value{"999999999999999999999.0"};
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(Numeric_decimal, is_integral_large_non_integral) {
+  const sourcemeta::core::Decimal value{"999999999999999999999.1"};
+  EXPECT_FALSE(value.is_integral());
 }
 
 TEST(Numeric_decimal, is_finite_predicate) {
@@ -1217,6 +1267,11 @@ TEST(Numeric_decimal, to_string_negative) {
 TEST(Numeric_decimal, to_string_negative_decimal) {
   const sourcemeta::core::Decimal value{"-67.89"};
   EXPECT_EQ(value.to_string(), "-67.89");
+}
+
+TEST(Numeric_decimal, to_string_zero_fractional) {
+  const sourcemeta::core::Decimal value{"7.0"};
+  EXPECT_EQ(value.to_string(), "7.0");
 }
 
 TEST(Numeric_decimal, to_string_large_number) {
