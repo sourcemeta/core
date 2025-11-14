@@ -291,12 +291,8 @@ TEST(JSONSchema_official_walker_2020_12, applicator_contains_only) {
 TEST(JSONSchema_official_walker_2020_12, applicator_contains_with_validation) {
   using namespace sourcemeta::core;
   sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
-            VOCABULARIES_2020_12_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2020_12_VALIDATION.cbegin(),
-            VOCABULARIES_2020_12_VALIDATION.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
+  vocabularies.merge(VOCABULARIES_2020_12_APPLICATOR);
+  vocabularies.merge(VOCABULARIES_2020_12_VALIDATION);
   const auto result{schema_official_walker("contains", vocabularies)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseAnyItem);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -382,12 +378,8 @@ TEST(JSONSchema_official_walker_2020_12,
      unevaluated_unevaluatedItems_with_applicator) {
   using namespace sourcemeta::core;
   sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2020_12_UNEVALUATED.cbegin(),
-            VOCABULARIES_2020_12_UNEVALUATED.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
-            VOCABULARIES_2020_12_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
+  vocabularies.merge(VOCABULARIES_2020_12_UNEVALUATED);
+  vocabularies.merge(VOCABULARIES_2020_12_APPLICATOR);
   const auto result{schema_official_walker("unevaluatedItems", vocabularies)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseSomeItem);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -418,12 +410,8 @@ TEST(JSONSchema_official_walker_2020_12,
      unevaluated_unevaluatedProperties_with_applicator) {
   using namespace sourcemeta::core;
   sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2020_12_UNEVALUATED.cbegin(),
-            VOCABULARIES_2020_12_UNEVALUATED.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
-            VOCABULARIES_2020_12_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
+  vocabularies.merge(VOCABULARIES_2020_12_UNEVALUATED);
+  vocabularies.merge(VOCABULARIES_2020_12_APPLICATOR);
   const auto result{
       schema_official_walker("unevaluatedProperties", vocabularies)};
   EXPECT_EQ(result.type,
@@ -1716,15 +1704,9 @@ TEST(JSONSchema_official_walker_2020_12,
 
 TEST(JSONSchema_official_walker_2020_12, schema_keyword_priority_array) {
   sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
-            VOCABULARIES_2020_12_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2020_12_UNEVALUATED.cbegin(),
-            VOCABULARIES_2020_12_UNEVALUATED.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2020_12_VALIDATION.cbegin(),
-            VOCABULARIES_2020_12_VALIDATION.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
+  vocabularies.merge(VOCABULARIES_2020_12_APPLICATOR);
+  vocabularies.merge(VOCABULARIES_2020_12_UNEVALUATED);
+  vocabularies.merge(VOCABULARIES_2020_12_VALIDATION);
 
   const auto &walker = sourcemeta::core::schema_official_walker;
   using namespace sourcemeta::core;
@@ -1739,12 +1721,8 @@ TEST(JSONSchema_official_walker_2020_12, schema_keyword_priority_array) {
 
 TEST(JSONSchema_official_walker_2020_12, schema_keyword_priority_object) {
   sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2020_12_APPLICATOR.cbegin(),
-            VOCABULARIES_2020_12_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2020_12_UNEVALUATED.cbegin(),
-            VOCABULARIES_2020_12_UNEVALUATED.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
+  vocabularies.merge(VOCABULARIES_2020_12_APPLICATOR);
+  vocabularies.merge(VOCABULARIES_2020_12_UNEVALUATED);
 
   const auto &walker = sourcemeta::core::schema_official_walker;
   using namespace sourcemeta::core;
