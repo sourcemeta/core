@@ -39,6 +39,7 @@ if(NOT Yaml_FOUND)
     target_compile_options(yaml PRIVATE /wd4100)
     target_compile_options(yaml PRIVATE /wd4245)
     target_compile_options(yaml PRIVATE /wd4701)
+    target_compile_options(yaml PRIVATE /wd4702)
   endif()
 
   if(SOURCEMETA_OS_LINUX)
