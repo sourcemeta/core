@@ -282,17 +282,7 @@ auto from_json(const JSON &value) -> std::optional<T> {
 template <typename T>
   requires json_auto_is_bitset<T>::value
 auto to_json(const T &value) -> JSON {
-  if constexpr (T{}.size() <= 64) {
-    unsigned long long result{0};
-    for (std::size_t index{0}; index < value.size(); ++index) {
-      if (value.test(index)) {
-        result |= (1ULL << index);
-      }
-    }
-    return JSON{static_cast<std::int64_t>(result)};
-  } else {
-    return JSON{value.to_string()};
-  }
+  return JSON{value.to_string()};
 }
 
 /// @ingroup json
