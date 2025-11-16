@@ -539,12 +539,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         entry.parent = path.concat(relative_entry.parent.value());
       }
 
-      // Dialect
+      // Dialect and base dialect
       assert(entry.dialect.has_value());
-      base_dialects.insert({entry.pointer, {entry.dialect.value()}});
-
-      // Base dialect
       assert(entry.base_dialect.has_value());
+      base_dialects.insert(
+          {entry.pointer, {entry.dialect.value(), entry.base_dialect.value()}});
 
       // Schema identifier
       std::optional<JSON::String> id{sourcemeta::core::identify(
@@ -650,6 +649,18 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               base_uris.insert({entry.common.pointer, {new_id}});
             }
           }
+        }
+      } else if (!entry.id.has_value() &&
+                 entry.common.subschema.get().is_object() &&
+                 // We permit `$schema` without `$id`/`id` on Draft 7 and older
+                 entry.common.subschema.get().defines("$schema") &&
+                 ref_overrides_adjacent_keywords(
+                     entry.common.base_dialect.value())) {
+        const auto bases{
+            find_nearest_bases(base_uris, entry.common.pointer, std::nullopt)};
+        if (!bases.first.empty()) {
+          const auto &parent_base{bases.first.front()};
+          base_uris.insert({entry.common.pointer, {parent_base}});
         }
       }
 
@@ -800,7 +811,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
       const auto dialects{
           find_nearest_bases(base_dialects, pointer, root_dialect)};
-      assert(dialects.first.size() == 1);
+      assert(!dialects.first.empty());
 
       auto every_base_result = find_every_base(base_uris, pointer);
 
@@ -826,10 +837,14 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           const auto maybe_base_entry{this->locations_.find(
               {SchemaReferenceType::Static, current_base})};
 
+          const auto base_dialect_result{
+              find_nearest_bases(base_dialects, pointer, root_dialect)};
           const auto current_base_dialect{
-              maybe_base_entry == this->locations_.cend()
-                  ? root_base_dialect.value()
-                  : maybe_base_entry->second.base_dialect};
+              base_dialect_result.first.size() >= 2
+                  ? base_dialect_result.first[1]
+                  : (maybe_base_entry == this->locations_.cend()
+                         ? root_base_dialect.value()
+                         : maybe_base_entry->second.base_dialect)};
 
           const auto subschema{subschemas.find(pointer)};
 

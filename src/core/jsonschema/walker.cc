@@ -49,6 +49,9 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
   // / base dialect and ignore the invalid standalone `$schema`. The caller has
   // enough information to detect those cases and throw an error if they desire
   // to be more strict.
+  //
+  // However, this is a 2020-12 restriction and we CAN accept `$schema` without
+  // an identifier on older versions
   const auto maybe_current_dialect{
       sourcemeta::core::dialect(subschema, dialect)};
   assert(maybe_current_dialect.has_value());
@@ -57,13 +60,26 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       sourcemeta::core::SchemaIdentificationStrategy::Strict,
       maybe_current_dialect)};
   const auto is_schema_resource{level == 0 || id.has_value()};
-  const auto current_dialect{is_schema_resource ? maybe_current_dialect.value()
-                                                : dialect};
-  const auto current_base_dialect{
-      is_schema_resource
-          ? sourcemeta::core::base_dialect(subschema, resolver, current_dialect)
-                .value_or(base_dialect)
-          : base_dialect};
+  const auto has_schema_keyword{subschema.is_object() &&
+                                subschema.defines("$schema")};
+  const auto subschema_base_dialect{
+      has_schema_keyword ? sourcemeta::core::base_dialect(subschema, resolver,
+                                                          maybe_current_dialect)
+                               .value_or(base_dialect)
+                         : base_dialect};
+  const auto should_process_schema_without_id{
+      has_schema_keyword &&
+      ref_overrides_adjacent_keywords(subschema_base_dialect)};
+  const auto current_dialect{is_schema_resource ||
+                                     should_process_schema_without_id
+                                 ? maybe_current_dialect.value()
+                                 : dialect};
+  const auto current_base_dialect{is_schema_resource ||
+                                          should_process_schema_without_id
+                                      ? subschema_base_dialect
+                                      : base_dialect};
+  const auto current_ref_overrides{
+      ref_overrides_adjacent_keywords(current_base_dialect)};
 
   const auto vocabularies{sourcemeta::core::vocabularies(
       resolver, current_base_dialect, current_dialect)};
@@ -88,9 +104,8 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
     return;
   }
 
-  const auto has_overriding_ref{
-      subschema.defines("$ref") &&
-      ref_overrides_adjacent_keywords(current_base_dialect)};
+  const auto has_overriding_ref{subschema.defines("$ref") &&
+                                current_ref_overrides};
   for (auto &pair : subschema.as_object()) {
     const auto keyword_info{walker(pair.first, vocabularies)};
 
