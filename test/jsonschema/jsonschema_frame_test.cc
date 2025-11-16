@@ -183,6 +183,135 @@ TEST(JSONSchema_frame, nested_schemas_mixing_dialects) {
       "http://json-schema.org/draft-04/schema#");
 }
 
+TEST(JSONSchema_frame, nested_schemas_sibling_ref_nested) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/main",
+    "$ref": "embedded",
+    "$defs": {
+      "embedded": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "embedded",
+        "$ref": "#/definitions/foo",
+        "definitions": {
+          "foo": { "type": "number" }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 12);
+
+  // Resources
+
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "https://example.com/main", "https://example.com/main", "",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://example.com/main", "", {""}, std::nullopt);
+
+  // JSON Pointers
+
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$schema",
+                              "https://example.com/main", "/$schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$id",
+                              "https://example.com/main", "/$id",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$ref",
+                              "https://example.com/main", "/$ref",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$ref", {}, "");
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$defs",
+                              "https://example.com/main", "/$defs",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$defs", {}, "");
+
+  // Note: we still recognise this as Draft 7, as we still parse `$schema`
+  // despite a sibling `$ref` to avoid a paradox regarding `$ref` objects on
+  // this schema
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/main#/$defs/embedded",
+      "https://example.com/main", "/$defs/embedded",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded", {}, "");
+
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/$schema",
+      "https://example.com/main", "/$defs/embedded/$schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded/$schema", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/$id",
+      "https://example.com/main", "/$defs/embedded/$id",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded/$id", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/$ref",
+      "https://example.com/main", "/$defs/embedded/$ref",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded/$ref", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/definitions",
+      "https://example.com/main", "/$defs/embedded/definitions",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded/definitions", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/main#/$defs/embedded/definitions/foo",
+      "https://example.com/main", "/$defs/embedded/definitions/foo",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded/definitions/foo", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/definitions/foo/type",
+      "https://example.com/main", "/$defs/embedded/definitions/foo/type",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/main",
+      "/$defs/embedded/definitions/foo/type", {},
+      "/$defs/embedded/definitions/foo");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 4);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "https://example.com/embedded",
+                          "https://example.com/main", "embedded", "embedded");
+
+  // We NEVER ignore `$schema` sibling to `$ref` in Draft 7 and older
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/embedded/$schema",
+                          "http://json-schema.org/draft-07/schema",
+                          "http://json-schema.org/draft-07/schema",
+                          std::nullopt,
+                          "http://json-schema.org/draft-07/schema#");
+
+  // Note: this reference retains the parent base URI, as its `$id` keyword is
+  // ignored given `$ref`
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/embedded/$ref",
+                          "https://example.com/main#/definitions/foo",
+                          "https://example.com/main", "/definitions/foo",
+                          "#/definitions/foo");
+}
+
 TEST(JSONSchema_frame, no_id) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",

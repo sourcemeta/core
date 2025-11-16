@@ -425,6 +425,9 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
   EXPECT_EQ(document, expected);
 }
 
+// TODO: This needs to be updated. As we know allow standalone $schema on Draft
+// 7 and older
+// TODO: But we DO NOT on 2019-09 and 2020-12
 TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRule6>();
