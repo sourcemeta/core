@@ -429,10 +429,6 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRule6>();
 
-  // Note that `$schema` is only valid on subschemas that represent
-  // schema resources. Here we test that if not, `$schema` is ignored
-  // and the dialects never change
-
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$defs": {
@@ -454,7 +450,10 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$defs": {
-      "foo": { "$schema": "http://json-schema.org/draft-03/schema#" },
+      "foo": {
+        "$schema": "http://json-schema.org/draft-03/schema#",
+        "draft": 3
+      },
       "bar": { "$schema": "http://json-schema.org/draft-02/schema#" },
       "baz": { "$schema": "http://json-schema.org/draft-01/schema#" }
     }

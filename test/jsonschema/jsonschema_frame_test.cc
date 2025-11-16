@@ -453,6 +453,225 @@ TEST(JSONSchema_frame, cross_2020_12_to_2019_09_without_id) {
       "https://json-schema.org/draft/2020-12/schema", {}, "/$defs/schema");
 }
 
+TEST(JSONSchema_frame, cross_2020_12_to_draft7_without_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  // Top level
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs", "/$defs",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+
+  // Subschema
+
+  // On Draft 7 and older, we permit `$schema` without `$id`
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema", "/$defs/schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "/$defs/schema");
+}
+
+TEST(JSONSchema_frame, cross_2020_12_to_draft6_without_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-06/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  // Top level
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs", "/$defs",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+
+  // Subschema
+
+  // On Draft 7 and older, we permit `$schema` without `$id`
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema", "/$defs/schema",
+      "http://json-schema.org/draft-06/schema#",
+      "http://json-schema.org/draft-06/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
+      "http://json-schema.org/draft-06/schema#",
+      "http://json-schema.org/draft-06/schema#", {}, "/$defs/schema");
+}
+
+TEST(JSONSchema_frame, cross_2020_12_to_draft4_without_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-04/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  // Top level
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs", "/$defs",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+
+  // Subschema
+
+  // On Draft 7 and older, we permit `$schema` without `$id`
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema", "/$defs/schema",
+      "http://json-schema.org/draft-04/schema#",
+      "http://json-schema.org/draft-04/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
+      "http://json-schema.org/draft-04/schema#",
+      "http://json-schema.org/draft-04/schema#", {}, "/$defs/schema");
+}
+
+TEST(JSONSchema_frame, cross_draft7_to_draft4_without_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-04/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  // Top level
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions", "/definitions",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+
+  // Subschema
+
+  // On Draft 7 and older, we permit `$schema` without `$id`
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/definitions/schema", "/definitions/schema",
+      "http://json-schema.org/draft-04/schema#",
+      "http://json-schema.org/draft-04/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions/schema/$schema", "/definitions/schema/$schema",
+      "http://json-schema.org/draft-04/schema#",
+      "http://json-schema.org/draft-04/schema#", {}, "/definitions/schema");
+}
+
+TEST(JSONSchema_frame, cross_draft7_to_2020_12_without_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  // Top level
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions", "/definitions",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+
+  // Subschema
+
+  // On 2019-09 and later, `$schema` is only allowed alongside `$id` except at
+  // the schema root
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/definitions/schema", "/definitions/schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions/schema/$schema", "/definitions/schema/$schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", {}, "/definitions/schema");
+}
+
 TEST(JSONSchema_frame, anchor_on_absolute_subid) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.example.com",
