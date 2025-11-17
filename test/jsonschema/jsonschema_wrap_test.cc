@@ -371,3 +371,458 @@ TEST(JSONSchema_wrap, schema_with_identifier_with_fragment) {
 
   EXPECT_EQ(result, expected);
 }
+
+TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_definitions_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                             sourcemeta::core::schema_official_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_definitions_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                             sourcemeta::core::schema_official_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_definitions_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                             sourcemeta::core::schema_official_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_definitions_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                             sourcemeta::core::schema_official_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_definitions_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                             sourcemeta::core::schema_official_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_definitions_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "#/definitions/foo",
+    "definitions": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                             sourcemeta::core::schema_official_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_defs_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com#/$defs/foo",
+    "$defs": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "$id": "https://example.com",
+        "$ref": "#/$defs/foo",
+        "$defs": {
+          "foo": {}
+        }
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_defs_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "__sourcemeta-core-wrap__#/$defs/foo",
+    "$defs": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "$id": "__sourcemeta-core-wrap__",
+        "$ref": "#/$defs/foo",
+        "$defs": {
+          "foo": {}
+        }
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_defs_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "https://example.com#/$defs/foo",
+    "$defs": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com",
+        "$ref": "#/$defs/foo",
+        "$defs": {
+          "foo": {}
+        }
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_empty) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_defs_foo) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {}
+    }
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "__sourcemeta-core-wrap__#/$defs/foo",
+    "$defs": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "__sourcemeta-core-wrap__",
+        "$ref": "#/$defs/foo",
+        "$defs": {
+          "foo": {}
+        }
+      }
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}

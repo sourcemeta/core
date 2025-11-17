@@ -1411,8 +1411,7 @@ TEST(AlterSchema_lint_draft4,
     "$schema": "http://json-schema.org/draft-04/schema#",
     "allOf": [
       {
-        "$ref": "https://example.com",
-        "id": "https://other.com"
+        "$ref": "https://example.com"
       }
     ]
   })JSON");
@@ -1730,7 +1729,6 @@ TEST(AlterSchema_lint_draft4, draft_ref_siblings_3) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "id": "http://example.com/schema",
     "$ref": "#/definitions/foo",
     "description": "Documentation"
   })JSON");

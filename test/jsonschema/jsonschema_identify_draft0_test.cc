@@ -40,7 +40,6 @@ TEST(JSONSchema_identify_draft0, id_boolean_default_dialect) {
   const sourcemeta::core::JSON document{true};
   std::optional<std::string> id{sourcemeta::core::identify(
       document, sourcemeta::core::schema_official_resolver,
-      sourcemeta::core::SchemaIdentificationStrategy::Strict,
       "http://json-schema.org/draft-00/schema#")};
   EXPECT_FALSE(id.has_value());
 }
@@ -49,7 +48,6 @@ TEST(JSONSchema_identify_draft0, empty_object_default_dialect) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json("{}");
   std::optional<std::string> id{sourcemeta::core::identify(
       document, sourcemeta::core::schema_official_resolver,
-      sourcemeta::core::SchemaIdentificationStrategy::Strict,
       "http://json-schema.org/draft-00/schema#")};
   EXPECT_FALSE(id.has_value());
 }
@@ -82,7 +80,6 @@ TEST(JSONSchema_identify_draft0, default_dialect_precedence) {
   })JSON");
   std::optional<std::string> id{sourcemeta::core::identify(
       document, sourcemeta::core::schema_official_resolver,
-      sourcemeta::core::SchemaIdentificationStrategy::Strict,
       "https://json-schema.org/draft/2020-12/schema")};
   EXPECT_TRUE(id.has_value());
   EXPECT_EQ(id.value(), "https://example.com/my-schema");
