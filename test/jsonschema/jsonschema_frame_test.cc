@@ -357,6 +357,193 @@ TEST(JSONSchema_frame, nested_schemas_sibling_ref_nested_2020_12_draft7) {
                           "#/definitions/foo");
 }
 
+TEST(JSONSchema_frame,
+     nested_schemas_sibling_ref_nested_2020_12_draft7_with_allof) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/main",
+    "$ref": "embedded",
+    "$defs": {
+      "embedded": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "embedded",
+        "allOf": [ { "$ref": "#/definitions/foo" } ],
+        "definitions": {
+          "foo": { "type": "number" }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_official_walker,
+                sourcemeta::core::schema_official_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 23);
+
+  // Resources
+
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "https://example.com/main", "https://example.com/main", "",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://example.com/main", "", {""}, std::nullopt);
+
+  // JSON Pointers
+
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$schema",
+                              "https://example.com/main", "/$schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$id",
+                              "https://example.com/main", "/$id",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$ref",
+                              "https://example.com/main", "/$ref",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$ref", {}, "");
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/main#/$defs",
+                              "https://example.com/main", "/$defs",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              "https://example.com/main", "/$defs", {}, "");
+
+  EXPECT_FRAME_STATIC_RESOURCE(frame, "https://example.com/embedded",
+                               "https://example.com/main", "/$defs/embedded",
+                               "http://json-schema.org/draft-07/schema#",
+                               "http://json-schema.org/draft-07/schema#",
+                               "https://example.com/embedded", "", {""}, "");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/embedded#/$schema",
+      "https://example.com/main", "/$defs/embedded/$schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/$schema", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/embedded#/$id", "https://example.com/main",
+      "/$defs/embedded/$id", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/$id", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/embedded#/allOf", "https://example.com/main",
+      "/$defs/embedded/allOf", "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/allOf", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/embedded#/allOf/0",
+      "https://example.com/main", "/$defs/embedded/allOf/0",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/allOf/0", {""}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/embedded#/allOf/0/$ref",
+      "https://example.com/main", "/$defs/embedded/allOf/0/$ref",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/allOf/0/$ref", {}, "/$defs/embedded/allOf/0");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/embedded#/definitions",
+      "https://example.com/main", "/$defs/embedded/definitions",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/definitions", {}, "/$defs/embedded");
+
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/embedded#/definitions/foo",
+      "https://example.com/main", "/$defs/embedded/definitions/foo",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/definitions/foo", {""}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/embedded#/definitions/foo/type",
+      "https://example.com/main", "/$defs/embedded/definitions/foo/type",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/definitions/foo/type", {}, "/$defs/embedded/definitions/foo");
+
+  // From the root
+  EXPECT_FRAME_STATIC_SUBSCHEMA(frame,
+                                "https://example.com/main#/$defs/embedded",
+                                "https://example.com/main", "/$defs/embedded",
+                                "http://json-schema.org/draft-07/schema#",
+                                "http://json-schema.org/draft-07/schema#",
+                                "https://example.com/embedded", "", {""}, "");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/$schema",
+      "https://example.com/main", "/$defs/embedded/$schema",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/$schema", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/$id",
+      "https://example.com/main", "/$defs/embedded/$id",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/$id", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/allOf",
+      "https://example.com/main", "/$defs/embedded/allOf",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/allOf", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/main#/$defs/embedded/allOf/0",
+      "https://example.com/main", "/$defs/embedded/allOf/0",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/allOf/0", {""}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/allOf/0/$ref",
+      "https://example.com/main", "/$defs/embedded/allOf/0/$ref",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/allOf/0/$ref", {}, "/$defs/embedded/allOf/0");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/definitions",
+      "https://example.com/main", "/$defs/embedded/definitions",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/definitions", {}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/main#/$defs/embedded/definitions/foo",
+      "https://example.com/main", "/$defs/embedded/definitions/foo",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/definitions/foo", {""}, "/$defs/embedded");
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/main#/$defs/embedded/definitions/foo/type",
+      "https://example.com/main", "/$defs/embedded/definitions/foo/type",
+      "http://json-schema.org/draft-07/schema#",
+      "http://json-schema.org/draft-07/schema#", "https://example.com/embedded",
+      "/definitions/foo/type", {}, "/$defs/embedded/definitions/foo");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 4);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "https://example.com/embedded",
+                          "https://example.com/embedded", std::nullopt,
+                          "embedded");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/embedded/$schema",
+                          "http://json-schema.org/draft-07/schema",
+                          "http://json-schema.org/draft-07/schema",
+                          std::nullopt,
+                          "http://json-schema.org/draft-07/schema#");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/embedded/allOf/0/$ref",
+                          "https://example.com/embedded#/definitions/foo",
+                          "https://example.com/embedded", "/definitions/foo",
+                          "#/definitions/foo");
+}
+
 TEST(JSONSchema_frame, nested_schemas_sibling_ref_nested_2020_12_draft4) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
