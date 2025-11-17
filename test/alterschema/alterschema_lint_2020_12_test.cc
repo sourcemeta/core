@@ -4271,8 +4271,45 @@ TEST(AlterSchema_lint_2020_12, invalid_embedded_resource_draft7_without_id) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$defs": {
       "embedded": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "$defs": {}
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     invalid_embedded_resource_draft7_with_sibling_ref) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/main",
+    "$ref": "embedded",
+    "$defs": {
+      "embedded": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "embedded",
+        "$ref": "#/definitions/foo",
+        "definitions": {
+          "foo": { "type": "number" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/main",
+    "$ref": "embedded",
+    "$defs": {
+      "embedded": {
+        "$id": "embedded",
+        "$ref": "#/$defs/foo",
+        "$defs": {
+          "foo": { "type": "number" }
+        }
       }
     }
   })JSON");
