@@ -207,6 +207,29 @@ TEST(JSONSchema_dependencies,
                sourcemeta::core::SchemaResolutionError);
 }
 
+TEST(JSONSchema_dependencies,
+     across_dialects_from_top_level_ref_draft_with_default_dialect) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://www.sourcemeta.com/test-4"
+  })JSON");
+
+  std::vector<
+      std::tuple<std::optional<sourcemeta::core::JSON::String>,
+                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+      traces;
+
+  sourcemeta::core::dependencies(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      [&traces](const auto &origin, const auto &pointer, const auto &target,
+                const auto &) { traces.emplace_back(origin, pointer, target); },
+      "http://json-schema.org/draft-07/schema#");
+
+  EXPECT_EQ(traces.size(), 1);
+
+  EXPECT_DEPENDENCY(traces, 0, std::nullopt, "/$ref",
+                    "https://www.sourcemeta.com/test-4");
+}
+
 TEST(JSONSchema_dependencies, across_dialects_const) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.example.com",

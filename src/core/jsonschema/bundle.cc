@@ -285,10 +285,19 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
              vocabularies.contains(
                  "http://json-schema.org/draft-04/hyper-schema#")) {
     if (schema.is_object() && schema.defines("$ref")) {
-      throw sourcemeta::core::SchemaError(
-          "Cannot bundle a JSON Schema Draft 7 or older with a top-level "
-          "`$ref` (which overrides sibling keywords) without introducing "
-          "undefined behavior");
+      // This is a very specific case in which we can "fix" this
+      if (schema.size() == 1) {
+        auto branches{JSON::make_array()};
+        branches.push_back(schema);
+        schema.at("$ref").into(std::move(branches));
+        // Note that `allOf` was introduced in Draft 4
+        schema.rename("$ref", "allOf");
+      } else {
+        throw sourcemeta::core::SchemaError(
+            "Cannot bundle a JSON Schema Draft 7 or older with a top-level "
+            "`$ref` (which overrides sibling keywords) without introducing "
+            "undefined behavior");
+      }
     }
 
     bundle_schema(schema, {"definitions"}, schema, frame, walker, resolver,

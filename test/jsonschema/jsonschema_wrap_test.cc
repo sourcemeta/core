@@ -372,6 +372,22 @@ TEST(JSONSchema_wrap, schema_with_identifier_with_fragment) {
   EXPECT_EQ(result, expected);
 }
 
+TEST(JSONSchema_wrap, draft4_standalone_ref_with_default_dialect) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://example.com"
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver,
+      "http://json-schema.org/draft-04/schema#")};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://example.com"
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_empty) {
   const auto schema{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -451,6 +467,22 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_definitions_foo) {
       sourcemeta::core::SchemaError);
 }
 
+TEST(JSONSchema_wrap, draft6_standalone_ref_with_default_dialect) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://example.com"
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver,
+      "http://json-schema.org/draft-06/schema#")};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://example.com"
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_empty) {
   const auto schema{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -528,6 +560,22 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_definitions_foo) {
       sourcemeta::core::wrap(schema, {"definitions", "foo"},
                              sourcemeta::core::schema_official_resolver),
       sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_wrap, draft7_standalone_ref_with_default_dialect) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://example.com"
+  })JSON")};
+
+  const auto result{sourcemeta::core::wrap(
+      schema, {}, sourcemeta::core::schema_official_resolver,
+      "http://json-schema.org/draft-07/schema#")};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://example.com"
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_empty) {
