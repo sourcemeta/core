@@ -56,6 +56,74 @@ TEST(JSONSchema_transformer, flat_document_no_applicators) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(JSONSchema_transformer, embedded_resource_match_check) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  // Framing will register the nested schemas from the point of view of BOTH the
+  // root and the embedded resources, and thus we might be linting the same
+  // thing twice
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "schema": {
+        "$id": "https://www.example.com",
+        "foo": "bar"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 50);
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)),
+            sourcemeta::core::Pointer({"$defs", "schema"}));
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+}
+
+TEST(JSONSchema_transformer, embedded_resource_match_check_with_default_id) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "schema": {
+        "$id": "https://www.example.com",
+        "foo": "bar"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries), std::nullopt,
+                   "https://sourcemeta.com");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 50);
+  EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)),
+            sourcemeta::core::Pointer({"$defs", "schema"}));
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+}
+
 TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRule1>();
