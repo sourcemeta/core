@@ -219,15 +219,15 @@ auto SchemaTransformer::apply(
             continue;
           }
 
-          const auto &target{destination.value().get().pointer};
+          const auto &target{destination.value().get()};
           // The destination still exists, so we don't have to do anything
-          if (try_get(schema, target)) {
+          if (try_get(schema, target.pointer)) {
             continue;
           }
 
           const auto new_fragment{rule->rereference(
-              reference.second.destination, reference.first.second, target,
-              entry.second.pointer)};
+              reference.second.destination, reference.first.second,
+              target.relative_pointer, entry.second.relative_pointer)};
 
           // Note we use the base from the original reference before any
           // canonicalisation takes place so that we don't overly change
