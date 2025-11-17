@@ -569,3 +569,26 @@ TEST(JSONSchema_bundle_draft4, hyperschema_ref_metaschema) {
   EXPECT_TRUE(document.at("definitions")
                   .defines("http://json-schema.org/draft-04/schema"));
 }
+
+TEST(JSONSchema_bundle_draft4, standalone_ref_with_default_dialect) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$ref": "https://www.sourcemeta.com/test-1"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+                           test_resolver,
+                           "http://json-schema.org/draft-04/schema#");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/test-1" } ],
+    "definitions": {
+      "https://www.sourcemeta.com/test-1": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://www.sourcemeta.com/test-1",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
