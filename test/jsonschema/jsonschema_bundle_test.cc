@@ -26,6 +26,12 @@ static auto test_resolver(std::string_view identifier)
       "$id": "https://www.sourcemeta.com/test-3",
       "allOf": [ { "$ref": "test-4" } ]
     })JSON");
+  } else if (identifier == "https://www.sourcemeta.com/test-3-top-level-ref") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-06/schema#",
+      "$id": "https://www.sourcemeta.com/test-3-top-level-ref",
+      "$ref": "test-4"
+    })JSON");
   } else if (identifier == "https://www.sourcemeta.com/test-4") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -129,6 +135,51 @@ TEST(JSONSchema_bundle, across_dialects) {
   })JSON");
 
   EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle, across_dialects_top_level_ref_draft) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "$ref": "https://www.sourcemeta.com/test-3-top-level-ref" }
+  })JSON");
+
+  try {
+    sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+                             test_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
+    EXPECT_EQ(error.identifier(),
+              "https://www.sourcemeta.com/test-3-top-level-ref");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_bundle, across_dialects_from_top_level_ref_draft_absolute) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "https://www.sourcemeta.com/test-2"
+  })JSON");
+
+  EXPECT_THROW(
+      sourcemeta::core::bundle(
+          document, sourcemeta::core::schema_official_walker, test_resolver),
+      sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_bundle, across_dialects_from_top_level_ref_draft_relative) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "test-2"
+  })JSON");
+
+  EXPECT_THROW(
+      sourcemeta::core::bundle(
+          document, sourcemeta::core::schema_official_walker, test_resolver),
+      sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_bundle, across_dialects_const) {

@@ -348,7 +348,7 @@ TEST(JSONSchema_bundle_draft6, taken_definitions_entry) {
 TEST(JSONSchema_bundle_draft6, recursive) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "https://www.sourcemeta.com/recursive"
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive" } ]
   })JSON");
 
   sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
@@ -356,7 +356,7 @@ TEST(JSONSchema_bundle_draft6, recursive) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "https://www.sourcemeta.com/recursive",
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive" } ],
     "definitions": {
       "https://www.sourcemeta.com/recursive": {
         "$schema": "http://json-schema.org/draft-06/schema#",
@@ -374,7 +374,7 @@ TEST(JSONSchema_bundle_draft6, recursive) {
 TEST(JSONSchema_bundle_draft6, recursive_empty_fragment) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#"
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#" } ]
   })JSON");
 
   sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
@@ -382,7 +382,7 @@ TEST(JSONSchema_bundle_draft6, recursive_empty_fragment) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#",
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#" } ],
     "definitions": {
       "https://www.sourcemeta.com/recursive-empty-fragment": {
         "$schema": "http://json-schema.org/draft-06/schema#",
@@ -399,7 +399,7 @@ TEST(JSONSchema_bundle_draft6, recursive_empty_fragment) {
 
 TEST(JSONSchema_bundle_draft6, anonymous_no_dialect) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$ref": "https://www.sourcemeta.com/anonymous"
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/anonymous" } ]
   })JSON");
 
   sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
@@ -407,7 +407,7 @@ TEST(JSONSchema_bundle_draft6, anonymous_no_dialect) {
                            "http://json-schema.org/draft-06/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$ref": "https://www.sourcemeta.com/anonymous",
+    "allOf": [ { "$ref": "https://www.sourcemeta.com/anonymous" } ],
     "definitions": {
       "https://www.sourcemeta.com/anonymous": {
         "$id": "https://www.sourcemeta.com/anonymous",

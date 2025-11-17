@@ -38,6 +38,12 @@ static auto test_resolver(std::string_view identifier)
       "$id": "https://www.sourcemeta.com/test-3",
       "allOf": [ { "$ref": "test-4" } ]
     })JSON");
+  } else if (identifier == "https://www.sourcemeta.com/test-3-top-level-ref") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-06/schema#",
+      "$id": "https://www.sourcemeta.com/test-3-top-level-ref",
+      "$ref": "test-4"
+    })JSON");
   } else if (identifier == "https://www.sourcemeta.com/test-4") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -122,6 +128,83 @@ TEST(JSONSchema_dependencies, across_dialects) {
                     "https://www.sourcemeta.com/test-3");
   EXPECT_DEPENDENCY(traces, 2, "https://www.sourcemeta.com/test-3",
                     "/allOf/0/$ref", "https://www.sourcemeta.com/test-4");
+}
+
+TEST(JSONSchema_dependencies, across_dialects_top_level_ref_draft) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "items": { "$ref": "https://www.sourcemeta.com/test-3-top-level-ref" }
+  })JSON");
+
+  std::vector<
+      std::tuple<std::optional<sourcemeta::core::JSON::String>,
+                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+      traces;
+
+  sourcemeta::core::dependencies(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      [&traces](const auto &origin, const auto &pointer, const auto &target,
+                const auto &) {
+        traces.emplace_back(origin, pointer, target);
+      });
+
+  EXPECT_EQ(traces.size(), 2);
+
+  EXPECT_DEPENDENCY(traces, 0, "https://www.example.com", "/items/$ref",
+                    "https://www.sourcemeta.com/test-3-top-level-ref");
+  EXPECT_DEPENDENCY(traces, 1,
+                    "https://www.sourcemeta.com/test-3-top-level-ref", "/$ref",
+                    "https://www.sourcemeta.com/test-4");
+}
+
+TEST(JSONSchema_dependencies,
+     across_dialects_from_top_level_ref_draft_absolute) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "https://www.sourcemeta.com/test-4"
+  })JSON");
+
+  std::vector<
+      std::tuple<std::optional<sourcemeta::core::JSON::String>,
+                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+      traces;
+
+  sourcemeta::core::dependencies(
+      document, sourcemeta::core::schema_official_walker, test_resolver,
+      [&traces](const auto &origin, const auto &pointer, const auto &target,
+                const auto &) {
+        traces.emplace_back(origin, pointer, target);
+      });
+
+  EXPECT_EQ(traces.size(), 1);
+
+  EXPECT_DEPENDENCY(traces, 0, std::nullopt, "/$ref",
+                    "https://www.sourcemeta.com/test-4");
+}
+
+TEST(JSONSchema_dependencies,
+     across_dialects_from_top_level_ref_draft_relative) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$ref": "test-4"
+  })JSON");
+
+  std::vector<
+      std::tuple<std::optional<sourcemeta::core::JSON::String>,
+                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+      traces;
+
+  EXPECT_THROW(sourcemeta::core::dependencies(
+                   document, sourcemeta::core::schema_official_walker,
+                   test_resolver,
+                   [&traces](const auto &origin, const auto &pointer,
+                             const auto &target, const auto &) {
+                     traces.emplace_back(origin, pointer, target);
+                   }),
+               sourcemeta::core::SchemaResolutionError);
 }
 
 TEST(JSONSchema_dependencies, across_dialects_const) {

@@ -1079,7 +1079,6 @@ TEST(AlterSchema_lint_draft3, draft_ref_siblings_4) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
-    "id": "http://example.com/schema",
     "$ref": "#/definitions/foo",
     "description": "Documentation"
   })JSON");
