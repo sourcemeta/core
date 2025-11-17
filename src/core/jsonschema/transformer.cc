@@ -131,8 +131,7 @@ auto SchemaTransformer::check(
     subschema_count += 1;
 
     const auto &current{get(schema, entry.second.pointer)};
-    const auto current_vocabularies{
-        vocabularies(schema, resolver, entry.second.dialect)};
+    const auto current_vocabularies{frame.vocabularies(entry.second, resolver)};
     bool subresult{true};
     for (const auto &[name, rule] : this->rules) {
       const auto outcome{rule->check(current, schema, current_vocabularies,
@@ -183,7 +182,8 @@ auto SchemaTransformer::apply(
 
       auto &current{get(schema, entry.second.pointer)};
       const auto current_vocabularies{
-          vocabularies(schema, resolver, entry.second.dialect)};
+          frame.vocabularies(entry.second, resolver)};
+
       for (const auto &[name, rule] : this->rules) {
         const auto subresult{rule->apply(current, schema, current_vocabularies,
                                          walker, resolver, frame,

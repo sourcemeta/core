@@ -401,4 +401,66 @@ public:
   }
 };
 
+class ExampleRuleDraftTag final : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleDraftTag()
+      : sourcemeta::core::SchemaTransformRule("example_rule_draft_tag", "") {};
+
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::JSON &,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (!schema.is_object() || schema.defines("x-dialect-type")) {
+      return false;
+    }
+
+    return vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
+           vocabularies.contains("http://json-schema.org/draft-06/schema#") ||
+           vocabularies.contains("http://json-schema.org/draft-04/schema#");
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.assign("x-dialect-type", sourcemeta::core::JSON{"draft"});
+  }
+};
+
+class ExampleRuleModernTag final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleModernTag()
+      : sourcemeta::core::SchemaTransformRule("example_rule_modern_tag", "") {};
+
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::JSON &,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (!schema.is_object() || schema.defines("x-dialect-type")) {
+      return false;
+    }
+
+    return vocabularies.contains(
+               "https://json-schema.org/draft/2020-12/vocab/core") ||
+           vocabularies.contains(
+               "https://json-schema.org/draft/2019-09/vocab/core");
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.assign("x-dialect-type", sourcemeta::core::JSON{"modern"});
+  }
+};
+
 #endif

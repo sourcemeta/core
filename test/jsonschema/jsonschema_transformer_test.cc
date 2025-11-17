@@ -124,6 +124,87 @@ TEST(JSONSchema_transformer, embedded_resource_match_check_with_default_id) {
   EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
 }
 
+TEST(JSONSchema_transformer, embedded_resource_vocabularies_check) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDraftTag>();
+  bundle.add<ExampleRuleModernTag>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.example.com/top",
+    "$defs": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://www.example.com/nested"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(result.second, 0);
+  EXPECT_EQ(entries.size(), 2);
+
+  EXPECT_EQ(std::get<0>(entries.at(0)),
+            sourcemeta::core::Pointer({"$defs", "schema"}));
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_draft_tag");
+  EXPECT_EQ(std::get<2>(entries.at(0)), "");
+  EXPECT_EQ(std::get<3>(entries.at(0)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(0)).description.has_value());
+
+  EXPECT_EQ(std::get<0>(entries.at(1)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(1)), "example_rule_modern_tag");
+  EXPECT_EQ(std::get<2>(entries.at(1)), "");
+  EXPECT_EQ(std::get<3>(entries.at(1)).locations.size(), 0);
+  EXPECT_FALSE(std::get<3>(entries.at(1)).description.has_value());
+}
+
+TEST(JSONSchema_transformer, embedded_resource_vocabularies_apply) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDraftTag>();
+  bundle.add<ExampleRuleModernTag>();
+
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.example.com/top",
+    "$defs": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://www.example.com/nested"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_official_walker,
+                   sourcemeta::core::schema_official_resolver,
+                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(entries.size(), 0);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.example.com/top",
+    "x-dialect-type": "modern",
+    "$defs": {
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://www.example.com/nested",
+        "x-dialect-type": "draft"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
   sourcemeta::core::SchemaTransformer bundle;
   bundle.add<ExampleRule1>();
