@@ -34,8 +34,7 @@ static auto test_resolver(std::string_view identifier)
 static auto test_walker(std::string_view keyword,
                         const sourcemeta::core::Vocabularies &vocabularies)
     -> sourcemeta::core::SchemaWalkerResult {
-  if (vocabularies.find("https://sourcemeta.com/vocab/test-1") !=
-      vocabularies.end()) {
+  if (vocabularies.get("https://sourcemeta.com/vocab/test-1").has_value()) {
     if (keyword == "schema") {
       return {sourcemeta::core::SchemaKeywordType::
                   ApplicatorValueTraverseSomeProperty,
@@ -69,8 +68,7 @@ static auto test_walker(std::string_view keyword,
     }
   }
 
-  if (vocabularies.find("https://sourcemeta.com/vocab/test-2") !=
-      vocabularies.end()) {
+  if (vocabularies.get("https://sourcemeta.com/vocab/test-2").has_value()) {
     if (keyword == "custom") {
       return {sourcemeta::core::SchemaKeywordType::
                   ApplicatorValueTraverseSomeProperty,
