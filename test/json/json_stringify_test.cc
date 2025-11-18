@@ -649,3 +649,19 @@ TEST(JSON_stringify, decimal_nested_in_object_with_array) {
   sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "{\"decimals\":[111,222.222]}");
 }
+
+TEST(JSON_stringify, planck_constant) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"6.62607015e-34"}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "662.607015e-36");
+}
+
+TEST(JSON_stringify, planck_constant_parse) {
+  std::istringstream input{"6.62607015e-34"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "662.607015e-36");
+}
