@@ -831,3 +831,49 @@ TEST(JSON_decimal, divisible_by_decimal_zero_decimal_zero) {
   const sourcemeta::core::JSON divisor{sourcemeta::core::Decimal{0}};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
+
+TEST(JSON_decimal,
+     divisible_by_very_large_decimal_by_real_not_divisible_false) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e308"}};
+  const sourcemeta::core::JSON divisor{0.123456789};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_decimal,
+     divisible_by_very_large_decimal_by_decimal_not_divisible_false) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e308"}};
+  const sourcemeta::core::JSON divisor{
+      sourcemeta::core::Decimal{"0.123456789"}};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_decimal, divisible_by_very_large_decimal_by_decimal_divisible_true) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e308"}};
+  const sourcemeta::core::JSON divisor{sourcemeta::core::Decimal{"1e154"}};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_decimal,
+     divisible_by_very_large_decimal_by_integer_not_divisible_false) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e308"}};
+  const sourcemeta::core::JSON divisor{3};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_decimal, divisible_by_very_large_decimal_by_integer_divisible_true) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e308"}};
+  const sourcemeta::core::JSON divisor{2};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_decimal, divisible_by_mixed_scale_decimal_real_not_divisible_false) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e100"}};
+  const sourcemeta::core::JSON divisor{0.3};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_decimal, divisible_by_mixed_scale_decimal_real_divisible_true) {
+  const sourcemeta::core::JSON dividend{sourcemeta::core::Decimal{"1e100"}};
+  const sourcemeta::core::JSON divisor{0.5};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
