@@ -95,6 +95,13 @@ TEST(JSON_stringify, integer_real_negative) {
   EXPECT_EQ(stream.str(), "-2.0");
 }
 
+TEST(JSON_stringify, very_large_real_number_with_decimal) {
+  const sourcemeta::core::JSON document{9.9999999999999997e+34};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "99999999999999996863366107917975552.0");
+}
+
 TEST(JSON_stringify, empty_string) {
   const sourcemeta::core::JSON document{""};
   std::ostringstream stream;
