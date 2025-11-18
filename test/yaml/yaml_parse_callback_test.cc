@@ -269,8 +269,9 @@ TEST(YAML_parse_callback, yaml_numbers_various_formats) {
   EXPECT_TRACE(4, Post, Real, 2, 10, sourcemeta::core::JSON{3.5});
   EXPECT_TRACE(5, Pre, Integer, 3, 1, sourcemeta::core::JSON{"negative"});
   EXPECT_TRACE(6, Post, Integer, 3, 13, sourcemeta::core::JSON{-10});
-  EXPECT_TRACE(7, Pre, Real, 4, 1, sourcemeta::core::JSON{"exponential"});
-  EXPECT_TRACE(8, Post, Real, 4, 17, sourcemeta::core::JSON{1e10});
+  EXPECT_TRACE(7, Pre, Decimal, 4, 1, sourcemeta::core::JSON{"exponential"});
+  EXPECT_TRACE(8, Post, Decimal, 4, 17,
+               sourcemeta::core::JSON{sourcemeta::core::Decimal{"1e10"}});
   EXPECT_TRACE(9, Post, Object, 5, 0, sourcemeta::core::parse_yaml(input));
 }
 

@@ -255,7 +255,7 @@ TEST(YAML_parse, decimal_high_precision_real) {
 TEST(YAML_parse, decimal_exponential_notation) {
   const std::string input{"1.234567890123456789012345678901e50"};
   const auto result{sourcemeta::core::parse_yaml(input)};
-  EXPECT_TRUE(result.is_real());
+  EXPECT_TRUE(result.is_decimal());
 }
 
 TEST(YAML_parse, decimal_in_object) {
@@ -281,5 +281,26 @@ TEST(YAML_parse, decimal_in_array) {
   EXPECT_TRUE(result.is_array());
   EXPECT_EQ(result.size(), 2);
   EXPECT_TRUE(result.at(0).is_decimal());
-  EXPECT_TRUE(result.at(1).is_real());
+  EXPECT_TRUE(result.at(1).is_decimal());
+}
+
+TEST(YAML_parse, scientific_constant_planck) {
+  const std::string input{"6.62607E-34"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"6.62607E-34"});
+}
+
+TEST(YAML_parse, scientific_constant_elementary_charge) {
+  const std::string input{"1.60218E-19"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1.60218E-19"});
+}
+
+TEST(YAML_parse, scientific_constant_boltzmann) {
+  const std::string input{"1.38065E-23"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1.38065E-23"});
 }
