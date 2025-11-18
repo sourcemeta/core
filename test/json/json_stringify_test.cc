@@ -555,6 +555,30 @@ TEST(JSON_stringify, decimal_scientific_notation) {
   EXPECT_EQ(stream.str(), "12.3e+9");
 }
 
+TEST(JSON_stringify, scientific_constant_planck) {
+  const sourcemeta::core::Decimal value{"6.62607E-34"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "662.607e-36");
+}
+
+TEST(JSON_stringify, scientific_constant_elementary_charge) {
+  const sourcemeta::core::Decimal value{"1.60218E-19"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "160.218e-21");
+}
+
+TEST(JSON_stringify, scientific_constant_boltzmann) {
+  const sourcemeta::core::Decimal value{"1.38065E-23"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "13.8065e-24");
+}
+
 TEST(JSON_stringify, decimal_in_array) {
   const sourcemeta::core::Decimal value1{100};
   const sourcemeta::core::Decimal value2{"999.999"};

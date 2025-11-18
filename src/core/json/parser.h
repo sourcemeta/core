@@ -348,8 +348,11 @@ auto parse_number_exponent_rest(
         column += 1;
         break;
       default:
-        return parse_number_real_maybe_decimal(line, original_column,
-                                               result.str());
+        // As a heuristic, if a number has exponential notation, it is almost
+        // always a big number for which `double` is typically a poor
+        // representation. If an exponent is encountered, we just always parse
+        // as a high-precision decimal
+        return parse_number_decimal(line, original_column, result.str());
     }
   }
 
