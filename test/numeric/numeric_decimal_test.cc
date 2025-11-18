@@ -943,6 +943,61 @@ TEST(Numeric_decimal, divisible_by_negative) {
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
+TEST(Numeric_decimal, divisible_by_very_large_number_not_divisible_false) {
+  const sourcemeta::core::Decimal dividend{"1e308"};
+  const sourcemeta::core::Decimal divisor{"0.123456789"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_very_large_number_divisible_true) {
+  const sourcemeta::core::Decimal dividend{"1e308"};
+  const sourcemeta::core::Decimal divisor{"1e154"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal,
+     divisible_by_very_large_negative_number_not_divisible_false) {
+  const sourcemeta::core::Decimal dividend{"-1e308"};
+  const sourcemeta::core::Decimal divisor{"0.123456789"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_very_large_negative_number_divisible_true) {
+  const sourcemeta::core::Decimal dividend{"-1e308"};
+  const sourcemeta::core::Decimal divisor{"-1e154"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_very_small_fractional_not_divisible_false) {
+  const sourcemeta::core::Decimal dividend{"1e-100"};
+  const sourcemeta::core::Decimal divisor{"3e-101"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_very_small_fractional_divisible_true) {
+  const sourcemeta::core::Decimal dividend{"1e-100"};
+  const sourcemeta::core::Decimal divisor{"1e-200"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_large_fractional_not_divisible_false) {
+  const sourcemeta::core::Decimal dividend{"9999999999999999.9999999999999999"};
+  const sourcemeta::core::Decimal divisor{"0.33333333333333"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_mixed_scale_not_divisible_false) {
+  const sourcemeta::core::Decimal dividend{"1e100"};
+  const sourcemeta::core::Decimal divisor{"0.3"};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(Numeric_decimal, divisible_by_mixed_scale_divisible_true) {
+  const sourcemeta::core::Decimal dividend{"1e100"};
+  const sourcemeta::core::Decimal divisor{"0.5"};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
 TEST(Numeric_decimal, add_integer_to_decimal) {
   const sourcemeta::core::Decimal left{10};
   const sourcemeta::core::Decimal right{"2.5"};
