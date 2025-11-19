@@ -1419,8 +1419,7 @@ TEST(JSON_parse, big_integer_in_object) {
 TEST(JSON_parse, big_real_number) {
   std::istringstream input{"1.234567890123456789012345678901234567890"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
-  EXPECT_TRUE(document.is_real());
-  EXPECT_EQ(document.to_real(), 1.234567890123456789012345678901234567890);
+  EXPECT_TRUE(document.is_decimal());
 }
 
 TEST(JSON_parse, very_small_real_number) {
@@ -1438,9 +1437,7 @@ TEST(JSON_parse, big_real_in_array) {
   EXPECT_EQ(document.size(), 3);
   EXPECT_TRUE(document.at(0).is_real());
   EXPECT_EQ(document.at(0).to_real(), 1.5);
-  EXPECT_TRUE(document.at(1).is_real());
-  EXPECT_EQ(document.at(1).to_real(),
-            1.234567890123456789012345678901234567890);
+  EXPECT_TRUE(document.at(1).is_decimal());
   EXPECT_TRUE(document.at(2).is_real());
   EXPECT_EQ(document.at(2).to_real(), 2.5);
 }
@@ -1451,9 +1448,7 @@ TEST(JSON_parse, big_real_in_object) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 1);
-  EXPECT_TRUE(document.at("pi").is_real());
-  EXPECT_EQ(document.at("pi").to_real(),
-            3.14159265358979323846264338327950288419716939937510);
+  EXPECT_TRUE(document.at("pi").is_decimal());
 }
 
 TEST(JSON_parse, big_number_with_exponent) {
@@ -1511,7 +1506,182 @@ TEST(JSON_parse, nested_big_integers_and_reals) {
   EXPECT_TRUE(document.at("data").at(0).at("big_int").is_decimal());
   EXPECT_EQ(document.at("data").at(0).at("big_int").to_decimal().to_string(),
             "9223372036854776000");
-  EXPECT_TRUE(document.at("data").at(0).at("big_real").is_real());
-  EXPECT_EQ(document.at("data").at(0).at("big_real").to_real(),
-            3.14159265358979323846264338327950288419716939937510);
+  EXPECT_TRUE(document.at("data").at(0).at("big_real").is_decimal());
+}
+
+TEST(JSON_parse, double_precision_below_2_53_with_fraction_point_1) {
+  std::istringstream input{"9007199254740991.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_below_2_53_with_fraction_point_5) {
+  std::istringstream input{"9007199254740991.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_below_2_53_with_fraction_point_9) {
+  std::istringstream input{"9007199254740991.9"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_at_2_53_with_fraction_point_1) {
+  std::istringstream input{"9007199254740992.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_at_2_53_with_fraction_point_5) {
+  std::istringstream input{"9007199254740992.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_at_2_53_with_fraction_point_9) {
+  std::istringstream input{"9007199254740992.9"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_above_2_53_with_fraction_point_1) {
+  std::istringstream input{"9007199254740993.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_above_2_53_with_fraction_point_5) {
+  std::istringstream input{"9007199254740993.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_above_2_53_with_fraction_point_9) {
+  std::istringstream input{"9007199254740993.9"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_16_with_fraction_point_1) {
+  std::istringstream input{"10000000000000000.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_16_with_fraction_point_5) {
+  std::istringstream input{"10000000000000000.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_16_with_many_fractional_digits) {
+  std::istringstream input{"10000000000000000.123456789"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_17_with_fraction) {
+  std::istringstream input{"100000000000000000.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_20_with_fraction) {
+  std::istringstream input{"100000000000000000000.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_35_with_fraction) {
+  std::istringstream input{"99999999999999999999999999999999999.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_9e15_with_fraction) {
+  std::istringstream input{"9000000000000000.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_5e16_with_fraction) {
+  std::istringstream input{"50000000000000000.1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_below_2_53_with_point_0) {
+  std::istringstream input{"123456789012345.0"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_at_2_53_with_point_0) {
+  std::istringstream input{"9007199254740992.0"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_above_2_53_with_point_0) {
+  std::istringstream input{"10000000000000000.0"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_20_with_point_0) {
+  std::istringstream input{"100000000000000000000.0"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_small_number_with_fraction) {
+  std::istringstream input{"123.456"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_FALSE(document.is_integral());
+  EXPECT_EQ(document.to_real(), 123.456);
+}
+
+TEST(JSON_parse, double_precision_medium_number_with_fraction) {
+  std::istringstream input{"123456789.123"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_FALSE(document.is_integral());
+  EXPECT_EQ(document.to_real(), 123456789.123);
+}
+
+TEST(JSON_parse, double_precision_10_14_with_fraction) {
+  std::istringstream input{"100000000000000.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
+}
+
+TEST(JSON_parse, double_precision_10_15_with_fraction) {
+  std::istringstream input{"1000000000000000.5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integral());
 }

@@ -61,6 +61,13 @@ TEST(Numeric_parse, to_double_very_small) {
   EXPECT_DOUBLE_EQ(result.value(), 0.000001);
 }
 
+TEST(Numeric_parse, to_double_very_large_with_decimal) {
+  const std::string input{"99999999999999999999999999999999999.1"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_DOUBLE_EQ(result.value(), 9.9999999999999997e+34);
+}
+
 TEST(Numeric_parse, to_double_invalid_empty_string) {
   const std::string input{""};
   const auto result{sourcemeta::core::to_double(input)};
