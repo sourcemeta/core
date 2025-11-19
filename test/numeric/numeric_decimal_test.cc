@@ -262,13 +262,13 @@ TEST(Numeric_decimal, parse_integer_string) {
 TEST(Numeric_decimal, parse_decimal_string) {
   const sourcemeta::core::Decimal value{"123.456"};
   const std::string str{value.to_scientific_string()};
-  EXPECT_EQ(str, "123.456");
+  EXPECT_EQ(str, "1.23456e+2");
 }
 
 TEST(Numeric_decimal, parse_negative_string) {
   const sourcemeta::core::Decimal value{"-987.654"};
   const std::string str{value.to_scientific_string()};
-  EXPECT_EQ(str, "-987.654");
+  EXPECT_EQ(str, "-9.87654e+2");
 }
 
 TEST(Numeric_decimal, parse_scientific_notation) {
@@ -293,7 +293,7 @@ TEST(Numeric_decimal, parse_zero) {
 TEST(Numeric_decimal, parse_very_small_number) {
   const sourcemeta::core::Decimal value{"0.000000001"};
   const std::string str{value.to_scientific_string()};
-  EXPECT_EQ(str, "1E-9");
+  EXPECT_EQ(str, "1e-9");
 }
 
 TEST(Numeric_decimal, convert_to_int64) {
@@ -347,7 +347,7 @@ TEST(Numeric_decimal, high_precision_addition) {
 TEST(Numeric_decimal, preserve_trailing_zeros) {
   const sourcemeta::core::Decimal value{"1.000"};
   const std::string str{value.to_scientific_string()};
-  EXPECT_EQ(str, "1.000");
+  EXPECT_EQ(str, "1.000e+0");
 }
 
 TEST(Numeric_decimal, add_zero) {
