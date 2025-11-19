@@ -63,3 +63,40 @@ TEST(JSON_parse_roundtrip,
   EXPECT_EQ(original, parsed);
   EXPECT_TRUE(parsed.is_decimal());
 }
+
+TEST(JSON_parse_roundtrip, decimal_small_1) {
+  const sourcemeta::core::JSON original{sourcemeta::core::Decimal{"1e-05"}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(original, stream);
+  const auto parsed{sourcemeta::core::parse_json(stream.str())};
+  EXPECT_EQ(original, parsed);
+  EXPECT_TRUE(parsed.is_decimal());
+}
+
+TEST(JSON_parse_roundtrip, decimal_small_2) {
+  const sourcemeta::core::JSON original{sourcemeta::core::Decimal{"1e-06"}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(original, stream);
+  const auto parsed{sourcemeta::core::parse_json(stream.str())};
+  EXPECT_EQ(original, parsed);
+  EXPECT_TRUE(parsed.is_decimal());
+}
+
+TEST(JSON_parse_roundtrip, decimal_small_3) {
+  const sourcemeta::core::JSON original{sourcemeta::core::Decimal{"5e-05"}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(original, stream);
+  const auto parsed{sourcemeta::core::parse_json(stream.str())};
+  EXPECT_EQ(original, parsed);
+  EXPECT_TRUE(parsed.is_decimal());
+}
+
+TEST(JSON_parse_roundtrip, decimal_small_4) {
+  const sourcemeta::core::JSON original{
+      sourcemeta::core::Decimal{"6.10352e-05"}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(original, stream);
+  const auto parsed{sourcemeta::core::parse_json(stream.str())};
+  EXPECT_EQ(original, parsed);
+  EXPECT_TRUE(parsed.is_decimal());
+}

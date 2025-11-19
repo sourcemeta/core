@@ -507,7 +507,7 @@ TEST(JSON_prettify, decimal_positive_integer) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "12345");
+  EXPECT_EQ(stream.str(), "1.2345e+4");
 }
 
 TEST(JSON_prettify, decimal_negative_integer) {
@@ -515,7 +515,7 @@ TEST(JSON_prettify, decimal_negative_integer) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "-67890");
+  EXPECT_EQ(stream.str(), "-6.7890e+4");
 }
 
 TEST(JSON_prettify, decimal_zero) {
@@ -523,7 +523,7 @@ TEST(JSON_prettify, decimal_zero) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "0");
+  EXPECT_EQ(stream.str(), "0e+0");
 }
 
 TEST(JSON_prettify, decimal_fractional) {
@@ -531,7 +531,7 @@ TEST(JSON_prettify, decimal_fractional) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "3.14159");
+  EXPECT_EQ(stream.str(), "3.14159e+0");
 }
 
 TEST(JSON_prettify, decimal_negative_fractional) {
@@ -539,7 +539,7 @@ TEST(JSON_prettify, decimal_negative_fractional) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "-2.71828");
+  EXPECT_EQ(stream.str(), "-2.71828e+0");
 }
 
 TEST(JSON_prettify, decimal_large_integer) {
@@ -547,7 +547,7 @@ TEST(JSON_prettify, decimal_large_integer) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "123456789012345678901234567890");
+  EXPECT_EQ(stream.str(), "1.23456789012345678901234567890e+29");
 }
 
 TEST(JSON_prettify, decimal_large_negative_integer) {
@@ -555,7 +555,7 @@ TEST(JSON_prettify, decimal_large_negative_integer) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "-987654321098765432109876543210");
+  EXPECT_EQ(stream.str(), "-9.87654321098765432109876543210e+29");
 }
 
 TEST(JSON_prettify, decimal_high_precision_fractional) {
@@ -564,7 +564,7 @@ TEST(JSON_prettify, decimal_high_precision_fractional) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197");
+  EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197e+0");
 }
 
 TEST(JSON_prettify, decimal_very_small_fractional) {
@@ -580,7 +580,7 @@ TEST(JSON_prettify, decimal_scientific_notation) {
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "12.3e+9");
+  EXPECT_EQ(stream.str(), "1.23e+10");
 }
 
 TEST(JSON_prettify, decimal_in_array) {
@@ -592,7 +592,7 @@ TEST(JSON_prettify, decimal_in_array) {
                                         sourcemeta::core::JSON{value3}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "[ 100, 999.999, -42 ]");
+  EXPECT_EQ(stream.str(), "[ 1.00e+2, 9.99999e+2, -4.2e+1 ]");
 }
 
 TEST(JSON_prettify, decimal_large_numbers_in_array) {
@@ -603,9 +603,10 @@ TEST(JSON_prettify, decimal_large_numbers_in_array) {
                                         sourcemeta::core::JSON{value2}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(),
-            "[ 123456789012345678901234567890, 98765432109876543210."
-            "98765432109876543210 ]");
+  EXPECT_EQ(stream.str(), "[\n"
+                          "  1.23456789012345678901234567890e+29,\n"
+                          "  9.876543210987654321098765432109876543210e+19\n"
+                          "]");
 }
 
 TEST(JSON_prettify, decimal_nested_in_array) {
@@ -617,7 +618,7 @@ TEST(JSON_prettify, decimal_nested_in_array) {
   document.push_back(std::move(inner_array));
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "[\n  [ 111.111, 222.222 ]\n]");
+  EXPECT_EQ(stream.str(), "[\n  [ 1.11111e+2, 2.22222e+2 ]\n]");
 }
 
 TEST(JSON_prettify, decimal_in_object) {
@@ -631,7 +632,7 @@ TEST(JSON_prettify, decimal_in_object) {
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(),
-            "{\n  \"fractional\": -67.89,\n  \"integer\": 12345\n}");
+            "{\n  \"fractional\": -6.789e+1,\n  \"integer\": 1.2345e+4\n}");
 }
 
 TEST(JSON_prettify, decimal_large_numbers_in_object) {
@@ -646,8 +647,8 @@ TEST(JSON_prettify, decimal_large_numbers_in_object) {
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(),
-            "{\n  \"bigInt\": 999999999999999999999999999999,\n  \"bigReal\": "
-            "123456789.123456789123456789123456789\n}");
+            "{\n  \"bigInt\": 9.99999999999999999999999999999e+29,\n  "
+            "\"bigReal\": 1.23456789123456789123456789123456789e+8\n}");
 }
 
 TEST(JSON_prettify, decimal_mixed_with_other_types_in_object) {
@@ -662,8 +663,8 @@ TEST(JSON_prettify, decimal_mixed_with_other_types_in_object) {
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(),
-            "{\n  \"boolean\": true,\n  \"decimal\": 3.14159,\n  \"integer\": "
-            "42,\n  \"string\": \"hello\"\n}");
+            "{\n  \"boolean\": true,\n  \"decimal\": 3.14159e+0,\n  "
+            "\"integer\": 42,\n  \"string\": \"hello\"\n}");
 }
 
 TEST(JSON_prettify, decimal_nested_in_object_with_array) {
@@ -675,7 +676,7 @@ TEST(JSON_prettify, decimal_nested_in_object_with_array) {
   const sourcemeta::core::JSON document{{"decimals", std::move(array)}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "{\n  \"decimals\": [ 111, 222.222 ]\n}");
+  EXPECT_EQ(stream.str(), "{\n  \"decimals\": [ 1.11e+2, 2.22222e+2 ]\n}");
 }
 
 TEST(JSON_prettify, decimal_large_numbers_nested_with_indentation) {
@@ -690,6 +691,6 @@ TEST(JSON_prettify, decimal_large_numbers_nested_with_indentation) {
   sourcemeta::core::prettify(document, stream, 4);
   EXPECT_EQ(stream.str(),
             "{\n    \"nested\": {\n        \"first\": "
-            "111111111111111111111111111111,\n        \"second\": "
-            "222222222222222222222222222222\n    }\n}");
+            "1.11111111111111111111111111111e+29,\n        \"second\": "
+            "2.22222222222222222222222222222e+29\n    }\n}");
 }
