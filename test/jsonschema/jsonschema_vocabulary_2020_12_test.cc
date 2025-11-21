@@ -53,11 +53,11 @@ static auto test_resolver(std::string_view identifier)
 
 #define EXPECT_VOCABULARY_REQUIRED(vocabularies, vocabulary)                   \
   EXPECT_TRUE((vocabularies).contains(vocabulary));                            \
-  EXPECT_TRUE((vocabularies).at(vocabulary));
+  EXPECT_TRUE((vocabularies).get(vocabulary).value());
 
 #define EXPECT_VOCABULARY_OPTIONAL(vocabularies, vocabulary)                   \
   EXPECT_TRUE((vocabularies).contains(vocabulary));                            \
-  EXPECT_FALSE((vocabularies).at(vocabulary));
+  EXPECT_FALSE((vocabularies).get(vocabulary).value());
 
 TEST(JSONSchema_vocabulary_2020_12, core_vocabularies_boolean_with_default) {
   const sourcemeta::core::JSON document{true};

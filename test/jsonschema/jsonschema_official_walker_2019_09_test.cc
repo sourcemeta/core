@@ -17,6 +17,12 @@ static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_VALIDATION{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/validation", true}};
 
+static const sourcemeta::core::Vocabularies
+    VOCABULARIES_2019_09_APPLICATOR_AND_VALIDATION{
+        {"https://json-schema.org/draft/2019-09/vocab/core", true},
+        {"https://json-schema.org/draft/2019-09/vocab/applicator", true},
+        {"https://json-schema.org/draft/2019-09/vocab/validation", true}};
+
 static const sourcemeta::core::Vocabularies VOCABULARIES_2019_09_FORMAT{
     {"https://json-schema.org/draft/2019-09/vocab/core", true},
     {"https://json-schema.org/draft/2019-09/vocab/format", true}};
@@ -280,14 +286,8 @@ TEST(JSONSchema_official_walker_2019_09, applicator_contains_only) {
 
 TEST(JSONSchema_official_walker_2019_09, applicator_contains_with_validation) {
   using namespace sourcemeta::core;
-  sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2019_09_APPLICATOR.cbegin(),
-            VOCABULARIES_2019_09_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2019_09_VALIDATION.cbegin(),
-            VOCABULARIES_2019_09_VALIDATION.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  const auto result{schema_official_walker("contains", vocabularies)};
+  const auto result{schema_official_walker(
+      "contains", VOCABULARIES_2019_09_APPLICATOR_AND_VALIDATION)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseAnyItem);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_EQ(result.vocabulary.value(),
@@ -1637,14 +1637,7 @@ TEST(JSONSchema_official_walker_2019_09,
 }
 
 TEST(JSONSchema_official_walker_2019_09, schema_keyword_priority_array) {
-  sourcemeta::core::Vocabularies vocabularies;
-  std::copy(VOCABULARIES_2019_09_APPLICATOR.cbegin(),
-            VOCABULARIES_2019_09_APPLICATOR.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-  std::copy(VOCABULARIES_2019_09_VALIDATION.cbegin(),
-            VOCABULARIES_2019_09_VALIDATION.cend(),
-            std::inserter(vocabularies, vocabularies.end()));
-
+  const auto &vocabularies = VOCABULARIES_2019_09_APPLICATOR_AND_VALIDATION;
   const auto &walker = sourcemeta::core::schema_official_walker;
   using namespace sourcemeta::core;
   EXPECT_EQ(schema_keyword_priority("items", vocabularies, walker), 0);
