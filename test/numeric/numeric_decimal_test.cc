@@ -4,6 +4,8 @@
 
 #include <cmath>  // std::isnan, std::isinf
 #include <string> // std::string
+#include <thread> // std::thread
+#include <vector> // std::vector
 
 TEST(Numeric_decimal, add_small_integers) {
   const sourcemeta::core::Decimal left{2};
@@ -1742,4 +1744,23 @@ TEST(Numeric_decimal, construct_from_float_high_precision) {
   const sourcemeta::core::Decimal decimal{value};
   const float roundtrip{decimal.to_float()};
   EXPECT_EQ(roundtrip, value);
+}
+
+TEST(Numeric_decimal, multithreaded_construction) {
+  constexpr int number_of_threads{4};
+  std::vector<std::thread> threads;
+  threads.reserve(number_of_threads);
+
+  for (int index = 0; index < number_of_threads; index++) {
+    threads.emplace_back([]() {
+      const sourcemeta::core::Decimal value{42};
+      const sourcemeta::core::Decimal result{value +
+                                             sourcemeta::core::Decimal{1}};
+      EXPECT_EQ(result, sourcemeta::core::Decimal{43});
+    });
+  }
+
+  for (auto &thread : threads) {
+    thread.join();
+  }
 }
