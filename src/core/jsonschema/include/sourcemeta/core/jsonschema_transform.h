@@ -8,8 +8,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-#include <sourcemeta/core/jsonschema_resolver.h>
-
 #include <cassert>     // assert
 #include <concepts>    // std::derived_from, std::same_as
 #include <functional>  // std::function
