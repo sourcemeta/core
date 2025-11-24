@@ -1,7 +1,6 @@
 #include <sourcemeta/core/jsonschema.h>
 
 #include <cassert> // assert
-#include <sstream> // std::ostringstream
 
 namespace sourcemeta::core {
 
@@ -39,9 +38,8 @@ auto SchemaMapResolver::add(
 
     const auto result{this->schemas.emplace(key.second, subschema)};
     if (!result.second && result.first->second != schema) {
-      std::ostringstream error;
-      error << "Cannot register the same identifier twice: " << key.second;
-      throw SchemaError(error.str());
+      throw SchemaResolutionError(key.second,
+                                  "Cannot register the same identifier twice");
     }
 
     if (callback) {

@@ -372,7 +372,7 @@ TEST(JSONSchema_frame_draft7, id_override) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_draft7, explicit_argument_id_same) {

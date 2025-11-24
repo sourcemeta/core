@@ -587,7 +587,7 @@ TEST(JSONSchema_frame_2020_12, id_override) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2020_12, static_anchor_override) {
@@ -602,7 +602,7 @@ TEST(JSONSchema_frame_2020_12, static_anchor_override) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2020_12, explicit_argument_id_same) {
@@ -1419,7 +1419,7 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_same_on_schema_resource) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
@@ -2906,7 +2906,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_id) {
                              std::nullopt, std::nullopt,
                              {sourcemeta::core::Pointer{"common", "foo"},
                               sourcemeta::core::Pointer{"common", "bar"}}),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_same_anonymous_anchors) {
@@ -2930,7 +2930,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_anonymous_anchors) {
                              std::nullopt,
                              {sourcemeta::core::Pointer{"common", "foo"},
                               sourcemeta::core::Pointer{"common", "bar"}}),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {

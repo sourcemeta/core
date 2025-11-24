@@ -113,7 +113,8 @@ TEST(JSONSchema_SchemaMapResolver, duplicate_ids) {
 
   const auto result{resolver.add(document_1)};
   EXPECT_TRUE(result);
-  EXPECT_THROW(resolver.add(document_2), sourcemeta::core::SchemaError);
+  EXPECT_THROW(resolver.add(document_2),
+               sourcemeta::core::SchemaResolutionError);
 }
 
 TEST(JSONSchema_SchemaMapResolver, embedded_resource) {
