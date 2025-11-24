@@ -1806,9 +1806,17 @@ TEST(JSONSchema_frame_2019_09, invalid_recursive_ref) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaReferenceError);
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_official_walker,
+                  sourcemeta::core::schema_official_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaReferenceError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/$recursiveRef");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_on_relative_id) {

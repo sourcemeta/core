@@ -902,7 +902,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.4.2.1
         if (ref != "#") {
           throw sourcemeta::core::SchemaReferenceError(
-              ref, entry.common.pointer, "Invalid recursive reference");
+              entry.id.value_or(""),
+              entry.common.pointer.concat({"$recursiveRef"}),
+              "Invalid recursive reference");
         }
 
         auto anchor_uri_string{
