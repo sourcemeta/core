@@ -54,7 +54,7 @@ public:
     return this->message_;
   }
 
-  [[nodiscard]] auto id() const noexcept -> std::string_view {
+  [[nodiscard]] auto identifier() const noexcept -> std::string_view {
     return this->identifier_;
   }
 
@@ -120,7 +120,7 @@ public:
     return this->message_;
   }
 
-  [[nodiscard]] auto id() const noexcept -> std::string_view {
+  [[nodiscard]] auto identifier() const noexcept -> std::string_view {
     return this->identifier_;
   }
 

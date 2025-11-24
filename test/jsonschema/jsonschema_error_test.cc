@@ -23,5 +23,5 @@ TEST(JSONSchema, resolution_error_throw) {
       "https://sourcemeta.com/test", "My error")};
   EXPECT_THROW(throw exception, sourcemeta::core::SchemaResolutionError);
   EXPECT_EQ(std::string{exception.what()}, "My error");
-  EXPECT_EQ(exception.id(), "https://sourcemeta.com/test");
+  EXPECT_EQ(exception.identifier(), "https://sourcemeta.com/test");
 }
