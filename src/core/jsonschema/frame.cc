@@ -213,9 +213,8 @@ auto fragment_string(const sourcemeta::core::URI &uri)
 
 [[noreturn]]
 auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
-  std::ostringstream error;
-  error << "Schema identifier already exists: " << uri;
-  throw sourcemeta::core::SchemaError(error.str());
+  throw sourcemeta::core::SchemaFrameError(uri,
+                                           "Schema identifier already exists");
 }
 
 auto store(sourcemeta::core::SchemaFrame::Locations &frame,
@@ -903,9 +902,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         // See
         // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.4.2.1
         if (ref != "#") {
-          std::ostringstream error;
-          error << "Invalid recursive reference: " << ref;
-          throw sourcemeta::core::SchemaError(error.str());
+          throw sourcemeta::core::SchemaReferenceError(
+              ref, entry.common.pointer, "Invalid recursive reference");
         }
 
         auto anchor_uri_string{

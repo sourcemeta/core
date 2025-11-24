@@ -593,7 +593,7 @@ TEST(JSONSchema_frame_2019_09, id_override) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2019_09, static_anchor_override) {
@@ -608,7 +608,7 @@ TEST(JSONSchema_frame_2019_09, static_anchor_override) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2019_09, explicit_argument_id_same) {
@@ -1794,7 +1794,7 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_conflict) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaFrameError);
 }
 
 TEST(JSONSchema_frame_2019_09, invalid_recursive_ref) {
@@ -1808,7 +1808,7 @@ TEST(JSONSchema_frame_2019_09, invalid_recursive_ref) {
       sourcemeta::core::SchemaFrame::Mode::Instances};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
                              sourcemeta::core::schema_official_resolver),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaReferenceError);
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_on_relative_id) {

@@ -219,7 +219,7 @@ TEST(JSONSchema_identify, anonymize_with_unknown_base_dialect) {
 
   EXPECT_THROW(sourcemeta::core::anonymize(
                    document, "https://www.sourcemeta.com/invalid-base-dialect"),
-               sourcemeta::core::SchemaError);
+               sourcemeta::core::SchemaBaseDialectError);
 }
 
 TEST(JSONSchema_identify, reidentify_boolean) {
