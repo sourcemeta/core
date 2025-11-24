@@ -83,7 +83,7 @@ public:
   /// The result of evaluating a rule
   struct Result {
     Result(const bool applies_) : applies{applies_} {}
-    Result(Pointer pointer) : applies{true}, locations{std::move(pointer)} {
+    Result(const Pointer &pointer) : applies{true}, locations{pointer} {
       assert(this->locations.size() == 1);
     }
 
