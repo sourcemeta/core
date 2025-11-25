@@ -63,7 +63,6 @@ struct SOURCEMETA_CORE_JSONSCHEMA_EXPORT Vocabularies {
   };
 
   // NOTE: Must be kept in sync with the Known enum above
-  // (currently 29 vocabularies)
   static constexpr std::size_t KNOWN_VOCABULARY_COUNT = 29;
 
 public:
