@@ -4337,6 +4337,31 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_11) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_12) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "unknown-1": 1,
+    "unknown-2": 2
+  })JSON");
+
+  LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "unknown_keywords_prefix",
+      "Future versions of JSON Schema will refuse to evaluate unknown "
+      "keywords or custom keywords from optional vocabularies that don't "
+      "have an x- prefix");
+  EXPECT_EQ(std::get<3>(traces.at(0)).locations.size(), 2);
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(traces.at(0)).locations.at(0)),
+      "/unknown-1");
+  EXPECT_EQ(
+      sourcemeta::core::to_string(std::get<3>(traces.at(0)).locations.at(1)),
+      "/unknown-2");
+}
+
 TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
