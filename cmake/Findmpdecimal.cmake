@@ -60,6 +60,10 @@ if(NOT mpdecimal_FOUND)
     target_compile_options(mpdecimal PRIVATE -Wno-conversion)
   endif()
 
+  if(SOURCEMETA_COMPILER_GCC)
+    target_compile_options(mpdecimal PRIVATE -Wno-stringop-overflow)
+  endif()
+
   if(SOURCEMETA_COMPILER_MSVC)
     target_compile_options(mpdecimal PRIVATE /wd4200)
     target_compile_options(mpdecimal PRIVATE /wd4702)
