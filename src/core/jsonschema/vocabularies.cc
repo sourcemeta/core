@@ -1,14 +1,16 @@
 #include <sourcemeta/core/jsonschema_vocabularies.h>
 
+#include <sourcemeta/core/jsonschema_error.h>
+
 #include <cassert>  // assert
 #include <optional> // std::optional
+#include <sstream>  // std::ostringstream
 #include <string>   // std::string
 #include <utility>  // std::pair
 #include <vector>   // std::vector
 
 // X-macro defining all known vocabulary mappings (enum, URI)
 // Ordered from most recent/common to oldest for faster short-circuiting
-// in uri_to_known_vocabulary
 // clang-format off
 #define SOURCEMETA_VOCABULARIES_X(X)                                           \
   /* 2020-12 vocabularies (most recent/common) */                              \
@@ -172,4 +174,42 @@ auto sourcemeta::core::operator<<(std::ostream &stream,
 
   assert(false);
   return stream;
+}
+
+auto sourcemeta::core::Vocabularies::throw_if_any_unsupported(
+    const std::unordered_set<std::variant<JSON::String, Known>> &supported,
+    const char *message) const -> void {
+  for (std::size_t index = 0; index < KNOWN_VOCABULARY_COUNT; ++index) {
+    if (!this->required_known[index]) {
+      continue;
+    }
+
+    const auto vocabulary{static_cast<Known>(index)};
+    if (supported.contains(vocabulary)) {
+      continue;
+    }
+
+    // Slow fallback: convert and check as a string URI
+    std::ostringstream stream;
+    stream << vocabulary;
+    const auto &uri{stream.str()};
+
+    if (!supported.contains(uri)) {
+      throw SchemaVocabularyError(uri, message);
+    }
+  }
+
+  for (const auto &[uri, required] : this->custom) {
+    if (!required || supported.contains(uri)) {
+      continue;
+    }
+
+    // Slow fallback: convert and check as a known URI
+    const auto maybe_known{uri_to_known_vocabulary(uri)};
+    if (maybe_known.has_value() && supported.contains(maybe_known.value())) {
+      continue;
+    }
+
+    throw SchemaVocabularyError(uri, message);
+  }
 }
