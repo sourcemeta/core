@@ -11,6 +11,7 @@
 #include <cassert>       // assert
 #include <cstdint>       // std::uint32_t, std::size_t
 #include <optional>      // std::optional
+#include <ostream>       // std::ostream
 #include <stdexcept>     // std::out_of_range
 #include <string>        // std::string
 #include <string_view>   // std::string_view
@@ -119,6 +120,11 @@ private:
 #pragma warning(pop)
 #endif
 };
+
+/// Convert a known vocabulary enum to its URI string
+SOURCEMETA_CORE_JSONSCHEMA_EXPORT auto
+operator<<(std::ostream &stream, Vocabularies::Known vocabulary)
+    -> std::ostream &;
 
 } // namespace sourcemeta::core
 
