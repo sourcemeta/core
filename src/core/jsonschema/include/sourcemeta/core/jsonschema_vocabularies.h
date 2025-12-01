@@ -16,7 +16,9 @@
 #include <string>        // std::string
 #include <string_view>   // std::string_view
 #include <unordered_map> // std::unordered_map
+#include <unordered_set> // std::unordered_set
 #include <utility>       // std::pair
+#include <variant>       // std::variant
 #include <vector>        // std::vector
 
 namespace sourcemeta::core {
@@ -105,6 +107,12 @@ public:
 
   /// Check if there are no vocabularies
   [[nodiscard]] auto empty() const noexcept -> bool;
+
+  /// Throw if the current vocabularies have required ones outside the given
+  /// supported set
+  auto throw_if_any_unsupported(
+      const std::unordered_set<std::variant<JSON::String, Known>> &supported,
+      const char *message) const -> void;
 
 private:
   // Invariant: required_known and optional_known must be mutually exclusive
