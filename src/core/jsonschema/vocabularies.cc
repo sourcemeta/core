@@ -6,107 +6,59 @@
 #include <utility>  // std::pair
 #include <vector>   // std::vector
 
-namespace {
-// Map vocabulary URI to its corresponding enum flag
+// X-macro defining all known vocabulary mappings (enum, URI)
 // Ordered from most recent/common to oldest for faster short-circuiting
-// TODO: Use a static unordered map for quickly checking this instead of
-// a chain of string comparisons
+// in uri_to_known_vocabulary
+// clang-format off
+#define SOURCEMETA_VOCABULARIES_X(X)                                           \
+  /* 2020-12 vocabularies (most recent/common) */                              \
+  X(JSON_Schema_2020_12_Core, "https://json-schema.org/draft/2020-12/vocab/core") \
+  X(JSON_Schema_2020_12_Applicator, "https://json-schema.org/draft/2020-12/vocab/applicator") \
+  X(JSON_Schema_2020_12_Unevaluated, "https://json-schema.org/draft/2020-12/vocab/unevaluated") \
+  X(JSON_Schema_2020_12_Validation, "https://json-schema.org/draft/2020-12/vocab/validation") \
+  X(JSON_Schema_2020_12_Meta_Data, "https://json-schema.org/draft/2020-12/vocab/meta-data") \
+  X(JSON_Schema_2020_12_Format_Annotation, "https://json-schema.org/draft/2020-12/vocab/format-annotation") \
+  X(JSON_Schema_2020_12_Format_Assertion, "https://json-schema.org/draft/2020-12/vocab/format-assertion") \
+  X(JSON_Schema_2020_12_Content, "https://json-schema.org/draft/2020-12/vocab/content") \
+  /* 2019-09 vocabularies */                                                   \
+  X(JSON_Schema_2019_09_Core, "https://json-schema.org/draft/2019-09/vocab/core") \
+  X(JSON_Schema_2019_09_Applicator, "https://json-schema.org/draft/2019-09/vocab/applicator") \
+  X(JSON_Schema_2019_09_Validation, "https://json-schema.org/draft/2019-09/vocab/validation") \
+  X(JSON_Schema_2019_09_Meta_Data, "https://json-schema.org/draft/2019-09/vocab/meta-data") \
+  X(JSON_Schema_2019_09_Format, "https://json-schema.org/draft/2019-09/vocab/format") \
+  X(JSON_Schema_2019_09_Content, "https://json-schema.org/draft/2019-09/vocab/content") \
+  X(JSON_Schema_2019_09_Hyper_Schema, "https://json-schema.org/draft/2019-09/vocab/hyper-schema") \
+  /* Pre-vocabulary dialects (least common, checked last) */                   \
+  X(JSON_Schema_Draft_7, "http://json-schema.org/draft-07/schema#")            \
+  X(JSON_Schema_Draft_7_Hyper, "http://json-schema.org/draft-07/hyper-schema#") \
+  X(JSON_Schema_Draft_6, "http://json-schema.org/draft-06/schema#")            \
+  X(JSON_Schema_Draft_6_Hyper, "http://json-schema.org/draft-06/hyper-schema#") \
+  X(JSON_Schema_Draft_4, "http://json-schema.org/draft-04/schema#")            \
+  X(JSON_Schema_Draft_4_Hyper, "http://json-schema.org/draft-04/hyper-schema#") \
+  X(JSON_Schema_Draft_3, "http://json-schema.org/draft-03/schema#")            \
+  X(JSON_Schema_Draft_3_Hyper, "http://json-schema.org/draft-03/hyper-schema#") \
+  X(JSON_Schema_Draft_2, "http://json-schema.org/draft-02/schema#")            \
+  X(JSON_Schema_Draft_2_Hyper, "http://json-schema.org/draft-02/hyper-schema#") \
+  X(JSON_Schema_Draft_1, "http://json-schema.org/draft-01/schema#")            \
+  X(JSON_Schema_Draft_1_Hyper, "http://json-schema.org/draft-01/hyper-schema#") \
+  X(JSON_Schema_Draft_0, "http://json-schema.org/draft-00/schema#")            \
+  X(JSON_Schema_Draft_0_Hyper, "http://json-schema.org/draft-00/hyper-schema#")
+// clang-format on
+
+namespace {
 auto uri_to_known_vocabulary(std::string_view uri)
     -> std::optional<sourcemeta::core::Vocabularies::Known> {
   using sourcemeta::core::Vocabularies;
 
-  // 2020-12 vocabularies (most recent/common)
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/core") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Core;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/applicator") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Applicator;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/unevaluated") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Unevaluated;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/validation") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Validation;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/meta-data") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Meta_Data;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/format-annotation") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Format_Annotation;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/format-assertion") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Format_Assertion;
-  }
-  if (uri == "https://json-schema.org/draft/2020-12/vocab/content") {
-    return Vocabularies::Known::JSON_Schema_2020_12_Content;
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#define X_URI_TO_ENUM(enumerator, uri_string)                                  \
+  if (uri == (uri_string)) {                                                   \
+    return Vocabularies::Known::enumerator;                                    \
   }
 
-  // 2019-09 vocabularies
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/core") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Core;
-  }
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/applicator") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Applicator;
-  }
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/validation") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Validation;
-  }
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/meta-data") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Meta_Data;
-  }
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/format") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Format;
-  }
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/content") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Content;
-  }
-  if (uri == "https://json-schema.org/draft/2019-09/vocab/hyper-schema") {
-    return Vocabularies::Known::JSON_Schema_2019_09_Hyper_Schema;
-  }
+  SOURCEMETA_VOCABULARIES_X(X_URI_TO_ENUM)
 
-  // Pre-vocabulary dialects (least common, checked last)
-  if (uri == "http://json-schema.org/draft-07/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_7;
-  }
-  if (uri == "http://json-schema.org/draft-07/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_7_Hyper;
-  }
-  if (uri == "http://json-schema.org/draft-06/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_6;
-  }
-  if (uri == "http://json-schema.org/draft-06/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_6_Hyper;
-  }
-  if (uri == "http://json-schema.org/draft-04/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_4;
-  }
-  if (uri == "http://json-schema.org/draft-04/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_4_Hyper;
-  }
-  if (uri == "http://json-schema.org/draft-03/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_3;
-  }
-  if (uri == "http://json-schema.org/draft-03/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_3_Hyper;
-  }
-  if (uri == "http://json-schema.org/draft-02/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_2;
-  }
-  if (uri == "http://json-schema.org/draft-02/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_2_Hyper;
-  }
-  if (uri == "http://json-schema.org/draft-01/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_1;
-  }
-  if (uri == "http://json-schema.org/draft-01/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_1_Hyper;
-  }
-  if (uri == "http://json-schema.org/draft-00/schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_0;
-  }
-  if (uri == "http://json-schema.org/draft-00/hyper-schema#") {
-    return Vocabularies::Known::JSON_Schema_Draft_0_Hyper;
-  }
+#undef X_URI_TO_ENUM
 
   return std::nullopt;
 }
@@ -202,4 +154,22 @@ auto sourcemeta::core::Vocabularies::size() const noexcept -> std::size_t {
 auto sourcemeta::core::Vocabularies::empty() const noexcept -> bool {
   return this->required_known.none() && this->optional_known.none() &&
          this->custom.empty();
+}
+
+auto sourcemeta::core::operator<<(std::ostream &stream,
+                                  Vocabularies::Known vocabulary)
+    -> std::ostream & {
+  switch (vocabulary) {
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
+#define X_ENUM_TO_URI(enumerator, uri_string)                                  \
+  case Vocabularies::Known::enumerator:                                        \
+    return stream << (uri_string);
+
+    SOURCEMETA_VOCABULARIES_X(X_ENUM_TO_URI)
+
+#undef X_ENUM_TO_URI
+  }
+
+  assert(false);
+  return stream;
 }
