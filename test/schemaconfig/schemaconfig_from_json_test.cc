@@ -77,6 +77,10 @@ TEST(SchemaConfig_from_json, valid_2) {
       manifest.base,
       sourcemeta::core::URI::from_path(manifest.absolute_path).recompose());
   EXPECT_FALSE(manifest.default_dialect.has_value());
+  EXPECT_EQ(manifest.extension.size(), 3);
+  EXPECT_TRUE(manifest.extension.contains(".json"));
+  EXPECT_TRUE(manifest.extension.contains(".yml"));
+  EXPECT_TRUE(manifest.extension.contains(".yaml"));
   EXPECT_EQ(manifest.resolve.size(), 0);
   EXPECT_EQ(manifest.extra.size(), 0);
 }
@@ -148,8 +152,38 @@ TEST(SchemaConfig_from_json, valid_without_path) {
       manifest.base,
       sourcemeta::core::URI::from_path(manifest.absolute_path).recompose());
   EXPECT_FALSE(manifest.default_dialect.has_value());
+  EXPECT_EQ(manifest.extension.size(), 3);
+  EXPECT_TRUE(manifest.extension.contains(".json"));
+  EXPECT_TRUE(manifest.extension.contains(".yml"));
+  EXPECT_TRUE(manifest.extension.contains(".yaml"));
   EXPECT_EQ(manifest.resolve.size(), 0);
   EXPECT_EQ(manifest.extra.size(), 0);
+}
+
+TEST(SchemaConfig_from_json, valid_extension_with_leading_dot) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "extension": [ ".json", ".schema" ]
+  })JSON")};
+
+  const auto manifest{
+      sourcemeta::core::SchemaConfig::from_json(input, TEST_DIRECTORY)};
+
+  EXPECT_EQ(manifest.extension.size(), 2);
+  EXPECT_TRUE(manifest.extension.contains(".json"));
+  EXPECT_TRUE(manifest.extension.contains(".schema"));
+}
+
+TEST(SchemaConfig_from_json, valid_extension_without_leading_dot) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "extension": [ "json", "schema" ]
+  })JSON")};
+
+  const auto manifest{
+      sourcemeta::core::SchemaConfig::from_json(input, TEST_DIRECTORY)};
+
+  EXPECT_EQ(manifest.extension.size(), 2);
+  EXPECT_TRUE(manifest.extension.contains(".json"));
+  EXPECT_TRUE(manifest.extension.contains(".schema"));
 }
 
 TEST(SchemaConfig_from_json, invalid_1) {
@@ -287,6 +321,50 @@ TEST(SchemaConfig_from_json, invalid_14) {
       input, TEST_DIRECTORY,
       "The values in the resolve object must represent valid URIs",
       "/resolve/foo");
+}
+
+TEST(SchemaConfig_from_json, valid_extension_string_with_leading_dot) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "extension": ".schema"
+  })JSON")};
+
+  const auto manifest{
+      sourcemeta::core::SchemaConfig::from_json(input, TEST_DIRECTORY)};
+
+  EXPECT_EQ(manifest.extension.size(), 1);
+  EXPECT_TRUE(manifest.extension.contains(".schema"));
+}
+
+TEST(SchemaConfig_from_json, valid_extension_string_without_leading_dot) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "extension": "schema"
+  })JSON")};
+
+  const auto manifest{
+      sourcemeta::core::SchemaConfig::from_json(input, TEST_DIRECTORY)};
+
+  EXPECT_EQ(manifest.extension.size(), 1);
+  EXPECT_TRUE(manifest.extension.contains(".schema"));
+}
+
+TEST(SchemaConfig_from_json, invalid_15) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "extension": 1
+  })JSON")};
+
+  EXPECT_SCHEMACONFIG_FROM_JSON_PARSE_ERROR(
+      input, TEST_DIRECTORY,
+      "The extension property must be a string or an array", "/extension");
+}
+
+TEST(SchemaConfig_from_json, invalid_16) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "extension": [ "json", 1 ]
+  })JSON")};
+
+  EXPECT_SCHEMACONFIG_FROM_JSON_PARSE_ERROR(
+      input, TEST_DIRECTORY,
+      "The values in the extension array must be strings", "/extension/1");
 }
 
 // For backwards compatibility when we add new fields
