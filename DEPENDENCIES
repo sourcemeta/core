@@ -15,3 +15,4 @@ yaml https://github.com/yaml/libyaml 0.2.5
 pcre2 https://github.com/PCRE2Project/pcre2 pcre2-10.47
 googletest https://github.com/google/googletest a7f443b80b105f940225332ed3c31f2790092f47
 googlebenchmark https://github.com/google/benchmark 378fe693a1ef51500db21b11ff05a8018c5f0e55
+wpt https://github.com/web-platform-tests/wpt 71154f49e6cdda82c43e11bb74cfe3ad7b3f9368

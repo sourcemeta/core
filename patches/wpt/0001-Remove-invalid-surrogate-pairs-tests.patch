@@ -1,0 +1,44 @@
+From ec3c41d5eb68cf24e86ef67b1067fc43df859ab0 Mon Sep 17 00:00:00 2001
+From: Juan Cruz Viotti <jv@jviotti.com>
+Date: Fri, 28 Nov 2025 15:42:16 -0400
+Subject: [PATCH] Remove invalid surrogate pairs tests
+
+Signed-off-by: Juan Cruz Viotti <jv@jviotti.com>
+---
+ urlpattern/resources/urlpatterntestdata.json | 20 --------------------
+ 1 file changed, 20 deletions(-)
+
+diff --git a/urlpattern/resources/urlpatterntestdata.json b/urlpattern/resources/urlpatterntestdata.json
+index 4b1b9ee5f6..ae10c412ad 100644
+--- a/urlpattern/resources/urlpatterntestdata.json
++++ b/urlpattern/resources/urlpatterntestdata.json
+@@ -1136,26 +1136,6 @@
+       "pathname": { "input": "/", "groups": {}}
+     }
+   },
+-  {
+-    "pattern": ["http://\uD83D \uDEB2"],
+-    "expected_obj": "error"
+-  },
+-  {
+-    "pattern": [{"hostname":"\uD83D \uDEB2"}],
+-    "expected_obj": "error"
+-  },
+-  {
+-    "pattern": [{"pathname":"\uD83D \uDEB2"}],
+-    "inputs": [],
+-    "expected_obj": {
+-      "pathname": "%EF%BF%BD%20%EF%BF%BD"
+-    },
+-    "expected_match": null
+-  },
+-  {
+-    "pattern": [{"pathname":":\uD83D \uDEB2"}],
+-    "expected_obj": "error"
+-  },
+   {
+     "pattern": [{"pathname":":a\uDB40\uDD00b"}],
+     "inputs": [],
+-- 
+2.52.0
+

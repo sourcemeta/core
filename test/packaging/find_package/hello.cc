@@ -14,6 +14,7 @@
 #include <sourcemeta/core/schemaconfig.h>
 #include <sourcemeta/core/time.h>
 #include <sourcemeta/core/uri.h>
+#include <sourcemeta/core/urlpattern.h>
 #include <sourcemeta/core/uuid.h>
 #include <sourcemeta/core/yaml.h>
 
