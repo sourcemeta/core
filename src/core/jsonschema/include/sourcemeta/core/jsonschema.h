@@ -303,7 +303,7 @@ auto metaschema(
 ///
 /// assert(base_dialect.has_value());
 /// assert(base_dialect.value() ==
-/// "https://json-schema.org/draft/2020-12/schema");
+///   "https://json-schema.org/draft/2020-12/schema");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto base_dialect(const JSON &schema, const SchemaResolver &resolver,

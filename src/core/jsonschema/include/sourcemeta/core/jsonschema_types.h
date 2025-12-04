@@ -5,12 +5,12 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonschema_vocabularies.h>
 
-#include <cstdint>     // std::uint8_t
-#include <functional>  // std::function, std::reference_wrapper
-#include <optional>    // std::optional
-#include <set>         // std::set
-#include <string>      // std::string
-#include <string_view> // std::string_view
+#include <cstdint>       // std::uint8_t
+#include <functional>    // std::function, std::reference_wrapper
+#include <optional>      // std::optional
+#include <string>        // std::string
+#include <string_view>   // std::string_view
+#include <unordered_set> // std::unordered_set
 
 namespace sourcemeta::core {
 
@@ -157,12 +157,13 @@ struct SchemaWalkerResult {
   /// The walker strategy to continue traversing across the schema
   SchemaKeywordType type;
   /// The vocabulary associated with the keyword, if any
-  std::optional<std::string> vocabulary;
+  std::optional<Vocabularies::URI> vocabulary;
   /// The keywords a given keyword depends on (if any) during the evaluation
   /// process
-  std::set<std::string> dependencies;
+  std::unordered_set<JSON::String> dependencies;
+  // TODO: This could be a bitset
   /// The JSON instance types that this keyword applies to (or to all of them)
-  std::set<JSON::Type> instances;
+  std::unordered_set<JSON::Type> instances;
 };
 
 /// @ingroup jsonschema
@@ -187,9 +188,9 @@ struct SchemaIteratorEntry {
   std::optional<Pointer> parent;
   // TODO: Turn this into a weak pointer
   Pointer pointer;
-  std::optional<std::string> dialect;
+  std::optional<JSON::String> dialect;
   Vocabularies vocabularies;
-  std::optional<std::string> base_dialect;
+  std::optional<JSON::String> base_dialect;
   std::reference_wrapper<const JSON> subschema;
 
   // TODO: These two pointer templates contain some overlap.

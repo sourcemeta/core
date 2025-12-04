@@ -68,6 +68,10 @@ struct SOURCEMETA_CORE_JSONSCHEMA_EXPORT Vocabularies {
   // NOTE: Must be kept in sync with the Known enum above
   static constexpr std::size_t KNOWN_VOCABULARY_COUNT = 29;
 
+  /// A vocabulary URI type that can be either a known vocabulary enum or a
+  /// custom string URI
+  using URI = std::variant<Known, JSON::String>;
+
 public:
   Vocabularies() = default;
   Vocabularies(const Vocabularies &) = default;
@@ -110,9 +114,8 @@ public:
 
   /// Throw if the current vocabularies have required ones outside the given
   /// supported set
-  auto throw_if_any_unsupported(
-      const std::unordered_set<std::variant<JSON::String, Known>> &supported,
-      const char *message) const -> void;
+  auto throw_if_any_unsupported(const std::unordered_set<URI> &supported,
+                                const char *message) const -> void;
 
 private:
   // Invariant: required_known and optional_known must be mutually exclusive

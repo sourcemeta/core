@@ -82,20 +82,21 @@ sourcemeta::core::Vocabularies::Vocabularies(
 
 auto sourcemeta::core::Vocabularies::contains(
     const JSON::String &uri) const noexcept -> bool {
-  const auto maybe_known = uri_to_known_vocabulary(uri);
+  const auto iterator{this->custom.find(uri)};
+  if (iterator != this->custom.end()) {
+    return true;
+  }
 
-  // As a debug build check: Going through this branch is slow. If it is a known
-  // vocabulary, the consumer should be making use of the enum overload of this
-  // method
-  // TODO: Re-enable this
-  // assert(!maybe_known.has_value());
-
+  const auto maybe_known{uri_to_known_vocabulary(uri)};
+  // As a debug build check: Going through this branch is slow. If it is a
+  // known vocabulary, the consumer should be making use of the enum overload
+  // of this method
+  assert(!maybe_known.has_value());
   if (maybe_known.has_value()) {
     return this->contains(maybe_known.value());
   }
 
-  const auto iterator = this->custom.find(uri);
-  return iterator != this->custom.end();
+  return false;
 }
 
 auto sourcemeta::core::Vocabularies::contains(Known vocabulary) const noexcept
@@ -107,6 +108,8 @@ auto sourcemeta::core::Vocabularies::contains(Known vocabulary) const noexcept
 
 auto sourcemeta::core::Vocabularies::insert(const JSON::String &uri,
                                             bool required) noexcept -> void {
+  // We NEED to allow official vocabulary string URIs here, as that's how
+  // we construct the optimised version!
   const auto maybe_known = uri_to_known_vocabulary(uri);
   if (maybe_known.has_value()) {
     this->insert(maybe_known.value(), required);
@@ -131,14 +134,20 @@ auto sourcemeta::core::Vocabularies::insert(Known vocabulary,
 
 auto sourcemeta::core::Vocabularies::get(const JSON::String &uri) const noexcept
     -> std::optional<bool> {
-  const auto maybe_known = uri_to_known_vocabulary(uri);
-  if (maybe_known.has_value()) {
-    return this->get(maybe_known.value());
-  }
-  const auto iterator = this->custom.find(uri);
+  const auto iterator{this->custom.find(uri)};
   if (iterator != this->custom.end()) {
     return iterator->second;
   }
+
+  const auto maybe_known{uri_to_known_vocabulary(uri)};
+  // As a debug build check: Going through this branch is slow. If it is a
+  // known vocabulary, the consumer should be making use of the enum overload
+  // of this method
+  assert(!maybe_known.has_value());
+  if (maybe_known.has_value()) {
+    return this->get(maybe_known.value());
+  }
+
   return std::nullopt;
 }
 
@@ -185,8 +194,8 @@ auto sourcemeta::core::operator<<(std::ostream &stream,
 }
 
 auto sourcemeta::core::Vocabularies::throw_if_any_unsupported(
-    const std::unordered_set<std::variant<JSON::String, Known>> &supported,
-    const char *message) const -> void {
+    const std::unordered_set<URI> &supported, const char *message) const
+    -> void {
   for (std::size_t index = 0; index < KNOWN_VOCABULARY_COUNT; ++index) {
     if (!this->required_known[index]) {
       continue;
@@ -197,14 +206,19 @@ auto sourcemeta::core::Vocabularies::throw_if_any_unsupported(
       continue;
     }
 
-    // Slow fallback: convert and check as a string URI
+    // Slow fallback: convert to string URI and check if it was passed as string
     std::ostringstream stream;
     stream << vocabulary;
     const auto &uri{stream.str()};
 
-    if (!supported.contains(uri)) {
-      throw SchemaVocabularyError(uri, message);
+    if (supported.contains(uri)) {
+      // As a debug build check: Going through this branch is slow. If it is a
+      // known vocabulary, the consumer should be passing it as an enum class
+      assert(false);
+      continue;
     }
+
+    throw SchemaVocabularyError(uri, message);
   }
 
   for (const auto &[uri, required] : this->custom) {
@@ -212,11 +226,9 @@ auto sourcemeta::core::Vocabularies::throw_if_any_unsupported(
       continue;
     }
 
-    // Slow fallback: convert and check as a known URI
-    const auto maybe_known{uri_to_known_vocabulary(uri)};
-    if (maybe_known.has_value() && supported.contains(maybe_known.value())) {
-      continue;
-    }
+    // This case should never be possible, as an invariant of this class.
+    // i.e. we should never have an official vocabulary in the custom map
+    assert(!uri_to_known_vocabulary(uri).has_value());
 
     throw SchemaVocabularyError(uri, message);
   }

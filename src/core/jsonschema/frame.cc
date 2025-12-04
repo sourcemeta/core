@@ -178,8 +178,7 @@ auto find_every_base(
 }
 
 // TODO: Why do we have this function both here and on `walker.cc`?
-auto ref_overrides_adjacent_keywords(
-    const sourcemeta::core::JSON::String &base_dialect) -> bool {
+auto ref_overrides_adjacent_keywords(std::string_view base_dialect) -> bool {
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
   // See
@@ -194,8 +193,7 @@ auto ref_overrides_adjacent_keywords(
          base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
 }
 
-auto supports_id_anchors(const sourcemeta::core::JSON::String &base_dialect)
-    -> bool {
+auto supports_id_anchors(std::string_view base_dialect) -> bool {
   return base_dialect == "http://json-schema.org/draft-07/schema#" ||
          base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
          base_dialect == "http://json-schema.org/draft-06/schema#" ||

@@ -3,6 +3,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include "jsonschema_test_utils.h"
+
 #include <string> // std::string
 
 static auto test_resolver(std::string_view identifier)
@@ -27,14 +29,6 @@ static auto test_resolver(std::string_view identifier)
   }
 }
 
-#define EXPECT_VOCABULARY_REQUIRED(vocabularies, vocabulary)                   \
-  EXPECT_TRUE((vocabularies).contains(vocabulary));                            \
-  EXPECT_TRUE((vocabularies).get(vocabulary).value());
-
-#define EXPECT_VOCABULARY_OPTIONAL(vocabularies, vocabulary)                   \
-  EXPECT_TRUE((vocabularies).contains(vocabulary));                            \
-  EXPECT_FALSE((vocabularies).get(vocabulary).value());
-
 TEST(JSONSchema_vocabulary_draft0, schema) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/schema#",
@@ -43,8 +37,7 @@ TEST(JSONSchema_vocabulary_draft0, schema) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(vocabularies,
-                             "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_Draft_0);
 }
 
 TEST(JSONSchema_vocabulary_draft0, hyperschema) {
@@ -55,8 +48,7 @@ TEST(JSONSchema_vocabulary_draft0, hyperschema) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(vocabularies,
-                             "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_Draft_0_Hyper);
 }
 
 TEST(JSONSchema_vocabulary_draft0, one_hop) {
@@ -67,8 +59,7 @@ TEST(JSONSchema_vocabulary_draft0, one_hop) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(vocabularies,
-                             "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_Draft_0_Hyper);
 }
 
 TEST(JSONSchema_vocabulary_draft0, ignore_vocabulary) {
@@ -79,6 +70,5 @@ TEST(JSONSchema_vocabulary_draft0, ignore_vocabulary) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(vocabularies,
-                             "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_Draft_0_Hyper);
 }
