@@ -4,6 +4,8 @@
 
 #include "jsonschema_test_utils.h"
 
+#include <unordered_set> // std::unordered_set
+
 static const sourcemeta::core::Vocabularies VOCABULARIES_DRAFT0{
     {"http://json-schema.org/draft-00/schema#", true}};
 
@@ -15,8 +17,7 @@ TEST(JSONSchema_official_walker_draft0, schema) {
   const auto result{schema_official_walker("$schema", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -26,8 +27,7 @@ TEST(JSONSchema_official_walker_draft0, id) {
   const auto result{schema_official_walker("id", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -37,8 +37,7 @@ TEST(JSONSchema_official_walker_draft0, ref) {
   const auto result{schema_official_walker("$ref", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Reference);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -49,10 +48,9 @@ TEST(JSONSchema_official_walker_draft0, items) {
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueOrElementsTraverseAnyItemOrItem);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Array});
 }
 
@@ -62,10 +60,9 @@ TEST(JSONSchema_official_walker_draft0, properties) {
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorMembersTraversePropertyStatic);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -76,11 +73,10 @@ TEST(JSONSchema_official_walker_draft0, additionalProperties) {
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueTraverseSomeProperty);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
-  const std::set<std::string> expected{"properties"};
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
+  const std::unordered_set<std::string> expected{"properties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -89,8 +85,7 @@ TEST(JSONSchema_official_walker_draft0, type) {
   const auto result{schema_official_walker("type", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlaceSome);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -100,8 +95,7 @@ TEST(JSONSchema_official_walker_draft0, enum) {
   const auto result{schema_official_walker("enum", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -111,10 +105,9 @@ TEST(JSONSchema_official_walker_draft0, maximum) {
   const auto result{schema_official_walker("maximum", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -125,10 +118,9 @@ TEST(JSONSchema_official_walker_draft0, minimum) {
   const auto result{schema_official_walker("minimum", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -140,10 +132,9 @@ TEST(JSONSchema_official_walker_draft0, maximumCanEqual) {
       schema_official_walker("maximumCanEqual", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -155,10 +146,9 @@ TEST(JSONSchema_official_walker_draft0, minimumCanEqual) {
       schema_official_walker("minimumCanEqual", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -169,10 +159,9 @@ TEST(JSONSchema_official_walker_draft0, maxLength) {
   const auto result{schema_official_walker("maxLength", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -181,10 +170,9 @@ TEST(JSONSchema_official_walker_draft0, minLength) {
   const auto result{schema_official_walker("minLength", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -193,10 +181,9 @@ TEST(JSONSchema_official_walker_draft0, pattern) {
   const auto result{schema_official_walker("pattern", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -205,10 +192,9 @@ TEST(JSONSchema_official_walker_draft0, maxItems) {
   const auto result{schema_official_walker("maxItems", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Array});
 }
 
@@ -217,10 +203,9 @@ TEST(JSONSchema_official_walker_draft0, minItems) {
   const auto result{schema_official_walker("minItems", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Array});
 }
 
@@ -229,10 +214,9 @@ TEST(JSONSchema_official_walker_draft0, requires) {
   const auto result{schema_official_walker("requires", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseParent);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -241,10 +225,9 @@ TEST(JSONSchema_official_walker_draft0, format) {
   const auto result{schema_official_walker("format", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -253,8 +236,7 @@ TEST(JSONSchema_official_walker_draft0, title) {
   const auto result{schema_official_walker("title", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -264,8 +246,7 @@ TEST(JSONSchema_official_walker_draft0, description) {
   const auto result{schema_official_walker("description", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -275,8 +256,7 @@ TEST(JSONSchema_official_walker_draft0, default) {
   const auto result{schema_official_walker("default", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -286,8 +266,7 @@ TEST(JSONSchema_official_walker_draft0, disallow) {
   const auto result{schema_official_walker("disallow", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -297,8 +276,7 @@ TEST(JSONSchema_official_walker_draft0, extends) {
   const auto result{schema_official_walker("extends", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueOrElementsInPlace);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -309,10 +287,9 @@ TEST(JSONSchema_official_walker_draft0, contentEncoding) {
       schema_official_walker("contentEncoding", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -321,10 +298,9 @@ TEST(JSONSchema_official_walker_draft0, optional) {
   const auto result{schema_official_walker("optional", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -333,10 +309,9 @@ TEST(JSONSchema_official_walker_draft0, maxDecimal) {
   const auto result{schema_official_walker("maxDecimal", VOCABULARIES_DRAFT0)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Real});
 }
 
@@ -346,8 +321,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_links) {
       schema_official_walker("links", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlace);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -358,8 +332,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_fragmentResolution) {
                                            VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -370,8 +343,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_root) {
       schema_official_walker("root", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -382,8 +354,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_readonly) {
       schema_official_walker("readonly", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -394,8 +365,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_pathStart) {
       schema_official_walker("pathStart", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -406,8 +376,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_mediaType) {
       schema_official_walker("mediaType", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -418,8 +387,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_alternate) {
       schema_official_walker("alternate", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlace);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -430,8 +398,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_href) {
       schema_official_walker("href", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -442,8 +409,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_rel) {
       schema_official_walker("rel", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -454,8 +420,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_method) {
       schema_official_walker("method", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -466,8 +431,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_enctype) {
       schema_official_walker("enctype", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -478,8 +442,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_schema) {
       schema_official_walker("$schema", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -490,8 +453,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_id) {
       schema_official_walker("id", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -502,8 +464,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_ref) {
       schema_official_walker("$ref", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Reference);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -515,10 +476,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_items) {
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueOrElementsTraverseAnyItemOrItem);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Array});
 }
 
@@ -529,10 +489,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_properties) {
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorMembersTraversePropertyStatic);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -543,11 +502,10 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_additionalProperties) {
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueTraverseSomeProperty);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
-  const std::set<std::string> expected{"properties"};
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
+  const std::unordered_set<std::string> expected{"properties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -557,8 +515,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_type) {
       schema_official_walker("type", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlaceSome);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -569,8 +526,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_enum) {
       schema_official_walker("enum", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -581,10 +537,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_maximum) {
       schema_official_walker("maximum", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -596,10 +551,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_minimum) {
       schema_official_walker("minimum", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -611,10 +565,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_maximumCanEqual) {
                                            VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -626,10 +579,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_minimumCanEqual) {
                                            VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  const std::set<sourcemeta::core::JSON::Type> instances{
+  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
       sourcemeta::core::JSON::Type::Integer,
       sourcemeta::core::JSON::Type::Real};
   EXPECT_EQ(result.instances, instances);
@@ -641,10 +593,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_maxLength) {
       schema_official_walker("maxLength", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -654,10 +605,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_minLength) {
       schema_official_walker("minLength", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -667,10 +617,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_pattern) {
       schema_official_walker("pattern", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -680,10 +629,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_maxItems) {
       schema_official_walker("maxItems", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Array});
 }
 
@@ -693,10 +641,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_minItems) {
       schema_official_walker("minItems", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Array});
 }
 
@@ -706,10 +653,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_requires) {
       schema_official_walker("requires", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseParent);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -719,10 +665,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_format) {
       schema_official_walker("format", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -732,8 +677,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_title) {
       schema_official_walker("title", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -744,8 +688,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_description) {
       schema_official_walker("description", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -756,8 +699,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_default) {
       schema_official_walker("default", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -768,8 +710,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_disallow) {
       schema_official_walker("disallow", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -780,8 +721,7 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_extends) {
       schema_official_walker("extends", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueOrElementsInPlace);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
   EXPECT_TRUE(result.instances.empty());
 }
@@ -792,10 +732,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_contentEncoding) {
                                            VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::String});
 }
 
@@ -805,10 +744,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_optional) {
       schema_official_walker("optional", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Object});
 }
 
@@ -818,10 +756,9 @@ TEST(JSONSchema_official_walker_draft0, hyperschema_maxDecimal) {
       schema_official_walker("maxDecimal", VOCABULARIES_DRAFT0_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
-  EXPECT_EQ(result.vocabulary.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_0_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_EQ(result.instances, std::set<sourcemeta::core::JSON::Type>{
+  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
                                   sourcemeta::core::JSON::Type::Real});
 }
 

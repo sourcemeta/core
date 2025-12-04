@@ -115,42 +115,43 @@ TEST(JSONSchema_vocabulary, throw_if_any_unsupported_all_supported_by_enum) {
       {Known::JSON_Schema_2020_12_Applicator, true},
       {Known::JSON_Schema_2020_12_Validation, false}};
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core,
-                Known::JSON_Schema_2020_12_Applicator};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core, Known::JSON_Schema_2020_12_Applicator};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
 }
 
-TEST(JSONSchema_vocabulary, throw_if_any_unsupported_all_supported_by_string) {
+TEST(JSONSchema_vocabulary,
+     throw_if_any_unsupported_all_supported_custom_by_string) {
   using Known = sourcemeta::core::Vocabularies::Known;
 
-  const sourcemeta::core::Vocabularies vocabularies{
-      {Known::JSON_Schema_2020_12_Core, true},
-      {Known::JSON_Schema_2020_12_Applicator, true}};
+  sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+  vocabularies.insert("https://example.com/custom-vocab-1", true);
+  vocabularies.insert("https://example.com/custom-vocab-2", true);
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{sourcemeta::core::JSON::String{
-                    "https://json-schema.org/draft/2020-12/vocab/core"},
-                sourcemeta::core::JSON::String{
-                    "https://json-schema.org/draft/2020-12/vocab/applicator"}};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core,
+      sourcemeta::core::JSON::String{"https://example.com/custom-vocab-1"},
+      sourcemeta::core::JSON::String{"https://example.com/custom-vocab-2"}};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
 }
 
-TEST(JSONSchema_vocabulary, throw_if_any_unsupported_mixed_enum_and_string) {
+TEST(JSONSchema_vocabulary,
+     throw_if_any_unsupported_mixed_known_enum_and_custom_string) {
   using Known = sourcemeta::core::Vocabularies::Known;
 
-  const sourcemeta::core::Vocabularies vocabularies{
+  sourcemeta::core::Vocabularies vocabularies{
       {Known::JSON_Schema_2020_12_Core, true},
       {Known::JSON_Schema_2020_12_Applicator, true}};
+  vocabularies.insert("https://example.com/custom-vocab", true);
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core,
-                sourcemeta::core::JSON::String{
-                    "https://json-schema.org/draft/2020-12/vocab/applicator"}};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core, Known::JSON_Schema_2020_12_Applicator,
+      sourcemeta::core::JSON::String{"https://example.com/custom-vocab"}};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
@@ -164,9 +165,8 @@ TEST(JSONSchema_vocabulary, throw_if_any_unsupported_missing_required_known) {
       {Known::JSON_Schema_2020_12_Applicator, true},
       {Known::JSON_Schema_2020_12_Validation, true}};
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core,
-                Known::JSON_Schema_2020_12_Applicator};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core, Known::JSON_Schema_2020_12_Applicator};
 
   try {
     vocabularies.throw_if_any_unsupported(supported, "Unsupported vocabulary");
@@ -185,8 +185,8 @@ TEST(JSONSchema_vocabulary, throw_if_any_unsupported_missing_required_custom) {
       {Known::JSON_Schema_2020_12_Core, true}};
   vocabularies.insert("https://example.com/custom-vocab", true);
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core};
 
   try {
     vocabularies.throw_if_any_unsupported(supported, "Unsupported vocabulary");
@@ -204,8 +204,8 @@ TEST(JSONSchema_vocabulary, throw_if_any_unsupported_optional_not_checked) {
       {Known::JSON_Schema_2020_12_Core, true},
       {Known::JSON_Schema_2020_12_Validation, false}};
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
@@ -216,8 +216,8 @@ TEST(JSONSchema_vocabulary, throw_if_any_unsupported_empty_vocabularies) {
 
   const sourcemeta::core::Vocabularies vocabularies{};
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
@@ -230,8 +230,8 @@ TEST(JSONSchema_vocabulary,
   sourcemeta::core::Vocabularies vocabularies{};
   vocabularies.insert("https://json-schema.org/draft/2020-12/vocab/core", true);
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{Known::JSON_Schema_2020_12_Core};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
@@ -245,10 +245,9 @@ TEST(JSONSchema_vocabulary,
       {Known::JSON_Schema_2020_12_Core, true}};
   vocabularies.insert("https://example.com/custom-vocab", true);
 
-  const std::unordered_set<std::variant<sourcemeta::core::JSON::String, Known>>
-      supported{
-          Known::JSON_Schema_2020_12_Core,
-          sourcemeta::core::JSON::String{"https://example.com/custom-vocab"}};
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core,
+      sourcemeta::core::JSON::String{"https://example.com/custom-vocab"}};
 
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));

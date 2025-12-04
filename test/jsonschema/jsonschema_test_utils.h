@@ -4,7 +4,31 @@
 #include <cassert>
 #include <sstream>
 #include <tuple>
+#include <variant>
 #include <vector>
+
+#define EXPECT_VOCABULARY_KNOWN(vocabulary_value, expected_known)              \
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::Vocabularies::Known>(   \
+      (vocabulary_value)));                                                    \
+  EXPECT_EQ(                                                                   \
+      std::get<sourcemeta::core::Vocabularies::Known>((vocabulary_value)),     \
+      sourcemeta::core::Vocabularies::Known::expected_known)
+
+#define EXPECT_VOCABULARY_REQUIRED(vocabularies, expected_known)               \
+  EXPECT_TRUE(                                                                 \
+      (vocabularies)                                                           \
+          .contains(sourcemeta::core::Vocabularies::Known::expected_known));   \
+  EXPECT_TRUE((vocabularies)                                                   \
+                  .get(sourcemeta::core::Vocabularies::Known::expected_known)  \
+                  .value())
+
+#define EXPECT_VOCABULARY_OPTIONAL(vocabularies, expected_known)               \
+  EXPECT_TRUE(                                                                 \
+      (vocabularies)                                                           \
+          .contains(sourcemeta::core::Vocabularies::Known::expected_known));   \
+  EXPECT_FALSE((vocabularies)                                                  \
+                   .get(sourcemeta::core::Vocabularies::Known::expected_known) \
+                   .value())
 
 #define EXPECT_OPTIONAL_POINTER(optional_value, expected_optional)             \
   if (std::optional<std::string>{expected_optional}.has_value()) {             \

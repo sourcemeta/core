@@ -3,6 +3,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include "jsonschema_test_utils.h"
+
 #include <string> // std::string
 
 static auto test_resolver(std::string_view identifier)
@@ -51,14 +53,6 @@ static auto test_resolver(std::string_view identifier)
   }
 }
 
-#define EXPECT_VOCABULARY_REQUIRED(vocabularies, vocabulary)                   \
-  EXPECT_TRUE((vocabularies).contains(vocabulary));                            \
-  EXPECT_TRUE((vocabularies).get(vocabulary).value());
-
-#define EXPECT_VOCABULARY_OPTIONAL(vocabularies, vocabulary)                   \
-  EXPECT_TRUE((vocabularies).contains(vocabulary));                            \
-  EXPECT_FALSE((vocabularies).get(vocabulary).value());
-
 TEST(JSONSchema_vocabulary_2020_12, core_vocabularies_boolean_with_default) {
   const sourcemeta::core::JSON document{true};
   const sourcemeta::core::Vocabularies vocabularies{
@@ -66,12 +60,9 @@ TEST(JSONSchema_vocabulary_2020_12, core_vocabularies_boolean_with_default) {
           document, test_resolver,
           "https://sourcemeta.com/2020-12-custom-vocabularies")};
   EXPECT_EQ(vocabularies.size(), 3);
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/applicator");
-  EXPECT_VOCABULARY_OPTIONAL(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/validation");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Core);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Applicator);
+  EXPECT_VOCABULARY_OPTIONAL(vocabularies, JSON_Schema_2020_12_Validation);
 }
 
 TEST(JSONSchema_vocabulary_2020_12,
@@ -84,8 +75,7 @@ TEST(JSONSchema_vocabulary_2020_12,
           document, test_resolver,
           "https://sourcemeta.com/2020-12-custom-vocabularies")};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Core);
 }
 
 TEST(JSONSchema_vocabulary_2020_12, core_cannot_be_optional) {
@@ -113,8 +103,7 @@ TEST(JSONSchema_vocabulary_2020_12, no_vocabularies) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Core);
 }
 
 TEST(JSONSchema_vocabulary_2020_12, no_vocabularies_hyper) {
@@ -124,8 +113,7 @@ TEST(JSONSchema_vocabulary_2020_12, no_vocabularies_hyper) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 1);
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Core);
 }
 
 TEST(JSONSchema_vocabulary_2020_12, hyper) {
@@ -135,22 +123,14 @@ TEST(JSONSchema_vocabulary_2020_12, hyper) {
   const sourcemeta::core::Vocabularies vocabularies{
       sourcemeta::core::vocabularies(document, test_resolver)};
   EXPECT_EQ(vocabularies.size(), 8);
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/core");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/applicator");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/unevaluated");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/validation");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies,
-      "https://json-schema.org/draft/2020-12/vocab/format-annotation");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/content");
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2020-12/vocab/meta-data");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Core);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Applicator);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Unevaluated);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Validation);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies,
+                             JSON_Schema_2020_12_Format_Annotation);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Content);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Meta_Data);
   // Notice this is 2019-09. That's actually correct.
-  EXPECT_VOCABULARY_REQUIRED(
-      vocabularies, "https://json-schema.org/draft/2019-09/vocab/hyper-schema");
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2019_09_Hyper_Schema);
 }
