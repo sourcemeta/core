@@ -16,7 +16,7 @@ public:
       -> sourcemeta::core::SchemaTransformRule::Result override {
     ONLY_CONTINUE_IF(schema.is_object());
 
-    std::set<JSON::Type> current_types;
+    sourcemeta::core::JSON::TypeSet current_types;
     if (contains_any(vocabularies,
                      {Vocabularies::Known::JSON_Schema_2020_12_Validation,
                       Vocabularies::Known::JSON_Schema_2019_09_Validation,
@@ -32,16 +32,17 @@ public:
                       Vocabularies::Known::JSON_Schema_Draft_0_Hyper}) &&
         schema.defines("type")) {
       if (schema.at("type").is_string()) {
-        parse_schema_type(
-            schema.at("type").to_string(),
-            [&current_types](const auto type) { current_types.emplace(type); });
+        parse_schema_type(schema.at("type").to_string(),
+                          [&current_types](const auto type) {
+                            current_types.set(static_cast<std::size_t>(type));
+                          });
       } else if (schema.at("type").is_array()) {
         for (const auto &entry : schema.at("type").as_array()) {
           if (entry.is_string()) {
-            parse_schema_type(entry.to_string(),
-                              [&current_types](const auto type) {
-                                current_types.emplace(type);
-                              });
+            parse_schema_type(
+                entry.to_string(), [&current_types](const auto type) {
+                  current_types.set(static_cast<std::size_t>(type));
+                });
           }
         }
       }
@@ -58,7 +59,7 @@ public:
                       Vocabularies::Known::JSON_Schema_Draft_1}) &&
         schema.defines("enum") && schema.at("enum").is_array()) {
       for (const auto &entry : schema.at("enum").as_array()) {
-        current_types.emplace(entry.type());
+        current_types.set(static_cast<std::size_t>(entry.type()));
       }
     }
 
@@ -68,28 +69,25 @@ public:
                       Vocabularies::Known::JSON_Schema_Draft_7,
                       Vocabularies::Known::JSON_Schema_Draft_6}) &&
         schema.defines("const")) {
-      current_types.emplace(schema.at("const").type());
+      current_types.set(static_cast<std::size_t>(schema.at("const").type()));
     }
 
     // This means that the schema has no explicit type constraints,
     // so we cannot remove anything from it.
-    ONLY_CONTINUE_IF(!current_types.empty());
+    ONLY_CONTINUE_IF(current_types.any());
 
     std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
       const auto metadata{walker(entry.first, vocabularies)};
 
       // The keyword applies to any type, so it cannot be removed
-      if (metadata.instances.empty()) {
+      if (metadata.instances.none()) {
         continue;
       }
 
       // If none of the types that the keyword applies to is a valid
       // type for the current schema, then by definition we can remove it
-      if (std::ranges::none_of(metadata.instances,
-                               [&current_types](const auto keyword_type) {
-                                 return current_types.contains(keyword_type);
-                               })) {
+      if ((metadata.instances & current_types).none()) {
         positions.push_back(Pointer{entry.first});
       }
     }

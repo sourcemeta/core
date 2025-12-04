@@ -20,7 +20,7 @@ TEST(JSONSchema_official_walker_draft3, schema) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, id) {
@@ -31,7 +31,7 @@ TEST(JSONSchema_official_walker_draft3, id) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, ref) {
@@ -41,7 +41,7 @@ TEST(JSONSchema_official_walker_draft3, ref) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, items) {
@@ -53,8 +53,8 @@ TEST(JSONSchema_official_walker_draft3, items) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Array});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
 
 TEST(JSONSchema_official_walker_draft3, additionalItems) {
@@ -66,8 +66,8 @@ TEST(JSONSchema_official_walker_draft3, additionalItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"items"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Array});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
 
 TEST(JSONSchema_official_walker_draft3, properties) {
@@ -79,8 +79,8 @@ TEST(JSONSchema_official_walker_draft3, properties) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Object});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
 
 TEST(JSONSchema_official_walker_draft3, patternProperties) {
@@ -93,8 +93,8 @@ TEST(JSONSchema_official_walker_draft3, patternProperties) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Object});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
 
 TEST(JSONSchema_official_walker_draft3, dependencies) {
@@ -106,8 +106,8 @@ TEST(JSONSchema_official_walker_draft3, dependencies) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Object});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
 
 TEST(JSONSchema_official_walker_draft3, additionalProperties) {
@@ -121,8 +121,8 @@ TEST(JSONSchema_official_walker_draft3, additionalProperties) {
   const std::unordered_set<std::string> expected{"properties",
                                                  "patternProperties"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Object});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
 
 TEST(JSONSchema_official_walker_draft3, type) {
@@ -133,7 +133,7 @@ TEST(JSONSchema_official_walker_draft3, type) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, enum) {
@@ -144,7 +144,7 @@ TEST(JSONSchema_official_walker_draft3, enum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, maximum) {
@@ -155,9 +155,9 @@ TEST(JSONSchema_official_walker_draft3, maximum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
-      sourcemeta::core::JSON::Type::Integer,
-      sourcemeta::core::JSON::Type::Real};
+  const auto instances =
+      sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
+                                  sourcemeta::core::JSON::Type::Real});
   EXPECT_EQ(result.instances, instances);
 }
 
@@ -169,9 +169,9 @@ TEST(JSONSchema_official_walker_draft3, minimum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
-      sourcemeta::core::JSON::Type::Integer,
-      sourcemeta::core::JSON::Type::Real};
+  const auto instances =
+      sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
+                                  sourcemeta::core::JSON::Type::Real});
   EXPECT_EQ(result.instances, instances);
 }
 
@@ -184,9 +184,9 @@ TEST(JSONSchema_official_walker_draft3, exclusiveMaximum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
-      sourcemeta::core::JSON::Type::Integer,
-      sourcemeta::core::JSON::Type::Real};
+  const auto instances =
+      sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
+                                  sourcemeta::core::JSON::Type::Real});
   EXPECT_EQ(result.instances, instances);
 }
 
@@ -199,9 +199,9 @@ TEST(JSONSchema_official_walker_draft3, exclusiveMinimum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
-      sourcemeta::core::JSON::Type::Integer,
-      sourcemeta::core::JSON::Type::Real};
+  const auto instances =
+      sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
+                                  sourcemeta::core::JSON::Type::Real});
   EXPECT_EQ(result.instances, instances);
 }
 
@@ -213,8 +213,8 @@ TEST(JSONSchema_official_walker_draft3, maxLength) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::String});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
 
 TEST(JSONSchema_official_walker_draft3, minLength) {
@@ -225,8 +225,8 @@ TEST(JSONSchema_official_walker_draft3, minLength) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::String});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
 
 TEST(JSONSchema_official_walker_draft3, pattern) {
@@ -237,8 +237,8 @@ TEST(JSONSchema_official_walker_draft3, pattern) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::String});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
 
 TEST(JSONSchema_official_walker_draft3, maxItems) {
@@ -249,8 +249,8 @@ TEST(JSONSchema_official_walker_draft3, maxItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Array});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
 
 TEST(JSONSchema_official_walker_draft3, minItems) {
@@ -261,8 +261,8 @@ TEST(JSONSchema_official_walker_draft3, minItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Array});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
 
 TEST(JSONSchema_official_walker_draft3, uniqueItems) {
@@ -273,8 +273,8 @@ TEST(JSONSchema_official_walker_draft3, uniqueItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Array});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
 
 TEST(JSONSchema_official_walker_draft3, required) {
@@ -285,8 +285,8 @@ TEST(JSONSchema_official_walker_draft3, required) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::Object});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
 
 TEST(JSONSchema_official_walker_draft3, format) {
@@ -297,8 +297,8 @@ TEST(JSONSchema_official_walker_draft3, format) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_EQ(result.instances, std::unordered_set<sourcemeta::core::JSON::Type>{
-                                  sourcemeta::core::JSON::Type::String});
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
 
 TEST(JSONSchema_official_walker_draft3, title) {
@@ -309,7 +309,7 @@ TEST(JSONSchema_official_walker_draft3, title) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, description) {
@@ -320,7 +320,7 @@ TEST(JSONSchema_official_walker_draft3, description) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, default) {
@@ -331,7 +331,7 @@ TEST(JSONSchema_official_walker_draft3, default) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, divisibleBy) {
@@ -342,9 +342,9 @@ TEST(JSONSchema_official_walker_draft3, divisibleBy) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  const std::unordered_set<sourcemeta::core::JSON::Type> instances{
-      sourcemeta::core::JSON::Type::Integer,
-      sourcemeta::core::JSON::Type::Real};
+  const auto instances =
+      sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
+                                  sourcemeta::core::JSON::Type::Real});
   EXPECT_EQ(result.instances, instances);
 }
 
@@ -357,7 +357,7 @@ TEST(JSONSchema_official_walker_draft3, disallow) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, extends) {
@@ -368,7 +368,7 @@ TEST(JSONSchema_official_walker_draft3, extends) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_links) {
@@ -380,7 +380,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_links) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_fragmentResolution) {
@@ -392,7 +392,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_fragmentResolution) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_root) {
@@ -404,7 +404,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_root) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_readonly) {
@@ -416,7 +416,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_readonly) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_contentEncoding) {
@@ -428,7 +428,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_contentEncoding) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_pathStart) {
@@ -440,7 +440,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_pathStart) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_mediaType) {
@@ -452,7 +452,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_mediaType) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_href) {
@@ -463,7 +463,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_href) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_rel) {
@@ -474,7 +474,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_rel) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_method) {
@@ -485,7 +485,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_method) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_enctype) {
@@ -496,7 +496,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_enctype) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_targetSchema) {
@@ -507,7 +507,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_targetSchema) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_links_without_hyperschema) {
@@ -517,7 +517,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_links_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -529,7 +529,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_root_without_hyperschema) {
@@ -539,7 +539,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_root_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -550,7 +550,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -562,7 +562,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -573,7 +573,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -584,7 +584,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_href_without_hyperschema) {
@@ -594,7 +594,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_href_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, hyperschema_rel_without_hyperschema) {
@@ -604,7 +604,7 @@ TEST(JSONSchema_official_walker_draft3, hyperschema_rel_without_hyperschema) {
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -615,7 +615,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -626,7 +626,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3,
@@ -638,7 +638,7 @@ TEST(JSONSchema_official_walker_draft3,
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string> expected{"$ref"};
   EXPECT_EQ(result.dependencies, expected);
-  EXPECT_TRUE(result.instances.empty());
+  EXPECT_TRUE(result.instances.none());
 }
 
 TEST(JSONSchema_official_walker_draft3, schema_keyword_priority_array) {
