@@ -126,7 +126,8 @@ private:
 #endif
   std::bitset<KNOWN_VOCABULARY_COUNT> required_known{};
   std::bitset<KNOWN_VOCABULARY_COUNT> optional_known{};
-  std::unordered_map<JSON::String, bool> custom;
+  // Lazily initialized only when custom (non-official) vocabularies are used
+  std::optional<std::unordered_map<JSON::String, bool>> custom{std::nullopt};
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
