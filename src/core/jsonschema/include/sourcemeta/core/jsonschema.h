@@ -46,7 +46,7 @@ auto schema_official_resolver(std::string_view identifier)
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto schema_official_walker(std::string_view keyword,
                             const Vocabularies &vocabularies)
-    -> SchemaWalkerResult;
+    -> const SchemaWalkerResult &;
 
 /// @ingroup jsonschema
 ///

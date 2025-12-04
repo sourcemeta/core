@@ -78,7 +78,7 @@ public:
 
     std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
-      const auto metadata{walker(entry.first, vocabularies)};
+      const auto &metadata{walker(entry.first, vocabularies)};
 
       // The keyword applies to any type, so it cannot be removed
       if (metadata.instances.none()) {

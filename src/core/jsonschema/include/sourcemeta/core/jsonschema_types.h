@@ -158,12 +158,26 @@ struct SchemaWalkerResult {
   SchemaKeywordType type;
   /// The vocabulary associated with the keyword, if any
   std::optional<Vocabularies::URI> vocabulary;
-  // TODO: Here we are copying every time
   /// The keywords a given keyword depends on (if any) during the evaluation
   /// process
-  std::unordered_set<JSON::String> dependencies;
+  std::unordered_set<std::string_view> dependencies;
   /// The JSON instance types that this keyword applies to (empty means all)
   JSON::TypeSet instances;
+
+  // Prevent accidental copies, as walker results are always returned by
+  // reference
+  SchemaWalkerResult(const SchemaWalkerResult &) = delete;
+  auto operator=(const SchemaWalkerResult &) -> SchemaWalkerResult & = delete;
+  SchemaWalkerResult(SchemaWalkerResult &&) = default;
+  auto operator=(SchemaWalkerResult &&) -> SchemaWalkerResult & = default;
+  ~SchemaWalkerResult() = default;
+
+  SchemaWalkerResult(SchemaKeywordType type_,
+                     std::optional<Vocabularies::URI> vocabulary_,
+                     std::unordered_set<std::string_view> dependencies_,
+                     JSON::TypeSet instances_)
+      : type{type_}, vocabulary{std::move(vocabulary_)},
+        dependencies{std::move(dependencies_)}, instances{instances_} {}
 };
 
 /// @ingroup jsonschema
@@ -178,8 +192,8 @@ struct SchemaWalkerResult {
 ///
 /// - sourcemeta::core::schema_official_walker
 /// - sourcemeta::core::schema_walker_none
-using SchemaWalker =
-    std::function<SchemaWalkerResult(std::string_view, const Vocabularies &)>;
+using SchemaWalker = std::function<const SchemaWalkerResult &(
+    std::string_view, const Vocabularies &)>;
 
 /// @ingroup jsonschema
 /// An entry of a schema iterator.

@@ -1,1124 +1,1424 @@
 #include <sourcemeta/core/jsonschema.h>
 
-using Known = sourcemeta::core::Vocabularies::Known;
-using JSON = sourcemeta::core::JSON;
+namespace sourcemeta::core {
 
-auto sourcemeta::core::schema_official_walker(
-    std::string_view keyword,
-    const sourcemeta::core::Vocabularies &vocabularies)
-    -> sourcemeta::core::SchemaWalkerResult {
-#define WALK(vocabulary, _keyword, _types, strategy, ...)                      \
-  if (vocabularies.contains(vocabulary) && keyword == _keyword)                \
-    return {sourcemeta::core::SchemaKeywordType::strategy,                     \
-            vocabulary,                                                        \
-            {__VA_ARGS__},                                                     \
-            _types};
+using Known = Vocabularies::Known;
 
-#define WALK_ANY(vocabulary_1, vocabulary_2, _keyword, types, strategy, ...)   \
-  WALK(vocabulary_1, _keyword, types, strategy, __VA_ARGS__)                   \
-  WALK(vocabulary_2, _keyword, types, strategy, __VA_ARGS__)
+#define MATCHES(_keyword) (keyword == (_keyword))
 
-#define WALK_MAYBE_DEPENDENT(vocabulary, _keyword, types, strategy,            \
-                             dependent_vocabulary, ...)                        \
-  if (vocabularies.contains(dependent_vocabulary)) {                           \
-    WALK(vocabulary, _keyword, types, strategy, __VA_ARGS__)                   \
-  } else {                                                                     \
-    WALK(vocabulary, _keyword, types, strategy)                                \
+// Creates a static SchemaWalkerResult and returns a const reference to it.
+// The variadic args are the dependency keywords (strings).
+#define RETURN(_vocabulary, _types, _strategy, ...)                            \
+  {                                                                            \
+    static const SchemaWalkerResult result{                                    \
+        SchemaKeywordType::_strategy, _vocabulary, {__VA_ARGS__}, _types};     \
+    return result;                                                             \
   }
+
+#define RETURN_IF_MATCHES(_keyword, _vocabulary, _types, _strategy, ...)       \
+  if (MATCHES((_keyword))) {                                                   \
+    RETURN(_vocabulary, _types, _strategy __VA_OPT__(, ) __VA_ARGS__)          \
+  }
+
+// For drafts with paired base/hyper vocabularies, this macro generates
+// separate static results for each vocabulary to avoid runtime vocabulary
+// variable initialization issues.
+#define RETURN_IF_MATCHES_EITHER(_keyword, _base_vocab, _hyper_vocab, _types,  \
+                                 _strategy, ...)                               \
+  if (MATCHES((_keyword))) {                                                   \
+    if (vocabularies.contains(_base_vocab)) {                                  \
+      RETURN(_base_vocab, _types, _strategy __VA_OPT__(, ) __VA_ARGS__);       \
+    } else {                                                                   \
+      RETURN(_hyper_vocab, _types, _strategy __VA_OPT__(, ) __VA_ARGS__);      \
+    }                                                                          \
+  }
+
+auto schema_official_walker(std::string_view keyword,
+                            const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+
   // 2020-12
-  WALK(Known::JSON_Schema_2020_12_Core, "$id", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$schema", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$ref", {}, Reference)
-  WALK(Known::JSON_Schema_2020_12_Core, "$defs", {}, LocationMembers)
-  // JSON Schema still defines this for backwards-compatibility
-  // See https://json-schema.org/draft/2020-12/schema
-  WALK(Known::JSON_Schema_2020_12_Core, "definitions", {}, LocationMembers)
-  WALK(Known::JSON_Schema_2020_12_Core, "$comment", {}, Comment)
-  WALK(Known::JSON_Schema_2020_12_Core, "$anchor", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$vocabulary", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$dynamicRef", {}, Reference)
-  WALK(Known::JSON_Schema_2020_12_Core, "$dynamicAnchor", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "oneOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "anyOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "allOf", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "if", {},
-       ApplicatorValueInPlaceMaybe)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "then", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "else", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "not", {},
-       ApplicatorValueInPlaceNegate)
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Applicator, "properties",
-                       sourcemeta::core::make_set({JSON::Type::Object}),
-                       ApplicatorMembersTraversePropertyStatic,
-                       Known::JSON_Schema_2020_12_Validation, "required")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "additionalProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "patternProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersTraversePropertyRegex)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "propertyNames",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseAnyPropertyKey)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "dependentSchemas",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersInPlaceSome)
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Applicator, "contains",
-                       sourcemeta::core::make_set({JSON::Type::Array}),
-                       ApplicatorValueTraverseAnyItem,
-                       Known::JSON_Schema_2020_12_Validation, "minContains",
-                       "maxContains")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "items",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueTraverseSomeItem, "prefixItems")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "prefixItems",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorElementsTraverseItem)
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Validation, "type", {},
-                       Assertion, Known::JSON_Schema_2020_12_Applicator,
-                       "properties")
-  WALK(Known::JSON_Schema_2020_12_Validation, "enum", {}, Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "const", {}, Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "pattern",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "exclusiveMinimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "multipleOf",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2020_12_Validation, "exclusiveMaximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2020_12_Validation, "dependentRequired",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "required",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "uniqueItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "title", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "description", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "writeOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "readOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "examples", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "default", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "deprecated", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Format_Annotation, "format",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Unevaluated,
-                       "unevaluatedProperties",
-                       sourcemeta::core::make_set({JSON::Type::Object}),
-                       ApplicatorValueTraverseSomeProperty,
-                       Known::JSON_Schema_2020_12_Applicator, "properties",
-                       "patternProperties", "additionalProperties")
-  WALK_MAYBE_DEPENDENT(
-      Known::JSON_Schema_2020_12_Unevaluated, "unevaluatedItems",
-      sourcemeta::core::make_set({JSON::Type::Array}),
-      ApplicatorValueTraverseSomeItem, Known::JSON_Schema_2020_12_Applicator,
-      "prefixItems", "items", "contains")
-  WALK(Known::JSON_Schema_2020_12_Content, "contentSchema",
-       sourcemeta::core::make_set({JSON::Type::String}),
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2020_12_Content, "contentMediaType",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2020_12_Content, "contentEncoding",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2020_12_Format_Assertion, "format",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Core)) {
+    RETURN_IF_MATCHES("$id", Known::JSON_Schema_2020_12_Core, {}, Other);
+    RETURN_IF_MATCHES("$schema", Known::JSON_Schema_2020_12_Core, {}, Other);
+    RETURN_IF_MATCHES("$ref", Known::JSON_Schema_2020_12_Core, {}, Reference);
+    RETURN_IF_MATCHES("$defs", Known::JSON_Schema_2020_12_Core, {},
+                      LocationMembers);
+    // JSON Schema still defines this for backwards-compatibility
+    // See https://json-schema.org/draft/2020-12/schema
+    RETURN_IF_MATCHES("definitions", Known::JSON_Schema_2020_12_Core, {},
+                      LocationMembers);
+    RETURN_IF_MATCHES("$comment", Known::JSON_Schema_2020_12_Core, {}, Comment);
+    RETURN_IF_MATCHES("$anchor", Known::JSON_Schema_2020_12_Core, {}, Other);
+    RETURN_IF_MATCHES("$vocabulary", Known::JSON_Schema_2020_12_Core, {},
+                      Other);
+    RETURN_IF_MATCHES("$dynamicRef", Known::JSON_Schema_2020_12_Core, {},
+                      Reference);
+    RETURN_IF_MATCHES("$dynamicAnchor", Known::JSON_Schema_2020_12_Core, {},
+                      Other);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Applicator)) {
+    const auto has_validation =
+        vocabularies.contains(Known::JSON_Schema_2020_12_Validation);
+    RETURN_IF_MATCHES("oneOf", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES("anyOf", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES("allOf", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorElementsInPlace);
+    RETURN_IF_MATCHES("if", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorValueInPlaceMaybe);
+    RETURN_IF_MATCHES("then", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorValueInPlaceMaybe, "if");
+    RETURN_IF_MATCHES("else", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorValueInPlaceMaybe, "if");
+    RETURN_IF_MATCHES("not", Known::JSON_Schema_2020_12_Applicator, {},
+                      ApplicatorValueInPlaceNegate);
+    if (MATCHES("properties")) {
+      // For the purpose of compiler optimizations
+      if (has_validation) {
+        RETURN(Known::JSON_Schema_2020_12_Applicator,
+               make_set({JSON::Type::Object}),
+               ApplicatorMembersTraversePropertyStatic, "required");
+      } else {
+        RETURN(Known::JSON_Schema_2020_12_Applicator,
+               make_set({JSON::Type::Object}),
+               ApplicatorMembersTraversePropertyStatic);
+      }
+    }
+    RETURN_IF_MATCHES(
+        "additionalProperties", Known::JSON_Schema_2020_12_Applicator,
+        make_set({JSON::Type::Object}), ApplicatorValueTraverseSomeProperty,
+        "properties", "patternProperties");
+    RETURN_IF_MATCHES(
+        "patternProperties", Known::JSON_Schema_2020_12_Applicator,
+        make_set({JSON::Type::Object}), ApplicatorMembersTraversePropertyRegex);
+    RETURN_IF_MATCHES("propertyNames", Known::JSON_Schema_2020_12_Applicator,
+                      make_set({JSON::Type::Object}),
+                      ApplicatorValueTraverseAnyPropertyKey);
+    RETURN_IF_MATCHES("dependentSchemas", Known::JSON_Schema_2020_12_Applicator,
+                      make_set({JSON::Type::Object}),
+                      ApplicatorMembersInPlaceSome);
+    if (MATCHES("contains")) {
+      if (has_validation) {
+        RETURN(Known::JSON_Schema_2020_12_Applicator,
+               make_set({JSON::Type::Array}), ApplicatorValueTraverseAnyItem,
+               "minContains", "maxContains");
+      } else {
+        RETURN(Known::JSON_Schema_2020_12_Applicator,
+               make_set({JSON::Type::Array}), ApplicatorValueTraverseAnyItem);
+      }
+    }
+    RETURN_IF_MATCHES("items", Known::JSON_Schema_2020_12_Applicator,
+                      make_set({JSON::Type::Array}),
+                      ApplicatorValueTraverseSomeItem, "prefixItems");
+    RETURN_IF_MATCHES("prefixItems", Known::JSON_Schema_2020_12_Applicator,
+                      make_set({JSON::Type::Array}),
+                      ApplicatorElementsTraverseItem);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Validation)) {
+    const auto has_applicator =
+        vocabularies.contains(Known::JSON_Schema_2020_12_Applicator);
+    if (MATCHES("type")) {
+      // For the purpose of compiler optimizations
+      if (has_applicator) {
+        RETURN(Known::JSON_Schema_2020_12_Validation, {}, Assertion,
+               "properties");
+      } else {
+        RETURN(Known::JSON_Schema_2020_12_Validation, {}, Assertion);
+      }
+    }
+    RETURN_IF_MATCHES("enum", Known::JSON_Schema_2020_12_Validation, {},
+                      Assertion);
+    RETURN_IF_MATCHES("const", Known::JSON_Schema_2020_12_Validation, {},
+                      Assertion);
+    RETURN_IF_MATCHES("maxLength", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES("minLength", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES("pattern", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES("exclusiveMinimum", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion);
+    RETURN_IF_MATCHES("multipleOf", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion);
+    RETURN_IF_MATCHES("maximum", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion, "type");
+    RETURN_IF_MATCHES("exclusiveMaximum", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion);
+    RETURN_IF_MATCHES("minimum", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion, "type");
+    RETURN_IF_MATCHES("dependentRequired",
+                      Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("minProperties", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("maxProperties", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("required", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("maxItems", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("minItems", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("uniqueItems", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("minContains", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("maxContains", Known::JSON_Schema_2020_12_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Meta_Data)) {
+    RETURN_IF_MATCHES("title", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("description", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("writeOnly", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("readOnly", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("examples", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("default", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("deprecated", Known::JSON_Schema_2020_12_Meta_Data, {},
+                      Annotation);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Format_Annotation)) {
+    RETURN_IF_MATCHES("format", Known::JSON_Schema_2020_12_Format_Annotation,
+                      make_set({JSON::Type::String}), Annotation);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Unevaluated)) {
+    const auto has_applicator =
+        vocabularies.contains(Known::JSON_Schema_2020_12_Applicator);
+    if (MATCHES("unevaluatedProperties")) {
+      if (has_applicator) {
+        RETURN(Known::JSON_Schema_2020_12_Unevaluated,
+               make_set({JSON::Type::Object}),
+               ApplicatorValueTraverseSomeProperty, "properties",
+               "patternProperties", "additionalProperties");
+      } else {
+        RETURN(Known::JSON_Schema_2020_12_Unevaluated,
+               make_set({JSON::Type::Object}),
+               ApplicatorValueTraverseSomeProperty);
+      }
+    }
+    if (MATCHES("unevaluatedItems")) {
+      if (has_applicator) {
+        RETURN(Known::JSON_Schema_2020_12_Unevaluated,
+               make_set({JSON::Type::Array}), ApplicatorValueTraverseSomeItem,
+               "prefixItems", "items", "contains");
+      } else {
+        RETURN(Known::JSON_Schema_2020_12_Unevaluated,
+               make_set({JSON::Type::Array}), ApplicatorValueTraverseSomeItem);
+      }
+    }
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Content)) {
+    RETURN_IF_MATCHES("contentSchema", Known::JSON_Schema_2020_12_Content,
+                      make_set({JSON::Type::String}),
+                      ApplicatorValueInPlaceOther);
+    RETURN_IF_MATCHES("contentMediaType", Known::JSON_Schema_2020_12_Content,
+                      make_set({JSON::Type::String}), Annotation);
+    RETURN_IF_MATCHES("contentEncoding", Known::JSON_Schema_2020_12_Content,
+                      make_set({JSON::Type::String}), Annotation);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Format_Assertion)) {
+    RETURN_IF_MATCHES("format", Known::JSON_Schema_2020_12_Format_Assertion,
+                      make_set({JSON::Type::String}), Assertion);
+  }
 
   // 2019-09
-  WALK(Known::JSON_Schema_2019_09_Core, "$id", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$schema", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$ref", {}, Reference)
-  WALK(Known::JSON_Schema_2019_09_Core, "$defs", {}, LocationMembers)
-  // JSON Schema still defines this for backwards-compatibility
-  // See https://json-schema.org/draft/2019-09/schema
-  WALK(Known::JSON_Schema_2019_09_Core, "definitions", {}, LocationMembers)
-  WALK(Known::JSON_Schema_2019_09_Core, "$comment", {}, Comment)
-  WALK(Known::JSON_Schema_2019_09_Core, "$anchor", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$vocabulary", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$recursiveRef", {}, Reference)
-  WALK(Known::JSON_Schema_2019_09_Core, "$recursiveAnchor", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "allOf", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "anyOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "oneOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "if", {},
-       ApplicatorValueInPlaceMaybe)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "then", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "else", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "not", {},
-       ApplicatorValueInPlaceNegate)
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2019_09_Applicator, "properties",
-                       sourcemeta::core::make_set({JSON::Type::Object}),
-                       ApplicatorMembersTraversePropertyStatic,
-                       Known::JSON_Schema_2019_09_Validation, "required")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "patternProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersTraversePropertyRegex)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "additionalProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "propertyNames",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseAnyPropertyKey)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "dependentSchemas",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersInPlaceSome)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "unevaluatedProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseSomeProperty, "properties", "patternProperties",
-       "additionalProperties")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "unevaluatedItems",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueTraverseSomeItem, "items", "additionalItems")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "items",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2019_09_Applicator, "contains",
-                       sourcemeta::core::make_set({JSON::Type::Array}),
-                       ApplicatorValueTraverseAnyItem,
-                       Known::JSON_Schema_2019_09_Validation, "minContains",
-                       "maxContains")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "additionalItems",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueTraverseSomeItem, "items")
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2019_09_Validation, "type", {},
-                       Assertion, Known::JSON_Schema_2019_09_Applicator,
-                       "properties")
-  WALK(Known::JSON_Schema_2019_09_Validation, "enum", {}, Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "const", {}, Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "pattern",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "exclusiveMaximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "multipleOf",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2019_09_Validation, "exclusiveMinimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2019_09_Validation, "required",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "dependentRequired",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "uniqueItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "title", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "description", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "writeOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "readOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "examples", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "deprecated", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "default", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Format, "format",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2019_09_Content, "contentSchema",
-       sourcemeta::core::make_set({JSON::Type::String}),
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Content, "contentMediaType",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2019_09_Content, "contentEncoding",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "base", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "links", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "hrefSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "headerSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "submissionSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "anchor", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "anchorPointer", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "href", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "rel", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "submissionMediaType", {},
-       Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "targetHints", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "targetMediaType", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "templatePointers", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "templateRequired", {}, Other)
-  // Draft7
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "$id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "$comment", {}, Comment, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "type",
-           {}, Assertion, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "const", {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "multipleOf",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "contains", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseAnyItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maxProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref", "required")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "propertyNames", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseAnyPropertyKey, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "if",
-           {}, ApplicatorValueInPlaceMaybe, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "then",
-           {}, ApplicatorValueInPlaceMaybe, "if")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "else",
-           {}, ApplicatorValueInPlaceMaybe, "if")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "allOf", {}, ApplicatorElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "anyOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "oneOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "not",
-           {}, ApplicatorValueInPlaceNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "contentMediaType", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "definitions", {}, LocationMembers, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "readOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "writeOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "examples", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "base", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "hrefSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "headerSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "submissionSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "anchor", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "anchorPointer", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "submissionMediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "targetHints", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "targetMediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "templatePointers", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "templateRequired", {}, Other)
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Core)) {
+    RETURN_IF_MATCHES("$id", Known::JSON_Schema_2019_09_Core, {}, Other);
+    RETURN_IF_MATCHES("$schema", Known::JSON_Schema_2019_09_Core, {}, Other);
+    RETURN_IF_MATCHES("$ref", Known::JSON_Schema_2019_09_Core, {}, Reference);
+    RETURN_IF_MATCHES("$defs", Known::JSON_Schema_2019_09_Core, {},
+                      LocationMembers);
+    // JSON Schema still defines this for backwards-compatibility
+    // See https://json-schema.org/draft/2019-09/schema
+    RETURN_IF_MATCHES("definitions", Known::JSON_Schema_2019_09_Core, {},
+                      LocationMembers);
+    RETURN_IF_MATCHES("$comment", Known::JSON_Schema_2019_09_Core, {}, Comment);
+    RETURN_IF_MATCHES("$anchor", Known::JSON_Schema_2019_09_Core, {}, Other);
+    RETURN_IF_MATCHES("$vocabulary", Known::JSON_Schema_2019_09_Core, {},
+                      Other);
+    RETURN_IF_MATCHES("$recursiveRef", Known::JSON_Schema_2019_09_Core, {},
+                      Reference);
+    RETURN_IF_MATCHES("$recursiveAnchor", Known::JSON_Schema_2019_09_Core, {},
+                      Other);
+  }
 
-  // $ref also takes precedence over any unknown keyword
-  if ((vocabularies.contains(Known::JSON_Schema_Draft_7) ||
-       vocabularies.contains(Known::JSON_Schema_Draft_7_Hyper)) &&
-      keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Applicator)) {
+    const auto has_validation =
+        vocabularies.contains(Known::JSON_Schema_2019_09_Validation);
+    RETURN_IF_MATCHES("allOf", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorElementsInPlace);
+    RETURN_IF_MATCHES("anyOf", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES("oneOf", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES("if", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorValueInPlaceMaybe);
+    RETURN_IF_MATCHES("then", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorValueInPlaceMaybe, "if");
+    RETURN_IF_MATCHES("else", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorValueInPlaceMaybe, "if");
+    RETURN_IF_MATCHES("not", Known::JSON_Schema_2019_09_Applicator, {},
+                      ApplicatorValueInPlaceNegate);
+    if (MATCHES("properties")) {
+      // For the purpose of compiler optimizations
+      if (has_validation) {
+        RETURN(Known::JSON_Schema_2019_09_Applicator,
+               make_set({JSON::Type::Object}),
+               ApplicatorMembersTraversePropertyStatic, "required");
+      } else {
+        RETURN(Known::JSON_Schema_2019_09_Applicator,
+               make_set({JSON::Type::Object}),
+               ApplicatorMembersTraversePropertyStatic);
+      }
+    }
+    RETURN_IF_MATCHES(
+        "patternProperties", Known::JSON_Schema_2019_09_Applicator,
+        make_set({JSON::Type::Object}), ApplicatorMembersTraversePropertyRegex);
+    RETURN_IF_MATCHES(
+        "additionalProperties", Known::JSON_Schema_2019_09_Applicator,
+        make_set({JSON::Type::Object}), ApplicatorValueTraverseSomeProperty,
+        "properties", "patternProperties");
+    RETURN_IF_MATCHES("propertyNames", Known::JSON_Schema_2019_09_Applicator,
+                      make_set({JSON::Type::Object}),
+                      ApplicatorValueTraverseAnyPropertyKey);
+    RETURN_IF_MATCHES("dependentSchemas", Known::JSON_Schema_2019_09_Applicator,
+                      make_set({JSON::Type::Object}),
+                      ApplicatorMembersInPlaceSome);
+    RETURN_IF_MATCHES(
+        "unevaluatedProperties", Known::JSON_Schema_2019_09_Applicator,
+        make_set({JSON::Type::Object}), ApplicatorValueTraverseSomeProperty,
+        "properties", "patternProperties", "additionalProperties");
+    RETURN_IF_MATCHES("unevaluatedItems", Known::JSON_Schema_2019_09_Applicator,
+                      make_set({JSON::Type::Array}),
+                      ApplicatorValueTraverseSomeItem, "items",
+                      "additionalItems");
+    RETURN_IF_MATCHES("items", Known::JSON_Schema_2019_09_Applicator,
+                      make_set({JSON::Type::Array}),
+                      ApplicatorValueOrElementsTraverseAnyItemOrItem);
+    if (MATCHES("contains")) {
+      if (has_validation) {
+        RETURN(Known::JSON_Schema_2019_09_Applicator,
+               make_set({JSON::Type::Array}), ApplicatorValueTraverseAnyItem,
+               "minContains", "maxContains");
+      } else {
+        RETURN(Known::JSON_Schema_2019_09_Applicator,
+               make_set({JSON::Type::Array}), ApplicatorValueTraverseAnyItem);
+      }
+    }
+    RETURN_IF_MATCHES("additionalItems", Known::JSON_Schema_2019_09_Applicator,
+                      make_set({JSON::Type::Array}),
+                      ApplicatorValueTraverseSomeItem, "items");
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Validation)) {
+    const auto has_applicator =
+        vocabularies.contains(Known::JSON_Schema_2019_09_Applicator);
+    if (MATCHES("type")) {
+      // For the purpose of compiler optimizations
+      if (has_applicator) {
+        RETURN(Known::JSON_Schema_2019_09_Validation, {}, Assertion,
+               "properties");
+      } else {
+        RETURN(Known::JSON_Schema_2019_09_Validation, {}, Assertion);
+      }
+    }
+    RETURN_IF_MATCHES("enum", Known::JSON_Schema_2019_09_Validation, {},
+                      Assertion);
+    RETURN_IF_MATCHES("const", Known::JSON_Schema_2019_09_Validation, {},
+                      Assertion);
+    RETURN_IF_MATCHES("maxLength", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES("minLength", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES("pattern", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES("exclusiveMaximum", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion);
+    RETURN_IF_MATCHES("multipleOf", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion);
+    RETURN_IF_MATCHES("minimum", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion, "type");
+    RETURN_IF_MATCHES("exclusiveMinimum", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion);
+    RETURN_IF_MATCHES("maximum", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Integer, JSON::Type::Real}),
+                      Assertion, "type");
+    RETURN_IF_MATCHES("required", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("minProperties", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("maxProperties", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("dependentRequired",
+                      Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES("minItems", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("maxItems", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("maxContains", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("minContains", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES("uniqueItems", Known::JSON_Schema_2019_09_Validation,
+                      make_set({JSON::Type::Array}), Assertion);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Meta_Data)) {
+    RETURN_IF_MATCHES("title", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("description", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("writeOnly", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("readOnly", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("examples", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("deprecated", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+    RETURN_IF_MATCHES("default", Known::JSON_Schema_2019_09_Meta_Data, {},
+                      Annotation);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Format)) {
+    RETURN_IF_MATCHES("format", Known::JSON_Schema_2019_09_Format,
+                      make_set({JSON::Type::String}), Annotation);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Content)) {
+    RETURN_IF_MATCHES("contentSchema", Known::JSON_Schema_2019_09_Content,
+                      make_set({JSON::Type::String}),
+                      ApplicatorValueInPlaceOther);
+    RETURN_IF_MATCHES("contentMediaType", Known::JSON_Schema_2019_09_Content,
+                      make_set({JSON::Type::String}), Annotation);
+    RETURN_IF_MATCHES("contentEncoding", Known::JSON_Schema_2019_09_Content,
+                      make_set({JSON::Type::String}), Annotation);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Hyper_Schema)) {
+    RETURN_IF_MATCHES("base", Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      Other);
+    RETURN_IF_MATCHES("links", Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      ApplicatorElementsInPlace);
+    RETURN_IF_MATCHES("hrefSchema", Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      ApplicatorValueInPlaceOther);
+    RETURN_IF_MATCHES("targetSchema", Known::JSON_Schema_2019_09_Hyper_Schema,
+                      {}, ApplicatorValueInPlaceOther);
+    RETURN_IF_MATCHES("headerSchema", Known::JSON_Schema_2019_09_Hyper_Schema,
+                      {}, ApplicatorValueInPlaceOther);
+    RETURN_IF_MATCHES("submissionSchema",
+                      Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      ApplicatorValueInPlaceOther);
+    RETURN_IF_MATCHES("anchor", Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      Other);
+    RETURN_IF_MATCHES("anchorPointer", Known::JSON_Schema_2019_09_Hyper_Schema,
+                      {}, Other);
+    RETURN_IF_MATCHES("href", Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      Other);
+    RETURN_IF_MATCHES("rel", Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                      Other);
+    RETURN_IF_MATCHES("submissionMediaType",
+                      Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other);
+    RETURN_IF_MATCHES("targetHints", Known::JSON_Schema_2019_09_Hyper_Schema,
+                      {}, Other);
+    RETURN_IF_MATCHES("targetMediaType",
+                      Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other);
+    RETURN_IF_MATCHES("templatePointers",
+                      Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other);
+    RETURN_IF_MATCHES("templateRequired",
+                      Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other);
+  }
+
+  // Draft7
+  // Note: Draft7 and earlier use a single vocabulary that includes all
+  // keywords, so we only need one contains() check per dialect
+  if (vocabularies.contains(Known::JSON_Schema_Draft_7) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_7_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$id", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("$comment", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Assertion,
+                             "properties");
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Assertion,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("const", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Assertion,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("multipleOf", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMaximum", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMinimum", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "items", Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
+        make_set({JSON::Type::Array}),
+        ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref");
+    RETURN_IF_MATCHES_EITHER("additionalItems", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueTraverseSomeItem, "items");
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("uniqueItems", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("contains", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueTraverseAnyItem, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxProperties", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minProperties", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("required", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "properties", Known::JSON_Schema_Draft_7,
+        Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorMembersTraversePropertyStatic, "$ref", "required");
+    RETURN_IF_MATCHES_EITHER("patternProperties", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyRegex, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "additionalProperties", Known::JSON_Schema_Draft_7,
+        Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorValueTraverseSomeProperty, "properties", "patternProperties");
+    RETURN_IF_MATCHES_EITHER("dependencies", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("propertyNames", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseAnyPropertyKey, "$ref");
+    RETURN_IF_MATCHES_EITHER("if", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorValueInPlaceMaybe, "$ref");
+    RETURN_IF_MATCHES_EITHER("then", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorValueInPlaceMaybe, "if");
+    RETURN_IF_MATCHES_EITHER("else", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorValueInPlaceMaybe, "if");
+    RETURN_IF_MATCHES_EITHER("allOf", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorElementsInPlace, "$ref");
+    RETURN_IF_MATCHES_EITHER("anyOf", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("oneOf", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("not", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             ApplicatorValueInPlaceNegate, "$ref");
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::String}), Other, "$ref");
+    RETURN_IF_MATCHES_EITHER("contentEncoding", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::String}), Comment, "$ref");
+    RETURN_IF_MATCHES_EITHER("contentMediaType", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper,
+                             make_set({JSON::Type::String}), Comment, "$ref");
+    RETURN_IF_MATCHES_EITHER("definitions", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {},
+                             LocationMembers, "$ref");
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("readOnly", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("writeOnly", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("examples", Known::JSON_Schema_Draft_7,
+                             Known::JSON_Schema_Draft_7_Hyper, {}, Comment,
+                             "$ref");
+
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_7_Hyper)) {
+      RETURN_IF_MATCHES("base", Known::JSON_Schema_Draft_7_Hyper, {}, Other,
+                        "$ref");
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_7_Hyper, {},
+                        ApplicatorElementsInPlace, "$ref");
+      // Keywords from the Link Description Object are not affected by `$ref`,
+      // as `$ref` is not permitted there
+      RETURN_IF_MATCHES("hrefSchema", Known::JSON_Schema_Draft_7_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("targetSchema", Known::JSON_Schema_Draft_7_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("headerSchema", Known::JSON_Schema_Draft_7_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("submissionSchema", Known::JSON_Schema_Draft_7_Hyper,
+                        {}, ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("anchor", Known::JSON_Schema_Draft_7_Hyper, {}, Other);
+      RETURN_IF_MATCHES("anchorPointer", Known::JSON_Schema_Draft_7_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_7_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_7_Hyper, {}, Other);
+      RETURN_IF_MATCHES("submissionMediaType", Known::JSON_Schema_Draft_7_Hyper,
+                        {}, Other);
+      RETURN_IF_MATCHES("targetHints", Known::JSON_Schema_Draft_7_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("targetMediaType", Known::JSON_Schema_Draft_7_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("templatePointers", Known::JSON_Schema_Draft_7_Hyper,
+                        {}, Other);
+      RETURN_IF_MATCHES("templateRequired", Known::JSON_Schema_Draft_7_Hyper,
+                        {}, Other);
+    }
+
+    // $ref takes precedence over any unknown keyword
+    static const SchemaWalkerResult unknown_with_ref(
+        SchemaKeywordType::Unknown, std::nullopt, {"$ref"}, {});
+    return unknown_with_ref;
   }
 
   // Draft6
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "$id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "$comment", {}, Comment, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "type",
-           {}, Assertion, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "const", {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "multipleOf",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "contains", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseAnyItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maxProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref", "required")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "propertyNames", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseAnyPropertyKey, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "allOf", {}, ApplicatorElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "anyOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "oneOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "not",
-           {}, ApplicatorValueInPlaceNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "contentMediaType", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "definitions", {}, LocationMembers, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "readOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "writeOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "examples", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "base", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "media", {}, Other, "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "hrefSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "submissionSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "submissionEncType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "mediaType", {}, Other)
+  if (vocabularies.contains(Known::JSON_Schema_Draft_6) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_6_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$id", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("$comment", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Assertion,
+                             "properties");
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Assertion,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("const", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Assertion,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("multipleOf", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMaximum", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMinimum", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "items", Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
+        make_set({JSON::Type::Array}),
+        ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref");
+    RETURN_IF_MATCHES_EITHER("additionalItems", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueTraverseSomeItem, "items");
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("uniqueItems", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("contains", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueTraverseAnyItem, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxProperties", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minProperties", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("required", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "properties", Known::JSON_Schema_Draft_6,
+        Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorMembersTraversePropertyStatic, "$ref", "required");
+    RETURN_IF_MATCHES_EITHER("patternProperties", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyRegex, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "additionalProperties", Known::JSON_Schema_Draft_6,
+        Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorValueTraverseSomeProperty, "properties", "patternProperties");
+    RETURN_IF_MATCHES_EITHER("dependencies", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("propertyNames", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseAnyPropertyKey, "$ref");
+    RETURN_IF_MATCHES_EITHER("allOf", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {},
+                             ApplicatorElementsInPlace, "$ref");
+    RETURN_IF_MATCHES_EITHER("anyOf", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("oneOf", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("not", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {},
+                             ApplicatorValueInPlaceNegate, "$ref");
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::String}), Other, "$ref");
+    RETURN_IF_MATCHES_EITHER("contentEncoding", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::String}), Comment, "$ref");
+    RETURN_IF_MATCHES_EITHER("contentMediaType", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper,
+                             make_set({JSON::Type::String}), Comment, "$ref");
+    RETURN_IF_MATCHES_EITHER("definitions", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {},
+                             LocationMembers, "$ref");
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("readOnly", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("writeOnly", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("examples", Known::JSON_Schema_Draft_6,
+                             Known::JSON_Schema_Draft_6_Hyper, {}, Comment,
+                             "$ref");
 
-  // $ref also takes precedence over any unknown keyword
-  if ((vocabularies.contains(Known::JSON_Schema_Draft_6) ||
-       vocabularies.contains(Known::JSON_Schema_Draft_6_Hyper)) &&
-      keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_6_Hyper)) {
+      RETURN_IF_MATCHES("base", Known::JSON_Schema_Draft_6_Hyper, {}, Other,
+                        "$ref");
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_6_Hyper, {},
+                        ApplicatorElementsInPlace, "$ref");
+      RETURN_IF_MATCHES("media", Known::JSON_Schema_Draft_6_Hyper, {}, Other,
+                        "$ref");
+      // Keywords from the Link Description Object are not affected by `$ref`,
+      // as `$ref` is not permitted there
+      RETURN_IF_MATCHES("hrefSchema", Known::JSON_Schema_Draft_6_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("targetSchema", Known::JSON_Schema_Draft_6_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("submissionSchema", Known::JSON_Schema_Draft_6_Hyper,
+                        {}, ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_6_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_6_Hyper, {}, Other);
+      RETURN_IF_MATCHES("submissionEncType", Known::JSON_Schema_Draft_6_Hyper,
+                        {}, Other);
+      RETURN_IF_MATCHES("mediaType", Known::JSON_Schema_Draft_6_Hyper, {},
+                        Other);
+    }
+
+    // $ref takes precedence over any unknown keyword
+    static const SchemaWalkerResult unknown_with_ref(
+        SchemaKeywordType::Unknown, std::nullopt, {"$ref"}, {});
+    return unknown_with_ref;
   }
 
   // Draft4
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "$ref",
-           {}, Reference)
-  // These dependencies are only for the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "type",
-           {}, Assertion, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "multipleOf",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maxProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  // These dependencies are only for the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref", "required")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "allOf", {}, ApplicatorElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "anyOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "oneOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "not",
-           {}, ApplicatorValueInPlaceNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "definitions", {}, LocationMembers, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "fragmentResolution", {}, Other,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "media", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "pathStart", {}, Other, "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "encType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "schema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
+  if (vocabularies.contains(Known::JSON_Schema_Draft_4) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_4_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("id", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Assertion,
+                             "properties");
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Assertion,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("multipleOf", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMaximum", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMinimum", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "items", Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
+        make_set({JSON::Type::Array}),
+        ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref");
+    RETURN_IF_MATCHES_EITHER("additionalItems", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueTraverseSomeItem, "items");
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("uniqueItems", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxProperties", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minProperties", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("required", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "properties", Known::JSON_Schema_Draft_4,
+        Known::JSON_Schema_Draft_4_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorMembersTraversePropertyStatic, "$ref", "required");
+    RETURN_IF_MATCHES_EITHER("patternProperties", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyRegex, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "additionalProperties", Known::JSON_Schema_Draft_4,
+        Known::JSON_Schema_Draft_4_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorValueTraverseSomeProperty, "properties", "patternProperties");
+    RETURN_IF_MATCHES_EITHER("dependencies", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("allOf", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {},
+                             ApplicatorElementsInPlace, "$ref");
+    RETURN_IF_MATCHES_EITHER("anyOf", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("oneOf", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("not", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {},
+                             ApplicatorValueInPlaceNegate, "$ref");
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper,
+                             make_set({JSON::Type::String}), Other, "$ref");
+    RETURN_IF_MATCHES_EITHER("definitions", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {},
+                             LocationMembers, "$ref");
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_4,
+                             Known::JSON_Schema_Draft_4_Hyper, {}, Comment,
+                             "$ref");
 
-  // $ref also takes precedence over any unknown keyword
-  if ((vocabularies.contains(Known::JSON_Schema_Draft_4) ||
-       vocabularies.contains(Known::JSON_Schema_Draft_4_Hyper)) &&
-      keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_4_Hyper)) {
+      RETURN_IF_MATCHES("fragmentResolution", Known::JSON_Schema_Draft_4_Hyper,
+                        {}, Other, "$ref");
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_4_Hyper, {},
+                        ApplicatorElementsInPlace, "$ref");
+      RETURN_IF_MATCHES("media", Known::JSON_Schema_Draft_4_Hyper, {}, Other,
+                        "$ref");
+      RETURN_IF_MATCHES("pathStart", Known::JSON_Schema_Draft_4_Hyper, {},
+                        Other, "$ref");
+      // Keywords from the Link Description Object are not affected by `$ref`,
+      // as `$ref` is not permitted there
+      RETURN_IF_MATCHES("encType", Known::JSON_Schema_Draft_4_Hyper, {}, Other);
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_4_Hyper, {}, Other);
+      RETURN_IF_MATCHES("mediaType", Known::JSON_Schema_Draft_4_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("method", Known::JSON_Schema_Draft_4_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_4_Hyper, {}, Other);
+      RETURN_IF_MATCHES("schema", Known::JSON_Schema_Draft_4_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("targetSchema", Known::JSON_Schema_Draft_4_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+    }
+
+    // $ref takes precedence over any unknown keyword
+    static const SchemaWalkerResult unknown_with_ref(
+        SchemaKeywordType::Unknown, std::nullopt, {"$ref"}, {});
+    return unknown_with_ref;
   }
 
   // Draft3
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "disallow", {}, ApplicatorElementsInPlaceSomeNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "divisibleBy",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "fragmentResolution", {}, Other,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "root", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "readonly", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "contentEncoding", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "pathStart", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "mediaType", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "enctype", {}, Other)
+  if (vocabularies.contains(Known::JSON_Schema_Draft_3) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_3_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("id", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Other,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("extends", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {},
+                             ApplicatorValueOrElementsInPlace, "$ref");
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {},
+                             ApplicatorElementsInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("disallow", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {},
+                             ApplicatorElementsInPlaceSomeNegate, "$ref");
+    RETURN_IF_MATCHES_EITHER("properties", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyStatic, "$ref");
+    RETURN_IF_MATCHES_EITHER("patternProperties", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyRegex, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "additionalProperties", Known::JSON_Schema_Draft_3,
+        Known::JSON_Schema_Draft_3_Hyper, make_set({JSON::Type::Object}),
+        ApplicatorValueTraverseSomeProperty, "properties", "patternProperties");
+    RETURN_IF_MATCHES_EITHER(
+        "items", Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
+        make_set({JSON::Type::Array}),
+        ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref");
+    RETURN_IF_MATCHES_EITHER("additionalItems", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueTraverseSomeItem, "items");
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("uniqueItems", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Array}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("required", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Object}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("dependencies", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersInPlaceSome, "$ref");
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Assertion,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::String}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("divisibleBy", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMinimum", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("exclusiveMaximum", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion, "$ref");
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper,
+                             make_set({JSON::Type::String}), Other, "$ref");
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Comment,
+                             "$ref");
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_3,
+                             Known::JSON_Schema_Draft_3_Hyper, {}, Comment,
+                             "$ref");
 
-  // $ref also takes precedence over any unknown keyword
-  if (vocabularies.contains(Known::JSON_Schema_Draft_3) && keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_3_Hyper)) {
+      RETURN_IF_MATCHES("fragmentResolution", Known::JSON_Schema_Draft_3_Hyper,
+                        {}, Other, "$ref");
+      RETURN_IF_MATCHES("root", Known::JSON_Schema_Draft_3_Hyper, {}, Other,
+                        "$ref");
+      RETURN_IF_MATCHES("readonly", Known::JSON_Schema_Draft_3_Hyper, {}, Other,
+                        "$ref");
+      RETURN_IF_MATCHES("contentEncoding", Known::JSON_Schema_Draft_3_Hyper, {},
+                        Other, "$ref");
+      RETURN_IF_MATCHES("pathStart", Known::JSON_Schema_Draft_3_Hyper, {},
+                        Other, "$ref");
+      RETURN_IF_MATCHES("mediaType", Known::JSON_Schema_Draft_3_Hyper, {},
+                        Other, "$ref");
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_3_Hyper, {},
+                        ApplicatorElementsInPlace, "$ref");
+      // Keywords from the Link Description Object are not affected by `$ref`,
+      // as `$ref` is not permitted there
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_3_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_3_Hyper, {}, Other);
+      RETURN_IF_MATCHES("targetSchema", Known::JSON_Schema_Draft_3_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("method", Known::JSON_Schema_Draft_3_Hyper, {}, Other);
+      RETURN_IF_MATCHES("enctype", Known::JSON_Schema_Draft_3_Hyper, {}, Other);
+    }
+
+    // $ref takes precedence over any unknown keyword
+    static const SchemaWalkerResult unknown_with_ref(
+        SchemaKeywordType::Unknown, std::nullopt, {"$ref"}, {});
+    return unknown_with_ref;
   }
 
   // Draft2
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "$schema", {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "id",
-           {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "additionalProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseSomeProperty, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "enum",
-           {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maximumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minimumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "requires", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseParent)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "title", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "description", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "default", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "divisibleBy",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "disallow", {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "fragmentResolution", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "root", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "readonly", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "pathStart", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "alternate", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "links", {}, ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "enctype", {}, Other)
+  if (vocabularies.contains(Known::JSON_Schema_Draft_2) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_2_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+    RETURN_IF_MATCHES_EITHER("id", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("items", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueOrElementsTraverseAnyItemOrItem);
+    RETURN_IF_MATCHES_EITHER("properties", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyStatic);
+    RETURN_IF_MATCHES_EITHER("additionalProperties", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseSomeProperty, "properties");
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {},
+                             ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Assertion);
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion);
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maximumCanEqual", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("minimumCanEqual", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("uniqueItems", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("requires", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseParent);
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::String}), Other);
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("divisibleBy", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("disallow", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {}, Assertion);
+    RETURN_IF_MATCHES_EITHER("extends", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper, {},
+                             ApplicatorValueOrElementsInPlace);
+    RETURN_IF_MATCHES_EITHER("contentEncoding", Known::JSON_Schema_Draft_2,
+                             Known::JSON_Schema_Draft_2_Hyper,
+                             make_set({JSON::Type::String}), Comment);
+
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_2_Hyper)) {
+      RETURN_IF_MATCHES("fragmentResolution", Known::JSON_Schema_Draft_2_Hyper,
+                        {}, Other);
+      RETURN_IF_MATCHES("root", Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+      RETURN_IF_MATCHES("readonly", Known::JSON_Schema_Draft_2_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("pathStart", Known::JSON_Schema_Draft_2_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("mediaType", Known::JSON_Schema_Draft_2_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("alternate", Known::JSON_Schema_Draft_2_Hyper, {},
+                        ApplicatorElementsInPlace);
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_2_Hyper, {},
+                        ApplicatorElementsInPlace);
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+      RETURN_IF_MATCHES("targetSchema", Known::JSON_Schema_Draft_2_Hyper, {},
+                        ApplicatorValueInPlaceOther);
+      RETURN_IF_MATCHES("method", Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+      RETURN_IF_MATCHES("enctype", Known::JSON_Schema_Draft_2_Hyper, {}, Other);
+    }
+  }
 
   // Draft1
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "$schema", {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "id",
-           {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "additionalProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseSomeProperty, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "enum",
-           {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maximumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minimumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "requires", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseParent)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "title", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "description", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "default", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "disallow", {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "optional", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maxDecimal", sourcemeta::core::make_set({JSON::Type::Real}),
-           Assertion)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "fragmentResolution", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "root", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "readonly", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "pathStart", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "alternate", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "links", {}, ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "enctype", {}, Other)
+  if (vocabularies.contains(Known::JSON_Schema_Draft_1) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_1_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+    RETURN_IF_MATCHES_EITHER("id", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("items", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueOrElementsTraverseAnyItemOrItem);
+    RETURN_IF_MATCHES_EITHER("properties", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyStatic);
+    RETURN_IF_MATCHES_EITHER("additionalProperties", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseSomeProperty, "properties");
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {},
+                             ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Assertion);
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion);
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maximumCanEqual", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("minimumCanEqual", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("requires", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseParent);
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::String}), Other);
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("disallow", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {}, Assertion);
+    RETURN_IF_MATCHES_EITHER("extends", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper, {},
+                             ApplicatorValueOrElementsInPlace);
+    RETURN_IF_MATCHES_EITHER("contentEncoding", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::String}), Comment);
+    RETURN_IF_MATCHES_EITHER("optional", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maxDecimal", Known::JSON_Schema_Draft_1,
+                             Known::JSON_Schema_Draft_1_Hyper,
+                             make_set({JSON::Type::Real}), Assertion);
+
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_1_Hyper)) {
+      RETURN_IF_MATCHES("fragmentResolution", Known::JSON_Schema_Draft_1_Hyper,
+                        {}, Other);
+      RETURN_IF_MATCHES("root", Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+      RETURN_IF_MATCHES("readonly", Known::JSON_Schema_Draft_1_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("pathStart", Known::JSON_Schema_Draft_1_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("mediaType", Known::JSON_Schema_Draft_1_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("alternate", Known::JSON_Schema_Draft_1_Hyper, {},
+                        ApplicatorElementsInPlace);
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_1_Hyper, {},
+                        ApplicatorElementsInPlace);
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+      RETURN_IF_MATCHES("method", Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+      RETURN_IF_MATCHES("enctype", Known::JSON_Schema_Draft_1_Hyper, {}, Other);
+    }
+  }
 
   // Draft0
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "$schema", {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "id",
-           {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "additionalProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseSomeProperty, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "enum",
-           {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maximumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minimumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "requires", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseParent)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "title", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "description", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "default", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "disallow", {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "optional", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maxDecimal", sourcemeta::core::make_set({JSON::Type::Real}),
-           Assertion)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "fragmentResolution", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "root", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "readonly", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "pathStart", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "alternate", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "links", {}, ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "enctype", {}, Other)
-#undef WALK
-#undef WALK_ANY
-#undef WALK_MAYBE_DEPENDENT
-  return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-          .vocabulary = std::nullopt,
-          .dependencies = {},
-          .instances = {}};
+  if (vocabularies.contains(Known::JSON_Schema_Draft_0) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_0_Hyper)) {
+    RETURN_IF_MATCHES_EITHER("$schema", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+    RETURN_IF_MATCHES_EITHER("id", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+    RETURN_IF_MATCHES_EITHER("$ref", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Reference);
+    RETURN_IF_MATCHES_EITHER("items", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Array}),
+                             ApplicatorValueOrElementsTraverseAnyItemOrItem);
+    RETURN_IF_MATCHES_EITHER("properties", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorMembersTraversePropertyStatic);
+    RETURN_IF_MATCHES_EITHER("additionalProperties", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseSomeProperty, "properties");
+    RETURN_IF_MATCHES_EITHER("type", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {},
+                             ApplicatorElementsInPlaceSome);
+    RETURN_IF_MATCHES_EITHER("enum", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Assertion);
+    RETURN_IF_MATCHES_EITHER(
+        "maximum", Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion);
+    RETURN_IF_MATCHES_EITHER(
+        "minimum", Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
+        make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maximumCanEqual", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("minimumCanEqual", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Integer, JSON::Type::Real}),
+                             Assertion);
+    RETURN_IF_MATCHES_EITHER("maxLength", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("minLength", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("pattern", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::String}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maxItems", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("minItems", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Array}), Assertion);
+    RETURN_IF_MATCHES_EITHER("requires", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseParent);
+    RETURN_IF_MATCHES_EITHER("format", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::String}), Other);
+    RETURN_IF_MATCHES_EITHER("title", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("description", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("default", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Comment);
+    RETURN_IF_MATCHES_EITHER("disallow", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {}, Assertion);
+    RETURN_IF_MATCHES_EITHER("extends", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper, {},
+                             ApplicatorValueOrElementsInPlace);
+    RETURN_IF_MATCHES_EITHER("contentEncoding", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::String}), Comment);
+    RETURN_IF_MATCHES_EITHER("optional", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Object}), Assertion);
+    RETURN_IF_MATCHES_EITHER("maxDecimal", Known::JSON_Schema_Draft_0,
+                             Known::JSON_Schema_Draft_0_Hyper,
+                             make_set({JSON::Type::Real}), Assertion);
+
+    // Hyper-schema specific keywords
+    if (vocabularies.contains(Known::JSON_Schema_Draft_0_Hyper)) {
+      RETURN_IF_MATCHES("fragmentResolution", Known::JSON_Schema_Draft_0_Hyper,
+                        {}, Other);
+      RETURN_IF_MATCHES("root", Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+      RETURN_IF_MATCHES("readonly", Known::JSON_Schema_Draft_0_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("pathStart", Known::JSON_Schema_Draft_0_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("mediaType", Known::JSON_Schema_Draft_0_Hyper, {},
+                        Other);
+      RETURN_IF_MATCHES("alternate", Known::JSON_Schema_Draft_0_Hyper, {},
+                        ApplicatorElementsInPlace);
+      RETURN_IF_MATCHES("links", Known::JSON_Schema_Draft_0_Hyper, {},
+                        ApplicatorElementsInPlace);
+      RETURN_IF_MATCHES("href", Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+      RETURN_IF_MATCHES("rel", Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+      RETURN_IF_MATCHES("method", Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+      RETURN_IF_MATCHES("enctype", Known::JSON_Schema_Draft_0_Hyper, {}, Other);
+    }
+  }
+
+#undef MATCHES
+#undef RETURN
+#undef RETURN_IF_MATCHES
+#undef RETURN_IF_MATCHES_EITHER
+  static const SchemaWalkerResult unknown(SchemaKeywordType::Unknown,
+                                          std::nullopt, {}, {});
+  return unknown;
 }
+
+} // namespace sourcemeta::core
