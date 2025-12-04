@@ -15,15 +15,15 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    ONLY_CONTINUE_IF(contains_any(
-        vocabularies, {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                       Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                       Vocabularies::Known::JSON_Schema_Draft_7,
-                       Vocabularies::Known::JSON_Schema_Draft_6,
-                       Vocabularies::Known::JSON_Schema_Draft_4,
-                       Vocabularies::Known::JSON_Schema_Draft_3,
-                       Vocabularies::Known::JSON_Schema_Draft_2,
-                       Vocabularies::Known::JSON_Schema_Draft_1}));
+    ONLY_CONTINUE_IF(vocabularies.contains_any(
+        {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+         Vocabularies::Known::JSON_Schema_2019_09_Validation,
+         Vocabularies::Known::JSON_Schema_Draft_7,
+         Vocabularies::Known::JSON_Schema_Draft_6,
+         Vocabularies::Known::JSON_Schema_Draft_4,
+         Vocabularies::Known::JSON_Schema_Draft_3,
+         Vocabularies::Known::JSON_Schema_Draft_2,
+         Vocabularies::Known::JSON_Schema_Draft_1}));
     ONLY_CONTINUE_IF(schema.is_object() && schema.defines("type") &&
                      schema.defines("enum") && schema.at("enum").is_array());
 

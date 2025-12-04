@@ -17,19 +17,19 @@ public:
     ONLY_CONTINUE_IF(schema.is_object());
 
     sourcemeta::core::JSON::TypeSet current_types;
-    if (contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6,
-                      Vocabularies::Known::JSON_Schema_Draft_4,
-                      Vocabularies::Known::JSON_Schema_Draft_3,
-                      Vocabularies::Known::JSON_Schema_Draft_2,
-                      Vocabularies::Known::JSON_Schema_Draft_2_Hyper,
-                      Vocabularies::Known::JSON_Schema_Draft_1,
-                      Vocabularies::Known::JSON_Schema_Draft_1_Hyper,
-                      Vocabularies::Known::JSON_Schema_Draft_0,
-                      Vocabularies::Known::JSON_Schema_Draft_0_Hyper}) &&
+    if (vocabularies.contains_any(
+            {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+             Vocabularies::Known::JSON_Schema_2019_09_Validation,
+             Vocabularies::Known::JSON_Schema_Draft_7,
+             Vocabularies::Known::JSON_Schema_Draft_6,
+             Vocabularies::Known::JSON_Schema_Draft_4,
+             Vocabularies::Known::JSON_Schema_Draft_3,
+             Vocabularies::Known::JSON_Schema_Draft_2,
+             Vocabularies::Known::JSON_Schema_Draft_2_Hyper,
+             Vocabularies::Known::JSON_Schema_Draft_1,
+             Vocabularies::Known::JSON_Schema_Draft_1_Hyper,
+             Vocabularies::Known::JSON_Schema_Draft_0,
+             Vocabularies::Known::JSON_Schema_Draft_0_Hyper}) &&
         schema.defines("type")) {
       if (schema.at("type").is_string()) {
         parse_schema_type(schema.at("type").to_string(),
@@ -48,26 +48,26 @@ public:
       }
     }
 
-    if (contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6,
-                      Vocabularies::Known::JSON_Schema_Draft_4,
-                      Vocabularies::Known::JSON_Schema_Draft_3,
-                      Vocabularies::Known::JSON_Schema_Draft_2,
-                      Vocabularies::Known::JSON_Schema_Draft_1}) &&
+    if (vocabularies.contains_any(
+            {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+             Vocabularies::Known::JSON_Schema_2019_09_Validation,
+             Vocabularies::Known::JSON_Schema_Draft_7,
+             Vocabularies::Known::JSON_Schema_Draft_6,
+             Vocabularies::Known::JSON_Schema_Draft_4,
+             Vocabularies::Known::JSON_Schema_Draft_3,
+             Vocabularies::Known::JSON_Schema_Draft_2,
+             Vocabularies::Known::JSON_Schema_Draft_1}) &&
         schema.defines("enum") && schema.at("enum").is_array()) {
       for (const auto &entry : schema.at("enum").as_array()) {
         current_types.set(static_cast<std::size_t>(entry.type()));
       }
     }
 
-    if (contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6}) &&
+    if (vocabularies.contains_any(
+            {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+             Vocabularies::Known::JSON_Schema_2019_09_Validation,
+             Vocabularies::Known::JSON_Schema_Draft_7,
+             Vocabularies::Known::JSON_Schema_Draft_6}) &&
         schema.defines("const")) {
       current_types.set(static_cast<std::size_t>(schema.at("const").type()));
     }

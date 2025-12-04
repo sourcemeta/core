@@ -252,3 +252,81 @@ TEST(JSONSchema_vocabulary,
   EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
       supported, "Unsupported vocabulary"));
 }
+
+TEST(JSONSchema_vocabulary, contains_any_empty_vocabularies) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{};
+
+  EXPECT_FALSE(vocabularies.contains_any({Known::JSON_Schema_2020_12_Core}));
+  EXPECT_FALSE(
+      vocabularies.contains_any({Known::JSON_Schema_2020_12_Core,
+                                 Known::JSON_Schema_2020_12_Applicator}));
+}
+
+TEST(JSONSchema_vocabulary, contains_any_single_match) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+
+  EXPECT_TRUE(vocabularies.contains_any({Known::JSON_Schema_2020_12_Core}));
+  EXPECT_TRUE(
+      vocabularies.contains_any({Known::JSON_Schema_2020_12_Core,
+                                 Known::JSON_Schema_2020_12_Applicator}));
+  EXPECT_TRUE(vocabularies.contains_any({Known::JSON_Schema_2020_12_Applicator,
+                                         Known::JSON_Schema_2020_12_Core}));
+}
+
+TEST(JSONSchema_vocabulary, contains_any_no_match) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+
+  EXPECT_FALSE(
+      vocabularies.contains_any({Known::JSON_Schema_2020_12_Applicator}));
+  EXPECT_FALSE(vocabularies.contains_any({Known::JSON_Schema_2020_12_Applicator,
+                                          Known::JSON_Schema_2020_12_Validation,
+                                          Known::JSON_Schema_2020_12_Content}));
+}
+
+TEST(JSONSchema_vocabulary, contains_any_multiple_vocabularies) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true},
+      {Known::JSON_Schema_2020_12_Applicator, true},
+      {Known::JSON_Schema_2020_12_Validation, false}};
+
+  EXPECT_TRUE(vocabularies.contains_any({Known::JSON_Schema_2020_12_Core}));
+  EXPECT_TRUE(
+      vocabularies.contains_any({Known::JSON_Schema_2020_12_Applicator}));
+  EXPECT_TRUE(
+      vocabularies.contains_any({Known::JSON_Schema_2020_12_Validation}));
+  EXPECT_TRUE(vocabularies.contains_any(
+      {Known::JSON_Schema_2020_12_Content, Known::JSON_Schema_2020_12_Core}));
+  EXPECT_FALSE(vocabularies.contains_any(
+      {Known::JSON_Schema_2020_12_Content, Known::JSON_Schema_Draft_7}));
+}
+
+TEST(JSONSchema_vocabulary, contains_any_empty_list) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+
+  EXPECT_FALSE(vocabularies.contains_any({}));
+}
+
+TEST(JSONSchema_vocabulary, contains_any_matches_both_required_and_optional) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true},
+      {Known::JSON_Schema_2020_12_Validation, false}};
+
+  EXPECT_TRUE(vocabularies.contains_any({Known::JSON_Schema_2020_12_Core}));
+  EXPECT_TRUE(
+      vocabularies.contains_any({Known::JSON_Schema_2020_12_Validation}));
+}

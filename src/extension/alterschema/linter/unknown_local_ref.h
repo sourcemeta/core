@@ -11,8 +11,7 @@ public:
             const SchemaFrame &frame, const SchemaFrame::Location &location,
             const SchemaWalker &, const SchemaResolver &) const
       -> SchemaTransformRule::Result override {
-    ONLY_CONTINUE_IF(contains_any(
-        vocabularies,
+    ONLY_CONTINUE_IF(vocabularies.contains_any(
         {Vocabularies::Known::JSON_Schema_2020_12_Core,
          Vocabularies::Known::JSON_Schema_2019_09_Core,
          // In JSON Schema Draft 7 and older, `$ref` overrides siblings.

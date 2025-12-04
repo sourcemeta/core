@@ -24,11 +24,11 @@ public:
               Vocabularies::Known::JSON_Schema_2019_09_Validation) &&
           vocabularies.contains(
               Vocabularies::Known::JSON_Schema_2019_09_Applicator)) ||
-         contains_any(vocabularies,
-                      {Vocabularies::Known::JSON_Schema_Draft_7,
-                       Vocabularies::Known::JSON_Schema_Draft_6,
-                       Vocabularies::Known::JSON_Schema_Draft_4,
-                       Vocabularies::Known::JSON_Schema_Draft_3})) &&
+         vocabularies.contains_any(
+             {Vocabularies::Known::JSON_Schema_Draft_7,
+              Vocabularies::Known::JSON_Schema_Draft_6,
+              Vocabularies::Known::JSON_Schema_Draft_4,
+              Vocabularies::Known::JSON_Schema_Draft_3})) &&
         schema.is_object() && schema.defines("required") &&
         schema.at("required").is_array() && !schema.at("required").empty() &&
         !schema.defines("additionalProperties"));
