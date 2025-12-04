@@ -2923,3 +2923,13 @@ TEST(Regex_matches, ecma262_v_flag_invalid_unescaped_pipe) {
   const auto regex{sourcemeta::core::to_regex("[[|a]--[a]]")};
   EXPECT_FALSE(regex.has_value());
 }
+
+TEST(Regex_matches, ecma262_lookahead_with_negated_class) {
+  const auto regex{
+      sourcemeta::core::to_regex(R"(^(?=[^!*,;{}[\]~\n]+$)(?=(.*\w)).+$)")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "hello"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "test123"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "!invalid"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "no,comma"));
+}
