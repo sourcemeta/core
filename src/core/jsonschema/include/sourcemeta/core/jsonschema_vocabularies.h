@@ -92,6 +92,11 @@ public:
   /// Check if a known vocabulary is enabled
   [[nodiscard]] auto contains(Known vocabulary) const noexcept -> bool;
 
+  /// Check if any of the given known vocabularies are enabled
+  [[nodiscard]] auto
+  contains_any(std::initializer_list<Known> vocabularies) const noexcept
+      -> bool;
+
   /// Insert a vocabulary with its required/optional status
   auto insert(const JSON::String &uri, bool required) noexcept -> void;
 

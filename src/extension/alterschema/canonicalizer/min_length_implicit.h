@@ -14,20 +14,19 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    ONLY_CONTINUE_IF(
-        contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6,
-                      Vocabularies::Known::JSON_Schema_Draft_4,
-                      Vocabularies::Known::JSON_Schema_Draft_3,
-                      Vocabularies::Known::JSON_Schema_Draft_2,
-                      Vocabularies::Known::JSON_Schema_Draft_1}) &&
-        schema.is_object() && schema.defines("type") &&
-        schema.at("type").is_string() &&
-        schema.at("type").to_string() == "string" &&
-        !schema.defines("minLength"));
+    ONLY_CONTINUE_IF(vocabularies.contains_any(
+                         {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                          Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                          Vocabularies::Known::JSON_Schema_Draft_7,
+                          Vocabularies::Known::JSON_Schema_Draft_6,
+                          Vocabularies::Known::JSON_Schema_Draft_4,
+                          Vocabularies::Known::JSON_Schema_Draft_3,
+                          Vocabularies::Known::JSON_Schema_Draft_2,
+                          Vocabularies::Known::JSON_Schema_Draft_1}) &&
+                     schema.is_object() && schema.defines("type") &&
+                     schema.at("type").is_string() &&
+                     schema.at("type").to_string() == "string" &&
+                     !schema.defines("minLength"));
     return true;
   }
 

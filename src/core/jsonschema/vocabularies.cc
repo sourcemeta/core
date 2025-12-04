@@ -106,6 +106,17 @@ auto sourcemeta::core::Vocabularies::contains(Known vocabulary) const noexcept
   return this->required_known[index] || this->optional_known[index];
 }
 
+auto sourcemeta::core::Vocabularies::contains_any(
+    std::initializer_list<Known> vocabularies) const noexcept -> bool {
+  for (const auto &vocabulary : vocabularies) {
+    if (this->contains(vocabulary)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 auto sourcemeta::core::Vocabularies::insert(const JSON::String &uri,
                                             bool required) noexcept -> void {
   // We NEED to allow official vocabulary string URIs here, as that's how

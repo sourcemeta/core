@@ -16,11 +16,11 @@ public:
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
     ONLY_CONTINUE_IF(
-        contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Applicator,
-                      Vocabularies::Known::JSON_Schema_2019_09_Applicator,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6}) &&
+        vocabularies.contains_any(
+            {Vocabularies::Known::JSON_Schema_2020_12_Applicator,
+             Vocabularies::Known::JSON_Schema_2019_09_Applicator,
+             Vocabularies::Known::JSON_Schema_Draft_7,
+             Vocabularies::Known::JSON_Schema_Draft_6}) &&
         schema.is_object() && schema.defines("propertyNames") &&
         schema.at("propertyNames").is_object() &&
         schema.at("propertyNames").defines("type") &&

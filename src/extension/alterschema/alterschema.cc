@@ -7,17 +7,6 @@
 #include <utility>
 namespace sourcemeta::core {
 
-static auto contains_any(const Vocabularies &container,
-                         std::initializer_list<Vocabularies::Known> values)
-    -> bool {
-  for (const auto &value : values) {
-    if (container.contains(value)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 template <typename... Args>
 auto APPLIES_TO_KEYWORDS(Args &&...args) -> SchemaTransformRule::Result {
   std::vector<Pointer> result;

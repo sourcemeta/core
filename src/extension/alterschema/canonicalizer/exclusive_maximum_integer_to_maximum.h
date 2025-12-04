@@ -15,18 +15,17 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    ONLY_CONTINUE_IF(
-        contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6}) &&
-        schema.is_object() && schema.defines("type") &&
-        schema.at("type").is_string() &&
-        schema.at("type").to_string() == "integer" &&
-        schema.defines("exclusiveMaximum") &&
-        schema.at("exclusiveMaximum").is_number() &&
-        !schema.defines("maximum"));
+    ONLY_CONTINUE_IF(vocabularies.contains_any(
+                         {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                          Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                          Vocabularies::Known::JSON_Schema_Draft_7,
+                          Vocabularies::Known::JSON_Schema_Draft_6}) &&
+                     schema.is_object() && schema.defines("type") &&
+                     schema.at("type").is_string() &&
+                     schema.at("type").to_string() == "integer" &&
+                     schema.defines("exclusiveMaximum") &&
+                     schema.at("exclusiveMaximum").is_number() &&
+                     !schema.defines("maximum"));
     return APPLIES_TO_KEYWORDS("exclusiveMaximum", "type");
   }
 

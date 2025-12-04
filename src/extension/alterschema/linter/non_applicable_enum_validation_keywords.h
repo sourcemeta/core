@@ -15,20 +15,19 @@ public:
             const sourcemeta::core::SchemaWalker &walker,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    ONLY_CONTINUE_IF(
-        contains_any(vocabularies,
-                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
-                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
-                      Vocabularies::Known::JSON_Schema_Draft_7,
-                      Vocabularies::Known::JSON_Schema_Draft_6,
-                      Vocabularies::Known::JSON_Schema_Draft_4,
-                      Vocabularies::Known::JSON_Schema_Draft_3,
-                      Vocabularies::Known::JSON_Schema_Draft_2,
-                      Vocabularies::Known::JSON_Schema_Draft_2_Hyper,
-                      Vocabularies::Known::JSON_Schema_Draft_1,
-                      Vocabularies::Known::JSON_Schema_Draft_1_Hyper}) &&
-        schema.is_object() && schema.defines("enum") &&
-        schema.at("enum").is_array());
+    ONLY_CONTINUE_IF(vocabularies.contains_any(
+                         {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                          Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                          Vocabularies::Known::JSON_Schema_Draft_7,
+                          Vocabularies::Known::JSON_Schema_Draft_6,
+                          Vocabularies::Known::JSON_Schema_Draft_4,
+                          Vocabularies::Known::JSON_Schema_Draft_3,
+                          Vocabularies::Known::JSON_Schema_Draft_2,
+                          Vocabularies::Known::JSON_Schema_Draft_2_Hyper,
+                          Vocabularies::Known::JSON_Schema_Draft_1,
+                          Vocabularies::Known::JSON_Schema_Draft_1_Hyper}) &&
+                     schema.is_object() && schema.defines("enum") &&
+                     schema.at("enum").is_array());
 
     sourcemeta::core::JSON::TypeSet enum_types;
     for (const auto &value : schema.at("enum").as_array()) {
