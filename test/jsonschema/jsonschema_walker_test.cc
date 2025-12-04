@@ -33,52 +33,61 @@ static auto test_resolver(std::string_view identifier)
 
 static auto test_walker(std::string_view keyword,
                         const sourcemeta::core::Vocabularies &vocabularies)
-    -> sourcemeta::core::SchemaWalkerResult {
+    -> const sourcemeta::core::SchemaWalkerResult & {
+  using namespace sourcemeta::core;
+
   if (vocabularies.get("https://sourcemeta.com/vocab/test-1").has_value()) {
     if (keyword == "schema") {
-      return {sourcemeta::core::SchemaKeywordType::
-                  ApplicatorValueTraverseSomeProperty,
-              "https://sourcemeta.com/vocab/test-1",
-              {},
-              {}};
-    }
-
-    if (keyword == "schemas") {
-      return {
-          sourcemeta::core::SchemaKeywordType::ApplicatorElementsTraverseItem,
+      static const SchemaWalkerResult result{
+          SchemaKeywordType::ApplicatorValueTraverseSomeProperty,
           "https://sourcemeta.com/vocab/test-1",
           {},
           {}};
+      return result;
+    }
+
+    if (keyword == "schemas") {
+      static const SchemaWalkerResult result{
+          SchemaKeywordType::ApplicatorElementsTraverseItem,
+          "https://sourcemeta.com/vocab/test-1",
+          {},
+          {}};
+      return result;
     }
 
     if (keyword == "schemaMap") {
-      return {sourcemeta::core::SchemaKeywordType::
-                  ApplicatorMembersTraversePropertyStatic,
-              "https://sourcemeta.com/vocab/test-1",
-              {},
-              {}};
+      static const SchemaWalkerResult result{
+          SchemaKeywordType::ApplicatorMembersTraversePropertyStatic,
+          "https://sourcemeta.com/vocab/test-1",
+          {},
+          {}};
+      return result;
     }
 
     if (keyword == "schemaOrSchemas") {
-      return {sourcemeta::core::SchemaKeywordType::
-                  ApplicatorValueOrElementsTraverseAnyItemOrItem,
-              "https://sourcemeta.com/vocab/test-1",
-              {},
-              {}};
+      static const SchemaWalkerResult result{
+          SchemaKeywordType::ApplicatorValueOrElementsTraverseAnyItemOrItem,
+          "https://sourcemeta.com/vocab/test-1",
+          {},
+          {}};
+      return result;
     }
   }
 
   if (vocabularies.get("https://sourcemeta.com/vocab/test-2").has_value()) {
     if (keyword == "custom") {
-      return {sourcemeta::core::SchemaKeywordType::
-                  ApplicatorValueTraverseSomeProperty,
-              "https://sourcemeta.com/vocab/test-2",
-              {},
-              {}};
+      static const SchemaWalkerResult result{
+          SchemaKeywordType::ApplicatorValueTraverseSomeProperty,
+          "https://sourcemeta.com/vocab/test-2",
+          {},
+          {}};
+      return result;
     }
   }
 
-  return {sourcemeta::core::SchemaKeywordType::Unknown, std::nullopt, {}, {}};
+  static const SchemaWalkerResult unknown{
+      SchemaKeywordType::Unknown, std::nullopt, {}, {}};
+  return unknown;
 }
 
 TEST(JSONSchema_walker, true) {

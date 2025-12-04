@@ -26,9 +26,6 @@ namespace sourcemeta::core {
 /// @ingroup jsonschema
 /// Optimized vocabulary set using bitflags for known vocabularies
 /// and a fallback `std::unordered_map` for custom vocabularies.
-///
-/// TODO: To maximize performance gains, convert string-based vocabulary checks
-/// throughout the codebase to use enum-based methods.
 struct SOURCEMETA_CORE_JSONSCHEMA_EXPORT Vocabularies {
   enum class Known : std::uint8_t {
     // Pre-vocabulary dialects (treated as vocabularies)
