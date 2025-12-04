@@ -38,7 +38,7 @@ public:
 
     std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
-      const auto metadata = walker(entry.first, vocabularies);
+      const auto &metadata = walker(entry.first, vocabularies);
 
       // If instances is empty (none set), the keyword applies to all types
       if (metadata.instances.none()) {

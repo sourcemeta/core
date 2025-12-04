@@ -26,7 +26,7 @@ public:
 
     std::vector<Pointer> locations;
     for (const auto &entry : schema.as_object()) {
-      const auto metadata{walker(entry.first, vocabularies)};
+      const auto &metadata{walker(entry.first, vocabularies)};
       if (metadata.type == sourcemeta::core::SchemaKeywordType::Reference ||
           metadata.type == sourcemeta::core::SchemaKeywordType::Comment ||
           // If we disallow this, we end up deleting it and the linter will fail

@@ -1,1124 +1,2240 @@
 #include <sourcemeta/core/jsonschema.h>
 
-using Known = sourcemeta::core::Vocabularies::Known;
-using JSON = sourcemeta::core::JSON;
+#include <unordered_map> // std::unordered_map
 
-auto sourcemeta::core::schema_official_walker(
-    std::string_view keyword,
-    const sourcemeta::core::Vocabularies &vocabularies)
-    -> sourcemeta::core::SchemaWalkerResult {
-#define WALK(vocabulary, _keyword, _types, strategy, ...)                      \
-  if (vocabularies.contains(vocabulary) && keyword == _keyword)                \
-    return {sourcemeta::core::SchemaKeywordType::strategy,                     \
-            vocabulary,                                                        \
-            {__VA_ARGS__},                                                     \
-            _types};
+namespace sourcemeta::core {
 
-#define WALK_ANY(vocabulary_1, vocabulary_2, _keyword, types, strategy, ...)   \
-  WALK(vocabulary_1, _keyword, types, strategy, __VA_ARGS__)                   \
-  WALK(vocabulary_2, _keyword, types, strategy, __VA_ARGS__)
+namespace {
 
-#define WALK_MAYBE_DEPENDENT(vocabulary, _keyword, types, strategy,            \
-                             dependent_vocabulary, ...)                        \
-  if (vocabularies.contains(dependent_vocabulary)) {                           \
-    WALK(vocabulary, _keyword, types, strategy, __VA_ARGS__)                   \
-  } else {                                                                     \
-    WALK(vocabulary, _keyword, types, strategy)                                \
-  }
-  // 2020-12
-  WALK(Known::JSON_Schema_2020_12_Core, "$id", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$schema", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$ref", {}, Reference)
-  WALK(Known::JSON_Schema_2020_12_Core, "$defs", {}, LocationMembers)
-  // JSON Schema still defines this for backwards-compatibility
-  // See https://json-schema.org/draft/2020-12/schema
-  WALK(Known::JSON_Schema_2020_12_Core, "definitions", {}, LocationMembers)
-  WALK(Known::JSON_Schema_2020_12_Core, "$comment", {}, Comment)
-  WALK(Known::JSON_Schema_2020_12_Core, "$anchor", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$vocabulary", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Core, "$dynamicRef", {}, Reference)
-  WALK(Known::JSON_Schema_2020_12_Core, "$dynamicAnchor", {}, Other)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "oneOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "anyOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "allOf", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "if", {},
-       ApplicatorValueInPlaceMaybe)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "then", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "else", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "not", {},
-       ApplicatorValueInPlaceNegate)
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Applicator, "properties",
-                       sourcemeta::core::make_set({JSON::Type::Object}),
-                       ApplicatorMembersTraversePropertyStatic,
-                       Known::JSON_Schema_2020_12_Validation, "required")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "additionalProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "patternProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersTraversePropertyRegex)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "propertyNames",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseAnyPropertyKey)
-  WALK(Known::JSON_Schema_2020_12_Applicator, "dependentSchemas",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersInPlaceSome)
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Applicator, "contains",
-                       sourcemeta::core::make_set({JSON::Type::Array}),
-                       ApplicatorValueTraverseAnyItem,
-                       Known::JSON_Schema_2020_12_Validation, "minContains",
-                       "maxContains")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "items",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueTraverseSomeItem, "prefixItems")
-  WALK(Known::JSON_Schema_2020_12_Applicator, "prefixItems",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorElementsTraverseItem)
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Validation, "type", {},
-                       Assertion, Known::JSON_Schema_2020_12_Applicator,
-                       "properties")
-  WALK(Known::JSON_Schema_2020_12_Validation, "enum", {}, Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "const", {}, Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "pattern",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "exclusiveMinimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "multipleOf",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2020_12_Validation, "exclusiveMaximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2020_12_Validation, "dependentRequired",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "required",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "uniqueItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "minContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Validation, "maxContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "title", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "description", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "writeOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "readOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "examples", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "default", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Meta_Data, "deprecated", {}, Annotation)
-  WALK(Known::JSON_Schema_2020_12_Format_Annotation, "format",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2020_12_Unevaluated,
-                       "unevaluatedProperties",
-                       sourcemeta::core::make_set({JSON::Type::Object}),
-                       ApplicatorValueTraverseSomeProperty,
-                       Known::JSON_Schema_2020_12_Applicator, "properties",
-                       "patternProperties", "additionalProperties")
-  WALK_MAYBE_DEPENDENT(
-      Known::JSON_Schema_2020_12_Unevaluated, "unevaluatedItems",
-      sourcemeta::core::make_set({JSON::Type::Array}),
-      ApplicatorValueTraverseSomeItem, Known::JSON_Schema_2020_12_Applicator,
-      "prefixItems", "items", "contains")
-  WALK(Known::JSON_Schema_2020_12_Content, "contentSchema",
-       sourcemeta::core::make_set({JSON::Type::String}),
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2020_12_Content, "contentMediaType",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2020_12_Content, "contentEncoding",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2020_12_Format_Assertion, "format",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
+using Known = Vocabularies::Known;
+using KeywordHandler =
+    const SchemaWalkerResult &(*)(const Vocabularies &vocabularies);
 
-  // 2019-09
-  WALK(Known::JSON_Schema_2019_09_Core, "$id", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$schema", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$ref", {}, Reference)
-  WALK(Known::JSON_Schema_2019_09_Core, "$defs", {}, LocationMembers)
-  // JSON Schema still defines this for backwards-compatibility
-  // See https://json-schema.org/draft/2019-09/schema
-  WALK(Known::JSON_Schema_2019_09_Core, "definitions", {}, LocationMembers)
-  WALK(Known::JSON_Schema_2019_09_Core, "$comment", {}, Comment)
-  WALK(Known::JSON_Schema_2019_09_Core, "$anchor", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$vocabulary", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Core, "$recursiveRef", {}, Reference)
-  WALK(Known::JSON_Schema_2019_09_Core, "$recursiveAnchor", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "allOf", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "anyOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "oneOf", {},
-       ApplicatorElementsInPlaceSome)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "if", {},
-       ApplicatorValueInPlaceMaybe)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "then", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "else", {},
-       ApplicatorValueInPlaceMaybe, "if")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "not", {},
-       ApplicatorValueInPlaceNegate)
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2019_09_Applicator, "properties",
-                       sourcemeta::core::make_set({JSON::Type::Object}),
-                       ApplicatorMembersTraversePropertyStatic,
-                       Known::JSON_Schema_2019_09_Validation, "required")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "patternProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersTraversePropertyRegex)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "additionalProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "propertyNames",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseAnyPropertyKey)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "dependentSchemas",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorMembersInPlaceSome)
-  WALK(Known::JSON_Schema_2019_09_Applicator, "unevaluatedProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}),
-       ApplicatorValueTraverseSomeProperty, "properties", "patternProperties",
-       "additionalProperties")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "unevaluatedItems",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueTraverseSomeItem, "items", "additionalItems")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "items",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2019_09_Applicator, "contains",
-                       sourcemeta::core::make_set({JSON::Type::Array}),
-                       ApplicatorValueTraverseAnyItem,
-                       Known::JSON_Schema_2019_09_Validation, "minContains",
-                       "maxContains")
-  WALK(Known::JSON_Schema_2019_09_Applicator, "additionalItems",
-       sourcemeta::core::make_set({JSON::Type::Array}),
-       ApplicatorValueTraverseSomeItem, "items")
-  // For the purpose of compiler optimizations
-  WALK_MAYBE_DEPENDENT(Known::JSON_Schema_2019_09_Validation, "type", {},
-                       Assertion, Known::JSON_Schema_2019_09_Applicator,
-                       "properties")
-  WALK(Known::JSON_Schema_2019_09_Validation, "enum", {}, Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "const", {}, Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minLength",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "pattern",
-       sourcemeta::core::make_set({JSON::Type::String}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "exclusiveMaximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "multipleOf",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2019_09_Validation, "exclusiveMinimum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maximum",
-       sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-       Assertion, "type")
-  WALK(Known::JSON_Schema_2019_09_Validation, "required",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxProperties",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "dependentRequired",
-       sourcemeta::core::make_set({JSON::Type::Object}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "maxContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "minContains",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Validation, "uniqueItems",
-       sourcemeta::core::make_set({JSON::Type::Array}), Assertion)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "title", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "description", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "writeOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "readOnly", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "examples", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "deprecated", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Meta_Data, "default", {}, Annotation)
-  WALK(Known::JSON_Schema_2019_09_Format, "format",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2019_09_Content, "contentSchema",
-       sourcemeta::core::make_set({JSON::Type::String}),
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Content, "contentMediaType",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2019_09_Content, "contentEncoding",
-       sourcemeta::core::make_set({JSON::Type::String}), Annotation)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "base", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "links", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "hrefSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "headerSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "submissionSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "anchor", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "anchorPointer", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "href", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "rel", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "submissionMediaType", {},
-       Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "targetHints", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "targetMediaType", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "templatePointers", {}, Other)
-  WALK(Known::JSON_Schema_2019_09_Hyper_Schema, "templateRequired", {}, Other)
-  // Draft7
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "$id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "$comment", {}, Comment, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "type",
-           {}, Assertion, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "const", {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "multipleOf",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "contains", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseAnyItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "maxProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "minProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref", "required")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "propertyNames", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseAnyPropertyKey, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "if",
-           {}, ApplicatorValueInPlaceMaybe, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "then",
-           {}, ApplicatorValueInPlaceMaybe, "if")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "else",
-           {}, ApplicatorValueInPlaceMaybe, "if")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "allOf", {}, ApplicatorElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "anyOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "oneOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper, "not",
-           {}, ApplicatorValueInPlaceNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "contentMediaType", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "definitions", {}, LocationMembers, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "readOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "writeOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_7, Known::JSON_Schema_Draft_7_Hyper,
-           "examples", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "base", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "hrefSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "headerSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "submissionSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "anchor", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "anchorPointer", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "submissionMediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "targetHints", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "targetMediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "templatePointers", {}, Other)
-  WALK(Known::JSON_Schema_Draft_7_Hyper, "templateRequired", {}, Other)
+static const SchemaWalkerResult UNKNOWN_RESULT{
+    SchemaKeywordType::Unknown, std::nullopt, {}, {}};
 
-  // $ref also takes precedence over any unknown keyword
-  if ((vocabularies.contains(Known::JSON_Schema_Draft_7) ||
-       vocabularies.contains(Known::JSON_Schema_Draft_7_Hyper)) &&
-      keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
-  }
+static const SchemaWalkerResult UNKNOWN_WITH_REF_RESULT{
+    SchemaKeywordType::Unknown, std::nullopt, {"$ref"}, {}};
 
-  // Draft6
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "$id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "$comment", {}, Comment, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "type",
-           {}, Assertion, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "const", {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "multipleOf",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "contains", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseAnyItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "maxProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "minProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  // For the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref", "required")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "propertyNames", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseAnyPropertyKey, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "allOf", {}, ApplicatorElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "anyOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "oneOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper, "not",
-           {}, ApplicatorValueInPlaceNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "contentMediaType", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "definitions", {}, LocationMembers, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "readOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "writeOnly", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_6, Known::JSON_Schema_Draft_6_Hyper,
-           "examples", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "base", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "media", {}, Other, "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "hrefSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "submissionSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "submissionEncType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_6_Hyper, "mediaType", {}, Other)
-
-  // $ref also takes precedence over any unknown keyword
-  if ((vocabularies.contains(Known::JSON_Schema_Draft_6) ||
-       vocabularies.contains(Known::JSON_Schema_Draft_6_Hyper)) &&
-      keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
-  }
-
-  // Draft4
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "$ref",
-           {}, Reference)
-  // These dependencies are only for the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "type",
-           {}, Assertion, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "multipleOf",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "maxProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "minProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  // These dependencies are only for the purpose of compiler optimizations
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref", "required")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "allOf", {}, ApplicatorElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "anyOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "oneOf", {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper, "not",
-           {}, ApplicatorValueInPlaceNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "definitions", {}, LocationMembers, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_4, Known::JSON_Schema_Draft_4_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "fragmentResolution", {}, Other,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "media", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "pathStart", {}, Other, "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "encType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "schema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_4_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-
-  // $ref also takes precedence over any unknown keyword
-  if ((vocabularies.contains(Known::JSON_Schema_Draft_4) ||
-       vocabularies.contains(Known::JSON_Schema_Draft_4_Hyper)) &&
-      keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
-  }
-
-  // Draft3
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "id",
-           {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "$schema", {}, Other, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "disallow", {}, ApplicatorElementsInPlaceSomeNegate, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "patternProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyRegex, "$ref")
-  WALK_ANY(
-      Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-      "additionalProperties", sourcemeta::core::make_set({JSON::Type::Object}),
-      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "additionalItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueTraverseSomeItem, "items")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "required", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "dependencies", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersInPlaceSome, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper, "enum",
-           {}, Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "divisibleBy",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "exclusiveMinimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "exclusiveMaximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other,
-           "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "description", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "title", {}, Comment, "$ref")
-  WALK_ANY(Known::JSON_Schema_Draft_3, Known::JSON_Schema_Draft_3_Hyper,
-           "default", {}, Comment, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "fragmentResolution", {}, Other,
-       "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "root", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "readonly", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "contentEncoding", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "pathStart", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "mediaType", {}, Other, "$ref")
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "links", {}, ApplicatorElementsInPlace,
-       "$ref")
-  // Keywords from the Link Description Object are not affected by `$ref`, as
-  // `$ref` is not permitted there
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_3_Hyper, "enctype", {}, Other)
-
-  // $ref also takes precedence over any unknown keyword
-  if (vocabularies.contains(Known::JSON_Schema_Draft_3) && keyword != "$ref") {
-    return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-            .vocabulary = std::nullopt,
-            .dependencies = {"$ref"},
-            .instances = {}};
-  }
-
-  // Draft2
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "$schema", {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "id",
-           {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "additionalProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseSomeProperty, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper, "enum",
-           {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maximumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minimumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "uniqueItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "requires", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseParent)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "title", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "description", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "default", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "divisibleBy",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "disallow", {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace)
-  WALK_ANY(Known::JSON_Schema_Draft_2, Known::JSON_Schema_Draft_2_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "fragmentResolution", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "root", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "readonly", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "pathStart", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "alternate", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "links", {}, ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "targetSchema", {},
-       ApplicatorValueInPlaceOther)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_2_Hyper, "enctype", {}, Other)
-
-  // Draft1
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "$schema", {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "id",
-           {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "additionalProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseSomeProperty, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper, "enum",
-           {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maximumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minimumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "requires", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseParent)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "title", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "description", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "default", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "disallow", {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "optional", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_1, Known::JSON_Schema_Draft_1_Hyper,
-           "maxDecimal", sourcemeta::core::make_set({JSON::Type::Real}),
-           Assertion)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "fragmentResolution", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "root", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "readonly", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "pathStart", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "alternate", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "links", {}, ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_1_Hyper, "enctype", {}, Other)
-
-  // Draft0
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "$schema", {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "id",
-           {}, Other)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "$ref",
-           {}, Reference)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "items", sourcemeta::core::make_set({JSON::Type::Array}),
-           ApplicatorValueOrElementsTraverseAnyItemOrItem)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "properties", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorMembersTraversePropertyStatic)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "additionalProperties",
-           sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseSomeProperty, "properties")
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "type",
-           {}, ApplicatorElementsInPlaceSome)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper, "enum",
-           {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maximum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minimum",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maximumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minimumCanEqual",
-           sourcemeta::core::make_set({JSON::Type::Integer, JSON::Type::Real}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maxLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minLength", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "pattern", sourcemeta::core::make_set({JSON::Type::String}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maxItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "minItems", sourcemeta::core::make_set({JSON::Type::Array}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "requires", sourcemeta::core::make_set({JSON::Type::Object}),
-           ApplicatorValueTraverseParent)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "format", sourcemeta::core::make_set({JSON::Type::String}), Other)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "title", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "description", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "default", {}, Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "disallow", {}, Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "extends", {}, ApplicatorValueOrElementsInPlace)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "contentEncoding", sourcemeta::core::make_set({JSON::Type::String}),
-           Comment)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "optional", sourcemeta::core::make_set({JSON::Type::Object}),
-           Assertion)
-  WALK_ANY(Known::JSON_Schema_Draft_0, Known::JSON_Schema_Draft_0_Hyper,
-           "maxDecimal", sourcemeta::core::make_set({JSON::Type::Real}),
-           Assertion)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "fragmentResolution", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "root", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "readonly", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "pathStart", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "mediaType", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "alternate", {},
-       ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "links", {}, ApplicatorElementsInPlace)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "href", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "rel", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "method", {}, Other)
-  WALK(Known::JSON_Schema_Draft_0_Hyper, "enctype", {}, Other)
-#undef WALK
-#undef WALK_ANY
-#undef WALK_MAYBE_DEPENDENT
-  return {.type = sourcemeta::core::SchemaKeywordType::Unknown,
-          .vocabulary = std::nullopt,
-          .dependencies = {},
-          .instances = {}};
+auto has_draft3_to_7(const Vocabularies &vocabularies) -> bool {
+  return vocabularies.contains(Known::JSON_Schema_Draft_7) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_7_Hyper) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_6) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_6_Hyper) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_4) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_4_Hyper) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_3) ||
+         vocabularies.contains(Known::JSON_Schema_Draft_3_Hyper);
 }
+
+#define RETURN_WITH_DEPENDENCIES(_vocabulary, _types, _strategy, ...)          \
+  {                                                                            \
+    static const SchemaWalkerResult result{                                    \
+        SchemaKeywordType::_strategy, _vocabulary, {__VA_ARGS__}, _types};     \
+    return result;                                                             \
+  }
+
+#define RETURN(_vocabulary, _types, _strategy)                                 \
+  {                                                                            \
+    static const SchemaWalkerResult result{                                    \
+        SchemaKeywordType::_strategy, _vocabulary, {}, _types};                \
+    return result;                                                             \
+  }
+
+#define CHECK_VOCABULARY_WITH_DEPENDENCIES(_vocabulary, _types, _strategy,     \
+                                           ...)                                \
+  if (vocabularies.contains(_vocabulary)) {                                    \
+    RETURN_WITH_DEPENDENCIES(_vocabulary, _types, _strategy, __VA_ARGS__)      \
+  }
+
+#define CHECK_VOCABULARY(_vocabulary, _types, _strategy)                       \
+  if (vocabularies.contains(_vocabulary)) {                                    \
+    RETURN(_vocabulary, _types, _strategy)                                     \
+  }
+
+auto handle_dollar_id(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Other)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Other, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_schema(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Other)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_ref(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3_Hyper, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Reference)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Reference)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_defs(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, LocationMembers)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, LocationMembers)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_definitions(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, LocationMembers)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, LocationMembers)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     LocationMembers, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     LocationMembers, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {},
+                                     LocationMembers, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     LocationMembers, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {},
+                                     LocationMembers, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     LocationMembers, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_comment(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Comment)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_anchor(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_vocabulary(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_dynamicRef(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Reference)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_dynamicAnchor(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Core, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_recursiveRef(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Reference)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dollar_recursiveAnchor(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Core, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_id(const Vocabularies &vocabularies) -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {}, Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_oneOf(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_anyOf(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_allOf(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_if(const Vocabularies &vocabularies) -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator, {},
+                   ApplicatorValueInPlaceMaybe)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator, {},
+                   ApplicatorValueInPlaceMaybe)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorValueInPlaceMaybe, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorValueInPlaceMaybe, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_then(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_2020_12_Applicator, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_2019_09_Applicator, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_else(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_2020_12_Applicator, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_2019_09_Applicator, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorValueInPlaceMaybe, "if")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_not(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator, {},
+                   ApplicatorValueInPlaceNegate)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator, {},
+                   ApplicatorValueInPlaceNegate)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {},
+                                     ApplicatorValueInPlaceNegate, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorValueInPlaceNegate, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {},
+                                     ApplicatorValueInPlaceNegate, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     ApplicatorValueInPlaceNegate, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {},
+                                     ApplicatorValueInPlaceNegate, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     ApplicatorValueInPlaceNegate, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_properties(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Applicator)) {
+    if (vocabularies.contains(Known::JSON_Schema_2020_12_Validation)) {
+      RETURN_WITH_DEPENDENCIES(
+          Known::JSON_Schema_2020_12_Applicator, make_set({JSON::Type::Object}),
+          ApplicatorMembersTraversePropertyStatic, "required")
+    }
+    RETURN(Known::JSON_Schema_2020_12_Applicator,
+           make_set({JSON::Type::Object}),
+           ApplicatorMembersTraversePropertyStatic)
+  }
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Applicator)) {
+    if (vocabularies.contains(Known::JSON_Schema_2019_09_Validation)) {
+      RETURN_WITH_DEPENDENCIES(
+          Known::JSON_Schema_2019_09_Applicator, make_set({JSON::Type::Object}),
+          ApplicatorMembersTraversePropertyStatic, "required")
+    }
+    RETURN(Known::JSON_Schema_2019_09_Applicator,
+           make_set({JSON::Type::Object}),
+           ApplicatorMembersTraversePropertyStatic)
+  }
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref", "required")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref", "required")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref", "required")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref", "required")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref", "required")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref", "required")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyStatic, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyStatic)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyStatic)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyStatic)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyStatic)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyStatic)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyStatic)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_additionalProperties(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2020_12_Applicator, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2019_09_Applicator, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties", "patternProperties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_2, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_2_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_1, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_1_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_0, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_0_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseSomeProperty, "properties")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_patternProperties(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyRegex)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorMembersTraversePropertyRegex)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorMembersTraversePropertyRegex, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_propertyNames(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseAnyPropertyKey)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseAnyPropertyKey)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseAnyPropertyKey, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseAnyPropertyKey, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseAnyPropertyKey, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Object}),
+      ApplicatorValueTraverseAnyPropertyKey, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dependentSchemas(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator,
+                   make_set({JSON::Type::Object}), ApplicatorMembersInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator,
+                   make_set({JSON::Type::Object}), ApplicatorMembersInPlaceSome)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dependencies(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::Object}),
+                                     ApplicatorMembersInPlaceSome, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_contains(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Applicator)) {
+    if (vocabularies.contains(Known::JSON_Schema_2020_12_Validation)) {
+      RETURN_WITH_DEPENDENCIES(
+          Known::JSON_Schema_2020_12_Applicator, make_set({JSON::Type::Array}),
+          ApplicatorValueTraverseAnyItem, "minContains", "maxContains")
+    }
+    RETURN(Known::JSON_Schema_2020_12_Applicator, make_set({JSON::Type::Array}),
+           ApplicatorValueTraverseAnyItem)
+  }
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Applicator)) {
+    if (vocabularies.contains(Known::JSON_Schema_2019_09_Validation)) {
+      RETURN_WITH_DEPENDENCIES(
+          Known::JSON_Schema_2019_09_Applicator, make_set({JSON::Type::Array}),
+          ApplicatorValueTraverseAnyItem, "minContains", "maxContains")
+    }
+    RETURN(Known::JSON_Schema_2019_09_Applicator, make_set({JSON::Type::Array}),
+           ApplicatorValueTraverseAnyItem)
+  }
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseAnyItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseAnyItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseAnyItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseAnyItem, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_items(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2020_12_Applicator, make_set({JSON::Type::Array}),
+      ApplicatorValueTraverseSomeItem, "prefixItems")
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Applicator,
+                   make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper, make_set({JSON::Type::Array}),
+      ApplicatorValueOrElementsTraverseAnyItemOrItem, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Array}),
+                   ApplicatorValueOrElementsTraverseAnyItemOrItem)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_prefixItems(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Applicator,
+                   make_set({JSON::Type::Array}),
+                   ApplicatorElementsTraverseItem)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_additionalItems(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_2019_09_Applicator,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::Array}),
+                                     ApplicatorValueTraverseSomeItem, "items")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_unevaluatedProperties(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Unevaluated)) {
+    if (vocabularies.contains(Known::JSON_Schema_2020_12_Applicator)) {
+      RETURN_WITH_DEPENDENCIES(
+          Known::JSON_Schema_2020_12_Unevaluated,
+          make_set({JSON::Type::Object}), ApplicatorValueTraverseSomeProperty,
+          "properties", "patternProperties", "additionalProperties")
+    }
+    RETURN(Known::JSON_Schema_2020_12_Unevaluated,
+           make_set({JSON::Type::Object}), ApplicatorValueTraverseSomeProperty)
+  }
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Applicator)) {
+    RETURN_WITH_DEPENDENCIES(Known::JSON_Schema_2019_09_Applicator,
+                             make_set({JSON::Type::Object}),
+                             ApplicatorValueTraverseSomeProperty, "properties",
+                             "patternProperties", "additionalProperties")
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_unevaluatedItems(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Unevaluated)) {
+    if (vocabularies.contains(Known::JSON_Schema_2020_12_Applicator)) {
+      RETURN_WITH_DEPENDENCIES(
+          Known::JSON_Schema_2020_12_Unevaluated, make_set({JSON::Type::Array}),
+          ApplicatorValueTraverseSomeItem, "prefixItems", "items", "contains")
+    }
+    RETURN(Known::JSON_Schema_2020_12_Unevaluated,
+           make_set({JSON::Type::Array}), ApplicatorValueTraverseSomeItem)
+  }
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Applicator)) {
+    RETURN_WITH_DEPENDENCIES(
+        Known::JSON_Schema_2019_09_Applicator, make_set({JSON::Type::Array}),
+        ApplicatorValueTraverseSomeItem, "items", "additionalItems")
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_type(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  if (vocabularies.contains(Known::JSON_Schema_2020_12_Validation)) {
+    if (vocabularies.contains(Known::JSON_Schema_2020_12_Applicator)) {
+      RETURN_WITH_DEPENDENCIES(Known::JSON_Schema_2020_12_Validation, {},
+                               Assertion, "properties")
+    }
+    RETURN(Known::JSON_Schema_2020_12_Validation, {}, Assertion)
+  }
+  if (vocabularies.contains(Known::JSON_Schema_2019_09_Validation)) {
+    if (vocabularies.contains(Known::JSON_Schema_2019_09_Applicator)) {
+      RETURN_WITH_DEPENDENCIES(Known::JSON_Schema_2019_09_Validation, {},
+                               Assertion, "properties")
+    }
+    RETURN(Known::JSON_Schema_2019_09_Validation, {}, Assertion)
+  }
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Assertion,
+                                     ("properties"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Assertion, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Assertion,
+                                     ("properties"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Assertion, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Assertion,
+                                     ("properties"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Assertion, "properties")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     ApplicatorElementsInPlaceSome, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {},
+                   ApplicatorElementsInPlaceSome)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {},
+                   ApplicatorElementsInPlaceSome)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_enum(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation, {}, Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {}, Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Assertion, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_const(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation, {}, Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Assertion, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_multipleOf(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maximum(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2020_12_Validation,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "type")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2019_09_Validation,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "type")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_minimum(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2020_12_Validation,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "type")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_2019_09_Validation,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "type")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_exclusiveMaximum(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_exclusiveMinimum(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_7_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_6_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_4_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maxLength(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_minLength(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_pattern(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::String}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::String}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::String}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maxItems(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_minItems(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_uniqueItems(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::Array}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::Array}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Array}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maxProperties(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_minProperties(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_required(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::Object}), Assertion,
+                                     "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_dependentRequired(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Object}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_minContains(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maxContains(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Validation,
+                   make_set({JSON::Type::Array}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_title(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Comment)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_description(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Comment)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_default(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Comment)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_deprecated(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_readOnly(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_writeOnly(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_examples(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Meta_Data, {}, Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Comment, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6, {}, Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Comment, "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_format(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Format_Assertion,
+                   make_set({JSON::Type::String}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Format_Annotation,
+                   make_set({JSON::Type::String}), Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Format,
+                   make_set({JSON::Type::String}), Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::String}), Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::String}), Other,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::String}), Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::String}), Other,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4,
+                                     make_set({JSON::Type::String}), Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper,
+                                     make_set({JSON::Type::String}), Other,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3,
+                                     make_set({JSON::Type::String}), Other,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper,
+                                     make_set({JSON::Type::String}), Other,
+                                     "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::String}),
+                   Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::String}), Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::String}),
+                   Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::String}), Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::String}),
+                   Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::String}), Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_contentSchema(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Content,
+                   make_set({JSON::Type::String}), ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Content,
+                   make_set({JSON::Type::String}), ApplicatorValueInPlaceOther)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_contentMediaType(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Content,
+                   make_set({JSON::Type::String}), Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Content,
+                   make_set({JSON::Type::String}), Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::String}), Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::String}), Comment,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::String}), Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::String}), Comment,
+                                     "$ref")
+  return UNKNOWN_RESULT;
+}
+
+auto handle_contentEncoding(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2020_12_Content,
+                   make_set({JSON::Type::String}), Annotation)
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Content,
+                   make_set({JSON::Type::String}), Annotation)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7,
+                                     make_set({JSON::Type::String}), Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper,
+                                     make_set({JSON::Type::String}), Comment,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6,
+                                     make_set({JSON::Type::String}), Comment,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper,
+                                     make_set({JSON::Type::String}), Comment,
+                                     "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  if (vocabularies.contains(Known::JSON_Schema_Draft_3) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_4)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::String}),
+                   Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::String}), Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::String}),
+                   Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::String}), Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::String}),
+                   Comment)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::String}), Comment)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_extends(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {},
+                                     ApplicatorValueOrElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     ApplicatorValueOrElementsInPlace, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {},
+                   ApplicatorValueOrElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {},
+                   ApplicatorValueOrElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {},
+                   ApplicatorValueOrElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {},
+                   ApplicatorValueOrElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {},
+                   ApplicatorValueOrElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {},
+                   ApplicatorValueOrElementsInPlace)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_disallow(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3, {},
+                                     ApplicatorElementsInPlaceSomeNegate,
+                                     ("$ref"))
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     ApplicatorElementsInPlaceSomeNegate,
+                                     ("$ref"))
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, {}, Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_divisibleBy(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(
+      Known::JSON_Schema_Draft_3_Hyper,
+      make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maximumCanEqual(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_minimumCanEqual(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Integer, JSON::Type::Real}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_requires(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2, make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseParent)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseParent)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseParent)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseParent)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseParent)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Object}),
+                   ApplicatorValueTraverseParent)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_optional(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Object}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Object}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Object}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Object}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_maxDecimal(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1, make_set({JSON::Type::Real}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper,
+                   make_set({JSON::Type::Real}), Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0, make_set({JSON::Type::Real}),
+                   Assertion)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper,
+                   make_set({JSON::Type::Real}), Assertion)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_links(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     ApplicatorElementsInPlace, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {},
+                   ApplicatorElementsInPlace)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_base(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_7_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Other, "$ref")
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_anchor(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_anchorPointer(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_rel(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_href(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_templatePointers(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_templateRequired(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_targetMediaType(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_targetHints(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_submissionMediaType(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_hrefSchema(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_targetSchema(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_headerSchema(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_submissionSchema(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_2019_09_Hyper_Schema, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_7_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_media(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_6_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Other, "$ref")
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_fragmentResolution(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_root(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_readonly(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_pathStart(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_4_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_mediaType(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {}, Other)
+  CHECK_VOCABULARY_WITH_DEPENDENCIES(Known::JSON_Schema_Draft_3_Hyper, {},
+                                     Other, "$ref")
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_alternate(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {},
+                   ApplicatorElementsInPlace)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {},
+                   ApplicatorElementsInPlace)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_method(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_enctype(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_3_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_2_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_1_Hyper, {}, Other)
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_0_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_encType(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_submissionEncType(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_6_Hyper, {}, Other)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+auto handle_schema_hyper(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::JSON_Schema_Draft_4_Hyper, {},
+                   ApplicatorValueInPlaceOther)
+  if (has_draft3_to_7(vocabularies)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+  return UNKNOWN_RESULT;
+}
+
+#undef RETURN_WITH_DEPENDENCIES
+#undef RETURN
+#undef CHECK_VOCABULARY_WITH_DEPENDENCIES
+#undef CHECK_VOCABULARY
+
+} // anonymous namespace
+
+auto schema_official_walker(std::string_view keyword,
+                            const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  // TODO: Make use of JSON key's perfect hashes, as we mostly run the walker by
+  // checking JSON property names
+  static const std::unordered_map<std::string_view, KeywordHandler> handlers{
+      {"$id", handle_dollar_id},
+      {"$schema", handle_dollar_schema},
+      {"$ref", handle_dollar_ref},
+      {"$defs", handle_dollar_defs},
+      {"definitions", handle_definitions},
+      {"$comment", handle_dollar_comment},
+      {"$anchor", handle_dollar_anchor},
+      {"$vocabulary", handle_dollar_vocabulary},
+      {"$dynamicRef", handle_dollar_dynamicRef},
+      {"$dynamicAnchor", handle_dollar_dynamicAnchor},
+      {"$recursiveRef", handle_dollar_recursiveRef},
+      {"$recursiveAnchor", handle_dollar_recursiveAnchor},
+      {"id", handle_id},
+      {"oneOf", handle_oneOf},
+      {"anyOf", handle_anyOf},
+      {"allOf", handle_allOf},
+      {"if", handle_if},
+      {"then", handle_then},
+      {"else", handle_else},
+      {"not", handle_not},
+      {"properties", handle_properties},
+      {"additionalProperties", handle_additionalProperties},
+      {"patternProperties", handle_patternProperties},
+      {"propertyNames", handle_propertyNames},
+      {"dependentSchemas", handle_dependentSchemas},
+      {"dependencies", handle_dependencies},
+      {"contains", handle_contains},
+      {"items", handle_items},
+      {"prefixItems", handle_prefixItems},
+      {"additionalItems", handle_additionalItems},
+      {"unevaluatedProperties", handle_unevaluatedProperties},
+      {"unevaluatedItems", handle_unevaluatedItems},
+      {"type", handle_type},
+      {"enum", handle_enum},
+      {"const", handle_const},
+      {"multipleOf", handle_multipleOf},
+      {"maximum", handle_maximum},
+      {"minimum", handle_minimum},
+      {"exclusiveMaximum", handle_exclusiveMaximum},
+      {"exclusiveMinimum", handle_exclusiveMinimum},
+      {"maxLength", handle_maxLength},
+      {"minLength", handle_minLength},
+      {"pattern", handle_pattern},
+      {"maxItems", handle_maxItems},
+      {"minItems", handle_minItems},
+      {"uniqueItems", handle_uniqueItems},
+      {"maxProperties", handle_maxProperties},
+      {"minProperties", handle_minProperties},
+      {"required", handle_required},
+      {"dependentRequired", handle_dependentRequired},
+      {"minContains", handle_minContains},
+      {"maxContains", handle_maxContains},
+      {"title", handle_title},
+      {"description", handle_description},
+      {"default", handle_default},
+      {"deprecated", handle_deprecated},
+      {"readOnly", handle_readOnly},
+      {"writeOnly", handle_writeOnly},
+      {"examples", handle_examples},
+      {"format", handle_format},
+      {"contentSchema", handle_contentSchema},
+      {"contentMediaType", handle_contentMediaType},
+      {"contentEncoding", handle_contentEncoding},
+      {"extends", handle_extends},
+      {"disallow", handle_disallow},
+      {"divisibleBy", handle_divisibleBy},
+      {"maximumCanEqual", handle_maximumCanEqual},
+      {"minimumCanEqual", handle_minimumCanEqual},
+      {"requires", handle_requires},
+      {"optional", handle_optional},
+      {"maxDecimal", handle_maxDecimal},
+      {"links", handle_links},
+      {"base", handle_base},
+      {"anchor", handle_anchor},
+      {"anchorPointer", handle_anchorPointer},
+      {"rel", handle_rel},
+      {"href", handle_href},
+      {"templatePointers", handle_templatePointers},
+      {"templateRequired", handle_templateRequired},
+      {"targetMediaType", handle_targetMediaType},
+      {"targetHints", handle_targetHints},
+      {"submissionMediaType", handle_submissionMediaType},
+      {"hrefSchema", handle_hrefSchema},
+      {"targetSchema", handle_targetSchema},
+      {"headerSchema", handle_headerSchema},
+      {"submissionSchema", handle_submissionSchema},
+      {"media", handle_media},
+      {"fragmentResolution", handle_fragmentResolution},
+      {"root", handle_root},
+      {"readonly", handle_readonly},
+      {"pathStart", handle_pathStart},
+      {"mediaType", handle_mediaType},
+      {"alternate", handle_alternate},
+      {"method", handle_method},
+      {"enctype", handle_enctype},
+      {"encType", handle_encType},
+      {"submissionEncType", handle_submissionEncType},
+      {"schema", handle_schema_hyper},
+  };
+
+  const auto iterator = handlers.find(keyword);
+  if (iterator != handlers.end()) {
+    return iterator->second(vocabularies);
+  }
+
+  if (vocabularies.contains(Known::JSON_Schema_Draft_7) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_7_Hyper) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_6) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_6_Hyper) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_4) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_4_Hyper) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_3) ||
+      vocabularies.contains(Known::JSON_Schema_Draft_3_Hyper)) {
+    return UNKNOWN_WITH_REF_RESULT;
+  }
+
+  return UNKNOWN_RESULT;
+}
+
+} // namespace sourcemeta::core
