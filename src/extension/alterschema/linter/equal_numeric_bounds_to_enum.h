@@ -17,10 +17,10 @@ public:
       -> sourcemeta::core::SchemaTransformRule::Result override {
     ONLY_CONTINUE_IF(
         contains_any(vocabularies,
-                     {"http://json-schema.org/draft-04/schema#",
-                      "http://json-schema.org/draft-03/schema#",
-                      "http://json-schema.org/draft-02/schema#",
-                      "http://json-schema.org/draft-01/schema#"}) &&
+                     {Vocabularies::Known::JSON_Schema_Draft_4,
+                      Vocabularies::Known::JSON_Schema_Draft_3,
+                      Vocabularies::Known::JSON_Schema_Draft_2,
+                      Vocabularies::Known::JSON_Schema_Draft_1}) &&
         schema.is_object() && schema.defines("type") &&
         schema.at("type").is_string() &&
         (schema.at("type").to_string() == "integer" ||

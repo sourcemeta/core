@@ -419,9 +419,12 @@ public:
       return false;
     }
 
-    return vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
-           vocabularies.contains("http://json-schema.org/draft-06/schema#") ||
-           vocabularies.contains("http://json-schema.org/draft-04/schema#");
+    return vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_7) ||
+           vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_6) ||
+           vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_4);
   }
 
   auto transform(sourcemeta::core::JSON &schema,
@@ -450,10 +453,10 @@ public:
       return false;
     }
 
-    return vocabularies.contains(
-               "https://json-schema.org/draft/2020-12/vocab/core") ||
+    return vocabularies.contains(sourcemeta::core::Vocabularies::Known::
+                                     JSON_Schema_2020_12_Core) ||
            vocabularies.contains(
-               "https://json-schema.org/draft/2019-09/vocab/core");
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_2019_09_Core);
   }
 
   auto transform(sourcemeta::core::JSON &schema,

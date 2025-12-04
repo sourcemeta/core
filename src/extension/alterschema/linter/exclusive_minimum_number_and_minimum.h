@@ -17,10 +17,10 @@ public:
       -> sourcemeta::core::SchemaTransformRule::Result override {
     ONLY_CONTINUE_IF(
         contains_any(vocabularies,
-                     {"https://json-schema.org/draft/2020-12/vocab/validation",
-                      "https://json-schema.org/draft/2019-09/vocab/validation",
-                      "http://json-schema.org/draft-07/schema#",
-                      "http://json-schema.org/draft-06/schema#"}) &&
+                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                      Vocabularies::Known::JSON_Schema_Draft_7,
+                      Vocabularies::Known::JSON_Schema_Draft_6}) &&
         schema.is_object() && schema.defines("minimum") &&
         schema.defines("exclusiveMinimum") &&
         schema.at("minimum").is_number() &&

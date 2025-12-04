@@ -15,15 +15,14 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
-    ONLY_CONTINUE_IF(
-        contains_any(vocabularies,
-                     {"http://json-schema.org/draft-07/schema#",
-                      "http://json-schema.org/draft-06/schema#",
-                      "http://json-schema.org/draft-04/schema#",
-                      "http://json-schema.org/draft-03/schema#"}) &&
-        schema.is_object() && schema.defines("dependencies") &&
-        schema.at("dependencies").is_object() &&
-        schema.at("dependencies").empty());
+    ONLY_CONTINUE_IF(contains_any(vocabularies,
+                                  {Vocabularies::Known::JSON_Schema_Draft_7,
+                                   Vocabularies::Known::JSON_Schema_Draft_6,
+                                   Vocabularies::Known::JSON_Schema_Draft_4,
+                                   Vocabularies::Known::JSON_Schema_Draft_3}) &&
+                     schema.is_object() && schema.defines("dependencies") &&
+                     schema.at("dependencies").is_object() &&
+                     schema.at("dependencies").empty());
     return APPLIES_TO_KEYWORDS("dependencies");
   }
 

@@ -83,9 +83,17 @@ sourcemeta::core::Vocabularies::Vocabularies(
 auto sourcemeta::core::Vocabularies::contains(
     const JSON::String &uri) const noexcept -> bool {
   const auto maybe_known = uri_to_known_vocabulary(uri);
+
+  // As a debug build check: Going through this branch is slow. If it is a known
+  // vocabulary, the consumer should be making use of the enum overload of this
+  // method
+  // TODO: Re-enable this
+  // assert(!maybe_known.has_value());
+
   if (maybe_known.has_value()) {
     return this->contains(maybe_known.value());
   }
+
   const auto iterator = this->custom.find(uri);
   return iterator != this->custom.end();
 }

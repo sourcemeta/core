@@ -18,18 +18,18 @@ public:
 
     std::set<JSON::Type> current_types;
     if (contains_any(vocabularies,
-                     {"https://json-schema.org/draft/2020-12/vocab/validation",
-                      "https://json-schema.org/draft/2019-09/vocab/validation",
-                      "http://json-schema.org/draft-07/schema#",
-                      "http://json-schema.org/draft-06/schema#",
-                      "http://json-schema.org/draft-04/schema#",
-                      "http://json-schema.org/draft-03/schema#",
-                      "http://json-schema.org/draft-02/schema#",
-                      "http://json-schema.org/draft-02/hyper-schema#",
-                      "http://json-schema.org/draft-01/schema#",
-                      "http://json-schema.org/draft-01/hyper-schema#",
-                      "http://json-schema.org/draft-00/schema#",
-                      "http://json-schema.org/draft-00/hyper-schema#"}) &&
+                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                      Vocabularies::Known::JSON_Schema_Draft_7,
+                      Vocabularies::Known::JSON_Schema_Draft_6,
+                      Vocabularies::Known::JSON_Schema_Draft_4,
+                      Vocabularies::Known::JSON_Schema_Draft_3,
+                      Vocabularies::Known::JSON_Schema_Draft_2,
+                      Vocabularies::Known::JSON_Schema_Draft_2_Hyper,
+                      Vocabularies::Known::JSON_Schema_Draft_1,
+                      Vocabularies::Known::JSON_Schema_Draft_1_Hyper,
+                      Vocabularies::Known::JSON_Schema_Draft_0,
+                      Vocabularies::Known::JSON_Schema_Draft_0_Hyper}) &&
         schema.defines("type")) {
       if (schema.at("type").is_string()) {
         parse_schema_type(
@@ -48,14 +48,14 @@ public:
     }
 
     if (contains_any(vocabularies,
-                     {"https://json-schema.org/draft/2020-12/vocab/validation",
-                      "https://json-schema.org/draft/2019-09/vocab/validation",
-                      "http://json-schema.org/draft-07/schema#",
-                      "http://json-schema.org/draft-06/schema#",
-                      "http://json-schema.org/draft-04/schema#",
-                      "http://json-schema.org/draft-03/schema#",
-                      "http://json-schema.org/draft-02/schema#",
-                      "http://json-schema.org/draft-01/schema#"}) &&
+                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                      Vocabularies::Known::JSON_Schema_Draft_7,
+                      Vocabularies::Known::JSON_Schema_Draft_6,
+                      Vocabularies::Known::JSON_Schema_Draft_4,
+                      Vocabularies::Known::JSON_Schema_Draft_3,
+                      Vocabularies::Known::JSON_Schema_Draft_2,
+                      Vocabularies::Known::JSON_Schema_Draft_1}) &&
         schema.defines("enum") && schema.at("enum").is_array()) {
       for (const auto &entry : schema.at("enum").as_array()) {
         current_types.emplace(entry.type());
@@ -63,10 +63,10 @@ public:
     }
 
     if (contains_any(vocabularies,
-                     {"https://json-schema.org/draft/2020-12/vocab/validation",
-                      "https://json-schema.org/draft/2019-09/vocab/validation",
-                      "http://json-schema.org/draft-07/schema#",
-                      "http://json-schema.org/draft-06/schema#"}) &&
+                     {Vocabularies::Known::JSON_Schema_2020_12_Validation,
+                      Vocabularies::Known::JSON_Schema_2019_09_Validation,
+                      Vocabularies::Known::JSON_Schema_Draft_7,
+                      Vocabularies::Known::JSON_Schema_Draft_6}) &&
         schema.defines("const")) {
       current_types.emplace(schema.at("const").type());
     }
