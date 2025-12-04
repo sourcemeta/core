@@ -6,9 +6,10 @@
 #include <iterator>
 #include <utility>
 namespace sourcemeta::core {
-// TODO: Move this to `Vocabularies::contains_any` or something like that
+
 static auto contains_any(const Vocabularies &container,
-                         const std::set<std::string> &values) -> bool {
+                         std::initializer_list<Vocabularies::Known> values)
+    -> bool {
   for (const auto &value : values) {
     if (container.contains(value)) {
       return true;
