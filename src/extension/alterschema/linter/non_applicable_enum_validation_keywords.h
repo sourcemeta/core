@@ -30,25 +30,25 @@ public:
         schema.is_object() && schema.defines("enum") &&
         schema.at("enum").is_array());
 
-    std::set<sourcemeta::core::JSON::Type> enum_types;
+    sourcemeta::core::JSON::TypeSet enum_types;
     for (const auto &value : schema.at("enum").as_array()) {
-      enum_types.emplace(value.type());
+      enum_types.set(static_cast<std::size_t>(value.type()));
     }
 
-    ONLY_CONTINUE_IF(!enum_types.empty());
+    ONLY_CONTINUE_IF(enum_types.any());
 
     std::vector<Pointer> positions;
     for (const auto &entry : schema.as_object()) {
       const auto metadata = walker(entry.first, vocabularies);
 
-      if (metadata.instances.empty()) {
+      // If instances is empty (none set), the keyword applies to all types
+      if (metadata.instances.none()) {
         continue;
       }
 
-      if (std::ranges::none_of(metadata.instances,
-                               [&enum_types](const auto keyword_type) {
-                                 return enum_types.contains(keyword_type);
-                               })) {
+      // Check if there's any overlap between keyword's applicable types and
+      // enum types
+      if ((metadata.instances & enum_types).none()) {
         positions.push_back(Pointer{entry.first});
       }
     }

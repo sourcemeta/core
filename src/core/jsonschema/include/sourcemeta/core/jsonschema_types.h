@@ -158,12 +158,12 @@ struct SchemaWalkerResult {
   SchemaKeywordType type;
   /// The vocabulary associated with the keyword, if any
   std::optional<Vocabularies::URI> vocabulary;
+  // TODO: Here we are copying every time
   /// The keywords a given keyword depends on (if any) during the evaluation
   /// process
   std::unordered_set<JSON::String> dependencies;
-  // TODO: This could be a bitset
-  /// The JSON instance types that this keyword applies to (or to all of them)
-  std::unordered_set<JSON::Type> instances;
+  /// The JSON instance types that this keyword applies to (empty means all)
+  JSON::TypeSet instances;
 };
 
 /// @ingroup jsonschema
