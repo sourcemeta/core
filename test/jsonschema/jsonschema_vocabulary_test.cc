@@ -330,3 +330,52 @@ TEST(JSONSchema_vocabulary, contains_any_matches_both_required_and_optional) {
   EXPECT_TRUE(
       vocabularies.contains_any({Known::JSON_Schema_2020_12_Validation}));
 }
+
+TEST(JSONSchema_vocabulary, uri_to_string_known_variant) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+  using URI = sourcemeta::core::Vocabularies::URI;
+
+  const URI vocabulary{Known::JSON_Schema_2020_12_Core};
+  std::ostringstream stream;
+  stream << vocabulary;
+  EXPECT_EQ(stream.str(), "https://json-schema.org/draft/2020-12/vocab/core");
+}
+
+TEST(JSONSchema_vocabulary, uri_to_string_custom_variant) {
+  using URI = sourcemeta::core::Vocabularies::URI;
+
+  const URI vocabulary{
+      sourcemeta::core::JSON::String{"https://example.com/custom-vocab"}};
+  std::ostringstream stream;
+  stream << vocabulary;
+  EXPECT_EQ(stream.str(), "https://example.com/custom-vocab");
+}
+
+TEST(JSONSchema_vocabulary, to_string_known) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  EXPECT_EQ(sourcemeta::core::to_string(Known::JSON_Schema_2020_12_Core),
+            "https://json-schema.org/draft/2020-12/vocab/core");
+  EXPECT_EQ(sourcemeta::core::to_string(Known::JSON_Schema_2019_09_Applicator),
+            "https://json-schema.org/draft/2019-09/vocab/applicator");
+  EXPECT_EQ(sourcemeta::core::to_string(Known::JSON_Schema_Draft_7),
+            "http://json-schema.org/draft-07/schema#");
+}
+
+TEST(JSONSchema_vocabulary, to_string_uri_known_variant) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+  using URI = sourcemeta::core::Vocabularies::URI;
+
+  const URI vocabulary{Known::JSON_Schema_2020_12_Validation};
+  EXPECT_EQ(sourcemeta::core::to_string(vocabulary),
+            "https://json-schema.org/draft/2020-12/vocab/validation");
+}
+
+TEST(JSONSchema_vocabulary, to_string_uri_custom_variant) {
+  using URI = sourcemeta::core::Vocabularies::URI;
+
+  const URI vocabulary{
+      sourcemeta::core::JSON::String{"https://example.com/my-vocab"}};
+  EXPECT_EQ(sourcemeta::core::to_string(vocabulary),
+            "https://example.com/my-vocab");
+}
