@@ -83,7 +83,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_official_resolver_test.cc
     jsonschema_parse_type_test.cc
     jsonschema_format_test.cc
-    jsonschema_wrap_test.cc)
+    jsonschema_wrap_test.cc
+    jsonschema_json_auto_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonschema_unit
   PRIVATE sourcemeta::core::json)
