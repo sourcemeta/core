@@ -259,8 +259,7 @@ TEST(URI_path_setter_no_scheme, set_path_on_ip_address) {
   EXPECT_EQ(uri.recompose(), "/admin2");
 }
 
-// TODO: dig why scheme return example.com
-TEST(URI_path_setter_no_scheme, set_path_with_port) {
+TEST(URI_path_setter, set_path_with_port) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
 
   uri.path("/test");
