@@ -108,6 +108,19 @@ static void Schema_Tracker_ISO_Country_To_JSON(benchmark::State &state) {
   }
 }
 
+static void Schema_Format_ISO_Country_To_JSON(benchmark::State &state) {
+  for (auto _ : state) {
+    state.PauseTiming();
+    auto schema{sourcemeta::core::read_json(
+        std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+        "2020_12_iso_country_2023_set_3.json")};
+    state.ResumeTiming();
+    sourcemeta::core::format(schema, sourcemeta::core::schema_official_walker,
+                             sourcemeta::core::schema_official_resolver);
+    assert(schema.is_object());
+  }
+}
+
 static void Schema_Bundle_Meta_2020_12(benchmark::State &state) {
   for (auto _ : state) {
     state.PauseTiming();
@@ -128,4 +141,5 @@ BENCHMARK(Schema_Frame_ISO_Country_Locations);
 BENCHMARK(Schema_Frame_ISO_Country_Locations_To_JSON);
 BENCHMARK(Schema_Tracker_ISO_Country);
 BENCHMARK(Schema_Tracker_ISO_Country_To_JSON);
+BENCHMARK(Schema_Format_ISO_Country_To_JSON);
 BENCHMARK(Schema_Bundle_Meta_2020_12);
