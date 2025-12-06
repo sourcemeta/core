@@ -606,6 +606,57 @@ TEST(JSON_object, assign_if_missing_missing_rvalue) {
   EXPECT_EQ(document.at("baz").to_integer(), 1);
 }
 
+TEST(JSON_object, assign_assume_new_rvalue) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+
+  document.assign_assume_new("foo", sourcemeta::core::JSON{false});
+  document.assign_assume_new("bar", sourcemeta::core::JSON{42});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.object_size(), 2);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_FALSE(document.at("foo").to_boolean());
+  EXPECT_EQ(document.at("bar").to_integer(), 42);
+}
+
+TEST(JSON_object, assign_assume_new_rvalue_key) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+
+  std::string key1{"foo"};
+  std::string key2{"bar"};
+  document.assign_assume_new(std::move(key1), sourcemeta::core::JSON{false});
+  document.assign_assume_new(std::move(key2), sourcemeta::core::JSON{42});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.object_size(), 2);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_FALSE(document.at("foo").to_boolean());
+  EXPECT_EQ(document.at("bar").to_integer(), 42);
+}
+
+TEST(JSON_object, assign_assume_new_multiple_types) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  document.assign_assume_new("string", sourcemeta::core::JSON{"hello"});
+  document.assign_assume_new("integer", sourcemeta::core::JSON{123});
+  document.assign_assume_new("boolean", sourcemeta::core::JSON{true});
+  document.assign_assume_new("null", sourcemeta::core::JSON{nullptr});
+
+  EXPECT_EQ(document.size(), 4);
+  EXPECT_EQ(document.at("string").to_string(), "hello");
+  EXPECT_EQ(document.at("integer").to_integer(), 123);
+  EXPECT_TRUE(document.at("boolean").to_boolean());
+  EXPECT_TRUE(document.at("null").is_null());
+}
+
 TEST(JSON_object, estimated_byte_size_integers) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
