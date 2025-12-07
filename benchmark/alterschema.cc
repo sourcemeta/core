@@ -8,10 +8,10 @@
 #include <sourcemeta/core/jsonschema.h>
 
 static void
-Alterschema_Check_Readibility_ISO_Country_Set_3(benchmark::State &state) {
+Alterschema_Check_Readibility_ISO_Language_Set_3(benchmark::State &state) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
-      "2020_12_iso_country_2023_set_3.json")};
+      "2020_12_iso_language_2023_set_3.json")};
 
   sourcemeta::core::SchemaTransformer bundle;
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Readability);
@@ -45,5 +45,5 @@ static void Alterschema_Check_Readibility_OMC(benchmark::State &state) {
   }
 }
 
-BENCHMARK(Alterschema_Check_Readibility_ISO_Country_Set_3);
+BENCHMARK(Alterschema_Check_Readibility_ISO_Language_Set_3);
 BENCHMARK(Alterschema_Check_Readibility_OMC);
