@@ -2,9 +2,11 @@
 
 #include <cassert>    // assert
 #include <filesystem> // std::filesystem
+#include <vector>     // std::vector
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
+#include <sourcemeta/core/uri.h>
 
 static void Schema_Frame_OMC_Instances(benchmark::State &state) {
   const auto schema{
@@ -59,6 +61,34 @@ static void Schema_Frame_ISO_Language_Locations(benchmark::State &state) {
     frame.analyse(schema, sourcemeta::core::schema_official_walker,
                   sourcemeta::core::schema_official_resolver);
     benchmark::DoNotOptimize(frame);
+  }
+}
+
+static void Schema_Iterator_ISO_Language(benchmark::State &state) {
+  const auto schema{sourcemeta::core::read_json(
+      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+      "2020_12_iso_language_2023_set_3.json")};
+
+  for (auto _ : state) {
+    sourcemeta::core::SchemaIterator iterator{
+        schema, sourcemeta::core::schema_official_walker,
+        sourcemeta::core::schema_official_resolver};
+    auto subschema_count = static_cast<std::size_t>(
+        std::distance(iterator.cbegin(), iterator.cend()));
+    benchmark::DoNotOptimize(subschema_count);
+  }
+}
+
+static void Schema_PointerWalker_ISO_Language(benchmark::State &state) {
+  const auto schema{sourcemeta::core::read_json(
+      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+      "2020_12_iso_language_2023_set_3.json")};
+
+  for (auto _ : state) {
+    sourcemeta::core::PointerWalker walker{schema};
+    auto pointer_count =
+        static_cast<std::size_t>(std::distance(walker.cbegin(), walker.cend()));
+    benchmark::DoNotOptimize(pointer_count);
   }
 }
 
@@ -138,6 +168,8 @@ BENCHMARK(Schema_Frame_OMC_Instances);
 BENCHMARK(Schema_Frame_OMC_References);
 BENCHMARK(Schema_Frame_OMC_Locations);
 BENCHMARK(Schema_Frame_ISO_Language_Locations);
+BENCHMARK(Schema_Iterator_ISO_Language);
+BENCHMARK(Schema_PointerWalker_ISO_Language);
 BENCHMARK(Schema_Frame_ISO_Language_Locations_To_JSON);
 BENCHMARK(Schema_Tracker_ISO_Language);
 BENCHMARK(Schema_Tracker_ISO_Language_To_JSON);
