@@ -1235,7 +1235,12 @@ TEST(AlterSchema_lint_2019_09, duplicate_required_values_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "required": [ "bar", "baz", "foo" ]
+    "required": [ "bar", "baz", "foo" ],
+    "properties": {
+      "bar": true,
+      "baz": true,
+      "foo": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1504,6 +1509,10 @@ TEST(AlterSchema_lint_2019_09, dependent_required_tautology_1) {
     "required": [ "foo", "bar" ],
     "dependentRequired": {
       "xxx": [ "yyy" ]
+    },
+    "properties": {
+      "foo": true,
+      "bar": true
     }
   })JSON");
 
@@ -1524,7 +1533,12 @@ TEST(AlterSchema_lint_2019_09, dependent_required_tautology_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "required": [ "foo", "bar", "baz" ]
+    "required": [ "foo", "bar", "baz" ],
+    "properties": {
+      "foo": true,
+      "bar": true,
+      "baz": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1571,7 +1585,12 @@ TEST(AlterSchema_lint_2019_09, unsatisfiable_min_properties_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "required": [ "bar", "baz", "foo" ]
+    "required": [ "bar", "baz", "foo" ],
+    "properties": {
+      "bar": true,
+      "baz": true,
+      "foo": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1589,7 +1608,12 @@ TEST(AlterSchema_lint_2019_09, unsatisfiable_min_properties_2) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "required": [ "bar", "baz", "foo" ],
-    "minProperties": 4
+    "minProperties": 4,
+    "properties": {
+      "bar": true,
+      "baz": true,
+      "foo": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1606,7 +1630,12 @@ TEST(AlterSchema_lint_2019_09, unsatisfiable_min_properties_3) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "required": [ "bar", "baz", "foo" ]
+    "required": [ "bar", "baz", "foo" ],
+    "properties": {
+      "bar": true,
+      "baz": true,
+      "foo": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2227,8 +2256,11 @@ TEST(AlterSchema_lint_2019_09, min_properties_covered_by_required_1) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
     "minProperties": 2,
-    "properties": {},
-    "required": [ "foo", "bar" ]
+    "required": [ "foo", "bar" ],
+    "properties": {
+      "foo": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] },
+      "bar": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2247,8 +2279,11 @@ TEST(AlterSchema_lint_2019_09, min_properties_implicit_1) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
     "required": [ "foo", "bar" ],
-    "properties": {},
-    "minProperties": 2
+    "minProperties": 2,
+    "properties": {
+      "foo": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] },
+      "bar": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2267,9 +2302,12 @@ TEST(AlterSchema_lint_2019_09, min_properties_implicit_2) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "type": "object",
-    "properties": {},
     "required": [ "foo", "bar" ],
-    "minProperties": 2
+    "minProperties": 2,
+    "properties": {
+      "foo": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] },
+      "bar": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -3501,7 +3539,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -3524,7 +3562,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_2) {
     }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -3549,7 +3587,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_3) {
     }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -3571,7 +3609,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_4) {
     "properties": {}
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -3595,7 +3633,11 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_5) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "required": [ "foo", "bar" ]
+    "required": [ "foo", "bar" ],
+    "properties": {
+      "foo": true,
+      "bar": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -3608,7 +3650,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_16) {
     "additionalProperties": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -3629,7 +3671,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_17) {
     }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY_STRICT(document);
+  LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",

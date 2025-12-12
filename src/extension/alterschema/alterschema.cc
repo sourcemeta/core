@@ -86,6 +86,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/properties_default.h"
 #include "linter/property_names_default.h"
 #include "linter/property_names_type_default.h"
+#include "linter/required_properties_in_properties.h"
 #include "linter/single_type_array.h"
 #include "linter/then_empty.h"
 #include "linter/then_without_if.h"
@@ -97,9 +98,6 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/unnecessary_allof_ref_wrapper_modern.h"
 #include "linter/unsatisfiable_max_contains.h"
 #include "linter/unsatisfiable_min_properties.h"
-
-// Strict
-#include "strict/required_properties_in_properties.h"
 
 #undef ONLY_CONTINUE_IF
 } // namespace sourcemeta::core
@@ -143,6 +141,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<DraftRefSiblings>();
   bundle.add<UnknownKeywordsPrefix>();
   bundle.add<UnknownLocalRef>();
+  bundle.add<RequiredPropertiesInProperties>();
 
   if (mode == AlterSchemaMode::StaticAnalysis) {
     bundle.add<BooleanTrue>();
@@ -164,8 +163,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<TypeUnionImplicit>();
   }
 
-  if (mode == AlterSchemaMode::Readability ||
-      mode == AlterSchemaMode::ReadabilityStrict) {
+  if (mode == AlterSchemaMode::Readability) {
     bundle.add<EqualNumericBoundsToConst>();
     bundle.add<AdditionalPropertiesDefault>();
     bundle.add<ContentSchemaDefault>();
@@ -184,10 +182,6 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<UnsatisfiableMaxContains>();
     bundle.add<UnsatisfiableMinProperties>();
     bundle.add<EnumToConst>();
-  }
-
-  if (mode == AlterSchemaMode::ReadabilityStrict) {
-    bundle.add<RequiredPropertiesInProperties>();
   }
 }
 
