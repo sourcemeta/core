@@ -82,9 +82,9 @@ sourcemeta::core::Vocabularies::Vocabularies(
 
 auto sourcemeta::core::Vocabularies::contains(
     const JSON::String &uri) const noexcept -> bool {
-  if (this->custom.has_value()) {
-    const auto iterator{this->custom->find(uri)};
-    if (iterator != this->custom->end()) {
+  if (this->unknown.has_value()) {
+    const auto iterator{this->unknown->find(uri)};
+    if (iterator != this->unknown->end()) {
       return true;
     }
   }
@@ -127,10 +127,10 @@ auto sourcemeta::core::Vocabularies::insert(const JSON::String &uri,
   if (maybe_known.has_value()) {
     this->insert(maybe_known.value(), required);
   } else {
-    if (!this->custom.has_value()) {
-      this->custom.emplace();
+    if (!this->unknown.has_value()) {
+      this->unknown.emplace();
     }
-    this->custom->insert({uri, required});
+    this->unknown->insert({uri, required});
   }
 }
 
@@ -150,9 +150,9 @@ auto sourcemeta::core::Vocabularies::insert(Known vocabulary,
 
 auto sourcemeta::core::Vocabularies::get(const JSON::String &uri) const noexcept
     -> std::optional<bool> {
-  if (this->custom.has_value()) {
-    const auto iterator{this->custom->find(uri)};
-    if (iterator != this->custom->end()) {
+  if (this->unknown.has_value()) {
+    const auto iterator{this->unknown->find(uri)};
+    if (iterator != this->unknown->end()) {
       return iterator->second;
     }
   }
@@ -185,12 +185,16 @@ auto sourcemeta::core::Vocabularies::get(Known vocabulary) const noexcept
 
 auto sourcemeta::core::Vocabularies::size() const noexcept -> std::size_t {
   return (this->required_known | this->optional_known).count() +
-         (this->custom.has_value() ? this->custom->size() : 0);
+         (this->unknown.has_value() ? this->unknown->size() : 0);
 }
 
 auto sourcemeta::core::Vocabularies::empty() const noexcept -> bool {
   return this->required_known.none() && this->optional_known.none() &&
-         (!this->custom.has_value() || this->custom->empty());
+         !this->has_unknown();
+}
+
+auto sourcemeta::core::Vocabularies::has_unknown() const noexcept -> bool {
+  return this->unknown.has_value() && !this->unknown.value().empty();
 }
 
 auto sourcemeta::core::operator<<(std::ostream &stream,
@@ -272,14 +276,14 @@ auto sourcemeta::core::Vocabularies::throw_if_any_unsupported(
     throw SchemaVocabularyError(uri, message);
   }
 
-  if (this->custom.has_value()) {
-    for (const auto &[uri, required] : *this->custom) {
+  if (this->unknown.has_value()) {
+    for (const auto &[uri, required] : *this->unknown) {
       if (!required || supported.contains(uri)) {
         continue;
       }
 
       // This case should never be possible, as an invariant of this class.
-      // i.e. we should never have an official vocabulary in the custom map
+      // i.e. we should never have an official vocabulary in the unknown map
       assert(!uri_to_known_vocabulary(uri).has_value());
 
       throw SchemaVocabularyError(uri, message);

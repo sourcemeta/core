@@ -7,6 +7,23 @@
 #include <tuple>
 #include <vector>
 
+static auto alterschema_test_resolver(std::string_view identifier)
+    -> std::optional<sourcemeta::core::JSON> {
+  if (identifier ==
+      "https://sourcemeta.com/2020-12-custom-vocabulary-optional") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://sourcemeta.com/2020-12-custom-vocabulary-optional",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://sourcemeta.com/2020-12-custom-vocabulary-optional": false
+      }
+    })JSON");
+  } else {
+    return sourcemeta::core::schema_official_resolver(identifier);
+  }
+}
+
 #define LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces)             \
   std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
                          sourcemeta::core::SchemaTransformRule::Result>>       \
@@ -16,7 +33,7 @@
                         sourcemeta::core::AlterSchemaMode::Readability);       \
   const auto result =                                                          \
       bundle.check(document, sourcemeta::core::schema_official_walker,         \
-                   sourcemeta::core::schema_official_resolver,                 \
+                   alterschema_test_resolver,                                  \
                    [&traces](const auto &pointer, const auto &name,            \
                              const auto &message, const auto &outcome) {       \
                      traces.emplace_back(pointer, name, message, outcome);     \
@@ -33,7 +50,7 @@
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::Readability);       \
   bundle.apply(document, sourcemeta::core::schema_official_walker,             \
-               sourcemeta::core::schema_official_resolver,                     \
+               alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});
 
 #define LINT_AND_FIX_FOR_STATIC_ANALYSIS(document)                             \
@@ -41,7 +58,7 @@
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::StaticAnalysis);    \
   bundle.apply(document, sourcemeta::core::schema_official_walker,             \
-               sourcemeta::core::schema_official_resolver,                     \
+               alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});
 
 #endif

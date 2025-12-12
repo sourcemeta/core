@@ -114,6 +114,9 @@ public:
   /// Check if there are no vocabularies
   [[nodiscard]] auto empty() const noexcept -> bool;
 
+  /// Check if there are any unknown vocabularies
+  [[nodiscard]] auto has_unknown() const noexcept -> bool;
+
   /// Throw if the current vocabularies have required ones outside the given
   /// supported set
   auto throw_if_any_unsupported(const std::unordered_set<URI> &supported,
@@ -128,8 +131,8 @@ private:
 #endif
   std::bitset<KNOWN_VOCABULARY_COUNT> required_known{};
   std::bitset<KNOWN_VOCABULARY_COUNT> optional_known{};
-  // Lazily initialized only when custom (non-official) vocabularies are used
-  std::optional<std::unordered_map<JSON::String, bool>> custom{std::nullopt};
+  // Lazily initialized only when unknown (non-official) vocabularies are used
+  std::optional<std::unordered_map<JSON::String, bool>> unknown{std::nullopt};
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

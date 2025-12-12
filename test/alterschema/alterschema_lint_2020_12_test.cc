@@ -4498,6 +4498,22 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_12) {
       "/unknown-2");
 }
 
+TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_13) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/2020-12-custom-vocabulary-optional",
+    "foo": "bar"
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://sourcemeta.com/2020-12-custom-vocabulary-optional",
+    "foo": "bar"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12, non_applicable_enum_validation_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
