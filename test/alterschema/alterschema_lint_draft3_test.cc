@@ -519,6 +519,10 @@ TEST(AlterSchema_lint_draft3, dependent_required_tautology_1) {
     "dependencies": {
       "xxx": { "type": "string" },
       "yyy": [ "extra" ]
+    },
+    "properties": {
+      "foo": true,
+      "bar": true
     }
   })JSON");
 
@@ -539,7 +543,12 @@ TEST(AlterSchema_lint_draft3, dependent_required_tautology_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
-    "required": [ "foo", "bar", "baz" ]
+    "required": [ "foo", "bar", "baz" ],
+    "properties": {
+      "foo": true,
+      "bar": true,
+      "baz": true
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

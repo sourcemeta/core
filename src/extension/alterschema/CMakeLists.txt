@@ -31,6 +31,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/maximum_real_for_integer.h
     linter/draft_official_dialect_without_empty_fragment.h
     linter/minimum_real_for_integer.h
+    linter/required_properties_in_properties.h
     linter/single_type_array.h
     linter/enum_to_const.h
     linter/additional_properties_default.h
@@ -69,10 +70,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/definitions_to_defs.h
     linter/unknown_keywords_prefix.h
     linter/unknown_local_ref.h
-    linter/non_applicable_enum_validation_keywords.h
-
-    # Strict
-    strict/required_properties_in_properties.h)
+    linter/non_applicable_enum_validation_keywords.h)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME alterschema)
