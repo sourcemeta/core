@@ -379,3 +379,59 @@ TEST(JSONSchema_vocabulary, to_string_uri_custom_variant) {
   EXPECT_EQ(sourcemeta::core::to_string(vocabulary),
             "https://example.com/my-vocab");
 }
+
+TEST(JSONSchema_vocabulary, has_unknown_empty_vocabularies) {
+  const sourcemeta::core::Vocabularies vocabularies{};
+  EXPECT_FALSE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary, has_unknown_only_known_required) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true},
+      {Known::JSON_Schema_2020_12_Applicator, true}};
+
+  EXPECT_FALSE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary, has_unknown_only_known_optional) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true},
+      {Known::JSON_Schema_2020_12_Validation, false}};
+
+  EXPECT_FALSE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary, has_unknown_with_custom_required) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+  vocabularies.insert("https://example.com/custom-vocab", true);
+
+  EXPECT_TRUE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary, has_unknown_with_custom_optional) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+  vocabularies.insert("https://example.com/custom-vocab", false);
+
+  EXPECT_TRUE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary, has_unknown_with_multiple_custom) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+  vocabularies.insert("https://example.com/custom-vocab-1", true);
+  vocabularies.insert("https://example.com/custom-vocab-2", false);
+
+  EXPECT_TRUE(vocabularies.has_unknown());
+}
