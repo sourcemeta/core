@@ -202,14 +202,17 @@ struct SchemaIteratorEntry {
   std::optional<Pointer> parent;
   // TODO: Turn this into a weak pointer
   Pointer pointer;
+  // TODO: Use "known" enum classes + strings for dialects
   std::optional<JSON::String> dialect;
   Vocabularies vocabularies;
+  // TODO: Use "known" enum classes for base dialects
   std::optional<JSON::String> base_dialect;
   std::reference_wrapper<const JSON> subschema;
 
   // TODO: These two pointer templates contain some overlap.
   // Instead, have a `base_instance_location` and a `relative_instance_location`
   // that when concatenated, represent the full `instance_location`
+  // TODO: Make these WeakPointerTemplate
   PointerTemplate instance_location;
   PointerTemplate relative_instance_location;
 
