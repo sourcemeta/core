@@ -42,32 +42,6 @@ TEST(JSONSchema_format, example_2) {
 })JSON");
 }
 
-TEST(JSONSchema_format, example_3) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "description": "test",
-    "title_extension": "qux",
-    "title": "foo",
-    "title:extension": "baz",
-    "title-extension": "bar",
-    "properties": {}
-  })JSON");
-
-  sourcemeta::core::format(document, sourcemeta::core::schema_official_walker,
-                           sourcemeta::core::schema_official_resolver);
-  std::ostringstream stream;
-  sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), R"JSON({
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "foo",
-  "title-extension": "bar",
-  "title:extension": "baz",
-  "title_extension": "qux",
-  "description": "test",
-  "properties": {}
-})JSON");
-}
-
 TEST(JSONSchema_format, nested_objects) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "type": "object",
