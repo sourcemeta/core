@@ -18,7 +18,7 @@
               sourcemeta::core::URI{identifier}.canonicalize().recompose());   \
   }
 
-TEST(JSONSchema_official_resolver, jsonschema_2020_12) {
+TEST(JSONSchema_resolver, jsonschema_2020_12) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/meta/applicator");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/meta/content");
@@ -36,7 +36,7 @@ TEST(JSONSchema_official_resolver, jsonschema_2020_12) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema#");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_2019_09) {
+TEST(JSONSchema_resolver, jsonschema_2019_09) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/schema");
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/meta/applicator");
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/meta/content");
@@ -53,7 +53,7 @@ TEST(JSONSchema_official_resolver, jsonschema_2019_09) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/schema#");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft7) {
+TEST(JSONSchema_resolver, jsonschema_draft7) {
   EXPECT_SCHEMA("http://json-schema.org/draft-07/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-07/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-07/links#");
@@ -65,7 +65,7 @@ TEST(JSONSchema_official_resolver, jsonschema_draft7) {
   EXPECT_SCHEMA("http://json-schema.org/draft-07/links");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft6) {
+TEST(JSONSchema_resolver, jsonschema_draft6) {
   EXPECT_SCHEMA("http://json-schema.org/draft-06/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-06/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-06/links#");
@@ -76,7 +76,7 @@ TEST(JSONSchema_official_resolver, jsonschema_draft6) {
   EXPECT_SCHEMA("http://json-schema.org/draft-06/links");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft4) {
+TEST(JSONSchema_resolver, jsonschema_draft4) {
   EXPECT_SCHEMA("http://json-schema.org/draft-04/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-04/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-04/links#");
@@ -87,7 +87,7 @@ TEST(JSONSchema_official_resolver, jsonschema_draft4) {
   EXPECT_SCHEMA("http://json-schema.org/draft-04/links");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft3) {
+TEST(JSONSchema_resolver, jsonschema_draft3) {
   EXPECT_SCHEMA("http://json-schema.org/draft-03/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-03/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-03/links#");
@@ -100,7 +100,7 @@ TEST(JSONSchema_official_resolver, jsonschema_draft3) {
   EXPECT_SCHEMA("http://json-schema.org/draft-03/json-ref");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft2) {
+TEST(JSONSchema_resolver, jsonschema_draft2) {
   EXPECT_SCHEMA("http://json-schema.org/draft-02/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-02/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-02/links#");
@@ -113,7 +113,7 @@ TEST(JSONSchema_official_resolver, jsonschema_draft2) {
   EXPECT_SCHEMA("http://json-schema.org/draft-02/json-ref");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft1) {
+TEST(JSONSchema_resolver, jsonschema_draft1) {
   EXPECT_SCHEMA("http://json-schema.org/draft-01/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-01/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-01/links#");
@@ -126,7 +126,7 @@ TEST(JSONSchema_official_resolver, jsonschema_draft1) {
   EXPECT_SCHEMA("http://json-schema.org/draft-01/json-ref");
 }
 
-TEST(JSONSchema_official_resolver, jsonschema_draft0) {
+TEST(JSONSchema_resolver, jsonschema_draft0) {
   EXPECT_SCHEMA("http://json-schema.org/draft-00/schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-00/hyper-schema#");
   EXPECT_SCHEMA("http://json-schema.org/draft-00/links#");
@@ -139,13 +139,23 @@ TEST(JSONSchema_official_resolver, jsonschema_draft0) {
   EXPECT_SCHEMA("http://json-schema.org/draft-00/json-ref");
 }
 
-TEST(JSONSchema_official_resolver, idempotency) {
+TEST(JSONSchema_resolver, openapi_3_1) {
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/dialect/base");
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.1/meta/base");
+}
+
+TEST(JSONSchema_resolver, openapi_3_2) {
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.2/dialect/2025-09-17");
+  EXPECT_SCHEMA("https://spec.openapis.org/oas/3.2/meta/2025-09-17");
+}
+
+TEST(JSONSchema_resolver, idempotency) {
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema");
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema");
 }
 
-TEST(JSONSchema_official_resolver, invalid) {
+TEST(JSONSchema_resolver, invalid) {
   const std::optional<sourcemeta::core::JSON> result{
       sourcemeta::core::schema_resolver("https://example.com/foobar")};
   EXPECT_FALSE(result.has_value());

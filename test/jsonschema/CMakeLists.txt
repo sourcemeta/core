@@ -77,6 +77,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_walker_draft2_test.cc
     jsonschema_walker_draft1_test.cc
     jsonschema_walker_draft0_test.cc
+    jsonschema_walker_openapi_test.cc
     jsonschema_walker_test.cc
     jsonschema_error_test.cc
     jsonschema_keyword_iterator_test.cc

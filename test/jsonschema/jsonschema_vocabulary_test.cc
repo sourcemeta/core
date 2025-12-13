@@ -104,6 +104,11 @@ TEST(JSONSchema_vocabulary, known_vocabulary_to_string) {
   EXPECT_VOCABULARY_URI(Known::JSON_Schema_2020_12_Content,
                         "https://json-schema.org/draft/2020-12/vocab/content");
 
+  EXPECT_VOCABULARY_URI(Known::OpenAPI_3_1_Base,
+                        "https://spec.openapis.org/oas/3.1/vocab/base");
+  EXPECT_VOCABULARY_URI(Known::OpenAPI_3_2_Base,
+                        "https://spec.openapis.org/oas/3.2/vocab/base");
+
 #undef EXPECT_VOCABULARY_URI
 }
 
@@ -360,6 +365,10 @@ TEST(JSONSchema_vocabulary, to_string_known) {
             "https://json-schema.org/draft/2019-09/vocab/applicator");
   EXPECT_EQ(sourcemeta::core::to_string(Known::JSON_Schema_Draft_7),
             "http://json-schema.org/draft-07/schema#");
+  EXPECT_EQ(sourcemeta::core::to_string(Known::OpenAPI_3_1_Base),
+            "https://spec.openapis.org/oas/3.1/vocab/base");
+  EXPECT_EQ(sourcemeta::core::to_string(Known::OpenAPI_3_2_Base),
+            "https://spec.openapis.org/oas/3.2/vocab/base");
 }
 
 TEST(JSONSchema_vocabulary, to_string_uri_known_variant) {
@@ -496,4 +505,112 @@ TEST(JSONSchema_vocabulary,
     EXPECT_EQ(error.uri(), "https://example.com/required-vocab");
     EXPECT_STREQ(error.what(), "Unknown vocabulary");
   }
+}
+
+TEST(JSONSchema_vocabulary, contains_any_openapi_3_1_base) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}, {Known::OpenAPI_3_1_Base, true}};
+
+  EXPECT_TRUE(vocabularies.contains_any({Known::OpenAPI_3_1_Base}));
+  EXPECT_TRUE(vocabularies.contains_any(
+      {Known::OpenAPI_3_1_Base, Known::OpenAPI_3_2_Base}));
+  EXPECT_FALSE(vocabularies.contains_any({Known::OpenAPI_3_2_Base}));
+}
+
+TEST(JSONSchema_vocabulary, contains_any_openapi_3_2_base) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}, {Known::OpenAPI_3_2_Base, true}};
+
+  EXPECT_TRUE(vocabularies.contains_any({Known::OpenAPI_3_2_Base}));
+  EXPECT_TRUE(vocabularies.contains_any(
+      {Known::OpenAPI_3_1_Base, Known::OpenAPI_3_2_Base}));
+  EXPECT_FALSE(vocabularies.contains_any({Known::OpenAPI_3_1_Base}));
+}
+
+TEST(JSONSchema_vocabulary, insert_openapi_3_1_base_by_string) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+  vocabularies.insert("https://spec.openapis.org/oas/3.1/vocab/base", true);
+
+  EXPECT_EQ(vocabularies.size(), 2);
+  EXPECT_TRUE(vocabularies.contains(Known::OpenAPI_3_1_Base));
+  EXPECT_TRUE(vocabularies.get(Known::OpenAPI_3_1_Base).value());
+  EXPECT_FALSE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary, insert_openapi_3_2_base_by_string) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}};
+  vocabularies.insert("https://spec.openapis.org/oas/3.2/vocab/base", false);
+
+  EXPECT_EQ(vocabularies.size(), 2);
+  EXPECT_TRUE(vocabularies.contains(Known::OpenAPI_3_2_Base));
+  EXPECT_FALSE(vocabularies.get(Known::OpenAPI_3_2_Base).value());
+  EXPECT_FALSE(vocabularies.has_unknown());
+}
+
+TEST(JSONSchema_vocabulary,
+     throw_if_any_unsupported_openapi_required_not_in_supported) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}, {Known::OpenAPI_3_1_Base, true}};
+
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core};
+
+  try {
+    vocabularies.throw_if_any_unsupported(supported, "Unsupported vocabulary");
+    FAIL();
+  } catch (const sourcemeta::core::SchemaVocabularyError &error) {
+    EXPECT_EQ(error.uri(), "https://spec.openapis.org/oas/3.1/vocab/base");
+    EXPECT_STREQ(error.what(), "Unsupported vocabulary");
+  }
+}
+
+TEST(JSONSchema_vocabulary,
+     throw_if_any_unsupported_openapi_optional_not_checked) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true},
+      {Known::OpenAPI_3_1_Base, false}};
+
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core};
+
+  EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
+      supported, "Unsupported vocabulary"));
+}
+
+TEST(JSONSchema_vocabulary, throw_if_any_unsupported_openapi_in_supported) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true}, {Known::OpenAPI_3_1_Base, true}};
+
+  const std::unordered_set<sourcemeta::core::Vocabularies::URI> supported{
+      Known::JSON_Schema_2020_12_Core, Known::OpenAPI_3_1_Base};
+
+  EXPECT_NO_THROW(vocabularies.throw_if_any_unsupported(
+      supported, "Unsupported vocabulary"));
+}
+
+TEST(JSONSchema_vocabulary, has_unknown_with_openapi_vocabularies) {
+  using Known = sourcemeta::core::Vocabularies::Known;
+
+  const sourcemeta::core::Vocabularies vocabularies{
+      {Known::JSON_Schema_2020_12_Core, true},
+      {Known::OpenAPI_3_1_Base, true},
+      {Known::OpenAPI_3_2_Base, false}};
+
+  EXPECT_FALSE(vocabularies.has_unknown());
 }

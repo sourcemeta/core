@@ -2105,6 +2105,38 @@ auto handle_schema_hyper(const Vocabularies &vocabularies)
   return UNKNOWN_RESULT;
 }
 
+// OpenAPI 3.1/3.2 Base Vocabulary
+// https://spec.openapis.org/oas/v3.1.0.html#fixed-fields-19
+// https://spec.openapis.org/oas/v3.2.0.html#fixed-fields-20
+
+auto handle_discriminator(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::OpenAPI_3_2_Base, {}, Other)
+  CHECK_VOCABULARY(Known::OpenAPI_3_1_Base, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_xml(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::OpenAPI_3_2_Base, {}, Other)
+  CHECK_VOCABULARY(Known::OpenAPI_3_1_Base, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_externalDocs(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::OpenAPI_3_2_Base, {}, Other)
+  CHECK_VOCABULARY(Known::OpenAPI_3_1_Base, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
+auto handle_example(const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult & {
+  CHECK_VOCABULARY(Known::OpenAPI_3_2_Base, {}, Other)
+  CHECK_VOCABULARY(Known::OpenAPI_3_1_Base, {}, Other)
+  return UNKNOWN_RESULT;
+}
+
 #undef RETURN_WITH_DEPENDENCIES
 #undef RETURN
 #undef CHECK_VOCABULARY_WITH_DEPENDENCIES
@@ -2215,6 +2247,11 @@ auto schema_walker(std::string_view keyword, const Vocabularies &vocabularies)
       {"encType", handle_encType},
       {"submissionEncType", handle_submissionEncType},
       {"schema", handle_schema_hyper},
+      // OpenAPI
+      {"discriminator", handle_discriminator},
+      {"xml", handle_xml},
+      {"externalDocs", handle_externalDocs},
+      {"example", handle_example},
   };
 
   const auto iterator = handlers.find(keyword);
