@@ -1662,8 +1662,7 @@ TEST(AlterSchema_lint_draft4,
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4,
-     additional_items_with_schema_items_no_change_no_items) {
+TEST(AlterSchema_lint_draft4, additional_items_with_schema_items) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "additionalItems": false
@@ -1672,8 +1671,7 @@ TEST(AlterSchema_lint_draft4,
   LINT_AND_FIX_FOR_READABILITY(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "additionalItems": false
+    "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
 
   EXPECT_EQ(document, expected);
