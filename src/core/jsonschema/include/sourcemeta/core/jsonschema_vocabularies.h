@@ -59,11 +59,16 @@ struct SOURCEMETA_CORE_JSONSCHEMA_EXPORT Vocabularies {
     JSON_Schema_2020_12_Meta_Data = 25,
     JSON_Schema_2020_12_Format_Annotation = 26,
     JSON_Schema_2020_12_Format_Assertion = 27,
-    JSON_Schema_2020_12_Content = 28
+    JSON_Schema_2020_12_Content = 28,
+    // OpenAPI
+    // https://spec.openapis.org/oas/v3.1.0.html#fixed-fields-19
+    OpenAPI_3_1_Base = 29,
+    // https://spec.openapis.org/oas/v3.2.0.html#base-vocabulary
+    OpenAPI_3_2_Base = 30
   };
 
   // NOTE: Must be kept in sync with the Known enum above
-  static constexpr std::size_t KNOWN_VOCABULARY_COUNT = 29;
+  static constexpr std::size_t KNOWN_VOCABULARY_COUNT = 31;
 
   /// A vocabulary URI type that can be either a known vocabulary enum or a
   /// custom string URI

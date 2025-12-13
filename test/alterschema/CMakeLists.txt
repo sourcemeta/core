@@ -9,6 +9,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME alterschema
     alterschema_lint_draft2_test.cc
     alterschema_lint_draft1_test.cc
     alterschema_lint_draft0_test.cc
+    alterschema_lint_openapi_test.cc
     alterschema_test_utils.h)
 
 target_link_libraries(sourcemeta_core_alterschema_unit
