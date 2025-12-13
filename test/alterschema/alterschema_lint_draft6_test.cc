@@ -2681,3 +2681,18 @@ TEST(AlterSchema_lint_draft6, top_level_ref_with_id) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft6, additional_items_with_no_items) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "additionalItems": false
+  })JSON");
+
+  LINT_AND_FIX_FOR_READABILITY(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
