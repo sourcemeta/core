@@ -20,7 +20,7 @@ static auto alterschema_test_resolver(std::string_view identifier)
       }
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -31,13 +31,12 @@ static auto alterschema_test_resolver(std::string_view identifier)
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::Readability);       \
-  const auto result =                                                          \
-      bundle.check(document, sourcemeta::core::schema_official_walker,         \
-                   alterschema_test_resolver,                                  \
-                   [&traces](const auto &pointer, const auto &name,            \
-                             const auto &message, const auto &outcome) {       \
-                     traces.emplace_back(pointer, name, message, outcome);     \
-                   });
+  const auto result = bundle.check(                                            \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [&traces](const auto &pointer, const auto &name, const auto &message,    \
+                const auto &outcome) {                                         \
+        traces.emplace_back(pointer, name, message, outcome);                  \
+      });
 
 #define EXPECT_LINT_TRACE(traces, index, pointer, name, message)               \
   EXPECT_EQ(sourcemeta::core::to_string(std::get<0>((traces).at(index))),      \
@@ -49,7 +48,7 @@ static auto alterschema_test_resolver(std::string_view identifier)
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::Readability);       \
-  bundle.apply(document, sourcemeta::core::schema_official_walker,             \
+  bundle.apply(document, sourcemeta::core::schema_walker,                      \
                alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});
 
@@ -57,7 +56,7 @@ static auto alterschema_test_resolver(std::string_view identifier)
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::StaticAnalysis);    \
-  bundle.apply(document, sourcemeta::core::schema_official_walker,             \
+  bundle.apply(document, sourcemeta::core::schema_walker,                      \
                alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});
 

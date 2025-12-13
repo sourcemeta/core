@@ -60,8 +60,8 @@ TEST(JSONSchema_frame_2020_12, anonymous_with_nested_schema_resource) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 6);
 
@@ -114,8 +114,8 @@ TEST(JSONSchema_frame_2020_12, empty_schema) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
@@ -152,8 +152,8 @@ TEST(JSONSchema_frame_2020_12, empty_schema_trailing_hash) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
@@ -194,8 +194,8 @@ TEST(JSONSchema_frame_2020_12, one_level_applicators_without_identifiers) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 8);
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
@@ -257,8 +257,8 @@ TEST(JSONSchema_frame_2020_12, one_level_applicators_with_identifiers) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 14);
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
@@ -349,8 +349,8 @@ TEST(JSONSchema_frame_2020_12, subschema_absolute_identifier) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 9);
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
@@ -421,8 +421,8 @@ TEST(JSONSchema_frame_2020_12, nested_schemas) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 30);
 
@@ -585,8 +585,8 @@ TEST(JSONSchema_frame_2020_12, id_override) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver),
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaFrameError);
 }
 
@@ -600,8 +600,8 @@ TEST(JSONSchema_frame_2020_12, static_anchor_override) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver),
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaFrameError);
 }
 
@@ -613,8 +613,8 @@ TEST(JSONSchema_frame_2020_12, explicit_argument_id_same) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema",
                 "https://www.sourcemeta.com/schema");
 
@@ -654,8 +654,8 @@ TEST(JSONSchema_frame_2020_12, anchor_top_level) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 5);
 
@@ -714,8 +714,8 @@ TEST(JSONSchema_frame_2020_12, explicit_argument_id_different) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema",
                 "https://www.example.com");
 
@@ -867,8 +867,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_refs_with_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.references().size(), 7);
 
@@ -930,8 +930,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_refs_with_no_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.references().size(), 7);
 
@@ -974,8 +974,8 @@ TEST(JSONSchema_frame_2020_12, ref_to_dynamic_anchor) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.references().size(), 2);
 
@@ -1006,8 +1006,8 @@ TEST(JSONSchema_frame_2020_12, different_dynamic_and_refs_in_same_object) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.references().size(), 3);
 
@@ -1042,8 +1042,8 @@ TEST(JSONSchema_frame_2020_12, same_dynamic_and_refs_in_same_object) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.references().size(), 3);
 
@@ -1081,8 +1081,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 21);
 
@@ -1207,8 +1207,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_without_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 7);
 
@@ -1270,8 +1270,8 @@ TEST(JSONSchema_frame_2020_12,
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 8);
 
@@ -1340,8 +1340,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_single_dynamic_anchor_external) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 10);
 
@@ -1417,8 +1417,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_same_on_schema_resource) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver),
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaFrameError);
 }
 
@@ -1434,8 +1434,8 @@ TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 5);
 
@@ -1480,8 +1480,8 @@ TEST(JSONSchema_frame_2020_12, ref_metaschema) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
 
@@ -1526,8 +1526,8 @@ TEST(JSONSchema_frame_2020_12, location_independent_identifier_anonymous) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver),
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaError);
 }
 
@@ -1543,8 +1543,8 @@ TEST(JSONSchema_frame_2020_12, ref_with_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 7);
 
@@ -1607,8 +1607,8 @@ TEST(JSONSchema_frame_2020_12, ref_from_definitions) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 9);
 
@@ -1681,8 +1681,8 @@ TEST(JSONSchema_frame_2020_12, relative_base_uri_without_ref) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
 
@@ -1720,8 +1720,8 @@ TEST(JSONSchema_frame_2020_12, relative_base_uri_with_ref) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 10);
 
@@ -1777,8 +1777,8 @@ TEST(JSONSchema_frame_2020_12, relative_base_with_relative_path_ref) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 4);
 
@@ -1820,12 +1820,12 @@ TEST(JSONSchema_frame_2020_12, idempotent_with_refs) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
 
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 6);
 
@@ -1881,8 +1881,8 @@ TEST(JSONSchema_frame_2020_12, allof_refs) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.references().size(), 3);
 
@@ -1922,8 +1922,8 @@ TEST(JSONSchema_frame_2020_12, properties_with_refs) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 11);
 
@@ -2027,8 +2027,8 @@ TEST(JSONSchema_frame_2020_12, property_ref_defs) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 13);
 
@@ -2143,8 +2143,8 @@ TEST(JSONSchema_frame_2020_12, property_cross_ref) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 11);
 
@@ -2244,8 +2244,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_multiple_targets) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 17);
 
@@ -2359,8 +2359,8 @@ TEST(JSONSchema_frame_2020_12, cross_id_anonymous_nested) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 12);
 
@@ -2445,8 +2445,8 @@ TEST(JSONSchema_frame_2020_12, relative_id_with_absolute_default_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema",
                 "https://example.com/relative");
 
@@ -2490,9 +2490,9 @@ TEST(JSONSchema_frame_2020_12, zero_paths) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver, std::nullopt,
-                std::nullopt, {});
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver, std::nullopt, std::nullopt,
+                {});
 
   EXPECT_EQ(frame.locations().size(), 0);
   EXPECT_EQ(frame.references().size(), 0);
@@ -2509,9 +2509,9 @@ TEST(JSONSchema_frame_2020_12, single_nested_path_recursive_with_identifier) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver, std::nullopt,
-                std::nullopt, {sourcemeta::core::Pointer{"wrapper"}});
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver, std::nullopt, std::nullopt,
+                {sourcemeta::core::Pointer{"wrapper"}});
 
   EXPECT_EQ(frame.locations().size(), 8);
 
@@ -2577,8 +2577,8 @@ TEST(JSONSchema_frame_2020_12,
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema", std::nullopt,
                 {sourcemeta::core::Pointer{"wrapper"}});
 
@@ -2615,8 +2615,8 @@ TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema", std::nullopt,
                 {sourcemeta::core::Pointer{"wrapper"}});
 
@@ -2701,8 +2701,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema", std::nullopt,
                 {sourcemeta::core::Pointer{"wrapper"},
                  sourcemeta::core::Pointer{"common", "test"},
@@ -2819,8 +2819,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema", std::nullopt,
                 {sourcemeta::core::Pointer{"wrapper"},
                  sourcemeta::core::Pointer{"common", "test"}});
@@ -2875,9 +2875,9 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_no_base_dialect) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver,
-                             std::nullopt, std::nullopt,
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver, std::nullopt,
+                             std::nullopt,
                              {sourcemeta::core::Pointer{"wrapper"},
                               sourcemeta::core::Pointer{"common", "test"},
                               sourcemeta::core::Pointer{"common", "with-id"}}),
@@ -2901,9 +2901,9 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_id) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver,
-                             std::nullopt, std::nullopt,
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver, std::nullopt,
+                             std::nullopt,
                              {sourcemeta::core::Pointer{"common", "foo"},
                               sourcemeta::core::Pointer{"common", "bar"}}),
                sourcemeta::core::SchemaFrameError);
@@ -2924,8 +2924,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_anonymous_anchors) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver,
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver,
                              "https://json-schema.org/draft/2020-12/schema",
                              std::nullopt,
                              {sourcemeta::core::Pointer{"common", "foo"},
@@ -2952,8 +2952,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver,
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver,
                 "https://json-schema.org/draft/2020-12/schema",
                 // The default id should be getting ignored on nested schemas
                 // as it only makes sense for top-level framing
@@ -2999,8 +2999,8 @@ TEST(JSONSchema_frame_2020_12, anchor_with_invalid_type) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
@@ -3030,8 +3030,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_invalid_type) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
@@ -3061,8 +3061,8 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_with_invalid_type) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
@@ -3105,8 +3105,8 @@ TEST(JSONSchema_frame_2020_12,
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Instances};
-  frame.analyse(document, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 10);
 

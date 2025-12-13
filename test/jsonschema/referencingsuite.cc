@@ -51,9 +51,8 @@ public:
     for (const auto &[uri, schema] : this->registry) {
       sourcemeta::core::SchemaFrame frame{
           sourcemeta::core::SchemaFrame::Mode::References};
-      frame.analyse(schema.first, sourcemeta::core::schema_official_walker,
-                    sourcemeta::core::schema_official_resolver, this->dialect,
-                    uri);
+      frame.analyse(schema.first, sourcemeta::core::schema_walker,
+                    sourcemeta::core::schema_resolver, this->dialect, uri);
       for (const auto &[key, entry] : frame.locations()) {
         new_entries.insert(
             {key.second,

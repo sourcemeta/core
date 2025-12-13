@@ -42,7 +42,7 @@ static auto test_resolver_2020_12(std::string_view identifier)
       "$vocabulary": { "https://json-schema.org/draft/2020-12/vocab/core": true }
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -86,7 +86,7 @@ static auto test_resolver_2019_09(std::string_view identifier)
       "$vocabulary": { "https://json-schema.org/draft/2019-09/vocab/core": true }
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -111,7 +111,7 @@ static auto test_resolver_draft7(std::string_view identifier)
       "$id": "https://example.com/meta/2.json"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -136,7 +136,7 @@ static auto test_resolver_draft6(std::string_view identifier)
       "$id": "https://example.com/meta/2.json"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -161,7 +161,7 @@ static auto test_resolver_draft4(std::string_view identifier)
       "id": "https://example.com/meta/2.json"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -179,8 +179,7 @@ TEST(EditorSchema, 2020_12_bundle) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -227,8 +226,7 @@ TEST(EditorSchema, 2020_12_static_dynamic_reference) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -260,8 +258,7 @@ TEST(EditorSchema, 2020_12_dynamic_reference_to_static_anchor) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -300,8 +297,7 @@ TEST(EditorSchema, 2020_12_dynamic_anchors_1) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -334,8 +330,7 @@ TEST(EditorSchema, 2020_12_bundle_boolean_subschema) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -356,9 +351,9 @@ TEST(EditorSchema, 2020_12_default_base_dialect) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_2020_12,
-      "https://json-schema.org/draft/2020-12/schema");
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_2020_12,
+                               "https://json-schema.org/draft/2020-12/schema");
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -378,9 +373,9 @@ TEST(EditorSchema, 2020_12_default_dialect) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_2020_12,
-      "https://example.com/meta/1.json");
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_2020_12,
+                               "https://example.com/meta/1.json");
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -398,8 +393,7 @@ TEST(EditorSchema, 2020_12_bundle_metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -432,8 +426,7 @@ TEST(EditorSchema, 2019_09_bundle) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2019_09);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -475,8 +468,7 @@ TEST(EditorSchema, 2019_09_bundle_metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2019_09);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -506,8 +498,8 @@ TEST(EditorSchema, draft7_bundle) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_draft7);
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_draft7);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -542,8 +534,7 @@ TEST(EditorSchema, 2019_09_static_recursive_reference) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -582,8 +573,7 @@ TEST(EditorSchema, 2019_09_recursive_anchors_1) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(document,
-                               sourcemeta::core::schema_official_walker,
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
@@ -613,8 +603,8 @@ TEST(EditorSchema, draft7_bundle_metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_draft7);
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_draft7);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -643,8 +633,8 @@ TEST(EditorSchema, draft6_bundle) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_draft6);
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_draft6);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -674,8 +664,8 @@ TEST(EditorSchema, draft6_bundle_metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_draft6);
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_draft6);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -704,8 +694,8 @@ TEST(EditorSchema, draft4_bundle) {
     }
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_draft4);
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_draft4);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -735,8 +725,8 @@ TEST(EditorSchema, draft4_bundle_metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::for_editor(
-      document, sourcemeta::core::schema_official_walker, test_resolver_draft4);
+  sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
+                               test_resolver_draft4);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",

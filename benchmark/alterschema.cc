@@ -18,8 +18,8 @@ Alterschema_Check_Readibility_ISO_Language_Set_3(benchmark::State &state) {
 
   for (auto _ : state) {
     auto result = bundle.check(
-        schema, sourcemeta::core::schema_official_walker,
-        sourcemeta::core::schema_official_resolver,
+        schema, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
         [](const auto &, const auto &, const auto &, const auto &) {});
     assert(result.first);
     assert(result.second == 100);
@@ -37,8 +37,8 @@ static void Alterschema_Check_Readibility_OMC(benchmark::State &state) {
 
   for (auto _ : state) {
     auto result = bundle.check(
-        schema, sourcemeta::core::schema_official_walker,
-        sourcemeta::core::schema_official_resolver,
+        schema, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
         [](const auto &, const auto &, const auto &, const auto &) {});
     assert(result.first);
     benchmark::DoNotOptimize(result);

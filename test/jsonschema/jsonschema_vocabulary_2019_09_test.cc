@@ -31,7 +31,7 @@ static auto test_resolver(std::string_view identifier)
       "$schema": "https://json-schema.org/draft/2019-09/hyper-schema"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 

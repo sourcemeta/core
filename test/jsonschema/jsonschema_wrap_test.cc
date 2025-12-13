@@ -49,8 +49,8 @@ TEST(JSONSchema_wrap, schema_without_identifier) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"items"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -77,8 +77,8 @@ TEST(JSONSchema_wrap, schema_without_identifier_and_relative_uri) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"items"},
+                                           sourcemeta::core::schema_resolver)};
 
   // We don't want the relative reference to be resolved against
   // an absolute base
@@ -107,7 +107,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_with_default_dialect) {
   })JSON")};
 
   const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver,
+      schema, {"items"}, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2020-12/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -137,7 +137,7 @@ TEST(JSONSchema_wrap,
   })JSON")};
 
   const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver,
+      schema, {"items"}, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2019-09/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -165,8 +165,8 @@ TEST(JSONSchema_wrap, schema_without_identifier_empty_pointer) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -185,10 +185,9 @@ TEST(JSONSchema_wrap, schema_without_identifier_without_dialect) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"items"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaUnknownBaseDialectError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"items"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier) {
@@ -200,8 +199,8 @@ TEST(JSONSchema_wrap, schema_with_identifier) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"items"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -229,8 +228,8 @@ TEST(JSONSchema_wrap, schema_with_identifier_trailing_empty_fragment) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"items"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -259,7 +258,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_different_default_dialect) {
   })JSON")};
 
   const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver,
+      schema, {"items"}, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2019-09/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -288,7 +287,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_default_dialect) {
   })JSON")};
 
   const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver,
+      schema, {"items"}, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2019-09/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -316,8 +315,8 @@ TEST(JSONSchema_wrap, schema_with_identifier_empty_pointer) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$id": "https://sourcemeta.com/1",
@@ -337,10 +336,9 @@ TEST(JSONSchema_wrap, schema_with_identifier_no_dialect) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"items"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaUnknownBaseDialectError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"items"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_with_fragment) {
@@ -352,8 +350,8 @@ TEST(JSONSchema_wrap, schema_with_identifier_with_fragment) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"items"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"items"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -377,9 +375,9 @@ TEST(JSONSchema_wrap, draft4_standalone_ref_with_default_dialect) {
     "$ref": "https://example.com"
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver,
-      "http://json-schema.org/draft-04/schema#")};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver,
+                             "http://json-schema.org/draft-04/schema#")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$ref": "https://example.com"
@@ -398,8 +396,8 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -423,10 +421,9 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_definitions_foo) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"definitions", "foo"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_empty) {
@@ -438,8 +435,8 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -461,10 +458,9 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_definitions_foo) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"definitions", "foo"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_wrap, draft6_standalone_ref_with_default_dialect) {
@@ -472,9 +468,9 @@ TEST(JSONSchema_wrap, draft6_standalone_ref_with_default_dialect) {
     "$ref": "https://example.com"
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver,
-      "http://json-schema.org/draft-06/schema#")};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver,
+                             "http://json-schema.org/draft-06/schema#")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$ref": "https://example.com"
@@ -493,8 +489,8 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -518,10 +514,9 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_definitions_foo) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"definitions", "foo"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_empty) {
@@ -533,8 +528,8 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -556,10 +551,9 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_definitions_foo) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"definitions", "foo"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_wrap, draft7_standalone_ref_with_default_dialect) {
@@ -567,9 +561,9 @@ TEST(JSONSchema_wrap, draft7_standalone_ref_with_default_dialect) {
     "$ref": "https://example.com"
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver,
-      "http://json-schema.org/draft-07/schema#")};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver,
+                             "http://json-schema.org/draft-07/schema#")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$ref": "https://example.com"
@@ -588,8 +582,8 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -613,10 +607,9 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_definitions_foo) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"definitions", "foo"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_empty) {
@@ -628,8 +621,8 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -651,10 +644,9 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_definitions_foo) {
     }
   })JSON")};
 
-  EXPECT_THROW(
-      sourcemeta::core::wrap(schema, {"definitions", "foo"},
-                             sourcemeta::core::schema_official_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::wrap(schema, {"definitions", "foo"},
+                                      sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_empty) {
@@ -667,8 +659,8 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -692,8 +684,8 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"$defs", "foo"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -722,8 +714,8 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -745,8 +737,8 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"$defs", "foo"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -776,8 +768,8 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -801,8 +793,8 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"$defs", "foo"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -831,8 +823,8 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {}, sourcemeta::core::schema_official_resolver)};
+  const auto result{
+      sourcemeta::core::wrap(schema, {}, sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -854,8 +846,8 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{sourcemeta::core::wrap(
-      schema, {"$defs", "foo"}, sourcemeta::core::schema_official_resolver)};
+  const auto result{sourcemeta::core::wrap(schema, {"$defs", "foo"},
+                                           sourcemeta::core::schema_resolver)};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",

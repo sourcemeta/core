@@ -7,12 +7,12 @@
 #define EXPECT_SCHEMA(identifier)                                              \
   {                                                                            \
     const std::optional<sourcemeta::core::JSON> result{                        \
-        sourcemeta::core::schema_official_resolver(identifier)};               \
+        sourcemeta::core::schema_resolver(identifier)};                        \
     EXPECT_TRUE(result.has_value());                                           \
     const sourcemeta::core::JSON &document{result.value()};                    \
     EXPECT_TRUE(sourcemeta::core::is_schema(document));                        \
     std::optional<std::string> id{sourcemeta::core::identify(                  \
-        document, sourcemeta::core::schema_official_resolver)};                \
+        document, sourcemeta::core::schema_resolver)};                         \
     EXPECT_TRUE(id.has_value());                                               \
     EXPECT_EQ(sourcemeta::core::URI{id.value()}.canonicalize().recompose(),    \
               sourcemeta::core::URI{identifier}.canonicalize().recompose());   \
@@ -147,6 +147,6 @@ TEST(JSONSchema_official_resolver, idempotency) {
 
 TEST(JSONSchema_official_resolver, invalid) {
   const std::optional<sourcemeta::core::JSON> result{
-      sourcemeta::core::schema_official_resolver("https://example.com/foobar")};
+      sourcemeta::core::schema_resolver("https://example.com/foobar")};
   EXPECT_FALSE(result.has_value());
 }
