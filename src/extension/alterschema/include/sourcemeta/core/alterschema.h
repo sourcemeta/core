@@ -55,8 +55,8 @@ enum class AlterSchemaMode : std::uint8_t {
 ///   }
 /// })JSON");
 ///
-/// bundle.apply(schema, sourcemeta::core::schema_official_walker,
-///              sourcemeta::core::schema_official_resolver);
+/// bundle.apply(schema, sourcemeta::core::schema_walker,
+///              sourcemeta::core::schema_resolver);
 /// ```
 SOURCEMETA_CORE_ALTERSCHEMA_EXPORT
 auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void;

@@ -23,7 +23,7 @@ namespace sourcemeta::core {
 ///
 /// For convenience, we provide the following default resolvers:
 ///
-/// - sourcemeta::core::schema_official_resolver
+/// - sourcemeta::core::schema_resolver
 ///
 /// You can implement resolvers to read from a local storage, to send HTTP
 /// requests, or anything your application might require. Unless your resolver
@@ -190,7 +190,7 @@ struct SchemaWalkerResult {
 ///
 /// For convenience, we provide the following default walkers:
 ///
-/// - sourcemeta::core::schema_official_walker
+/// - sourcemeta::core::schema_walker
 /// - sourcemeta::core::schema_walker_none
 using SchemaWalker = std::function<const SchemaWalkerResult &(
     std::string_view, const Vocabularies &)>;

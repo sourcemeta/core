@@ -40,10 +40,9 @@ TEST(JSONSchema_transformer, flat_document_no_applicators) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -74,10 +73,9 @@ TEST(JSONSchema_transformer, embedded_resource_match_check) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 50);
@@ -106,11 +104,10 @@ TEST(JSONSchema_transformer, embedded_resource_match_check_with_default_id) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries), std::nullopt,
-                   "https://sourcemeta.com");
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries),
+                                   std::nullopt, "https://sourcemeta.com");
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 50);
@@ -141,10 +138,9 @@ TEST(JSONSchema_transformer, embedded_resource_vocabularies_check) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -181,10 +177,9 @@ TEST(JSONSchema_transformer, embedded_resource_vocabularies_apply) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -216,8 +211,8 @@ TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
     "qux": "xxx"
   })JSON");
 
-  EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_official_walker,
-                            sourcemeta::core::schema_official_resolver,
+  EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_walker,
+                            sourcemeta::core::schema_resolver,
                             transformer_callback_noop,
                             "https://example.com/invalid"),
                sourcemeta::core::SchemaResolutionError);
@@ -244,11 +239,10 @@ TEST(JSONSchema_transformer, with_default_dialect) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries),
-                   "https://json-schema.org/draft/2020-12/schema");
+  const bool result = bundle.apply(
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, transformer_callback_trace(entries),
+      "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -273,11 +267,10 @@ TEST(JSONSchema_transformer, with_explicit_default_dialect_same) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries),
-                   "https://json-schema.org/draft/2020-12/schema");
+  const bool result = bundle.apply(
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, transformer_callback_trace(entries),
+      "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -301,9 +294,8 @@ TEST(JSONSchema_transformer, throw_on_rules_called_twice) {
   })JSON");
 
   try {
-    bundle.apply(document, sourcemeta::core::schema_official_walker,
-                 sourcemeta::core::schema_official_resolver,
-                 transformer_callback_noop);
+    bundle.apply(document, sourcemeta::core::schema_walker,
+                 sourcemeta::core::schema_resolver, transformer_callback_noop);
     FAIL();
   } catch (
       const sourcemeta::core::SchemaTransformRuleProcessedTwiceError &error) {
@@ -327,10 +319,9 @@ TEST(JSONSchema_transformer, top_level_rule) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -363,10 +354,9 @@ TEST(JSONSchema_transformer, walker_2020_12) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -409,11 +399,10 @@ TEST(JSONSchema_transformer, mismatch_default_dialect) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries),
-                   "http://json-schema.org/draft-04/schema#");
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries),
+                                   "http://json-schema.org/draft-04/schema#");
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -453,10 +442,9 @@ TEST(JSONSchema_transformer, rule_pointers) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -491,10 +479,9 @@ TEST(JSONSchema_transformer, multi_dialect_rules) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -544,10 +531,9 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -592,10 +578,9 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -628,10 +613,9 @@ TEST(JSONSchema_transformer, check_top_level) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -666,10 +650,9 @@ TEST(JSONSchema_transformer, check_top_level_with_id) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -694,10 +677,10 @@ TEST(JSONSchema_transformer, check_top_level_with_id_and_default_id) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result = bundle.check(
-      document, sourcemeta::core::schema_official_walker,
-      sourcemeta::core::schema_official_resolver,
-      transformer_callback_trace(entries), std::nullopt, "https://other.com");
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries),
+                                   std::nullopt, "https://other.com");
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -722,10 +705,9 @@ TEST(JSONSchema_transformer, check_multiple_pointers) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -755,10 +737,9 @@ TEST(JSONSchema_transformer, check_with_description) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -792,10 +773,9 @@ TEST(JSONSchema_transformer, check_no_match) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result.first);
   EXPECT_EQ(result.second, 100);
@@ -824,10 +804,9 @@ TEST(JSONSchema_transformer, check_partial_match) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 75);
@@ -850,10 +829,9 @@ TEST(JSONSchema_transformer, check_empty) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result.first);
   EXPECT_EQ(result.second, 100);
@@ -872,10 +850,9 @@ TEST(JSONSchema_transformer, check_throw_if_no_dialect_invalid_default) {
     "qux": "xxx"
   })JSON");
 
-  EXPECT_THROW((void)bundle.check(document,
-                                  sourcemeta::core::schema_official_walker,
-                                  sourcemeta::core::schema_official_resolver,
-                                  nullptr, "https://example.com/invalid"),
+  EXPECT_THROW((void)bundle.check(document, sourcemeta::core::schema_walker,
+                                  sourcemeta::core::schema_resolver, nullptr,
+                                  "https://example.com/invalid"),
                sourcemeta::core::SchemaResolutionError);
 }
 
@@ -894,11 +871,10 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries),
-                   "https://json-schema.org/draft/2020-12/schema");
+  const auto result = bundle.check(
+      document, sourcemeta::core::schema_walker,
+      sourcemeta::core::schema_resolver, transformer_callback_trace(entries),
+      "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);
@@ -936,10 +912,9 @@ TEST(JSONSchema_transformer, remove_rule_by_name) {
   EXPECT_FALSE(bundle.remove("i_dont_exist"));
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -965,10 +940,9 @@ TEST(JSONSchema_transformer, unfixable_apply) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result);
 
@@ -1001,10 +975,9 @@ TEST(JSONSchema_transformer, unfixable_check) {
   })JSON");
 
   TestTransformTraces entries;
-  const auto result =
-      bundle.check(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(entries.size(), 1);
@@ -1030,10 +1003,9 @@ TEST(JSONSchema_transformer, rereference_not_hit) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1067,8 +1039,8 @@ TEST(JSONSchema_transformer, rereference_not_fixed_ref) {
   TestTransformTraces entries;
 
   try {
-    bundle.apply(document, sourcemeta::core::schema_official_walker,
-                 sourcemeta::core::schema_official_resolver,
+    bundle.apply(document, sourcemeta::core::schema_walker,
+                 sourcemeta::core::schema_resolver,
                  transformer_callback_trace(entries));
     FAIL() << "The transformation was expected to throw";
   } catch (const sourcemeta::core::SchemaBrokenReferenceError &error) {
@@ -1112,10 +1084,9 @@ TEST(JSONSchema_transformer, rereference_not_fixed_id) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1148,10 +1119,9 @@ TEST(JSONSchema_transformer, rereference_not_fixed_anchor) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1184,10 +1154,9 @@ TEST(JSONSchema_transformer, rereference_fixed_1) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1221,10 +1190,9 @@ TEST(JSONSchema_transformer, rereference_fixed_2) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1260,10 +1228,9 @@ TEST(JSONSchema_transformer, rereference_fixed_3) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1300,10 +1267,9 @@ TEST(JSONSchema_transformer, rereference_fixed_4) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1344,10 +1310,9 @@ TEST(JSONSchema_transformer, rereference_fixed_5) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1394,10 +1359,9 @@ TEST(JSONSchema_transformer, rereference_fixed_6) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);
@@ -1455,10 +1419,9 @@ TEST(JSONSchema_transformer, rereference_fixed_7) {
   })JSON");
 
   TestTransformTraces entries;
-  const bool result =
-      bundle.apply(document, sourcemeta::core::schema_official_walker,
-                   sourcemeta::core::schema_official_resolver,
-                   transformer_callback_trace(entries));
+  const bool result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
 
   EXPECT_TRUE(result);
   EXPECT_EQ(entries.size(), 0);

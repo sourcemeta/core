@@ -47,7 +47,7 @@ static auto test_resolver(std::string_view identifier)
       "foo", "bar", "baz"
     ])JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -65,7 +65,7 @@ TEST(JSONSchema_bundle, multiple_refs) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -108,7 +108,7 @@ TEST(JSONSchema_bundle, across_dialects) {
     "items": { "$ref": "https://www.sourcemeta.com/test-2" }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -145,7 +145,7 @@ TEST(JSONSchema_bundle, across_dialects_top_level_ref_draft) {
   })JSON");
 
   try {
-    sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+    sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                              test_resolver);
     FAIL();
   } catch (const sourcemeta::core::SchemaReferenceObjectResourceError &error) {
@@ -163,10 +163,9 @@ TEST(JSONSchema_bundle, across_dialects_from_top_level_ref_draft_absolute) {
     "$ref": "https://www.sourcemeta.com/test-2"
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_bundle, across_dialects_from_top_level_ref_draft_relative) {
@@ -176,10 +175,9 @@ TEST(JSONSchema_bundle, across_dialects_from_top_level_ref_draft_relative) {
     "$ref": "test-2"
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaError);
 }
 
 TEST(JSONSchema_bundle, across_dialects_const) {
@@ -190,7 +188,7 @@ TEST(JSONSchema_bundle, across_dialects_const) {
   })JSON");
 
   const auto result = sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver);
+      document, sourcemeta::core::schema_walker, test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.example.com",
@@ -224,7 +222,7 @@ TEST(JSONSchema_bundle, with_default_id) {
     "items": { "$ref": "test-2" }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver, std::nullopt,
                            "https://www.sourcemeta.com/default");
 
@@ -261,7 +259,7 @@ TEST(JSONSchema_bundle, with_default_dialect) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver,
                            "https://json-schema.org/draft/2020-12/schema");
 
@@ -288,10 +286,9 @@ TEST(JSONSchema_bundle, without_default_dialect) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaUnknownBaseDialectError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
 TEST(JSONSchema_bundle, target_no_dialect) {
@@ -302,10 +299,9 @@ TEST(JSONSchema_bundle, target_no_dialect) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaReferenceError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaReferenceError);
 }
 
 TEST(JSONSchema_bundle, target_array) {
@@ -316,10 +312,9 @@ TEST(JSONSchema_bundle, target_array) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaReferenceError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaReferenceError);
 }
 
 TEST(JSONSchema_bundle, custom_paths_no_external) {
@@ -340,7 +335,7 @@ TEST(JSONSchema_bundle, custom_paths_no_external) {
   })JSON")};
 
   sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver,
+      document, sourcemeta::core::schema_walker, test_resolver,
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       sourcemeta::core::Pointer{"components"},
       {
@@ -386,7 +381,7 @@ TEST(JSONSchema_bundle, custom_paths_with_externals) {
   })JSON")};
 
   sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver,
+      document, sourcemeta::core::schema_walker, test_resolver,
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       sourcemeta::core::Pointer{"components"},
       {

@@ -15,7 +15,7 @@ static auto test_resolver(std::string_view identifier)
       "type": "string"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -24,7 +24,7 @@ TEST(JSONSchema_bundle_draft2, no_references_no_id) {
     "$schema": "http://json-schema.org/draft-02/schema#"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -40,7 +40,7 @@ TEST(JSONSchema_bundle_draft2, const_no_references_no_id) {
   })JSON");
 
   const auto result = sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver);
+      document, sourcemeta::core::schema_walker, test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-02/schema#"
@@ -58,8 +58,7 @@ TEST(JSONSchema_bundle_draft2, simple_bundling) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaError);
 }

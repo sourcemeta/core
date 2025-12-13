@@ -16,8 +16,8 @@ static void Schema_Frame_OMC_Instances(benchmark::State &state) {
   for (auto _ : state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Instances};
-    frame.analyse(schema, sourcemeta::core::schema_official_walker,
-                  sourcemeta::core::schema_official_resolver);
+    frame.analyse(schema, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
     benchmark::DoNotOptimize(frame);
   }
 }
@@ -30,8 +30,8 @@ static void Schema_Frame_OMC_References(benchmark::State &state) {
   for (auto _ : state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::References};
-    frame.analyse(schema, sourcemeta::core::schema_official_walker,
-                  sourcemeta::core::schema_official_resolver);
+    frame.analyse(schema, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
     benchmark::DoNotOptimize(frame);
   }
 }
@@ -44,8 +44,8 @@ static void Schema_Frame_OMC_Locations(benchmark::State &state) {
   for (auto _ : state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Locations};
-    frame.analyse(schema, sourcemeta::core::schema_official_walker,
-                  sourcemeta::core::schema_official_resolver);
+    frame.analyse(schema, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
     benchmark::DoNotOptimize(frame);
   }
 }
@@ -58,8 +58,8 @@ static void Schema_Frame_ISO_Language_Locations(benchmark::State &state) {
   for (auto _ : state) {
     sourcemeta::core::SchemaFrame frame{
         sourcemeta::core::SchemaFrame::Mode::Locations};
-    frame.analyse(schema, sourcemeta::core::schema_official_walker,
-                  sourcemeta::core::schema_official_resolver);
+    frame.analyse(schema, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
     benchmark::DoNotOptimize(frame);
   }
 }
@@ -71,8 +71,8 @@ static void Schema_Iterator_ISO_Language(benchmark::State &state) {
 
   for (auto _ : state) {
     sourcemeta::core::SchemaIterator iterator{
-        schema, sourcemeta::core::schema_official_walker,
-        sourcemeta::core::schema_official_resolver};
+        schema, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver};
     auto subschema_count = static_cast<std::size_t>(
         std::distance(iterator.cbegin(), iterator.cend()));
     benchmark::DoNotOptimize(subschema_count);
@@ -102,8 +102,8 @@ Schema_Frame_ISO_Language_Locations_To_JSON(benchmark::State &state) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Locations};
-  frame.analyse(schema, sourcemeta::core::schema_official_walker,
-                sourcemeta::core::schema_official_resolver);
+  frame.analyse(schema, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
   for (auto _ : state) {
     auto result{frame.to_json(tracker)};
@@ -145,8 +145,8 @@ static void Schema_Format_ISO_Language_To_JSON(benchmark::State &state) {
         std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
         "2020_12_iso_language_2023_set_3.json")};
     state.ResumeTiming();
-    sourcemeta::core::format(schema, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver);
+    sourcemeta::core::format(schema, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver);
     assert(schema.is_object());
   }
 }
@@ -154,12 +154,12 @@ static void Schema_Format_ISO_Language_To_JSON(benchmark::State &state) {
 static void Schema_Bundle_Meta_2020_12(benchmark::State &state) {
   for (auto _ : state) {
     state.PauseTiming();
-    auto schema{sourcemeta::core::schema_official_resolver(
+    auto schema{sourcemeta::core::schema_resolver(
                     "https://json-schema.org/draft/2020-12/schema")
                     .value()};
     state.ResumeTiming();
-    sourcemeta::core::bundle(schema, sourcemeta::core::schema_official_walker,
-                             sourcemeta::core::schema_official_resolver);
+    sourcemeta::core::bundle(schema, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver);
     benchmark::DoNotOptimize(schema);
   }
 }

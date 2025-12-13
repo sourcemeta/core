@@ -64,7 +64,7 @@ static auto test_resolver(std::string_view identifier)
       "id": "https://example.com/meta/2.json"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -73,7 +73,7 @@ TEST(JSONSchema_bundle_draft4, no_references_no_id) {
     "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -89,7 +89,7 @@ TEST(JSONSchema_bundle_draft4, const_no_references_no_id) {
   })JSON");
 
   const auto result = sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver);
+      document, sourcemeta::core::schema_walker, test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#"
@@ -111,7 +111,7 @@ TEST(JSONSchema_bundle_draft4, simple_with_id) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -158,7 +158,7 @@ TEST(JSONSchema_bundle_draft4, simple_without_id) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -201,10 +201,9 @@ TEST(JSONSchema_bundle_draft4, schema_not_found) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaResolutionError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaResolutionError);
 }
 
 TEST(JSONSchema_bundle_draft4, idempotency) {
@@ -216,11 +215,11 @@ TEST(JSONSchema_bundle_draft4, idempotency) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -267,7 +266,7 @@ TEST(JSONSchema_bundle_draft4, pre_embedded) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -314,7 +313,7 @@ TEST(JSONSchema_bundle_draft4, taken_definitions_entry) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -354,7 +353,7 @@ TEST(JSONSchema_bundle_draft4, allof_ref_definitions_type_no_id_no_external) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -374,7 +373,7 @@ TEST(JSONSchema_bundle_draft4, recursive) {
     "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive" } ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -400,7 +399,7 @@ TEST(JSONSchema_bundle_draft4, recursive_empty_fragment) {
     "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#" } ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -425,7 +424,7 @@ TEST(JSONSchema_bundle_draft4, anonymous_no_dialect) {
     "allOf": [ { "$ref": "https://www.sourcemeta.com/anonymous" } ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver,
                            "http://json-schema.org/draft-04/schema#");
 
@@ -448,7 +447,7 @@ TEST(JSONSchema_bundle_draft4, metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -475,7 +474,7 @@ TEST(JSONSchema_bundle_draft4, relative_base_uri_without_ref) {
     "id": "foo"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -498,7 +497,7 @@ TEST(JSONSchema_bundle_draft4, relative_base_uri_with_ref) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -523,7 +522,7 @@ TEST(JSONSchema_bundle_draft4, hyperschema_smoke) {
     ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   EXPECT_TRUE(document.is_object());
@@ -538,7 +537,7 @@ TEST(JSONSchema_bundle_draft4, hyperschema_1) {
     ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   EXPECT_TRUE(document.defines("definitions"));
@@ -559,7 +558,7 @@ TEST(JSONSchema_bundle_draft4, hyperschema_ref_metaschema) {
     ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   EXPECT_TRUE(document.defines("definitions"));
@@ -575,7 +574,7 @@ TEST(JSONSchema_bundle_draft4, standalone_ref_with_default_dialect) {
     "$ref": "https://www.sourcemeta.com/test-1"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver,
                            "http://json-schema.org/draft-04/schema#");
 

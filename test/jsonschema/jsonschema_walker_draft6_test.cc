@@ -15,7 +15,7 @@ static const sourcemeta::core::Vocabularies VOCABULARIES_DRAFT6_HYPERSCHEMA{
 
 TEST(JSONSchema_official_walker_draft6, schema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("$schema", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("$schema", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -26,7 +26,7 @@ TEST(JSONSchema_official_walker_draft6, schema) {
 
 TEST(JSONSchema_official_walker_draft6, id) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("$id", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("$id", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -37,7 +37,7 @@ TEST(JSONSchema_official_walker_draft6, id) {
 
 TEST(JSONSchema_official_walker_draft6, ref) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("$ref", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("$ref", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Reference);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -47,8 +47,7 @@ TEST(JSONSchema_official_walker_draft6, ref) {
 
 TEST(JSONSchema_official_walker_draft6, definitions) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("definitions", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("definitions", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::LocationMembers);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -59,7 +58,7 @@ TEST(JSONSchema_official_walker_draft6, definitions) {
 
 TEST(JSONSchema_official_walker_draft6, allOf) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("allOf", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("allOf", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlace);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -70,7 +69,7 @@ TEST(JSONSchema_official_walker_draft6, allOf) {
 
 TEST(JSONSchema_official_walker_draft6, anyOf) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("anyOf", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("anyOf", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlaceSome);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -81,7 +80,7 @@ TEST(JSONSchema_official_walker_draft6, anyOf) {
 
 TEST(JSONSchema_official_walker_draft6, oneOf) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("oneOf", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("oneOf", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlaceSome);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -92,7 +91,7 @@ TEST(JSONSchema_official_walker_draft6, oneOf) {
 
 TEST(JSONSchema_official_walker_draft6, not) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("not", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("not", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueInPlaceNegate);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -103,7 +102,7 @@ TEST(JSONSchema_official_walker_draft6, not) {
 
 TEST(JSONSchema_official_walker_draft6, items) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("items", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("items", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueOrElementsTraverseAnyItemOrItem);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -116,8 +115,7 @@ TEST(JSONSchema_official_walker_draft6, items) {
 
 TEST(JSONSchema_official_walker_draft6, additionalItems) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("additionalItems", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("additionalItems", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseSomeItem);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -129,7 +127,7 @@ TEST(JSONSchema_official_walker_draft6, additionalItems) {
 
 TEST(JSONSchema_official_walker_draft6, contains) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("contains", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("contains", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseAnyItem);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -141,7 +139,7 @@ TEST(JSONSchema_official_walker_draft6, contains) {
 
 TEST(JSONSchema_official_walker_draft6, properties) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("properties", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("properties", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorMembersTraversePropertyStatic);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -154,8 +152,7 @@ TEST(JSONSchema_official_walker_draft6, properties) {
 
 TEST(JSONSchema_official_walker_draft6, patternProperties) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("patternProperties", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("patternProperties", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorMembersTraversePropertyRegex);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -168,8 +165,7 @@ TEST(JSONSchema_official_walker_draft6, patternProperties) {
 
 TEST(JSONSchema_official_walker_draft6, dependencies) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("dependencies", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("dependencies", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorMembersInPlaceSome);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -182,7 +178,7 @@ TEST(JSONSchema_official_walker_draft6, dependencies) {
 TEST(JSONSchema_official_walker_draft6, additionalProperties) {
   using namespace sourcemeta::core;
   const auto &result{
-      schema_official_walker("additionalProperties", VOCABULARIES_DRAFT6)};
+      schema_walker("additionalProperties", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueTraverseSomeProperty);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -196,8 +192,7 @@ TEST(JSONSchema_official_walker_draft6, additionalProperties) {
 
 TEST(JSONSchema_official_walker_draft6, propertyNames) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("propertyNames", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("propertyNames", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type,
             SchemaKeywordType::ApplicatorValueTraverseAnyPropertyKey);
   EXPECT_TRUE(result.vocabulary.has_value());
@@ -210,7 +205,7 @@ TEST(JSONSchema_official_walker_draft6, propertyNames) {
 
 TEST(JSONSchema_official_walker_draft6, type) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("type", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("type", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -221,7 +216,7 @@ TEST(JSONSchema_official_walker_draft6, type) {
 
 TEST(JSONSchema_official_walker_draft6, enum) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("enum", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("enum", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -232,7 +227,7 @@ TEST(JSONSchema_official_walker_draft6, enum) {
 
 TEST(JSONSchema_official_walker_draft6, const) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("const", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("const", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -243,7 +238,7 @@ TEST(JSONSchema_official_walker_draft6, const) {
 
 TEST(JSONSchema_official_walker_draft6, multipleOf) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("multipleOf", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("multipleOf", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -257,7 +252,7 @@ TEST(JSONSchema_official_walker_draft6, multipleOf) {
 
 TEST(JSONSchema_official_walker_draft6, maximum) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("maximum", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("maximum", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -271,7 +266,7 @@ TEST(JSONSchema_official_walker_draft6, maximum) {
 
 TEST(JSONSchema_official_walker_draft6, minimum) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("minimum", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("minimum", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -285,8 +280,7 @@ TEST(JSONSchema_official_walker_draft6, minimum) {
 
 TEST(JSONSchema_official_walker_draft6, exclusiveMaximum) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("exclusiveMaximum", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("exclusiveMaximum", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -300,8 +294,7 @@ TEST(JSONSchema_official_walker_draft6, exclusiveMaximum) {
 
 TEST(JSONSchema_official_walker_draft6, exclusiveMinimum) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("exclusiveMinimum", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("exclusiveMinimum", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -315,7 +308,7 @@ TEST(JSONSchema_official_walker_draft6, exclusiveMinimum) {
 
 TEST(JSONSchema_official_walker_draft6, maxLength) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("maxLength", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("maxLength", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -327,7 +320,7 @@ TEST(JSONSchema_official_walker_draft6, maxLength) {
 
 TEST(JSONSchema_official_walker_draft6, minLength) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("minLength", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("minLength", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -339,7 +332,7 @@ TEST(JSONSchema_official_walker_draft6, minLength) {
 
 TEST(JSONSchema_official_walker_draft6, pattern) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("pattern", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("pattern", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -351,7 +344,7 @@ TEST(JSONSchema_official_walker_draft6, pattern) {
 
 TEST(JSONSchema_official_walker_draft6, maxItems) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("maxItems", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("maxItems", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -363,7 +356,7 @@ TEST(JSONSchema_official_walker_draft6, maxItems) {
 
 TEST(JSONSchema_official_walker_draft6, minItems) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("minItems", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("minItems", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -375,8 +368,7 @@ TEST(JSONSchema_official_walker_draft6, minItems) {
 
 TEST(JSONSchema_official_walker_draft6, uniqueItems) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("uniqueItems", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("uniqueItems", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -388,8 +380,7 @@ TEST(JSONSchema_official_walker_draft6, uniqueItems) {
 
 TEST(JSONSchema_official_walker_draft6, maxProperties) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("maxProperties", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("maxProperties", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -401,8 +392,7 @@ TEST(JSONSchema_official_walker_draft6, maxProperties) {
 
 TEST(JSONSchema_official_walker_draft6, minProperties) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("minProperties", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("minProperties", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -414,7 +404,7 @@ TEST(JSONSchema_official_walker_draft6, minProperties) {
 
 TEST(JSONSchema_official_walker_draft6, required) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("required", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("required", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -426,7 +416,7 @@ TEST(JSONSchema_official_walker_draft6, required) {
 
 TEST(JSONSchema_official_walker_draft6, format) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("format", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("format", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -438,7 +428,7 @@ TEST(JSONSchema_official_walker_draft6, format) {
 
 TEST(JSONSchema_official_walker_draft6, title) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("title", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("title", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -449,8 +439,7 @@ TEST(JSONSchema_official_walker_draft6, title) {
 
 TEST(JSONSchema_official_walker_draft6, description) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("description", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("description", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -461,7 +450,7 @@ TEST(JSONSchema_official_walker_draft6, description) {
 
 TEST(JSONSchema_official_walker_draft6, default) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("default", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("default", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -472,7 +461,7 @@ TEST(JSONSchema_official_walker_draft6, default) {
 
 TEST(JSONSchema_official_walker_draft6, examples) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("examples", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("examples", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -483,8 +472,7 @@ TEST(JSONSchema_official_walker_draft6, examples) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_links) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("links", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{schema_walker("links", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorElementsInPlace);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -494,8 +482,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_links) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_href) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("href", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{schema_walker("href", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -505,8 +492,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_href) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_rel) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("rel", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{schema_walker("rel", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
@@ -516,7 +502,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_rel) {
 TEST(JSONSchema_official_walker_draft6, hyperschema_mediaType) {
   using namespace sourcemeta::core;
   const auto &result{
-      schema_official_walker("mediaType", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+      schema_walker("mediaType", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
@@ -525,8 +511,8 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_mediaType) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_submissionEncType) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("submissionEncType",
-                                            VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{
+      schema_walker("submissionEncType", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
@@ -535,8 +521,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_submissionEncType) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_base) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("base", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{schema_walker("base", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -546,8 +531,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_base) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_media) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("media", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{schema_walker("media", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Other);
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -558,7 +542,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_media) {
 TEST(JSONSchema_official_walker_draft6, hyperschema_readOnly) {
   using namespace sourcemeta::core;
   const auto &result{
-      schema_official_walker("readOnly", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+      schema_walker("readOnly", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
@@ -570,7 +554,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_readOnly) {
 TEST(JSONSchema_official_walker_draft6, hyperschema_hrefSchema) {
   using namespace sourcemeta::core;
   const auto &result{
-      schema_official_walker("hrefSchema", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+      schema_walker("hrefSchema", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueInPlaceOther);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
@@ -581,7 +565,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_hrefSchema) {
 TEST(JSONSchema_official_walker_draft6, hyperschema_targetSchema) {
   using namespace sourcemeta::core;
   const auto &result{
-      schema_official_walker("targetSchema", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+      schema_walker("targetSchema", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueInPlaceOther);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
@@ -591,8 +575,8 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_targetSchema) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_submissionSchema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("submissionSchema",
-                                            VOCABULARIES_DRAFT6_HYPERSCHEMA)};
+  const auto &result{
+      schema_walker("submissionSchema", VOCABULARIES_DRAFT6_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueInPlaceOther);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6_Hyper);
@@ -602,7 +586,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_submissionSchema) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_links_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("links", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("links", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -612,7 +596,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_links_without_hyperschema) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_href_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("href", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("href", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -622,7 +606,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_href_without_hyperschema) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_rel_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("rel", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("rel", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -633,7 +617,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_rel_without_hyperschema) {
 TEST(JSONSchema_official_walker_draft6,
      hyperschema_mediaType_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("mediaType", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("mediaType", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -644,8 +628,7 @@ TEST(JSONSchema_official_walker_draft6,
 TEST(JSONSchema_official_walker_draft6,
      hyperschema_submissionEncType_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("submissionEncType", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("submissionEncType", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -655,7 +638,7 @@ TEST(JSONSchema_official_walker_draft6,
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_base_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("base", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("base", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -665,7 +648,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_base_without_hyperschema) {
 
 TEST(JSONSchema_official_walker_draft6, hyperschema_media_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("media", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("media", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -676,7 +659,7 @@ TEST(JSONSchema_official_walker_draft6, hyperschema_media_without_hyperschema) {
 TEST(JSONSchema_official_walker_draft6,
      hyperschema_readOnly_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("readOnly", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("readOnly", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Comment);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_6);
@@ -688,7 +671,7 @@ TEST(JSONSchema_official_walker_draft6,
 TEST(JSONSchema_official_walker_draft6,
      hyperschema_hrefSchema_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{schema_official_walker("hrefSchema", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("hrefSchema", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -699,8 +682,7 @@ TEST(JSONSchema_official_walker_draft6,
 TEST(JSONSchema_official_walker_draft6,
      hyperschema_targetSchema_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("targetSchema", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("targetSchema", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -711,8 +693,7 @@ TEST(JSONSchema_official_walker_draft6,
 TEST(JSONSchema_official_walker_draft6,
      hyperschema_submissionSchema_without_hyperschema) {
   using namespace sourcemeta::core;
-  const auto &result{
-      schema_official_walker("submissionSchema", VOCABULARIES_DRAFT6)};
+  const auto &result{schema_walker("submissionSchema", VOCABULARIES_DRAFT6)};
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   const std::unordered_set<std::string_view> expected{"$ref"};
@@ -722,7 +703,7 @@ TEST(JSONSchema_official_walker_draft6,
 
 TEST(JSONSchema_official_walker_draft6, schema_keyword_priority_array) {
   const auto &vocabularies = VOCABULARIES_DRAFT6;
-  const auto &walker = sourcemeta::core::schema_official_walker;
+  const auto &walker = sourcemeta::core::schema_walker;
   using namespace sourcemeta::core;
   EXPECT_EQ(schema_keyword_priority("items", vocabularies, walker), 1);
   EXPECT_EQ(schema_keyword_priority("additionalItems", vocabularies, walker),
@@ -731,7 +712,7 @@ TEST(JSONSchema_official_walker_draft6, schema_keyword_priority_array) {
 
 TEST(JSONSchema_official_walker_draft6, schema_keyword_priority_object) {
   const auto &vocabularies = VOCABULARIES_DRAFT6;
-  const auto &walker = sourcemeta::core::schema_official_walker;
+  const auto &walker = sourcemeta::core::schema_walker;
   using namespace sourcemeta::core;
   EXPECT_EQ(schema_keyword_priority("properties", vocabularies, walker), 2);
   EXPECT_EQ(schema_keyword_priority("patternProperties", vocabularies, walker),
@@ -742,7 +723,7 @@ TEST(JSONSchema_official_walker_draft6, schema_keyword_priority_object) {
 
 TEST(JSONSchema_official_walker_draft6, schema_keyword_priority_unknown) {
   const auto &vocabularies = VOCABULARIES_DRAFT6;
-  const auto &walker = sourcemeta::core::schema_official_walker;
+  const auto &walker = sourcemeta::core::schema_walker;
   using namespace sourcemeta::core;
   EXPECT_EQ(schema_keyword_priority("foobar", vocabularies, walker), 1);
 }
@@ -776,8 +757,8 @@ TEST(JSONSchema_official_walker_draft6, instance_locations) {
 
   std::vector<sourcemeta::core::SchemaIteratorEntry> entries;
   for (const auto &entry : sourcemeta::core::SchemaIterator(
-           document, sourcemeta::core::schema_official_walker,
-           sourcemeta::core::schema_official_resolver)) {
+           document, sourcemeta::core::schema_walker,
+           sourcemeta::core::schema_resolver)) {
     entries.push_back(entry);
   }
 
@@ -848,8 +829,8 @@ TEST(JSONSchema_official_walker_draft6, definitions_subschemas) {
 
   std::vector<sourcemeta::core::SchemaIteratorEntry> entries;
   for (const auto &entry : sourcemeta::core::SchemaIterator(
-           document, sourcemeta::core::schema_official_walker,
-           sourcemeta::core::schema_official_resolver)) {
+           document, sourcemeta::core::schema_walker,
+           sourcemeta::core::schema_resolver)) {
     entries.push_back(entry);
   }
 

@@ -10,7 +10,7 @@
 TEST(JSONSchema_vocabulary, core_vocabularies_boolean_without_default) {
   const sourcemeta::core::JSON document{true};
   EXPECT_THROW(sourcemeta::core::vocabularies(
-                   document, sourcemeta::core::schema_official_resolver),
+                   document, sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
@@ -19,7 +19,7 @@ TEST(JSONSchema_vocabulary, unresolvable_dialect) {
     "$schema": "https://non-existent.com/dialect"
   })JSON");
   EXPECT_THROW(sourcemeta::core::vocabularies(
-                   document, sourcemeta::core::schema_official_resolver),
+                   document, sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaResolutionError);
 }
 
