@@ -44,7 +44,6 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "canonicalizer/type_union_implicit.h"
 
 // Linter
-#include "linter/additional_items_with_schema_items.h"
 #include "linter/additional_properties_default.h"
 #include "linter/const_with_type.h"
 #include "linter/content_media_type_without_encoding.h"
@@ -79,6 +78,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/minimum_real_for_integer.h"
 #include "linter/modern_official_dialect_with_empty_fragment.h"
 #include "linter/multiple_of_default.h"
+#include "linter/non_applicable_additional_items.h"
 #include "linter/non_applicable_enum_validation_keywords.h"
 #include "linter/non_applicable_type_specific_keywords.h"
 #include "linter/not_false.h"
@@ -134,7 +134,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<DuplicateEnumValues>();
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();
-  bundle.add<AdditionalItemsWithSchemaItems>();
+  bundle.add<NonApplicableAdditionalItems>();
   bundle.add<ModernOfficialDialectWithEmptyFragment>();
   bundle.add<ExclusiveMaximumNumberAndMaximum>();
   bundle.add<ExclusiveMinimumNumberAndMinimum>();
