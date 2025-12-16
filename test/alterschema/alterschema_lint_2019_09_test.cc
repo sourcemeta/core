@@ -2557,6 +2557,8 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_5) {
 TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_6) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "title": "Test",
+    "description": "A test schema",
     "allOf": [
       { "type": "string", "$ref": "https://example.com" }
     ]
