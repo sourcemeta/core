@@ -156,18 +156,23 @@ auto SchemaTransformer::apply(
     JSON &schema, const SchemaWalker &walker, const SchemaResolver &resolver,
     const SchemaTransformer::Callback &callback,
     const std::optional<JSON::String> &default_dialect,
-    const std::optional<JSON::String> &default_id) const -> bool {
+    const std::optional<JSON::String> &default_id) const
+    -> std::pair<bool, std::uint8_t> {
   // There is no point in applying an empty bundle
   assert(!this->rules.empty());
   std::set<std::pair<const JSON *, const JSON::String *>> processed_rules;
 
   bool result{true};
+  std::size_t subschema_count{0};
+  std::size_t subschema_failures{0};
   while (true) {
     SchemaFrame frame{SchemaFrame::Mode::References};
     frame.analyse(schema, walker, resolver, default_dialect, default_id);
     std::unordered_set<Pointer> visited;
 
     bool applied{false};
+    subschema_count = 0;
+    subschema_failures = 0;
     for (const auto &entry : frame.locations()) {
       if (entry.second.type != SchemaFrame::LocationType::Resource &&
           entry.second.type != SchemaFrame::LocationType::Subschema) {
@@ -180,10 +185,13 @@ auto SchemaTransformer::apply(
         continue;
       }
 
+      subschema_count += 1;
+
       auto &current{get(schema, entry.second.pointer)};
       const auto current_vocabularies{
           frame.vocabularies(entry.second, resolver)};
 
+      bool subschema_failed{false};
       for (const auto &[name, rule] : this->rules) {
         const auto subresult{rule->apply(current, schema, current_vocabularies,
                                          walker, resolver, frame,
@@ -193,6 +201,7 @@ auto SchemaTransformer::apply(
           applied = subresult.second.applies || applied;
         } else {
           result = false;
+          subschema_failed = true;
           callback(entry.second.pointer, name, rule->message(),
                    subresult.second);
         }
@@ -240,6 +249,10 @@ auto SchemaTransformer::apply(
         processed_rules.emplace(std::move(mark));
         goto core_transformer_start_again;
       }
+
+      if (subschema_failed) {
+        subschema_failures += 1;
+      }
     }
 
   core_transformer_start_again:
@@ -248,7 +261,8 @@ auto SchemaTransformer::apply(
     }
   }
 
-  return result;
+  return {result,
+          calculate_health_percentage(subschema_count, subschema_failures)};
 }
 
 auto SchemaTransformer::remove(const std::string &name) -> bool {
