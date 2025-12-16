@@ -121,3 +121,83 @@ TEST(JSON_string, trim_in_place) {
   EXPECT_EQ(result, "foo   bar");
   EXPECT_EQ(document.to_string(), "foo   bar");
 }
+
+TEST(JSON_string, is_trimmed_true) {
+  const sourcemeta::core::JSON document{"Hello World"};
+  EXPECT_TRUE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_empty) {
+  const sourcemeta::core::JSON document{""};
+  EXPECT_TRUE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_leading_space) {
+  const sourcemeta::core::JSON document{" Hello World"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_trailing_space) {
+  const sourcemeta::core::JSON document{"Hello World "};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_both_space) {
+  const sourcemeta::core::JSON document{" Hello World "};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_leading_tab) {
+  const sourcemeta::core::JSON document{"\tHello World"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_trailing_tab) {
+  const sourcemeta::core::JSON document{"Hello World\t"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_leading_newline) {
+  const sourcemeta::core::JSON document{"\nHello World"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_trailing_newline) {
+  const sourcemeta::core::JSON document{"Hello World\n"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_leading_carriage_return) {
+  const sourcemeta::core::JSON document{"\rHello World"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_trailing_carriage_return) {
+  const sourcemeta::core::JSON document{"Hello World\r"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_leading_vertical_tab) {
+  const sourcemeta::core::JSON document{"\vHello World"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_trailing_vertical_tab) {
+  const sourcemeta::core::JSON document{"Hello World\v"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_leading_form_feed) {
+  const sourcemeta::core::JSON document{"\fHello World"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_trailing_form_feed) {
+  const sourcemeta::core::JSON document{"Hello World\f"};
+  EXPECT_FALSE(document.is_trimmed());
+}
+
+TEST(JSON_string, is_trimmed_inner_whitespace_ok) {
+  const sourcemeta::core::JSON document{"Hello \t\n\r World"};
+  EXPECT_TRUE(document.is_trimmed());
+}

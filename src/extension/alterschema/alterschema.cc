@@ -45,6 +45,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 
 // Linter
 #include "linter/additional_properties_default.h"
+#include "linter/comment_trim.h"
 #include "linter/const_with_type.h"
 #include "linter/content_media_type_without_encoding.h"
 #include "linter/content_schema_default.h"
@@ -61,6 +62,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/duplicate_allof_branches.h"
 #include "linter/duplicate_anyof_branches.h"
 #include "linter/duplicate_enum_values.h"
+#include "linter/duplicate_examples.h"
 #include "linter/duplicate_required_values.h"
 #include "linter/else_empty.h"
 #include "linter/else_without_if.h"
@@ -96,6 +98,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/title_trailing_period.h"
 #include "linter/title_trim.h"
 #include "linter/top_level_description.h"
+#include "linter/top_level_examples.h"
 #include "linter/top_level_title.h"
 #include "linter/unevaluated_items_default.h"
 #include "linter/unevaluated_properties_default.h"
@@ -139,6 +142,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<EnumWithType>();
   bundle.add<NonApplicableEnumValidationKeywords>();
   bundle.add<DuplicateEnumValues>();
+  bundle.add<DuplicateExamples>();
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();
   bundle.add<NonApplicableAdditionalItems>();
@@ -154,6 +158,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<DescriptionTrailingPeriod>();
   bundle.add<TitleTrim>();
   bundle.add<DescriptionTrim>();
+  bundle.add<CommentTrim>();
 
   if (mode == AlterSchemaMode::StaticAnalysis) {
     bundle.add<BooleanTrue>();
@@ -196,6 +201,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<EnumToConst>();
     bundle.add<TopLevelTitle>();
     bundle.add<TopLevelDescription>();
+    bundle.add<TopLevelExamples>();
   }
 }
 
