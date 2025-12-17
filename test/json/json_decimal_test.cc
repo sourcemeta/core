@@ -877,3 +877,24 @@ TEST(JSON_decimal, divisible_by_mixed_scale_decimal_real_divisible_true) {
   const sourcemeta::core::JSON divisor{0.5};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
+
+TEST(JSON_decimal, fast_hash_positive) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"3.14"}};
+  EXPECT_EQ(document.fast_hash(), 8);
+}
+
+TEST(JSON_decimal, fast_hash_negative) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"-3.14"}};
+  EXPECT_EQ(document.fast_hash(), 8);
+}
+
+TEST(JSON_decimal, fast_hash_zero) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{0}};
+  EXPECT_EQ(document.fast_hash(), 8);
+}
+
+TEST(JSON_decimal, fast_hash_large) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  EXPECT_EQ(document.fast_hash(), 8);
+}
