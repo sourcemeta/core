@@ -1,10 +1,11 @@
 #include <sourcemeta/core/alterschema.h>
 
 // For built-in rules
-#include <algorithm>
-#include <cmath>
-#include <iterator>
-#include <utility>
+#include <algorithm>     // std::sort, std::unique
+#include <cmath>         // std::floor
+#include <iterator>      // std::back_inserter
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
 namespace sourcemeta::core {
 
 template <typename... Args>
