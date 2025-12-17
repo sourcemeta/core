@@ -26,11 +26,15 @@ public:
   }
 
   auto transform(JSON &schema, const Result &) const -> void override {
-    auto collection = schema.at("examples");
-    std::sort(collection.as_array().begin(), collection.as_array().end());
-    auto last =
-        std::unique(collection.as_array().begin(), collection.as_array().end());
-    collection.erase(last, collection.as_array().end());
-    schema.at("examples").into(std::move(collection));
+    std::unordered_set<JSON, HashJSON<JSON>> seen;
+    auto result = JSON::make_array();
+    for (const auto &element : schema.at("examples").as_array()) {
+      if (!seen.contains(element)) {
+        seen.insert(element);
+        result.push_back(element);
+      }
+    }
+
+    schema.at("examples").into(std::move(result));
   }
 };
