@@ -302,3 +302,59 @@ TEST(YAML_parse, scientific_constant_boltzmann) {
   EXPECT_TRUE(result.is_decimal());
   EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1.38065E-23"});
 }
+
+TEST(YAML_parse, yaml_or_json_custom_extension_yaml_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_2.custom")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_custom_extension_json_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_3.custom")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_no_extension_yaml_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_no_extension_yaml")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_no_extension_json_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_no_extension_json")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_invalid_json_throws_json_error) {
+  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
+                   std::filesystem::path{STUBS_PATH} / "invalid.json"),
+               sourcemeta::core::JSONParseError);
+}
+
+TEST(YAML_parse, yaml_or_json_invalid_yaml_throws_yaml_error) {
+  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
+                   std::filesystem::path{STUBS_PATH} / "invalid.yaml"),
+               sourcemeta::core::YAMLParseError);
+}
