@@ -207,6 +207,20 @@ public:
     return this->data.empty();
   }
 
+  /// Get the size of the JSON Pointer template. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Pointer base{"foo", "bar"};
+  /// const sourcemeta::core::PointerTemplate pointer{base};
+  /// assert(pointer.size() == 2);
+  /// ```
+  [[nodiscard]] auto size() const noexcept -> size_type {
+    return this->data.size();
+  }
+
   /// Check if a JSON Pointer template only consists in normal non-templated
   /// tokens. For example:
   ///

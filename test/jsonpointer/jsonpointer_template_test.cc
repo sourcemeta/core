@@ -2,6 +2,9 @@
 
 #include <sourcemeta/core/jsonpointer.h>
 
+#include <unordered_map>
+#include <unordered_set>
+
 TEST(JSONPointer_template, equality_without_wildcard_true) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::PointerTemplate left{pointer};
@@ -403,6 +406,79 @@ TEST(JSONPointer_template, empty_false) {
   const sourcemeta::core::Pointer base{"foo"};
   const sourcemeta::core::PointerTemplate pointer{base};
   EXPECT_FALSE(pointer.empty());
+}
+
+TEST(JSONPointer_template, size_empty) {
+  const sourcemeta::core::PointerTemplate pointer;
+  EXPECT_EQ(pointer.size(), 0);
+}
+
+TEST(JSONPointer_template, size_one) {
+  const sourcemeta::core::Pointer base{"foo"};
+  const sourcemeta::core::PointerTemplate pointer{base};
+  EXPECT_EQ(pointer.size(), 1);
+}
+
+TEST(JSONPointer_template, size_multiple) {
+  const sourcemeta::core::Pointer base{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate pointer{base};
+  EXPECT_EQ(pointer.size(), 2);
+}
+
+TEST(JSONPointer_template, size_with_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Property);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+  EXPECT_EQ(pointer.size(), 3);
+}
+
+TEST(JSONPointer_template, hash_unordered_set) {
+  std::unordered_set<sourcemeta::core::PointerTemplate> set;
+
+  sourcemeta::core::PointerTemplate pointer_1;
+  pointer_1.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer_1.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  sourcemeta::core::PointerTemplate pointer_2;
+  pointer_2.emplace_back(sourcemeta::core::Pointer::Token{"baz"});
+
+  set.insert(pointer_1);
+  set.insert(pointer_2);
+
+  EXPECT_EQ(set.size(), 2);
+  EXPECT_TRUE(set.contains(pointer_1));
+  EXPECT_TRUE(set.contains(pointer_2));
+}
+
+TEST(JSONPointer_template, hash_unordered_map) {
+  std::unordered_map<sourcemeta::core::PointerTemplate, int> map;
+
+  sourcemeta::core::PointerTemplate pointer_1;
+  pointer_1.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+
+  sourcemeta::core::PointerTemplate pointer_2;
+  pointer_2.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Property);
+
+  map[pointer_1] = 1;
+  map[pointer_2] = 2;
+
+  EXPECT_EQ(map.size(), 2);
+  EXPECT_EQ(map.at(pointer_1), 1);
+  EXPECT_EQ(map.at(pointer_2), 2);
+}
+
+TEST(JSONPointer_template, hash_consistency) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{0});
+
+  const std::hash<sourcemeta::core::PointerTemplate> hasher;
+  const auto hash_1{hasher(pointer)};
+  const auto hash_2{hasher(pointer)};
+
+  EXPECT_EQ(hash_1, hash_2);
 }
 
 TEST(JSONPointer_template, matches_empty) {
