@@ -24,13 +24,12 @@ static auto alterschema_test_resolver(std::string_view identifier)
   }
 }
 
-#define LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces)             \
+#define LINT_WITHOUT_FIX(document, result, traces)                             \
   std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
                          sourcemeta::core::SchemaTransformRule::Result>>       \
       traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
-  sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::Readability);       \
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
   const auto result = bundle.check(                                            \
       document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
       [&traces](const auto &pointer, const auto &name, const auto &message,    \
@@ -44,18 +43,17 @@ static auto alterschema_test_resolver(std::string_view identifier)
   EXPECT_EQ(std::get<1>((traces).at(index)), (name));                          \
   EXPECT_EQ(std::get<2>((traces).at(index)), (message));
 
-#define LINT_AND_FIX_FOR_READABILITY(traces)                                   \
+#define LINT_AND_FIX(traces)                                                   \
   sourcemeta::core::SchemaTransformer bundle;                                  \
-  sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::Readability);       \
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
   bundle.apply(document, sourcemeta::core::schema_walker,                      \
                alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});
 
-#define LINT_AND_FIX_FOR_STATIC_ANALYSIS(document)                             \
+#define CANONICALIZE(document)                                                 \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::StaticAnalysis);    \
+                        sourcemeta::core::AlterSchemaMode::Canonicalize);      \
   bundle.apply(document, sourcemeta::core::schema_walker,                      \
                alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});

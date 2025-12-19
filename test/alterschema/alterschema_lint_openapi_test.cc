@@ -11,7 +11,7 @@ TEST(AlterSchema_lint_openapi_3_1, discriminator_known_with_vocabulary) {
     "discriminator": { "propertyName": "type" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
@@ -29,7 +29,7 @@ TEST(AlterSchema_lint_openapi_3_1, xml_known_with_vocabulary) {
     "xml": { "name": "foo" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
@@ -47,7 +47,7 @@ TEST(AlterSchema_lint_openapi_3_1, externalDocs_known_with_vocabulary) {
     "externalDocs": { "url": "https://example.com" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
@@ -65,7 +65,7 @@ TEST(AlterSchema_lint_openapi_3_1, example_known_with_vocabulary) {
     "example": "foo"
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
@@ -83,7 +83,7 @@ TEST(AlterSchema_lint_openapi_3_2, discriminator_known_with_vocabulary) {
     "discriminator": { "propertyName": "type" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
@@ -101,7 +101,7 @@ TEST(AlterSchema_lint_openapi_3_2, xml_known_with_vocabulary) {
     "xml": { "name": "foo" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
@@ -119,7 +119,7 @@ TEST(AlterSchema_lint_openapi_3_2, externalDocs_known_with_vocabulary) {
     "externalDocs": { "url": "https://example.com" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
@@ -137,7 +137,7 @@ TEST(AlterSchema_lint_openapi_3_2, example_known_with_vocabulary) {
     "example": "foo"
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://spec.openapis.org/oas/3.2/dialect/2025-09-17",
@@ -155,7 +155,7 @@ TEST(AlterSchema_lint_openapi, discriminator_unknown_without_vocabulary) {
     "discriminator": { "propertyName": "type" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -173,7 +173,7 @@ TEST(AlterSchema_lint_openapi, xml_unknown_without_vocabulary) {
     "xml": { "name": "foo" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -191,7 +191,7 @@ TEST(AlterSchema_lint_openapi, externalDocs_unknown_without_vocabulary) {
     "externalDocs": { "url": "https://example.com" }
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -209,7 +209,7 @@ TEST(AlterSchema_lint_openapi, example_unknown_without_vocabulary) {
     "example": "foo"
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
