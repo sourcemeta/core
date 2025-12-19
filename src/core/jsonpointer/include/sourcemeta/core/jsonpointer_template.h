@@ -9,6 +9,8 @@
 #include <initializer_list> // std::initializer_list
 #include <iterator>         // std::back_inserter
 #include <optional>         // std::optional, std::nullopt
+#include <type_traits>      // std::is_convertible_v, std::is_null_pointer_v
+#include <utility>          // std::forward
 #include <variant>          // std::variant, std::holds_alternative, std::get
 #include <vector>           // std::vector
 
@@ -55,6 +57,27 @@ public:
   GenericPointerTemplate(
       std::initializer_list<typename Container::value_type> tokens)
       : data{std::move(tokens)} {}
+
+  /// This constructor creates a JSON Pointer template from properties or
+  /// indexes. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::PointerTemplate pointer_1{"foo", "bar", "baz"};
+  /// assert(pointer_1.size() == 3);
+  /// const sourcemeta::core::PointerTemplate pointer_2{"foo", 1, "bar"};
+  /// assert(pointer_2.size() == 3);
+  /// ```
+  template <typename... Args>
+    requires(sizeof...(Args) > 0 &&
+             ((!std::is_null_pointer_v<std::remove_cvref_t<Args>> &&
+               (std::is_convertible_v<Args, const char *> ||
+                std::is_integral_v<std::remove_cvref_t<Args>>)) &&
+              ...))
+  GenericPointerTemplate(Args &&...args)
+      : data{Token{std::forward<Args>(args)}...} {}
 
   /// This constructor creates a JSON Pointer template from an existing JSON
   /// Pointer. For example:

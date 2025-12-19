@@ -526,6 +526,27 @@ auto to_string(const WeakPointer &pointer)
 
 /// @ingroup jsonpointer
 ///
+/// Stringify the input JSON Pointer template into a C++ standard string. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <string>
+/// #include <iostream>
+///
+/// sourcemeta::core::PointerTemplate pointer;
+/// pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+/// pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Property);
+/// const std::string result{sourcemeta::core::to_string(pointer)};
+/// std::cout << result << '\n';
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto to_string(const PointerTemplate &pointer)
+    -> std::basic_string<JSON::Char, JSON::CharTraits,
+                         std::allocator<JSON::Char>>;
+
+/// @ingroup jsonpointer
+///
 /// Stringify the input JSON Pointer into a properly escaped URI fragment. For
 /// example:
 ///
