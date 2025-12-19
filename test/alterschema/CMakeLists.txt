@@ -1,5 +1,6 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME alterschema
   SOURCES
+    alterschema_canonicalize_2020_12_test.cc
     alterschema_lint_2020_12_test.cc
     alterschema_lint_2019_09_test.cc
     alterschema_lint_draft7_test.cc
