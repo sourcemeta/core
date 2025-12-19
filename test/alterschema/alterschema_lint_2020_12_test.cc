@@ -2821,6 +2821,7 @@ TEST(AlterSchema_lint_2020_12, property_names_default_1) {
 TEST(AlterSchema_lint_2020_12, definitions_to_defs_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
     "definitions": {
       "foo": {
         "type": "string"
@@ -2832,6 +2833,7 @@ TEST(AlterSchema_lint_2020_12, definitions_to_defs_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
     "$defs": {
       "foo": {
         "type": "string"
@@ -3652,6 +3654,7 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_8) {
 TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_9) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/MyType",
     "definitions": {
       "MyType": { "type": "string" }
     },
@@ -3663,6 +3666,7 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_9) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/MyType",
     "$defs": {
       "MyType": { "type": "string" }
     },
@@ -4049,6 +4053,7 @@ TEST(AlterSchema_lint_2020_12,
 TEST(AlterSchema_lint_2020_12, embedded_resource_draft7) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/embedded",
     "$defs": {
       "embedded": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4062,6 +4067,7 @@ TEST(AlterSchema_lint_2020_12, embedded_resource_draft7) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/embedded",
     "$defs": {
       "embedded": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4077,6 +4083,7 @@ TEST(AlterSchema_lint_2020_12, embedded_resource_draft7) {
 TEST(AlterSchema_lint_2020_12, invalid_embedded_resource_draft7_without_id) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/embedded",
     "$defs": {
       "embedded": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -4090,6 +4097,7 @@ TEST(AlterSchema_lint_2020_12, invalid_embedded_resource_draft7_without_id) {
   // As `$schema` without `$id` is ignored
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/embedded",
     "$defs": {
       "embedded": {
         "$defs": {}
@@ -4387,6 +4395,7 @@ TEST(AlterSchema_lint_2020_12, title_description_equal_3) {
 TEST(AlterSchema_lint_2020_12, title_description_equal_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/helper",
     "title": "Top level",
     "description": "Top level description",
     "$defs": {
@@ -4402,6 +4411,7 @@ TEST(AlterSchema_lint_2020_12, title_description_equal_4) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/helper",
     "title": "Top level",
     "description": "Top level description",
     "$defs": {
@@ -5161,6 +5171,605 @@ TEST(AlterSchema_lint_2020_12, duplicate_examples_4) {
       "foo": {
         "examples": [ "a", "b" ],
         "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {
+      "unused": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {
+      "unused1": { "type": "string" },
+      "unused2": { "type": "integer" },
+      "unused3": { "type": "boolean" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "string" },
+      "unused": { "type": "integer" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {}
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "#/$defs/helper" }
+    },
+    "$defs": {
+      "helper": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "#/$defs/helper" }
+    },
+    "$defs": {
+      "helper": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/parent",
+    "$defs": {
+      "parent": {
+        "$ref": "#/$defs/child"
+      },
+      "child": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/parent",
+    "$defs": {
+      "parent": {
+        "$ref": "#/$defs/child"
+      },
+      "child": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_8) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {
+      "unused": {
+        "$anchor": "my-anchor",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_9) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {
+      "unused1": {
+        "$anchor": "my-anchor",
+        "type": "string"
+      },
+      "unused2": {
+        "type": "integer"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_10) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "definitions": {
+      "unused": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_11) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/definitions/used",
+    "definitions": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_12) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "definitions": {
+      "unused": {
+        "$anchor": "my-anchor",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_13) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "$defs": {
+      "unused_in_defs": { "type": "string" }
+    },
+    "definitions": {
+      "unused_in_definitions": { "type": "integer" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_14) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/definitions/used",
+    "$defs": {
+      "unused_in_defs": { "type": "string" }
+    },
+    "definitions": {
+      "used": { "type": "integer" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "integer" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_15) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "string" }
+    },
+    "definitions": {
+      "unused_in_definitions": { "type": "integer" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_16) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/from_defs",
+    "$defs": {
+      "from_defs": { "$ref": "#/definitions/from_definitions" }
+    },
+    "definitions": {
+      "from_definitions": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/from_defs",
+    "$defs": {
+      "from_defs": { "$ref": "#/definitions/from_definitions" }
+    },
+    "definitions": {
+      "from_definitions": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_17) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "$anchor": "my-anchor", "type": "string" }
+    },
+    "$ref": "#my-anchor"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "$anchor": "my-anchor", "type": "string" }
+    },
+    "$ref": "#my-anchor"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_18) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "$anchor": "my-anchor", "type": "string" }
+    },
+    "$ref": "#/$defs/foo"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "$anchor": "my-anchor", "type": "string" }
+    },
+    "$ref": "#/$defs/foo"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_19) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "$ref": "#/$defs/bar" },
+      "bar": { "$ref": "#/$defs/baz" },
+      "baz": { "type": "string" }
+    },
+    "type": "object"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_20) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": { "$ref": "#/$defs/bar" },
+      "bar": { "$ref": "#/$defs/baz" },
+      "baz": { "$ref": "#/$defs/foo" }
+    },
+    "type": "object"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_21) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": true
+    },
+    "type": "object"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_22) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": true
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": true
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_23) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$defs": {
+          "unused": { "type": "string" }
+        },
+        "type": "object"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "type": "object"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_24) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/properties/foo/$defs/used",
+        "$defs": {
+          "used": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$ref": "#/properties/foo/$defs/used",
+        "$defs": {
+          "used": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_25) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/properties/foo/$defs/nested",
+    "properties": {
+      "foo": {
+        "$defs": {
+          "nested": { "type": "integer" }
+        },
+        "type": "object"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/properties/foo/$defs/nested",
+    "properties": {
+      "foo": {
+        "$defs": {
+          "nested": { "type": "integer" }
+        },
+        "type": "object"
       }
     }
   })JSON");

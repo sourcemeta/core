@@ -20,6 +20,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
 
     # Common
     common/const_with_type.h
+    common/orphan_definitions.h
     common/content_media_type_without_encoding.h
     common/content_schema_without_media_type.h
     common/dependencies_property_tautology.h

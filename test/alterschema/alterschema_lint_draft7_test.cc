@@ -2487,7 +2487,10 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_10) {
       "MyType": { "type": "string" }
     },
     "customKeyword": "should be prefixed",
-    "type": "object"
+    "type": "object",
+    "properties": {
+      "foo": { "$ref": "#/definitions/MyType" }
+    }
   })JSON");
 
   LINT_AND_FIX(document);
@@ -2498,7 +2501,10 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_10) {
       "MyType": { "type": "string" }
     },
     "x-customKeyword": "should be prefixed",
-    "type": "object"
+    "type": "object",
+    "properties": {
+      "foo": { "$ref": "#/definitions/MyType" }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2635,6 +2641,78 @@ TEST(AlterSchema_lint_draft7, duplicate_examples_2) {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "examples": [ "foo", "bar", "baz" ],
     "type": "string"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, orphan_definitions_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "type": "object"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, orphan_definitions_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "bar": { "$ref": "#/definitions/foo" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "bar": { "$ref": "#/definitions/foo" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7, orphan_definitions_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": { "type": "string" },
+      "bar": { "type": "integer" }
+    },
+    "properties": {
+      "baz": { "$ref": "#/definitions/foo" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "baz": { "$ref": "#/definitions/foo" }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);

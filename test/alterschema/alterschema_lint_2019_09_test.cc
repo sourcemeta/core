@@ -2739,6 +2739,7 @@ TEST(AlterSchema_lint_2019_09, definitions_to_defs_1) {
 TEST(AlterSchema_lint_2019_09, definitions_to_defs_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
     "definitions": {
       "foo": {
         "type": "string"
@@ -2750,6 +2751,7 @@ TEST(AlterSchema_lint_2019_09, definitions_to_defs_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
     "$defs": {
       "foo": {
         "type": "string"
@@ -3333,6 +3335,7 @@ TEST(AlterSchema_lint_2019_09, unknown_keywords_prefix_8) {
 TEST(AlterSchema_lint_2019_09, unknown_keywords_prefix_9) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
     "type": "object",
     "$defs": {
       "foo": {
@@ -3347,6 +3350,7 @@ TEST(AlterSchema_lint_2019_09, unknown_keywords_prefix_9) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/foo",
     "type": "object",
     "$defs": {
       "foo": {
@@ -3533,6 +3537,173 @@ TEST(AlterSchema_lint_2019_09, duplicate_examples_2) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "examples": [ "foo", "bar", "baz" ],
     "type": "string"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "$defs": {
+      "unused": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "string" },
+      "unused": { "type": "integer" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_4) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "definitions": {
+      "unused": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/definitions/used",
+    "definitions": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/used",
+    "$defs": {
+      "used": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object",
+    "$defs": {
+      "unused_in_defs": { "type": "string" }
+    },
+    "definitions": {
+      "unused_in_definitions": { "type": "integer" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, orphan_definitions_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/from_defs",
+    "$defs": {
+      "from_defs": { "$ref": "#/definitions/from_definitions" }
+    },
+    "definitions": {
+      "from_definitions": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$ref": "#/$defs/from_defs",
+    "$defs": {
+      "from_defs": { "$ref": "#/definitions/from_definitions" }
+    },
+    "definitions": {
+      "from_definitions": { "type": "string" }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
