@@ -238,6 +238,11 @@ auto SchemaTransformer::apply(
             continue;
           }
 
+          // If the source no longer exists, we don't need to fix the reference
+          if (!try_get(schema, reference.first.second.initial())) {
+            continue;
+          }
+
           const auto new_fragment{rule->rereference(
               reference.second.destination, reference.first.second,
               target.relative_pointer, entry.second.relative_pointer)};
