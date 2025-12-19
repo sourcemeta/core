@@ -3176,3 +3176,153 @@ TEST(JSONSchema_frame_2020_12,
       "#/definitions/threshold", std::nullopt, "/definitions/threshold",
       "#/definitions/threshold");
 }
+
+TEST(JSONSchema_frame_2020_12, ref_to_ref_chain) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/parent",
+    "$defs": {
+      "parent": {
+        "$ref": "#/$defs/child"
+      },
+      "child": {
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 9);
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$id",
+      "https://www.sourcemeta.com/schema", "/$id",
+      "https://www.sourcemeta.com/schema", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$ref",
+      "https://www.sourcemeta.com/schema", "/$ref",
+      "https://www.sourcemeta.com/schema", "/$ref", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs",
+      "https://www.sourcemeta.com/schema", "/$defs",
+      "https://www.sourcemeta.com/schema", "/$defs", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/$defs/parent",
+      "https://www.sourcemeta.com/schema", "/$defs/parent",
+      "https://www.sourcemeta.com/schema", "/$defs/parent", {""}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs/parent/$ref",
+      "https://www.sourcemeta.com/schema", "/$defs/parent/$ref",
+      "https://www.sourcemeta.com/schema", "/$defs/parent/$ref", {},
+      "/$defs/parent");
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/$defs/child",
+      "https://www.sourcemeta.com/schema", "/$defs/child",
+      "https://www.sourcemeta.com/schema", "/$defs/child", {""}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs/child/type",
+      "https://www.sourcemeta.com/schema", "/$defs/child/type",
+      "https://www.sourcemeta.com/schema", "/$defs/child/type", {},
+      "/$defs/child");
+
+  EXPECT_EQ(frame.references().size(), 3);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$ref", "https://www.sourcemeta.com/schema#/$defs/parent",
+      "https://www.sourcemeta.com/schema", "/$defs/parent", "#/$defs/parent");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/parent/$ref",
+                          "https://www.sourcemeta.com/schema#/$defs/child",
+                          "https://www.sourcemeta.com/schema", "/$defs/child",
+                          "#/$defs/child");
+}
+
+TEST(JSONSchema_frame_2020_12, nested_defs_unreferenced) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "$defs": {
+          "unused": { "type": "string" }
+        },
+        "type": "object"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 9);
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$id",
+      "https://www.sourcemeta.com/schema", "/$id",
+      "https://www.sourcemeta.com/schema", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties",
+      "https://www.sourcemeta.com/schema", "/properties",
+      "https://www.sourcemeta.com/schema", "/properties", {}, "");
+
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema", "/properties/foo",
+      "https://www.sourcemeta.com/schema", "/properties/foo", {"/foo"}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties/foo/$defs",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$defs",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$defs", {},
+      "/properties/foo");
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$defs/unused",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$defs/unused", {},
+      "/properties/foo");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame,
+      "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused/type",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$defs/unused/type",
+      "https://www.sourcemeta.com/schema", "/properties/foo/$defs/unused/type",
+      {}, "/properties/foo/$defs/unused");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties/foo/type",
+      "https://www.sourcemeta.com/schema", "/properties/foo/type",
+      "https://www.sourcemeta.com/schema", "/properties/foo/type", {},
+      "/properties/foo");
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+}
