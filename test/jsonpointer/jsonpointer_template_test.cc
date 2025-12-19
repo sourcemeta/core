@@ -2,8 +2,13 @@
 
 #include <sourcemeta/core/jsonpointer.h>
 
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+
+static_assert(
+    !std::is_constructible_v<sourcemeta::core::PointerTemplate, std::nullptr_t>,
+    "PointerTemplate should not be constructible from nullptr");
 
 TEST(JSONPointer_template, equality_without_wildcard_true) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
@@ -408,6 +413,42 @@ TEST(JSONPointer_template, empty_false) {
   EXPECT_FALSE(pointer.empty());
 }
 
+TEST(JSONPointer_template, construct_single_property) {
+  const sourcemeta::core::PointerTemplate pointer{"foo"};
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_EQ(sourcemeta::core::to_string(pointer), "/foo");
+}
+
+TEST(JSONPointer_template, construct_multiple_properties) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_EQ(sourcemeta::core::to_string(pointer), "/foo/bar/baz");
+}
+
+TEST(JSONPointer_template, construct_single_index) {
+  const sourcemeta::core::PointerTemplate pointer{0};
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_EQ(sourcemeta::core::to_string(pointer), "/0");
+}
+
+TEST(JSONPointer_template, construct_multiple_indexes) {
+  const sourcemeta::core::PointerTemplate pointer{0, 1, 2};
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_EQ(sourcemeta::core::to_string(pointer), "/0/1/2");
+}
+
+TEST(JSONPointer_template, construct_mixed_property_index) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", 1, "bar"};
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_EQ(sourcemeta::core::to_string(pointer), "/foo/1/bar");
+}
+
+TEST(JSONPointer_template, construct_mixed_index_property) {
+  const sourcemeta::core::PointerTemplate pointer{0, "foo", 1};
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_EQ(sourcemeta::core::to_string(pointer), "/0/foo/1");
+}
+
 TEST(JSONPointer_template, size_empty) {
   const sourcemeta::core::PointerTemplate pointer;
   EXPECT_EQ(pointer.size(), 0);
@@ -479,6 +520,75 @@ TEST(JSONPointer_template, hash_consistency) {
   const auto hash_2{hasher(pointer)};
 
   EXPECT_EQ(hash_1, hash_2);
+}
+
+TEST(JSONPointer_template, to_string_empty) {
+  const sourcemeta::core::PointerTemplate pointer;
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "");
+}
+
+TEST(JSONPointer_template, to_string_single_property) {
+  const sourcemeta::core::Pointer base{"foo"};
+  const sourcemeta::core::PointerTemplate pointer{base};
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo");
+}
+
+TEST(JSONPointer_template, to_string_multiple_tokens) {
+  const sourcemeta::core::Pointer base{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate pointer{base};
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/bar");
+}
+
+TEST(JSONPointer_template, to_string_with_property_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Property);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/~P~/bar");
+}
+
+TEST(JSONPointer_template, to_string_with_item_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/~I~");
+}
+
+TEST(JSONPointer_template, to_string_with_key_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Key);
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/~K~");
+}
+
+TEST(JSONPointer_template, to_string_with_condition) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Condition{});
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/~?~");
+}
+
+TEST(JSONPointer_template, to_string_with_negation) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Negation{});
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/~!~");
+}
+
+TEST(JSONPointer_template, to_string_with_regex) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Regex{"^bar"});
+  const auto result{sourcemeta::core::to_string(pointer)};
+  EXPECT_EQ(result, "/foo/~R^bar~");
 }
 
 TEST(JSONPointer_template, matches_empty) {
