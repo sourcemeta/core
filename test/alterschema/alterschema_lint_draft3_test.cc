@@ -734,40 +734,6 @@ TEST(AlterSchema_lint_draft3, drop_non_string_keywords_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, type_boolean_as_enum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "boolean"
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "enum": [ false, true ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft3, type_boolean_as_enum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "boolean",
-    "enum": [ 1, 2, 3 ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "boolean",
-    "enum": [ 1, 2, 3 ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft3, type_boolean_as_enum_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -779,40 +745,6 @@ TEST(AlterSchema_lint_draft3, type_boolean_as_enum_3) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
     "type": "boolean"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft3, type_null_as_enum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "null"
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "enum": [ null ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft3, type_null_as_enum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "null",
-    "enum": [ 1, 2, 3 ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "null",
-    "enum": [ 1, 2, 3 ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -834,29 +766,6 @@ TEST(AlterSchema_lint_draft3, type_null_as_enum_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft3, boolean_true_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "properties": {
-      "foo": true
-    }
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ],
-    "properties": {
-      "foo": {
-        "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
-      }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft3, equal_numeric_bounds_to_enum_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -866,24 +775,6 @@ TEST(AlterSchema_lint_draft3, equal_numeric_bounds_to_enum_1) {
   })JSON");
 
   LINT_AND_FIX_FOR_READABILITY(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "enum": [ 3 ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft3, equal_numeric_bounds_to_enum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-03/schema#",
-    "type": "integer",
-    "minimum": 3,
-    "maximum": 3
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",

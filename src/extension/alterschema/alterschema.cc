@@ -4,6 +4,7 @@
 #include <algorithm>     // std::sort, std::unique
 #include <cmath>         // std::floor
 #include <iterator>      // std::back_inserter
+#include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move
 namespace sourcemeta::core {
@@ -39,7 +40,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "canonicalizer/min_properties_implicit.h"
 #include "canonicalizer/multiple_of_implicit.h"
 #include "canonicalizer/properties_implicit.h"
-#include "canonicalizer/type_array_to_any_of_2020_12.h"
+#include "canonicalizer/type_array_to_any_of.h"
 #include "canonicalizer/type_boolean_as_enum.h"
 #include "canonicalizer/type_null_as_enum.h"
 #include "canonicalizer/type_union_implicit.h"
@@ -167,7 +168,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<EqualNumericBoundsToConst>();
     bundle.add<ExclusiveMaximumIntegerToMaximum>();
     bundle.add<ExclusiveMinimumIntegerToMinimum>();
-    bundle.add<TypeArrayToAnyOf_2020_12>();
+    bundle.add<TypeArrayToAnyOf>();
     bundle.add<TypeBooleanAsEnum>();
     bundle.add<TypeNullAsEnum>();
     bundle.add<MaxContainsCoveredByMaxItems>();

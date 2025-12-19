@@ -14,7 +14,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     canonicalizer/const_as_enum.h
     canonicalizer/exclusive_maximum_integer_to_maximum.h
     canonicalizer/exclusive_minimum_integer_to_minimum.h
-    canonicalizer/type_array_to_any_of_2020_12.h
+    canonicalizer/type_array_to_any_of.h
     canonicalizer/type_boolean_as_enum.h
     canonicalizer/type_null_as_enum.h
 

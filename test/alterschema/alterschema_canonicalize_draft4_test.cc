@@ -1,0 +1,340 @@
+#include <gtest/gtest.h>
+
+#include <sourcemeta/core/json.h>
+
+#include "alterschema_test_utils.h"
+
+TEST(AlterSchema_canonicalize_draft4, duplicate_allof_branches_2) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "number" },
+      { "type": "string" },
+      { "type": "number" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "number", "multipleOf": 1 },
+      { "type": "string", "minLength": 0 }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, duplicate_allof_branches_3) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "number" },
+      { "type": "number" },
+      { "type": "string" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "number", "multipleOf": 1 },
+      { "type": "string", "minLength": 0 }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, duplicate_allof_branches_4) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "number" },
+      { "type": "string" },
+      { "type": "number" },
+      { "type": "number" },
+      { "type": "number" },
+      { "type": "string" },
+      { "type": "string" },
+      { "type": "string" },
+      { "type": "number" },
+      { "type": "number" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "allOf": [
+      { "type": "number", "multipleOf": 1 },
+      { "type": "string", "minLength": 0 }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, type_boolean_as_enum_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "boolean"
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "enum": [ false, true ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, type_boolean_as_enum_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "boolean",
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "boolean",
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, type_null_as_enum_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "null"
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "enum": [ null ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, type_null_as_enum_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "null",
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "null",
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, boolean_true_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "properties": {
+      "foo": true
+    }
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "anyOf": [
+      { "enum": [ null ] },
+      { "enum": [ false, true ] },
+      {
+        "minProperties": 0,
+        "type": "object",
+        "properties": {
+          "foo": {
+            "anyOf": [
+              { "enum": [ null ] },
+              { "enum": [ false, true ] },
+              { "properties": {}, "minProperties": 0, "type": "object" },
+              { "minItems": 0, "type": "array" },
+              { "minLength": 0, "type": "string" },
+              { "multipleOf": 1, "type": "number" },
+              { "multipleOf": 1, "type": "integer" }
+            ]
+          }
+        }
+      },
+      { "minItems": 0, "type": "array" },
+      { "minLength": 0, "type": "string" },
+      { "multipleOf": 1, "type": "number" },
+      { "multipleOf": 1, "type": "integer" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, min_properties_covered_by_required_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "minProperties": 1,
+    "required": [ "foo", "bar" ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "minProperties": 2,
+    "required": [ "foo", "bar" ],
+    "properties": {
+      "foo": {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          { "type": "object", "minProperties": 0, "properties": {} },
+          { "type": "array", "minItems": 0 },
+          { "type": "string", "minLength": 0 },
+          { "type": "number", "multipleOf": 1 },
+          { "type": "integer", "multipleOf": 1 }
+        ]
+      },
+      "bar": {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          { "type": "object", "minProperties": 0, "properties": {} },
+          { "type": "array", "minItems": 0 },
+          { "type": "string", "minLength": 0 },
+          { "type": "number", "multipleOf": 1 },
+          { "type": "integer", "multipleOf": 1 }
+        ]
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "required": [ "foo", "bar" ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "required": [ "foo", "bar" ],
+    "minProperties": 2,
+    "properties": {
+      "foo": {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          { "type": "object", "minProperties": 0, "properties": {} },
+          { "type": "array", "minItems": 0 },
+          { "type": "string", "minLength": 0 },
+          { "type": "number", "multipleOf": 1 },
+          { "type": "integer", "multipleOf": 1 }
+        ]
+      },
+      "bar": {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          { "type": "object", "minProperties": 0, "properties": {} },
+          { "type": "array", "minItems": 0 },
+          { "type": "string", "minLength": 0 },
+          { "type": "number", "multipleOf": 1 },
+          { "type": "integer", "multipleOf": 1 }
+        ]
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "minProperties": 2,
+    "required": [ "foo", "bar" ]
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "required": [ "foo", "bar" ],
+    "minProperties": 2,
+    "properties": {
+      "foo": {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          { "type": "object", "minProperties": 0, "properties": {} },
+          { "type": "array", "minItems": 0 },
+          { "type": "string", "minLength": 0 },
+          { "type": "number", "multipleOf": 1 },
+          { "type": "integer", "multipleOf": 1 }
+        ]
+      },
+      "bar": {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          { "type": "object", "minProperties": 0, "properties": {} },
+          { "type": "array", "minItems": 0 },
+          { "type": "string", "minLength": 0 },
+          { "type": "number", "multipleOf": 1 },
+          { "type": "integer", "multipleOf": 1 }
+        ]
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_draft4, equal_numeric_bounds_to_enum_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "integer",
+    "minimum": 3,
+    "maximum": 3
+  })JSON");
+
+  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "enum": [ 3 ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

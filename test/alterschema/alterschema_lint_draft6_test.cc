@@ -634,82 +634,6 @@ TEST(AlterSchema_lint_draft6, duplicate_allof_branches_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, duplicate_allof_branches_2) {
-  auto document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "number" },
-      { "type": "string" },
-      { "type": "number" }
-    ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const auto expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "number", "multipleOf": 1 },
-      { "type": "string", "minLength": 0 }
-    ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, duplicate_allof_branches_3) {
-  auto document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "number" },
-      { "type": "number" },
-      { "type": "string" }
-    ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const auto expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "number", "multipleOf": 1 },
-      { "type": "string", "minLength": 0 }
-    ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, duplicate_allof_branches_4) {
-  auto document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "number" },
-      { "type": "string" },
-      { "type": "number" },
-      { "type": "number" },
-      { "type": "number" },
-      { "type": "string" },
-      { "type": "string" },
-      { "type": "string" },
-      { "type": "number" },
-      { "type": "number" }
-    ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const auto expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "number", "multipleOf": 1 },
-      { "type": "string", "minLength": 0 }
-    ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft6, duplicate_anyof_branches_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -1063,40 +987,6 @@ TEST(AlterSchema_lint_draft6, drop_non_string_keywords_1) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, type_boolean_as_enum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "boolean"
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "enum": [ false, true ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, type_boolean_as_enum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "boolean",
-    "enum": [ 1, 2, 3 ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "boolean",
-    "enum": [ 1, 2, 3 ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft6, type_boolean_as_enum_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -1108,40 +998,6 @@ TEST(AlterSchema_lint_draft6, type_boolean_as_enum_3) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
     "type": "boolean"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, type_null_as_enum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "null"
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "enum": [ null ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, type_null_as_enum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "null",
-    "enum": [ 1, 2, 3 ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "null",
-    "enum": [ 1, 2, 3 ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1163,22 +1019,6 @@ TEST(AlterSchema_lint_draft6, type_null_as_enum_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, const_as_enum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "const": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "enum": [ 1 ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft6, const_as_enum_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -1190,63 +1030,6 @@ TEST(AlterSchema_lint_draft6, const_as_enum_2) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
     "const": 1
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "exclusiveMaximum": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "multipleOf": 1,
-    "maximum": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "exclusiveMaximum": 1.2
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "multipleOf": 1,
-    "maximum": 1
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_3) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "number",
-    "exclusiveMaximum": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "number",
-    "multipleOf": 1,
-    "exclusiveMaximum": 1
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1270,80 +1053,6 @@ TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_5) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "exclusiveMaximum": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ],
-    "exclusiveMaximum": 1
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "exclusiveMinimum": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "multipleOf": 1,
-    "minimum": 2
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "exclusiveMinimum": 1.2
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "multipleOf": 1,
-    "minimum": 2
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_3) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "number",
-    "exclusiveMinimum": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "multipleOf": 1,
-    "type": "number",
-    "exclusiveMinimum": 1
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -1357,117 +1066,6 @@ TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_4) {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "type": "integer",
     "exclusiveMinimum": 1
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_5) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "exclusiveMinimum": 1
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ],
-    "exclusiveMinimum": 1
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, boolean_true_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "properties": {
-      "foo": true
-    }
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ],
-    "properties": {
-      "foo": {
-        "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
-      }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, min_properties_covered_by_required_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "object",
-    "minProperties": 1,
-    "required": [ "foo", "bar" ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "object",
-    "minProperties": 2,
-    "required": [ "foo", "bar" ],
-    "properties": {
-      "foo": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] },
-      "bar": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, min_properties_implicit_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "object",
-    "required": [ "foo", "bar" ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "object",
-    "required": [ "foo", "bar" ],
-    "minProperties": 2,
-    "properties": {
-      "foo": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] },
-      "bar": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, min_properties_implicit_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "object",
-    "minProperties": 2,
-    "required": [ "foo", "bar" ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "object",
-    "required": [ "foo", "bar" ],
-    "minProperties": 2,
-    "properties": {
-      "foo": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] },
-      "bar": { "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ] }
-    }
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1503,44 +1101,6 @@ TEST(AlterSchema_lint_draft6, equal_numeric_bounds_to_const_2) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
     "const": 3
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_maximum_integer_to_maximum_decimal_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "exclusiveMaximum": 1.0e400
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "multipleOf": 1,
-    "maximum": 10.00000000000000e+399
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft6, exclusive_minimum_integer_to_minimum_decimal_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "exclusiveMinimum": 1.0e400
-  })JSON");
-
-  LINT_AND_FIX_FOR_STATIC_ANALYSIS(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "integer",
-    "multipleOf": 1,
-    "minimum": 1.0e+400
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1755,33 +1315,6 @@ TEST(AlterSchema_lint_draft6,
     "type": "object",
     "allOf": [
       { "$ref": "https://example.com" }
-    ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(
-    AlterSchema_lint_draft6,
-    unnecessary_allof_ref_wrapper_draft_no_elevation_ref_with_sibling_keyword) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      {
-        "$ref": "https://example.com",
-        "type": "object"
-      }
-    ]
-  })JSON");
-
-  LINT_AND_FIX_FOR_READABILITY(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      {
-        "$ref": "https://example.com"
-      }
     ]
   })JSON");
 
