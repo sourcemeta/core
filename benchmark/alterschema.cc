@@ -14,7 +14,7 @@ Alterschema_Check_Readibility_ISO_Language_Set_3(benchmark::State &state) {
       "2020_12_iso_language_2023_set_3.json")};
 
   sourcemeta::core::SchemaTransformer bundle;
-  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Readability);
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);
 
   for (auto _ : state) {
     auto result = bundle.check(
@@ -33,7 +33,7 @@ static void Alterschema_Check_Readibility_OMC(benchmark::State &state) {
                                   "schemas" / "2019_09_omc_json_v2.json")};
 
   sourcemeta::core::SchemaTransformer bundle;
-  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Readability);
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);
 
   for (auto _ : state) {
     auto result = bundle.check(
