@@ -1987,6 +1987,9 @@ TEST(AlterSchema_lint_draft4, unknown_keywords_prefix_9) {
         "custom": "value",
         "x-custom": "conflicting value"
       }
+    },
+    "properties": {
+      "bar": { "$ref": "#/definitions/foo" }
     }
   })JSON");
 
@@ -2001,6 +2004,9 @@ TEST(AlterSchema_lint_draft4, unknown_keywords_prefix_9) {
         "x-custom": "conflicting value",
         "x-x-custom": "value"
       }
+    },
+    "properties": {
+      "bar": { "$ref": "#/definitions/foo" }
     }
   })JSON");
 
@@ -2036,6 +2042,78 @@ TEST(AlterSchema_lint_draft4, top_level_ref_with_id) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "$ref": "https://example.com"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, orphan_definitions_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "type": "object"
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, orphan_definitions_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "bar": { "$ref": "#/definitions/foo" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "bar": { "$ref": "#/definitions/foo" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft4, orphan_definitions_3) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+      "foo": { "type": "string" },
+      "bar": { "type": "integer" }
+    },
+    "properties": {
+      "baz": { "$ref": "#/definitions/foo" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "baz": { "$ref": "#/definitions/foo" }
+    }
   })JSON");
 
   EXPECT_EQ(document, expected);
