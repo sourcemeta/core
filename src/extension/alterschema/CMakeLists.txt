@@ -12,6 +12,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     canonicalizer/min_properties_covered_by_required.h
     canonicalizer/min_properties_implicit.h
     canonicalizer/multiple_of_implicit.h
+    canonicalizer/no_metadata.h
     canonicalizer/properties_implicit.h
     canonicalizer/type_array_to_any_of.h
     canonicalizer/type_boolean_as_enum.h
