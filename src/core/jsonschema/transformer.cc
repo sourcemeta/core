@@ -4,6 +4,7 @@
 #include <cassert>       // assert
 #include <set>           // std::set
 #include <sstream>       // std::ostringstream
+#include <tuple>         // std::tuple
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move, std::pair
 
@@ -164,7 +165,8 @@ auto SchemaTransformer::apply(
     -> std::pair<bool, std::uint8_t> {
   // There is no point in applying an empty bundle
   assert(!this->rules.empty());
-  std::set<std::pair<const JSON *, const JSON::String *>> processed_rules;
+  std::set<std::tuple<const JSON *, const JSON::String *, std::uint64_t>>
+      processed_rules;
 
   bool result{true};
   std::size_t subschema_count{0};
@@ -214,7 +216,12 @@ auto SchemaTransformer::apply(
           continue;
         }
 
-        std::pair<const JSON *, const JSON::String *> mark{&current, &name};
+        std::tuple<const JSON *, const JSON::String *, std::uint64_t> mark{
+            &current, &name,
+            // Because we want to allow the same rule on the same location
+            // if the schema is different, as it still means we are "making
+            // progress"
+            current.fast_hash()};
         if (processed_rules.contains(mark)) {
           throw SchemaTransformRuleProcessedTwiceError(name,
                                                        entry.second.pointer);
