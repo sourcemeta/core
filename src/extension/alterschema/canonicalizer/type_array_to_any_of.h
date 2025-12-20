@@ -48,7 +48,7 @@ public:
     for (const auto &type : schema.at("type").as_array()) {
       auto branch{sourcemeta::core::JSON::make_object()};
       branch.assign("type", type);
-      const auto current_type_set{this->type_string_to_set(type.to_string())};
+      const auto current_type_set{parse_schema_type(type)};
       for (const auto &[keyword, instances] : this->keyword_instances_) {
         if ((instances & current_type_set).any()) {
           branch.assign(keyword, schema.at(keyword));
@@ -87,16 +87,6 @@ public:
   }
 
 private:
-  auto type_string_to_set(const std::string &type_string) const
-      -> sourcemeta::core::JSON::TypeSet {
-    sourcemeta::core::JSON::TypeSet type_set;
-    sourcemeta::core::parse_schema_type(
-        type_string, [&type_set](const sourcemeta::core::JSON::Type type) {
-          type_set.set(static_cast<std::size_t>(type));
-        });
-    return type_set;
-  }
-
   mutable std::unordered_map<std::string, sourcemeta::core::JSON::TypeSet>
       keyword_instances_;
 };
