@@ -39,6 +39,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "canonicalizer/min_properties_covered_by_required.h"
 #include "canonicalizer/min_properties_implicit.h"
 #include "canonicalizer/multiple_of_implicit.h"
+#include "canonicalizer/no_metadata.h"
 #include "canonicalizer/properties_implicit.h"
 #include "canonicalizer/type_array_to_any_of.h"
 #include "canonicalizer/type_boolean_as_enum.h"
@@ -175,6 +176,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<MinPropertiesCoveredByRequired>();
     bundle.add<MinPropertiesImplicit>();
     bundle.add<MultipleOfImplicit>();
+    bundle.add<NoMetadata>();
     bundle.add<PropertiesImplicit>();
     bundle.add<TypeUnionImplicit>();
   }
