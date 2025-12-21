@@ -84,6 +84,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "common/unknown_local_ref.h"
 #include "common/unnecessary_allof_ref_wrapper_draft.h"
 #include "common/unnecessary_allof_ref_wrapper_modern.h"
+#include "common/unnecessary_allof_wrapper.h"
 
 // Linter
 #include "linter/additional_properties_default.h"
@@ -121,13 +122,19 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 namespace sourcemeta::core {
 
 auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
-  // Common rules that apply to all modes
+  if (mode == AlterSchemaMode::Canonicalize) {
+    bundle.add<TypeUnionImplicit>();
+    bundle.add<TypeArrayToAnyOf>();
+  }
+
+  if (mode == AlterSchemaMode::Linter) {
+    bundle.add<DefinitionsToDefs>();
+  }
+
   bundle.add<ContentMediaTypeWithoutEncoding>();
   bundle.add<ContentSchemaWithoutMediaType>();
   bundle.add<DraftOfficialDialectWithoutEmptyFragment>();
   bundle.add<NonApplicableTypeSpecificKeywords>();
-  bundle.add<UnnecessaryAllOfRefWrapperModern>();
-  bundle.add<UnnecessaryAllOfRefWrapperDraft>();
   bundle.add<DuplicateAllOfBranches>();
   bundle.add<DuplicateAnyOfBranches>();
   bundle.add<ElseWithoutIf>();
@@ -166,26 +173,23 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<EqualNumericBoundsToConst>();
     bundle.add<ExclusiveMaximumIntegerToMaximum>();
     bundle.add<ExclusiveMinimumIntegerToMinimum>();
-    bundle.add<TypeArrayToAnyOf>();
     bundle.add<TypeBooleanAsEnum>();
     bundle.add<TypeNullAsEnum>();
     bundle.add<MaxContainsCoveredByMaxItems>();
     bundle.add<MinItemsGivenMinContains>();
+    bundle.add<MinPropertiesCoveredByRequired>();
+    bundle.add<NoMetadata>();
     bundle.add<MinItemsImplicit>();
     bundle.add<MinLengthImplicit>();
-    bundle.add<MinPropertiesCoveredByRequired>();
     bundle.add<MinPropertiesImplicit>();
     bundle.add<MultipleOfImplicit>();
-    bundle.add<NoMetadata>();
     bundle.add<PropertiesImplicit>();
-    bundle.add<TypeUnionImplicit>();
   }
 
   if (mode == AlterSchemaMode::Linter) {
     bundle.add<EqualNumericBoundsToConst>();
     bundle.add<AdditionalPropertiesDefault>();
     bundle.add<ContentSchemaDefault>();
-    bundle.add<DefinitionsToDefs>();
     bundle.add<DependenciesDefault>();
     bundle.add<DependentRequiredDefault>();
     bundle.add<ItemsArrayDefault>();
@@ -211,6 +215,10 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<CommentTrim>();
     bundle.add<DuplicateExamples>();
   }
+
+  bundle.add<UnnecessaryAllOfRefWrapperModern>();
+  bundle.add<UnnecessaryAllOfRefWrapperDraft>();
+  bundle.add<UnnecessaryAllOfWrapper>();
 }
 
 } // namespace sourcemeta::core

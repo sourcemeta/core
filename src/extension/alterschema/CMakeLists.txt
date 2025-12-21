@@ -57,6 +57,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     common/unknown_local_ref.h
     common/unnecessary_allof_ref_wrapper_draft.h
     common/unnecessary_allof_ref_wrapper_modern.h
+    common/unnecessary_allof_wrapper.h
 
     # Linter
     linter/additional_properties_default.h

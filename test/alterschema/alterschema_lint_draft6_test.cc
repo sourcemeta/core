@@ -628,7 +628,8 @@ TEST(AlterSchema_lint_draft6, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [ { "type": "integer" }, { "type": "string" } ]
+    "type": "string",
+    "allOf": [ { "type": "integer" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1156,9 +1157,7 @@ TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_2) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "allOf": [
-      { "type": "string" }
-    ]
+    "type": "string"
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2371,6 +2370,93 @@ TEST(AlterSchema_lint_draft6, orphan_definitions_3) {
     "properties": {
       "baz": { "$ref": "#/definitions/foo" }
     }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6,
+     unnecessary_allof_wrapper_inner_additional_properties_outer_properties) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "properties": { "foo": { "type": "string" } },
+    "allOf": [
+      { "additionalProperties": false }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "properties": { "foo": { "type": "string" } },
+    "allOf": [
+      { "additionalProperties": false }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6,
+     unnecessary_allof_wrapper_inner_properties_and_additional_properties) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "allOf": [
+      {
+        "properties": { "foo": { "type": "string" } },
+        "additionalProperties": false
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "properties": { "foo": { "type": "string" } },
+    "additionalProperties": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, unnecessary_allof_wrapper_with_id_not_elevated) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "allOf": [
+      { "$id": "nested", "type": "object" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "allOf": [
+      { "$id": "nested", "type": "object" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6,
+     unnecessary_allof_wrapper_with_id_anchor_not_elevated) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "allOf": [
+      { "$id": "#foo", "type": "object" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "allOf": [
+      { "$id": "#foo", "type": "object" }
+    ]
   })JSON");
 
   EXPECT_EQ(document, expected);
