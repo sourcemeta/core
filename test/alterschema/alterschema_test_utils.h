@@ -53,7 +53,7 @@ static auto alterschema_test_resolver(std::string_view identifier)
 #define CANONICALIZE(document)                                                 \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::Canonicalize);      \
+                        sourcemeta::core::AlterSchemaMode::Canonicalizer);     \
   bundle.apply(document, sourcemeta::core::schema_walker,                      \
                alterschema_test_resolver,                                      \
                [](const auto &, const auto &, const auto &, const auto &) {});
