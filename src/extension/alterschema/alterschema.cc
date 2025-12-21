@@ -122,7 +122,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 namespace sourcemeta::core {
 
 auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
-  if (mode == AlterSchemaMode::Canonicalize) {
+  if (mode == AlterSchemaMode::Canonicalizer) {
     bundle.add<TypeUnionImplicit>();
     bundle.add<TypeArrayToAnyOf>();
   }
@@ -167,7 +167,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<RequiredPropertiesInProperties>();
   bundle.add<OrphanDefinitions>();
 
-  if (mode == AlterSchemaMode::Canonicalize) {
+  if (mode == AlterSchemaMode::Canonicalizer) {
     bundle.add<BooleanTrue>();
     bundle.add<ConstAsEnum>();
     bundle.add<EqualNumericBoundsToConst>();
