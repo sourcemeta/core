@@ -21,7 +21,7 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_2) {
     "type": "string",
     "minLength": 0,
     "allOf": [
-      { "type": "number", "multipleOf": 1 }
+      { "type": "number" }
     ]
   })JSON");
 
@@ -45,7 +45,7 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_3) {
     "type": "string",
     "minLength": 0,
     "allOf": [
-      { "type": "number", "multipleOf": 1 }
+      { "type": "number" }
     ]
   })JSON");
 
@@ -76,7 +76,7 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_4) {
     "type": "string",
     "minLength": 0,
     "allOf": [
-      { "type": "number", "multipleOf": 1 }
+      { "type": "number" }
     ]
   })JSON");
 
@@ -139,7 +139,7 @@ TEST(AlterSchema_canonicalize_2020_12, dependent_required_tautology_3) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       },
@@ -150,7 +150,7 @@ TEST(AlterSchema_canonicalize_2020_12, dependent_required_tautology_3) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       },
@@ -161,7 +161,7 @@ TEST(AlterSchema_canonicalize_2020_12, dependent_required_tautology_3) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       }
@@ -305,7 +305,6 @@ TEST(AlterSchema_canonicalize_2020_12, exclusive_maximum_integer_to_maximum_3) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "number",
-    "multipleOf": 1,
     "exclusiveMaximum": 1
   })JSON");
 
@@ -328,7 +327,7 @@ TEST(AlterSchema_canonicalize_2020_12, exclusive_maximum_integer_to_maximum_5) {
       { "properties": {}, "minProperties": 0, "type": "object" },
       { "minItems": 0, "type": "array" },
       { "minLength": 0, "type": "string" },
-      { "type": "number", "multipleOf": 1, "exclusiveMaximum": 1 },
+      { "type": "number", "exclusiveMaximum": 1 },
       { "multipleOf": 1, "maximum": 0, "type": "integer" }
     ]
   })JSON");
@@ -386,7 +385,6 @@ TEST(AlterSchema_canonicalize_2020_12, exclusive_minimum_integer_to_minimum_3) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "number",
-    "multipleOf": 1,
     "exclusiveMinimum": 1
   })JSON");
 
@@ -409,7 +407,7 @@ TEST(AlterSchema_canonicalize_2020_12, exclusive_minimum_integer_to_minimum_5) {
       { "properties": {}, "minProperties": 0, "type": "object" },
       { "minItems": 0, "type": "array" },
       { "minLength": 0, "type": "string" },
-      { "multipleOf": 1, "type": "number", "exclusiveMinimum": 1 },
+      { "type": "number", "exclusiveMinimum": 1 },
       { "multipleOf": 1, "minimum": 2, "type": "integer" }
     ]
   })JSON");
@@ -443,7 +441,7 @@ TEST(AlterSchema_canonicalize_2020_12, boolean_true_1) {
               { "properties": {}, "minProperties": 0, "type": "object" },
               { "minItems": 0, "type": "array" },
               { "minLength": 0, "type": "string" },
-              { "multipleOf": 1, "type": "number" },
+              { "type": "number" },
               { "multipleOf": 1, "type": "integer" }
             ]
           }
@@ -451,7 +449,7 @@ TEST(AlterSchema_canonicalize_2020_12, boolean_true_1) {
       },
       { "minItems": 0, "type": "array" },
       { "minLength": 0, "type": "string" },
-      { "multipleOf": 1, "type": "number" },
+      { "type": "number" },
       { "multipleOf": 1, "type": "integer" }
     ]
   })JSON");
@@ -476,7 +474,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_1) {
     "$anchor": "foo",
     "anyOf": [
       { "type": "integer", "minimum": 5, "multipleOf": 1 },
-      { "type": "number", "minimum": 5, "multipleOf": 1 },
+      { "type": "number", "minimum": 5 },
       { "type": "string", "minLength": 0 }
     ]
   })JSON");
@@ -500,7 +498,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_2) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "anyOf": [
       { "type": "integer", "multipleOf": 1 },
-      { "type": "number", "multipleOf": 1 },
+      { "type": "number" },
       { "type": "string", "minLength": 0 }
     ],
     "allOf": [
@@ -614,7 +612,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_5) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "anyOf": [
       { "type": "string", "minLength": 0 },
-      { "type": "number", "multipleOf": 1 }
+      { "type": "number" }
     ],
     "allOf": [
       {
@@ -626,7 +624,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_5) {
               { "type": "object", "minProperties": 0, "properties": {} },
               { "type": "array", "minItems": 0 },
               { "type": "string", "minLength": 1 },
-              { "type": "number", "multipleOf": 1 },
+              { "type": "number" },
               { "type": "integer", "multipleOf": 1 }
             ]
           },
@@ -637,7 +635,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_5) {
               { "type": "object", "minProperties": 0, "properties": {} },
               { "type": "array", "minItems": 0 },
               { "type": "string", "minLength": 0 },
-              { "type": "number", "minimum": 0, "multipleOf": 1 },
+              { "type": "number", "minimum": 0 },
               { "type": "integer", "minimum": 0, "multipleOf": 1 }
             ]
           }
@@ -698,7 +696,7 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_covered_by_required_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       },
@@ -709,7 +707,7 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_covered_by_required_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       }
@@ -741,7 +739,7 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_implicit_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       },
@@ -752,7 +750,7 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_implicit_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       }
@@ -785,7 +783,7 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_implicit_2) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       },
@@ -796,7 +794,7 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_implicit_2) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number", "multipleOf": 1 },
+          { "type": "number" },
           { "type": "integer", "multipleOf": 1 }
         ]
       }
