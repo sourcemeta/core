@@ -177,16 +177,14 @@ TEST(AlterSchema_canonicalize_draft4, boolean_true_1) {
               { "properties": {}, "minProperties": 0, "type": "object" },
               { "minItems": 0, "type": "array" },
               { "minLength": 0, "type": "string" },
-              { "type": "number" },
-              { "multipleOf": 1, "type": "integer" }
+              { "type": "number" }
             ]
           }
         }
       },
       { "minItems": 0, "type": "array" },
       { "minLength": 0, "type": "string" },
-      { "type": "number" },
-      { "multipleOf": 1, "type": "integer" }
+      { "type": "number" }
     ]
   })JSON");
 
@@ -216,8 +214,7 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_covered_by_required_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number" },
-          { "type": "integer", "multipleOf": 1 }
+          { "type": "number" }
         ]
       },
       "bar": {
@@ -227,8 +224,7 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_covered_by_required_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number" },
-          { "type": "integer", "multipleOf": 1 }
+          { "type": "number" }
         ]
       }
     }
@@ -259,8 +255,7 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number" },
-          { "type": "integer", "multipleOf": 1 }
+          { "type": "number" }
         ]
       },
       "bar": {
@@ -270,8 +265,7 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_1) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number" },
-          { "type": "integer", "multipleOf": 1 }
+          { "type": "number" }
         ]
       }
     }
@@ -303,8 +297,7 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_2) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number" },
-          { "type": "integer", "multipleOf": 1 }
+          { "type": "number" }
         ]
       },
       "bar": {
@@ -314,8 +307,7 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_2) {
           { "type": "object", "minProperties": 0, "properties": {} },
           { "type": "array", "minItems": 0 },
           { "type": "string", "minLength": 0 },
-          { "type": "number" },
-          { "type": "integer", "multipleOf": 1 }
+          { "type": "number" }
         ]
       }
     }

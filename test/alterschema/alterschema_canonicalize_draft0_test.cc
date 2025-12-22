@@ -16,10 +16,10 @@ TEST(AlterSchema_canonicalize_draft0, boolean_true_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/schema#",
-    "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ],
+    "type": [ "null", "boolean", "object", "array", "string", "number" ],
     "properties": {
       "foo": {
-        "type": [ "null", "boolean", "object", "array", "string", "number", "integer" ]
+        "type": [ "null", "boolean", "object", "array", "string", "number" ]
       }
     }
   })JSON");
