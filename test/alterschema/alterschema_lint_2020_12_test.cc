@@ -3518,9 +3518,9 @@ TEST(AlterSchema_lint_2020_12, required_properties_in_properties_10) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": { "foo": true, "bar": true },
+    "required": [ "bar" ],
     "allOf": [
-      { "required": [ "foo" ] },
-      { "required": [ "bar" ] }
+      { "required": [ "foo" ] }
     ]
   })JSON");
 
@@ -3541,10 +3541,10 @@ TEST(AlterSchema_lint_2020_12, required_properties_in_properties_11) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "properties": { "foo": true, "bar": true },
+    "properties": { "foo": true, "bar": true, "baz": true },
+    "required": [ "bar", "baz" ],
     "allOf": [
-      { "required": [ "foo" ] },
-      { "required": [ "bar", "baz" ], "properties": { "baz": true } }
+      { "required": [ "foo" ] }
     ]
   })JSON");
 
