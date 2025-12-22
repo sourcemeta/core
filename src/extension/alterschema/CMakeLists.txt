@@ -28,6 +28,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     common/dependent_required_tautology.h
     common/draft_official_dialect_without_empty_fragment.h
     common/draft_ref_siblings.h
+    common/drop_allof_empty_schemas.h
     common/duplicate_allof_branches.h
     common/duplicate_anyof_branches.h
     common/duplicate_enum_values.h

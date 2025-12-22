@@ -59,14 +59,19 @@ public:
 
       for (const auto &keyword_entry : entry.as_object()) {
         const auto &keyword{keyword_entry.first};
+        const auto &metadata{walker(keyword, vocabularies)};
+
         if (elevated.contains(keyword) ||
-            dependency_blocked.contains(keyword) ||
             (schema.defines(keyword) &&
              schema.at(keyword) != keyword_entry.second)) {
           continue;
         }
 
-        const auto &metadata{walker(keyword, vocabularies)};
+        if (metadata.type != SchemaKeywordType::Assertion &&
+            dependency_blocked.contains(keyword)) {
+          continue;
+        }
+
         if (metadata.instances.any() && parent_types.any() &&
             (metadata.instances & parent_types).none()) {
           continue;
@@ -105,15 +110,9 @@ public:
       assert(location.size() == 3);
       const auto allof_index{location.at(1).to_index()};
       const auto &keyword{location.at(2).to_property()};
-      // TODO: Ideally here we could move instead of copying and then erasing
       schema.try_assign_before(
           keyword, schema.at("allOf").at(allof_index).at(keyword), "allOf");
       schema.at("allOf").at(allof_index).erase(keyword);
-    }
-
-    schema.at("allOf").erase_if(is_empty_schema);
-    if (schema.at("allOf").empty()) {
-      schema.erase("allOf");
     }
   }
 
