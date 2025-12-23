@@ -73,6 +73,7 @@ TEST(JSONSchema_walker_2020_12, core_schema) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -83,6 +84,7 @@ TEST(JSONSchema_walker_2020_12, core_vocabulary) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -93,6 +95,7 @@ TEST(JSONSchema_walker_2020_12, core_id) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -103,6 +106,7 @@ TEST(JSONSchema_walker_2020_12, core_anchor) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -114,6 +118,7 @@ TEST(JSONSchema_walker_2020_12, core_dynamicAnchor) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -124,6 +129,7 @@ TEST(JSONSchema_walker_2020_12, core_ref) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -134,6 +140,7 @@ TEST(JSONSchema_walker_2020_12, core_dynamicRef) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -144,6 +151,7 @@ TEST(JSONSchema_walker_2020_12, core_defs) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -154,6 +162,7 @@ TEST(JSONSchema_walker_2020_12, core_comment) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_2020_12_Core);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -165,6 +174,7 @@ TEST(JSONSchema_walker_2020_12, applicator_allOf) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -176,6 +186,7 @@ TEST(JSONSchema_walker_2020_12, applicator_anyOf) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -187,6 +198,7 @@ TEST(JSONSchema_walker_2020_12, applicator_oneOf) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -198,6 +210,7 @@ TEST(JSONSchema_walker_2020_12, applicator_not) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -209,6 +222,7 @@ TEST(JSONSchema_walker_2020_12, applicator_if) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -221,6 +235,7 @@ TEST(JSONSchema_walker_2020_12, applicator_then) {
                           JSON_Schema_2020_12_Applicator);
   const std::unordered_set<std::string_view> expected{"if"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -233,6 +248,7 @@ TEST(JSONSchema_walker_2020_12, applicator_else) {
                           JSON_Schema_2020_12_Applicator);
   const std::unordered_set<std::string_view> expected{"if"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -245,6 +261,7 @@ TEST(JSONSchema_walker_2020_12, applicator_dependentSchemas) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -258,6 +275,7 @@ TEST(JSONSchema_walker_2020_12, applicator_prefixItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -271,6 +289,7 @@ TEST(JSONSchema_walker_2020_12, applicator_items) {
                           JSON_Schema_2020_12_Applicator);
   const std::unordered_set<std::string_view> expected{"prefixItems"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -284,6 +303,7 @@ TEST(JSONSchema_walker_2020_12, applicator_contains_only) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -299,6 +319,7 @@ TEST(JSONSchema_walker_2020_12, applicator_contains_with_validation) {
   const std::unordered_set<std::string_view> expected{"minContains",
                                                       "maxContains"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -313,6 +334,7 @@ TEST(JSONSchema_walker_2020_12, applicator_properties) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -327,6 +349,7 @@ TEST(JSONSchema_walker_2020_12, applicator_patternProperties) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -343,6 +366,7 @@ TEST(JSONSchema_walker_2020_12, applicator_additionalProperties) {
   const std::unordered_set<std::string_view> expected{"properties",
                                                       "patternProperties"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -357,6 +381,7 @@ TEST(JSONSchema_walker_2020_12, applicator_propertyNames) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Applicator);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -370,6 +395,7 @@ TEST(JSONSchema_walker_2020_12, unevaluated_unevaluatedItems_only) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Unevaluated);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -385,6 +411,7 @@ TEST(JSONSchema_walker_2020_12, unevaluated_unevaluatedItems_with_applicator) {
   const std::unordered_set<std::string_view> expected{"prefixItems", "items",
                                                       "contains"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -399,6 +426,7 @@ TEST(JSONSchema_walker_2020_12, unevaluated_unevaluatedProperties_only) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Unevaluated);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -417,6 +445,7 @@ TEST(JSONSchema_walker_2020_12,
   const std::unordered_set<std::string_view> expected{
       "properties", "patternProperties", "additionalProperties"};
   EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -429,6 +458,7 @@ TEST(JSONSchema_walker_2020_12, validation_type) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -440,6 +470,7 @@ TEST(JSONSchema_walker_2020_12, validation_enum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -451,6 +482,7 @@ TEST(JSONSchema_walker_2020_12, validation_const) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -463,6 +495,7 @@ TEST(JSONSchema_walker_2020_12, validation_multipleOf) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   const auto instances =
       sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
                                   sourcemeta::core::JSON::Type::Real});
@@ -476,8 +509,9 @@ TEST(JSONSchema_walker_2020_12, validation_maximum) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
+  EXPECT_TRUE(result.dependencies.empty());
   const std::unordered_set<std::string_view> expected{"type"};
-  EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.order_dependencies, expected);
   const auto instances =
       sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
                                   sourcemeta::core::JSON::Type::Real});
@@ -491,8 +525,9 @@ TEST(JSONSchema_walker_2020_12, validation_minimum) {
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
+  EXPECT_TRUE(result.dependencies.empty());
   const std::unordered_set<std::string_view> expected{"type"};
-  EXPECT_EQ(result.dependencies, expected);
+  EXPECT_EQ(result.order_dependencies, expected);
   const auto instances =
       sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
                                   sourcemeta::core::JSON::Type::Real});
@@ -508,6 +543,7 @@ TEST(JSONSchema_walker_2020_12, validation_exclusiveMaximum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   const auto instances =
       sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
                                   sourcemeta::core::JSON::Type::Real});
@@ -523,6 +559,7 @@ TEST(JSONSchema_walker_2020_12, validation_exclusiveMinimum) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   const auto instances =
       sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Integer,
                                   sourcemeta::core::JSON::Type::Real});
@@ -538,6 +575,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxLength) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -551,6 +589,7 @@ TEST(JSONSchema_walker_2020_12, validation_minLength) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -563,6 +602,7 @@ TEST(JSONSchema_walker_2020_12, validation_pattern) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -576,6 +616,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -589,6 +630,7 @@ TEST(JSONSchema_walker_2020_12, validation_minItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -602,6 +644,7 @@ TEST(JSONSchema_walker_2020_12, validation_uniqueItems) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -615,6 +658,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxContains) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -628,6 +672,7 @@ TEST(JSONSchema_walker_2020_12, validation_minContains) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Array}));
 }
@@ -641,6 +686,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxProperties) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -654,6 +700,7 @@ TEST(JSONSchema_walker_2020_12, validation_minProperties) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -667,6 +714,7 @@ TEST(JSONSchema_walker_2020_12, validation_required) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -680,6 +728,7 @@ TEST(JSONSchema_walker_2020_12, validation_dependentRequired) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Validation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
@@ -693,6 +742,7 @@ TEST(JSONSchema_walker_2020_12, format_annotation_format) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Format_Annotation);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -706,6 +756,7 @@ TEST(JSONSchema_walker_2020_12, format_assertion_format) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Format_Assertion);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -719,6 +770,7 @@ TEST(JSONSchema_walker_2020_12, content_contentEncoding) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Content);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -732,6 +784,7 @@ TEST(JSONSchema_walker_2020_12, content_contentMediaType) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Content);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -745,6 +798,7 @@ TEST(JSONSchema_walker_2020_12, content_contentSchema) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Content);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_EQ(result.instances,
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::String}));
 }
@@ -757,6 +811,7 @@ TEST(JSONSchema_walker_2020_12, metadata_title) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -769,6 +824,7 @@ TEST(JSONSchema_walker_2020_12, metadata_description) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -780,6 +836,7 @@ TEST(JSONSchema_walker_2020_12, metadata_default) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -792,6 +849,7 @@ TEST(JSONSchema_walker_2020_12, metadata_deprecated) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -803,6 +861,7 @@ TEST(JSONSchema_walker_2020_12, metadata_readOnly) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -814,6 +873,7 @@ TEST(JSONSchema_walker_2020_12, metadata_writeOnly) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -825,6 +885,7 @@ TEST(JSONSchema_walker_2020_12, metadata_examples) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2020_12_Meta_Data);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -836,6 +897,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_base) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -847,6 +909,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_links) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -858,6 +921,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_href) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -869,6 +933,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_anchor) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -881,6 +946,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_anchorPointer) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -892,6 +958,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_rel) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -904,6 +971,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_templatePointers) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -916,6 +984,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_templateRequired) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -928,6 +997,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_targetMediaType) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -940,6 +1010,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_targetHints) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -952,6 +1023,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_submissionMediaType) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -964,6 +1036,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_hrefSchema) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -976,6 +1049,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_targetSchema) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -988,6 +1062,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_headerSchema) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1000,6 +1075,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_submissionSchema) {
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(),
                           JSON_Schema_2019_09_Hyper_Schema);
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1009,6 +1085,7 @@ TEST(JSONSchema_walker_2020_12, applicator_allOf_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1018,6 +1095,7 @@ TEST(JSONSchema_walker_2020_12, applicator_anyOf_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1027,6 +1105,7 @@ TEST(JSONSchema_walker_2020_12, applicator_oneOf_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1036,6 +1115,7 @@ TEST(JSONSchema_walker_2020_12, applicator_not_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1045,6 +1125,7 @@ TEST(JSONSchema_walker_2020_12, applicator_if_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1054,6 +1135,7 @@ TEST(JSONSchema_walker_2020_12, applicator_then_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1063,6 +1145,7 @@ TEST(JSONSchema_walker_2020_12, applicator_else_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1074,6 +1157,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1083,6 +1167,7 @@ TEST(JSONSchema_walker_2020_12, applicator_prefixItems_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1092,6 +1177,7 @@ TEST(JSONSchema_walker_2020_12, applicator_items_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1101,6 +1187,7 @@ TEST(JSONSchema_walker_2020_12, applicator_contains_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1110,6 +1197,7 @@ TEST(JSONSchema_walker_2020_12, applicator_properties_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1121,6 +1209,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1132,6 +1221,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1141,6 +1231,7 @@ TEST(JSONSchema_walker_2020_12, applicator_propertyNames_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1152,6 +1243,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1163,6 +1255,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1172,6 +1265,7 @@ TEST(JSONSchema_walker_2020_12, validation_type_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1181,6 +1275,7 @@ TEST(JSONSchema_walker_2020_12, validation_enum_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1190,6 +1285,7 @@ TEST(JSONSchema_walker_2020_12, validation_const_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1199,6 +1295,7 @@ TEST(JSONSchema_walker_2020_12, validation_multipleOf_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1208,6 +1305,7 @@ TEST(JSONSchema_walker_2020_12, validation_maximum_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1217,6 +1315,7 @@ TEST(JSONSchema_walker_2020_12, validation_minimum_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1228,6 +1327,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1239,6 +1339,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1248,6 +1349,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxLength_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1257,6 +1359,7 @@ TEST(JSONSchema_walker_2020_12, validation_minLength_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1266,6 +1369,7 @@ TEST(JSONSchema_walker_2020_12, validation_pattern_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1275,6 +1379,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxItems_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1284,6 +1389,7 @@ TEST(JSONSchema_walker_2020_12, validation_minItems_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1293,6 +1399,7 @@ TEST(JSONSchema_walker_2020_12, validation_uniqueItems_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1302,6 +1409,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxContains_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1311,6 +1419,7 @@ TEST(JSONSchema_walker_2020_12, validation_minContains_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1320,6 +1429,7 @@ TEST(JSONSchema_walker_2020_12, validation_maxProperties_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1329,6 +1439,7 @@ TEST(JSONSchema_walker_2020_12, validation_minProperties_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1338,6 +1449,7 @@ TEST(JSONSchema_walker_2020_12, validation_required_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1349,6 +1461,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1358,6 +1471,7 @@ TEST(JSONSchema_walker_2020_12, format_annotation_format_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1367,6 +1481,7 @@ TEST(JSONSchema_walker_2020_12, format_assertion_format_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1377,6 +1492,7 @@ TEST(JSONSchema_walker_2020_12, content_contentEncoding_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1387,6 +1503,7 @@ TEST(JSONSchema_walker_2020_12, content_contentMediaType_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1396,6 +1513,7 @@ TEST(JSONSchema_walker_2020_12, content_contentSchema_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1405,6 +1523,7 @@ TEST(JSONSchema_walker_2020_12, metadata_title_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1414,6 +1533,7 @@ TEST(JSONSchema_walker_2020_12, metadata_description_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1423,6 +1543,7 @@ TEST(JSONSchema_walker_2020_12, metadata_default_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1432,6 +1553,7 @@ TEST(JSONSchema_walker_2020_12, metadata_deprecated_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1441,6 +1563,7 @@ TEST(JSONSchema_walker_2020_12, metadata_readOnly_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1450,6 +1573,7 @@ TEST(JSONSchema_walker_2020_12, metadata_writeOnly_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1459,6 +1583,7 @@ TEST(JSONSchema_walker_2020_12, metadata_examples_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1468,6 +1593,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_base_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1477,6 +1603,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_links_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1486,6 +1613,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_ref_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1495,6 +1623,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_href_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1504,6 +1633,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_anchor_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1513,6 +1643,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_anchorPointer_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1522,6 +1653,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_rel_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1533,6 +1665,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1544,6 +1677,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1555,6 +1689,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1564,6 +1699,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_targetHints_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1575,6 +1711,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1584,6 +1721,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_hrefSchema_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1593,6 +1731,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_targetSchema_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1602,6 +1741,7 @@ TEST(JSONSchema_walker_2020_12, hyperschema_headerSchema_without_vocabulary) {
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
@@ -1613,6 +1753,7 @@ TEST(JSONSchema_walker_2020_12,
   EXPECT_EQ(result.type, SchemaKeywordType::Unknown);
   EXPECT_FALSE(result.vocabulary.has_value());
   EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
   EXPECT_TRUE(result.instances.none());
 }
 
