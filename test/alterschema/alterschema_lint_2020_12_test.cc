@@ -2593,8 +2593,8 @@ TEST(
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "$ref": "https://example.com/foo",
+    "properties": { "bar": { "type": "string" } },
     "allOf": [
-      { "properties": { "bar": { "type": "string" } } },
       { "$ref": "https://example.com/baz", "type": "object" }
     ]
   })JSON");

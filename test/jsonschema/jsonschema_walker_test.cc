@@ -42,6 +42,7 @@ static auto test_walker(std::string_view keyword,
           SchemaKeywordType::ApplicatorValueTraverseSomeProperty,
           "https://sourcemeta.com/vocab/test-1",
           {},
+          {},
           {}};
       return result;
     }
@@ -50,6 +51,7 @@ static auto test_walker(std::string_view keyword,
       static const SchemaWalkerResult result{
           SchemaKeywordType::ApplicatorElementsTraverseItem,
           "https://sourcemeta.com/vocab/test-1",
+          {},
           {},
           {}};
       return result;
@@ -60,6 +62,7 @@ static auto test_walker(std::string_view keyword,
           SchemaKeywordType::ApplicatorMembersTraversePropertyStatic,
           "https://sourcemeta.com/vocab/test-1",
           {},
+          {},
           {}};
       return result;
     }
@@ -68,6 +71,7 @@ static auto test_walker(std::string_view keyword,
       static const SchemaWalkerResult result{
           SchemaKeywordType::ApplicatorValueOrElementsTraverseAnyItemOrItem,
           "https://sourcemeta.com/vocab/test-1",
+          {},
           {},
           {}};
       return result;
@@ -80,13 +84,14 @@ static auto test_walker(std::string_view keyword,
           SchemaKeywordType::ApplicatorValueTraverseSomeProperty,
           "https://sourcemeta.com/vocab/test-2",
           {},
+          {},
           {}};
       return result;
     }
   }
 
   static const SchemaWalkerResult unknown{
-      SchemaKeywordType::Unknown, std::nullopt, {}, {}};
+      SchemaKeywordType::Unknown, std::nullopt, {}, {}, {}};
   return unknown;
 }
 
