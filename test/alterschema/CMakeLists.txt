@@ -27,3 +27,13 @@ target_link_libraries(sourcemeta_core_alterschema_unit
   PRIVATE sourcemeta::core::jsonschema)
 target_link_libraries(sourcemeta_core_alterschema_unit
   PRIVATE sourcemeta::core::alterschema)
+
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core
+  NAME alterschema_canonicalize
+  SOURCES alterschema_canonicalize.cc)
+target_link_libraries(sourcemeta_core_alterschema_canonicalize
+  PRIVATE sourcemeta::core::json)
+target_link_libraries(sourcemeta_core_alterschema_canonicalize
+  PRIVATE sourcemeta::core::jsonschema)
+target_link_libraries(sourcemeta_core_alterschema_canonicalize
+  PRIVATE sourcemeta::core::alterschema)
