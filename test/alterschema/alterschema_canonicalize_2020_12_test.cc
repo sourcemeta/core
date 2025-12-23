@@ -1296,3 +1296,29 @@ TEST(AlterSchema_canonicalize_2020_12, allof_two_properties_branches_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_canonicalize_2020_12,
+     type_union_implicit_with_content_schema) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "contentMediaType": "application/json",
+    "contentEncoding": "base64",
+    "contentSchema": { "type": "object" }
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "anyOf": [
+      { "enum": [ null ] },
+      { "enum": [ false, true ] },
+      { "type": "object", "minProperties": 0, "properties": {} },
+      { "type": "array", "minItems": 0 },
+      { "type": "string", "minLength": 0 },
+      { "type": "number" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
