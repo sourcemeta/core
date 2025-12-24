@@ -79,7 +79,6 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "common/not_false.h"
 #include "common/orphan_definitions.h"
 #include "common/required_properties_in_properties.h"
-#include "common/simple_properties_identifiers.h"
 #include "common/single_type_array.h"
 #include "common/then_empty.h"
 #include "common/then_without_if.h"
@@ -108,6 +107,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/properties_default.h"
 #include "linter/property_names_default.h"
 #include "linter/property_names_type_default.h"
+#include "linter/simple_properties_identifiers.h"
 #include "linter/title_description_equal.h"
 #include "linter/title_trailing_period.h"
 #include "linter/title_trim.h"
@@ -168,7 +168,6 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<UnknownKeywordsPrefix>();
   bundle.add<UnknownLocalRef>();
   bundle.add<RequiredPropertiesInProperties>();
-  bundle.add<SimplePropertiesIdentifiers>();
   bundle.add<OrphanDefinitions>();
 
   if (mode == AlterSchemaMode::Canonicalizer) {
@@ -218,6 +217,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<DescriptionTrim>();
     bundle.add<CommentTrim>();
     bundle.add<DuplicateExamples>();
+    bundle.add<SimplePropertiesIdentifiers>();
   }
 
   bundle.add<UnnecessaryAllOfRefWrapperModern>();
