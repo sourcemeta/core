@@ -1,4 +1,5 @@
 #include <sourcemeta/core/alterschema.h>
+#include <sourcemeta/core/regex.h>
 
 // For built-in rules
 #include <algorithm>     // std::sort, std::unique
@@ -78,6 +79,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "common/not_false.h"
 #include "common/orphan_definitions.h"
 #include "common/required_properties_in_properties.h"
+#include "common/simple_properties_identifiers.h"
 #include "common/single_type_array.h"
 #include "common/then_empty.h"
 #include "common/then_without_if.h"
@@ -166,6 +168,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<UnknownKeywordsPrefix>();
   bundle.add<UnknownLocalRef>();
   bundle.add<RequiredPropertiesInProperties>();
+  bundle.add<SimplePropertiesIdentifiers>();
   bundle.add<OrphanDefinitions>();
 
   if (mode == AlterSchemaMode::Canonicalizer) {
