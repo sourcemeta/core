@@ -726,7 +726,7 @@ TEST(AlterSchema_lint_draft7, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "type": "string",
+    "type": "integer",
     "allOf": [ false ]
   })JSON");
 
@@ -743,7 +743,7 @@ TEST(AlterSchema_lint_draft7, duplicate_anyof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "anyOf": [ { "type": "integer" }, { "type": "string" } ]
+    "anyOf": [ { "type": "string" }, { "type": "integer" } ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2896,4 +2896,38 @@ TEST(AlterSchema_lint_draft7,
 
   EXPECT_TRUE(result.first);
   EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_draft_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "allOf": [
+      {
+        "items": {
+          "type": "string"
+        }
+      }
+    ],
+    "properties": {
+      "foo": {
+        "$ref": "#/allOf/0/items"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/items"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }

@@ -2,9 +2,11 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <type_traits>
-#include <unordered_set>
-#include <utility>
+#include <functional>    // std::reference_wrapper
+#include <type_traits>   // std::is_default_constructible, etc
+#include <unordered_map> // std::unordered_map
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
 
 TEST(JSON_value, general_traits) {
   EXPECT_FALSE(std::is_default_constructible<sourcemeta::core::JSON>::value);
@@ -402,4 +404,50 @@ TEST(JSON_value, unordered_set_with_custom_hash) {
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"foo"}));
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"bar"}));
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"baz"}));
+}
+
+TEST(JSON_value, unordered_set_with_reference_wrapper) {
+  const sourcemeta::core::JSON foo{"foo"};
+  const sourcemeta::core::JSON bar{"bar"};
+  const sourcemeta::core::JSON baz{"baz"};
+  const sourcemeta::core::JSON bar_duplicate{"bar"};
+
+  std::unordered_set<std::reference_wrapper<const sourcemeta::core::JSON>,
+                     sourcemeta::core::HashJSON<
+                         std::reference_wrapper<const sourcemeta::core::JSON>>,
+                     sourcemeta::core::EqualJSON<
+                         std::reference_wrapper<const sourcemeta::core::JSON>>>
+      value;
+  value.insert(std::cref(foo));
+  value.insert(std::cref(bar));
+  value.insert(std::cref(baz));
+  value.insert(std::cref(bar_duplicate));
+
+  EXPECT_EQ(value.size(), 3);
+  EXPECT_TRUE(value.contains(std::cref(foo)));
+  EXPECT_TRUE(value.contains(std::cref(bar)));
+  EXPECT_TRUE(value.contains(std::cref(baz)));
+  EXPECT_TRUE(value.contains(std::cref(bar_duplicate)));
+}
+
+TEST(JSON_value, unordered_map_with_reference_wrapper) {
+  const sourcemeta::core::JSON foo{"foo"};
+  const sourcemeta::core::JSON bar{"bar"};
+  const sourcemeta::core::JSON bar_duplicate{"bar"};
+
+  std::unordered_map<std::reference_wrapper<const sourcemeta::core::JSON>,
+                     std::size_t,
+                     sourcemeta::core::HashJSON<
+                         std::reference_wrapper<const sourcemeta::core::JSON>>,
+                     sourcemeta::core::EqualJSON<
+                         std::reference_wrapper<const sourcemeta::core::JSON>>>
+      value;
+  value.emplace(std::cref(foo), 1);
+  value.emplace(std::cref(bar), 2);
+  value.emplace(std::cref(bar_duplicate), 3);
+
+  EXPECT_EQ(value.size(), 2);
+  EXPECT_EQ(value.at(std::cref(foo)), 1);
+  EXPECT_EQ(value.at(std::cref(bar)), 2);
+  EXPECT_EQ(value.at(std::cref(bar_duplicate)), 2);
 }
