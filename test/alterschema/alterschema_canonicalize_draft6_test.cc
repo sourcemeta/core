@@ -20,9 +20,7 @@ TEST(AlterSchema_canonicalize_draft6, duplicate_allof_branches_2) {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "type": "string",
     "minLength": 0,
-    "allOf": [
-      { "type": "number" }
-    ]
+    "allOf": [ false ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -44,9 +42,7 @@ TEST(AlterSchema_canonicalize_draft6, duplicate_allof_branches_3) {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "type": "string",
     "minLength": 0,
-    "allOf": [
-      { "type": "number" }
-    ]
+    "allOf": [ false ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -75,9 +71,7 @@ TEST(AlterSchema_canonicalize_draft6, duplicate_allof_branches_4) {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "type": "string",
     "minLength": 0,
-    "allOf": [
-      { "type": "number" }
-    ]
+    "allOf": [ false ]
   })JSON");
 
   EXPECT_EQ(document, expected);
