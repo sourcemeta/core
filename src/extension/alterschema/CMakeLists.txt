@@ -51,7 +51,6 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     common/non_applicable_type_specific_keywords.h
     common/not_false.h
     common/required_properties_in_properties.h
-    common/simple_properties_identifiers.h
     common/single_type_array.h
     common/then_empty.h
     common/then_without_if.h
@@ -80,6 +79,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/properties_default.h
     linter/property_names_default.h
     linter/property_names_type_default.h
+    linter/simple_properties_identifiers.h
     linter/title_description_equal.h
     linter/title_trailing_period.h
     linter/title_trim.h
