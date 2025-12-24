@@ -4,6 +4,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
     jsonpointer_get_test.cc
     jsonpointer_try_get_test.cc
     jsonpointer_error_test.cc
+    jsonpointer_mangle_test.cc
     jsonpointer_parse_error_test.cc
     jsonpointer_parse_test.cc
     jsonpointer_pointer_test.cc
