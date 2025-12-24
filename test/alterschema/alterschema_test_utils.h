@@ -46,16 +46,30 @@ static auto alterschema_test_resolver(std::string_view identifier)
 #define LINT_AND_FIX(traces)                                                   \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
-  bundle.apply(document, sourcemeta::core::schema_walker,                      \
-               alterschema_test_resolver,                                      \
-               [](const auto &, const auto &, const auto &, const auto &) {});
+  [[maybe_unused]] const auto lint_result = bundle.apply(                      \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [](const auto &, const auto &, const auto &, const auto &) {});
 
 #define CANONICALIZE(document)                                                 \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::Canonicalizer);     \
-  bundle.apply(document, sourcemeta::core::schema_walker,                      \
-               alterschema_test_resolver,                                      \
-               [](const auto &, const auto &, const auto &, const auto &) {});
+  [[maybe_unused]] const auto canonicalize_result = bundle.apply(              \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [](const auto &, const auto &, const auto &, const auto &) {});
+
+#define CANONICALIZE_WITHOUT_FIX(document, result, traces)                     \
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
+                         sourcemeta::core::SchemaTransformRule::Result>>       \
+      traces;                                                                  \
+  sourcemeta::core::SchemaTransformer bundle;                                  \
+  sourcemeta::core::add(bundle,                                                \
+                        sourcemeta::core::AlterSchemaMode::Canonicalizer);     \
+  const auto result = bundle.check(                                            \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [&traces](const auto &pointer, const auto &name, const auto &message,    \
+                const auto &outcome) {                                         \
+        traces.emplace_back(pointer, name, message, outcome);                  \
+      });
 
 #endif

@@ -569,3 +569,43 @@ TEST(AlterSchema_canonicalize_draft7, min_properties_implicit_2) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_canonicalize_draft7,
+     simple_properties_identifiers_skip_metaschema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "minProperties": 0,
+    "properties": {
+      "foo-bar": { "type": "string", "minLength": 0 }
+    }
+  })JSON");
+
+  CANONICALIZE_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_canonicalize_draft7,
+     simple_properties_identifiers_applies_non_meta) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/my-schema",
+    "type": "object",
+    "minProperties": 0,
+    "properties": {
+      "foo-bar": { "type": "string", "minLength": 0 }
+    }
+  })JSON");
+
+  CANONICALIZE_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
+                    "Set `properties` to identifier names that can be easily "
+                    "mapped to programming languages (matching "
+                    "[A-Za-z_][A-Za-z0-9_]*)");
+}

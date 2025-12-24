@@ -213,10 +213,10 @@ TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
     "qux": "xxx"
   })JSON");
 
-  EXPECT_THROW(bundle.apply(document, sourcemeta::core::schema_walker,
-                            sourcemeta::core::schema_resolver,
-                            transformer_callback_noop,
-                            "https://example.com/invalid"),
+  EXPECT_THROW(static_cast<void>(bundle.apply(
+                   document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver, transformer_callback_noop,
+                   "https://example.com/invalid")),
                sourcemeta::core::SchemaResolutionError);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -298,8 +298,9 @@ TEST(JSONSchema_transformer, throw_on_rules_called_twice) {
   })JSON");
 
   try {
-    bundle.apply(document, sourcemeta::core::schema_walker,
-                 sourcemeta::core::schema_resolver, transformer_callback_noop);
+    [[maybe_unused]] const auto result = bundle.apply(
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, transformer_callback_noop);
     FAIL();
   } catch (
       const sourcemeta::core::SchemaTransformRuleProcessedTwiceError &error) {
@@ -1053,9 +1054,9 @@ TEST(JSONSchema_transformer, rereference_not_fixed_ref) {
   TestTransformTraces entries;
 
   try {
-    bundle.apply(document, sourcemeta::core::schema_walker,
-                 sourcemeta::core::schema_resolver,
-                 transformer_callback_trace(entries));
+    [[maybe_unused]] const auto result = bundle.apply(
+        document, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver, transformer_callback_trace(entries));
     FAIL() << "The transformation was expected to throw";
   } catch (const sourcemeta::core::SchemaBrokenReferenceError &error) {
     EXPECT_EQ(error.identifier(), "#/definitions/foo");

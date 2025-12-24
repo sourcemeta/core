@@ -51,6 +51,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     common/non_applicable_type_specific_keywords.h
     common/not_false.h
     common/required_properties_in_properties.h
+    common/simple_properties_identifiers.h
     common/single_type_array.h
     common/then_empty.h
     common/then_without_if.h
@@ -96,3 +97,5 @@ endif()
 
 target_link_libraries(sourcemeta_core_alterschema PUBLIC
   sourcemeta::core::jsonschema)
+target_link_libraries(sourcemeta_core_alterschema PRIVATE
+  sourcemeta::core::regex)

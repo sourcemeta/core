@@ -6441,3 +6441,214 @@ TEST(AlterSchema_lint_2020_12, circular_ref_through_defs_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_valid) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "foo": { "type": "string" },
+      "bar_baz": { "type": "number" },
+      "_private": { "type": "boolean" },
+      "CamelCase": { "type": "object" },
+      "name123": { "type": "array" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_hyphen) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "foo-bar": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "simple_properties_identifiers",
+      "Set `properties` to identifier names that can be easily mapped "
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+}
+
+TEST(AlterSchema_lint_2020_12,
+     simple_properties_identifiers_starts_with_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "123abc": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "simple_properties_identifiers",
+      "Set `properties` to identifier names that can be easily mapped "
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+}
+
+TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_special_char) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "foo@bar": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "simple_properties_identifiers",
+      "Set `properties` to identifier names that can be easily mapped "
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+}
+
+TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_space) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "foo bar": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "simple_properties_identifiers",
+      "Set `properties` to identifier names that can be easily mapped "
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+}
+
+TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_nested) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "valid": {
+        "type": "object",
+        "properties": {
+          "invalid-name": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "/properties/valid", "simple_properties_identifiers",
+      "Set `properties` to identifier names that can be easily mapped "
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+}
+
+TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_skip_metaschema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/my-metaschema",
+    "title": "My meta-schema",
+    "description": "A custom meta-schema",
+    "examples": [ {} ],
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true,
+      "https://json-schema.org/draft/2020-12/vocab/applicator": true
+    },
+    "properties": {
+      "foo-bar": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     simple_properties_identifiers_skip_metaschema_nested) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/my-metaschema",
+    "title": "My meta-schema",
+    "description": "A custom meta-schema",
+    "examples": [ {} ],
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true,
+      "https://json-schema.org/draft/2020-12/vocab/applicator": true
+    },
+    "properties": {
+      "valid": {
+        "properties": {
+          "also-invalid": { "type": "number" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     simple_properties_identifiers_skip_bundled_metaschema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/main",
+    "title": "Main schema",
+    "description": "A schema that bundles a meta-schema",
+    "examples": [ {} ],
+    "$ref": "https://example.com/my-metaschema",
+    "$defs": {
+      "metaschema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/my-metaschema",
+        "$vocabulary": {
+          "https://json-schema.org/draft/2020-12/vocab/core": true,
+          "https://json-schema.org/draft/2020-12/vocab/applicator": true
+        },
+        "properties": {
+          "foo-bar": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}

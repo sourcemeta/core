@@ -2461,3 +2461,97 @@ TEST(AlterSchema_lint_draft6,
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft6, simple_properties_identifiers_skip_metaschema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://json-schema.org/draft-06/schema#",
+    "title": "My Meta-Schema",
+    "description": "A meta-schema for testing",
+    "examples": [ {} ],
+    "properties": {
+      "foo-bar": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_draft6,
+     simple_properties_identifiers_skip_metaschema_nested) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://json-schema.org/draft-06/schema#",
+    "title": "My Meta-Schema",
+    "description": "A meta-schema for testing",
+    "examples": [ {} ],
+    "properties": {
+      "valid": {
+        "properties": {
+          "also-invalid": { "type": "number" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_draft6, simple_properties_identifiers_applies_non_meta) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com/my-schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "foo-bar": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
+                    "Set `properties` to identifier names that can be easily "
+                    "mapped to programming languages (matching "
+                    "[A-Za-z_][A-Za-z0-9_]*)");
+}
+
+TEST(AlterSchema_lint_draft6,
+     simple_properties_identifiers_skip_bundled_metaschema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com/main",
+    "title": "Main schema",
+    "description": "A schema that bundles a meta-schema",
+    "examples": [ {} ],
+    "allOf": [
+      { "$ref": "#/definitions/metaschema" }
+    ],
+    "definitions": {
+      "metaschema": {
+        "$schema": "http://json-schema.org/draft-06/schema#",
+        "$id": "http://json-schema.org/draft-06/schema#",
+        "title": "Bundled Meta-Schema",
+        "description": "A bundled meta-schema",
+        "examples": [ {} ],
+        "properties": {
+          "foo-bar": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
