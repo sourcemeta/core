@@ -1,7 +1,6 @@
 #include <sourcemeta/core/jsonpointer.h>
 
 #include <cassert>     // assert
-#include <cctype>      // std::isalpha, std::isdigit, std::islower, std::toupper
 #include <iomanip>     // std::setfill, std::setw
 #include <sstream>     // std::ostringstream
 #include <string_view> // std::string_view
@@ -34,6 +33,27 @@ constexpr std::string_view TOKEN_REGEX = "ZRegex";
 
 constexpr auto ASCII_MAX = static_cast<unsigned char>(0x80);
 
+// Locale-independent ASCII character classification
+inline auto is_ascii_alpha(unsigned char character) noexcept -> bool {
+  return (character >= 'A' && character <= 'Z') ||
+         (character >= 'a' && character <= 'z');
+}
+
+inline auto is_ascii_digit(unsigned char character) noexcept -> bool {
+  return character >= '0' && character <= '9';
+}
+
+inline auto is_ascii_lower(unsigned char character) noexcept -> bool {
+  return character >= 'a' && character <= 'z';
+}
+
+inline auto to_ascii_upper(unsigned char character) noexcept -> char {
+  if (character >= 'a' && character <= 'z') {
+    return static_cast<char>(character - 'a' + 'A');
+  }
+  return static_cast<char>(character);
+}
+
 inline auto hex_escape(std::ostringstream &output, char character) noexcept
     -> void {
   output << ESCAPE_PREFIX << std::uppercase << std::hex << std::setfill('0')
@@ -62,18 +82,15 @@ inline auto encode_prefix(std::ostringstream &output,
 
   for (const auto character : input) {
     const auto unsigned_character{static_cast<unsigned char>(character)};
-    const bool is_ascii_alpha{std::isalpha(unsigned_character) != 0 &&
-                              unsigned_character < ASCII_MAX};
-    const bool is_digit{std::isdigit(unsigned_character) != 0};
 
-    if (is_ascii_alpha) {
-      if (capitalize_next && std::islower(unsigned_character) != 0) {
-        output << static_cast<char>(std::toupper(unsigned_character));
+    if (is_ascii_alpha(unsigned_character)) {
+      if (capitalize_next && is_ascii_lower(unsigned_character)) {
+        output << to_ascii_upper(unsigned_character);
       } else {
         output << character;
       }
       capitalize_next = false;
-    } else if (is_digit) {
+    } else if (is_ascii_digit(unsigned_character)) {
       if (first) {
         output << SEPARATOR;
       }
@@ -96,16 +113,14 @@ inline auto encode_string(std::ostringstream &output,
 
   for (const auto character : input) {
     const auto unsigned_character{static_cast<unsigned char>(character)};
-    const bool is_alpha{std::isalpha(unsigned_character) != 0};
-    const bool is_digit{std::isdigit(unsigned_character) != 0};
 
-    if (is_alpha) {
-      const bool is_lower{std::islower(unsigned_character) != 0};
+    if (is_ascii_alpha(unsigned_character)) {
+      const bool is_lower{is_ascii_lower(unsigned_character)};
       if (segment_start) {
         if (is_reserved_at_start(character)) {
           hex_escape(output, character);
         } else if (is_lower) {
-          output << static_cast<char>(std::toupper(unsigned_character));
+          output << to_ascii_upper(unsigned_character);
         } else {
           output << UPPERCASE_PREFIX << character;
         }
@@ -116,11 +131,13 @@ inline auto encode_string(std::ostringstream &output,
         output << character;
       }
       segment_start = false;
-    } else if (is_digit) {
+    } else if (is_ascii_digit(unsigned_character)) {
       output << character;
       segment_start = false;
     } else {
       hex_escape(output, character);
+      // Only ASCII non-alphanumeric starts a new segment
+      // Non-ASCII bytes (>= 0x80) do not start new segments (UTF-8 handling)
       segment_start = (unsigned_character < ASCII_MAX);
     }
   }

@@ -501,3 +501,47 @@ TEST(JSONPointer_mangle, prefix_with_null_byte) {
   const auto result{sourcemeta::core::mangle(pointer, prefix)};
   EXPECT_EQ(result, "FooX00Bar");
 }
+
+TEST(JSONPointer_mangle, utf8_does_not_start_segment) {
+  const sourcemeta::core::PointerTemplate pointer{"ébar"};
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_XC3XA9bar");
+}
+
+TEST(JSONPointer_mangle, utf8_multibyte_preserves_continuity) {
+  const sourcemeta::core::PointerTemplate pointer{"日test"};
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_XE6X97XA5test");
+}
+
+TEST(JSONPointer_mangle, ascii_special_starts_new_segment) {
+  const sourcemeta::core::PointerTemplate pointer{"foo bar"};
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_FooX20Bar");
+}
+
+TEST(JSONPointer_mangle, mixed_utf8_and_ascii_special) {
+  const sourcemeta::core::PointerTemplate pointer{"é bar"};
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_XC3XA9X20Bar");
+}
+
+TEST(JSONPointer_mangle, high_byte_always_escaped) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"\x80test"});
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_X80test");
+}
+
+TEST(JSONPointer_mangle, latin1_supplement_escaped) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"\xA9test"});
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_XA9test");
+}
+
+TEST(JSONPointer_mangle, consecutive_utf8_chars) {
+  const sourcemeta::core::PointerTemplate pointer{"日本"};
+  const auto result{sourcemeta::core::mangle(pointer, "schema")};
+  EXPECT_EQ(result, "Schema_XE6X97XA5XE6X9CXAC");
+}

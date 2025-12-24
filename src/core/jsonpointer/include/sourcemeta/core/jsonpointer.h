@@ -550,7 +550,7 @@ auto to_string(const PointerTemplate &pointer)
 ///
 /// Mangle a JSON Pointer template and prefix into a collision-free identifier.
 ///
-/// The encoding rules are:
+/// The encoding rules for ASCII characters (0x00-0x7F) are:
 ///
 /// - Lowercase at segment start (except x, u, z): capitalize (no marker)
 /// - Lowercase x, u, z at segment start: hex escape (reserved characters)
@@ -559,9 +559,14 @@ auto to_string(const PointerTemplate &pointer)
 /// - Non-segment-start lowercase: as-is
 /// - Non-segment-start uppercase (except X, U): as-is
 /// - Non-segment-start X: X58, Non-segment-start U: X55
-/// - Digits: as-is
-/// - Non-alphanumeric: hex escape, starts new segment
+/// - ASCII digits (0-9): as-is
+/// - Other ASCII (space, punctuation, control): hex escape, starts new segment
 /// - Z/z reserved for special token prefixes
+///
+/// For non-ASCII bytes (0x80-0xFF, e.g. UTF-8 sequences):
+///
+/// - Always hex escaped
+/// - Do NOT start a new segment (preserves UTF-8 multi-byte sequences)
 ///
 /// For example:
 ///
