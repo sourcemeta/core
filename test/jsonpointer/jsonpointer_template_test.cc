@@ -938,3 +938,213 @@ TEST(JSONPointer_template, matches_conditional_property_wildcard) {
   EXPECT_TRUE(left.matches(right));
   EXPECT_TRUE(right.matches(left));
 }
+
+TEST(JSONPointer_template, at_first) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const auto &token{pointer.at(0)};
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::Pointer::Token>(token));
+  EXPECT_EQ(std::get<sourcemeta::core::Pointer::Token>(token),
+            sourcemeta::core::Pointer::Token{"foo"});
+}
+
+TEST(JSONPointer_template, at_middle) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const auto &token{pointer.at(1)};
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::Pointer::Token>(token));
+  EXPECT_EQ(std::get<sourcemeta::core::Pointer::Token>(token),
+            sourcemeta::core::Pointer::Token{"bar"});
+}
+
+TEST(JSONPointer_template, at_last) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const auto &token{pointer.at(2)};
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::Pointer::Token>(token));
+  EXPECT_EQ(std::get<sourcemeta::core::Pointer::Token>(token),
+            sourcemeta::core::Pointer::Token{"baz"});
+}
+
+TEST(JSONPointer_template, at_with_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Property);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  const auto &wildcard{pointer.at(1)};
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::PointerTemplate::Wildcard>(
+          wildcard));
+  EXPECT_EQ(std::get<sourcemeta::core::PointerTemplate::Wildcard>(wildcard),
+            sourcemeta::core::PointerTemplate::Wildcard::Property);
+}
+
+TEST(JSONPointer_template, starts_with_true_same) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate prefix{"foo", "bar"};
+  EXPECT_TRUE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, starts_with_true_prefix) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate prefix{"foo", "bar"};
+  EXPECT_TRUE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, starts_with_true_empty_prefix) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate prefix;
+  EXPECT_TRUE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, starts_with_true_single) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate prefix{"foo"};
+  EXPECT_TRUE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, starts_with_false_different) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate prefix{"foo", "qux"};
+  EXPECT_FALSE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, starts_with_false_longer) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate prefix{"foo", "bar", "baz"};
+  EXPECT_FALSE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, starts_with_with_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  sourcemeta::core::PointerTemplate prefix;
+  prefix.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  prefix.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+
+  EXPECT_TRUE(pointer.starts_with(prefix));
+}
+
+TEST(JSONPointer_template, ends_with_true_same) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate suffix{"foo", "bar"};
+  EXPECT_TRUE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, ends_with_true_suffix) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate suffix{"bar", "baz"};
+  EXPECT_TRUE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, ends_with_true_empty_suffix) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate suffix;
+  EXPECT_TRUE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, ends_with_true_single) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate suffix{"baz"};
+  EXPECT_TRUE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, ends_with_false_different) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate suffix{"bar", "qux"};
+  EXPECT_FALSE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, ends_with_false_longer) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+  const sourcemeta::core::PointerTemplate suffix{"foo", "bar", "baz"};
+  EXPECT_FALSE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, ends_with_with_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  sourcemeta::core::PointerTemplate suffix;
+  suffix.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  suffix.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  EXPECT_TRUE(pointer.ends_with(suffix));
+}
+
+TEST(JSONPointer_template, head_zero) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const auto result{pointer.head(0)};
+  EXPECT_TRUE(result.empty());
+}
+
+TEST(JSONPointer_template, head_one) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate expected{"foo"};
+  EXPECT_EQ(pointer.head(1), expected);
+}
+
+TEST(JSONPointer_template, head_two) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate expected{"foo", "bar"};
+  EXPECT_EQ(pointer.head(2), expected);
+}
+
+TEST(JSONPointer_template, head_all) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate expected{"foo", "bar", "baz"};
+  EXPECT_EQ(pointer.head(3), expected);
+}
+
+TEST(JSONPointer_template, head_with_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  sourcemeta::core::PointerTemplate expected;
+  expected.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  expected.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+
+  EXPECT_EQ(pointer.head(2), expected);
+}
+
+TEST(JSONPointer_template, tail_zero) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const auto result{pointer.tail(0)};
+  EXPECT_TRUE(result.empty());
+}
+
+TEST(JSONPointer_template, tail_one) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate expected{"baz"};
+  EXPECT_EQ(pointer.tail(1), expected);
+}
+
+TEST(JSONPointer_template, tail_two) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate expected{"bar", "baz"};
+  EXPECT_EQ(pointer.tail(2), expected);
+}
+
+TEST(JSONPointer_template, tail_all) {
+  const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  const sourcemeta::core::PointerTemplate expected{"foo", "bar", "baz"};
+  EXPECT_EQ(pointer.tail(3), expected);
+}
+
+TEST(JSONPointer_template, tail_with_wildcard) {
+  sourcemeta::core::PointerTemplate pointer;
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"foo"});
+  pointer.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  pointer.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  sourcemeta::core::PointerTemplate expected;
+  expected.emplace_back(sourcemeta::core::PointerTemplate::Wildcard::Item);
+  expected.emplace_back(sourcemeta::core::Pointer::Token{"bar"});
+
+  EXPECT_EQ(pointer.tail(2), expected);
+}

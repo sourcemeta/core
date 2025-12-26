@@ -244,6 +244,131 @@ public:
     return this->data.size();
   }
 
+  /// Access a token at a given index. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  /// assert(pointer.at(1) == sourcemeta::core::Pointer::Token{"bar"});
+  /// ```
+  [[nodiscard]] auto at(const size_type index) const -> const_reference {
+    assert(index < this->data.size());
+    return this->data[index];
+  }
+
+  /// Check if this JSON Pointer template starts with another JSON Pointer
+  /// template. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  /// const sourcemeta::core::PointerTemplate prefix{"foo", "bar"};
+  /// assert(pointer.starts_with(prefix));
+  /// ```
+  [[nodiscard]] auto
+  starts_with(const GenericPointerTemplate<PointerT> &prefix) const noexcept
+      -> bool {
+    if (prefix.size() > this->size()) {
+      return false;
+    }
+
+    auto this_iterator{this->data.cbegin()};
+    auto prefix_iterator{prefix.cbegin()};
+    while (prefix_iterator != prefix.cend()) {
+      if (!(*this_iterator == *prefix_iterator)) {
+        return false;
+      }
+
+      ++this_iterator;
+      ++prefix_iterator;
+    }
+
+    return true;
+  }
+
+  /// Check if this JSON Pointer template ends with another JSON Pointer
+  /// template. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  /// const sourcemeta::core::PointerTemplate suffix{"bar", "baz"};
+  /// assert(pointer.ends_with(suffix));
+  /// ```
+  [[nodiscard]] auto
+  ends_with(const GenericPointerTemplate<PointerT> &suffix) const noexcept
+      -> bool {
+    if (suffix.size() > this->size()) {
+      return false;
+    }
+
+    auto this_iterator{this->data.crbegin()};
+    auto suffix_iterator{suffix.crbegin()};
+    while (suffix_iterator != suffix.crend()) {
+      if (!(*this_iterator == *suffix_iterator)) {
+        return false;
+      }
+
+      ++this_iterator;
+      ++suffix_iterator;
+    }
+
+    return true;
+  }
+
+  /// Get a new JSON Pointer template consisting of the first N tokens. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  /// const sourcemeta::core::PointerTemplate expected{"foo", "bar"};
+  /// assert(pointer.head(2) == expected);
+  /// ```
+  [[nodiscard]] auto head(const size_type count) const
+      -> GenericPointerTemplate<PointerT> {
+    assert(count <= this->data.size());
+    GenericPointerTemplate<PointerT> result;
+    result.data.reserve(count);
+    for (size_type index = 0; index < count; ++index) {
+      result.data.push_back(this->data[index]);
+    }
+
+    return result;
+  }
+
+  /// Get a new JSON Pointer template consisting of the last N tokens. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/jsonpointer.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::PointerTemplate pointer{"foo", "bar", "baz"};
+  /// const sourcemeta::core::PointerTemplate expected{"bar", "baz"};
+  /// assert(pointer.tail(2) == expected);
+  /// ```
+  [[nodiscard]] auto tail(const size_type count) const
+      -> GenericPointerTemplate<PointerT> {
+    assert(count <= this->data.size());
+    GenericPointerTemplate<PointerT> result;
+    result.data.reserve(count);
+    const auto start{this->data.size() - count};
+    for (size_type index = start; index < this->data.size(); ++index) {
+      result.data.push_back(this->data[index]);
+    }
+
+    return result;
+  }
+
   /// Check if a JSON Pointer template only consists in normal non-templated
   /// tokens. For example:
   ///
