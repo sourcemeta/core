@@ -273,7 +273,9 @@ auto traverse_origin_instance_locations(
     std::unordered_set<
         const sourcemeta::core::SchemaFrame::References::value_type *> &visited)
     -> void {
+  constexpr std::size_t MAX_INSTANCE_LOCATION_DEPTH{20};
   if (accumulator.has_value() &&
+      accumulator.value().size() <= MAX_INSTANCE_LOCATION_DEPTH &&
       std::ranges::find(destination, accumulator.value()) ==
           destination.cend()) {
     destination.push_back(accumulator.value());
@@ -322,52 +324,34 @@ auto is_definition_entry(const sourcemeta::core::Pointer &pointer) -> bool {
                                      container.to_property() == "definitions");
 }
 
-auto repopulate_instance_locations(
-    const sourcemeta::core::SchemaFrame &frame,
+auto repopulate_instance_locations_single_level(
     const sourcemeta::core::SchemaFrame::Instances &instances,
-    const std::unordered_map<sourcemeta::core::Pointer, CacheSubschema> &cache,
     const sourcemeta::core::Pointer &pointer, const CacheSubschema &cache_entry,
-    sourcemeta::core::SchemaFrame::Instances::mapped_type &destination,
-    const std::optional<sourcemeta::core::PointerTemplate> &accumulator)
+    sourcemeta::core::SchemaFrame::Instances::mapped_type &destination)
     -> void {
-  // Definition entries should not inherit instance locations from their parent
-  // container. They only get instance locations if something references them.
-  // However, children of definitions should still inherit from their definition
-  // parent
   if (cache_entry.orphan && is_definition_entry(pointer)) {
     return;
   }
 
-  if (cache_entry.parent.has_value() &&
-      // Don't consider bases from the root subschema, as if that
-      // subschema has any instance location other than "", then it
-      // indicates a recursive reference
-      !cache_entry.parent.value().empty()) {
-    const auto match{instances.find(cache_entry.parent.value())};
-    if (match == instances.cend()) {
-      return;
+  if (!cache_entry.parent.has_value() || cache_entry.parent.value().empty()) {
+    return;
+  }
+
+  const auto match{instances.find(cache_entry.parent.value())};
+  if (match == instances.cend()) {
+    return;
+  }
+
+  constexpr std::size_t MAX_INSTANCE_LOCATION_DEPTH{20};
+  for (const auto &parent_instance_location : match->second) {
+    auto result = parent_instance_location;
+    for (const auto &token : cache_entry.relative_instance_location) {
+      result.emplace_back(token);
     }
 
-    for (const auto &parent_instance_location : match->second) {
-      auto new_accumulator = cache_entry.relative_instance_location;
-      if (accumulator.has_value()) {
-        for (const auto &token : accumulator.value()) {
-          new_accumulator.emplace_back(token);
-        }
-      }
-
-      auto result = parent_instance_location;
-      for (const auto &token : new_accumulator) {
-        result.emplace_back(token);
-      }
-
-      if (std::ranges::find(destination, result) == destination.cend()) {
-        destination.push_back(result);
-      }
-
-      repopulate_instance_locations(
-          frame, instances, cache, cache_entry.parent.value(),
-          cache.at(cache_entry.parent.value()), destination, new_accumulator);
+    if (result.size() <= MAX_INSTANCE_LOCATION_DEPTH &&
+        std::ranges::find(destination, result) == destination.cend()) {
+      destination.push_back(result);
     }
   }
 }
@@ -1074,7 +1058,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         this->instances_.cbegin(), this->instances_.cend(), std::size_t{0},
         std::plus<>{}, [](const auto &entry) { return entry.second.size(); })};
 
-    while (current_count != previous_count) {
+    constexpr std::size_t MAX_PASSES{5};
+    for (std::size_t pass = 0;
+         pass < MAX_PASSES && current_count != previous_count; ++pass) {
       previous_count = current_count;
 
       for (auto &entry : this->locations_) {
@@ -1083,10 +1069,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         }
 
         const auto subschema{subschemas.find(entry.second.pointer)};
-        repopulate_instance_locations(*this, this->instances_, subschemas,
-                                      subschema->first, subschema->second,
-                                      this->instances_[entry.second.pointer],
-                                      std::nullopt);
+        repopulate_instance_locations_single_level(
+            this->instances_, subschema->first, subschema->second,
+            this->instances_[entry.second.pointer]);
       }
 
       for (auto &entry : this->locations_) {
