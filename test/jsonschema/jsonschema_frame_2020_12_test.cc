@@ -3928,3 +3928,117 @@ TEST(JSONSchema_frame_2020_12, nested_properties_repeated_names) {
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
 }
+
+TEST(JSONSchema_frame_2020_12, non_recursive_ref_repeated_segment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "inner": {
+        "properties": {
+          "a": {
+            "properties": {
+              "b": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "properties": {
+      "a": {
+        "properties": {
+          "b": { "$ref": "#/$defs/inner" }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 17);
+
+  // Subschemas
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {""}, std::nullopt);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/inner", "/$defs/inner",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {"/a/b"}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/inner/properties/a", "/$defs/inner/properties/a",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {"/a/b/a"},
+      "/$defs/inner");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/inner/properties/a/properties/b",
+      "/$defs/inner/properties/a/properties/b",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {"/a/b/a/b"},
+      "/$defs/inner/properties/a");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/properties/a", "/properties/a",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {"/a"}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/properties/a/properties/b", "/properties/a/properties/b",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {"/a/b"},
+      "/properties/a");
+
+  // Pointers
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs", "/$defs",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/inner/properties", "/$defs/inner/properties",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "/$defs/inner");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/inner/properties/a/properties",
+      "/$defs/inner/properties/a/properties",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {},
+      "/$defs/inner/properties/a");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/inner/properties/a/properties/b/type",
+      "/$defs/inner/properties/a/properties/b/type",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {},
+      "/$defs/inner/properties/a/properties/b");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties", "/properties",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/a/properties", "/properties/a/properties",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {}, "/properties/a");
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/a/properties/b/$ref",
+      "/properties/a/properties/b/$ref",
+      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", {},
+      "/properties/a/properties/b");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/a/properties/b/$ref",
+                          "#/$defs/inner", std::nullopt, "/$defs/inner",
+                          "#/$defs/inner");
+}
