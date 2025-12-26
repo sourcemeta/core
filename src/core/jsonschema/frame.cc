@@ -2,8 +2,9 @@
 
 #include <algorithm>     // std::sort, std::all_of, std::any_of
 #include <cassert>       // assert
-#include <functional>    // std::less
+#include <functional>    // std::less, std::plus
 #include <map>           // std::map
+#include <numeric>       // std::transform_reduce
 #include <optional>      // std::optional
 #include <sstream>       // std::ostringstream
 #include <unordered_map> // std::unordered_map
@@ -1057,8 +1058,6 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   }
 
   if (this->mode_ == sourcemeta::core::SchemaFrame::Mode::Instances) {
-    // First pass: trace through references to find instance locations.
-    // This handles definitions that are referenced
     for (auto &entry : this->locations_) {
       if (entry.second.type == SchemaFrame::LocationType::Pointer) {
         continue;
@@ -1070,32 +1069,40 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           this->instances_[entry.second.pointer], visited);
     }
 
-    // Second pass: inherit instance locations from parents (top-down).
-    // This handles applicator children inheriting from their parent schema
-    for (auto &entry : this->locations_) {
-      if (entry.second.type == SchemaFrame::LocationType::Pointer) {
-        continue;
+    std::size_t previous_count{0};
+    std::size_t current_count{std::transform_reduce(
+        this->instances_.cbegin(), this->instances_.cend(), std::size_t{0},
+        std::plus<>{}, [](const auto &entry) { return entry.second.size(); })};
+
+    while (current_count != previous_count) {
+      previous_count = current_count;
+
+      for (auto &entry : this->locations_) {
+        if (entry.second.type == SchemaFrame::LocationType::Pointer) {
+          continue;
+        }
+
+        const auto subschema{subschemas.find(entry.second.pointer)};
+        repopulate_instance_locations(*this, this->instances_, subschemas,
+                                      subschema->first, subschema->second,
+                                      this->instances_[entry.second.pointer],
+                                      std::nullopt);
       }
 
-      const auto subschema{subschemas.find(entry.second.pointer)};
-      repopulate_instance_locations(*this, this->instances_, subschemas,
-                                    subschema->first, subschema->second,
-                                    this->instances_[entry.second.pointer],
-                                    std::nullopt);
-    }
+      for (auto &entry : this->locations_) {
+        if (entry.second.type == SchemaFrame::LocationType::Pointer) {
+          continue;
+        }
 
-    // Third pass: trace references again. Now that inheritance has run,
-    // schemas from definitions can trace to applicator children that now have
-    // instance locations from inheritance
-    for (auto &entry : this->locations_) {
-      if (entry.second.type == SchemaFrame::LocationType::Pointer) {
-        continue;
+        std::unordered_set<const SchemaFrame::References::value_type *> visited;
+        traverse_origin_instance_locations(
+            *this, this->instances_, entry.second.pointer, std::nullopt,
+            this->instances_[entry.second.pointer], visited);
       }
 
-      std::unordered_set<const SchemaFrame::References::value_type *> visited;
-      traverse_origin_instance_locations(
-          *this, this->instances_, entry.second.pointer, std::nullopt,
-          this->instances_[entry.second.pointer], visited);
+      current_count = std::transform_reduce(
+          this->instances_.cbegin(), this->instances_.cend(), std::size_t{0},
+          std::plus<>{}, [](const auto &entry) { return entry.second.size(); });
     }
   }
 }
