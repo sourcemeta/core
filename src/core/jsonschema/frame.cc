@@ -264,33 +264,60 @@ struct InternalEntry {
   std::optional<sourcemeta::core::JSON::String> id;
 };
 
-auto has_repeated_segment(const sourcemeta::core::PointerTemplate &path)
+auto is_recursive_extension(
+    const sourcemeta::core::PointerTemplate &new_path,
+    const std::vector<sourcemeta::core::PointerTemplate> &existing_paths)
     -> bool {
-  const auto size{path.size()};
-  if (size < 4) {
-    return false;
-  }
+  // Convert to vectors for random access
+  std::vector<sourcemeta::core::PointerTemplate::value_type> new_tokens(
+      new_path.cbegin(), new_path.cend());
 
-  std::vector<sourcemeta::core::PointerTemplate::value_type> tokens(
-      path.cbegin(), path.cend());
+  for (const auto &existing : existing_paths) {
+    if (existing.size() >= new_path.size()) {
+      continue;
+    }
 
-  for (std::size_t segment_length = 2; segment_length <= size / 2;
-       ++segment_length) {
-    for (std::size_t first_start = 0;
-         first_start + segment_length <= size - segment_length; ++first_start) {
-      for (std::size_t second_start = first_start + segment_length;
-           second_start + segment_length <= size; ++second_start) {
-        bool is_match{true};
-        for (std::size_t i = 0; i < segment_length; ++i) {
-          if (!(tokens[first_start + i] == tokens[second_start + i])) {
-            is_match = false;
-            break;
-          }
+    std::vector<sourcemeta::core::PointerTemplate::value_type> existing_tokens(
+        existing.cbegin(), existing.cend());
+
+    // Check if existing is a prefix of new_path
+    bool is_prefix{true};
+    for (std::size_t index = 0; index < existing_tokens.size(); ++index) {
+      if (!(existing_tokens[index] == new_tokens[index])) {
+        is_prefix = false;
+        break;
+      }
+    }
+
+    if (!is_prefix) {
+      continue;
+    }
+
+    // existing is a prefix of new_path
+    // Check if the suffix (new_path - existing) matches the end of any
+    // existing path. If so, we're adding a repeated recursive pattern.
+    const auto suffix_size = new_path.size() - existing.size();
+
+    for (const auto &other : existing_paths) {
+      if (other.size() < suffix_size) {
+        continue;
+      }
+
+      std::vector<sourcemeta::core::PointerTemplate::value_type> other_tokens(
+          other.cbegin(), other.cend());
+
+      bool suffix_matches{true};
+      for (std::size_t index = 0; index < suffix_size; ++index) {
+        const auto other_index = other_tokens.size() - suffix_size + index;
+        const auto new_index = existing_tokens.size() + index;
+        if (!(other_tokens[other_index] == new_tokens[new_index])) {
+          suffix_matches = false;
+          break;
         }
+      }
 
-        if (is_match) {
-          return true;
-        }
+      if (suffix_matches) {
+        return true;
       }
     }
   }
@@ -307,7 +334,8 @@ auto traverse_origin_instance_locations(
     std::unordered_set<
         const sourcemeta::core::SchemaFrame::References::value_type *> &visited)
     -> void {
-  if (accumulator.has_value() && !has_repeated_segment(accumulator.value()) &&
+  if (accumulator.has_value() &&
+      !is_recursive_extension(accumulator.value(), destination) &&
       std::ranges::find(destination, accumulator.value()) ==
           destination.cend()) {
     destination.push_back(accumulator.value());
@@ -380,7 +408,7 @@ auto repopulate_instance_locations_single_level(
       result.emplace_back(token);
     }
 
-    if (!has_repeated_segment(result) &&
+    if (!is_recursive_extension(result, destination) &&
         std::ranges::find(destination, result) == destination.cend()) {
       destination.push_back(result);
     }

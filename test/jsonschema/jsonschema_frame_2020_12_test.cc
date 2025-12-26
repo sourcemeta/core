@@ -3957,7 +3957,7 @@ TEST(JSONSchema_frame_2020_12, non_recursive_ref_repeated_segment) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  EXPECT_EQ(frame.locations().size(), 17);
+  EXPECT_EQ(frame.locations().size(), 14);
 
   // Subschemas
 
