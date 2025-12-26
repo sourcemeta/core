@@ -3713,3 +3713,119 @@ TEST(JSONSchema_frame_2020_12, deep_allof_ref_chain) {
                           "https://www.sourcemeta.com/schema", "/$defs/L5",
                           "#/$defs/L5");
 }
+
+TEST(JSONSchema_frame_2020_12, recursive_ref_to_self) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "node": {
+        "properties": {
+          "children": {
+            "items": { "$ref": "#/$defs/node" }
+          }
+        }
+      }
+    },
+    "properties": {
+      "root": { "$ref": "#/$defs/node" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Instances};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 12);
+
+  // Resource
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+
+  // Subschemas
+
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/properties/root",
+      "https://www.sourcemeta.com/schema", "/properties/root",
+      "https://www.sourcemeta.com/schema", "/properties/root", {"/root"}, "");
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/$defs/node",
+      "https://www.sourcemeta.com/schema", "/$defs/node",
+      "https://www.sourcemeta.com/schema", "/$defs/node",
+      POINTER_TEMPLATES("/root", "/root/children/~?items~/~I~"), "");
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame,
+      "https://www.sourcemeta.com/schema#/$defs/node/properties/children",
+      "https://www.sourcemeta.com/schema", "/$defs/node/properties/children",
+      "https://www.sourcemeta.com/schema", "/$defs/node/properties/children",
+      POINTER_TEMPLATES("/root/children",
+                        "/root/children/~?items~/~I~/children"),
+      "/$defs/node");
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame,
+      "https://www.sourcemeta.com/schema#/$defs/node/properties/children/items",
+      "https://www.sourcemeta.com/schema",
+      "/$defs/node/properties/children/items",
+      "https://www.sourcemeta.com/schema",
+      "/$defs/node/properties/children/items", {"/root/children/~?items~/~I~"},
+      "/$defs/node/properties/children");
+
+  // Pointers
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$id",
+      "https://www.sourcemeta.com/schema", "/$id",
+      "https://www.sourcemeta.com/schema", "/$id", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs",
+      "https://www.sourcemeta.com/schema", "/$defs",
+      "https://www.sourcemeta.com/schema", "/$defs", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties",
+      "https://www.sourcemeta.com/schema", "/properties",
+      "https://www.sourcemeta.com/schema", "/properties", {}, "");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/properties/root/$ref",
+      "https://www.sourcemeta.com/schema", "/properties/root/$ref",
+      "https://www.sourcemeta.com/schema", "/properties/root/$ref", {},
+      "/properties/root");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs/node/properties",
+      "https://www.sourcemeta.com/schema", "/$defs/node/properties",
+      "https://www.sourcemeta.com/schema", "/$defs/node/properties", {},
+      "/$defs/node");
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame,
+      "https://www.sourcemeta.com/schema#/$defs/node/properties/children/items/"
+      "$ref",
+      "https://www.sourcemeta.com/schema",
+      "/$defs/node/properties/children/items/$ref",
+      "https://www.sourcemeta.com/schema",
+      "/$defs/node/properties/children/items/$ref", {},
+      "/$defs/node/properties/children/items");
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 3);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/root/$ref",
+                          "https://www.sourcemeta.com/schema#/$defs/node",
+                          "https://www.sourcemeta.com/schema", "/$defs/node",
+                          "#/$defs/node");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/node/properties/children/items/$ref",
+                          "https://www.sourcemeta.com/schema#/$defs/node",
+                          "https://www.sourcemeta.com/schema", "/$defs/node",
+                          "#/$defs/node");
+}

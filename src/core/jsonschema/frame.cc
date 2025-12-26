@@ -264,6 +264,40 @@ struct InternalEntry {
   std::optional<sourcemeta::core::JSON::String> id;
 };
 
+auto has_repeated_segment(const sourcemeta::core::PointerTemplate &path)
+    -> bool {
+  const auto size{path.size()};
+  if (size < 4) {
+    return false;
+  }
+
+  std::vector<sourcemeta::core::PointerTemplate::value_type> tokens(
+      path.cbegin(), path.cend());
+
+  for (std::size_t segment_length = 2; segment_length <= size / 2;
+       ++segment_length) {
+    for (std::size_t first_start = 0;
+         first_start + segment_length <= size - segment_length; ++first_start) {
+      for (std::size_t second_start = first_start + segment_length;
+           second_start + segment_length <= size; ++second_start) {
+        bool is_match{true};
+        for (std::size_t i = 0; i < segment_length; ++i) {
+          if (!(tokens[first_start + i] == tokens[second_start + i])) {
+            is_match = false;
+            break;
+          }
+        }
+
+        if (is_match) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 auto traverse_origin_instance_locations(
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Instances &instances,
@@ -273,9 +307,7 @@ auto traverse_origin_instance_locations(
     std::unordered_set<
         const sourcemeta::core::SchemaFrame::References::value_type *> &visited)
     -> void {
-  constexpr std::size_t MAX_INSTANCE_LOCATION_DEPTH{20};
-  if (accumulator.has_value() &&
-      accumulator.value().size() <= MAX_INSTANCE_LOCATION_DEPTH &&
+  if (accumulator.has_value() && !has_repeated_segment(accumulator.value()) &&
       std::ranges::find(destination, accumulator.value()) ==
           destination.cend()) {
     destination.push_back(accumulator.value());
@@ -342,14 +374,13 @@ auto repopulate_instance_locations_single_level(
     return;
   }
 
-  constexpr std::size_t MAX_INSTANCE_LOCATION_DEPTH{20};
   for (const auto &parent_instance_location : match->second) {
     auto result = parent_instance_location;
     for (const auto &token : cache_entry.relative_instance_location) {
       result.emplace_back(token);
     }
 
-    if (result.size() <= MAX_INSTANCE_LOCATION_DEPTH &&
+    if (!has_repeated_segment(result) &&
         std::ranges::find(destination, result) == destination.cend()) {
       destination.push_back(result);
     }
@@ -1058,9 +1089,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         this->instances_.cbegin(), this->instances_.cend(), std::size_t{0},
         std::plus<>{}, [](const auto &entry) { return entry.second.size(); })};
 
-    constexpr std::size_t MAX_PASSES{5};
-    for (std::size_t pass = 0;
-         pass < MAX_PASSES && current_count != previous_count; ++pass) {
+    while (current_count != previous_count) {
       previous_count = current_count;
 
       for (auto &entry : this->locations_) {
