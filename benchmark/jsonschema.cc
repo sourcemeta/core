@@ -8,6 +8,20 @@
 #include <sourcemeta/core/jsonschema.h>
 #include <sourcemeta/core/uri.h>
 
+static void Schema_Frame_WoT_Instances(benchmark::State &state) {
+  const auto schema{
+      sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                  "schemas" / "draft7_w3c_wot_td_v1_1.json")};
+
+  for (auto _ : state) {
+    sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::Instances};
+    frame.analyse(schema, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    benchmark::DoNotOptimize(frame);
+  }
+}
+
 static void Schema_Frame_OMC_Instances(benchmark::State &state) {
   const auto schema{
       sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
@@ -164,6 +178,7 @@ static void Schema_Bundle_Meta_2020_12(benchmark::State &state) {
   }
 }
 
+BENCHMARK(Schema_Frame_WoT_Instances);
 BENCHMARK(Schema_Frame_OMC_Instances);
 BENCHMARK(Schema_Frame_OMC_References);
 BENCHMARK(Schema_Frame_OMC_Locations);
