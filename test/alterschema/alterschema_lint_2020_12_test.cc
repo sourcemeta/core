@@ -6179,6 +6179,88 @@ TEST(AlterSchema_lint_2020_12, orphan_definitions_25) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, orphan_definitions_26) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "#/$defs/bar" }
+    },
+    "$defs": {
+      "bar": {
+        "allOf": [
+          { "$ref": "#/$defs/baz" }
+        ]
+      },
+      "baz": {
+        "type": "object",
+        "properties": {
+          "qux": { "$ref": "#/$defs/extra" }
+        }
+      },
+      "extra": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "#/$defs/bar" }
+    },
+    "$defs": {
+      "bar": { "$ref": "#/$defs/baz" },
+      "baz": {
+        "type": "object",
+        "properties": {
+          "qux": { "$ref": "#/$defs/extra" }
+        }
+      },
+      "extra": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, orphan_definitions_27) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "start": { "$ref": "#/$defs/L1" }
+    },
+    "$defs": {
+      "L1": { "allOf": [ { "$ref": "#/$defs/L2" } ] },
+      "L2": { "properties": { "a": { "$ref": "#/$defs/L3" } } },
+      "L3": { "allOf": [ { "$ref": "#/$defs/L4" } ] },
+      "L4": { "properties": { "b": { "$ref": "#/$defs/L5" } } },
+      "L5": { "type": "string" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "start": { "$ref": "#/$defs/L1" }
+    },
+    "$defs": {
+      "L1": { "$ref": "#/$defs/L2" },
+      "L2": { "properties": { "a": { "$ref": "#/$defs/L3" } } },
+      "L3": { "$ref": "#/$defs/L4" },
+      "L4": { "properties": { "b": { "$ref": "#/$defs/L5" } } },
+      "L5": { "type": "string" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12,
      unnecessary_allof_wrapper_unevaluated_properties_depends_on_properties) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
