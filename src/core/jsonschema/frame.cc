@@ -268,55 +268,14 @@ auto is_recursive_extension(
     const sourcemeta::core::PointerTemplate &new_path,
     const std::vector<sourcemeta::core::PointerTemplate> &existing_paths)
     -> bool {
-  // Convert to vectors for random access
-  std::vector<sourcemeta::core::PointerTemplate::value_type> new_tokens(
-      new_path.cbegin(), new_path.cend());
-
   for (const auto &existing : existing_paths) {
-    if (existing.size() >= new_path.size()) {
+    if (!new_path.starts_with(existing)) {
       continue;
     }
 
-    std::vector<sourcemeta::core::PointerTemplate::value_type> existing_tokens(
-        existing.cbegin(), existing.cend());
-
-    // Check if existing is a prefix of new_path
-    bool is_prefix{true};
-    for (std::size_t index = 0; index < existing_tokens.size(); ++index) {
-      if (!(existing_tokens[index] == new_tokens[index])) {
-        is_prefix = false;
-        break;
-      }
-    }
-
-    if (!is_prefix) {
-      continue;
-    }
-
-    // existing is a prefix of new_path
-    // Check if the suffix (new_path - existing) matches the end of any
-    // existing path. If so, we're adding a repeated recursive pattern.
-    const auto suffix_size = new_path.size() - existing.size();
-
+    const auto suffix{new_path.tail(new_path.size() - existing.size())};
     for (const auto &other : existing_paths) {
-      if (other.size() < suffix_size) {
-        continue;
-      }
-
-      std::vector<sourcemeta::core::PointerTemplate::value_type> other_tokens(
-          other.cbegin(), other.cend());
-
-      bool suffix_matches{true};
-      for (std::size_t index = 0; index < suffix_size; ++index) {
-        const auto other_index = other_tokens.size() - suffix_size + index;
-        const auto new_index = existing_tokens.size() + index;
-        if (!(other_tokens[other_index] == new_tokens[new_index])) {
-          suffix_matches = false;
-          break;
-        }
-      }
-
-      if (suffix_matches) {
+      if (other.ends_with(suffix)) {
         return true;
       }
     }
