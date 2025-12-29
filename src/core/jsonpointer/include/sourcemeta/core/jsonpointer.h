@@ -574,13 +574,12 @@ auto to_string(const PointerTemplate &pointer)
 /// #include <sourcemeta/core/jsonpointer.h>
 /// #include <cassert>
 ///
-/// const sourcemeta::core::PointerTemplate pointer{"foo", "bar"};
+/// const sourcemeta::core::Pointer pointer{"foo", "bar"};
 /// const auto result{sourcemeta::core::mangle(pointer, "schema")};
 /// assert(result == "Schema_Foo_Bar");
 /// ```
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
-auto mangle(const PointerTemplate &pointer, std::string_view prefix)
-    -> std::string;
+auto mangle(const Pointer &pointer, std::string_view prefix) -> std::string;
 
 /// @ingroup jsonpointer
 ///
