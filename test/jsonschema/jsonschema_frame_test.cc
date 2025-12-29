@@ -1716,7 +1716,7 @@ TEST(JSONSchema_frame, mode_locations) {
   EXPECT_EQ(frame.references().size(), 0);
 }
 
-TEST(JSONSchema_frame, references_to_1) {
+TEST(JSONSchema_frame, has_references_to_2020_12) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1755,25 +1755,16 @@ TEST(JSONSchema_frame, references_to_1) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  const auto foo{frame.references_to({"properties", "foo"})};
-  EXPECT_EQ(foo.size(), 1);
-  EXPECT_REFERENCE_TO(foo, 0, Dynamic, "/$defs/dynamic/$dynamicRef");
-
-  const auto bar{frame.references_to({"properties", "bar"})};
-  EXPECT_EQ(bar.size(), 1);
-  EXPECT_REFERENCE_TO(bar, 0, Dynamic, "/$defs/dynamic/$dynamicRef");
-
-  const auto baz{frame.references_to({"properties", "baz"})};
-  EXPECT_EQ(baz.size(), 1);
-  EXPECT_REFERENCE_TO(baz, 0, Static, "/$defs/dynamic-non-anchor/$dynamicRef");
-
-  const auto bookending{frame.references_to({"$defs", "bookending"})};
-  EXPECT_EQ(bookending.size(), 2);
-  EXPECT_REFERENCE_TO(bookending, 0, Static, "/$defs/static/$ref");
-  EXPECT_REFERENCE_TO(bookending, 1, Dynamic, "/$defs/dynamic/$dynamicRef");
+  EXPECT_TRUE(frame.has_references_to({"properties", "foo"}));
+  EXPECT_TRUE(frame.has_references_to({"properties", "bar"}));
+  EXPECT_TRUE(frame.has_references_to({"properties", "baz"}));
+  EXPECT_TRUE(frame.has_references_to({"$defs", "bookending"}));
+  EXPECT_FALSE(frame.has_references_to({"$defs", "static"}));
+  EXPECT_FALSE(frame.has_references_to({"$defs", "dynamic"}));
+  EXPECT_FALSE(frame.has_references_to({"$defs", "dynamic-non-anchor"}));
 }
 
-TEST(JSONSchema_frame, references_to_2) {
+TEST(JSONSchema_frame, has_references_to_2019_09) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -1813,23 +1804,58 @@ TEST(JSONSchema_frame, references_to_2) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  const auto foo{frame.references_to({"properties", "foo"})};
-  EXPECT_EQ(foo.size(), 1);
-  EXPECT_REFERENCE_TO(foo, 0, Dynamic, "/$defs/dynamic/$recursiveRef");
+  EXPECT_TRUE(frame.has_references_to({"properties", "foo"}));
+  EXPECT_TRUE(frame.has_references_to({"properties", "bar"}));
+  EXPECT_FALSE(frame.has_references_to({"properties", "baz"}));
+  EXPECT_FALSE(frame.has_references_to({"properties", "qux"}));
+  EXPECT_TRUE(frame.has_references_to({"$defs", "bookending"}));
+}
 
-  const auto bar{frame.references_to({"properties", "bar"})};
-  EXPECT_EQ(bar.size(), 1);
-  EXPECT_REFERENCE_TO(bar, 0, Dynamic, "/$defs/dynamic/$recursiveRef");
+TEST(JSONSchema_frame, has_references_through) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": {
+        "type": "string"
+      }
+    },
+    "$defs": {
+      "test": {
+        "$ref": "#/properties/foo"
+      }
+    }
+  })JSON");
 
-  const auto baz{frame.references_to({"properties", "baz"})};
-  EXPECT_EQ(baz.size(), 0);
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
 
-  const auto qux{frame.references_to({"properties", "qux"})};
-  EXPECT_EQ(qux.size(), 0);
+  EXPECT_TRUE(frame.has_references_to({"properties", "foo"}));
+  EXPECT_TRUE(frame.has_references_through({"properties", "foo"}));
+  EXPECT_TRUE(frame.has_references_through({"properties"}));
+  EXPECT_FALSE(frame.has_references_to({"properties"}));
+  EXPECT_FALSE(frame.has_references_to({"$defs"}));
+  EXPECT_FALSE(frame.has_references_through({"$defs"}));
+}
 
-  const auto bookending{frame.references_to({"$defs", "bookending"})};
-  EXPECT_EQ(bookending.size(), 1);
-  EXPECT_REFERENCE_TO(bookending, 0, Dynamic, "/$defs/dynamic/$recursiveRef");
+TEST(JSONSchema_frame, has_references_through_without_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "contentSchema": true,
+    "items": {
+      "$ref": "#/contentSchema"
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_TRUE(frame.has_references_to({"contentSchema"}));
+  EXPECT_TRUE(frame.has_references_through({"contentSchema"}));
 }
 
 TEST(JSONSchema_frame, to_json_empty) {
