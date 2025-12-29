@@ -8,30 +8,30 @@
 
 #define EXPECT_FRAME_STATIC_DRAFT3_POINTER(                                    \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_instance_locations, expected_parent)   \
+    expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_POINTER(frame, reference, root_id, expected_pointer,     \
                               "http://json-schema.org/draft-03/schema#",       \
                               "http://json-schema.org/draft-03/schema#",       \
                               expected_base, expected_relative_pointer,        \
-                              expected_instance_locations, expected_parent);
+                              expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(                                   \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_instance_locations, expected_parent)   \
+    expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_RESOURCE(frame, reference, root_id, expected_pointer,    \
                                "http://json-schema.org/draft-03/schema#",      \
                                "http://json-schema.org/draft-03/schema#",      \
                                expected_base, expected_relative_pointer,       \
-                               expected_instance_locations, expected_parent);
+                               expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(                                  \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_instance_locations, expected_parent)   \
+    expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_SUBSCHEMA(frame, reference, root_id, expected_pointer,   \
                                 "http://json-schema.org/draft-03/schema#",     \
                                 "http://json-schema.org/draft-03/schema#",     \
                                 expected_base, expected_relative_pointer,      \
-                                expected_instance_locations, expected_parent);
+                                expected_parent);
 
 TEST(JSONSchema_frame_draft3, anonymous_with_nested_schema_resource) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -40,7 +40,7 @@ TEST(JSONSchema_frame_draft3, anonymous_with_nested_schema_resource) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -49,30 +49,28 @@ TEST(JSONSchema_frame_draft3, anonymous_with_nested_schema_resource) {
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalProperties",
       "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#",
-      {"/~?additionalProperties~/~P~"}, "");
+      "http://json-schema.org/draft-03/schema#", "");
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/id", "/additionalProperties/id",
       "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "/additionalProperties");
+      "http://json-schema.org/draft-03/schema#", "/additionalProperties");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {""}, std::nullopt);
+      "http://json-schema.org/draft-03/schema#", std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalProperties", "/additionalProperties",
       "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#",
-      {"/~?additionalProperties~/~P~"}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalProperties/id", "/additionalProperties/id",
       "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "/additionalProperties");
+      "http://json-schema.org/draft-03/schema#", "/additionalProperties");
 
   // References
 
@@ -91,7 +89,7 @@ TEST(JSONSchema_frame_draft3, empty_schema) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -99,18 +97,18 @@ TEST(JSONSchema_frame_draft3, empty_schema) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/id",
       "https://www.sourcemeta.com/schema", "/id",
-      "https://www.sourcemeta.com/schema", "/id", {}, "");
+      "https://www.sourcemeta.com/schema", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", "");
 
   // References
 
@@ -129,7 +127,7 @@ TEST(JSONSchema_frame_draft3, empty_schema_trailing_slash) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -137,18 +135,18 @@ TEST(JSONSchema_frame_draft3, empty_schema_trailing_slash) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/id",
       "https://www.sourcemeta.com/schema", "/id",
-      "https://www.sourcemeta.com/schema", "/id", {}, "");
+      "https://www.sourcemeta.com/schema", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", "");
 
   // References
 
@@ -171,7 +169,7 @@ TEST(JSONSchema_frame_draft3, one_level_applicators_without_identifiers) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -179,38 +177,38 @@ TEST(JSONSchema_frame_draft3, one_level_applicators_without_identifiers) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/id",
       "https://www.sourcemeta.com/schema", "/id",
-      "https://www.sourcemeta.com/schema", "/id", {}, "");
+      "https://www.sourcemeta.com/schema", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", "");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/items",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/schema", "/items", {"/~I~"}, "");
+      "https://www.sourcemeta.com/schema", "/items", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/type",
       "https://www.sourcemeta.com/schema", "/items/type",
-      "https://www.sourcemeta.com/schema", "/items/type", {}, "/items");
+      "https://www.sourcemeta.com/schema", "/items/type", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties",
       "https://www.sourcemeta.com/schema", "/properties",
-      "https://www.sourcemeta.com/schema", "/properties", {}, "");
+      "https://www.sourcemeta.com/schema", "/properties", "");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/foo",
       "https://www.sourcemeta.com/schema", "/properties/foo",
-      "https://www.sourcemeta.com/schema", "/properties/foo", {"/foo"}, "");
+      "https://www.sourcemeta.com/schema", "/properties/foo", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/foo/type",
       "https://www.sourcemeta.com/schema", "/properties/foo/type",
-      "https://www.sourcemeta.com/schema", "/properties/foo/type", {},
+      "https://www.sourcemeta.com/schema", "/properties/foo/type",
       "/properties/foo");
 
   // References
@@ -231,7 +229,7 @@ TEST(JSONSchema_frame_draft3, one_level_applicators_with_identifiers) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -239,42 +237,42 @@ TEST(JSONSchema_frame_draft3, one_level_applicators_with_identifiers) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/test/qux",
       "https://www.sourcemeta.com/test/qux", "",
-      "https://www.sourcemeta.com/test/qux", "", {""}, std::nullopt);
-  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
-      frame, "https://www.sourcemeta.com/foo",
-      "https://www.sourcemeta.com/test/qux", "/items",
-      "https://www.sourcemeta.com/foo", "", {"/~I~"}, "");
+      "https://www.sourcemeta.com/test/qux", "", std::nullopt);
+  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(frame, "https://www.sourcemeta.com/foo",
+                                      "https://www.sourcemeta.com/test/qux",
+                                      "/items",
+                                      "https://www.sourcemeta.com/foo", "", "");
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/id",
       "https://www.sourcemeta.com/test/qux", "/id",
-      "https://www.sourcemeta.com/test/qux", "/id", {}, "");
+      "https://www.sourcemeta.com/test/qux", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/$schema",
       "https://www.sourcemeta.com/test/qux", "/$schema",
-      "https://www.sourcemeta.com/test/qux", "/$schema", {}, "");
+      "https://www.sourcemeta.com/test/qux", "/$schema", "");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/test/qux#/items",
       "https://www.sourcemeta.com/test/qux", "/items",
-      "https://www.sourcemeta.com/foo", "", {"/~I~"}, "");
+      "https://www.sourcemeta.com/foo", "", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/items/id",
       "https://www.sourcemeta.com/test/qux", "/items/id",
-      "https://www.sourcemeta.com/foo", "/id", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/id", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/items/type",
       "https://www.sourcemeta.com/test/qux", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/type", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/foo#/id",
       "https://www.sourcemeta.com/test/qux", "/items/id",
-      "https://www.sourcemeta.com/foo", "/id", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/id", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/foo#/type",
       "https://www.sourcemeta.com/test/qux", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/type", "/items");
 
   // References
 
@@ -297,7 +295,7 @@ TEST(JSONSchema_frame_draft3, subschema_absolute_identifier) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -305,42 +303,42 @@ TEST(JSONSchema_frame_draft3, subschema_absolute_identifier) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
-  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
-      frame, "https://www.sourcemeta.com/foo",
-      "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/foo", "", {"/~I~"}, "");
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
+  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(frame, "https://www.sourcemeta.com/foo",
+                                      "https://www.sourcemeta.com/schema",
+                                      "/items",
+                                      "https://www.sourcemeta.com/foo", "", "");
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/id",
       "https://www.sourcemeta.com/schema", "/id",
-      "https://www.sourcemeta.com/schema", "/id", {}, "");
+      "https://www.sourcemeta.com/schema", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", "");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/items",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/foo", "", {"/~I~"}, "");
+      "https://www.sourcemeta.com/foo", "", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/id",
       "https://www.sourcemeta.com/schema", "/items/id",
-      "https://www.sourcemeta.com/foo", "/id", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/id", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/type",
       "https://www.sourcemeta.com/schema", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/type", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/foo#/id",
       "https://www.sourcemeta.com/schema", "/items/id",
-      "https://www.sourcemeta.com/foo", "/id", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/id", "/items");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/foo#/type",
       "https://www.sourcemeta.com/schema", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", {}, "/items");
+      "https://www.sourcemeta.com/foo", "/type", "/items");
 
   // References
 
@@ -360,7 +358,7 @@ TEST(JSONSchema_frame_draft3, id_override) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
                              sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaFrameError);
@@ -373,7 +371,7 @@ TEST(JSONSchema_frame_draft3, explicit_argument_id_same) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver,
                 "http://json-schema.org/draft-03/schema#",
@@ -383,18 +381,18 @@ TEST(JSONSchema_frame_draft3, explicit_argument_id_same) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/id",
       "https://www.sourcemeta.com/schema", "/id",
-      "https://www.sourcemeta.com/schema", "/id", {}, "");
+      "https://www.sourcemeta.com/schema", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", "");
 
   // References
 
@@ -421,7 +419,7 @@ TEST(JSONSchema_frame_draft3, explicit_argument_id_different) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver,
                 "http://json-schema.org/draft-03/schema#",
@@ -432,60 +430,59 @@ TEST(JSONSchema_frame_draft3, explicit_argument_id_different) {
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.sourcemeta.com/test",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.sourcemeta.com/test", "", {"/one"}, "");
+      "https://www.sourcemeta.com/test", "", "");
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.example.com", "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", {""}, std::nullopt);
-  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
-      frame, "https://www.example.com/test",
-      "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.example.com/test", "", {"/one"}, "");
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
+  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(frame, "https://www.example.com/test",
+                                      "https://www.sourcemeta.com/schema",
+                                      "/properties/one",
+                                      "https://www.example.com/test", "", "");
   EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
       frame, "https://www.test.com", "https://www.sourcemeta.com/schema",
-      "/properties/two", "https://www.test.com", "", {"/two"}, "");
+      "/properties/two", "https://www.test.com", "", "");
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/id",
       "https://www.sourcemeta.com/schema", "/id",
-      "https://www.sourcemeta.com/schema", "/id", {}, "");
+      "https://www.sourcemeta.com/schema", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", {}, "");
+      "https://www.sourcemeta.com/schema", "/$schema", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties",
       "https://www.sourcemeta.com/schema", "/properties",
-      "https://www.sourcemeta.com/schema", "/properties", {}, "");
+      "https://www.sourcemeta.com/schema", "/properties", "");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/one",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.sourcemeta.com/test", "", {"/one"}, "");
+      "https://www.sourcemeta.com/test", "", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/one/id",
       "https://www.sourcemeta.com/schema", "/properties/one/id",
-      "https://www.sourcemeta.com/test", "/id", {}, "/properties/one");
+      "https://www.sourcemeta.com/test", "/id", "/properties/one");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/two",
       "https://www.sourcemeta.com/schema", "/properties/two",
-      "https://www.test.com", "", {"/two"}, "");
+      "https://www.test.com", "", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/two/id",
       "https://www.sourcemeta.com/schema", "/properties/two/id",
-      "https://www.test.com", "/id", {}, "/properties/two");
+      "https://www.test.com", "/id", "/properties/two");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.sourcemeta.com/test#/id",
       "https://www.sourcemeta.com/schema", "/properties/one/id",
-      "https://www.sourcemeta.com/test", "/id", {}, "/properties/one");
+      "https://www.sourcemeta.com/test", "/id", "/properties/one");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://www.test.com#/id", "https://www.sourcemeta.com/schema",
-      "/properties/two/id", "https://www.test.com", "/id", {},
-      "/properties/two");
+      "/properties/two/id", "https://www.test.com", "/id", "/properties/two");
 
   // References
 
@@ -504,7 +501,7 @@ TEST(JSONSchema_frame_draft3, ref_metaschema) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -512,13 +509,13 @@ TEST(JSONSchema_frame_draft3, ref_metaschema) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {""}, std::nullopt);
+      "http://json-schema.org/draft-03/schema#", std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
 
   // References
 
@@ -542,7 +539,7 @@ TEST(JSONSchema_frame_draft3, ref_with_id) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -556,17 +553,17 @@ TEST(JSONSchema_frame_draft3, ref_with_id) {
   // so we do know about the dialect anyway
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {""}, std::nullopt);
+      "http://json-schema.org/draft-03/schema#", std::nullopt);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/id", "/id", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
 
   // References
 
@@ -588,7 +585,7 @@ TEST(JSONSchema_frame_draft3, top_level_relative_ref_with_id) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
@@ -597,16 +594,16 @@ TEST(JSONSchema_frame_draft3, top_level_relative_ref_with_id) {
   // Note that `id` is IGNORED given the sibling `$ref`
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {""}, std::nullopt);
+      "http://json-schema.org/draft-03/schema#", std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/id", "/id", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-03/schema#",
-      "http://json-schema.org/draft-03/schema#", {}, "");
+      "http://json-schema.org/draft-03/schema#", "");
 
   EXPECT_EQ(frame.references().size(), 2);
 
@@ -628,33 +625,33 @@ TEST(JSONSchema_frame_draft3, nested_relative_ref_with_id) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Instances};
+      sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
   EXPECT_EQ(frame.locations().size(), 6);
 
-  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(
-      frame, "https://example.com", "https://example.com", "",
-      "https://example.com", "", {""}, std::nullopt);
+  EXPECT_FRAME_STATIC_DRAFT3_RESOURCE(frame, "https://example.com",
+                                      "https://example.com", "",
+                                      "https://example.com", "", std::nullopt);
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(frame, "https://example.com#/id",
                                      "https://example.com", "/id",
-                                     "https://example.com", "/id", {}, "");
+                                     "https://example.com", "/id", "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(frame, "https://example.com#/$schema",
                                      "https://example.com", "/$schema",
-                                     "https://example.com", "/$schema", {}, "");
+                                     "https://example.com", "/$schema", "");
   EXPECT_FRAME_STATIC_DRAFT3_SUBSCHEMA(
       frame, "https://example.com#/additionalProperties", "https://example.com",
       "/additionalProperties", "https://example.com", "/additionalProperties",
-      {"/~?additionalProperties~/~P~"}, "");
+      "");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://example.com#/additionalProperties/id",
       "https://example.com", "/additionalProperties/id", "https://example.com",
-      "/additionalProperties/id", {}, "/additionalProperties");
+      "/additionalProperties/id", "/additionalProperties");
   EXPECT_FRAME_STATIC_DRAFT3_POINTER(
       frame, "https://example.com#/additionalProperties/$ref",
       "https://example.com", "/additionalProperties/$ref",
-      "https://example.com", "/additionalProperties/$ref", {},
+      "https://example.com", "/additionalProperties/$ref",
       "/additionalProperties");
 
   EXPECT_EQ(frame.references().size(), 2);

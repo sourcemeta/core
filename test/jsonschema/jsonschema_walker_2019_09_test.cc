@@ -1772,69 +1772,47 @@ TEST(JSONSchema_walker_2019_09, instance_locations) {
 
   EXPECT_EQ(entries.size(), 28);
 
-  EXPECT_WALKER_ENTRY_2019_09(entries, 0, "", std::nullopt, "", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 0, "", std::nullopt);
 
   // Applicator vocabulary (any)
-  EXPECT_WALKER_ENTRY_2019_09(entries, 1, "/allOf/0", "", "", "");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 2, "/allOf/1", "", "", "");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 3, "/anyOf/0", "", "/~?anyOf~/~?0~",
-                              "/~?anyOf~/~?0~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 4, "/oneOf/0", "", "/~?oneOf~/~?0~",
-                              "/~?oneOf~/~?0~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 5, "/if", "", "/~?if~", "/~?if~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 6, "/then", "", "/~?then~", "/~?then~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 7, "/else", "", "/~?else~", "/~?else~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 8, "/not", "", "/~!~", "/~!~");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 1, "/allOf/0", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 2, "/allOf/1", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 3, "/anyOf/0", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 4, "/oneOf/0", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 5, "/if", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 6, "/then", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 7, "/else", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 8, "/not", "");
 
   // Applicator vocabulary (object)
-  EXPECT_WALKER_ENTRY_2019_09(entries, 9, "/properties/foo", "", "/foo",
-                              "/foo");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 10, "/properties/bar", "", "/bar",
-                              "/bar");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 11, "/additionalProperties", "",
-                              "/~?additionalProperties~/~P~",
-                              "/~?additionalProperties~/~P~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 12, "/patternProperties/^f", "",
-                              "/~R^f~", "/~R^f~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 13, "/patternProperties/x$", "",
-                              "/~Rx$~", "/~Rx$~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 14, "/dependentSchemas/foo", "",
-                              "/~?dependentSchemas~/~?foo~",
-                              "/~?dependentSchemas~/~?foo~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 15, "/dependentSchemas/bar", "",
-                              "/~?dependentSchemas~/~?bar~",
-                              "/~?dependentSchemas~/~?bar~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 16, "/propertyNames", "", "/~K~",
-                              "/~K~");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 9, "/properties/foo", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 10, "/properties/bar", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 11, "/additionalProperties", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 12, "/patternProperties/^f", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 13, "/patternProperties/x$", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 14, "/dependentSchemas/foo", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 15, "/dependentSchemas/bar", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 16, "/propertyNames", "");
 
   // Applicator vocabulary (array)
-  EXPECT_WALKER_ENTRY_2019_09(entries, 17, "/contains", "", "/~I~", "/~I~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 18, "/additionalItems", "",
-                              "/~?additionalItems~/~I~",
-                              "/~?additionalItems~/~I~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 19, "/items", "", "/~I~", "/~I~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 20, "/items/items/0", "/items", "/~I~/0",
-                              "/0");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 21, "/items/items/1", "/items", "/~I~/1",
-                              "/1");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 17, "/contains", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 18, "/additionalItems", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 19, "/items", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 20, "/items/items/0", "/items");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 21, "/items/items/1", "/items");
 
   // Unevaluated applicators
-  EXPECT_WALKER_ENTRY_2019_09(entries, 22, "/unevaluatedProperties", "",
-                              "/~?unevaluatedProperties~/~P~",
-                              "/~?unevaluatedProperties~/~P~");
-  EXPECT_WALKER_ENTRY_2019_09(entries, 23, "/unevaluatedItems", "",
-                              "/~?unevaluatedItems~/~I~",
-                              "/~?unevaluatedItems~/~I~");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 22, "/unevaluatedProperties", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 23, "/unevaluatedItems", "");
 
   // Content vocabulary
-  EXPECT_WALKER_ENTRY_2019_09(entries, 24, "/contentSchema", "", "", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 24, "/contentSchema", "");
 
   // Core vocabulary
-  EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 25, "/$defs/foo", "", "", "");
+  EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 25, "/$defs/foo", "");
   EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 26, "/$defs/foo/properties/bar",
-                                     "/$defs/foo", "/bar", "/bar");
-  EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 27, "/definitions/foo", "", "",
-                                     "");
+                                     "/$defs/foo");
+  EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 27, "/definitions/foo", "");
 }
 
 TEST(JSONSchema_walker_2019_09, definitions_subschemas) {
@@ -1862,12 +1840,11 @@ TEST(JSONSchema_walker_2019_09, definitions_subschemas) {
 
   EXPECT_EQ(entries.size(), 4);
 
-  EXPECT_WALKER_ENTRY_2019_09(entries, 0, "", std::nullopt, "", "");
-  EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 1, "/$defs/foo", "", "", "");
+  EXPECT_WALKER_ENTRY_2019_09(entries, 0, "", std::nullopt);
+  EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 1, "/$defs/foo", "");
   EXPECT_WALKER_ENTRY_2019_09_ORPHAN(entries, 2, "/$defs/foo/properties/bar",
-                                     "/$defs/foo", "/bar", "/bar");
+                                     "/$defs/foo");
   EXPECT_WALKER_ENTRY_2019_09_ORPHAN(
       entries, 3, "/$defs/foo/properties/bar/additionalProperties",
-      "/$defs/foo/properties/bar", "/bar/~?additionalProperties~/~P~",
-      "/~?additionalProperties~/~P~");
+      "/$defs/foo/properties/bar");
 }

@@ -960,30 +960,23 @@ TEST(JSONSchema_walker_draft0, instance_locations) {
 
   EXPECT_EQ(entries.size(), 12);
 
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 0, "", std::nullopt, "", "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 0, "", std::nullopt);
 
   // Applicators (object)
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 1, "/properties/foo", "", "/foo", "/foo");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 1, "/properties/foo", "");
   EXPECT_WALKER_ENTRY_DRAFT0(entries, 2, "/properties/foo/requires",
-                             "/properties/foo", "", "");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 3, "/properties/bar", "", "/bar", "/bar");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 4, "/additionalProperties", "",
-                             "/~?additionalProperties~/~P~",
-                             "/~?additionalProperties~/~P~");
+                             "/properties/foo");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 3, "/properties/bar", "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 4, "/additionalProperties", "");
 
   // Applicators (array)
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 5, "/items", "", "/~I~", "/~I~");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 6, "/items/items/0", "/items", "/~I~/0",
-                             "/0");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 7, "/items/items/1", "/items", "/~I~/1",
-                             "/1");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 5, "/items", "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 6, "/items/items/0", "/items");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 7, "/items/items/1", "/items");
 
   // Applicators (any)
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 8, "/type/1", "", "/~?type~/~?1~",
-                             "/~?type~/~?1~");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 9, "/type/2", "", "/~?type~/~?2~",
-                             "/~?type~/~?2~");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 10, "/extends", "", "", "");
-  EXPECT_WALKER_ENTRY_DRAFT0(entries, 11, "/extends/extends/0", "/extends", "",
-                             "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 8, "/type/1", "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 9, "/type/2", "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 10, "/extends", "");
+  EXPECT_WALKER_ENTRY_DRAFT0(entries, 11, "/extends/extends/0", "/extends");
 }
