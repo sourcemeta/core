@@ -2931,3 +2931,109 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_draft_with_reference) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft7, dependencies_default_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "dependencies": {},
+    "items": {
+      "$ref": "#/dependencies"
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "dependencies": {},
+    "items": {
+      "$ref": "#/dependencies"
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7,
+     additional_items_with_schema_items_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "number"
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/additionalItems"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "number"
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/additionalItems"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft7,
+     additional_items_reference_to_nested_schema_inside_additional_items) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "object",
+      "properties": {
+        "nested": {
+          "type": "number"
+        }
+      }
+    },
+    "properties": {
+      "test": {
+        "$ref": "#/additionalItems/properties/nested"
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "items": {
+      "type": "string"
+    },
+    "additionalItems": {
+      "type": "object",
+      "properties": {
+        "nested": {
+          "type": "number"
+        }
+      }
+    },
+    "properties": {
+      "test": {
+        "$ref": "#/additionalItems/properties/nested"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
