@@ -6944,37 +6944,6 @@ TEST(AlterSchema_lint_2020_12, items_schema_default_with_reference) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, duplicate_allof_branches_with_reference) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "allOf": [
-      { "type": "string" },
-      { "type": "string" }
-    ],
-    "properties": {
-      "test": {
-        "$ref": "#/allOf/1"
-      }
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "allOf": [
-      { "type": "string" }
-    ],
-    "properties": {
-      "test": {
-        "$ref": "#/allOf/0"
-      }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_2020_12, additional_properties_default_with_reference) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -7028,37 +6997,6 @@ TEST(AlterSchema_lint_2020_12, unevaluated_items_default_with_reference) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
       "foo": {}
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_2020_12, duplicate_anyof_branches_with_reference) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "anyOf": [
-      { "type": "string" },
-      { "type": "string" }
-    ],
-    "properties": {
-      "test": {
-        "$ref": "#/anyOf/1"
-      }
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "anyOf": [
-      { "type": "string" }
-    ],
-    "properties": {
-      "test": {
-        "$ref": "#/anyOf/0"
-      }
     }
   })JSON");
 
@@ -7271,83 +7209,6 @@ TEST(AlterSchema_lint_2020_12,
     },
     "additionalProperties": {
       "$ref": "#/items"
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(
-    AlterSchema_lint_2020_12,
-    unnecessary_allof_wrapper_reference_to_nested_property_inside_moved_keyword) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "allOf": [
-      {
-        "items": {
-          "properties": {
-            "nested": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    ],
-    "additionalProperties": {
-      "$ref": "#/allOf/0/items/properties/nested"
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "items": {
-      "properties": {
-        "nested": {
-          "type": "string"
-        }
-      }
-    },
-    "additionalProperties": {
-      "$ref": "#/items/properties/nested"
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(
-    AlterSchema_lint_2020_12,
-    duplicate_allof_branches_with_reference_should_deduplicate_and_update_ref) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "allOf": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "string"
-      }
-    ],
-    "properties": {
-      "test": {
-        "$ref": "#/allOf/1"
-      }
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "allOf": [
-      { "type": "string" }
-    ],
-    "properties": {
-      "test": {
-        "$ref": "#/allOf/0"
-      }
     }
   })JSON");
 

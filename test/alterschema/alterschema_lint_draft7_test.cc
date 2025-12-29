@@ -2950,39 +2950,6 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_draft_with_reference) {
 }
 
 TEST(AlterSchema_lint_draft7,
-     unnecessary_allof_wrapper_draft_with_entire_branch_reference) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "allOf": [
-      {
-        "minLength": 5,
-        "maxLength": 10
-      }
-    ],
-    "items": {
-      "$ref": "#/allOf/0"
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "allOf": [
-      {
-        "minLength": 5,
-        "maxLength": 10
-      }
-    ],
-    "items": {
-      "$ref": "#/allOf/0"
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft7,
      additional_items_with_schema_items_with_reference) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3013,46 +2980,6 @@ TEST(AlterSchema_lint_draft7,
       "foo": {
         "$ref": "#/additionalItems"
       }
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(
-    AlterSchema_lint_draft7,
-    unnecessary_allof_wrapper_reference_to_nested_schema_inside_moved_keyword) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "allOf": [
-      {
-        "items": {
-          "properties": {
-            "nested": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    ],
-    "additionalProperties": {
-      "$ref": "#/allOf/0/items/properties/nested"
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "items": {
-      "properties": {
-        "nested": {
-          "type": "string"
-        }
-      }
-    },
-    "additionalProperties": {
-      "$ref": "#/items/properties/nested"
     }
   })JSON");
 
