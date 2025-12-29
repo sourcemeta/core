@@ -259,8 +259,6 @@ struct InternalEntry {
 // Check misunderstood struct to be a function
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct CacheSubschema {
-  sourcemeta::core::PointerTemplate instance_location{};
-  sourcemeta::core::PointerTemplate relative_instance_location{};
   bool orphan{};
   std::optional<sourcemeta::core::Pointer> parent{};
 };
@@ -448,13 +446,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           entry.pointer.empty() ? root_id : std::nullopt)};
 
       // Store information
-      subschemas.emplace(
-          entry.pointer,
-          CacheSubschema{.instance_location = entry.instance_location,
-                         .relative_instance_location =
-                             entry.relative_instance_location,
-                         .orphan = entry.orphan,
-                         .parent = entry.parent});
+      subschemas.emplace(entry.pointer, CacheSubschema{.orphan = entry.orphan,
+                                                       .parent = entry.parent});
       subschema_entries.emplace_back(
           InternalEntry{.common = std::move(entry), .id = std::move(id)});
       current_subschema_entries.emplace_back(subschema_entries.size() - 1);
