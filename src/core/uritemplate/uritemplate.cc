@@ -3,6 +3,8 @@
 #include "helpers.h"
 
 #include <cassert> // assert
+#include <utility> // std::pair
+#include <vector>  // std::vector
 
 namespace sourcemeta::core {
 
@@ -91,6 +93,142 @@ auto URITemplate::expand(
   }
 
   return result;
+}
+
+template <typename T> auto is_matchable_token(const T &token) noexcept -> bool {
+  return token.variables.size() == 1 && token.variables[0].length == 0 &&
+         !token.variables[0].explode;
+}
+
+auto URITemplate::is_matchable(const char delimiter) const noexcept -> bool {
+  bool previous_was_variable{false};
+
+  for (std::size_t index = 0; index < this->tokens_.size(); ++index) {
+    const auto &token{this->tokens_[index]};
+
+    if (const auto *literal = std::get_if<URITemplateTokenLiteral>(&token)) {
+      if (previous_was_variable && !literal->value.empty() &&
+          literal->value.front() != delimiter) {
+        return false;
+      }
+
+      previous_was_variable = false;
+    } else if (const auto *variable =
+                   std::get_if<URITemplateTokenVariable>(&token)) {
+      if (previous_was_variable || !is_matchable_token(*variable)) {
+        return false;
+      }
+
+      previous_was_variable = true;
+    } else if (const auto *reserved =
+                   std::get_if<URITemplateTokenReservedExpansion>(&token)) {
+      if (index != this->tokens_.size() - 1 || previous_was_variable ||
+          !is_matchable_token(*reserved)) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+auto URITemplateTokenLiteral::match(const std::string_view uri,
+                                    const std::size_t position,
+                                    const char) const noexcept -> std::size_t {
+  if (uri.substr(position).starts_with(this->value)) {
+    return position + this->value.size();
+  }
+
+  return 0;
+}
+
+auto URITemplateTokenVariable::match(const std::string_view uri,
+                                     const std::size_t position,
+                                     const char delimiter) const noexcept
+    -> std::size_t {
+  const auto result{uri.find(delimiter, position)};
+  const auto end{(result == std::string_view::npos) ? uri.size() : result};
+  return (end == position) ? 0 : end;
+}
+
+auto URITemplateTokenReservedExpansion::match(const std::string_view uri,
+                                              const std::size_t position,
+                                              const char) const noexcept
+    -> std::size_t {
+  return (position == uri.size()) ? 0 : uri.size();
+}
+
+auto URITemplateTokenFragmentExpansion::match(const std::string_view,
+                                              const std::size_t,
+                                              const char) const noexcept
+    -> std::size_t {
+  return 0;
+}
+
+auto URITemplateTokenLabelExpansion::match(const std::string_view,
+                                           const std::size_t,
+                                           const char) const noexcept
+    -> std::size_t {
+  return 0;
+}
+
+auto URITemplateTokenPathExpansion::match(const std::string_view,
+                                          const std::size_t,
+                                          const char) const noexcept
+    -> std::size_t {
+  return 0;
+}
+
+auto URITemplateTokenPathParameterExpansion::match(const std::string_view,
+                                                   const std::size_t,
+                                                   const char) const noexcept
+    -> std::size_t {
+  return 0;
+}
+
+auto URITemplateTokenQueryExpansion::match(const std::string_view,
+                                           const std::size_t,
+                                           const char) const noexcept
+    -> std::size_t {
+  return 0;
+}
+
+auto URITemplateTokenQueryContinuationExpansion::match(
+    const std::string_view, const std::size_t, const char) const noexcept
+    -> std::size_t {
+  return 0;
+}
+
+auto URITemplate::match(
+    const std::string_view uri, const char delimiter,
+    const std::function<void(std::string_view, std::string_view)> &callback)
+    const -> bool {
+  assert(this->is_matchable(delimiter));
+  std::size_t position{0};
+  for (const auto &token : this->tokens_) {
+    if (!std::visit(
+            [&](const auto &value) {
+              const auto end{value.match(uri, position, delimiter)};
+              if (end > position) {
+                if constexpr (requires { value.variables; }) {
+                  callback(value.variables[0].name,
+                           uri.substr(position, end - position));
+                }
+
+                position = end;
+                return true;
+              } else {
+                return false;
+              }
+            },
+            token)) {
+      return false;
+    }
+  }
+
+  return position == uri.size();
 }
 
 } // namespace sourcemeta::core

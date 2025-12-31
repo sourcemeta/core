@@ -75,6 +75,8 @@ using URITemplateParseResult =
 /// A literal string segment in a URI Template
 struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenLiteral {
   std::string_view value;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -93,6 +95,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenVariable {
   static constexpr char separator = ',';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = false;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -103,6 +107,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenReservedExpansion {
   static constexpr char separator = ',';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = true;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -114,6 +120,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenFragmentExpansion {
   static constexpr char prefix = '#';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = true;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -125,6 +133,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenLabelExpansion {
   static constexpr char prefix = '.';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = false;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -136,6 +146,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenPathExpansion {
   static constexpr char prefix = '/';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = false;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -148,6 +160,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT
   static constexpr char prefix = ';';
   static constexpr bool named = true;
   static constexpr bool allow_reserved = false;
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -160,6 +174,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenQueryExpansion {
   static constexpr bool named = true;
   static constexpr bool allow_reserved = false;
   static constexpr char empty_suffix = '=';
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -173,6 +189,8 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT
   static constexpr bool named = true;
   static constexpr bool allow_reserved = false;
   static constexpr char empty_suffix = '=';
+  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
+                           char delimiter) const noexcept -> std::size_t;
 };
 
 #if defined(_MSC_VER)
@@ -232,6 +250,16 @@ public:
       }
     });
   }
+
+  /// Check if this template can be used for matching/extraction
+  [[nodiscard]] auto is_matchable(char delimiter) const noexcept -> bool;
+
+  /// Match a URI against this template, extracting variable values.
+  /// The delimiter character is used to determine variable boundaries.
+  [[nodiscard]] auto
+  match(std::string_view uri, char delimiter,
+        const std::function<void(std::string_view, std::string_view)> &callback)
+      const -> bool;
 
 private:
 // Exporting symbols that depends on the standard C++ library is considered
