@@ -7,6 +7,11 @@ TEST(URITemplate_is_matchable, empty_template) {
   EXPECT_TRUE(uri_template.is_matchable('/'));
 }
 
+TEST(URITemplate_is_matchable, root_template) {
+  const sourcemeta::core::URITemplate uri_template{"/"};
+  EXPECT_TRUE(uri_template.is_matchable('/'));
+}
+
 TEST(URITemplate_is_matchable, literal_only) {
   const sourcemeta::core::URITemplate uri_template{
       "http://example.com/path/to/resource"};
