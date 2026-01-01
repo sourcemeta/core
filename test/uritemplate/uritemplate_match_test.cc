@@ -34,6 +34,62 @@ TEST(URITemplate_match, empty_template_non_empty_uri) {
   EXPECT_EQ(captures.size(), 0);
 }
 
+TEST(URITemplate_match, empty_template_root_uri) {
+  const sourcemeta::core::URITemplate uri_template{""};
+
+  std::vector<std::pair<std::string, std::string>> captures;
+  const auto result = uri_template.match(
+      "/", '/',
+      [&captures](const std::string_view name, const std::string_view value) {
+        captures.emplace_back(name, value);
+      });
+
+  EXPECT_FALSE(result);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplate_match, root_template_matches_root) {
+  const sourcemeta::core::URITemplate uri_template{"/"};
+
+  std::vector<std::pair<std::string, std::string>> captures;
+  const auto result = uri_template.match(
+      "/", '/',
+      [&captures](const std::string_view name, const std::string_view value) {
+        captures.emplace_back(name, value);
+      });
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplate_match, root_template_no_match_empty) {
+  const sourcemeta::core::URITemplate uri_template{"/"};
+
+  std::vector<std::pair<std::string, std::string>> captures;
+  const auto result = uri_template.match(
+      "", '/',
+      [&captures](const std::string_view name, const std::string_view value) {
+        captures.emplace_back(name, value);
+      });
+
+  EXPECT_FALSE(result);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplate_match, root_template_no_match_path) {
+  const sourcemeta::core::URITemplate uri_template{"/"};
+
+  std::vector<std::pair<std::string, std::string>> captures;
+  const auto result = uri_template.match(
+      "/foo", '/',
+      [&captures](const std::string_view name, const std::string_view value) {
+        captures.emplace_back(name, value);
+      });
+
+  EXPECT_FALSE(result);
+  EXPECT_EQ(captures.size(), 0);
+}
+
 TEST(URITemplate_match, literal_only_match) {
   const sourcemeta::core::URITemplate uri_template{"/users/list"};
 
