@@ -100,3 +100,47 @@ TEST(URITemplate, move_assignment) {
   EXPECT_URITEMPLATE_EXPANSION(moved, 1, URITemplateTokenVariable, 0, "id", 0,
                                false);
 }
+
+TEST(URITemplate, at_const_lvalue) {
+  const sourcemeta::core::URITemplate uri_template{"/{id}"};
+  const auto &token = uri_template.at(1);
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::URITemplateTokenVariable>(
+          token));
+  const auto &variable =
+      std::get<sourcemeta::core::URITemplateTokenVariable>(token);
+  EXPECT_EQ(variable.variables.size(), 1);
+  EXPECT_EQ(variable.variables[0].name, "id");
+}
+
+TEST(URITemplate, at_rvalue_move) {
+  sourcemeta::core::URITemplate uri_template{"/{id}"};
+  auto token = std::move(uri_template).at(1);
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::URITemplateTokenVariable>(
+          token));
+  auto &variable = std::get<sourcemeta::core::URITemplateTokenVariable>(token);
+  EXPECT_EQ(variable.variables.size(), 1);
+  EXPECT_EQ(variable.variables[0].name, "id");
+}
+
+TEST(URITemplate, at_rvalue_move_multiple) {
+  sourcemeta::core::URITemplate uri_template{"/users/{id}/posts/{post_id}"};
+  EXPECT_EQ(uri_template.size(), 4);
+
+  auto token0 = std::move(uri_template).at(0);
+  EXPECT_TRUE(std::holds_alternative<sourcemeta::core::URITemplateTokenLiteral>(
+      token0));
+  EXPECT_EQ(std::get<sourcemeta::core::URITemplateTokenLiteral>(token0).value,
+            "/users/");
+
+  sourcemeta::core::URITemplate uri_template2{"/users/{id}/posts/{post_id}"};
+  auto token1 = std::move(uri_template2).at(1);
+  EXPECT_TRUE(
+      std::holds_alternative<sourcemeta::core::URITemplateTokenVariable>(
+          token1));
+  auto &variable1 =
+      std::get<sourcemeta::core::URITemplateTokenVariable>(token1);
+  EXPECT_EQ(variable1.variables.size(), 1);
+  EXPECT_EQ(variable1.variables[0].name, "id");
+}
