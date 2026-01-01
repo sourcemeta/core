@@ -58,10 +58,15 @@ auto URITemplate::empty() const noexcept -> bool {
   return this->tokens_.empty();
 }
 
-auto URITemplate::at(const std::size_t index) const
-    -> const URITemplateToken & {
+auto URITemplate::at(const std::size_t index) const & -> const
+    URITemplateToken & {
   assert(index < this->tokens_.size());
   return this->tokens_[index];
+}
+
+auto URITemplate::at(const std::size_t index) && -> URITemplateToken {
+  assert(index < this->tokens_.size());
+  return std::move(this->tokens_[index]);
 }
 
 auto URITemplate::begin() const noexcept
