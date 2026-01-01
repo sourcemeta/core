@@ -5,8 +5,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uritemplate
     uritemplate_parse_test.cc
     uritemplate_parse_error_test.cc
     uritemplate_expand_test.cc
-    uritemplate_is_matchable_test.cc
-    uritemplate_match_test.cc)
+    uritemplate_router_test.cc
+    uritemplate_router_view_test.cc)
 
 target_link_libraries(sourcemeta_core_uritemplate_unit
   PRIVATE sourcemeta::core::uritemplate)

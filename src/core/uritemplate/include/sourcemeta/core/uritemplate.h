@@ -7,6 +7,7 @@
 
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/uritemplate_error.h>
+#include <sourcemeta/core/uritemplate_router.h>
 #include <sourcemeta/core/uritemplate_token.h>
 // NOLINTEND(misc-include-cleaner)
 
@@ -98,16 +99,6 @@ public:
       }
     });
   }
-
-  /// Check if this template can be used for matching/extraction
-  [[nodiscard]] auto is_matchable(char delimiter) const noexcept -> bool;
-
-  /// Match a URI against this template, extracting variable values.
-  /// The delimiter character is used to determine variable boundaries.
-  [[nodiscard]] auto
-  match(std::string_view uri, char delimiter,
-        const std::function<void(std::string_view, std::string_view)> &callback)
-      const -> bool;
 
 private:
 // Exporting symbols that depends on the standard C++ library is considered
