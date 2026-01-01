@@ -3,13 +3,13 @@
 #include <sourcemeta/core/io.h>
 
 TEST(IO_flush, test_txt) {
-  const auto path{std::filesystem::path{TEST_DIRECTORY} / "test.txt"};
+  const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt"};
   sourcemeta::core::flush(path);
   SUCCEED();
 }
 
 TEST(IO_flush, not_exists) {
-  const auto path{std::filesystem::path{TEST_DIRECTORY} / "foo.txt"};
+  const auto path{std::filesystem::path{STUBS_DIRECTORY} / "foo.txt"};
 
   try {
     sourcemeta::core::flush(path);

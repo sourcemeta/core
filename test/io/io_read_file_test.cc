@@ -7,7 +7,7 @@
 
 TEST(IO_read_file, text_file) {
   auto stream{sourcemeta::core::read_file(
-      std::filesystem::path{TEST_DIRECTORY} / "test.txt")};
+      std::filesystem::path{STUBS_DIRECTORY} / "test.txt")};
   std::ostringstream contents;
   contents << stream.rdbuf();
   auto result{contents.str()};
@@ -19,10 +19,10 @@ TEST(IO_read_file, text_file) {
 
 TEST(IO_read_file, directory) {
   try {
-    sourcemeta::core::read_file(std::filesystem::path{TEST_DIRECTORY});
+    sourcemeta::core::read_file(std::filesystem::path{STUBS_DIRECTORY});
   } catch (const std::filesystem::filesystem_error &error) {
     EXPECT_EQ(error.code(), std::errc::is_a_directory);
-    EXPECT_EQ(error.path1(), std::filesystem::path{TEST_DIRECTORY});
+    EXPECT_EQ(error.path1(), std::filesystem::path{STUBS_DIRECTORY});
   } catch (...) {
     FAIL() << "The parse function was expected to throw a filesystem error";
   }
