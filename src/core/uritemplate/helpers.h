@@ -111,16 +111,34 @@ inline auto append_name(std::string &result, const std::string_view name,
   }
 }
 
-inline auto is_varchar(const char character) -> bool {
+// RFC 6570 Section 2.3: varchar = ALPHA / DIGIT / "_"
+inline auto is_varchar(const char character) noexcept -> bool {
   return (character >= 'A' && character <= 'Z') ||
          (character >= 'a' && character <= 'z') ||
          (character >= '0' && character <= '9') || character == '_';
 }
 
-inline auto is_operator(const char character) -> bool {
+// Variable name character including dot for dotted names like "foo.bar"
+inline auto is_varname_char(const char character) noexcept -> bool {
+  return is_varchar(character) || character == '.';
+}
+
+// RFC 6570 Section 2.2: operator = op-level2 / op-level3 / op-reserve
+inline auto is_operator(const char character) noexcept -> bool {
   return character == '+' || character == '#' || character == '.' ||
          character == '/' || character == ';' || character == '?' ||
          character == '&';
+}
+
+// RFC 6570 Section 2.2: op-reserve = "=" / "," / "!" / "@" / "|"
+inline auto is_reserved_operator(const char character) noexcept -> bool {
+  return character == '=' || character == ',' || character == '!' ||
+         character == '@' || character == '|';
+}
+
+// RFC 6570 Section 2.4: modifier = prefix / explode
+inline auto is_modifier(const char character) noexcept -> bool {
+  return character == ':' || character == '*';
 }
 
 inline auto parse_varname(const std::string_view input, std::size_t position)

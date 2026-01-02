@@ -5,7 +5,6 @@
 #include <sourcemeta/core/uritemplate_export.h>
 #endif
 
-#include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint16_t
 #include <string_view> // std::string_view
 #include <variant>     // std::variant
@@ -25,8 +24,6 @@ namespace sourcemeta::core {
 /// A literal string segment in a URI Template
 struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenLiteral {
   std::string_view value;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -45,8 +42,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenVariable {
   static constexpr char separator = ',';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = false;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -57,8 +52,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenReservedExpansion {
   static constexpr char separator = ',';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = true;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -70,8 +63,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenFragmentExpansion {
   static constexpr char prefix = '#';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = true;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -83,8 +74,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenLabelExpansion {
   static constexpr char prefix = '.';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = false;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -96,8 +85,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenPathExpansion {
   static constexpr char prefix = '/';
   static constexpr bool named = false;
   static constexpr bool allow_reserved = false;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -110,8 +97,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT
   static constexpr char prefix = ';';
   static constexpr bool named = true;
   static constexpr bool allow_reserved = false;
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -124,8 +109,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT URITemplateTokenQueryExpansion {
   static constexpr bool named = true;
   static constexpr bool allow_reserved = false;
   static constexpr char empty_suffix = '=';
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 /// @ingroup uritemplate
@@ -139,8 +122,6 @@ struct SOURCEMETA_CORE_URITEMPLATE_EXPORT
   static constexpr bool named = true;
   static constexpr bool allow_reserved = false;
   static constexpr char empty_suffix = '=';
-  [[nodiscard]] auto match(std::string_view uri, std::size_t position,
-                           char delimiter) const noexcept -> std::size_t;
 };
 
 #if defined(_MSC_VER)
