@@ -144,16 +144,19 @@ static void URITemplateRouter_Match(benchmark::State &state) {
 }
 
 static void URITemplateRouterView_Restore(benchmark::State &state) {
-  sourcemeta::core::URITemplateRouter router;
-  for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-    router.add(ROUTES[index],
-               static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
-                   index + 1));
-  }
+  const auto path{std::filesystem::temp_directory_path() /
+                  "uritemplate_benchmark.bin"};
 
-  const std::filesystem::path path =
-      std::filesystem::temp_directory_path() / "uritemplate_benchmark.bin";
-  sourcemeta::core::URITemplateRouterView::save(router, path);
+  {
+    sourcemeta::core::URITemplateRouter router;
+    for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
+      router.add(ROUTES[index],
+                 static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
+                     index + 1));
+    }
+
+    sourcemeta::core::URITemplateRouterView::save(router, path);
+  }
 
   for (auto _ : state) {
     sourcemeta::core::URITemplateRouterView view{path};
@@ -163,37 +166,39 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
-// TODO: There is a crash on Windows that we are investigating
-#if !defined(_MSC_VER)
 static void URITemplateRouterView_Match(benchmark::State &state) {
-  sourcemeta::core::URITemplateRouter router;
-  for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-    router.add(ROUTES[index],
-               static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
-                   index + 1));
+  const auto path{std::filesystem::temp_directory_path() /
+                  "uritemplate_benchmark.bin"};
+
+  {
+    sourcemeta::core::URITemplateRouter router;
+    for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
+      router.add(ROUTES[index],
+                 static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
+                     index + 1));
+    }
+
+    sourcemeta::core::URITemplateRouterView::save(router, path);
   }
 
-  const std::filesystem::path path =
-      std::filesystem::temp_directory_path() / "uritemplate_benchmark.bin";
-  sourcemeta::core::URITemplateRouterView::save(router, path);
-  sourcemeta::core::URITemplateRouterView view{path};
-
-  for (auto _ : state) {
-    auto result = view.match(
-        "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
-        "comments/42/reactions/1",
-        [](auto, auto, auto) {});
-    assert(result == ROUTE_COUNT - 1);
-    benchmark::DoNotOptimize(result);
+  // Make sure the router view destructor runs BEFORE we attempt to delete the
+  // file
+  {
+    sourcemeta::core::URITemplateRouterView view{path};
+    for (auto _ : state) {
+      auto result = view.match(
+          "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
+          "comments/42/reactions/1",
+          [](auto, auto, auto) {});
+      assert(result == ROUTE_COUNT - 1);
+      benchmark::DoNotOptimize(result);
+    }
   }
 
   std::filesystem::remove(path);
 }
-#endif
 
 BENCHMARK(URITemplateRouter_Create);
 BENCHMARK(URITemplateRouter_Match);
 BENCHMARK(URITemplateRouterView_Restore);
-#if !defined(_MSC_VER)
 BENCHMARK(URITemplateRouterView_Match);
-#endif
