@@ -67,7 +67,7 @@ public:
     }
 
     // (3) Run test
-    this->assert_case(this->test, std::nullopt);
+    this->assert_case(this->test, "");
   }
 
   auto assert_case(const sourcemeta::core::JSON &current,

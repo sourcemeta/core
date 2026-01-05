@@ -8,9 +8,9 @@ TEST(JSONSchema_dialect_draft0, jsonschema_draft_hyperschema) {
     "$schema": "http://json-schema.org/draft-00/hyper-schema#",
     "type": "object"
   })JSON");
-  const std::optional<std::string> dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(dialect.has_value());
-  EXPECT_EQ(dialect.value(), "http://json-schema.org/draft-00/hyper-schema#");
+  const std::string_view dialect{sourcemeta::core::dialect(document)};
+  EXPECT_TRUE(!dialect.empty());
+  EXPECT_EQ(dialect, "http://json-schema.org/draft-00/hyper-schema#");
 }
 
 TEST(JSONSchema_dialect_draft0, jsonschema_draft_schema) {
@@ -18,25 +18,25 @@ TEST(JSONSchema_dialect_draft0, jsonschema_draft_schema) {
     "$schema": "http://json-schema.org/draft-00/schema#",
     "type": "object"
   })JSON");
-  const std::optional<std::string> dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(dialect.has_value());
-  EXPECT_EQ(dialect.value(), "http://json-schema.org/draft-00/schema#");
+  const std::string_view dialect{sourcemeta::core::dialect(document)};
+  EXPECT_TRUE(!dialect.empty());
+  EXPECT_EQ(dialect, "http://json-schema.org/draft-00/schema#");
 }
 
 TEST(JSONSchema_dialect_draft0, jsonschema_draft_jsonref) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/json-ref#"
   })JSON");
-  const std::optional<std::string> dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(dialect.has_value());
-  EXPECT_EQ(dialect.value(), "http://json-schema.org/draft-00/json-ref#");
+  const std::string_view dialect{sourcemeta::core::dialect(document)};
+  EXPECT_TRUE(!dialect.empty());
+  EXPECT_EQ(dialect, "http://json-schema.org/draft-00/json-ref#");
 }
 
 TEST(JSONSchema_dialect_draft0, jsonschema_draft_links) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/links#"
   })JSON");
-  const std::optional<std::string> dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(dialect.has_value());
-  EXPECT_EQ(dialect.value(), "http://json-schema.org/draft-00/links#");
+  const std::string_view dialect{sourcemeta::core::dialect(document)};
+  EXPECT_TRUE(!dialect.empty());
+  EXPECT_EQ(dialect, "http://json-schema.org/draft-00/links#");
 }

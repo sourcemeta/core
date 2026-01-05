@@ -25,11 +25,10 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_hyperschema) {
     "$schema": "http://json-schema.org/draft-04/hyper-schema#",
     "type": "object"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const std::string base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(),
-            "http://json-schema.org/draft-04/hyper-schema#");
+  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/hyper-schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_schema) {
@@ -37,39 +36,38 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_schema) {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "type": "object"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const std::string base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(), "http://json-schema.org/draft-04/schema#");
+  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_links) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/links#"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const std::string base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(),
-            "http://json-schema.org/draft-04/hyper-schema#");
+  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/hyper-schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_base_one_hop) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/metaschema_1"
   })JSON");
-  const std::optional<std::string> base_dialect{
+  const auto base_dialect{
       sourcemeta::core::base_dialect(document, test_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(), "http://json-schema.org/draft-04/schema#");
+  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_base_two_hops) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://sourcemeta.com/metaschema_2"
   })JSON");
-  const std::optional<std::string> base_dialect{
+  const auto base_dialect{
       sourcemeta::core::base_dialect(document, test_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(), "http://json-schema.org/draft-04/schema#");
+  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/schema#");
 }

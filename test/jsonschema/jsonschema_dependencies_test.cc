@@ -273,7 +273,7 @@ TEST(JSONSchema_dependencies, with_default_id) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) { traces.emplace_back(origin, pointer, target); },
-      std::nullopt, "https://www.sourcemeta.com/default");
+      "", "https://www.sourcemeta.com/default");
 
   EXPECT_EQ(traces.size(), 3);
 
@@ -382,7 +382,7 @@ TEST(JSONSchema_dependencies, custom_paths_no_external) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) { traces.emplace_back(origin, pointer, target); },
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema", "",
       {
           sourcemeta::core::to_weak_pointer(path1),
           sourcemeta::core::to_weak_pointer(path2),
@@ -421,7 +421,7 @@ TEST(JSONSchema_dependencies, custom_paths_with_externals) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) { traces.emplace_back(origin, pointer, target); },
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema", "",
       {
           sourcemeta::core::to_weak_pointer(path1),
           sourcemeta::core::to_weak_pointer(path2),

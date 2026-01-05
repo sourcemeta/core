@@ -91,7 +91,7 @@ static auto test_walker(std::string_view keyword,
   }
 
   static const SchemaWalkerResult unknown{
-      SchemaKeywordType::Unknown, std::nullopt, {}, {}, {}};
+      SchemaKeywordType::Unknown, "", {}, {}, {}};
   return unknown;
 }
 
@@ -111,8 +111,8 @@ TEST(JSONSchema_walker, true) {
   EXPECT_EQ(entries.size(), 1);
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
-  EXPECT_FALSE(entries.at(0).dialect.has_value());
-  EXPECT_FALSE(entries.at(0).base_dialect.has_value());
+  EXPECT_TRUE(entries.at(0).dialect.empty());
+  EXPECT_TRUE(entries.at(0).base_dialect.empty());
   EXPECT_TRUE(entries.at(0).vocabularies.empty());
 }
 
@@ -131,8 +131,8 @@ TEST(JSONSchema_walker, false) {
   EXPECT_EQ(subschemas.at(0).to_boolean(), false);
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
-  EXPECT_FALSE(entries.at(0).dialect.has_value());
-  EXPECT_FALSE(entries.at(0).base_dialect.has_value());
+  EXPECT_TRUE(entries.at(0).dialect.empty());
+  EXPECT_TRUE(entries.at(0).base_dialect.empty());
   EXPECT_TRUE(entries.at(0).vocabularies.empty());
 }
 
@@ -499,8 +499,8 @@ TEST(JSONSchema_walker, no_metaschema_and_no_default) {
 
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
-  EXPECT_FALSE(entries.at(0).dialect.has_value());
-  EXPECT_FALSE(entries.at(0).base_dialect.has_value());
+  EXPECT_TRUE(entries.at(0).dialect.empty());
+  EXPECT_TRUE(entries.at(0).base_dialect.empty());
 }
 
 TEST(JSONSchema_walker, no_metaschema_with_default) {

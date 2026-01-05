@@ -685,7 +685,7 @@ TEST(JSONSchema_frame_draft4,
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver, std::nullopt,
+                sourcemeta::core::schema_resolver, "",
                 // Note that this is intentionally non-canonical
                 "https://www.sourcemeta.com/schema#");
 

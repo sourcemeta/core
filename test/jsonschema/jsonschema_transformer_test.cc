@@ -107,8 +107,8 @@ TEST(JSONSchema_transformer, embedded_resource_match_check_with_default_id) {
   TestTransformTraces entries;
   const auto result = bundle.check(document, sourcemeta::core::schema_walker,
                                    sourcemeta::core::schema_resolver,
-                                   transformer_callback_trace(entries),
-                                   std::nullopt, "https://sourcemeta.com");
+                                   transformer_callback_trace(entries), "",
+                                   "https://sourcemeta.com");
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 50);
@@ -691,8 +691,8 @@ TEST(JSONSchema_transformer, check_top_level_with_id_and_default_id) {
   TestTransformTraces entries;
   const auto result = bundle.check(document, sourcemeta::core::schema_walker,
                                    sourcemeta::core::schema_resolver,
-                                   transformer_callback_trace(entries),
-                                   std::nullopt, "https://other.com");
+                                   transformer_callback_trace(entries), "",
+                                   "https://other.com");
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(result.second, 0);

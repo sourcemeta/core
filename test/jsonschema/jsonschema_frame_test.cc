@@ -820,8 +820,7 @@ TEST(JSONSchema_frame, id_with_default_id) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver, std::nullopt,
-                "https://other.com");
+                sourcemeta::core::schema_resolver, "", "https://other.com");
 
   EXPECT_EQ(frame.locations().size(), 10);
 
