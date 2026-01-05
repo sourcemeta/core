@@ -72,7 +72,7 @@ auto dependencies(
     const SchemaResolver &resolver, const DependencyCallback &callback,
     const std::optional<std::string> &default_dialect = std::nullopt,
     const std::optional<std::string> &default_id = std::nullopt,
-    const SchemaFrame::Paths &paths = {empty_pointer}) -> void;
+    const SchemaFrame::Paths &paths = {empty_weak_pointer}) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -129,7 +129,7 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_dialect = std::nullopt,
             const std::optional<std::string> &default_id = std::nullopt,
             const std::optional<Pointer> &default_container = std::nullopt,
-            const SchemaFrame::Paths &paths = {empty_pointer}) -> void;
+            const SchemaFrame::Paths &paths = {empty_weak_pointer}) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -188,7 +188,7 @@ auto bundle(const JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_dialect = std::nullopt,
             const std::optional<std::string> &default_id = std::nullopt,
             const std::optional<Pointer> &default_container = std::nullopt,
-            const SchemaFrame::Paths &paths = {empty_pointer}) -> JSON;
+            const SchemaFrame::Paths &paths = {empty_weak_pointer}) -> JSON;
 
 } // namespace sourcemeta::core
 

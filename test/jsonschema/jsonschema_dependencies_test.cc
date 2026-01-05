@@ -375,15 +375,18 @@ TEST(JSONSchema_dependencies, custom_paths_no_external) {
                  sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
       traces;
 
+  const sourcemeta::core::Pointer path1{"wrapper"};
+  const sourcemeta::core::Pointer path2{"common", "test"};
+  const sourcemeta::core::Pointer path3{"common", "with-id"};
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) { traces.emplace_back(origin, pointer, target); },
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       {
-          sourcemeta::core::Pointer{"wrapper"},
-          sourcemeta::core::Pointer{"common", "test"},
-          sourcemeta::core::Pointer{"common", "with-id"},
+          sourcemeta::core::to_weak_pointer(path1),
+          sourcemeta::core::to_weak_pointer(path2),
+          sourcemeta::core::to_weak_pointer(path3),
       });
 
   EXPECT_EQ(traces.size(), 0);
@@ -411,15 +414,18 @@ TEST(JSONSchema_dependencies, custom_paths_with_externals) {
                  sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
       traces;
 
+  const sourcemeta::core::Pointer path1{"wrapper"};
+  const sourcemeta::core::Pointer path2{"common", "test"};
+  const sourcemeta::core::Pointer path3{"common", "with-id"};
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) { traces.emplace_back(origin, pointer, target); },
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       {
-          sourcemeta::core::Pointer{"wrapper"},
-          sourcemeta::core::Pointer{"common", "test"},
-          sourcemeta::core::Pointer{"common", "with-id"},
+          sourcemeta::core::to_weak_pointer(path1),
+          sourcemeta::core::to_weak_pointer(path2),
+          sourcemeta::core::to_weak_pointer(path3),
       });
 
   EXPECT_EQ(traces.size(), 3);

@@ -21,8 +21,8 @@ auto ref_overrides_adjacent_keywords(const std::string &base_dialect) -> bool {
          base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
 }
 
-auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
-          const sourcemeta::core::Pointer &pointer,
+auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
+          const sourcemeta::core::WeakPointer &pointer,
           std::vector<sourcemeta::core::SchemaIteratorEntry> &subschemas,
           const sourcemeta::core::JSON &subschema,
           const sourcemeta::core::SchemaWalker &walker,
@@ -110,60 +110,60 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
     switch (keyword_info.type) {
       case sourcemeta::core::SchemaKeywordType::
           ApplicatorValueTraverseSomeProperty: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::
           ApplicatorValueTraverseAnyPropertyKey: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::
           ApplicatorValueTraverseAnyItem: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::
           ApplicatorValueTraverseSomeItem: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorValueTraverseParent: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorValueInPlaceOther: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorValueInPlaceNegate: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorValueInPlaceMaybe: {
-        sourcemeta::core::Pointer new_pointer{pointer};
-        new_pointer.emplace_back(pair.first);
+        sourcemeta::core::WeakPointer new_pointer{pointer};
+        new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
              current_dialect, current_base_dialect, type, level + 1, orphan);
       } break;
@@ -171,8 +171,8 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       case sourcemeta::core::SchemaKeywordType::ApplicatorElementsTraverseItem:
         if (pair.second.is_array()) {
           for (std::size_t index = 0; index < pair.second.size(); index++) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
                  walker, resolver, current_dialect, current_base_dialect, type,
@@ -185,8 +185,8 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       case sourcemeta::core::SchemaKeywordType::ApplicatorElementsInPlace:
         if (pair.second.is_array()) {
           for (std::size_t index = 0; index < pair.second.size(); index++) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
                  walker, resolver, current_dialect, current_base_dialect, type,
@@ -199,8 +199,8 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       case sourcemeta::core::SchemaKeywordType::ApplicatorElementsInPlaceSome:
         if (pair.second.is_array()) {
           for (std::size_t index = 0; index < pair.second.size(); index++) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
                  walker, resolver, current_dialect, current_base_dialect, type,
@@ -214,8 +214,8 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
           ApplicatorElementsInPlaceSomeNegate:
         if (pair.second.is_array()) {
           for (std::size_t index = 0; index < pair.second.size(); index++) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
                  walker, resolver, current_dialect, current_base_dialect, type,
@@ -229,9 +229,9 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
           ApplicatorMembersTraversePropertyStatic:
         if (pair.second.is_object()) {
           for (auto &subpair : pair.second.as_object()) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
-            new_pointer.emplace_back(subpair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
+            new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
                  resolver, current_dialect, current_base_dialect, type,
                  level + 1, orphan);
@@ -244,9 +244,9 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
           ApplicatorMembersTraversePropertyRegex:
         if (pair.second.is_object()) {
           for (auto &subpair : pair.second.as_object()) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
-            new_pointer.emplace_back(subpair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
+            new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
                  resolver, current_dialect, current_base_dialect, type,
                  level + 1, orphan);
@@ -258,9 +258,9 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       case sourcemeta::core::SchemaKeywordType::ApplicatorMembersInPlaceSome:
         if (pair.second.is_object()) {
           for (auto &subpair : pair.second.as_object()) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
-            new_pointer.emplace_back(subpair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
+            new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
                  resolver, current_dialect, current_base_dialect, type,
                  level + 1, orphan);
@@ -272,9 +272,9 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
       case sourcemeta::core::SchemaKeywordType::LocationMembers:
         if (pair.second.is_object()) {
           for (auto &subpair : pair.second.as_object()) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
-            new_pointer.emplace_back(subpair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
+            new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
                  resolver, current_dialect, current_base_dialect, type,
                  level + 1, true);
@@ -287,16 +287,16 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
           ApplicatorValueOrElementsTraverseAnyItemOrItem:
         if (pair.second.is_array()) {
           for (std::size_t index = 0; index < pair.second.size(); index++) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
                  walker, resolver, current_dialect, current_base_dialect, type,
                  level + 1, orphan);
           }
         } else {
-          sourcemeta::core::Pointer new_pointer{pointer};
-          new_pointer.emplace_back(pair.first);
+          sourcemeta::core::WeakPointer new_pointer{pointer};
+          new_pointer.push_back(std::cref(pair.first));
           walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
                current_dialect, current_base_dialect, type, level + 1, orphan);
         }
@@ -307,16 +307,16 @@ auto walk(const std::optional<sourcemeta::core::Pointer> &parent,
           ApplicatorValueOrElementsInPlace:
         if (pair.second.is_array()) {
           for (std::size_t index = 0; index < pair.second.size(); index++) {
-            sourcemeta::core::Pointer new_pointer{pointer};
-            new_pointer.emplace_back(pair.first);
+            sourcemeta::core::WeakPointer new_pointer{pointer};
+            new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
                  walker, resolver, current_dialect, current_base_dialect, type,
                  level + 1, orphan);
           }
         } else {
-          sourcemeta::core::Pointer new_pointer{pointer};
-          new_pointer.emplace_back(pair.first);
+          sourcemeta::core::WeakPointer new_pointer{pointer};
+          new_pointer.push_back(std::cref(pair.first));
           walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
                current_dialect, current_base_dialect, type, level + 1, orphan);
         }
@@ -345,7 +345,7 @@ sourcemeta::core::SchemaIterator::SchemaIterator(
   const std::optional<std::string> dialect{
       sourcemeta::core::dialect(schema, default_dialect)};
 
-  sourcemeta::core::Pointer pointer;
+  sourcemeta::core::WeakPointer pointer;
   // If the given schema declares no dialect and the user didn't
   // not pass a default, then there is nothing we can do. We know
   // the current schema is a subschema, but cannot walk any further.
@@ -376,7 +376,7 @@ sourcemeta::core::SchemaIteratorFlat::SchemaIteratorFlat(
   const std::optional<std::string> dialect{
       sourcemeta::core::dialect(schema, default_dialect)};
   if (dialect.has_value()) {
-    sourcemeta::core::Pointer pointer;
+    sourcemeta::core::WeakPointer pointer;
     const auto base_dialect{
         sourcemeta::core::base_dialect(schema, resolver, dialect)};
     assert(base_dialect.has_value());
@@ -408,9 +408,11 @@ sourcemeta::core::SchemaKeywordIterator::SchemaKeywordIterator(
           : Vocabularies{}};
 
   for (const auto &entry : schema.as_object()) {
+    sourcemeta::core::WeakPointer entry_pointer;
+    entry_pointer.push_back(std::cref(entry.first));
     sourcemeta::core::SchemaIteratorEntry subschema_entry{
         .parent = std::nullopt,
-        .pointer = {entry.first},
+        .pointer = std::move(entry_pointer),
         .dialect = dialect,
         .vocabularies = vocabularies,
         .base_dialect = base_dialect,

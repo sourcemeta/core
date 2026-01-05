@@ -334,14 +334,17 @@ TEST(JSONSchema_bundle, custom_paths_no_external) {
     }
   })JSON")};
 
+  const sourcemeta::core::Pointer path1{"wrapper"};
+  const sourcemeta::core::Pointer path2{"common", "test"};
+  const sourcemeta::core::Pointer path3{"common", "with-id"};
   sourcemeta::core::bundle(
       document, sourcemeta::core::schema_walker, test_resolver,
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       sourcemeta::core::Pointer{"components"},
       {
-          sourcemeta::core::Pointer{"wrapper"},
-          sourcemeta::core::Pointer{"common", "test"},
-          sourcemeta::core::Pointer{"common", "with-id"},
+          sourcemeta::core::to_weak_pointer(path1),
+          sourcemeta::core::to_weak_pointer(path2),
+          sourcemeta::core::to_weak_pointer(path3),
       });
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -380,14 +383,17 @@ TEST(JSONSchema_bundle, custom_paths_with_externals) {
     }
   })JSON")};
 
+  const sourcemeta::core::Pointer path1{"wrapper"};
+  const sourcemeta::core::Pointer path2{"common", "test"};
+  const sourcemeta::core::Pointer path3{"common", "with-id"};
   sourcemeta::core::bundle(
       document, sourcemeta::core::schema_walker, test_resolver,
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       sourcemeta::core::Pointer{"components"},
       {
-          sourcemeta::core::Pointer{"wrapper"},
-          sourcemeta::core::Pointer{"common", "test"},
-          sourcemeta::core::Pointer{"common", "with-id"},
+          sourcemeta::core::to_weak_pointer(path1),
+          sourcemeta::core::to_weak_pointer(path2),
+          sourcemeta::core::to_weak_pointer(path3),
       });
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({

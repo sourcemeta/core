@@ -177,7 +177,7 @@ public:
       std::map<std::pair<SchemaReferenceType, JSON::String>, Location>;
 
   /// A set of paths to frame within a schema wrapper
-  using Paths = std::set<Pointer>;
+  using Paths = std::set<WeakPointer>;
 
   /// Export the frame entries as JSON
   [[nodiscard]] auto to_json(
@@ -191,7 +191,7 @@ public:
           const SchemaResolver &resolver,
           const std::optional<JSON::String> &default_dialect = std::nullopt,
           const std::optional<JSON::String> &default_id = std::nullopt,
-          const Paths &paths = {empty_pointer}) -> void;
+          const Paths &paths = {empty_weak_pointer}) -> void;
 
   /// Access the analysed schema locations
   [[nodiscard]] auto locations() const noexcept -> const Locations &;

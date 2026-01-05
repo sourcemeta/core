@@ -41,59 +41,59 @@ TEST(JSONSchema_keyword_iterator, draft_2020_12) {
 
   EXPECT_EQ(entries.size(), 16);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(
       entries.at(0).subschema.get(),
       sourcemeta::core::JSON{"https://json-schema.org/draft/2020-12/schema"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"if"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/if");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"maxContains"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/maxContains");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::JSON{1});
 
-  EXPECT_EQ(entries.at(3).pointer, sourcemeta::core::Pointer({"minContains"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer), "/minContains");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::JSON{0});
 
-  EXPECT_EQ(entries.at(4).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(4).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(4).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(5).pointer, sourcemeta::core::Pointer({"prefixItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(5).pointer), "/prefixItems");
   EXPECT_EQ(entries.at(5).subschema.get(), sourcemeta::core::parse_json("[]"));
 
-  EXPECT_EQ(entries.at(6).pointer, sourcemeta::core::Pointer({"required"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(6).pointer), "/required");
   EXPECT_EQ(entries.at(6).subschema.get(),
             sourcemeta::core::parse_json("[ \"foo\" ]"));
 
-  EXPECT_EQ(entries.at(7).pointer, sourcemeta::core::Pointer({"contains"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(7).pointer), "/contains");
   EXPECT_EQ(entries.at(7).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(8).pointer, sourcemeta::core::Pointer({"else"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(8).pointer), "/else");
   EXPECT_EQ(entries.at(8).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(9).pointer, sourcemeta::core::Pointer({"items"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(9).pointer), "/items");
   EXPECT_EQ(entries.at(9).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(10).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(10).pointer), "/properties");
   EXPECT_EQ(entries.at(10).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(11).pointer, sourcemeta::core::Pointer({"then"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(11).pointer), "/then");
   EXPECT_EQ(entries.at(11).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(12).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(12).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(12).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(13).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(13).pointer), "/type");
   EXPECT_EQ(entries.at(13).subschema.get(), sourcemeta::core::JSON{"string"});
 
-  EXPECT_EQ(entries.at(14).pointer,
-            sourcemeta::core::Pointer({"unevaluatedItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(14).pointer),
+            "/unevaluatedItems");
   EXPECT_EQ(entries.at(14).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(15).pointer,
-            sourcemeta::core::Pointer({"unevaluatedProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(15).pointer),
+            "/unevaluatedProperties");
   EXPECT_EQ(entries.at(15).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -132,60 +132,60 @@ TEST(JSONSchema_keyword_iterator, draft_2019_09) {
 
   EXPECT_EQ(entries.size(), 16);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(
       entries.at(0).subschema.get(),
       sourcemeta::core::JSON{"https://json-schema.org/draft/2019-09/schema"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"if"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/if");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"items"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/items");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json("[]"));
 
-  EXPECT_EQ(entries.at(3).pointer, sourcemeta::core::Pointer({"maxContains"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer), "/maxContains");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::JSON{1});
 
-  EXPECT_EQ(entries.at(4).pointer, sourcemeta::core::Pointer({"minContains"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(4).pointer), "/minContains");
   EXPECT_EQ(entries.at(4).subschema.get(), sourcemeta::core::JSON{0});
 
-  EXPECT_EQ(entries.at(5).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(5).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(5).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(6).pointer, sourcemeta::core::Pointer({"required"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(6).pointer), "/required");
   EXPECT_EQ(entries.at(6).subschema.get(),
             sourcemeta::core::parse_json("[ \"foo\" ]"));
 
-  EXPECT_EQ(entries.at(7).pointer,
-            sourcemeta::core::Pointer({"additionalItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(7).pointer),
+            "/additionalItems");
   EXPECT_EQ(entries.at(7).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(8).pointer, sourcemeta::core::Pointer({"contains"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(8).pointer), "/contains");
   EXPECT_EQ(entries.at(8).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(9).pointer, sourcemeta::core::Pointer({"else"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(9).pointer), "/else");
   EXPECT_EQ(entries.at(9).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(10).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(10).pointer), "/properties");
   EXPECT_EQ(entries.at(10).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(11).pointer, sourcemeta::core::Pointer({"then"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(11).pointer), "/then");
   EXPECT_EQ(entries.at(11).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(12).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(12).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(12).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(13).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(13).pointer), "/type");
   EXPECT_EQ(entries.at(13).subschema.get(), sourcemeta::core::JSON{"string"});
 
-  EXPECT_EQ(entries.at(14).pointer,
-            sourcemeta::core::Pointer({"unevaluatedItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(14).pointer),
+            "/unevaluatedItems");
   EXPECT_EQ(entries.at(14).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(15).pointer,
-            sourcemeta::core::Pointer({"unevaluatedProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(15).pointer),
+            "/unevaluatedProperties");
   EXPECT_EQ(entries.at(15).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -218,42 +218,42 @@ TEST(JSONSchema_keyword_iterator, draft7) {
 
   EXPECT_EQ(entries.size(), 11);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-07/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"if"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/if");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"items"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/items");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json("[]"));
 
-  EXPECT_EQ(entries.at(3).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(4).pointer, sourcemeta::core::Pointer({"required"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(4).pointer), "/required");
   EXPECT_EQ(entries.at(4).subschema.get(),
             sourcemeta::core::parse_json("[ \"foo\" ]"));
 
-  EXPECT_EQ(entries.at(5).pointer,
-            sourcemeta::core::Pointer({"additionalItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(5).pointer),
+            "/additionalItems");
   EXPECT_EQ(entries.at(5).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(6).pointer, sourcemeta::core::Pointer({"else"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(6).pointer), "/else");
   EXPECT_EQ(entries.at(6).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(7).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(7).pointer), "/properties");
   EXPECT_EQ(entries.at(7).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(8).pointer, sourcemeta::core::Pointer({"then"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(8).pointer), "/then");
   EXPECT_EQ(entries.at(8).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(9).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(9).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(9).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(10).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(10).pointer), "/type");
   EXPECT_EQ(entries.at(10).subschema.get(), sourcemeta::core::JSON{"string"});
 }
 
@@ -283,33 +283,33 @@ TEST(JSONSchema_keyword_iterator, draft6) {
 
   EXPECT_EQ(entries.size(), 8);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-06/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"items"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/items");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("[]"));
 
-  EXPECT_EQ(entries.at(2).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(3).pointer, sourcemeta::core::Pointer({"required"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer), "/required");
   EXPECT_EQ(entries.at(3).subschema.get(),
             sourcemeta::core::parse_json("[ \"foo\" ]"));
 
-  EXPECT_EQ(entries.at(4).pointer,
-            sourcemeta::core::Pointer({"additionalItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(4).pointer),
+            "/additionalItems");
   EXPECT_EQ(entries.at(4).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(5).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(5).pointer), "/properties");
   EXPECT_EQ(entries.at(5).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(6).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(6).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(6).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(7).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(7).pointer), "/type");
   EXPECT_EQ(entries.at(7).subschema.get(), sourcemeta::core::JSON{"string"});
 }
 
@@ -339,33 +339,33 @@ TEST(JSONSchema_keyword_iterator, draft4) {
 
   EXPECT_EQ(entries.size(), 8);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-04/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"items"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/items");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("[]"));
 
-  EXPECT_EQ(entries.at(2).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(3).pointer, sourcemeta::core::Pointer({"required"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer), "/required");
   EXPECT_EQ(entries.at(3).subschema.get(),
             sourcemeta::core::parse_json("[ \"foo\" ]"));
 
-  EXPECT_EQ(entries.at(4).pointer,
-            sourcemeta::core::Pointer({"additionalItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(4).pointer),
+            "/additionalItems");
   EXPECT_EQ(entries.at(4).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(5).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(5).pointer), "/properties");
   EXPECT_EQ(entries.at(5).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(6).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(6).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(6).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(7).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(7).pointer), "/type");
   EXPECT_EQ(entries.at(7).subschema.get(), sourcemeta::core::JSON{"string"});
 }
 
@@ -394,29 +394,29 @@ TEST(JSONSchema_keyword_iterator, draft3) {
 
   EXPECT_EQ(entries.size(), 7);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-03/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"items"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/items");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("[]"));
 
-  EXPECT_EQ(entries.at(2).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(3).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer), "/properties");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(4).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(4).pointer), "/type");
   EXPECT_EQ(entries.at(4).subschema.get(), sourcemeta::core::JSON{"string"});
 
-  EXPECT_EQ(entries.at(5).pointer,
-            sourcemeta::core::Pointer({"additionalItems"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(5).pointer),
+            "/additionalItems");
   EXPECT_EQ(entries.at(5).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(6).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(6).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(6).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -443,18 +443,18 @@ TEST(JSONSchema_keyword_iterator, draft2) {
 
   EXPECT_EQ(entries.size(), 4);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-02/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/properties");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/type");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::JSON{"string"});
 
-  EXPECT_EQ(entries.at(3).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -481,18 +481,18 @@ TEST(JSONSchema_keyword_iterator, draft1) {
 
   EXPECT_EQ(entries.size(), 4);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-01/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/properties");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/type");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::JSON{"string"});
 
-  EXPECT_EQ(entries.at(3).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -519,18 +519,18 @@ TEST(JSONSchema_keyword_iterator, draft0) {
 
   EXPECT_EQ(entries.size(), 4);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(entries.at(0).subschema.get(),
             sourcemeta::core::JSON{"http://json-schema.org/draft-00/schema#"});
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/properties");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"type"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/type");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::JSON{"string"});
 
-  EXPECT_EQ(entries.at(3).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(3).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -549,7 +549,7 @@ TEST(JSONSchema_keyword_iterator, unknown_keyword) {
 
   EXPECT_EQ(entries.size(), 2);
 
-  EXPECT_EQ(entries.at(0).pointer, sourcemeta::core::Pointer({"$schema"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/$schema");
   EXPECT_EQ(
       entries.at(0).subschema.get(),
       sourcemeta::core::JSON{"https://json-schema.org/draft/2020-12/schema"});
@@ -559,7 +559,7 @@ TEST(JSONSchema_keyword_iterator, unknown_keyword) {
             "https://json-schema.org/draft/2020-12/schema");
   EXPECT_EQ(entries.at(0).vocabularies.size(), 7);
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"foobar"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/foobar");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::JSON{0});
   EXPECT_EQ(entries.at(1).dialect,
             "https://json-schema.org/draft/2020-12/schema");
@@ -591,15 +591,15 @@ TEST(JSONSchema_keyword_iterator, with_default_dialect) {
 
   EXPECT_EQ(entries.size(), 3);
 
-  EXPECT_EQ(entries.at(0).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(0).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(1).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/properties");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(2).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::JSON{true});
 }
 
@@ -624,15 +624,15 @@ TEST(JSONSchema_keyword_iterator, no_default_dialect) {
 
   EXPECT_EQ(entries.size(), 3);
 
-  EXPECT_EQ(entries.at(0).pointer,
-            sourcemeta::core::Pointer({"additionalProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer),
+            "/additionalProperties");
   EXPECT_EQ(entries.at(0).subschema.get(), sourcemeta::core::JSON{true});
 
-  EXPECT_EQ(entries.at(1).pointer,
-            sourcemeta::core::Pointer({"patternProperties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
+            "/patternProperties");
   EXPECT_EQ(entries.at(1).subschema.get(), sourcemeta::core::parse_json("{}"));
 
-  EXPECT_EQ(entries.at(2).pointer, sourcemeta::core::Pointer({"properties"}));
+  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/properties");
   EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json("{}"));
 }
 
