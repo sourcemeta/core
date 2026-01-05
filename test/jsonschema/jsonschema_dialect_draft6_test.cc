@@ -8,8 +8,7 @@ TEST(JSONSchema_dialect_draft6, jsonschema_draft_hyperschema) {
     "$schema": "http://json-schema.org/draft-06/hyper-schema#",
     "type": "object"
   })JSON");
-  const std::string_view dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(!dialect.empty());
+  const auto dialect{sourcemeta::core::dialect(document)};
   EXPECT_EQ(dialect, "http://json-schema.org/draft-06/hyper-schema#");
 }
 
@@ -18,8 +17,7 @@ TEST(JSONSchema_dialect_draft6, jsonschema_draft_schema) {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "type": "object"
   })JSON");
-  const std::string_view dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(!dialect.empty());
+  const auto dialect{sourcemeta::core::dialect(document)};
   EXPECT_EQ(dialect, "http://json-schema.org/draft-06/schema#");
 }
 
@@ -27,7 +25,6 @@ TEST(JSONSchema_dialect_draft6, jsonschema_draft_links) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/links#"
   })JSON");
-  const std::string_view dialect{sourcemeta::core::dialect(document)};
-  EXPECT_TRUE(!dialect.empty());
+  const auto dialect{sourcemeta::core::dialect(document)};
   EXPECT_EQ(dialect, "http://json-schema.org/draft-06/links#");
 }

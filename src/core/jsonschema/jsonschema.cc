@@ -275,14 +275,13 @@ auto sourcemeta::core::base_dialect(
   if (!metaschema.has_value()) {
     // Relative meta-schema references are invalid according to the
     // JSON Schema specifications. They must be absolute ones
-    const std::string effective_dialect_string{effective_dialect};
-    const URI effective_dialect_uri{effective_dialect_string};
+    const URI effective_dialect_uri{std::string{effective_dialect}};
     if (effective_dialect_uri.is_relative()) {
       throw sourcemeta::core::SchemaRelativeMetaschemaResolutionError(
-          effective_dialect_string);
+          std::string{effective_dialect});
     } else {
       throw sourcemeta::core::SchemaResolutionError(
-          effective_dialect_string,
+          std::string{effective_dialect},
           "Could not resolve the metaschema of the schema");
     }
   }
