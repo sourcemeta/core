@@ -191,23 +191,15 @@ struct SchemaWalkerResult {
 /// For walking purposes, some functions need to understand which JSON Schema
 /// keywords declare other JSON Schema definitions. To accomplish this in a
 /// generic and flexible way that does not assume the use any vocabulary other
-/// than `core`, these functions take a walker function as argument, of the type
-/// sourcemeta::core::SchemaWalker.
-///
-/// For convenience, we provide the following default walkers:
-///
-/// - sourcemeta::core::schema_walker
-/// - sourcemeta::core::schema_walker_none
+/// than `core`, these functions take a walker function as argument.
 using SchemaWalker = std::function<const SchemaWalkerResult &(
     std::string_view, const Vocabularies &)>;
 
 /// @ingroup jsonschema
 /// An entry of a schema iterator.
 struct SchemaIteratorEntry {
-  // TODO: Turn this into a weak pointer
-  std::optional<Pointer> parent;
-  // TODO: Turn this into a weak pointer
-  Pointer pointer;
+  std::optional<WeakPointer> parent;
+  WeakPointer pointer;
   // TODO: Use "known" enum classes + strings for dialects
   std::optional<JSON::String> dialect;
   Vocabularies vocabularies;
