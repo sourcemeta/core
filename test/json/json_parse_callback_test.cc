@@ -94,10 +94,10 @@ TEST(JSON_parse_callback, integer) {
 }
 
 TEST(JSON_parse_callback, real) {
-  const auto input{"3.14"};
+  const auto input{"3.5"};
   PARSE_WITH_TRACES(document, input, 2);
   EXPECT_TRACE(0, Pre, Real, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Post, Real, 1, 4, sourcemeta::core::JSON{3.14});
+  EXPECT_TRACE(1, Post, Real, 1, 3, sourcemeta::core::JSON{3.5});
 }
 
 TEST(JSON_parse_callback, empty_array) {
@@ -153,13 +153,13 @@ TEST(JSON_parse_callback, array_integers) {
 }
 
 TEST(JSON_parse_callback, array_reals) {
-  const auto input{"[\n  1.0,\n  2.34\n]"};
+  const auto input{"[\n  1.0,\n  2.5\n]"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Array, 1, 1, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(1, Pre, Real, 2, 3, sourcemeta::core::JSON{0});
   EXPECT_TRACE(2, Post, Real, 2, 5, sourcemeta::core::JSON{1.0});
   EXPECT_TRACE(3, Pre, Real, 3, 3, sourcemeta::core::JSON{1});
-  EXPECT_TRACE(4, Post, Real, 3, 6, sourcemeta::core::JSON{2.34});
+  EXPECT_TRACE(4, Post, Real, 3, 5, sourcemeta::core::JSON{2.5});
   EXPECT_TRACE(5, Post, Array, 4, 1, sourcemeta::core::parse_json(input));
 }
 
@@ -196,9 +196,9 @@ TEST(JSON_parse_callback, object_booleans) {
   const auto input{"{\n  \"foo\": true,\n  \"bar\": false\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Boolean, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Boolean, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Boolean, 2, 13, sourcemeta::core::JSON{true});
-  EXPECT_TRACE(3, Pre, Boolean, 3, 10, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(3, Pre, Boolean, 3, 3, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, Boolean, 3, 14, sourcemeta::core::JSON{false});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
@@ -207,9 +207,9 @@ TEST(JSON_parse_callback, object_nulls) {
   const auto input{"{\n  \"foo\": null,\n  \"bar\": null\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Null, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Null, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Null, 2, 13, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(3, Pre, Null, 3, 10, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(3, Pre, Null, 3, 3, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, Null, 3, 13, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
@@ -218,9 +218,9 @@ TEST(JSON_parse_callback, object_strings) {
   const auto input{"{\n  \"foo\": \"baz\",\n  \"bar\": \"qux\"\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, String, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, String, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, String, 2, 14, sourcemeta::core::JSON{"baz"});
-  EXPECT_TRACE(3, Pre, String, 3, 10, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(3, Pre, String, 3, 3, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, String, 3, 14, sourcemeta::core::JSON{"qux"});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
@@ -229,21 +229,21 @@ TEST(JSON_parse_callback, object_integers) {
   const auto input{"{\n  \"foo\": 1,\n  \"bar\": 234\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Integer, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Integer, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Integer, 2, 10, sourcemeta::core::JSON{1});
-  EXPECT_TRACE(3, Pre, Integer, 3, 10, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(3, Pre, Integer, 3, 3, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, Integer, 3, 12, sourcemeta::core::JSON{234});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
 
 TEST(JSON_parse_callback, object_reals) {
-  const auto input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.34\n}"};
+  const auto input{"{\n  \"foo\": 1.0,\n  \"bar\": 2.5\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Real, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Real, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Real, 2, 12, sourcemeta::core::JSON{1.0});
-  EXPECT_TRACE(3, Pre, Real, 3, 10, sourcemeta::core::JSON{"bar"});
-  EXPECT_TRACE(4, Post, Real, 3, 13, sourcemeta::core::JSON{2.34});
+  EXPECT_TRACE(3, Pre, Real, 3, 3, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(4, Post, Real, 3, 12, sourcemeta::core::JSON{2.5});
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
 
@@ -251,9 +251,9 @@ TEST(JSON_parse_callback, object_empty_arrays) {
   const auto input{"{\n  \"foo\": [],\n  \"bar\": []\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Array, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Array, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Array, 2, 11, sourcemeta::core::parse_json("[]"));
-  EXPECT_TRACE(3, Pre, Array, 3, 10, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(3, Pre, Array, 3, 3, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, Array, 3, 11, sourcemeta::core::parse_json("[]"));
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
@@ -262,9 +262,9 @@ TEST(JSON_parse_callback, object_empty_objects) {
   const auto input{"{\n  \"foo\": {},\n  \"bar\": {}\n}"};
   PARSE_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Object, 2, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Object, 2, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Object, 2, 11, sourcemeta::core::parse_json("{}"));
-  EXPECT_TRACE(3, Pre, Object, 3, 10, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(3, Pre, Object, 3, 3, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, Object, 3, 11, sourcemeta::core::parse_json("{}"));
   EXPECT_TRACE(5, Post, Object, 4, 1, sourcemeta::core::parse_json(input));
 }
@@ -281,8 +281,8 @@ TEST(JSON_parse_callback, complex_1) {
   PARSE_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Array, 1, 1, sourcemeta::core::JSON{nullptr});
   EXPECT_TRACE(1, Pre, Object, 2, 3, sourcemeta::core::JSON{0});
-  EXPECT_TRACE(2, Pre, Object, 3, 12, sourcemeta::core::JSON{"foo"});
-  EXPECT_TRACE(3, Pre, Integer, 4, 14, sourcemeta::core::JSON{"bar"});
+  EXPECT_TRACE(2, Pre, Object, 3, 5, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(3, Pre, Integer, 4, 7, sourcemeta::core::JSON{"bar"});
   EXPECT_TRACE(4, Post, Integer, 4, 14, sourcemeta::core::JSON{3});
   EXPECT_TRACE(5, Post, Object, 5, 5,
                sourcemeta::core::parse_json(input).at(0).at("foo"));
@@ -295,7 +295,99 @@ TEST(JSON_parse_callback, read_json_stub_valid) {
   const auto input{std::filesystem::path{TEST_DIRECTORY} / "stub_valid.json"};
   READ_WITH_TRACES(document, input, 4);
   EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
-  EXPECT_TRACE(1, Pre, Integer, 1, 10, sourcemeta::core::JSON{"foo"});
+  EXPECT_TRACE(1, Pre, Integer, 1, 3, sourcemeta::core::JSON{"foo"});
   EXPECT_TRACE(2, Post, Integer, 1, 10, sourcemeta::core::JSON{1});
   EXPECT_TRACE(3, Post, Object, 1, 12, sourcemeta::core::read_json(input));
+}
+
+TEST(JSON_parse_callback, decimal_simple) {
+  const auto input{"9223372036854776000"};
+  PARSE_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(
+      1, Post, Decimal, 1, 19,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+}
+
+TEST(JSON_parse_callback, decimal_negative) {
+  const auto input{"-9223372036854776000"};
+  PARSE_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Decimal, 1, 20,
+               sourcemeta::core::JSON{
+                   sourcemeta::core::Decimal{"-9223372036854776000"}});
+}
+
+TEST(JSON_parse_callback, decimal_in_array) {
+  const auto input{"[1, 9223372036854776000, 3]"};
+  PARSE_WITH_TRACES(document, input, 8);
+  EXPECT_TRACE(0, Pre, Array, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Integer, 1, 2, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(2, Post, Integer, 1, 2, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(3, Pre, Decimal, 1, 5, sourcemeta::core::JSON{1});
+  EXPECT_TRACE(
+      4, Post, Decimal, 1, 23,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(5, Pre, Integer, 1, 26, sourcemeta::core::JSON{2});
+  EXPECT_TRACE(6, Post, Integer, 1, 26, sourcemeta::core::JSON{3});
+  EXPECT_TRACE(7, Post, Array, 1, 27, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, decimal_in_object) {
+  const auto input{"{\"big\":9223372036854776000}"};
+  PARSE_WITH_TRACES(document, input, 4);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Decimal, 1, 2, sourcemeta::core::JSON{"big"});
+  EXPECT_TRACE(
+      2, Post, Decimal, 1, 26,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(3, Post, Object, 1, 27, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, decimals_mixed_in_object) {
+  const auto input{"{\"big\":9223372036854776000,\"small\":42}"};
+  PARSE_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Decimal, 1, 2, sourcemeta::core::JSON{"big"});
+  EXPECT_TRACE(
+      2, Post, Decimal, 1, 26,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(3, Pre, Integer, 1, 28, sourcemeta::core::JSON{"small"});
+  EXPECT_TRACE(4, Post, Integer, 1, 37, sourcemeta::core::JSON{42});
+  EXPECT_TRACE(5, Post, Object, 1, 38, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, decimal_big_real) {
+  const auto input{"3.14159265358979323846264338327950288419716939937510"};
+  PARSE_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Post, Decimal, 1, 52,
+               sourcemeta::core::JSON{sourcemeta::core::Decimal{
+                   "3.14159265358979323846264338327950288419716939937510"}});
+}
+
+TEST(JSON_parse_callback, nested_decimals) {
+  const auto input{"{\"data\":[{\"big_int\":9223372036854776000}]}"};
+  PARSE_WITH_TRACES(document, input, 8);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(1, Pre, Array, 1, 2, sourcemeta::core::JSON{"data"});
+  EXPECT_TRACE(2, Pre, Object, 1, 10, sourcemeta::core::JSON{0});
+  EXPECT_TRACE(3, Pre, Decimal, 1, 11, sourcemeta::core::JSON{"big_int"});
+  EXPECT_TRACE(
+      4, Post, Decimal, 1, 39,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
+  EXPECT_TRACE(5, Post, Object, 1, 40,
+               sourcemeta::core::parse_json(input).at("data").at(0));
+  EXPECT_TRACE(6, Post, Array, 1, 41,
+               sourcemeta::core::parse_json(input).at("data"));
+  EXPECT_TRACE(7, Post, Object, 1, 42, sourcemeta::core::parse_json(input));
+}
+
+TEST(JSON_parse_callback, read_json_stub_bigint) {
+  const auto input{std::filesystem::path{TEST_DIRECTORY} / "stub_bigint.json"};
+  READ_WITH_TRACES(document, input, 2);
+  EXPECT_TRACE(0, Pre, Decimal, 1, 1, sourcemeta::core::JSON{nullptr});
+  EXPECT_TRACE(
+      1, Post, Decimal, 1, 19,
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"9223372036854776000"}});
 }

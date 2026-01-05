@@ -8,7 +8,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-#include <sourcemeta/core/jsonschema_resolver.h>
 #include <sourcemeta/core/jsonschema_types.h>
 #include <sourcemeta/core/jsonschema_walker.h>
 
@@ -51,8 +50,8 @@ namespace sourcemeta::core {
 ///   frame{sourcemeta::core::SchemaFrame::Mode::References};
 ///
 /// frame.analyse(document,
-///   sourcemeta::core::schema_official_walker,
-///   sourcemeta::core::schema_official_resolver);
+///   sourcemeta::core::schema_walker,
+///   sourcemeta::core::schema_resolver);
 ///
 /// // IDs
 /// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
@@ -105,7 +104,7 @@ class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaFrame {
 public:
   /// The mode of framing. More extensive analysis can be compute and memory
   /// intensive
-  enum class Mode : std::uint8_t { Locations, References, Instances };
+  enum class Mode : std::uint8_t { Locations, References };
 
   SchemaFrame(const Mode mode) : mode_{mode} {}
 
@@ -177,15 +176,13 @@ public:
       // point to different places.
       std::map<std::pair<SchemaReferenceType, JSON::String>, Location>;
 
-  // TODO: Turn the mapped value into a proper set
-  /// A set of unresolved instance locations
-  using Instances = std::map<Pointer, std::vector<PointerTemplate>>;
-
   /// A set of paths to frame within a schema wrapper
   using Paths = std::set<Pointer>;
 
   /// Export the frame entries as JSON
-  [[nodiscard]] auto to_json() const -> JSON;
+  [[nodiscard]] auto to_json(
+      const std::optional<PointerPositionTracker> &tracker = std::nullopt) const
+      -> JSON;
 
   /// Analyse a schema or set of schemas from a given root. Passing
   /// multiple paths that have any overlap is undefined behaviour
@@ -236,10 +233,6 @@ public:
       -> std::pair<SchemaReferenceType,
                    std::optional<std::reference_wrapper<const Location>>>;
 
-  /// Get the unresolved instance locations associated with a location entry
-  [[nodiscard]] auto instance_locations(const Location &location) const -> const
-      typename Instances::mapped_type &;
-
   /// Find all references to a given location pointer
   [[nodiscard]] auto references_to(const Pointer &pointer) const -> std::vector<
       std::reference_wrapper<const typename References::value_type>>;
@@ -254,7 +247,6 @@ private:
 #endif
   Locations locations_;
   References references_;
-  Instances instances_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif

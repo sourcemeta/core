@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <bitset>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -8,6 +9,7 @@
 #include <tuple>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <sourcemeta/core/json.h>
@@ -110,6 +112,31 @@ TEST(JSON_auto, optional_without_value_2) {
   EXPECT_EQ(result, expected);
   const auto back{
       sourcemeta::core::from_json<std::optional<std::size_t>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_tuple_1) {
+  using Type =
+      std::optional<std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>>;
+  const Type value{
+      std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>{1, 2, 3}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ 1, 2, 3 ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_tuple_2) {
+  using Type =
+      std::optional<std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>>;
+  const Type value;
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
 }
@@ -258,6 +285,25 @@ TEST(JSON_auto, map_without_iterators) {
   EXPECT_EQ(result, expected);
   const auto back{
       sourcemeta::core::from_json<std::map<std::string, std::size_t>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, map_of_map) {
+  const std::map<std::string, std::map<std::string, std::size_t>> value{
+      {"foo", {{"bar", 1}, {"baz", 2}}}};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": {
+      "bar": 1,
+      "baz": 2
+    }
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, std::map<std::string, std::size_t>>>(result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
 }
@@ -673,4 +719,412 @@ TEST(JSON_auto, from_json_invalid_tuple_poly_element) {
       sourcemeta::core::from_json<std::tuple<std::string, std::string>>(
           document)};
   EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSON_auto, optional_pair) {
+  using Type = std::optional<std::pair<std::string, std::size_t>>;
+  const Type value{std::make_pair("foo", 42)};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "foo", 42 ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_map) {
+  using Type = std::optional<std::map<std::string, std::size_t>>;
+  const Type value{std::map<std::string, std::size_t>{{"foo", 1}, {"bar", 2}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1, "bar": 2 })JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, vector_of_tuples) {
+  const std::vector<std::tuple<std::string, std::size_t, bool>> value{
+      {"foo", 1, true}, {"bar", 2, false}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    [ "foo", 1, true ],
+    [ "bar", 2, false ]
+  ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::vector<std::tuple<std::string, std::size_t, bool>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, map_of_tuples) {
+  const std::map<std::string, std::tuple<std::size_t, bool>> value{
+      {"foo", {1, true}}, {"bar", {2, false}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": [ 1, true ],
+    "bar": [ 2, false ]
+  })JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, std::tuple<std::size_t, bool>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, map_of_pairs) {
+  const std::map<std::string, std::pair<std::size_t, bool>> value{
+      {"foo", {1, true}}, {"bar", {2, false}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "foo": [ 1, true ],
+    "bar": [ 2, false ]
+  })JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, std::pair<std::size_t, bool>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_vector_of_tuples) {
+  using Type = std::optional<std::vector<std::tuple<std::string, std::size_t>>>;
+  const Type value{std::vector<std::tuple<std::string, std::size_t>>{
+      {"foo", 1}, {"bar", 2}}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    [ "foo", 1 ],
+    [ "bar", 2 ]
+  ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, pair_with_optional) {
+  using Type = std::pair<std::string, std::optional<std::size_t>>;
+  const Type value{"foo", 42};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON([ "foo", 42 ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, tuple_with_pair) {
+  using Type = std::tuple<std::string, std::pair<std::size_t, bool>>;
+  const Type value{"foo", {42, true}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::parse_json(R"JSON([ "foo", [ 42, true ] ])JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, decimal) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567890"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_decimal());
+  const auto back{
+      sourcemeta::core::from_json<sourcemeta::core::Decimal>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_decimal_with_value) {
+  const std::optional<sourcemeta::core::Decimal> value{
+      sourcemeta::core::Decimal{"987654321098765432109876543210"}};
+  const auto result{sourcemeta::core::to_json(value)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::Decimal{"987654321098765432109876543210"}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_decimal());
+  const auto back{
+      sourcemeta::core::from_json<std::optional<sourcemeta::core::Decimal>>(
+          result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_decimal_without_value) {
+  const std::optional<sourcemeta::core::Decimal> value;
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::parse_json(R"JSON(null)JSON")};
+  EXPECT_EQ(result, expected);
+  const auto back{
+      sourcemeta::core::from_json<std::optional<sourcemeta::core::Decimal>>(
+          result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_FALSE(back.value().has_value());
+}
+
+TEST(JSON_auto, vector_of_decimals) {
+  const std::vector<sourcemeta::core::Decimal> value{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    123456789012345678901234567890
+  ])JSON")};
+
+  EXPECT_EQ(result, expected);
+  const auto back{
+      sourcemeta::core::from_json<std::vector<sourcemeta::core::Decimal>>(
+          result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, map_of_decimals) {
+  const std::map<std::string, sourcemeta::core::Decimal> value{
+      {"large", sourcemeta::core::Decimal{"999999999999999999999999999999"}}};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "large": 999999999999999999999999999999
+  })JSON")};
+
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::map<std::string, sourcemeta::core::Decimal>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, vector_of_optional_decimals) {
+  const std::vector<std::optional<sourcemeta::core::Decimal>> value{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"},
+      std::nullopt};
+  const auto result{sourcemeta::core::to_json(value)};
+
+  const auto expected{sourcemeta::core::parse_json(R"JSON([
+    123456789012345678901234567890,
+    null
+  ])JSON")};
+
+  EXPECT_EQ(result, expected);
+  const auto back{sourcemeta::core::from_json<
+      std::vector<std::optional<sourcemeta::core::Decimal>>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_8) {
+  const std::bitset<8> value{"10110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{181}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<8>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_16) {
+  const std::bitset<16> value{"1011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{46517}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<16>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_32) {
+  const std::bitset<32> value{"10110101101101011011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{
+      sourcemeta::core::JSON{static_cast<std::int64_t>(3048584629)}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<32>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_8_all_zeros) {
+  const std::bitset<8> value{"00000000"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{0}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<8>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_8_all_ones) {
+  const std::bitset<8> value{"11111111"};
+  const auto result{sourcemeta::core::to_json(value)};
+  const auto expected{sourcemeta::core::JSON{255}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<8>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_64) {
+  const std::bitset<64> value{
+      "1011010110110101101101011011010110110101101101011011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_integer());
+  const auto back{sourcemeta::core::from_json<std::bitset<64>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, bitset_128) {
+  const std::bitset<128> value{
+      "1011010110110101101101011011010110110101101101011011010110110101101101"
+      "0110110101101101011011010110110101101101011011010110110101"};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_string());
+  const auto back{sourcemeta::core::from_json<std::bitset<128>>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, variant_first_alternative) {
+  using Type = std::variant<std::string, int, bool>;
+  const Type value{"hello"};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_integer());
+  EXPECT_EQ(result.at(0).to_integer(), 0);
+  EXPECT_TRUE(result.at(1).is_string());
+  EXPECT_EQ(result.at(1).to_string(), "hello");
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, variant_second_alternative) {
+  using Type = std::variant<std::string, int, bool>;
+  const Type value{42};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_integer());
+  EXPECT_EQ(result.at(0).to_integer(), 1);
+  EXPECT_TRUE(result.at(1).is_integer());
+  EXPECT_EQ(result.at(1).to_integer(), 42);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, variant_third_alternative) {
+  using Type = std::variant<std::string, int, bool>;
+  const Type value{true};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_integer());
+  EXPECT_EQ(result.at(0).to_integer(), 2);
+  EXPECT_TRUE(result.at(1).is_boolean());
+  EXPECT_TRUE(result.at(1).to_boolean());
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, variant_with_enum) {
+  using Type = std::variant<SampleEnum, std::string>;
+  const Type value{SampleEnum::Baz};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_integer());
+  EXPECT_EQ(result.at(0).to_integer(), 0);
+  EXPECT_TRUE(result.at(1).is_integer());
+  EXPECT_EQ(result.at(1).to_integer(), 2);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, variant_from_json_invalid_type) {
+  using Type = std::variant<std::string, int>;
+  const sourcemeta::core::JSON document{"not-an-array"};
+  const auto result{sourcemeta::core::from_json<Type>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSON_auto, variant_from_json_invalid_size) {
+  using Type = std::variant<std::string, int>;
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(sourcemeta::core::JSON{0});
+  const auto result{sourcemeta::core::from_json<Type>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSON_auto, variant_from_json_invalid_index_type) {
+  using Type = std::variant<std::string, int>;
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(sourcemeta::core::JSON{"not-an-index"});
+  document.push_back(sourcemeta::core::JSON{"data"});
+  const auto result{sourcemeta::core::from_json<Type>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSON_auto, variant_from_json_index_out_of_range) {
+  using Type = std::variant<std::string, int>;
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(sourcemeta::core::JSON{99});
+  document.push_back(sourcemeta::core::JSON{"data"});
+  const auto result{sourcemeta::core::from_json<Type>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSON_auto, variant_from_json_data_type_mismatch) {
+  using Type = std::variant<std::string, int>;
+  auto document{sourcemeta::core::JSON::make_array()};
+  document.push_back(sourcemeta::core::JSON{0});
+  document.push_back(sourcemeta::core::JSON{42});
+  const auto result{sourcemeta::core::from_json<Type>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSON_auto, optional_variant) {
+  using Type = std::optional<std::variant<std::string, int>>;
+  const Type value{std::variant<std::string, int>{42}};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, optional_variant_nullopt) {
+  using Type = std::optional<std::variant<std::string, int>>;
+  const Type value{std::nullopt};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_null());
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_FALSE(back.value().has_value());
+}
+
+TEST(JSON_auto, vector_of_variants) {
+  using Type = std::vector<std::variant<std::string, int>>;
+  const Type value{std::string{"hello"}, 42, std::string{"world"}};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 3);
+  const auto back{sourcemeta::core::from_json<Type>(result)};
+  EXPECT_TRUE(back.has_value());
+  EXPECT_EQ(value, back.value());
 }

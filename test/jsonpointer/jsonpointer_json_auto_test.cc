@@ -28,6 +28,17 @@ TEST(JSONPointer_json_auto, from_json_invalid_type) {
   EXPECT_FALSE(result.has_value());
 }
 
+TEST(JSONPointer_json_auto, from_json_regex_backslash_value) {
+  const auto input{sourcemeta::core::parse_json(R"JSON({
+    "value": "/[\\-]/type"
+  })JSON")};
+
+  const auto result{sourcemeta::core::from_json<sourcemeta::core::Pointer>(
+      input.at("value"))};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(sourcemeta::core::to_string(result.value()), "/[\\-]/type");
+}
+
 TEST(JSONWeakPointer_json_auto, to_json_foo_bar_baz) {
   const std::string foo{"foo"};
   const std::string bar{"bar"};

@@ -11,7 +11,7 @@ static auto test_resolver(std::string_view identifier)
       "$schema": "http://json-schema.org/draft-04/schema#"
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -38,19 +38,17 @@ TEST(JSONSchema_identify_draft4, new_one_hop) {
 
 TEST(JSONSchema_identify_draft4, id_boolean_default_dialect) {
   const sourcemeta::core::JSON document{true};
-  std::optional<std::string> id{sourcemeta::core::identify(
-      document, sourcemeta::core::schema_official_resolver,
-      sourcemeta::core::SchemaIdentificationStrategy::Strict,
-      "http://json-schema.org/draft-04/schema#")};
+  std::optional<std::string> id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver,
+                                 "http://json-schema.org/draft-04/schema#")};
   EXPECT_FALSE(id.has_value());
 }
 
 TEST(JSONSchema_identify_draft4, empty_object_default_dialect) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json("{}");
-  std::optional<std::string> id{sourcemeta::core::identify(
-      document, sourcemeta::core::schema_official_resolver,
-      sourcemeta::core::SchemaIdentificationStrategy::Strict,
-      "http://json-schema.org/draft-04/schema#")};
+  std::optional<std::string> id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver,
+                                 "http://json-schema.org/draft-04/schema#")};
   EXPECT_FALSE(id.has_value());
 }
 
@@ -59,8 +57,8 @@ TEST(JSONSchema_identify_draft4, valid_id) {
     "id": "https://example.com/my-schema",
     "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
-  std::optional<std::string> id{sourcemeta::core::identify(
-      document, sourcemeta::core::schema_official_resolver)};
+  std::optional<std::string> id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
   EXPECT_TRUE(id.has_value());
   EXPECT_EQ(id.value(), "https://example.com/my-schema");
 }
@@ -70,8 +68,8 @@ TEST(JSONSchema_identify_draft4, new_id) {
     "$id": "https://example.com/my-schema",
     "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
-  std::optional<std::string> id{sourcemeta::core::identify(
-      document, sourcemeta::core::schema_official_resolver)};
+  std::optional<std::string> id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
   EXPECT_FALSE(id.has_value());
 }
 
@@ -81,8 +79,7 @@ TEST(JSONSchema_identify_draft4, default_dialect_precedence) {
     "$schema": "http://json-schema.org/draft-04/schema#"
   })JSON");
   std::optional<std::string> id{sourcemeta::core::identify(
-      document, sourcemeta::core::schema_official_resolver,
-      sourcemeta::core::SchemaIdentificationStrategy::Strict,
+      document, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2020-12/schema")};
   EXPECT_TRUE(id.has_value());
   EXPECT_EQ(id.value(), "https://example.com/my-schema");
@@ -106,7 +103,7 @@ TEST(JSONSchema_identify_draft4, anonymize_with_base_dialect) {
   })JSON");
 
   const auto base_dialect{sourcemeta::core::base_dialect(
-      document, sourcemeta::core::schema_official_resolver)};
+      document, sourcemeta::core::schema_resolver)};
   EXPECT_TRUE(base_dialect.has_value());
   sourcemeta::core::anonymize(document, base_dialect.value());
 
@@ -123,7 +120,7 @@ TEST(JSONSchema_identify_draft4, anonymize_with_base_dialect_no_id) {
   })JSON");
 
   const auto base_dialect{sourcemeta::core::base_dialect(
-      document, sourcemeta::core::schema_official_resolver)};
+      document, sourcemeta::core::schema_resolver)};
   EXPECT_TRUE(base_dialect.has_value());
   sourcemeta::core::anonymize(document, base_dialect.value());
 
@@ -152,7 +149,7 @@ TEST(JSONSchema_identify_draft4, reidentify_replace) {
   })JSON");
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               sourcemeta::core::schema_official_resolver);
+                               sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",
@@ -168,7 +165,7 @@ TEST(JSONSchema_identify_draft4, reidentify_set) {
   })JSON");
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               sourcemeta::core::schema_official_resolver);
+                               sourcemeta::core::schema_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",
@@ -184,7 +181,7 @@ TEST(JSONSchema_identify_draft4, reidentify_replace_default_dialect) {
   })JSON");
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               sourcemeta::core::schema_official_resolver,
+                               sourcemeta::core::schema_resolver,
                                "http://json-schema.org/draft-04/schema#");
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -201,7 +198,7 @@ TEST(JSONSchema_identify_draft4, reidentify_replace_base_dialect_shortcut) {
   })JSON");
 
   const auto base_dialect{sourcemeta::core::base_dialect(
-      document, sourcemeta::core::schema_official_resolver)};
+      document, sourcemeta::core::schema_resolver)};
   EXPECT_TRUE(base_dialect.has_value());
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
@@ -221,16 +218,10 @@ TEST(JSONSchema_identify_draft4, reidentify_set_with_top_level_ref) {
     "$ref": "https://example.com/schema"
   })JSON");
 
-  sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               sourcemeta::core::schema_official_resolver);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "id": "https://example.com/my-new-id",
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "allOf": [ { "$ref": "https://example.com/schema" } ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
+  EXPECT_THROW(sourcemeta::core::reidentify(document,
+                                            "https://example.com/my-new-id",
+                                            sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaReferenceObjectResourceError);
 }
 
 TEST(JSONSchema_identify_draft4, reidentify_set_with_top_level_ref_and_allof) {
@@ -240,14 +231,8 @@ TEST(JSONSchema_identify_draft4, reidentify_set_with_top_level_ref_and_allof) {
     "allOf": [ { "type": "string" } ]
   })JSON");
 
-  sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               sourcemeta::core::schema_official_resolver);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "id": "https://example.com/my-new-id",
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "allOf": [ { "$ref": "https://example.com/schema" } ]
-  })JSON");
-
-  EXPECT_EQ(document, expected);
+  EXPECT_THROW(sourcemeta::core::reidentify(document,
+                                            "https://example.com/my-new-id",
+                                            sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaReferenceObjectResourceError);
 }

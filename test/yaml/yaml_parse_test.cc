@@ -134,6 +134,19 @@ TEST(YAML_parse, invalid_1) {
                sourcemeta::core::YAMLParseError);
 }
 
+TEST(YAML_parse, undefined_anchor) {
+  const std::string input{"alias: *unknown"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL() << "Expected YAMLUnknownAnchorError to be thrown";
+  } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
+    EXPECT_EQ(error.anchor(), "unknown");
+    EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
+  } catch (...) {
+    FAIL() << "Expected YAMLUnknownAnchorError, got different exception";
+  }
+}
+
 TEST(YAML_parse, stub_test_1) {
   const auto result{sourcemeta::core::read_yaml(
       std::filesystem::path{STUBS_PATH} / "test_1.yaml")};
@@ -190,4 +203,158 @@ TEST(YAML_parse, istringstream) {
   })JSON");
 
   EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, multi_document_unix_line_endings) {
+  std::istringstream stream{"---\nfoo\n---\nbar\n---\nbaz"};
+
+  const auto doc1{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc1, sourcemeta::core::JSON{"foo"});
+
+  const auto doc2{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc2, sourcemeta::core::JSON{"bar"});
+
+  const auto doc3{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(YAML_parse, multi_document_windows_line_endings) {
+  std::istringstream stream{"---\r\nfoo\r\n---\r\nbar\r\n---\r\nbaz"};
+
+  const auto doc1{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc1, sourcemeta::core::JSON{"foo"});
+
+  const auto doc2{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc2, sourcemeta::core::JSON{"bar"});
+
+  const auto doc3{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(doc3, sourcemeta::core::JSON{"baz"});
+
+  EXPECT_EQ(stream.peek(), EOF);
+}
+
+TEST(YAML_parse, decimal_large_integer) {
+  const std::string input{"123456789012345678901234567890"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal().to_string(), "123456789012345678901234567890");
+}
+
+TEST(YAML_parse, decimal_high_precision_real) {
+  const std::string input{"3.141592653589793238462643383279"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+}
+
+TEST(YAML_parse, decimal_exponential_notation) {
+  const std::string input{"1.234567890123456789012345678901e50"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+}
+
+TEST(YAML_parse, decimal_in_object) {
+  const std::string input{"large: 999999999999999999999999999999\n"
+                          "precise: 2.718281828459045235360287471352"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("large"));
+  EXPECT_TRUE(result.defines("precise"));
+  EXPECT_TRUE(result.at("large").is_decimal());
+  EXPECT_TRUE(result.at("precise").is_decimal());
+  EXPECT_EQ(result.at("large").to_decimal().to_string(),
+            "999999999999999999999999999999");
+}
+
+TEST(YAML_parse, decimal_in_array) {
+  const std::string input{"- 123456789012345678901234567890\n"
+                          "- 9.87654321098765432109876543210e100"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_decimal());
+  EXPECT_TRUE(result.at(1).is_decimal());
+}
+
+TEST(YAML_parse, scientific_constant_planck) {
+  const std::string input{"6.62607E-34"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"6.62607E-34"});
+}
+
+TEST(YAML_parse, scientific_constant_elementary_charge) {
+  const std::string input{"1.60218E-19"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1.60218E-19"});
+}
+
+TEST(YAML_parse, scientific_constant_boltzmann) {
+  const std::string input{"1.38065E-23"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{"1.38065E-23"});
+}
+
+TEST(YAML_parse, yaml_or_json_custom_extension_yaml_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_2.custom")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_custom_extension_json_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_3.custom")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_no_extension_yaml_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_no_extension_yaml")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_no_extension_json_content) {
+  const auto result{sourcemeta::core::read_yaml_or_json(
+      std::filesystem::path{STUBS_PATH} / "test_no_extension_json")};
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "foo": "bar",
+    "baz": 2
+  })JSON");
+
+  EXPECT_EQ(result, expected);
+}
+
+TEST(YAML_parse, yaml_or_json_invalid_json_throws_json_error) {
+  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
+                   std::filesystem::path{STUBS_PATH} / "invalid.json"),
+               sourcemeta::core::JSONParseError);
+}
+
+TEST(YAML_parse, yaml_or_json_invalid_yaml_throws_yaml_error) {
+  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
+                   std::filesystem::path{STUBS_PATH} / "invalid.yaml"),
+               sourcemeta::core::YAMLParseError);
 }

@@ -606,6 +606,57 @@ TEST(JSON_object, assign_if_missing_missing_rvalue) {
   EXPECT_EQ(document.at("baz").to_integer(), 1);
 }
 
+TEST(JSON_object, assign_assume_new_rvalue) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+
+  document.assign_assume_new("foo", sourcemeta::core::JSON{false});
+  document.assign_assume_new("bar", sourcemeta::core::JSON{42});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.object_size(), 2);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_FALSE(document.at("foo").to_boolean());
+  EXPECT_EQ(document.at("bar").to_integer(), 42);
+}
+
+TEST(JSON_object, assign_assume_new_rvalue_key) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+
+  std::string key1{"foo"};
+  std::string key2{"bar"};
+  document.assign_assume_new(std::move(key1), sourcemeta::core::JSON{false});
+  document.assign_assume_new(std::move(key2), sourcemeta::core::JSON{42});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.object_size(), 2);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_FALSE(document.at("foo").to_boolean());
+  EXPECT_EQ(document.at("bar").to_integer(), 42);
+}
+
+TEST(JSON_object, assign_assume_new_multiple_types) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  document.assign_assume_new("string", sourcemeta::core::JSON{"hello"});
+  document.assign_assume_new("integer", sourcemeta::core::JSON{123});
+  document.assign_assume_new("boolean", sourcemeta::core::JSON{true});
+  document.assign_assume_new("null", sourcemeta::core::JSON{nullptr});
+
+  EXPECT_EQ(document.size(), 4);
+  EXPECT_EQ(document.at("string").to_string(), "hello");
+  EXPECT_EQ(document.at("integer").to_integer(), 123);
+  EXPECT_TRUE(document.at("boolean").to_boolean());
+  EXPECT_TRUE(document.at("null").is_null());
+}
+
 TEST(JSON_object, estimated_byte_size_integers) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
@@ -959,4 +1010,86 @@ TEST(JSON_object, erase_must_not_affect_ordering) {
   EXPECT_EQ(after_iterator->first, "y");
   std::advance(after_iterator, 1);
   EXPECT_EQ(after_iterator->first, "z");
+}
+
+TEST(JSON_object, reorder_empty) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+}
+
+TEST(JSON_object, reorder_single_element) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("apple", sourcemeta::core::JSON{1});
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  EXPECT_EQ(document.size(), 1);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+}
+
+TEST(JSON_object, reorder_ascending) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("zebra", sourcemeta::core::JSON{1});
+  document.assign("apple", sourcemeta::core::JSON{2});
+  document.assign("banana", sourcemeta::core::JSON{3});
+
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+
+  EXPECT_EQ(document.size(), 3);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "banana");
+  EXPECT_EQ(iterator->second.to_integer(), 3);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "zebra");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+}
+
+TEST(JSON_object, reorder_descending) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("apple", sourcemeta::core::JSON{1});
+  document.assign("zebra", sourcemeta::core::JSON{2});
+  document.assign("banana", sourcemeta::core::JSON{3});
+
+  document.reorder(
+      [](const auto &left, const auto &right) { return left > right; });
+
+  EXPECT_EQ(document.size(), 3);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "zebra");
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "banana");
+  EXPECT_EQ(iterator->second.to_integer(), 3);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+}
+
+TEST(JSON_object, reorder_already_ordered) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("apple", sourcemeta::core::JSON{1});
+  document.assign("banana", sourcemeta::core::JSON{2});
+  document.assign("cherry", sourcemeta::core::JSON{3});
+
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+
+  EXPECT_EQ(document.size(), 3);
+  auto iterator = document.as_object().cbegin();
+  EXPECT_EQ(iterator->first, "apple");
+  EXPECT_EQ(iterator->second.to_integer(), 1);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "banana");
+  EXPECT_EQ(iterator->second.to_integer(), 2);
+  std::advance(iterator, 1);
+  EXPECT_EQ(iterator->first, "cherry");
+  EXPECT_EQ(iterator->second.to_integer(), 3);
 }

@@ -11,12 +11,13 @@
 #include <sourcemeta/core/json_value.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <cstdint>    // std::uint64_t
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::basic_ifstream
-#include <istream>    // std::basic_istream
-#include <ostream>    // std::basic_ostream
-#include <string>     // std::basic_string
+#include <cstdint>          // std::uint64_t
+#include <filesystem>       // std::filesystem
+#include <fstream>          // std::basic_ifstream
+#include <initializer_list> // std::initializer_list
+#include <istream>          // std::basic_istream
+#include <ostream>          // std::basic_ostream
+#include <string>           // std::basic_string
 
 /// @defgroup json JSON
 /// @brief A full-blown ECMA-404 implementation with read, write, and iterators
@@ -156,7 +157,7 @@ auto stringify(const JSON &document,
 /// @ingroup json
 ///
 /// Stringify the input JSON document into a given C++ standard output stream in
-/// pretty mode, indenting the output using 4 spaces. For example:
+/// pretty mode. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -171,62 +172,8 @@ auto stringify(const JSON &document,
 /// ```
 SOURCEMETA_CORE_JSON_EXPORT
 auto prettify(const JSON &document,
-              std::basic_ostream<JSON::Char, JSON::CharTraits> &stream) -> void;
-
-/// @ingroup json
-///
-/// Stringify the input JSON document into a given C++ standard output stream in
-/// compact mode, sorting object properties on a specific criteria. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/json.h>
-/// #include <iostream>
-/// #include <sstream>
-///
-/// auto key_compare(const sourcemeta::core::JSON::String &left,
-///                  const sourcemeta::core::JSON::String &right)
-///   -> bool {
-///   return left < right;
-/// }
-///
-/// const sourcemeta::core::JSON document =
-///   sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2, \"baz\": 3 }");
-/// std::ostringstream stream;
-/// sourcemeta::core::stringify(document, stream, key_compare);
-/// std::cout << stream.str() << std::endl;
-/// ```
-SOURCEMETA_CORE_JSON_EXPORT
-auto stringify(const JSON &document,
-               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
-               const JSON::KeyComparison &compare) -> void;
-
-/// @ingroup json
-///
-/// Stringify the input JSON document into a given C++ standard output stream in
-/// pretty mode, indenting the output using 4 spaces and sorting object
-/// properties on a specific criteria. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/json.h>
-/// #include <iostream>
-/// #include <sstream>
-///
-/// auto key_compare(const sourcemeta::core::JSON::String &left,
-///                  const sourcemeta::core::JSON::String &right)
-///   -> bool {
-///   return left < right;
-/// }
-///
-/// const sourcemeta::core::JSON document =
-///   sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2, \"baz\": 3 }");
-/// std::ostringstream stream;
-/// sourcemeta::core::prettify(document, stream, key_compare);
-/// std::cout << stream.str() << std::endl;
-/// ```
-SOURCEMETA_CORE_JSON_EXPORT
-auto prettify(const JSON &document,
               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
-              const JSON::KeyComparison &compare) -> void;
+              const std::size_t spaces = 2) -> void;
 
 /// @ingroup json
 ///
@@ -269,6 +216,20 @@ SOURCEMETA_CORE_JSON_EXPORT
 auto operator<<(std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
                 const JSON::Type type)
     -> std::basic_ostream<JSON::Char, JSON::CharTraits> &;
+
+/// @ingroup json
+///
+/// Create a JSON type set from an initializer list of types. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+///
+/// const auto types = sourcemeta::core::make_set(
+///     {sourcemeta::core::JSON::Type::Object,
+///      sourcemeta::core::JSON::Type::Array});
+/// ```
+SOURCEMETA_CORE_JSON_EXPORT
+auto make_set(std::initializer_list<JSON::Type> types) -> JSON::TypeSet;
 
 } // namespace sourcemeta::core
 

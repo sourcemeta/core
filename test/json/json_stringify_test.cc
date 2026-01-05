@@ -95,6 +95,13 @@ TEST(JSON_stringify, integer_real_negative) {
   EXPECT_EQ(stream.str(), "-2.0");
 }
 
+TEST(JSON_stringify, very_large_real_number_with_decimal) {
+  const sourcemeta::core::JSON document{9.9999999999999997e+34};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "99999999999999996863366107917975552.0");
+}
+
 TEST(JSON_stringify, empty_string) {
   const sourcemeta::core::JSON document{""};
   std::ostringstream stream;
@@ -148,24 +155,24 @@ TEST(JSON_stringify, object_integers) {
 }
 
 TEST(JSON_stringify, object_integers_order_1) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
-  std::ostringstream stream;
-  sourcemeta::core::stringify(
-      document, stream,
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
       [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "{\"bar\":2,\"baz\":3,\"foo\":1}");
 }
 
 TEST(JSON_stringify, object_integers_order_2) {
-  const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
-                                        {"bar", sourcemeta::core::JSON{2}},
-                                        {"baz", sourcemeta::core::JSON{3}}};
-  std::ostringstream stream;
-  sourcemeta::core::stringify(
-      document, stream,
+  sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
+                                  {"bar", sourcemeta::core::JSON{2}},
+                                  {"baz", sourcemeta::core::JSON{3}}};
+  document.reorder(
       [](const auto &left, const auto &right) { return left > right; });
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "{\"foo\":1,\"baz\":3,\"bar\":2}");
 }
 
@@ -472,4 +479,204 @@ TEST(JSON_stringify, escape_1F) {
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\\u001Fbar\"");
+}
+
+TEST(JSON_stringify, decimal_positive_integer) {
+  const sourcemeta::core::Decimal value{12345};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "1.2345e+4");
+}
+
+TEST(JSON_stringify, decimal_negative_integer) {
+  const sourcemeta::core::Decimal value{-67890};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "-6.7890e+4");
+}
+
+TEST(JSON_stringify, decimal_zero) {
+  const sourcemeta::core::Decimal value{0};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "0e+0");
+}
+
+TEST(JSON_stringify, decimal_fractional) {
+  const sourcemeta::core::Decimal value{"3.14159"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "3.14159e+0");
+}
+
+TEST(JSON_stringify, decimal_negative_fractional) {
+  const sourcemeta::core::Decimal value{"-2.71828"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "-2.71828e+0");
+}
+
+TEST(JSON_stringify, decimal_large_integer) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567890"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "1.23456789012345678901234567890e+29");
+}
+
+TEST(JSON_stringify, decimal_large_negative_integer) {
+  const sourcemeta::core::Decimal value{"-987654321098765432109876543210"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "-9.87654321098765432109876543210e+29");
+}
+
+TEST(JSON_stringify, decimal_high_precision_fractional) {
+  const sourcemeta::core::Decimal value{
+      "3.141592653589793238462643383279502884197"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197e+0");
+}
+
+TEST(JSON_stringify, decimal_very_small_fractional) {
+  const sourcemeta::core::Decimal value{"0.000000000000000000000000000001"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "1e-30");
+}
+
+TEST(JSON_stringify, decimal_scientific_notation) {
+  const sourcemeta::core::Decimal value{"1.23e10"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "1.23e+10");
+}
+
+TEST(JSON_stringify, scientific_constant_planck) {
+  const sourcemeta::core::Decimal value{"6.62607E-34"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "6.62607e-34");
+}
+
+TEST(JSON_stringify, scientific_constant_elementary_charge) {
+  const sourcemeta::core::Decimal value{"1.60218E-19"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "1.60218e-19");
+}
+
+TEST(JSON_stringify, scientific_constant_boltzmann) {
+  const sourcemeta::core::Decimal value{"1.38065E-23"};
+  const sourcemeta::core::JSON document{value};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "1.38065e-23");
+}
+
+TEST(JSON_stringify, decimal_in_array) {
+  const sourcemeta::core::Decimal value1{100};
+  const sourcemeta::core::Decimal value2{"999.999"};
+  const sourcemeta::core::Decimal value3{"-42"};
+  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
+                                        sourcemeta::core::JSON{value2},
+                                        sourcemeta::core::JSON{value3}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "[1.00e+2,9.99999e+2,-4.2e+1]");
+}
+
+TEST(JSON_stringify, decimal_large_numbers_in_array) {
+  const sourcemeta::core::Decimal value1{"123456789012345678901234567890"};
+  const sourcemeta::core::Decimal value2{
+      "98765432109876543210.98765432109876543210"};
+  const sourcemeta::core::JSON document{sourcemeta::core::JSON{value1},
+                                        sourcemeta::core::JSON{value2}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "[1.23456789012345678901234567890e+29,9."
+                          "876543210987654321098765432109876543210e+19]");
+}
+
+TEST(JSON_stringify, decimal_nested_in_array) {
+  const sourcemeta::core::Decimal value1{"111.111"};
+  const sourcemeta::core::Decimal value2{"222.222"};
+  sourcemeta::core::JSON inner_array{sourcemeta::core::JSON{value1},
+                                     sourcemeta::core::JSON{value2}};
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
+  document.push_back(std::move(inner_array));
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "[[1.11111e+2,2.22222e+2]]");
+}
+
+TEST(JSON_stringify, decimal_in_object) {
+  const sourcemeta::core::Decimal value1{"12345"};
+  const sourcemeta::core::Decimal value2{"-67.89"};
+  const sourcemeta::core::JSON document{
+      {"integer", sourcemeta::core::JSON{value1}},
+      {"fractional", sourcemeta::core::JSON{value2}}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  const bool matches =
+      stream.str() == "{\"integer\":1.2345e+4,\"fractional\":-6.789e+1}" ||
+      stream.str() == "{\"fractional\":-6.789e+1,\"integer\":1.2345e+4}";
+  EXPECT_TRUE(matches);
+}
+
+TEST(JSON_stringify, decimal_large_numbers_in_object) {
+  const sourcemeta::core::Decimal big_int{"999999999999999999999999999999"};
+  const sourcemeta::core::Decimal big_real{
+      "123456789.123456789123456789123456789"};
+  sourcemeta::core::JSON document{
+      {"bigInt", sourcemeta::core::JSON{big_int}},
+      {"bigReal", sourcemeta::core::JSON{big_real}}};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(),
+            "{\"bigInt\":9.99999999999999999999999999999e+29,\"bigReal\":1."
+            "23456789123456789123456789123456789e+8}");
+}
+
+TEST(JSON_stringify, decimal_mixed_with_other_types_in_object) {
+  const sourcemeta::core::Decimal decimal_value{"3.14159"};
+  sourcemeta::core::JSON document{
+      {"string", sourcemeta::core::JSON{"hello"}},
+      {"integer", sourcemeta::core::JSON{42}},
+      {"decimal", sourcemeta::core::JSON{decimal_value}},
+      {"boolean", sourcemeta::core::JSON{true}}};
+  document.reorder(
+      [](const auto &left, const auto &right) { return left < right; });
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(
+      stream.str(),
+      "{\"boolean\":true,\"decimal\":3.14159e+0,\"integer\":42,\"string\":"
+      "\"hello\"}");
+}
+
+TEST(JSON_stringify, decimal_nested_in_object_with_array) {
+  const sourcemeta::core::Decimal value1{"111"};
+  const sourcemeta::core::Decimal value2{"222.222"};
+  sourcemeta::core::JSON array{sourcemeta::core::JSON::Array{}};
+  array.push_back(sourcemeta::core::JSON{value1});
+  array.push_back(sourcemeta::core::JSON{value2});
+  const sourcemeta::core::JSON document{{"decimals", std::move(array)}};
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  EXPECT_EQ(stream.str(), "{\"decimals\":[1.11e+2,2.22222e+2]}");
 }

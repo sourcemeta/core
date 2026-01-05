@@ -5,9 +5,10 @@
 #include <sourcemeta/core/options_export.h>
 #endif
 
-#include <stdexcept> // std::runtime_error
-#include <string>    // std::string
-#include <utility>   // std::move
+#include <exception>   // std::exception
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 namespace sourcemeta::core {
 
@@ -20,45 +21,57 @@ namespace sourcemeta::core {
 
 /// @ingroup options
 /// This class represents a general options error
-struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsError : public std::runtime_error {
-  explicit OptionsError(const std::string &message)
-      : std::runtime_error{message} {}
+class SOURCEMETA_CORE_OPTIONS_EXPORT OptionsError : public std::exception {
+public:
+  explicit OptionsError(const char *message) : message_{message} {}
+  explicit OptionsError(std::string message) = delete;
+  explicit OptionsError(std::string &&message) = delete;
+  explicit OptionsError(std::string_view message) = delete;
+
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return this->message_;
+  }
+
+private:
+  const char *message_;
 };
 
 /// @ingroup options
 /// This class represents a unknown option error
 struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsUnknownOptionError
     : public OptionsError {
-  explicit OptionsUnknownOptionError(std::string name)
-      : OptionsError{"Unknown option"}, name_{std::move(name)} {}
-  [[nodiscard]] auto name() const -> const auto & { return this->name_; }
+  explicit OptionsUnknownOptionError(std::string option)
+      : OptionsError{"Unknown option"}, option_{std::move(option)} {}
+  [[nodiscard]] auto option() const -> const auto & { return this->option_; }
 
 private:
-  std::string name_;
+  std::string option_;
 };
 
 /// @ingroup options
 /// This class represents a value being passed to a flag
 struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsUnexpectedValueFlagError
     : public OptionsError {
-  explicit OptionsUnexpectedValueFlagError(std::string name)
-      : OptionsError{"This flag cannot take a value"}, name_{std::move(name)} {}
-  [[nodiscard]] auto name() const -> const auto & { return this->name_; }
+  explicit OptionsUnexpectedValueFlagError(std::string option)
+      : OptionsError{"This flag cannot take a value"},
+        option_{std::move(option)} {}
+  [[nodiscard]] auto option() const -> const auto & { return this->option_; }
 
 private:
-  std::string name_;
+  std::string option_;
 };
 
 /// @ingroup options
 /// This class represents a missing value from an option
 struct SOURCEMETA_CORE_OPTIONS_EXPORT OptionsMissingOptionValueError
     : public OptionsError {
-  explicit OptionsMissingOptionValueError(std::string name)
-      : OptionsError{"This option must take a value"}, name_{std::move(name)} {}
-  [[nodiscard]] auto name() const -> const auto & { return this->name_; }
+  explicit OptionsMissingOptionValueError(std::string option)
+      : OptionsError{"This option must take a value"},
+        option_{std::move(option)} {}
+  [[nodiscard]] auto option() const -> const auto & { return this->option_; }
 
 private:
-  std::string name_;
+  std::string option_;
 };
 
 #if defined(_MSC_VER)

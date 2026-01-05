@@ -93,7 +93,7 @@ static auto test_resolver(std::string_view identifier)
       "$vocabulary": { "https://json-schema.org/draft/2020-12/vocab/core": true }
     })JSON");
   } else {
-    return sourcemeta::core::schema_official_resolver(identifier);
+    return sourcemeta::core::schema_resolver(identifier);
   }
 }
 
@@ -102,7 +102,7 @@ TEST(JSONSchema_bundle_2020_12, no_references_no_id) {
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -118,7 +118,7 @@ TEST(JSONSchema_bundle_2020_12, const_no_references_no_id) {
   })JSON");
 
   const auto result = sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver);
+      document, sourcemeta::core::schema_walker, test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema"
@@ -140,7 +140,7 @@ TEST(JSONSchema_bundle_2020_12, simple_with_id) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -197,7 +197,7 @@ TEST(JSONSchema_bundle_2020_12, simple_without_id) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -250,10 +250,9 @@ TEST(JSONSchema_bundle_2020_12, schema_not_found) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaResolutionError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaResolutionError);
 }
 
 TEST(JSONSchema_bundle_2020_12, anchor_not_found) {
@@ -265,10 +264,9 @@ TEST(JSONSchema_bundle_2020_12, anchor_not_found) {
     }
   })JSON");
 
-  EXPECT_THROW(
-      sourcemeta::core::bundle(
-          document, sourcemeta::core::schema_official_walker, test_resolver),
-      sourcemeta::core::SchemaReferenceError);
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaReferenceError);
 }
 
 TEST(JSONSchema_bundle_2020_12, idempotency) {
@@ -280,11 +278,11 @@ TEST(JSONSchema_bundle_2020_12, idempotency) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -331,7 +329,7 @@ TEST(JSONSchema_bundle_2020_12, pre_embedded) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -378,7 +376,7 @@ TEST(JSONSchema_bundle_2020_12, taken_definitions_entry) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -415,7 +413,7 @@ TEST(JSONSchema_bundle_2020_12, recursive) {
     "$ref": "https://www.sourcemeta.com/recursive"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -441,7 +439,7 @@ TEST(JSONSchema_bundle_2020_12, recursive_empty_fragment) {
     "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -466,7 +464,7 @@ TEST(JSONSchema_bundle_2020_12, anonymous_no_dialect) {
     "$ref": "https://www.sourcemeta.com/anonymous"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver,
                            "https://json-schema.org/draft/2020-12/schema");
 
@@ -490,7 +488,7 @@ TEST(JSONSchema_bundle_2020_12, relative_in_target_without_id) {
     "$ref": "nested/ref-string.json"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -526,7 +524,7 @@ TEST(JSONSchema_bundle_2020_12, relative_base_uri_with_ref) {
     }
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -549,7 +547,7 @@ TEST(JSONSchema_bundle_2020_12, metaschema) {
     "type": "string"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -578,7 +576,7 @@ TEST(JSONSchema_bundle_2020_12, hyperschema_smoke) {
     "$ref": "https://json-schema.org/draft/2020-12/hyper-schema"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   EXPECT_TRUE(document.is_object());
@@ -593,7 +591,7 @@ TEST(JSONSchema_bundle_2020_12, hyperschema_1) {
     ]
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver);
 
   EXPECT_TRUE(document.defines("$defs"));
@@ -630,7 +628,7 @@ TEST(JSONSchema_bundle_2020_12, bundle_to_definitions) {
     "$ref": "https://www.sourcemeta.com/recursive"
   })JSON");
 
-  sourcemeta::core::bundle(document, sourcemeta::core::schema_official_walker,
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
                            test_resolver, std::nullopt, std::nullopt,
                            sourcemeta::core::Pointer{"definitions"});
 
@@ -658,9 +656,8 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_non_existent) {
   })JSON");
 
   sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver,
-      std::nullopt, std::nullopt,
-      sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
+      document, sourcemeta::core::schema_walker, test_resolver, std::nullopt,
+      std::nullopt, sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -691,9 +688,8 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_half_existent) {
   })JSON");
 
   sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver,
-      std::nullopt, std::nullopt,
-      sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
+      document, sourcemeta::core::schema_walker, test_resolver, std::nullopt,
+      std::nullopt, sourcemeta::core::Pointer{"x-definitions", "foo", "bar"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -725,8 +721,8 @@ TEST(JSONSchema_bundle_2020_12,
   })JSON");
 
   sourcemeta::core::bundle(
-      document, sourcemeta::core::schema_official_walker, test_resolver,
-      std::nullopt, std::nullopt,
+      document, sourcemeta::core::schema_walker, test_resolver, std::nullopt,
+      std::nullopt,
       sourcemeta::core::Pointer{"x-definitions", 0, "foo", "bar"});
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -760,8 +756,8 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_not_object) {
   })JSON");
 
   EXPECT_THROW(sourcemeta::core::bundle(
-                   document, sourcemeta::core::schema_official_walker,
-                   test_resolver, std::nullopt, std::nullopt,
+                   document, sourcemeta::core::schema_walker, test_resolver,
+                   std::nullopt, std::nullopt,
                    sourcemeta::core::Pointer{"x-definitions", "foo", "bar"}),
                sourcemeta::core::SchemaError);
 }

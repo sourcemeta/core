@@ -1,16 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
-project(core VERSION 0.0.0 LANGUAGES C CXX DESCRIPTION "Sourcemeta Core")
+project(core VERSION 0.0.0 LANGUAGES C CXX ASM_MASM DESCRIPTION "Sourcemeta Core")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Options
 option(SOURCEMETA_CORE_LANG_IO "Build the Sourcemeta Core language I/O library" ON)
+option(SOURCEMETA_CORE_LANG_PROCESS "Build the Sourcemeta Core language Process library" ON)
 option(SOURCEMETA_CORE_LANG_PARALLEL "Build the Sourcemeta Core language parallel library" ON)
+option(SOURCEMETA_CORE_LANG_NUMERIC "Build the Sourcemeta Core language numeric library" ON)
+option(SOURCEMETA_CORE_PUNYCODE "Build the Sourcemeta Core Punycode library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
 option(SOURCEMETA_CORE_UUID "Build the Sourcemeta Core UUID library" ON)
-option(SOURCEMETA_CORE_GZIP "Build the Sourcemeta Core GZIP library" ON)
 option(SOURCEMETA_CORE_MD5 "Build the Sourcemeta Core MD5 library" ON)
 option(SOURCEMETA_CORE_REGEX "Build the Sourcemeta Core Regex library" ON)
 option(SOURCEMETA_CORE_URI "Build the Sourcemeta Core URI library" ON)
+option(SOURCEMETA_CORE_URITEMPLATE "Build the Sourcemeta Core URI Template library" ON)
 option(SOURCEMETA_CORE_JSON "Build the Sourcemeta Core JSON library" ON)
 option(SOURCEMETA_CORE_JSONSCHEMA "Build the Sourcemeta Core JSON Schema library" ON)
 option(SOURCEMETA_CORE_JSONPOINTER "Build the Sourcemeta Core JSON Pointer library" ON)
@@ -27,7 +30,6 @@ option(SOURCEMETA_CORE_DOCS "Build the Sourcemeta Core docs" OFF)
 option(SOURCEMETA_CORE_INSTALL "Install the Sourcemeta Core library" ON)
 option(SOURCEMETA_CORE_ADDRESS_SANITIZER "Build Sourcemeta Core with an address sanitizer" OFF)
 option(SOURCEMETA_CORE_UNDEFINED_SANITIZER "Build Sourcemeta Core with an undefined behavior sanitizer" OFF)
-option(SOURCEMETA_CORE_CONTRIB_ZLIB "Build the ZLIB library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLETEST "Build the GoogleTest library for downstream consumers" OFF)
 option(SOURCEMETA_CORE_CONTRIB_GOOGLEBENCHMARK "Build the GoogleBenchmark library for downstream consumers" OFF)
 
@@ -60,9 +62,22 @@ if(SOURCEMETA_CORE_LANG_IO)
   add_subdirectory(src/lang/io)
 endif()
 
+if(SOURCEMETA_CORE_LANG_PROCESS)
+  add_subdirectory(src/lang/process)
+endif()
+
 if(SOURCEMETA_CORE_LANG_PARALLEL)
   find_package(Threads REQUIRED)
   add_subdirectory(src/lang/parallel)
+endif()
+
+if(SOURCEMETA_CORE_LANG_NUMERIC)
+  find_package(mpdecimal REQUIRED)
+  add_subdirectory(src/lang/numeric)
+endif()
+
+if(SOURCEMETA_CORE_PUNYCODE)
+  add_subdirectory(src/core/punycode)
 endif()
 
 if(SOURCEMETA_CORE_TIME)
@@ -73,26 +88,21 @@ if(SOURCEMETA_CORE_UUID)
   add_subdirectory(src/core/uuid)
 endif()
 
-if(SOURCEMETA_CORE_CONTRIB_ZLIB OR SOURCEMETA_CORE_GZIP)
-  find_package(ZLIB REQUIRED)
-endif()
-
-if(SOURCEMETA_CORE_GZIP)
-  add_subdirectory(src/core/gzip)
-endif()
-
 if(SOURCEMETA_CORE_MD5)
   add_subdirectory(src/core/md5)
 endif()
 
 if(SOURCEMETA_CORE_REGEX)
-  find_package(BoostRegex REQUIRED)
+  find_package(PCRE2 REQUIRED)
   add_subdirectory(src/core/regex)
 endif()
 
 if(SOURCEMETA_CORE_URI)
-  find_package(UriParser REQUIRED)
   add_subdirectory(src/core/uri)
+endif()
+
+if(SOURCEMETA_CORE_URITEMPLATE)
+  add_subdirectory(src/core/uritemplate)
 endif()
 
 if(SOURCEMETA_CORE_JSON)
@@ -171,8 +181,20 @@ if(SOURCEMETA_CORE_TESTS)
     add_subdirectory(test/io)
   endif()
 
+  if(SOURCEMETA_CORE_LANG_PROCESS)
+    add_subdirectory(test/process)
+  endif()
+
   if(SOURCEMETA_CORE_LANG_PARALLEL)
     add_subdirectory(test/parallel)
+  endif()
+
+  if(SOURCEMETA_CORE_LANG_NUMERIC)
+    add_subdirectory(test/numeric)
+  endif()
+
+  if(SOURCEMETA_CORE_PUNYCODE)
+    add_subdirectory(test/punycode)
   endif()
 
   if(SOURCEMETA_CORE_TIME)
@@ -181,10 +203,6 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_UUID)
     add_subdirectory(test/uuid)
-  endif()
-
-  if(SOURCEMETA_CORE_GZIP)
-    add_subdirectory(test/gzip)
   endif()
 
   if(SOURCEMETA_CORE_MD5)
@@ -197,6 +215,10 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_URI)
     add_subdirectory(test/uri)
+  endif()
+
+  if(SOURCEMETA_CORE_URITEMPLATE)
+    add_subdirectory(test/uritemplate)
   endif()
 
   if(SOURCEMETA_CORE_JSON)

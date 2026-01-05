@@ -8,13 +8,11 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-#include <sourcemeta/core/jsonschema_resolver.h>
-
 #include <cassert>     // assert
 #include <concepts>    // std::derived_from, std::same_as
+#include <cstdint>     // std::uint8_t
 #include <functional>  // std::function
 #include <iterator>    // std::make_move_iterator, std::begin, std::end
-#include <map>         // std::map
 #include <memory>      // std::make_unique, std::unique_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <set>         // std::set
@@ -85,7 +83,7 @@ public:
   /// The result of evaluating a rule
   struct Result {
     Result(const bool applies_) : applies{applies_} {}
-    Result(Pointer pointer) : applies{true}, locations{std::move(pointer)} {
+    Result(const Pointer &pointer) : applies{true}, locations{pointer} {
       assert(this->locations.size() == 1);
     }
 
@@ -205,8 +203,8 @@ private:
 /// })JSON");
 ///
 /// // Apply the transformation bundle to the schema
-/// bundle.apply(schema, sourcemeta::core::schema_official_walker,
-///              sourcemeta::core::schema_official_resolver);
+/// bundle.apply(schema, sourcemeta::core::schema_walker,
+///              sourcemeta::core::schema_resolver);
 ///
 /// // `foo` keywords are gone
 /// assert(!schema.defines("foo"));
@@ -231,13 +229,11 @@ public:
   auto operator=(SchemaTransformer &&) -> SchemaTransformer & = default;
 #endif
 
-  /// Add a rule to the bundle
+  /// Add a rule to the bundle. Rules are evaluated in the order they are added.
+  /// It is the caller's responsibility to not add duplicate rules.
   template <std::derived_from<SchemaTransformRule> T, typename... Args>
   auto add(Args &&...args) -> void {
-    auto rule{std::make_unique<T>(std::forward<Args>(args)...)};
-    // Rules must only be defined once
-    assert(!this->rules.contains(rule->name()));
-    this->rules.emplace(rule->name(), std::move(rule));
+    this->rules.push_back(std::make_unique<T>(std::forward<Args>(args)...));
   }
 
   /// Remove a rule from the bundle
@@ -255,11 +251,12 @@ public:
                                       const SchemaTransformRule::Result &)>;
 
   /// Apply the bundle of rules to a schema
-  auto apply(JSON &schema, const SchemaWalker &walker,
-             const SchemaResolver &resolver, const Callback &callback,
-             const std::optional<JSON::String> &default_dialect = std::nullopt,
-             const std::optional<JSON::String> &default_id = std::nullopt) const
-      -> bool;
+  [[nodiscard]] auto
+  apply(JSON &schema, const SchemaWalker &walker,
+        const SchemaResolver &resolver, const Callback &callback,
+        const std::optional<JSON::String> &default_dialect = std::nullopt,
+        const std::optional<JSON::String> &default_id = std::nullopt) const
+      -> std::pair<bool, std::uint8_t>;
 
   /// Report back the rules from the bundle that need to be applied to a schema
   [[nodiscard]] auto
@@ -267,8 +264,6 @@ public:
         const SchemaResolver &resolver, const Callback &callback,
         const std::optional<JSON::String> &default_dialect = std::nullopt,
         const std::optional<JSON::String> &default_id = std::nullopt) const
-      // Note that we only calculate a health score on "check", as "apply" would
-      // by definition change the score
       -> std::pair<bool, std::uint8_t>;
 
   [[nodiscard]] auto begin() const -> auto { return this->rules.cbegin(); }
@@ -281,7 +276,7 @@ private:
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251)
 #endif
-  std::map<std::string, std::unique_ptr<SchemaTransformRule>> rules;
+  std::vector<std::unique_ptr<SchemaTransformRule>> rules;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

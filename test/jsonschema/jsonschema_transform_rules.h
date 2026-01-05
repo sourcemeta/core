@@ -401,4 +401,69 @@ public:
   }
 };
 
+class ExampleRuleDraftTag final : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleDraftTag()
+      : sourcemeta::core::SchemaTransformRule("example_rule_draft_tag", "") {};
+
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::JSON &,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (!schema.is_object() || schema.defines("x-dialect-type")) {
+      return false;
+    }
+
+    return vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_7) ||
+           vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_6) ||
+           vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_4);
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.assign("x-dialect-type", sourcemeta::core::JSON{"draft"});
+  }
+};
+
+class ExampleRuleModernTag final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleModernTag()
+      : sourcemeta::core::SchemaTransformRule("example_rule_modern_tag", "") {};
+
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::JSON &,
+            const sourcemeta::core::Vocabularies &vocabularies,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    if (!schema.is_object() || schema.defines("x-dialect-type")) {
+      return false;
+    }
+
+    return vocabularies.contains(sourcemeta::core::Vocabularies::Known::
+                                     JSON_Schema_2020_12_Core) ||
+           vocabularies.contains(
+               sourcemeta::core::Vocabularies::Known::JSON_Schema_2019_09_Core);
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    schema.assign("x-dialect-type", sourcemeta::core::JSON{"modern"});
+  }
+};
+
 #endif

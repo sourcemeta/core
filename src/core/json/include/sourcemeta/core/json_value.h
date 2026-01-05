@@ -9,7 +9,10 @@
 #include <sourcemeta/core/json_hash.h>
 #include <sourcemeta/core/json_object.h>
 
+#include <sourcemeta/core/numeric.h>
+
 #include <algorithm>        // std::any_of
+#include <bitset>           // std::bitset
 #include <cassert>          // assert
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::int64_t, std::uint8_t
@@ -46,6 +49,7 @@ public:
   using Object = JSONObject<String, JSON, PropertyHashJSON<JSON::String>>;
   /// The parsing phase of a JSON document.
   enum class ParsePhase : std::uint8_t { Pre, Post };
+
   // The enumeration indexes must stay in sync with the internal variant
   /// The different types of a JSON instance.
   enum class Type : std::uint8_t {
@@ -55,16 +59,23 @@ public:
     Real = 3,
     String = 4,
     Array = 5,
-    Object = 6
+    Object = 6,
+    Decimal = 7
   };
+
+  /// A set of types
+  using TypeSet = std::bitset<8>;
 
   /// An optional callback that can be passed to parsing functions to obtain
   /// metadata during the parsing process. Each subdocument will emit 2 events:
   /// a "pre" and a "post". When parsing object and arrays, during the "pre"
   /// event, the value corresponds to the property name or index, respectively.
-  using ParseCallback = std::function<void(
-      const ParsePhase phase, const Type type, const std::uint64_t line,
-      const std::uint64_t column, const JSON &value)>;
+  using ParseCallback =
+      std::function<void(const ParsePhase phase, const Type type,
+                         const std::uint64_t line, const std::uint64_t column,
+                         // TODO: Instead of taking a JSON value, we should take
+                         // either an index or a string view to the key
+                         const JSON &value)>;
   /// A comparison function between object property keys.
   /// See https://en.cppreference.com/w/cpp/named_req/Compare
   using KeyComparison = std::function<bool(const String &, const String &)>;
@@ -213,6 +224,12 @@ public:
 
   /// A copy constructor for the object type.
   explicit JSON(const Object &value);
+
+  /// A copy constructor for the decimal type.
+  explicit JSON(const Decimal &value);
+
+  /// A move constructor for the decimal type.
+  explicit JSON(Decimal &&value);
 
   /// Misc constructors
   JSON(const JSON &);
@@ -388,17 +405,17 @@ public:
   /// ```
   [[nodiscard]] auto is_real() const noexcept -> bool;
 
-  /// Check if the input JSON document is a real number that represents an
-  /// integer. For example:
+  /// Check if the input JSON document is an integer, a real number that
+  /// represents an integer, or an integer decimal. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
   /// #include <cassert>
   ///
   /// const sourcemeta::core::JSON document{5.0};
-  /// assert(document.is_integer_real());
+  /// assert(document.is_integral());
   /// ```
-  [[nodiscard]] auto is_integer_real() const noexcept -> bool;
+  [[nodiscard]] auto is_integral() const noexcept -> bool;
 
   /// Check if the input JSON document is either an integer or a real type. For
   /// example:
@@ -463,6 +480,19 @@ public:
   /// ```
   [[nodiscard]] auto is_object() const noexcept -> bool;
 
+  /// Check if the input JSON document is an arbitrary precision decimal value.
+  /// For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Decimal value{1234567890};
+  /// const sourcemeta::core::JSON document{value};
+  /// assert(document.is_decimal());
+  /// ```
+  [[nodiscard]] auto is_decimal() const noexcept -> bool;
+
   /// Get the type of the JSON document. For example:
   ///
   /// ```cpp
@@ -518,6 +548,20 @@ public:
   /// assert(document.to_real() == 3.14);
   /// ```
   [[nodiscard]] auto to_real() const noexcept -> Real;
+
+  /// Convert a JSON instance into a decimal value. The result of this method
+  /// is undefined unless the JSON instance holds a decimal value. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::Decimal value{1234567890};
+  /// const sourcemeta::core::JSON document{value};
+  /// assert(document.is_decimal());
+  /// assert(document.to_decimal().to_int64() == 1234567890);
+  /// ```
+  [[nodiscard]] auto to_decimal() const noexcept -> const Decimal &;
 
   /// Convert a JSON instance into a standard string value. The result of this
   /// method is undefined unless the JSON instance holds a string value. For
@@ -1345,6 +1389,39 @@ public:
   /// ```
   auto assign_if_missing(const String &key, JSON &&value) -> void;
 
+  /// This method sets an object key, assuming the key does not already exist.
+  /// If the key already exists, behavior is undefined. This variant is faster
+  /// than `assign` when building objects with keys known to be unique. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  /// document.assign_assume_new("foo", sourcemeta::core::JSON{1});
+  /// assert(document.defines("foo"));
+  /// assert(document.at("foo").to_integer() == 1);
+  /// ```
+  auto assign_assume_new(const String &key, JSON &&value) -> void;
+
+  /// This method sets an object key, assuming the key does not already exist.
+  /// If the key already exists, behavior is undefined. This variant is faster
+  /// than `assign` when building objects with keys known to be unique, and
+  /// allows moving the key. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  /// std::string key{"foo"};
+  /// document.assign_assume_new(std::move(key), sourcemeta::core::JSON{1});
+  /// assert(document.defines("foo"));
+  /// assert(document.at("foo").to_integer() == 1);
+  /// ```
+  auto assign_assume_new(String &&key, JSON &&value) -> void;
+
   /// This method deletes an object key. For example:
   ///
   /// ```cpp
@@ -1587,6 +1664,46 @@ public:
   /// ```
   auto trim() -> const JSON::String &;
 
+  /// Check if the string has no leading or trailing whitespace. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::JSON trimmed{"Hello World"};
+  /// assert(trimmed.is_trimmed());
+  ///
+  /// const sourcemeta::core::JSON untrimmed{" Hello World "};
+  /// assert(!untrimmed.is_trimmed());
+  /// ```
+  [[nodiscard]] auto is_trimmed() const noexcept -> bool;
+
+  /// Reorder the properties of an object by sorting keys according to a
+  /// comparator function. The object is modified in-place. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::JSON document =
+  ///   sourcemeta::core::JSON::make_object();
+  /// document.assign("zebra", sourcemeta::core::JSON{1});
+  /// document.assign("apple", sourcemeta::core::JSON{2});
+  /// document.assign("banana", sourcemeta::core::JSON{3});
+  ///
+  /// document.reorder([](const auto &left, const auto &right) {
+  ///   return left < right;
+  /// });
+  ///
+  /// auto iterator = document.as_object().cbegin();
+  /// assert(iterator->first == "apple");
+  /// ++iterator;
+  /// assert(iterator->first == "banana");
+  /// ++iterator;
+  /// assert(iterator->first == "zebra");
+  /// ```
+  auto reorder(const KeyComparison &compare) -> void;
+
   /*
    * Transform operations
    */
@@ -1687,6 +1804,10 @@ private:
     String data_string;
     Array data_array;
     Object data_object;
+    // Move Decimal to the heap to reduce the size of the JSON class.
+    // Dealing with arbitrary precision numbers is not common, so we pay the
+    // indirection cost only when needed.
+    Decimal *data_decimal;
   };
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)

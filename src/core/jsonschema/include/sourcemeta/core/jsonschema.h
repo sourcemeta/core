@@ -12,7 +12,6 @@
 #include <sourcemeta/core/jsonschema_bundle.h>
 #include <sourcemeta/core/jsonschema_error.h>
 #include <sourcemeta/core/jsonschema_frame.h>
-#include <sourcemeta/core/jsonschema_resolver.h>
 #include <sourcemeta/core/jsonschema_transform.h>
 #include <sourcemeta/core/jsonschema_types.h>
 #include <sourcemeta/core/jsonschema_walker.h>
@@ -39,15 +38,13 @@ namespace sourcemeta::core {
 /// @ingroup jsonschema
 /// A default resolver that relies on built-in official schemas.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_official_resolver(std::string_view identifier)
-    -> std::optional<JSON>;
+auto schema_resolver(std::string_view identifier) -> std::optional<JSON>;
 
 /// @ingroup jsonschema
 /// A default schema walker with support for a wide range of drafs
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_official_walker(std::string_view keyword,
-                            const Vocabularies &vocabularies)
-    -> SchemaWalkerResult;
+auto schema_walker(std::string_view keyword, const Vocabularies &vocabularies)
+    -> const SchemaWalkerResult &;
 
 /// @ingroup jsonschema
 ///
@@ -73,16 +70,16 @@ auto schema_official_walker(std::string_view keyword,
 ///
 /// const auto vocabularies{
 ///   sourcemeta::core::vocabularies(
-///     document, sourcemeta::core::schema_official_resolver)};
+///     document, sourcemeta::core::schema_resolver)};
 ///
 /// assert(sourcemeta::core::schema_keyword_priority(
 ///   "prefixItems", vocabularies,
-///   sourcemeta::core::schema_official_walker) == 0);
+///   sourcemeta::core::schema_walker) == 0);
 ///
 /// // The "items" keyword must be evaluated after the "prefixItems" keyword
 /// assert(sourcemeta::core::schema_keyword_priority(
 ///   "items", vocabularies,
-///   sourcemeta::core::schema_official_walker) == 1);
+///   sourcemeta::core::schema_walker) == 1);
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto schema_keyword_priority(std::string_view keyword,
@@ -138,18 +135,12 @@ auto is_empty_schema(const JSON &schema) -> bool;
 /// })JSON");
 ///
 /// std::optional<std::string> id{sourcemeta::core::identify(
-///   document, sourcemeta::core::schema_official_resolver)};
+///   document, sourcemeta::core::schema_resolver)};
 /// assert(id.has_value());
 /// assert(id.value() == "https://sourcemeta.com/example-schema");
 /// ```
-///
-/// You can opt-in to a loose identification strategy to attempt to play a
-/// guessing game. Often useful if you have a schema without a dialect and you
-/// want to at least try to get something.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto identify(const JSON &schema, const SchemaResolver &resolver,
-              const SchemaIdentificationStrategy strategy =
-                  SchemaIdentificationStrategy::Strict,
               const std::optional<std::string> &default_dialect = std::nullopt,
               const std::optional<std::string> &default_id = std::nullopt)
     -> std::optional<std::string>;
@@ -185,7 +176,7 @@ auto identify(const JSON &schema, const std::string &base_dialect,
 ///   "https://json-schema.org/draft/2020-12/schema");
 ///
 /// std::optional<std::string> id{sourcemeta::core::identify(
-///   document, sourcemeta::core::schema_official_resolver)};
+///   document, sourcemeta::core::schema_resolver)};
 /// assert(!id.has_value());
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
@@ -209,10 +200,10 @@ auto anonymize(JSON &schema, const std::string &base_dialect) -> void;
 ///
 /// sourcemeta::core::reidentify(document,
 ///   "https://example.com/my-new-id",
-///   sourcemeta::core::schema_official_resolver);
+///   sourcemeta::core::schema_resolver);
 ///
 /// std::optional<std::string> id{sourcemeta::core::identify(
-///   document, sourcemeta::core::schema_official_resolver)};
+///   document, sourcemeta::core::schema_resolver)};
 /// assert(id.has_value());
 /// assert(id.value() == "https://example.com/my-new-id");
 /// ```
@@ -274,7 +265,7 @@ auto dialect(const JSON &schema,
 ///
 /// const sourcemeta::core::JSON metaschema{
 ///   sourcemeta::core::metaschema(
-///     document, sourcemeta::core::schema_official_resolver)};
+///     document, sourcemeta::core::schema_resolver)};
 ///
 /// sourcemeta::core::prettify(metaschema, std::cout);
 /// std::cout << std::endl;
@@ -306,11 +297,11 @@ auto metaschema(
 ///
 /// const std::optional<std::string> base_dialect{
 ///   sourcemeta::core::base_dialect(
-///     document, sourcemeta::core::schema_official_resolver)};
+///     document, sourcemeta::core::schema_resolver)};
 ///
 /// assert(base_dialect.has_value());
 /// assert(base_dialect.value() ==
-/// "https://json-schema.org/draft/2020-12/schema");
+///   "https://json-schema.org/draft/2020-12/schema");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto base_dialect(const JSON &schema, const SchemaResolver &resolver,
@@ -339,7 +330,7 @@ auto base_dialect(const JSON &schema, const SchemaResolver &resolver,
 ///
 /// const auto vocabularies{
 ///   sourcemeta::core::vocabularies(
-///     document, sourcemeta::core::schema_official_resolver)};
+///     document, sourcemeta::core::schema_resolver)};
 ///
 /// assert(vocabularies.at("https://json-schema.org/draft/2020-12/vocab/core"));
 /// assert(vocabularies.at("https://json-schema.org/draft/2020-12/vocab/applicator"));
@@ -365,105 +356,30 @@ auto vocabularies(const SchemaResolver &resolver,
 
 /// @ingroup jsonschema
 ///
-/// An opinionated JSON Schema aware key comparison for use with
-/// sourcemeta::core::prettify or sourcemeta::core::stringify for
-/// formatting purposes. For example:
+/// Format a JSON Schema document by reordering all object properties throughout
+/// the entire document according to an opinionated JSON Schema aware ordering.
+/// This function modifies the schema in-place. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonschema.h>
 /// #include <iostream>
 /// #include <sstream>
 ///
-/// const sourcemeta::core::JSON document =
+/// sourcemeta::core::JSON schema =
 ///   sourcemeta::core::parse_json(
 ///     "{ \"type\": \"string\", \"minLength\": 3 }");
+/// sourcemeta::core::format(schema, sourcemeta::core::schema_walker,
+///                          sourcemeta::core::schema_resolver);
 /// std::ostringstream stream;
-/// sourcemeta::core::prettify(document, stream,
-///   sourcemeta::core::schema_format_compare);
+/// sourcemeta::core::prettify(schema, stream);
 /// std::cout << stream.str() << std::endl;
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_format_compare(const JSON::String &left, const JSON::String &right)
-    -> bool;
-
-/// @ingroup jsonschema
-///
-/// A reference visitor to try to turn every possible absolute reference in a
-/// schema into a relative one. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/json.h>
-/// #include <sourcemeta/core/jsonschema.h>
-/// #include <cassert>
-///
-/// sourcemeta::core::JSON schema =
-///   sourcemeta::core::parse_json(R"JSON({
-///   "$id": "https://www.example.com/schema",
-///   "$schema": "https://json-schema.org/draft/2020-12/schema",
-///   "$ref": "https://www.example.com/another",
-/// })JSON");
-///
-/// sourcemeta::core::reference_visit(schema,
-///   sourcemeta::core::schema_official_walker,
-///   sourcemeta::core::schema_official_resolver,
-///   sourcemeta::core::reference_visitor_relativize);
-///
-/// const sourcemeta::core::JSON expected =
-///   sourcemeta::core::parse_json(R"JSON({
-///   "$id": "https://www.example.com/schema",
-///   "$schema": "https://json-schema.org/draft/2020-12/schema",
-///   "$ref": "another",
-/// })JSON");
-///
-/// assert(schema == expected);
-/// ```
-SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto reference_visitor_relativize(JSON &subschema, const URI &base,
-                                  const JSON::String &vocabulary,
-                                  const JSON::String &keyword, URI &value)
+auto format(JSON &schema, const SchemaWalker &walker,
+            const SchemaResolver &resolver,
+            const std::optional<JSON::String> &default_dialect = std::nullopt)
     -> void;
-
-/// @ingroup jsonschema
-///
-/// A utility function to loop over every reference in a schema, allowing
-/// modifications to their subschemas if desired. Note that the consumer is
-/// responsible for not making the schema invalid. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/json.h>
-/// #include <sourcemeta/core/jsonschema.h>
-///
-/// sourcemeta::core::JSON schema =
-///   sourcemeta::core::parse_json(R"JSON({
-///   "$id": "https://www.example.com/schema",
-///   "$schema": "https://json-schema.org/draft/2020-12/schema",
-///   "$ref": "https://www.example.com/another",
-/// })JSON");
-///
-/// static auto visitor(JSON &subschema,
-///                     const URI &base,
-///                     const JSON::String &vocabulary,
-///                     const JSON::String &keyword,
-///                     URI &value) -> void {
-///   sourcemeta::core::prettify(subschema, std::cerr);
-///   std::cerr << "\n";
-///   std::cerr << base.recompose() << "\n";
-///   std::cerr << vocabulary << "\n";
-///   std::cerr << keyword << "\n";
-///   std::cerr << value.recompose() << "\n";
-/// }
-///
-/// sourcemeta::core::reference_visit(schema,
-///   sourcemeta::core::schema_official_walker,
-///   sourcemeta::core::schema_official_resolver,
-///   visitor);
-/// ```
-SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto reference_visit(
-    JSON &schema, const SchemaWalker &walker, const SchemaResolver &resolver,
-    const SchemaVisitorReference &callback,
-    const std::optional<std::string> &default_dialect = std::nullopt,
-    const std::optional<std::string> &default_id = std::nullopt) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -506,7 +422,7 @@ auto wrap(const JSON::String &identifier) -> JSON;
 ///
 /// const sourcemeta::core::JSON result =
 ///   sourcemeta::core::wrap(document, { "items" },
-///     sourcemeta::core::schema_official_resolver);
+///     sourcemeta::core::schema_resolver);
 ///
 /// sourcemeta::core::prettify(result, std::cerr);
 /// std::cerr << "\n";
@@ -519,27 +435,23 @@ auto wrap(const JSON &schema, const Pointer &pointer,
 
 /// @ingroup jsonschema
 ///
-/// Parse a JSON Schema `type` string into one or more native JSON type
-/// definition. For example:
+/// Parse the value of a JSON Schema `type` keyword (which can be a string or
+/// an array of strings) into a set of native JSON types. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
 /// #include <sourcemeta/core/jsonschema.h>
 /// #include <cassert>
-/// #include <set>
 ///
-/// std::set<sourcemeta::core::JSON::Type> types;
-/// sourcemeta::core::parse_schema_type("number",
-///   [&types](const auto type) { types.emplace(type); });
-///
-/// assert(types.size() == 2);
-/// assert(types.contains(sourcemeta::core::JSON::Type::Integer));
-/// assert(types.contains(sourcemeta::core::JSON::Type::Real));
+/// const auto type{sourcemeta::core::parse_json(R"JSON([ "string", "null"
+/// ])JSON")}; const auto types{sourcemeta::core::parse_schema_type(type)};
+/// assert(types.test(
+///     static_cast<std::size_t>(sourcemeta::core::JSON::Type::String)));
+/// assert(types.test(
+///     static_cast<std::size_t>(sourcemeta::core::JSON::Type::Null)));
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto parse_schema_type(const JSON::String &type,
-                       const std::function<void(const JSON::Type)> &callback)
-    -> void;
+auto parse_schema_type(const JSON &type) -> JSON::TypeSet;
 
 } // namespace sourcemeta::core
 

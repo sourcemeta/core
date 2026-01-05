@@ -75,17 +75,16 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
 
     // Make sure that the top-level schema ALWAYS has a `$schema` declaration
     if (entry.second.pointer.empty() && !subschema.defines("$schema")) {
-      subschema.assign("$schema", JSON{entry.second.base_dialect});
+      subschema.assign_assume_new("$schema", JSON{entry.second.base_dialect});
     }
 
     // Get rid of the keywords we don't want anymore
     anonymize(subschema, entry.second.base_dialect);
     const auto vocabularies{frame.vocabularies(entry.second, resolver)};
-    if (vocabularies.contains(
-            "https://json-schema.org/draft/2020-12/vocab/core")) {
+    if (vocabularies.contains(Vocabularies::Known::JSON_Schema_2020_12_Core)) {
       subschema.erase_keys({"$vocabulary", "$anchor", "$dynamicAnchor"});
     } else if (vocabularies.contains(
-                   "https://json-schema.org/draft/2019-09/vocab/core")) {
+                   Vocabularies::Known::JSON_Schema_2019_09_Core)) {
       subschema.erase_keys({"$vocabulary", "$anchor", "$recursiveAnchor"});
     }
   }

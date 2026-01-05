@@ -50,9 +50,6 @@ auto read_json(const std::filesystem::path &path,
   auto stream{read_file<JSON::Char, JSON::CharTraits>(path)};
   try {
     return parse_json(stream, callback);
-  } catch (const JSONParseIntegerLimitError &error) {
-    // For producing better error messages
-    throw JSONFileParseError(path, error);
   } catch (const JSONParseError &error) {
     // For producing better error messages
     throw JSONFileParseError(path, error);
@@ -62,25 +59,13 @@ auto read_json(const std::filesystem::path &path,
 auto stringify(const JSON &document,
                std::basic_ostream<JSON::Char, JSON::CharTraits> &stream)
     -> void {
-  stringify<std::allocator>(document, stream, nullptr);
-}
-
-auto prettify(const JSON &document,
-              std::basic_ostream<JSON::Char, JSON::CharTraits> &stream)
-    -> void {
-  prettify<std::allocator>(document, stream, nullptr);
-}
-
-auto stringify(const JSON &document,
-               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
-               const JSON::KeyComparison &compare) -> void {
-  stringify<std::allocator>(document, stream, compare);
+  stringify<std::allocator>(document, stream);
 }
 
 auto prettify(const JSON &document,
               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
-              const JSON::KeyComparison &compare) -> void {
-  prettify<std::allocator>(document, stream, compare);
+              const std::size_t spaces) -> void {
+  prettify<std::allocator>(document, stream, 0, spaces);
 }
 
 auto operator<<(std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
@@ -106,6 +91,8 @@ auto operator<<(std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
       return stream << "integer";
     case sourcemeta::core::JSON::Type::Real:
       return stream << "real";
+    case sourcemeta::core::JSON::Type::Decimal:
+      return stream << "decimal";
     case sourcemeta::core::JSON::Type::String:
       return stream << "string";
     case sourcemeta::core::JSON::Type::Array:
@@ -117,6 +104,14 @@ auto operator<<(std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
       assert(false);
       return stream;
   }
+}
+
+auto make_set(std::initializer_list<JSON::Type> types) -> JSON::TypeSet {
+  JSON::TypeSet result;
+  for (const auto type : types) {
+    result.set(static_cast<std::size_t>(type));
+  }
+  return result;
 }
 
 } // namespace sourcemeta::core

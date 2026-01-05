@@ -103,3 +103,39 @@ TEST(URI_relative_to, absolute_absolute_trailing_slash) {
   EXPECT_EQ(uri.recompose(),
             "https://github.com/apis-json/api-json/blob/develop/spec/");
 }
+
+TEST(URI_relative_to, sibling_paths_same_directory) {
+  const sourcemeta::core::URI base{"https://example.com/schemas/bar.json"};
+  sourcemeta::core::URI uri{"https://example.com/schemas/foo.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "foo.json");
+}
+
+TEST(URI_relative_to, double_slash_with_trailing_slash) {
+  const sourcemeta::core::URI base{"https://example.com/slash/"};
+  sourcemeta::core::URI uri{"https://example.com/slash/file.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "file.json");
+}
+
+TEST(URI_relative_to, different_directories_same_host_needs_dotdot) {
+  const sourcemeta::core::URI base{
+      "https://example.com/schemas/with-rebase-same-host.json"};
+  sourcemeta::core::URI uri{"https://example.com/bundling/single"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../bundling/single");
+}
+
+TEST(URI_relative_to, different_directories_same_host_needs_dotdot_2) {
+  const sourcemeta::core::URI base{"https://example.com/foo/bar/baz.json"};
+  sourcemeta::core::URI uri{"https://example.com/qux/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../qux/test.json");
+}
+
+TEST(URI_relative_to, different_directories_same_host_needs_dotdot_3) {
+  const sourcemeta::core::URI base{"https://example.com/a/b/c.json"};
+  sourcemeta::core::URI uri{"https://example.com/d.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../d.json");
+}

@@ -35,9 +35,7 @@ auto SchemaConfig::from_json(const JSON &value,
   SCHEMACONFIG_ENSURE(!value.defines("website") ||
                           value.at("website").is_string(),
                       "The website property must be a string", {"website"});
-  SCHEMACONFIG_ENSURE(value.defines("path"), "The path property is required",
-                      {"path"});
-  SCHEMACONFIG_ENSURE(value.at("path").is_string(),
+  SCHEMACONFIG_ENSURE(!value.defines("path") || value.at("path").is_string(),
                       "The path property must be a string", {"path"});
   SCHEMACONFIG_ENSURE(!value.defines("baseUri") ||
                           value.at("baseUri").is_string(),
@@ -46,6 +44,10 @@ auto SchemaConfig::from_json(const JSON &value,
                           value.at("defaultDialect").is_string(),
                       "The defaultDialect property must be a string",
                       {"defaultDialect"});
+  SCHEMACONFIG_ENSURE(
+      !value.defines("extension") || value.at("extension").is_array() ||
+          value.at("extension").is_string(),
+      "The extension property must be a string or an array", {"extension"});
   SCHEMACONFIG_ENSURE(!value.defines("resolve") ||
                           value.at("resolve").is_object(),
                       "The resolve property must be an object", {"resolve"});
@@ -66,19 +68,30 @@ auto SchemaConfig::from_json(const JSON &value,
       sourcemeta::core::from_json<decltype(result.website)::value_type>(
           value.at_or("website", JSON{nullptr}));
 
-  const std::filesystem::path path{value.at("path").to_string()};
-  if (path.is_absolute()) {
-    result.absolute_path = std::filesystem::weakly_canonical(path);
+  if (value.defines("path")) {
+    const std::filesystem::path path{value.at("path").to_string()};
+    if (path.is_absolute()) {
+      result.absolute_path = std::filesystem::weakly_canonical(path);
+    } else {
+      result.absolute_path =
+          std::filesystem::weakly_canonical(base_path / path);
+    }
   } else {
-    result.absolute_path = std::filesystem::weakly_canonical(base_path / path);
+    result.absolute_path = std::filesystem::weakly_canonical(base_path);
   }
 
   assert(result.absolute_path.is_absolute());
 
   if (value.defines("baseUri")) {
     try {
-      result.base =
-          sourcemeta::core::URI::canonicalize(value.at("baseUri").to_string());
+      URI base{value.at("baseUri").to_string()};
+      base.canonicalize();
+      if (!base.is_absolute()) {
+        SCHEMACONFIG_ENSURE(
+            false, "The baseUri property must be an absolute URI", {"baseUri"});
+      }
+
+      result.base = base.recompose();
     } catch (const URIParseError &) {
       SCHEMACONFIG_ENSURE(false,
                           "The baseUri property must represent a valid URI",
@@ -86,13 +99,41 @@ auto SchemaConfig::from_json(const JSON &value,
     }
   } else {
     // Otherwise the base is the directory
-    result.base =
-        sourcemeta::core::URI::from_path(result.absolute_path).recompose();
+    result.base = URI::from_path(result.absolute_path).recompose();
   }
 
   result.default_dialect =
       sourcemeta::core::from_json<decltype(result.default_dialect)::value_type>(
           value.at_or("defaultDialect", JSON{nullptr}));
+
+  if (value.defines("extension")) {
+    const auto &extension_value{value.at("extension")};
+    if (extension_value.is_string()) {
+      auto extension_string{extension_value.to_string()};
+      if (!extension_string.empty() && extension_string.front() != '.') {
+        extension_string.insert(extension_string.begin(), '.');
+      }
+
+      result.extension.emplace(std::move(extension_string));
+    } else {
+      std::size_t index{0};
+      for (const auto &element : extension_value.as_array()) {
+        SCHEMACONFIG_ENSURE(element.is_string(),
+                            "The values in the extension array must be strings",
+                            Pointer({"extension", index}));
+
+        auto extension_string{element.to_string()};
+        if (!extension_string.empty() && extension_string.front() != '.') {
+          extension_string.insert(extension_string.begin(), '.');
+        }
+
+        result.extension.emplace(std::move(extension_string));
+        index += 1;
+      }
+    }
+  } else {
+    result.extension = {".json", ".yml", ".yaml"};
+  }
 
   if (value.defines("resolve")) {
     for (const auto &pair : value.at("resolve").as_object()) {
@@ -101,8 +142,8 @@ auto SchemaConfig::from_json(const JSON &value,
                           Pointer({"resolve", pair.first}));
 
       try {
-        result.resolve.emplace(pair.first, sourcemeta::core::URI::canonicalize(
-                                               pair.second.to_string()));
+        result.resolve.emplace(pair.first,
+                               URI::canonicalize(pair.second.to_string()));
       } catch (const URIParseError &) {
         SCHEMACONFIG_ENSURE(
             false, "The values in the resolve object must represent valid URIs",

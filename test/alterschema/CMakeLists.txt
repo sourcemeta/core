@@ -1,5 +1,14 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME alterschema
   SOURCES
+    alterschema_canonicalize_2020_12_test.cc
+    alterschema_canonicalize_2019_09_test.cc
+    alterschema_canonicalize_draft7_test.cc
+    alterschema_canonicalize_draft6_test.cc
+    alterschema_canonicalize_draft4_test.cc
+    alterschema_canonicalize_draft3_test.cc
+    alterschema_canonicalize_draft2_test.cc
+    alterschema_canonicalize_draft1_test.cc
+    alterschema_canonicalize_draft0_test.cc
     alterschema_lint_2020_12_test.cc
     alterschema_lint_2019_09_test.cc
     alterschema_lint_draft7_test.cc
@@ -9,6 +18,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME alterschema
     alterschema_lint_draft2_test.cc
     alterschema_lint_draft1_test.cc
     alterschema_lint_draft0_test.cc
+    alterschema_lint_openapi_test.cc
     alterschema_test_utils.h)
 
 target_link_libraries(sourcemeta_core_alterschema_unit
@@ -16,4 +26,14 @@ target_link_libraries(sourcemeta_core_alterschema_unit
 target_link_libraries(sourcemeta_core_alterschema_unit
   PRIVATE sourcemeta::core::jsonschema)
 target_link_libraries(sourcemeta_core_alterschema_unit
+  PRIVATE sourcemeta::core::alterschema)
+
+sourcemeta_executable(NAMESPACE sourcemeta PROJECT core
+  NAME alterschema_canonicalize
+  SOURCES alterschema_canonicalize.cc)
+target_link_libraries(sourcemeta_core_alterschema_canonicalize
+  PRIVATE sourcemeta::core::json)
+target_link_libraries(sourcemeta_core_alterschema_canonicalize
+  PRIVATE sourcemeta::core::jsonschema)
+target_link_libraries(sourcemeta_core_alterschema_canonicalize
   PRIVATE sourcemeta::core::alterschema)

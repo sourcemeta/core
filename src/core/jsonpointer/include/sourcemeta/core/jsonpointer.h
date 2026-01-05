@@ -12,8 +12,6 @@
 #include <sourcemeta/core/jsonpointer_error.h>
 #include <sourcemeta/core/jsonpointer_pointer.h>
 #include <sourcemeta/core/jsonpointer_position.h>
-#include <sourcemeta/core/jsonpointer_subpointer_walker.h>
-#include <sourcemeta/core/jsonpointer_template.h>
 #include <sourcemeta/core/jsonpointer_walker.h>
 // NOLINTEND(misc-include-cleaner)
 
@@ -22,6 +20,7 @@
 #include <memory>      // std::allocator
 #include <ostream>     // std::basic_ostream
 #include <string>      // std::basic_string
+#include <string_view> // std::string_view
 #include <type_traits> // std::is_same_v
 
 /// @defgroup jsonpointer JSON Pointer
@@ -49,10 +48,6 @@ const Pointer empty_pointer;
 /// @ingroup jsonpointer
 /// A global constant instance of the empty JSON WeakPointer.
 const WeakPointer empty_weak_pointer;
-
-/// @ingroup jsonpointer
-/// A JSON Pointer with unresolved wildcards
-using PointerTemplate = GenericPointerTemplate<Pointer>;
 
 /// @ingroup jsonpointer
 /// Get a value from a JSON document using a JSON Pointer (`const` overload).
@@ -468,27 +463,6 @@ auto stringify(const WeakPointer &pointer,
 
 /// @ingroup jsonpointer
 ///
-/// Stringify the input JSON Pointer template into a given C++ standard output
-/// stream. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/jsonpointer.h>
-/// #include <iostream>
-/// #include <sstream>
-///
-/// const sourcemeta::core::Pointer base{"foo", "bar"};
-/// const sourcemeta::core::PointerTemplate pointer{base};
-/// std::ostringstream stream;
-/// sourcemeta::core::stringify(pointer, stream);
-/// std::cout << stream.str() << std::endl;
-/// ```
-SOURCEMETA_CORE_JSONPOINTER_EXPORT
-auto stringify(const PointerTemplate &pointer,
-               std::basic_ostream<JSON::Char, JSON::CharTraits> &stream)
-    -> void;
-
-/// @ingroup jsonpointer
-///
 /// Stringify the input JSON Pointer into a C++ standard string. For example:
 ///
 /// ```cpp
@@ -524,6 +498,41 @@ SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto to_string(const WeakPointer &pointer)
     -> std::basic_string<JSON::Char, JSON::CharTraits,
                          std::allocator<JSON::Char>>;
+
+/// @ingroup jsonpointer
+///
+/// Mangle a JSON Pointer template and prefix into a collision-free identifier.
+///
+/// The encoding rules for ASCII characters (0x00-0x7F) are:
+///
+/// - Lowercase at segment start (except x, u, z): capitalize (no marker)
+/// - Lowercase x, u, z at segment start: hex escape (reserved characters)
+/// - Uppercase at segment start (except X, U, Z): U + letter
+/// - Uppercase X, U, Z at segment start: hex escape (reserved characters)
+/// - Non-segment-start lowercase: as-is
+/// - Non-segment-start uppercase (except X, U): as-is
+/// - Non-segment-start X: X58, Non-segment-start U: X55
+/// - ASCII digits (0-9): as-is
+/// - Other ASCII (space, punctuation, control): hex escape, starts new segment
+/// - Z/z reserved for special token prefixes
+///
+/// For non-ASCII bytes (0x80-0xFF, e.g. UTF-8 sequences):
+///
+/// - Always hex escaped
+/// - Do NOT start a new segment (preserves UTF-8 multi-byte sequences)
+///
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jsonpointer.h>
+/// #include <cassert>
+///
+/// const sourcemeta::core::Pointer pointer{"foo", "bar"};
+/// const auto result{sourcemeta::core::mangle(pointer, "schema")};
+/// assert(result == "Schema_Foo_Bar");
+/// ```
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto mangle(const Pointer &pointer, std::string_view prefix) -> std::string;
 
 /// @ingroup jsonpointer
 ///
@@ -564,6 +573,7 @@ auto to_uri(const Pointer &pointer) -> URI;
 SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto to_uri(const Pointer &pointer, const URI &base) -> URI;
 
+// TODO: Only support this with weak pointers
 /// @ingroup jsonpointer
 ///
 /// Walk over every element of a JSON document, top-down, using JSON Pointers.
@@ -593,32 +603,6 @@ auto to_uri(const Pointer &pointer, const URI &base) -> URI;
 using PointerWalker = GenericPointerWalker<Pointer>;
 
 /// @ingroup jsonpointer
-///
-/// Walk over every subpointer of a JSON Pointer, from the current pointer down
-/// to the empty pointer. For example:
-///
-/// ```cpp
-/// #include <sourcemeta/core/json.h>
-/// #include <sourcemeta/core/jsonpointer.h>
-/// #include <cassert>
-/// #include <vector>
-///
-/// const sourcemeta::core::Pointer pointer{"foo", "bar"};
-/// std::vector<sourcemeta::core::Pointer> subpointers;
-///
-/// for (const auto &subpointer :
-///   sourcemeta::core::SubPointerWalker{pointer}) {
-///   subpointers.push_back(subpointer);
-/// }
-///
-/// assert(subpointers.size() == 3);
-/// assert(subpointers.at(0) == sourcemeta::core::Pointer{"foo", "bar"});
-/// assert(subpointers.at(1) == sourcemeta::core::Pointer{"foo"});
-/// assert(subpointers.at(2) == sourcemeta::core::Pointer{});
-/// ```
-using SubPointerWalker = GenericSubPointerWalker<Pointer>;
-
-/// @ingroup jsonpointer
 /// Serialise a Pointer as JSON
 template <typename T>
   requires std::is_same_v<T, Pointer>
@@ -644,12 +628,47 @@ auto from_json(const JSON &value) -> std::optional<T> {
   }
 
   try {
-    return to_pointer(value.to_string());
+    return to_pointer(value);
   } catch (const PointerParseError &) {
     return std::nullopt;
   }
 }
 
 } // namespace sourcemeta::core
+
+// This hash specialisation is intentationally constant with a decent tolerance
+// to collisions
+namespace std {
+template <typename PropertyT>
+struct hash<sourcemeta::core::GenericPointer<
+    PropertyT,
+    sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>>> {
+  auto
+  operator()(const sourcemeta::core::GenericPointer<
+             PropertyT,
+             sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>>
+                 &pointer) const noexcept -> std::size_t {
+    const auto size{pointer.size()};
+    if (size == 0) {
+      return size;
+    }
+
+    const auto &first{pointer.at(0)};
+    const auto &middle{pointer.at(size / 2)};
+    const auto &last{pointer.at(size - 1)};
+
+    return size +
+           (first.is_property()
+                ? static_cast<std::size_t>(first.property_hash().a)
+                : first.to_index()) +
+           (middle.is_property()
+                ? static_cast<std::size_t>(middle.property_hash().a)
+                : middle.to_index()) +
+           (last.is_property()
+                ? static_cast<std::size_t>(last.property_hash().a)
+                : last.to_index());
+  }
+};
+} // namespace std
 
 #endif

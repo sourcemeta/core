@@ -4,10 +4,13 @@
 #include <sourcemeta/core/json_error.h>
 #include <sourcemeta/core/json_value.h>
 
+#include <sourcemeta/core/numeric.h>
+
 #include "grammar.h"
 
 #include <cassert>    // assert
 #include <cctype>     // std::isxdigit
+#include <cmath>      // std::isinf, std::isnan
 #include <cstddef>    // std::size_t
 #include <cstdint>    // std::uint64_t
 #include <functional> // std::reference_wrapper
@@ -16,7 +19,7 @@
 #include <sstream>    // std::basic_ostringstream, std::basic_istringstream
 #include <stack>      // std::stack
 #include <stdexcept>  // std::out_of_range
-#include <string>     // std::basic_string, std::stol, std::stod, std::stoul
+#include <string>     // std::basic_string, std::stoul
 
 namespace sourcemeta::core::internal {
 
@@ -289,25 +292,53 @@ auto parse_string(
 }
 
 template <typename CharT, typename Traits>
-auto parse_number_integer(const std::uint64_t line, const std::uint64_t column,
+auto parse_number_decimal(const std::uint64_t line, const std::uint64_t column,
                           const std::basic_string<CharT, Traits> &string)
-    -> std::int64_t {
+    -> JSON {
   try {
-    return std::stoll(string);
-  } catch (const std::out_of_range &) {
-    throw JSONParseIntegerLimitError(line, column);
+    return JSON{Decimal{string}};
+  } catch (const DecimalParseError &) {
+    throw JSONParseError(line, column);
+  } catch (const std::invalid_argument &) {
+    throw JSONParseError(line, column);
   }
 }
 
 template <typename CharT, typename Traits>
-auto parse_number_real(const std::uint64_t line, const std::uint64_t column,
-                       const std::basic_string<CharT, Traits> &string)
-    -> double {
-  try {
-    return std::stod(string);
-  } catch (const std::out_of_range &) {
-    throw JSONParseError(line, column);
+auto parse_number_integer_maybe_decimal(
+    const std::uint64_t line, const std::uint64_t column,
+    const std::basic_string<CharT, Traits> &string) -> JSON {
+  const auto result{sourcemeta::core::to_int64_t(string)};
+  return result.has_value() ? JSON{result.value()}
+                            : parse_number_decimal(line, column, string);
+}
+
+template <typename CharT, typename Traits>
+auto parse_number_real_maybe_decimal(
+    const std::uint64_t line, const std::uint64_t column,
+    const std::basic_string<CharT, Traits> &string,
+    const std::size_t first_nonzero_position,
+    const std::size_t decimal_position) -> JSON {
+  // We are guaranteed to not be dealing with exponential numbers here
+  assert((string.find('e') == std::basic_string<CharT, Traits>::npos));
+  assert((string.find('E') == std::basic_string<CharT, Traits>::npos));
+
+  // If the number has enough significant digits, then we risk completely losing
+  // precision of the fractional component, and thus incorrectly interpreting a
+  // fractional number as an integral value
+  const auto decimal_after_first_nonzero{
+      decimal_position != std::basic_string<CharT, Traits>::npos &&
+      decimal_position > first_nonzero_position};
+  const auto significant_digits{string.length() - first_nonzero_position -
+                                (decimal_after_first_nonzero ? 1 : 0)};
+  constexpr std::size_t MAX_SAFE_SIGNIFICANT_DIGITS{15};
+  if (significant_digits > MAX_SAFE_SIGNIFICANT_DIGITS) {
+    return parse_number_decimal(line, column, string);
   }
+
+  const auto result{sourcemeta::core::to_double(string)};
+  return result.has_value() ? JSON{result.value()}
+                            : parse_number_decimal(line, column, string);
 }
 
 auto parse_number_exponent_rest(
@@ -316,7 +347,7 @@ auto parse_number_exponent_rest(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -336,7 +367,11 @@ auto parse_number_exponent_rest(
         column += 1;
         break;
       default:
-        return parse_number_real(line, original_column, result.str());
+        // As a heuristic, if a number has exponential notation, it is almost
+        // always a big number for which `double` is typically a poor
+        // representation. If an exponent is encountered, we just always parse
+        // as a high-precision decimal
+        return parse_number_decimal(line, original_column, result.str());
     }
   }
 
@@ -349,7 +384,7 @@ auto parse_number_exponent(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -378,7 +413,7 @@ auto parse_number_exponent_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -417,7 +452,9 @@ auto parse_number_fractional(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result,
+    std::size_t &first_nonzero_position, const std::size_t decimal_position)
+    -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -434,6 +471,10 @@ auto parse_number_fractional(
                                            stream, result);
 
       case internal::token_number_zero<typename JSON::Char>:
+        result.put(character);
+        stream.ignore(1);
+        column += 1;
+        break;
       case internal::token_number_one<typename JSON::Char>:
       case internal::token_number_two<typename JSON::Char>:
       case internal::token_number_three<typename JSON::Char>:
@@ -443,12 +484,19 @@ auto parse_number_fractional(
       case internal::token_number_seven<typename JSON::Char>:
       case internal::token_number_eight<typename JSON::Char>:
       case internal::token_number_nine<typename JSON::Char>:
+        if (first_nonzero_position ==
+            std::basic_string<typename JSON::Char,
+                              typename JSON::CharTraits>::npos) {
+          first_nonzero_position = result.str().size();
+        }
         result.put(character);
         stream.ignore(1);
         column += 1;
         break;
       default:
-        return parse_number_real(line, original_column, result.str());
+        return parse_number_real_maybe_decimal(
+            line, original_column, result.str(), first_nonzero_position,
+            decimal_position);
     }
   }
 
@@ -461,7 +509,9 @@ auto parse_number_fractional_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> double {
+        &result,
+    std::size_t &first_nonzero_position, const std::size_t decimal_position)
+    -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.peek())};
   switch (character) {
@@ -473,6 +523,12 @@ auto parse_number_fractional_first(
       column += 1;
       throw JSONParseError(line, column);
     case internal::token_number_zero<typename JSON::Char>:
+      result.put(character);
+      stream.ignore(1);
+      column += 1;
+      return parse_number_fractional(line, column, original_column, stream,
+                                     result, first_nonzero_position,
+                                     decimal_position);
     case internal::token_number_one<typename JSON::Char>:
     case internal::token_number_two<typename JSON::Char>:
     case internal::token_number_three<typename JSON::Char>:
@@ -482,13 +538,21 @@ auto parse_number_fractional_first(
     case internal::token_number_seven<typename JSON::Char>:
     case internal::token_number_eight<typename JSON::Char>:
     case internal::token_number_nine<typename JSON::Char>:
+      if (first_nonzero_position ==
+          std::basic_string<typename JSON::Char,
+                            typename JSON::CharTraits>::npos) {
+        first_nonzero_position = result.str().size();
+      }
       result.put(character);
       stream.ignore(1);
       column += 1;
       return parse_number_fractional(line, column, original_column, stream,
-                                     result);
+                                     result, first_nonzero_position,
+                                     decimal_position);
     default:
-      return parse_number_real(line, original_column, result.str());
+      return parse_number_real_maybe_decimal(
+          line, original_column, result.str(), first_nonzero_position,
+          decimal_position);
   }
 }
 
@@ -498,19 +562,23 @@ auto parse_number_maybe_fractional(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    std::size_t &first_nonzero_position) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.peek())};
   switch (character) {
     // [A number] may have a fractional part prefixed by a decimal point
     // (U+002E). See
     // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
-    case internal::token_number_decimal_point<typename JSON::Char>:
+    case internal::token_number_decimal_point<typename JSON::Char>: {
+      const std::size_t decimal_position{result.str().size()};
       result.put(character);
       stream.ignore(1);
       column += 1;
-      return JSON{parse_number_fractional_first(line, column, original_column,
-                                                stream, result)};
+      return JSON{parse_number_fractional_first(
+          line, column, original_column, stream, result, first_nonzero_position,
+          decimal_position)};
+    }
     case internal::token_number_exponent_uppercase<typename JSON::Char>:
     case internal::token_number_exponent_lowercase<typename JSON::Char>:
       result.put(character);
@@ -530,7 +598,8 @@ auto parse_number_maybe_fractional(
       column += 1;
       throw JSONParseError(line, column);
     default:
-      return JSON{parse_number_integer(line, original_column, result.str())};
+      return JSON{parse_number_integer_maybe_decimal(line, original_column,
+                                                     result.str())};
   }
 }
 
@@ -540,7 +609,8 @@ auto parse_number_any_rest(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    std::size_t &first_nonzero_position) -> JSON {
   while (!stream.eof()) {
     const typename JSON::Char character{
         static_cast<typename JSON::Char>(stream.peek())};
@@ -548,12 +618,15 @@ auto parse_number_any_rest(
       // [A number] may have a fractional part prefixed by a decimal point
       // (U+002E). See
       // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
-      case internal::token_number_decimal_point<typename JSON::Char>:
+      case internal::token_number_decimal_point<typename JSON::Char>: {
+        const std::size_t decimal_position{result.str().size()};
         result.put(character);
         stream.ignore(1);
         column += 1;
-        return JSON{parse_number_fractional_first(line, column, original_column,
-                                                  stream, result)};
+        return JSON{parse_number_fractional_first(
+            line, column, original_column, stream, result,
+            first_nonzero_position, decimal_position)};
+      }
       case internal::token_number_exponent_uppercase<typename JSON::Char>:
       case internal::token_number_exponent_lowercase<typename JSON::Char>:
         result.put(character);
@@ -576,7 +649,8 @@ auto parse_number_any_rest(
         column += 1;
         break;
       default:
-        return JSON{parse_number_integer(line, original_column, result.str())};
+        return JSON{parse_number_integer_maybe_decimal(line, original_column,
+                                                       result.str())};
     }
   }
 
@@ -589,7 +663,8 @@ auto parse_number_any_negative_first(
     std::basic_istream<typename JSON::Char, typename JSON::CharTraits> &stream,
     std::basic_ostringstream<typename JSON::Char, typename JSON::CharTraits,
                              typename JSON::Allocator<typename JSON::Char>>
-        &result) -> JSON {
+        &result,
+    std::size_t &first_nonzero_position) -> JSON {
   const typename JSON::Char character{
       static_cast<typename JSON::Char>(stream.get())};
   column += 1;
@@ -600,7 +675,8 @@ auto parse_number_any_negative_first(
     case internal::token_number_zero<typename JSON::Char>:
       result.put(character);
       return parse_number_maybe_fractional(line, column, original_column,
-                                           stream, result);
+                                           stream, result,
+                                           first_nonzero_position);
     case internal::token_number_one<typename JSON::Char>:
     case internal::token_number_two<typename JSON::Char>:
     case internal::token_number_three<typename JSON::Char>:
@@ -610,9 +686,10 @@ auto parse_number_any_negative_first(
     case internal::token_number_seven<typename JSON::Char>:
     case internal::token_number_eight<typename JSON::Char>:
     case internal::token_number_nine<typename JSON::Char>:
+      first_nonzero_position = result.str().size();
       result.put(character);
       return parse_number_any_rest(line, column, original_column, stream,
-                                   result);
+                                   result, first_nonzero_position);
     default:
       throw JSONParseError(line, column);
   }
@@ -627,19 +704,24 @@ auto parse_number(
       result;
   result.put(first);
 
+  std::size_t first_nonzero_position{
+      std::basic_string<typename JSON::Char, typename JSON::CharTraits>::npos};
+
   // A number is a sequence of decimal digits with no superfluous leading zero.
   // It may have a preceding minus sign (U+002D). See
   // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
   switch (first) {
     case internal::token_number_minus<typename JSON::Char>:
       return parse_number_any_negative_first(line, column, column, stream,
-                                             result);
+                                             result, first_nonzero_position);
     case internal::token_number_zero<typename JSON::Char>:
-      return parse_number_maybe_fractional(line, column, column, stream,
-                                           result);
+      return parse_number_maybe_fractional(line, column, column, stream, result,
+                                           first_nonzero_position);
     // Any other digit
     default:
-      return parse_number_any_rest(line, column, column, stream, result);
+      first_nonzero_position = 0;
+      return parse_number_any_rest(line, column, column, stream, result,
+                                   first_nonzero_position);
   }
 }
 
@@ -681,6 +763,8 @@ auto internal_parse_json(
   std::stack<std::reference_wrapper<Result>> frames;
   std::optional<Result> result;
   typename Result::String key{""};
+  std::uint64_t key_line{0};
+  std::uint64_t key_column{0};
   typename JSON::Char character = 0;
 
   /*
@@ -697,6 +781,7 @@ do_parse:
   switch (character) {
     case internal::constant_true<typename JSON::Char, typename JSON::CharTraits>.front():
       if (callback) {
+        // TODO: Don't create expensive JSON values on the spot
         CALLBACK_PRE(Boolean, JSON{nullptr});
         const auto value{internal::parse_boolean_true(line, column, stream)};
         CALLBACK_POST(Boolean, value);
@@ -706,6 +791,7 @@ do_parse:
       }
     case internal::constant_false<typename JSON::Char, typename JSON::CharTraits>.front():
       if (callback) {
+        // TODO: Don't create expensive JSON values on the spot
         CALLBACK_PRE(Boolean, JSON{nullptr});
         const auto value{internal::parse_boolean_false(line, column, stream)};
         CALLBACK_POST(Boolean, value);
@@ -715,6 +801,7 @@ do_parse:
       }
     case internal::constant_null<typename JSON::Char, typename JSON::CharTraits>.front():
       if (callback) {
+        // TODO: Don't create expensive JSON values on the spot
         CALLBACK_PRE(Null, JSON{nullptr});
         const auto value{internal::parse_null(line, column, stream)};
         CALLBACK_POST(Null, value);
@@ -728,6 +815,7 @@ do_parse:
     // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
     case internal::token_string_quote<typename JSON::Char>:
       if (callback) {
+        // TODO: Don't create expensive JSON values on the spot
         CALLBACK_PRE(String, JSON{nullptr});
         const Result value{internal::parse_string(line, column, stream)};
         CALLBACK_POST(String, value);
@@ -736,9 +824,11 @@ do_parse:
         return Result{internal::parse_string(line, column, stream)};
       }
     case internal::token_array_begin<typename JSON::Char>:
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Array, JSON{nullptr});
       goto do_parse_array;
     case internal::token_object_begin<typename JSON::Char>:
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Object, JSON{nullptr});
       goto do_parse_object;
 
@@ -759,10 +849,17 @@ do_parse:
         const auto value{
             internal::parse_number(line, column, stream, character)};
         if (value.is_integer()) {
+          // TODO: Don't create expensive JSON values on the spot
           CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
                                      JSON{nullptr});
           CALLBACK_POST(Integer, value);
+        } else if (value.is_decimal()) {
+          // TODO: Don't create expensive JSON values on the spot
+          CALLBACK_PRE_WITH_POSITION(Decimal, current_line, current_column,
+                                     JSON{nullptr});
+          CALLBACK_POST(Decimal, value);
         } else {
+          // TODO: Don't create expensive JSON values on the spot
           CALLBACK_PRE_WITH_POSITION(Real, current_line, current_column,
                                      JSON{nullptr});
           CALLBACK_POST(Real, value);
@@ -835,24 +932,29 @@ do_parse_array_item:
 
     // Values
     case internal::token_array_begin<typename JSON::Char>:
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Array, JSON{frames.top().get().size()});
       goto do_parse_array;
     case internal::token_object_begin<typename JSON::Char>:
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Object, JSON{frames.top().get().size()});
       goto do_parse_object;
     case internal::constant_true<typename JSON::Char, typename JSON::CharTraits>.front():
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Boolean, JSON{frames.top().get().size()});
       frames.top().get().push_back(
           internal::parse_boolean_true(line, column, stream));
       CALLBACK_POST(Boolean, frames.top().get().back());
       goto do_parse_array_item_separator;
     case internal::constant_false<typename JSON::Char, typename JSON::CharTraits>.front():
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Boolean, JSON{frames.top().get().size()});
       frames.top().get().push_back(
           internal::parse_boolean_false(line, column, stream));
       CALLBACK_POST(Boolean, frames.top().get().back());
       goto do_parse_array_item_separator;
     case internal::constant_null<typename JSON::Char, typename JSON::CharTraits>.front():
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(Null, JSON{frames.top().get().size()});
       frames.top().get().push_back(internal::parse_null(line, column, stream));
       CALLBACK_POST(Null, frames.top().get().back());
@@ -862,6 +964,7 @@ do_parse_array_item:
     // marks (U+0022). See
     // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
     case internal::token_string_quote<typename JSON::Char>:
+      // TODO: Don't create expensive JSON values on the spot
       CALLBACK_PRE(String, JSON{frames.top().get().size()});
       frames.top().get().push_back(
           Result{internal::parse_string(line, column, stream)});
@@ -885,9 +988,15 @@ do_parse_array_item:
         const auto value{
             internal::parse_number(line, column, stream, character)};
         if (value.is_integer()) {
+          // TODO: Don't create expensive JSON values on the spot
           CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
                                      JSON{frames.top().get().size()});
+        } else if (value.is_decimal()) {
+          // TODO: Don't create expensive JSON values on the spot
+          CALLBACK_PRE_WITH_POSITION(Decimal, current_line, current_column,
+                                     JSON{frames.top().get().size()});
         } else {
+          // TODO: Don't create expensive JSON values on the spot
           CALLBACK_PRE_WITH_POSITION(Real, current_line, current_column,
                                      JSON{frames.top().get().size()});
         }
@@ -896,6 +1005,8 @@ do_parse_array_item:
 
         if (value.is_integer()) {
           CALLBACK_POST(Integer, frames.top().get().back());
+        } else if (value.is_decimal()) {
+          CALLBACK_POST(Decimal, frames.top().get().back());
         } else {
           CALLBACK_POST(Real, frames.top().get().back());
         }
@@ -998,6 +1109,8 @@ do_parse_object_property_key:
     // marks (U+0022). See
     // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
     case internal::token_string_quote<typename JSON::Char>:
+      key_line = line;
+      key_column = column;
       key = internal::parse_string(line, column, stream);
       goto do_parse_object_property_separator;
 
@@ -1046,25 +1159,30 @@ do_parse_object_property_value:
   switch (character) {
     // Values
     case internal::token_array_begin<typename JSON::Char>:
-      CALLBACK_PRE(Array, JSON{key});
+      // TODO: Don't create expensive JSON values on the spot
+      CALLBACK_PRE_WITH_POSITION(Array, key_line, key_column, JSON{key});
       goto do_parse_array;
     case internal::token_object_begin<typename JSON::Char>:
-      CALLBACK_PRE(Object, JSON{key});
+      // TODO: Don't create expensive JSON values on the spot
+      CALLBACK_PRE_WITH_POSITION(Object, key_line, key_column, JSON{key});
       goto do_parse_object;
     case internal::constant_true<typename JSON::Char, typename JSON::CharTraits>.front():
-      CALLBACK_PRE(Boolean, JSON{key});
+      // TODO: Don't create expensive JSON values on the spot
+      CALLBACK_PRE_WITH_POSITION(Boolean, key_line, key_column, JSON{key});
       frames.top().get().assign(
           key, internal::parse_boolean_true(line, column, stream));
       CALLBACK_POST(Boolean, frames.top().get().at(key));
       goto do_parse_object_property_end;
     case internal::constant_false<typename JSON::Char, typename JSON::CharTraits>.front():
-      CALLBACK_PRE(Boolean, JSON{key});
+      // TODO: Don't create expensive JSON values on the spot
+      CALLBACK_PRE_WITH_POSITION(Boolean, key_line, key_column, JSON{key});
       frames.top().get().assign(
           key, internal::parse_boolean_false(line, column, stream));
       CALLBACK_POST(Boolean, frames.top().get().at(key));
       goto do_parse_object_property_end;
     case internal::constant_null<typename JSON::Char, typename JSON::CharTraits>.front():
-      CALLBACK_PRE(Null, JSON{key});
+      // TODO: Don't create expensive JSON values on the spot
+      CALLBACK_PRE_WITH_POSITION(Null, key_line, key_column, JSON{key});
       frames.top().get().assign(key,
                                 internal::parse_null(line, column, stream));
       CALLBACK_POST(Null, frames.top().get().at(key));
@@ -1074,7 +1192,8 @@ do_parse_object_property_value:
     // marks (U+0022). See
     // https://www.ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf
     case internal::token_string_quote<typename JSON::Char>:
-      CALLBACK_PRE(String, JSON{key});
+      // TODO: Don't create expensive JSON values on the spot
+      CALLBACK_PRE_WITH_POSITION(String, key_line, key_column, JSON{key});
       frames.top().get().assign(
           key, Result{internal::parse_string(line, column, stream)});
       CALLBACK_POST(String, frames.top().get().at(key));
@@ -1092,22 +1211,25 @@ do_parse_object_property_value:
     case internal::token_number_eight<typename JSON::Char>:
     case internal::token_number_nine<typename JSON::Char>:
       if (callback) {
-        const auto current_line{line};
-        const auto current_column{column};
         const auto value{
             internal::parse_number(line, column, stream, character)};
         if (value.is_integer()) {
-          CALLBACK_PRE_WITH_POSITION(Integer, current_line, current_column,
-                                     JSON{key});
+          // TODO: Don't create expensive JSON values on the spot
+          CALLBACK_PRE_WITH_POSITION(Integer, key_line, key_column, JSON{key});
+        } else if (value.is_decimal()) {
+          // TODO: Don't create expensive JSON values on the spot
+          CALLBACK_PRE_WITH_POSITION(Decimal, key_line, key_column, JSON{key});
         } else {
-          CALLBACK_PRE_WITH_POSITION(Real, current_line, current_column,
-                                     JSON{key});
+          // TODO: Don't create expensive JSON values on the spot
+          CALLBACK_PRE_WITH_POSITION(Real, key_line, key_column, JSON{key});
         }
 
         frames.top().get().assign(key, value);
 
         if (value.is_integer()) {
           CALLBACK_POST(Integer, frames.top().get().at(key));
+        } else if (value.is_decimal()) {
+          CALLBACK_POST(Decimal, frames.top().get().at(key));
         } else {
           CALLBACK_POST(Real, frames.top().get().at(key));
         }

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "sourcemeta/core/parallel_for_each.h"
+#include <sourcemeta/core/parallel.h>
 
 #include <algorithm>
 #include <atomic>

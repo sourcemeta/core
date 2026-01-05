@@ -1,14 +1,15 @@
 #include <sourcemeta/core/jsonschema.h>
 
-#include <algorithm>  // std::sort, std::all_of, std::any_of
-#include <cassert>    // assert
-#include <functional> // std::less
-#include <map>        // std::map
-#include <optional>   // std::optional
-#include <set>        // std::set
-#include <sstream>    // std::ostringstream
-#include <utility>    // std::pair, std::move
-#include <vector>     // std::vector
+#include <algorithm>     // std::sort, std::all_of, std::any_of
+#include <cassert>       // assert
+#include <functional>    // std::less
+#include <map>           // std::map
+#include <optional>      // std::optional
+#include <sstream>       // std::ostringstream
+#include <unordered_map> // std::unordered_map
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::pair, std::move
+#include <vector>        // std::vector
 
 enum class AnchorType : std::uint8_t { Static, Dynamic, All };
 
@@ -22,21 +23,23 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   // 2020-12
   if (schema.is_object() &&
       vocabularies.contains(
-          "https://json-schema.org/draft/2020-12/vocab/core")) {
+          sourcemeta::core::Vocabularies::Known::JSON_Schema_2020_12_Core)) {
     if (schema.defines("$dynamicAnchor")) {
       const auto &anchor{schema.at("$dynamicAnchor")};
-      assert(anchor.is_string());
-      result.insert({anchor.to_string(), AnchorType::Dynamic});
+      if (anchor.is_string()) {
+        result.insert({anchor.to_string(), AnchorType::Dynamic});
+      }
     }
 
     if (schema.defines("$anchor")) {
       const auto &anchor{schema.at("$anchor")};
-      assert(anchor.is_string());
-      const auto anchor_string{anchor.to_string()};
-      const auto success = result.insert({anchor_string, AnchorType::Static});
-      assert(success.second || result.contains(anchor_string));
-      if (!success.second) {
-        result[anchor_string] = AnchorType::All;
+      if (anchor.is_string()) {
+        const auto anchor_string{anchor.to_string()};
+        const auto success = result.insert({anchor_string, AnchorType::Static});
+        assert(success.second || result.contains(anchor_string));
+        if (!success.second) {
+          result[anchor_string] = AnchorType::All;
+        }
       }
     }
   }
@@ -44,7 +47,7 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   // 2019-09
   if (schema.is_object() &&
       vocabularies.contains(
-          "https://json-schema.org/draft/2019-09/vocab/core")) {
+          sourcemeta::core::Vocabularies::Known::JSON_Schema_2019_09_Core)) {
     if (schema.defines("$recursiveAnchor")) {
       const auto &anchor{schema.at("$recursiveAnchor")};
       assert(anchor.is_boolean());
@@ -56,12 +59,13 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
 
     if (schema.defines("$anchor")) {
       const auto &anchor{schema.at("$anchor")};
-      assert(anchor.is_string());
-      const auto anchor_string{anchor.to_string()};
-      const auto success = result.insert({anchor_string, AnchorType::Static});
-      assert(success.second || result.contains(anchor_string));
-      if (!success.second) {
-        result[anchor_string] = AnchorType::All;
+      if (anchor.is_string()) {
+        const auto anchor_string{anchor.to_string()};
+        const auto success = result.insert({anchor_string, AnchorType::Static});
+        assert(success.second || result.contains(anchor_string));
+        if (!success.second) {
+          result[anchor_string] = AnchorType::All;
+        }
       }
     }
   }
@@ -69,8 +73,10 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   // Draft 7 and 6
   // Old `$id` anchor form
   if (schema.is_object() &&
-      (vocabularies.contains("http://json-schema.org/draft-07/schema#") ||
-       vocabularies.contains("http://json-schema.org/draft-06/schema#"))) {
+      (vocabularies.contains(
+           sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_7) ||
+       vocabularies.contains(
+           sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_6))) {
     if (schema.defines("$id")) {
       assert(schema.at("$id").is_string());
       const sourcemeta::core::URI identifier(schema.at("$id").to_string());
@@ -88,7 +94,8 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   // Draft 4
   // Old `id` anchor form
   if (schema.is_object() &&
-      vocabularies.contains("http://json-schema.org/draft-04/schema#")) {
+      vocabularies.contains(
+          sourcemeta::core::Vocabularies::Known::JSON_Schema_Draft_4)) {
     if (schema.defines("id")) {
       assert(schema.at("id").is_string());
       const sourcemeta::core::URI identifier(schema.at("id").to_string());
@@ -107,16 +114,25 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
 }
 
 auto find_nearest_bases(
-    const std::map<sourcemeta::core::Pointer,
-                   std::vector<sourcemeta::core::JSON::String>> &bases,
+    const std::unordered_map<sourcemeta::core::Pointer,
+                             std::vector<sourcemeta::core::JSON::String>>
+        &bases,
     const sourcemeta::core::Pointer &pointer,
     const std::optional<sourcemeta::core::JSON::String> &default_base)
     -> std::pair<std::vector<sourcemeta::core::JSON::String>,
                  sourcemeta::core::Pointer> {
-  for (const auto &subpointer : sourcemeta::core::SubPointerWalker{pointer}) {
-    if (bases.contains(subpointer)) {
-      return {bases.at(subpointer), subpointer};
+  auto current_pointer{pointer};
+  while (true) {
+    const auto match{bases.find(current_pointer)};
+    if (match != bases.cend()) {
+      return {match->second, current_pointer};
     }
+
+    if (current_pointer.empty()) {
+      break;
+    }
+
+    current_pointer = current_pointer.initial();
   }
 
   if (default_base.has_value()) {
@@ -127,8 +143,9 @@ auto find_nearest_bases(
 }
 
 auto find_every_base(
-    const std::map<sourcemeta::core::Pointer,
-                   std::vector<sourcemeta::core::JSON::String>> &bases,
+    const std::unordered_map<sourcemeta::core::Pointer,
+                             std::vector<sourcemeta::core::JSON::String>>
+        &bases,
     const sourcemeta::core::Pointer &pointer)
     -> std::vector<
         std::pair<sourcemeta::core::JSON::String, sourcemeta::core::Pointer>> {
@@ -136,16 +153,23 @@ auto find_every_base(
       std::pair<sourcemeta::core::JSON::String, sourcemeta::core::Pointer>>
       result;
 
-  for (const auto &subpointer : sourcemeta::core::SubPointerWalker{pointer}) {
-    if (bases.contains(subpointer)) {
-      for (const auto &base : bases.at(subpointer)) {
-        result.emplace_back(base, subpointer);
+  auto current_pointer{pointer};
+  while (true) {
+    const auto match{bases.find(current_pointer)};
+    if (match != bases.cend()) {
+      for (const auto &base : match->second) {
+        result.emplace_back(base, current_pointer);
       }
     }
+
+    if (current_pointer.empty()) {
+      break;
+    }
+
+    current_pointer = current_pointer.initial();
   }
 
   if (result.empty() ||
-      // This means the top-level schema is anonymous
       result.back().second != sourcemeta::core::empty_pointer) {
     result.emplace_back("", sourcemeta::core::empty_pointer);
   }
@@ -153,8 +177,8 @@ auto find_every_base(
   return result;
 }
 
-auto ref_overrides_adjacent_keywords(
-    const sourcemeta::core::JSON::String &base_dialect) -> bool {
+// TODO: Why do we have this function both here and on `walker.cc`?
+auto ref_overrides_adjacent_keywords(std::string_view base_dialect) -> bool {
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
   // See
@@ -169,8 +193,7 @@ auto ref_overrides_adjacent_keywords(
          base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
 }
 
-auto supports_id_anchors(const sourcemeta::core::JSON::String &base_dialect)
-    -> bool {
+auto supports_id_anchors(std::string_view base_dialect) -> bool {
   return base_dialect == "http://json-schema.org/draft-07/schema#" ||
          base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
          base_dialect == "http://json-schema.org/draft-06/schema#" ||
@@ -191,30 +214,25 @@ auto fragment_string(const sourcemeta::core::URI &uri)
 
 [[noreturn]]
 auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
-  std::ostringstream error;
-  error << "Schema identifier already exists: " << uri;
-  throw sourcemeta::core::SchemaError(error.str());
+  throw sourcemeta::core::SchemaFrameError(uri,
+                                           "Schema identifier already exists");
 }
 
-auto store(
-    sourcemeta::core::SchemaFrame::Locations &frame,
-    sourcemeta::core::SchemaFrame::Instances &instances,
-    const sourcemeta::core::SchemaReferenceType type,
-    const sourcemeta::core::SchemaFrame::LocationType entry_type,
-    const sourcemeta::core::JSON::String &uri,
-    const std::optional<sourcemeta::core::JSON::String> &root_id,
-    const sourcemeta::core::JSON::String &base_id,
-    const sourcemeta::core::Pointer &pointer_from_root,
-    const sourcemeta::core::Pointer &pointer_from_base,
-    const sourcemeta::core::JSON::String &dialect,
-    const sourcemeta::core::JSON::String &base_dialect,
-    const std::vector<sourcemeta::core::PointerTemplate> &instance_locations,
-    const std::optional<sourcemeta::core::Pointer> &parent,
-    const bool ignore_if_present = false) -> void {
-  assert(std::set<sourcemeta::core::PointerTemplate>(
-             instance_locations.cbegin(), instance_locations.cend())
-             .size() == instance_locations.size());
-  const auto canonical{sourcemeta::core::URI::canonicalize(uri)};
+auto store(sourcemeta::core::SchemaFrame::Locations &frame,
+           const sourcemeta::core::SchemaReferenceType type,
+           const sourcemeta::core::SchemaFrame::LocationType entry_type,
+           const sourcemeta::core::JSON::String &uri,
+           const std::optional<sourcemeta::core::JSON::String> &root_id,
+           const sourcemeta::core::JSON::String &base_id,
+           const sourcemeta::core::Pointer &pointer_from_root,
+           const sourcemeta::core::Pointer &pointer_from_base,
+           const sourcemeta::core::JSON::String &dialect,
+           const sourcemeta::core::JSON::String &base_dialect,
+           const std::optional<sourcemeta::core::Pointer> &parent,
+           const bool ignore_if_present = false,
+           const bool already_canonical = false) -> void {
+  const auto canonical{
+      already_canonical ? uri : sourcemeta::core::URI::canonicalize(uri)};
   const auto inserted{frame
                           .insert({{type, canonical},
                                    {.parent = parent,
@@ -227,10 +245,8 @@ auto store(
                                     .base_dialect = base_dialect}})
                           .second};
   if (!ignore_if_present && !inserted) {
-    throw_already_exists(uri);
+    throw_already_exists(canonical);
   }
-
-  instances[pointer_from_root] = instance_locations;
 }
 
 // Check misunderstood struct to be a function
@@ -240,93 +256,12 @@ struct InternalEntry {
   std::optional<sourcemeta::core::JSON::String> id;
 };
 
-auto traverse_origin_instance_locations(
-    const sourcemeta::core::SchemaFrame &frame,
-    const sourcemeta::core::SchemaFrame::Instances &instances,
-    const sourcemeta::core::Pointer &current,
-    const std::optional<sourcemeta::core::PointerTemplate> &accumulator,
-    sourcemeta::core::SchemaFrame::Instances::mapped_type &destination)
-    -> void {
-  if (accumulator.has_value() &&
-      std::ranges::find(destination, accumulator.value()) ==
-          destination.cend()) {
-    destination.push_back(accumulator.value());
-  }
-
-  for (const auto &reference : frame.references_to(current)) {
-    const auto subschema_pointer{reference.get().first.second.initial()};
-    // Avoid recursing to itself, in the case of circular subschemas
-    if (subschema_pointer == current) {
-      continue;
-    }
-
-    const auto match{instances.find(subschema_pointer)};
-    if (match != instances.cend()) {
-      for (const auto &instance_location : match->second) {
-        traverse_origin_instance_locations(frame, instances, subschema_pointer,
-                                           instance_location, destination);
-      }
-    }
-  }
-}
-
 // Check misunderstood struct to be a function
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct CacheSubschema {
-  sourcemeta::core::PointerTemplate instance_location{};
-  sourcemeta::core::PointerTemplate relative_instance_location{};
   bool orphan{};
   std::optional<sourcemeta::core::Pointer> parent{};
 };
-
-auto repopulate_instance_locations(
-    const sourcemeta::core::SchemaFrame &frame,
-    const sourcemeta::core::SchemaFrame::Instances &instances,
-    const std::map<sourcemeta::core::Pointer, CacheSubschema> &cache,
-    const sourcemeta::core::Pointer &, const CacheSubschema &cache_entry,
-    sourcemeta::core::SchemaFrame::Instances::mapped_type &destination,
-    const std::optional<sourcemeta::core::PointerTemplate> &accumulator)
-    -> void {
-  if (cache_entry.orphan && cache_entry.instance_location.empty()) {
-    return;
-  } else if (cache_entry.parent.has_value() &&
-             // Don't consider bases from the root subschema, as if that
-             // subschema has any instance location other than "", then it
-             // indicates a recursive reference
-             !cache_entry.parent.value().empty()) {
-    const auto match{instances.find(cache_entry.parent.value())};
-    if (match == instances.cend()) {
-      return;
-    }
-
-    for (const auto &parent_instance_location : match->second) {
-      // Guard against overly unrolling recursive schemas
-      if (parent_instance_location == cache_entry.instance_location) {
-        continue;
-      }
-
-      auto new_accumulator = cache_entry.relative_instance_location;
-      if (accumulator.has_value()) {
-        for (const auto &token : accumulator.value()) {
-          new_accumulator.emplace_back(token);
-        }
-      }
-
-      auto result = parent_instance_location;
-      for (const auto &token : new_accumulator) {
-        result.emplace_back(token);
-      }
-
-      if (std::ranges::find(destination, result) == destination.cend()) {
-        destination.push_back(result);
-      }
-
-      repopulate_instance_locations(
-          frame, instances, cache, cache_entry.parent.value(),
-          cache.at(cache_entry.parent.value()), destination, new_accumulator);
-    }
-  }
-}
 
 } // namespace
 
@@ -352,69 +287,80 @@ auto to_json(const SchemaFrame::LocationType value) -> JSON {
   }
 }
 
-auto SchemaFrame::to_json() const -> JSON {
+auto SchemaFrame::to_json(
+    const std::optional<PointerPositionTracker> &tracker) const -> JSON {
   auto root{JSON::make_object()};
 
-  root.assign("locations", JSON::make_object());
-  root.at("locations").assign("static", JSON::make_object());
-  root.at("locations").assign("dynamic", JSON::make_object());
+  root.assign_assume_new("locations", JSON::make_object());
+  root.at("locations").assign_assume_new("static", JSON::make_object());
+  root.at("locations").assign_assume_new("dynamic", JSON::make_object());
   for (const auto &location : this->locations_) {
     auto entry{JSON::make_object()};
-    entry.assign("parent", sourcemeta::core::to_json(location.second.parent));
-    entry.assign("type", sourcemeta::core::to_json(location.second.type));
-    entry.assign("root", sourcemeta::core::to_json(location.second.root));
-    entry.assign("base", sourcemeta::core::to_json(location.second.base));
-    entry.assign("pointer", sourcemeta::core::to_json(location.second.pointer));
-    entry.assign("relativePointer",
-                 sourcemeta::core::to_json(location.second.relative_pointer));
-    entry.assign("dialect", sourcemeta::core::to_json(location.second.dialect));
-    entry.assign("baseDialect",
-                 sourcemeta::core::to_json(location.second.base_dialect));
+    entry.assign_assume_new("parent",
+                            sourcemeta::core::to_json(location.second.parent));
+    entry.assign_assume_new("type",
+                            sourcemeta::core::to_json(location.second.type));
+    entry.assign_assume_new("root",
+                            sourcemeta::core::to_json(location.second.root));
+    entry.assign_assume_new("base",
+                            sourcemeta::core::to_json(location.second.base));
+    entry.assign_assume_new("pointer",
+                            sourcemeta::core::to_json(location.second.pointer));
+    if (tracker.has_value()) {
+      entry.assign_assume_new(
+          "position", sourcemeta::core::to_json(
+                          tracker.value().get(location.second.pointer)));
+    } else {
+      entry.assign_assume_new("position", sourcemeta::core::to_json(nullptr));
+    }
+
+    entry.assign_assume_new(
+        "relativePointer",
+        sourcemeta::core::to_json(location.second.relative_pointer));
+    entry.assign_assume_new("dialect",
+                            sourcemeta::core::to_json(location.second.dialect));
+    entry.assign_assume_new(
+        "baseDialect", sourcemeta::core::to_json(location.second.base_dialect));
 
     switch (location.first.first) {
       case SchemaReferenceType::Static:
         root.at("locations")
             .at("static")
-            .assign(location.first.second, std::move(entry));
+            .assign_assume_new(location.first.second, std::move(entry));
         break;
       case SchemaReferenceType::Dynamic:
         root.at("locations")
             .at("dynamic")
-            .assign(location.first.second, std::move(entry));
+            .assign_assume_new(location.first.second, std::move(entry));
         break;
       default:
         assert(false);
     }
   }
 
-  root.assign("references", JSON::make_array());
+  root.assign_assume_new("references", JSON::make_array());
   for (const auto &reference : this->references_) {
     auto entry{JSON::make_object()};
-    entry.assign("type", sourcemeta::core::to_json(reference.first.first));
-    entry.assign("origin", sourcemeta::core::to_json(reference.first.second));
-    entry.assign("destination",
-                 sourcemeta::core::to_json(reference.second.destination));
-    entry.assign("base", sourcemeta::core::to_json(reference.second.base));
-    entry.assign("fragment",
-                 sourcemeta::core::to_json(reference.second.fragment));
+    entry.assign_assume_new("type",
+                            sourcemeta::core::to_json(reference.first.first));
+    entry.assign_assume_new("origin",
+                            sourcemeta::core::to_json(reference.first.second));
+
+    if (tracker.has_value()) {
+      entry.assign_assume_new("position",
+                              sourcemeta::core::to_json(
+                                  tracker.value().get(reference.first.second)));
+    } else {
+      entry.assign_assume_new("position", sourcemeta::core::to_json(nullptr));
+    }
+
+    entry.assign_assume_new(
+        "destination", sourcemeta::core::to_json(reference.second.destination));
+    entry.assign_assume_new("base",
+                            sourcemeta::core::to_json(reference.second.base));
+    entry.assign_assume_new(
+        "fragment", sourcemeta::core::to_json(reference.second.fragment));
     root.at("references").push_back(std::move(entry));
-  }
-
-  root.assign("instances", JSON::make_object());
-  for (const auto &instance : this->instances_) {
-    if (instance.second.empty()) {
-      continue;
-    }
-
-    auto entry{JSON::make_array()};
-    for (const auto &pointer : instance.second) {
-      // TODO: Overload .to_string() for PointerTemplate
-      std::ostringstream result;
-      sourcemeta::core::stringify(pointer, result);
-      entry.push_back(sourcemeta::core::to_json(result.str()));
-    }
-
-    root.at("instances").assign(to_string(instance.first), std::move(entry));
   }
 
   return root;
@@ -426,9 +372,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                           const std::optional<JSON::String> &default_id,
                           const SchemaFrame::Paths &paths) -> void {
   std::vector<InternalEntry> subschema_entries;
-  std::map<Pointer, CacheSubschema> subschemas;
-  std::map<sourcemeta::core::Pointer, std::vector<JSON::String>> base_uris;
-  std::map<sourcemeta::core::Pointer, std::vector<JSON::String>> base_dialects;
+  std::unordered_map<Pointer, CacheSubschema> subschemas;
+  std::unordered_map<sourcemeta::core::Pointer, std::vector<JSON::String>>
+      base_uris;
+  std::unordered_map<sourcemeta::core::Pointer, std::vector<JSON::String>>
+      base_dialects;
 
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
@@ -467,19 +415,10 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                                          root_id.value() != default_id.value()};
     if (has_explicit_different_id) {
       const auto default_id_canonical{URI::canonicalize(default_id.value())};
-      if (this->mode_ == SchemaFrame::Mode::Instances) {
-        store(this->locations_, this->instances_, SchemaReferenceType::Static,
-              SchemaFrame::LocationType::Resource, default_id_canonical,
-              root_id, root_id.value(), path, sourcemeta::core::empty_pointer,
-              root_dialect.value(), root_base_dialect.value(), {{}},
-              std::nullopt);
-      } else {
-        store(this->locations_, this->instances_, SchemaReferenceType::Static,
-              SchemaFrame::LocationType::Resource, default_id_canonical,
-              root_id, root_id.value(), path, sourcemeta::core::empty_pointer,
-              root_dialect.value(), root_base_dialect.value(), {},
-              std::nullopt);
-      }
+      store(this->locations_, SchemaReferenceType::Static,
+            SchemaFrame::LocationType::Resource, default_id_canonical, root_id,
+            root_id.value(), path, sourcemeta::core::empty_pointer,
+            root_dialect.value(), root_base_dialect.value(), std::nullopt);
 
       base_uris.insert({path, {root_id.value(), default_id_canonical}});
     }
@@ -504,16 +443,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       // Schema identifier
       std::optional<JSON::String> id{sourcemeta::core::identify(
           entry.subschema.get(), entry.base_dialect.value(),
-          entry.pointer.empty() ? default_id : std::nullopt)};
+          entry.pointer.empty() ? root_id : std::nullopt)};
 
       // Store information
-      subschemas.emplace(
-          entry.pointer,
-          CacheSubschema{.instance_location = entry.instance_location,
-                         .relative_instance_location =
-                             entry.relative_instance_location,
-                         .orphan = entry.orphan,
-                         .parent = entry.parent});
+      subschemas.emplace(entry.pointer, CacheSubschema{.orphan = entry.orphan,
+                                                       .parent = entry.parent});
       subschema_entries.emplace_back(
           InternalEntry{.common = std::move(entry), .id = std::move(id)});
       current_subschema_entries.emplace_back(subschema_entries.size() - 1);
@@ -536,6 +470,12 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           const auto bases{
               find_nearest_bases(base_uris, entry.common.pointer, entry.id)};
           for (const auto &base_string : bases.first) {
+            // Otherwise we end up pushing the top-level resource twice
+            if (entry_index == 0 && has_explicit_different_id &&
+                default_id.has_value() && default_id.value() == base_string) {
+              continue;
+            }
+
             const sourcemeta::core::URI base{base_string};
             sourcemeta::core::URI maybe_relative{entry.id.value()};
             const auto maybe_fragment{maybe_relative.fragment()};
@@ -550,7 +490,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             }
 
             const bool maybe_relative_is_absolute{maybe_relative.is_absolute()};
-            maybe_relative.try_resolve_from(base).canonicalize();
+            maybe_relative.resolve_from(base).canonicalize();
             const JSON::String new_id{maybe_relative.recompose()};
 
             const auto maybe_match{
@@ -564,26 +504,12 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                 maybe_match == this->locations_.cend()) {
               assert(entry.common.base_dialect.has_value());
 
-              if (!(entry.common.orphan) &&
-                  this->mode_ == SchemaFrame::Mode::Instances) {
-                store(this->locations_, this->instances_,
-                      SchemaReferenceType::Static,
-                      SchemaFrame::LocationType::Resource, new_id, root_id,
-                      new_id, entry.common.pointer,
-                      sourcemeta::core::empty_pointer,
-                      entry.common.dialect.value(),
-                      entry.common.base_dialect.value(),
-                      {entry.common.instance_location}, entry.common.parent);
-              } else {
-                store(this->locations_, this->instances_,
-                      SchemaReferenceType::Static,
-                      SchemaFrame::LocationType::Resource, new_id, root_id,
-                      new_id, entry.common.pointer,
-                      sourcemeta::core::empty_pointer,
-                      entry.common.dialect.value(),
-                      entry.common.base_dialect.value(), {},
-                      entry.common.parent);
-              }
+              store(this->locations_, SchemaReferenceType::Static,
+                    SchemaFrame::LocationType::Resource, new_id, root_id,
+                    new_id, entry.common.pointer,
+                    sourcemeta::core::empty_pointer,
+                    entry.common.dialect.value(),
+                    entry.common.base_dialect.value(), entry.common.parent);
             }
 
             auto base_uri_match{base_uris.find(entry.common.pointer)};
@@ -609,7 +535,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           const auto nearest_bases{
               find_nearest_bases(base_uris, entry.common.pointer, entry.id)};
           if (!nearest_bases.first.empty()) {
-            metaschema.try_resolve_from(nearest_bases.first.front());
+            metaschema.resolve_from(nearest_bases.first.front());
           }
 
           metaschema.canonicalize();
@@ -632,61 +558,46 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         const auto bases{
             find_nearest_bases(base_uris, entry.common.pointer, entry.id)};
 
-        std::vector<sourcemeta::core::PointerTemplate> instance_locations;
-        if (!entry.common.orphan &&
-            this->mode_ == SchemaFrame::Mode::Instances) {
-          instance_locations.push_back(entry.common.instance_location);
-        }
-
         if (bases.first.empty()) {
           const auto anchor_uri{sourcemeta::core::URI::from_fragment(name)};
           const auto relative_anchor_uri{anchor_uri.recompose()};
 
           if (type == AnchorType::Static || type == AnchorType::All) {
-            store(
-                this->locations_, this->instances_, SchemaReferenceType::Static,
-                SchemaFrame::LocationType::Anchor, relative_anchor_uri, root_id,
-                "", entry.common.pointer,
-                entry.common.pointer.resolve_from(bases.second),
-                entry.common.dialect.value(), entry.common.base_dialect.value(),
-                instance_locations, entry.common.parent);
+            store(this->locations_, SchemaReferenceType::Static,
+                  SchemaFrame::LocationType::Anchor, relative_anchor_uri,
+                  root_id, "", entry.common.pointer,
+                  entry.common.pointer.resolve_from(bases.second),
+                  entry.common.dialect.value(),
+                  entry.common.base_dialect.value(), entry.common.parent);
           }
 
           if (type == AnchorType::Dynamic || type == AnchorType::All) {
-            store(
-                this->locations_, this->instances_,
-                SchemaReferenceType::Dynamic, SchemaFrame::LocationType::Anchor,
-                relative_anchor_uri, root_id, "", entry.common.pointer,
-                entry.common.pointer.resolve_from(bases.second),
-                entry.common.dialect.value(), entry.common.base_dialect.value(),
-                instance_locations, entry.common.parent);
+            store(this->locations_, SchemaReferenceType::Dynamic,
+                  SchemaFrame::LocationType::Anchor, relative_anchor_uri,
+                  root_id, "", entry.common.pointer,
+                  entry.common.pointer.resolve_from(bases.second),
+                  entry.common.dialect.value(),
+                  entry.common.base_dialect.value(), entry.common.parent);
 
             // Register a dynamic anchor as a static anchor if possible too
             if (entry.common.vocabularies.contains(
-                    "https://json-schema.org/draft/2020-12/vocab/core")) {
-              store(this->locations_, this->instances_,
-                    SchemaReferenceType::Static,
+                    Vocabularies::Known::JSON_Schema_2020_12_Core)) {
+              store(this->locations_, SchemaReferenceType::Static,
                     SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                     root_id, "", entry.common.pointer,
                     entry.common.pointer.resolve_from(bases.second),
                     entry.common.dialect.value(),
-                    entry.common.base_dialect.value(), instance_locations,
-                    entry.common.parent, true);
+                    entry.common.base_dialect.value(), entry.common.parent,
+                    true);
             }
           }
         } else {
           bool is_first = true;
           for (const auto &base_string : bases.first) {
-            // TODO: All this dance is necessary because we don't have a
-            // URI::fragment setter
-            std::ostringstream anchor_uri_string;
-            anchor_uri_string << sourcemeta::core::URI{base_string}
-                                     .recompose_without_fragment()
-                                     .value_or("");
-            anchor_uri_string << '#';
-            anchor_uri_string << name;
-            const auto anchor_uri{
-                sourcemeta::core::URI::canonicalize(anchor_uri_string.str())};
+            sourcemeta::core::URI anchor_uri_builder{base_string};
+            anchor_uri_builder.fragment(name);
+            anchor_uri_builder.canonicalize();
+            const auto anchor_uri{anchor_uri_builder.recompose()};
 
             if (!is_first && this->locations_.contains(
                                  {SchemaReferenceType::Static, anchor_uri})) {
@@ -694,37 +605,35 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             }
 
             if (type == AnchorType::Static || type == AnchorType::All) {
-              store(this->locations_, this->instances_,
+              store(this->locations_,
                     sourcemeta::core::SchemaReferenceType::Static,
                     SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                     base_string, entry.common.pointer,
                     entry.common.pointer.resolve_from(bases.second),
                     entry.common.dialect.value(),
-                    entry.common.base_dialect.value(), instance_locations,
-                    entry.common.parent);
+                    entry.common.base_dialect.value(), entry.common.parent);
             }
 
             if (type == AnchorType::Dynamic || type == AnchorType::All) {
-              store(this->locations_, this->instances_,
+              store(this->locations_,
                     sourcemeta::core::SchemaReferenceType::Dynamic,
                     SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                     base_string, entry.common.pointer,
                     entry.common.pointer.resolve_from(bases.second),
                     entry.common.dialect.value(),
-                    entry.common.base_dialect.value(), instance_locations,
-                    entry.common.parent);
+                    entry.common.base_dialect.value(), entry.common.parent);
 
               // Register a dynamic anchor as a static anchor if possible too
               if (entry.common.vocabularies.contains(
-                      "https://json-schema.org/draft/2020-12/vocab/core")) {
-                store(this->locations_, this->instances_,
+                      Vocabularies::Known::JSON_Schema_2020_12_Core)) {
+                store(this->locations_,
                       sourcemeta::core::SchemaReferenceType::Static,
                       SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                       base_string, entry.common.pointer,
                       entry.common.pointer.resolve_from(bases.second),
                       entry.common.dialect.value(),
-                      entry.common.base_dialect.value(), instance_locations,
-                      entry.common.parent, true);
+                      entry.common.base_dialect.value(), entry.common.parent,
+                      true);
               }
             }
 
@@ -736,6 +645,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
     // It is important for the loop that follows to assume a specific ordering
     // where smaller pointers (by number of tokens) are scanned first.
+    // TODO: Perform the pointer walking using weak pointers only
     const auto pointer_walker{sourcemeta::core::PointerWalker{schema}};
     std::vector<sourcemeta::core::Pointer> pointers{pointer_walker.cbegin(),
                                                     pointer_walker.cend()};
@@ -744,61 +654,56 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     // Pre-compute every possible pointer to the schema
     for (const auto &relative_pointer : pointers) {
       const auto pointer{path.concat(relative_pointer)};
+
       const auto dialects{
           find_nearest_bases(base_dialects, pointer, root_dialect)};
       assert(dialects.first.size() == 1);
 
-      for (const auto &base : find_every_base(base_uris, pointer)) {
+      auto every_base_result = find_every_base(base_uris, pointer);
+
+      for (const auto &base : every_base_result) {
         auto relative_pointer_uri{
             base.first.empty()
                 ? sourcemeta::core::to_uri(pointer.resolve_from(base.second))
                 : sourcemeta::core::to_uri(pointer.resolve_from(base.second))
-                      .try_resolve_from({base.first})};
+                      .resolve_from({base.first})};
 
         relative_pointer_uri.canonicalize();
-        const auto result{relative_pointer_uri.recompose()};
+        auto result{relative_pointer_uri.recompose()};
 
-        if (!this->locations_.contains({SchemaReferenceType::Static, result})) {
+        bool contains =
+            this->locations_.contains({SchemaReferenceType::Static, result});
+
+        if (!contains) {
           const auto nearest_bases{
               find_nearest_bases(base_uris, pointer, base.first)};
           assert(!nearest_bases.first.empty());
           const auto &current_base{nearest_bases.first.front()};
+
           const auto maybe_base_entry{this->locations_.find(
               {SchemaReferenceType::Static, current_base})};
+
           const auto current_base_dialect{
               maybe_base_entry == this->locations_.cend()
                   ? root_base_dialect.value()
                   : maybe_base_entry->second.base_dialect};
+
           const auto subschema{subschemas.find(pointer)};
+
           if (subschema != subschemas.cend()) {
-            // Handle orphan schemas
-            if (!(subschema->second.orphan) &&
-                this->mode_ == SchemaFrame::Mode::Instances) {
-              store(this->locations_, this->instances_,
-                    SchemaReferenceType::Static,
-                    SchemaFrame::LocationType::Subschema, result, root_id,
-                    current_base, pointer,
-                    pointer.resolve_from(nearest_bases.second),
-                    dialects.first.front(), current_base_dialect,
-                    {subschema->second.instance_location},
-                    subschema->second.parent);
-            } else {
-              store(this->locations_, this->instances_,
-                    SchemaReferenceType::Static,
-                    SchemaFrame::LocationType::Subschema, result, root_id,
-                    current_base, pointer,
-                    pointer.resolve_from(nearest_bases.second),
-                    dialects.first.front(), current_base_dialect, {},
-                    subschema->second.parent);
-            }
+            store(this->locations_, SchemaReferenceType::Static,
+                  SchemaFrame::LocationType::Subschema, result, root_id,
+                  current_base, pointer,
+                  pointer.resolve_from(nearest_bases.second),
+                  dialects.first.front(), current_base_dialect,
+                  subschema->second.parent, false, true);
           } else {
-            store(this->locations_, this->instances_,
-                  SchemaReferenceType::Static,
+            store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Pointer, result, root_id,
                   current_base, pointer,
                   pointer.resolve_from(nearest_bases.second),
-                  dialects.first.front(), current_base_dialect, {},
-                  dialects.second);
+                  dialects.first.front(), current_base_dialect, dialects.second,
+                  false, true);
           }
         }
       }
@@ -815,27 +720,28 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       const auto nearest_bases{
           find_nearest_bases(base_uris, entry.common.pointer, entry.id)};
       if (entry.common.subschema.get().defines("$ref")) {
-        assert(entry.common.subschema.get().at("$ref").is_string());
-        const auto &original{
-            entry.common.subschema.get().at("$ref").to_string()};
-        sourcemeta::core::URI ref{original};
-        if (!nearest_bases.first.empty()) {
-          ref.try_resolve_from(nearest_bases.first.front());
-        }
+        if (entry.common.subschema.get().at("$ref").is_string()) {
+          const auto &original{
+              entry.common.subschema.get().at("$ref").to_string()};
+          sourcemeta::core::URI ref{original};
+          if (!nearest_bases.first.empty()) {
+            ref.resolve_from(nearest_bases.first.front());
+          }
 
-        ref.canonicalize();
-        this->references_.insert_or_assign(
-            {SchemaReferenceType::Static,
-             entry.common.pointer.concat({"$ref"})},
-            SchemaFrame::ReferencesEntry{.original = original,
-                                         .destination = ref.recompose(),
-                                         .base =
-                                             ref.recompose_without_fragment(),
-                                         .fragment = fragment_string(ref)});
+          ref.canonicalize();
+          this->references_.insert_or_assign(
+              {SchemaReferenceType::Static,
+               entry.common.pointer.concat({"$ref"})},
+              SchemaFrame::ReferencesEntry{.original = original,
+                                           .destination = ref.recompose(),
+                                           .base =
+                                               ref.recompose_without_fragment(),
+                                           .fragment = fragment_string(ref)});
+        }
       }
 
       if (entry.common.vocabularies.contains(
-              "https://json-schema.org/draft/2019-09/vocab/core") &&
+              Vocabularies::Known::JSON_Schema_2019_09_Core) &&
           entry.common.subschema.get().defines("$recursiveRef")) {
         assert(entry.common.subschema.get().at("$recursiveRef").is_string());
         const auto &ref{
@@ -846,9 +752,10 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         // See
         // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.4.2.1
         if (ref != "#") {
-          std::ostringstream error;
-          error << "Invalid recursive reference: " << ref;
-          throw sourcemeta::core::SchemaError(error.str());
+          throw sourcemeta::core::SchemaReferenceError(
+              entry.id.value_or(""),
+              entry.common.pointer.concat({"$recursiveRef"}),
+              "Invalid recursive reference");
         }
 
         auto anchor_uri_string{
@@ -858,7 +765,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         const auto reference_type{recursive_anchor == this->locations_.end()
                                       ? SchemaReferenceType::Static
                                       : SchemaReferenceType::Dynamic};
-        const sourcemeta::core::URI anchor_uri{std::move(anchor_uri_string)};
+        const sourcemeta::core::URI anchor_uri{anchor_uri_string};
         this->references_.insert_or_assign(
             {reference_type, entry.common.pointer.concat({"$recursiveRef"})},
             SchemaFrame::ReferencesEntry{
@@ -869,41 +776,42 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       }
 
       if (entry.common.vocabularies.contains(
-              "https://json-schema.org/draft/2020-12/vocab/core") &&
+              Vocabularies::Known::JSON_Schema_2020_12_Core) &&
           entry.common.subschema.get().defines("$dynamicRef")) {
-        assert(entry.common.subschema.get().at("$dynamicRef").is_string());
-        const auto &original{
-            entry.common.subschema.get().at("$dynamicRef").to_string()};
-        sourcemeta::core::URI ref{original};
-        if (!nearest_bases.first.empty()) {
-          ref.resolve_from(nearest_bases.first.front());
+        if (entry.common.subschema.get().at("$dynamicRef").is_string()) {
+          const auto &original{
+              entry.common.subschema.get().at("$dynamicRef").to_string()};
+          sourcemeta::core::URI ref{original};
+          if (!nearest_bases.first.empty()) {
+            ref.resolve_from(nearest_bases.first.front());
+          }
+
+          ref.canonicalize();
+          auto ref_string{ref.recompose()};
+
+          // Note that here we cannot enforce the bookending requirement,
+          // as the dynamic reference may point to a schema resource that
+          // is not part of or bundled within the schema we are analyzing here.
+
+          const auto has_fragment{ref.fragment().has_value()};
+          const auto maybe_static_frame{
+              this->locations_.find({SchemaReferenceType::Static, ref_string})};
+          const auto maybe_dynamic_frame{this->locations_.find(
+              {SchemaReferenceType::Dynamic, ref_string})};
+          const auto behaves_as_static{
+              !has_fragment ||
+              (has_fragment && maybe_static_frame != this->locations_.end() &&
+               maybe_dynamic_frame == this->locations_.end())};
+          this->references_.insert_or_assign(
+              {behaves_as_static ? SchemaReferenceType::Static
+                                 : SchemaReferenceType::Dynamic,
+               entry.common.pointer.concat({"$dynamicRef"})},
+              SchemaFrame::ReferencesEntry{.original = original,
+                                           .destination = std::move(ref_string),
+                                           .base =
+                                               ref.recompose_without_fragment(),
+                                           .fragment = fragment_string(ref)});
         }
-
-        ref.canonicalize();
-        auto ref_string{ref.recompose()};
-
-        // Note that here we cannot enforce the bookending requirement,
-        // as the dynamic reference may point to a schema resource that
-        // is not part of or bundled within the schema we are analyzing here.
-
-        const auto has_fragment{ref.fragment().has_value()};
-        const auto maybe_static_frame{
-            this->locations_.find({SchemaReferenceType::Static, ref_string})};
-        const auto maybe_dynamic_frame{
-            this->locations_.find({SchemaReferenceType::Dynamic, ref_string})};
-        const auto behaves_as_static{
-            !has_fragment ||
-            (has_fragment && maybe_static_frame != this->locations_.end() &&
-             maybe_dynamic_frame == this->locations_.end())};
-        this->references_.insert_or_assign(
-            {behaves_as_static ? SchemaReferenceType::Static
-                               : SchemaReferenceType::Dynamic,
-             entry.common.pointer.concat({"$dynamicRef"})},
-            SchemaFrame::ReferencesEntry{.original = original,
-                                         .destination = std::move(ref_string),
-                                         .base =
-                                             ref.recompose_without_fragment(),
-                                         .fragment = fragment_string(ref)});
       }
     }
   }
@@ -965,32 +873,6 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
     for (auto &&entry : to_insert) {
       this->references_.emplace(std::move(entry));
-    }
-  }
-
-  if (this->mode_ == sourcemeta::core::SchemaFrame::Mode::Instances) {
-    // Calculate alternative unresolved instance locations
-    for (auto &entry : this->locations_) {
-      if (entry.second.type == SchemaFrame::LocationType::Pointer) {
-        continue;
-      }
-
-      traverse_origin_instance_locations(
-          *this, this->instances_, entry.second.pointer, std::nullopt,
-          this->instances_[entry.second.pointer]);
-    }
-
-    // This is guaranteed to be top-down
-    for (auto &entry : this->locations_) {
-      if (entry.second.type == SchemaFrame::LocationType::Pointer) {
-        continue;
-      }
-
-      const auto subschema{subschemas.find(entry.second.pointer)};
-      repopulate_instance_locations(*this, this->instances_, subschemas,
-                                    subschema->first, subschema->second,
-                                    this->instances_[entry.second.pointer],
-                                    std::nullopt);
     }
   }
 }
@@ -1103,17 +985,6 @@ auto SchemaFrame::dereference(const Location &location,
                              maybe_reference_entry->second.destination})};
   assert(destination != this->locations_.cend());
   return {SchemaReferenceType::Static, destination->second};
-}
-
-auto SchemaFrame::instance_locations(const Location &location) const -> const
-    typename Instances::mapped_type & {
-  const auto match{this->instances_.find(location.pointer)};
-  if (match == this->instances_.cend()) {
-    static const typename Instances::mapped_type fallback;
-    return fallback;
-  }
-
-  return match->second;
 }
 
 auto SchemaFrame::references_to(const Pointer &pointer) const -> std::vector<

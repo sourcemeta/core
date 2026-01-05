@@ -7,10 +7,12 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME json
     json_integer_test.cc
     json_null_test.cc
     json_number_test.cc
+    json_decimal_test.cc
     json_object_test.cc
     json_parse_callback_test.cc
     json_parse_error_test.cc
     json_parse_test.cc
+    json_parse_roundtrip_test.cc
     json_prettify_test.cc
     json_real_test.cc
     json_string_test.cc

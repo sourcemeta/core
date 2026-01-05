@@ -4,6 +4,7 @@
 #include <sourcemeta/core/json_value.h>
 
 #include <algorithm>  // std::sort
+#include <bitset>     // std::bitset
 #include <cassert>    // assert
 #include <chrono>     // std::chrono
 #include <concepts>   // std::same_as, std::constructible_from
@@ -13,14 +14,7 @@
 #include <tuple> // std::tuple, std::apply, std::tuple_element_t, std::tuple_size, std::tuple_size_v
 #include <type_traits> // std::false_type, std::true_type, std::void_t, std::is_enum_v, std::underlying_type_t, std::is_same_v, std::is_base_of_v, std::remove_cvref_t
 #include <utility> // std::pair, std:::make_index_sequence, std::index_sequence
-
-// Forward declarations (added as needed)
-#ifndef DOXYGEN
-namespace sourcemeta::core {
-template <typename L, typename R>
-auto to_json(const std::pair<L, R> &value) -> JSON;
-}
-#endif
+#include <variant> // std::variant, std::variant_size_v, std::variant_alternative_t, std::visit
 
 namespace sourcemeta::core {
 
@@ -36,6 +30,17 @@ template <typename T> struct json_auto_is_basic_string : std::false_type {};
 template <typename CharT, typename Traits, typename Alloc>
 struct json_auto_is_basic_string<std::basic_string<CharT, Traits, Alloc>>
     : std::true_type {};
+
+/// @ingroup json
+template <typename T> struct json_auto_is_bitset : std::false_type {};
+template <std::size_t N>
+struct json_auto_is_bitset<std::bitset<N>> : std::true_type {};
+
+/// @ingroup json
+template <typename T> struct json_auto_bitset_size;
+template <std::size_t N>
+struct json_auto_bitset_size<std::bitset<N>>
+    : std::integral_constant<std::size_t, N> {};
 
 /// @ingroup json
 template <typename T>
@@ -104,6 +109,13 @@ template <typename U, typename V>
 struct json_auto_is_pair<std::pair<U, V>> : std::true_type {};
 
 /// @ingroup json
+template <typename T> struct json_auto_is_variant : std::false_type {};
+
+/// @ingroup json
+template <typename... Ts>
+struct json_auto_is_variant<std::variant<Ts...>> : std::true_type {};
+
+/// @ingroup json
 template <typename T>
 concept json_auto_tuple_mono = requires {
   typename std::tuple_size<std::remove_cvref_t<T>>::type;
@@ -120,6 +132,19 @@ concept json_auto_tuple_poly =
         std::pair<std::tuple_element_t<0, std::remove_cvref_t<T>>,
                   std::tuple_element_t<1, std::remove_cvref_t<T>>>,
         std::remove_cvref_t<T>>);
+
+// Forward declarations for recursive type conversions
+#ifndef DOXYGEN
+template <json_auto_list_like T> auto to_json(const T &value) -> JSON;
+template <json_auto_map_like T> auto to_json(const T &value) -> JSON;
+template <typename L, typename R>
+auto to_json(const std::pair<L, R> &value) -> JSON;
+template <json_auto_tuple_mono T> auto to_json(const T &value) -> JSON;
+template <json_auto_tuple_poly T> auto to_json(const T &value) -> JSON;
+template <typename T>
+  requires json_auto_is_variant<T>::value
+auto to_json(const T &value) -> JSON;
+#endif
 
 /// @ingroup json
 /// If the value has a `.to_json()` method, always prefer that
@@ -154,6 +179,17 @@ template <typename T>
 auto from_json(const JSON &value) -> std::optional<T> {
   if (value.is_integer()) {
     return static_cast<T>(value.to_integer());
+  } else {
+    return std::nullopt;
+  }
+}
+
+/// @ingroup json
+template <typename T>
+  requires std::is_same_v<T, Decimal>
+auto from_json(const JSON &value) -> std::optional<T> {
+  if (value.is_decimal()) {
+    return value.to_decimal();
   } else {
     return std::nullopt;
   }
@@ -256,6 +292,38 @@ auto from_json(const JSON &value) -> std::optional<T> {
     return value.to_string();
   } else {
     return std::nullopt;
+  }
+}
+
+/// @ingroup json
+template <typename T>
+  requires json_auto_is_bitset<T>::value
+auto to_json(const T &bitset) -> JSON {
+  constexpr std::size_t N{json_auto_bitset_size<T>::value};
+  if constexpr (N <= 64) {
+    return JSON{static_cast<std::int64_t>(bitset.to_ullong())};
+  } else {
+    return JSON{bitset.to_string()};
+  }
+}
+
+/// @ingroup json
+template <typename T>
+  requires json_auto_is_bitset<T>::value
+auto from_json(const JSON &value) -> std::optional<T> {
+  constexpr std::size_t N{json_auto_bitset_size<T>::value};
+  if constexpr (N <= 64) {
+    if (value.is_integer()) {
+      return T{static_cast<unsigned long long>(value.to_integer())};
+    } else {
+      return std::nullopt;
+    }
+  } else {
+    if (value.is_string()) {
+      return T{value.to_string()};
+    } else {
+      return std::nullopt;
+    }
   }
 }
 
@@ -605,6 +673,57 @@ auto from_json(const JSON &value) -> std::optional<T> {
     // TODO: Maybe there is a better way to catch this without using exceptions?
   } catch (const std::bad_optional_access &) {
     return std::nullopt;
+  }
+}
+
+/// @ingroup json
+template <typename T>
+  requires json_auto_is_variant<T>::value
+auto to_json(const T &value) -> JSON {
+  auto result{JSON::make_array()};
+  result.push_back(JSON{static_cast<std::int64_t>(value.index())});
+  std::visit(
+      [&result](const auto &alternative) {
+        result.push_back(to_json(alternative));
+      },
+      value);
+  return result;
+}
+
+#ifndef DOXYGEN
+template <typename T, std::size_t Index = 0>
+auto from_json_variant_impl(const JSON &data, std::size_t index)
+    -> std::optional<T> {
+  if constexpr (Index >= std::variant_size_v<T>) {
+    return std::nullopt;
+  } else {
+    if (Index == index) {
+      auto result{from_json<std::variant_alternative_t<Index, T>>(data)};
+      if (result.has_value()) {
+        return T{std::in_place_index<Index>, std::move(result).value()};
+      }
+
+      return std::nullopt;
+    } else {
+      return from_json_variant_impl<T, Index + 1>(data, index);
+    }
+  }
+}
+#endif
+
+/// @ingroup json
+template <typename T>
+  requires json_auto_is_variant<T>::value
+auto from_json(const JSON &value) -> std::optional<T> {
+  if (!value.is_array() || value.size() != 2 || !value.at(0).is_integer()) {
+    return std::nullopt;
+  }
+
+  const auto index{static_cast<std::size_t>(value.at(0).to_integer())};
+  if (index >= std::variant_size_v<T>) {
+    return std::nullopt;
+  } else {
+    return from_json_variant_impl<T>(value.at(1), index);
   }
 }
 

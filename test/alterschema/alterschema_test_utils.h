@@ -7,20 +7,35 @@
 #include <tuple>
 #include <vector>
 
-#define LINT_WITHOUT_FIX_FOR_READABILITY(document, result, traces)             \
+static auto alterschema_test_resolver(std::string_view identifier)
+    -> std::optional<sourcemeta::core::JSON> {
+  if (identifier ==
+      "https://sourcemeta.com/2020-12-custom-vocabulary-optional") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://sourcemeta.com/2020-12-custom-vocabulary-optional",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$vocabulary": {
+        "https://json-schema.org/draft/2020-12/vocab/core": true,
+        "https://sourcemeta.com/2020-12-custom-vocabulary-optional": false
+      }
+    })JSON");
+  } else {
+    return sourcemeta::core::schema_resolver(identifier);
+  }
+}
+
+#define LINT_WITHOUT_FIX(document, result, traces)                             \
   std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
                          sourcemeta::core::SchemaTransformRule::Result>>       \
       traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
-  sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::Readability);       \
-  const auto result =                                                          \
-      bundle.check(document, sourcemeta::core::schema_official_walker,         \
-                   sourcemeta::core::schema_official_resolver,                 \
-                   [&traces](const auto &pointer, const auto &name,            \
-                             const auto &message, const auto &outcome) {       \
-                     traces.emplace_back(pointer, name, message, outcome);     \
-                   });
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
+  const auto result = bundle.check(                                            \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [&traces](const auto &pointer, const auto &name, const auto &message,    \
+                const auto &outcome) {                                         \
+        traces.emplace_back(pointer, name, message, outcome);                  \
+      });
 
 #define EXPECT_LINT_TRACE(traces, index, pointer, name, message)               \
   EXPECT_EQ(sourcemeta::core::to_string(std::get<0>((traces).at(index))),      \
@@ -28,28 +43,19 @@
   EXPECT_EQ(std::get<1>((traces).at(index)), (name));                          \
   EXPECT_EQ(std::get<2>((traces).at(index)), (message));
 
-#define LINT_AND_FIX_FOR_READABILITY(traces)                                   \
+#define LINT_AND_FIX(traces)                                                   \
   sourcemeta::core::SchemaTransformer bundle;                                  \
-  sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::Readability);       \
-  bundle.apply(document, sourcemeta::core::schema_official_walker,             \
-               sourcemeta::core::schema_official_resolver,                     \
-               [](const auto &, const auto &, const auto &, const auto &) {});
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
+  [[maybe_unused]] const auto lint_result = bundle.apply(                      \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [](const auto &, const auto &, const auto &, const auto &) {});
 
-#define LINT_AND_FIX_FOR_READABILITY_STRICT(traces)                            \
+#define CANONICALIZE(document)                                                 \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::ReadabilityStrict); \
-  bundle.apply(document, sourcemeta::core::schema_official_walker,             \
-               sourcemeta::core::schema_official_resolver,                     \
-               [](const auto &, const auto &, const auto &, const auto &) {});
-
-#define LINT_AND_FIX_FOR_STATIC_ANALYSIS(document)                             \
-  sourcemeta::core::SchemaTransformer bundle;                                  \
-  sourcemeta::core::add(bundle,                                                \
-                        sourcemeta::core::AlterSchemaMode::StaticAnalysis);    \
-  bundle.apply(document, sourcemeta::core::schema_official_walker,             \
-               sourcemeta::core::schema_official_resolver,                     \
-               [](const auto &, const auto &, const auto &, const auto &) {});
+                        sourcemeta::core::AlterSchemaMode::Canonicalizer);     \
+  [[maybe_unused]] const auto canonicalize_result = bundle.apply(              \
+      document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
+      [](const auto &, const auto &, const auto &, const auto &) {});
 
 #endif
