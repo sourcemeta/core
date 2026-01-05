@@ -3,7 +3,6 @@
 #include <cassert>       // assert
 #include <functional>    // std::reference_wrapper
 #include <sstream>       // std::ostringstream
-#include <string_view>   // std::string_view
 #include <tuple>         // std::tuple
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move
@@ -141,7 +140,6 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    const std::optional<std::string> &default_dialect,
                    const std::optional<std::string> &default_id,
                    const sourcemeta::core::SchemaFrame::Paths &paths,
-                   const std::unordered_set<std::string_view> &exclusions,
                    const std::size_t depth = 0) -> void {
   // Keep in mind that the resulting frame does miss some information. For
   // example, when we recurse to framing embedded schemas, we will frame them
@@ -187,11 +185,6 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     assert(reference.base.has_value());
     const auto &identifier{reference.base.value()};
-
-    if (exclusions.contains(identifier)) {
-      continue;
-    }
-
     auto remote{resolver(identifier)};
     if (!remote.has_value()) {
       if (frame.traverse(identifier).has_value()) {
@@ -226,7 +219,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     }
 
     bundle_schema(root, container, remote.value(), frame, walker, resolver,
-                  default_dialect, identifier, paths, exclusions, depth + 1);
+                  default_dialect, identifier, paths, depth + 1);
     embed_schema(root, container, identifier, std::move(remote).value());
   }
 }
@@ -253,15 +246,14 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_dialect,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
-            const SchemaFrame::Paths &paths,
-            const std::unordered_set<std::string_view> &exclusions) -> void {
+            const SchemaFrame::Paths &paths) -> void {
   SchemaFrame frame{SchemaFrame::Mode::References};
 
   if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
     bundle_schema(schema, default_container.value(), schema, frame, walker,
-                  resolver, default_dialect, default_id, paths, exclusions);
+                  resolver, default_dialect, default_id, paths);
     return;
   }
 
@@ -281,7 +273,7 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
       vocabularies.contains(
           sourcemeta::core::Vocabularies::Known::JSON_Schema_2019_09_Core)) {
     bundle_schema(schema, {"$defs"}, schema, frame, walker, resolver,
-                  default_dialect, default_id, paths, exclusions);
+                  default_dialect, default_id, paths);
     return;
   } else if (
       vocabularies.contains(
@@ -313,7 +305,7 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
     }
 
     bundle_schema(schema, {"definitions"}, schema, frame, walker, resolver,
-                  default_dialect, default_id, paths, exclusions);
+                  default_dialect, default_id, paths);
     return;
   } else if (
       vocabularies.contains(
@@ -349,11 +341,10 @@ auto bundle(const JSON &schema, const SchemaWalker &walker,
             const std::optional<std::string> &default_dialect,
             const std::optional<std::string> &default_id,
             const std::optional<Pointer> &default_container,
-            const SchemaFrame::Paths &paths,
-            const std::unordered_set<std::string_view> &exclusions) -> JSON {
+            const SchemaFrame::Paths &paths) -> JSON {
   JSON copy = schema;
   bundle(copy, walker, resolver, default_dialect, default_id, default_container,
-         paths, exclusions);
+         paths);
   return copy;
 }
 
