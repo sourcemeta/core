@@ -38,8 +38,9 @@ namespace sourcemeta::core {
 using Pointer = GenericPointer<JSON::String, PropertyHashJSON<JSON::String>>;
 
 /// @ingroup jsonpointer
-using WeakPointer = GenericPointer<std::reference_wrapper<const std::string>,
-                                   PropertyHashJSON<JSON::String>>;
+using WeakPointer = GenericPointer<
+    // We use this instead of a string view as the latter occupies more memory
+    std::reference_wrapper<const std::string>, PropertyHashJSON<JSON::String>>;
 
 /// @ingroup jsonpointer
 /// A global constant instance of the empty JSON Pointer.

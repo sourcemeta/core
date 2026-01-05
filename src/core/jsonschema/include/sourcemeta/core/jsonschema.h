@@ -38,12 +38,13 @@ namespace sourcemeta::core {
 /// @ingroup jsonschema
 /// A default resolver that relies on built-in official schemas.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_resolver(std::string_view identifier) -> std::optional<JSON>;
+auto schema_resolver(const std::string_view identifier) -> std::optional<JSON>;
 
 /// @ingroup jsonschema
 /// A default schema walker with support for a wide range of drafs
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_walker(std::string_view keyword, const Vocabularies &vocabularies)
+auto schema_walker(const std::string_view keyword,
+                   const Vocabularies &vocabularies)
     -> const SchemaWalkerResult &;
 
 /// @ingroup jsonschema
@@ -82,7 +83,7 @@ auto schema_walker(std::string_view keyword, const Vocabularies &vocabularies)
 ///   sourcemeta::core::schema_walker) == 1);
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto schema_keyword_priority(std::string_view keyword,
+auto schema_keyword_priority(const std::string_view keyword,
                              const Vocabularies &vocabularies,
                              const SchemaWalker &walker) -> std::uint64_t;
 
@@ -120,8 +121,8 @@ auto is_empty_schema(const JSON &schema) -> bool;
 
 /// @ingroup jsonschema
 ///
-/// This function returns the URI identifier of the given schema, if any. For
-/// example:
+/// This function returns the URI identifier of the given schema, or an empty
+/// string view if the schema has no identifier. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -134,15 +135,15 @@ auto is_empty_schema(const JSON &schema) -> bool;
 ///   "$id": "https://sourcemeta.com/example-schema"
 /// })JSON");
 ///
-/// std::optional<std::string> id{sourcemeta::core::identify(
+/// const auto id{sourcemeta::core::identify(
 ///   document, sourcemeta::core::schema_resolver)};
-/// assert(id.has_value());
-/// assert(id.value() == "https://sourcemeta.com/example-schema");
+/// assert(!id.empty());
+/// assert(id == "https://sourcemeta.com/example-schema");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto identify(const JSON &schema, const SchemaResolver &resolver,
               std::string_view default_dialect = "",
-              std::string_view default_id = "") -> std::optional<std::string>;
+              std::string_view default_id = "") -> std::string_view;
 
 /// @ingroup jsonschema
 ///
@@ -150,7 +151,7 @@ auto identify(const JSON &schema, const SchemaResolver &resolver,
 /// of the schema.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto identify(const JSON &schema, std::string_view base_dialect,
-              std::string_view default_id = "") -> std::optional<std::string>;
+              std::string_view default_id = "") -> std::string_view;
 
 /// @ingroup jsonschema
 ///
@@ -173,9 +174,9 @@ auto identify(const JSON &schema, std::string_view base_dialect,
 /// sourcemeta::core::anonymize(document,
 ///   "https://json-schema.org/draft/2020-12/schema");
 ///
-/// std::optional<std::string> id{sourcemeta::core::identify(
+/// const auto id{sourcemeta::core::identify(
 ///   document, sourcemeta::core::schema_resolver)};
-/// assert(!id.has_value());
+/// assert(id.empty());
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto anonymize(JSON &schema, std::string_view base_dialect) -> void;
@@ -200,10 +201,10 @@ auto anonymize(JSON &schema, std::string_view base_dialect) -> void;
 ///   "https://example.com/my-new-id",
 ///   sourcemeta::core::schema_resolver);
 ///
-/// std::optional<std::string> id{sourcemeta::core::identify(
+/// const auto id{sourcemeta::core::identify(
 ///   document, sourcemeta::core::schema_resolver)};
-/// assert(id.has_value());
-/// assert(id.value() == "https://example.com/my-new-id");
+/// assert(!id.empty());
+/// assert(id == "https://example.com/my-new-id");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto reidentify(JSON &schema, std::string_view new_identifier,
@@ -392,7 +393,7 @@ auto format(JSON &schema, const SchemaWalker &walker,
 /// std::cerr << "\n";
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto wrap(const JSON::String &identifier) -> JSON;
+auto wrap(std::string_view identifier) -> JSON;
 
 /// @ingroup jsonschema
 ///

@@ -11,7 +11,7 @@
 #define EXPECT_DEPENDENCY(expected_traces, expected_index, expected_origin,    \
                           expected_pointer, expected_target)                   \
   EXPECT_EQ(std::get<0>((expected_traces).at(expected_index)),                 \
-            std::optional<sourcemeta::core::JSON::String>{(expected_origin)}); \
+            (expected_origin));                                                \
   EXPECT_EQ(sourcemeta::core::to_string(                                       \
                 std::get<1>((expected_traces).at(expected_index))),            \
             (expected_pointer));                                               \
@@ -77,9 +77,7 @@ TEST(JSONSchema_dependencies, multiple_refs) {
     }
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -108,9 +106,7 @@ TEST(JSONSchema_dependencies, across_dialects) {
     "items": { "$ref": "https://www.sourcemeta.com/test-2" }
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -137,9 +133,7 @@ TEST(JSONSchema_dependencies, across_dialects_top_level_ref_draft) {
     "items": { "$ref": "https://www.sourcemeta.com/test-3-top-level-ref" }
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -166,9 +160,7 @@ TEST(JSONSchema_dependencies,
     "$ref": "https://www.sourcemeta.com/test-4"
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -180,7 +172,7 @@ TEST(JSONSchema_dependencies,
 
   EXPECT_EQ(traces.size(), 1);
 
-  EXPECT_DEPENDENCY(traces, 0, std::nullopt, "/$ref",
+  EXPECT_DEPENDENCY(traces, 0, "", "/$ref",
                     "https://www.sourcemeta.com/test-4");
 }
 
@@ -192,9 +184,7 @@ TEST(JSONSchema_dependencies,
     "$ref": "test-4"
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   EXPECT_THROW(sourcemeta::core::dependencies(
@@ -212,9 +202,7 @@ TEST(JSONSchema_dependencies,
     "$ref": "https://www.sourcemeta.com/test-4"
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -225,7 +213,7 @@ TEST(JSONSchema_dependencies,
 
   EXPECT_EQ(traces.size(), 1);
 
-  EXPECT_DEPENDENCY(traces, 0, std::nullopt, "/$ref",
+  EXPECT_DEPENDENCY(traces, 0, "", "/$ref",
                     "https://www.sourcemeta.com/test-4");
 }
 
@@ -236,9 +224,7 @@ TEST(JSONSchema_dependencies, across_dialects_const) {
     "items": { "$ref": "https://www.sourcemeta.com/test-2" }
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -264,9 +250,7 @@ TEST(JSONSchema_dependencies, with_default_id) {
     "items": { "$ref": "test-2" }
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -292,9 +276,7 @@ TEST(JSONSchema_dependencies, with_default_dialect) {
     }
   })JSON");
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   sourcemeta::core::dependencies(
@@ -305,7 +287,7 @@ TEST(JSONSchema_dependencies, with_default_dialect) {
 
   EXPECT_EQ(traces.size(), 1);
 
-  EXPECT_DEPENDENCY(traces, 0, std::nullopt, "/properties/foo/$ref",
+  EXPECT_DEPENDENCY(traces, 0, "", "/properties/foo/$ref",
                     "https://www.sourcemeta.com/test-1");
 }
 
@@ -370,9 +352,7 @@ TEST(JSONSchema_dependencies, custom_paths_no_external) {
     }
   })JSON")};
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   const sourcemeta::core::Pointer path1{"wrapper"};
@@ -409,9 +389,7 @@ TEST(JSONSchema_dependencies, custom_paths_with_externals) {
     }
   })JSON")};
 
-  std::vector<
-      std::tuple<std::optional<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
       traces;
 
   const sourcemeta::core::Pointer path1{"wrapper"};
@@ -431,7 +409,7 @@ TEST(JSONSchema_dependencies, custom_paths_with_externals) {
   EXPECT_EQ(traces.size(), 3);
 
   // TODO: We should be getting the nested identifier here
-  EXPECT_DEPENDENCY(traces, 0, std::nullopt, "/common/with-id/$ref",
+  EXPECT_DEPENDENCY(traces, 0, "", "/common/with-id/$ref",
                     "https://www.sourcemeta.com/test-2");
   EXPECT_DEPENDENCY(traces, 1, "https://www.sourcemeta.com/test-2", "/$ref",
                     "https://www.sourcemeta.com/test-3");

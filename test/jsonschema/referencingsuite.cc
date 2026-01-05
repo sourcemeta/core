@@ -14,15 +14,16 @@
 #include <utility>
 
 static auto dereference(
-    const std::string &uri,
+    const std::string_view uri,
     const std::map<std::string, std::pair<sourcemeta::core::JSON, std::string>>
         &registry)
     -> std::optional<std::pair<sourcemeta::core::JSON, std::string>> {
-  if (!registry.contains(uri)) {
+  const std::string key{uri};
+  if (!registry.contains(key)) {
     return std::nullopt;
   }
 
-  return registry.at(uri);
+  return registry.at(key);
 }
 
 class ReferencingTest : public testing::Test {
@@ -71,14 +72,15 @@ public:
   }
 
   auto assert_case(const sourcemeta::core::JSON &current,
-                   const std::optional<std::string> &default_base_uri) -> void {
+                   const std::string_view default_base_uri) -> void {
     const bool is_error{current.defines("error") &&
                         current.at("error").is_boolean() &&
                         current.at("error").to_boolean()};
 
-    const std::optional<std::string> base_uri{
-        current.defines("base_uri") ? current.at("base_uri").to_string()
-                                    : default_base_uri};
+    // These need to be std::string because URI constructor requires it
+    const std::string base_uri{current.defines("base_uri")
+                                   ? current.at("base_uri").to_string()
+                                   : std::string{default_base_uri}};
 
     assert(current.defines("ref"));
     assert(current.at("ref").is_string());
@@ -86,8 +88,8 @@ public:
 
     try {
       sourcemeta::core::URI ref_uri{ref_string};
-      if (base_uri.has_value()) {
-        ref_uri.resolve_from(base_uri.value());
+      if (!base_uri.empty()) {
+        ref_uri.resolve_from(base_uri);
       }
 
       ref_uri.canonicalize();

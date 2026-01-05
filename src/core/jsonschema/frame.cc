@@ -179,7 +179,8 @@ auto find_every_base(
 }
 
 // TODO: Why do we have this function both here and on `walker.cc`?
-auto ref_overrides_adjacent_keywords(std::string_view base_dialect) -> bool {
+auto ref_overrides_adjacent_keywords(const std::string_view base_dialect)
+    -> bool {
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
   // See
@@ -194,7 +195,7 @@ auto ref_overrides_adjacent_keywords(std::string_view base_dialect) -> bool {
          base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
 }
 
-auto supports_id_anchors(std::string_view base_dialect) -> bool {
+auto supports_id_anchors(const std::string_view base_dialect) -> bool {
   return base_dialect == "http://json-schema.org/draft-07/schema#" ||
          base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
          base_dialect == "http://json-schema.org/draft-06/schema#" ||
@@ -394,14 +395,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       throw SchemaUnknownBaseDialectError();
     }
 
-    std::optional<JSON::String> root_id{
-        // If we are dealing with nested schemas, then by definition
-        // the root has no identifier
-        !path.empty() ? std::nullopt
-                      : sourcemeta::core::identify(schema, root_base_dialect,
-                                                   default_id)};
-    if (root_id.has_value()) {
-      root_id = URI::canonicalize(root_id.value());
+    // If we are dealing with nested schemas, then by definition
+    // the root has no identifier
+    std::optional<JSON::String> root_id{std::nullopt};
+    if (path.empty()) {
+      const auto maybe_id{
+          sourcemeta::core::identify(schema, root_base_dialect, default_id)};
+      if (!maybe_id.empty()) {
+        root_id = URI::canonicalize(maybe_id);
+      }
     }
 
     const std::string_view root_dialect{
@@ -415,8 +417,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                                          !default_id.empty() &&
                                          root_id.value() != default_id};
     if (has_explicit_different_id) {
-      const auto default_id_canonical{
-          URI::canonicalize(std::string{default_id})};
+      const auto default_id_canonical{URI::canonicalize(default_id)};
       const auto path_pointer{to_pointer(path)};
       store(this->locations_, SchemaReferenceType::Static,
             SchemaFrame::LocationType::Resource, default_id_canonical, root_id,
@@ -446,9 +447,17 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       assert(!entry.base_dialect.empty());
 
       // Schema identifier
-      std::optional<JSON::String> id{sourcemeta::core::identify(
-          entry.subschema.get(), entry.base_dialect,
-          entry.pointer.empty() && root_id.has_value() ? root_id.value() : "")};
+      // We need to store the default_id in a local variable to ensure
+      // it survives the identify() call, as identify() returns a string_view
+      const std::string default_id_for_entry{
+          entry.pointer.empty() && root_id.has_value() ? root_id.value()
+                                                       : std::string{}};
+      const auto maybe_id{sourcemeta::core::identify(
+          entry.subschema.get(), entry.base_dialect, default_id_for_entry)};
+      std::optional<JSON::String> id{
+          !maybe_id.empty()
+              ? std::make_optional<JSON::String>(std::string{maybe_id})
+              : std::nullopt};
 
       // Store information
       const auto entry_pointer{to_pointer(entry.pointer)};
@@ -547,7 +556,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         const auto maybe_metaschema{
             sourcemeta::core::dialect(entry.common.subschema.get())};
         if (!maybe_metaschema.empty()) {
-          sourcemeta::core::URI metaschema{std::string{maybe_metaschema}};
+          sourcemeta::core::URI metaschema{maybe_metaschema};
           const auto nearest_bases{find_nearest_bases(
               base_uris, common_pointer,
               entry.id ? std::optional<std::string_view>{*entry.id}

@@ -60,7 +60,8 @@ namespace sourcemeta::core {
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaTransformRule {
 public:
   /// Create a transformation rule. Each rule must have a unique name.
-  SchemaTransformRule(std::string &&name, std::string &&message);
+  SchemaTransformRule(const std::string_view name,
+                      const std::string_view message);
 
   // Necessary to wrap rules on smart pointers
   virtual ~SchemaTransformRule() = default;
@@ -75,10 +76,10 @@ public:
   auto operator==(const SchemaTransformRule &other) const -> bool;
 
   /// Fetch the name of a rule
-  [[nodiscard]] auto name() const -> const std::string &;
+  [[nodiscard]] auto name() const noexcept -> std::string_view;
 
   /// Fetch the message of a rule
-  [[nodiscard]] auto message() const -> const std::string &;
+  [[nodiscard]] auto message() const noexcept -> std::string_view;
 
   /// The result of evaluating a rule
   struct Result {
@@ -125,7 +126,7 @@ public:
   /// A method to optionally fix any reference location that was affected by the
   /// transformation.
   [[nodiscard]] virtual auto
-  rereference(const std::string &reference, const Pointer &origin,
+  rereference(const std::string_view reference, const Pointer &origin,
               const Pointer &target, const Pointer &current) const -> Pointer;
 
 private:
@@ -237,7 +238,7 @@ public:
   }
 
   /// Remove a rule from the bundle
-  auto remove(const std::string &name) -> bool;
+  auto remove(const std::string_view name) -> bool;
 
   /// The callback that is called whenever the condition of a rule holds true.
   /// The arguments are as follows:
