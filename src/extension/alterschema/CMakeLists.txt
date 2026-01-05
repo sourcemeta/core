@@ -91,10 +91,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
     linter/unevaluated_properties_default.h
     linter/unsatisfiable_max_contains.h
     linter/unsatisfiable_min_properties.h
-    linter/then_false.h
-
-    # Strict
-    strict/required_properties_in_properties.h)
+    linter/then_false.h)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME alterschema)

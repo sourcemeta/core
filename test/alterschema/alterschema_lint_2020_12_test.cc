@@ -4465,7 +4465,7 @@ TEST(AlterSchema_lint_2020_12, then_false_1) {
     "then": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4495,7 +4495,7 @@ TEST(AlterSchema_lint_2020_12, then_false_2) {
     "else": true
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4518,7 +4518,7 @@ TEST(AlterSchema_lint_2020_12, then_false_3) {
     "then": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4536,7 +4536,7 @@ TEST(AlterSchema_lint_2020_12, then_false_4) {
     "then": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema"
@@ -4560,7 +4560,7 @@ TEST(AlterSchema_lint_2020_12, then_false_5) {
     "then": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4590,7 +4590,7 @@ TEST(AlterSchema_lint_2020_12, then_false_6) {
     "then": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4614,7 +4614,7 @@ TEST(AlterSchema_lint_2020_12, then_false_7) {
     "else": false
   })JSON");
 
-  LINT_AND_FIX_FOR_READABILITY(document);
+  LINT_AND_FIX(document);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
