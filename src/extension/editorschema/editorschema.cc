@@ -10,8 +10,7 @@ namespace {
 // See https://arxiv.org/abs/2503.11288 for an academic study of this topic
 auto top_dynamic_anchor_location(
     const sourcemeta::core::SchemaFrame &frame,
-    const sourcemeta::core::Pointer &current,
-    const sourcemeta::core::JSON::String &fragment,
+    const sourcemeta::core::Pointer &current, const std::string_view fragment,
     const sourcemeta::core::JSON::String &default_uri)
     -> std::optional<sourcemeta::core::Pointer> {
   // Get the location object of where we are at the moment
@@ -23,7 +22,9 @@ auto top_dynamic_anchor_location(
 
   // Try to locate an anchor with the given name on the current base
   assert(!fragment.starts_with('#'));
-  const auto anchor_uri{location.base + "#" + fragment};
+  sourcemeta::core::JSON::String anchor_uri{location.base};
+  anchor_uri += '#';
+  anchor_uri += fragment;
   const auto anchor{frame.traverse(anchor_uri)};
 
   if (location.parent.has_value()) {

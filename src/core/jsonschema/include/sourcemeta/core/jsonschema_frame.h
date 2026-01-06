@@ -114,11 +114,11 @@ public:
   /// A single entry in a JSON Schema reference map
   struct ReferencesEntry {
     JSON::String original;
+    // TODO: Make this a string view over the locations map
     JSON::String destination;
-    // TODO: This string can be a `string_view` over the `destination`
-    std::optional<JSON::String> base;
-    // TODO: This string can be a `string_view` over the `destination`
-    std::optional<JSON::String> fragment;
+    // TODO: This can be empty to signify no base?
+    std::optional<std::string_view> base;
+    std::optional<std::string_view> fragment;
   };
 
   /// A JSON Schema reference map is a mapping of a JSON Pointer
@@ -219,7 +219,7 @@ public:
       -> const Location &;
 
   /// Get the location associated with a given URI
-  [[nodiscard]] auto traverse(const JSON::String &uri) const
+  [[nodiscard]] auto traverse(const std::string_view uri) const
       -> std::optional<std::reference_wrapper<const Location>>;
 
   /// Turn an absolute pointer into a location URI

@@ -45,7 +45,7 @@ public:
     const auto &reference_base{reference_entry->second.base};
     if (reference_base.has_value()) {
       const auto base_location{frame.locations().find(
-          {SchemaReferenceType::Static, reference_base.value()})};
+          {SchemaReferenceType::Static, JSON::String{reference_base.value()}})};
       ONLY_CONTINUE_IF(base_location != frame.locations().end());
     }
 
