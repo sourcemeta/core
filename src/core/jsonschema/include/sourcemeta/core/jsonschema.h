@@ -48,6 +48,17 @@ auto schema_walker(const std::string_view keyword,
     -> const SchemaWalkerResult &;
 
 /// @ingroup jsonschema
+/// Stringify a base dialect to its URI
+SOURCEMETA_CORE_JSONSCHEMA_EXPORT
+auto to_string(const SchemaBaseDialect base_dialect) -> std::string_view;
+
+/// @ingroup jsonschema
+/// Parse a base dialect URI to its enum representation
+SOURCEMETA_CORE_JSONSCHEMA_EXPORT
+auto to_base_dialect(const std::string_view base_dialect)
+    -> std::optional<SchemaBaseDialect>;
+
+/// @ingroup jsonschema
 ///
 /// Calculate the priority of a keyword that determines the ordering in which a
 /// JSON Schema implementation should evaluate keyword on a subschema. It does
@@ -150,7 +161,7 @@ auto identify(const JSON &schema, const SchemaResolver &resolver,
 /// A shortcut to sourcemeta::core::identify if you know the base dialect
 /// of the schema.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto identify(const JSON &schema, std::string_view base_dialect,
+auto identify(const JSON &schema, const SchemaBaseDialect base_dialect,
               std::string_view default_id = "") -> std::string_view;
 
 /// @ingroup jsonschema
@@ -172,14 +183,14 @@ auto identify(const JSON &schema, std::string_view base_dialect,
 /// })JSON");
 ///
 /// sourcemeta::core::anonymize(document,
-///   "https://json-schema.org/draft/2020-12/schema");
+///   sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 ///
 /// const auto id{sourcemeta::core::identify(
 ///   document, sourcemeta::core::schema_resolver)};
 /// assert(id.empty());
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto anonymize(JSON &schema, std::string_view base_dialect) -> void;
+auto anonymize(JSON &schema, const SchemaBaseDialect base_dialect) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -217,7 +228,7 @@ auto reidentify(JSON &schema, std::string_view new_identifier,
 /// dialect of the schema.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto reidentify(JSON &schema, std::string_view new_identifier,
-                std::string_view base_dialect) -> void;
+                const SchemaBaseDialect base_dialect) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -273,10 +284,9 @@ auto metaschema(const JSON &schema, const SchemaResolver &resolver,
 
 /// @ingroup jsonschema
 ///
-/// Get the URI of the base dialect that applies to the given schema. If you set
+/// Get the base dialect that applies to the given schema. If you set
 /// a default dialect URI, this will be used if the given schema does not
-/// declare the `$schema` keyword. The result of this function is empty
-/// if its base dialect could not be determined. For example:
+/// declare the `$schema` keyword. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -293,15 +303,14 @@ auto metaschema(const JSON &schema, const SchemaResolver &resolver,
 ///   sourcemeta::core::base_dialect(
 ///     document, sourcemeta::core::schema_resolver)};
 ///
-/// assert(!base_dialect.empty());
-/// assert(base_dialect == "https://json-schema.org/draft/2020-12/schema");
+/// assert(base_dialect.has_value());
+/// assert(base_dialect.value() ==
+///   sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 /// ```
-// TODO: Ideally this would return std::string_view to avoid copying, but
-// the recursive metaschema resolution creates lifetime issues where views
-// can point into local variables that get destroyed on return
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto base_dialect(const JSON &schema, const SchemaResolver &resolver,
-                  std::string_view default_dialect = "") -> std::string;
+                  std::string_view default_dialect = "")
+    -> std::optional<SchemaBaseDialect>;
 
 /// @ingroup jsonschema
 ///
@@ -344,7 +353,8 @@ auto vocabularies(const JSON &schema, const SchemaResolver &resolver,
 /// A shortcut to sourcemeta::core::vocabularies based on the base
 /// dialect and dialect URI.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto vocabularies(const SchemaResolver &resolver, std::string_view base_dialect,
+auto vocabularies(const SchemaResolver &resolver,
+                  const SchemaBaseDialect base_dialect,
                   std::string_view dialect) -> Vocabularies;
 
 /// @ingroup jsonschema

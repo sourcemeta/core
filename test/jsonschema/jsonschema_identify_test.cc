@@ -207,17 +207,6 @@ TEST(JSONSchema_identify, loose_with_unresolvable_dialect) {
       sourcemeta::core::SchemaResolutionError);
 }
 
-TEST(JSONSchema_identify, anonymize_with_unknown_base_dialect) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$id": "https://example.com/my-schema",
-    "$schema": "https://json-schema.org/draft/2019-09/schema"
-  })JSON");
-
-  EXPECT_THROW(sourcemeta::core::anonymize(
-                   document, "https://www.sourcemeta.com/invalid-base-dialect"),
-               sourcemeta::core::SchemaBaseDialectError);
-}
-
 TEST(JSONSchema_identify, reidentify_boolean) {
   sourcemeta::core::JSON document{true};
   EXPECT_THROW(sourcemeta::core::reidentify(document,
@@ -234,7 +223,7 @@ TEST(JSONSchema_identify, draft7_top_level_id_and_ref_strict) {
   })JSON");
 
   const auto id{sourcemeta::core::identify(
-      document, "http://json-schema.org/draft-07/schema#")};
+      document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7)};
   EXPECT_TRUE(id.empty());
 }
 
@@ -246,6 +235,6 @@ TEST(JSONSchema_identify, draft7_ref_with_wrong_id_keyword_strict) {
   })JSON");
 
   const auto id{sourcemeta::core::identify(
-      document, "http://json-schema.org/draft-07/schema#")};
+      document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7)};
   EXPECT_TRUE(id.empty());
 }

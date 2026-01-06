@@ -35,6 +35,26 @@ using SchemaResolver = std::function<std::optional<JSON>(std::string_view)>;
 /// The reference type
 enum class SchemaReferenceType : std::uint8_t { Static, Dynamic };
 
+/// @ingroup jsonschema
+/// All the known JSON Schema base dialects
+enum class SchemaBaseDialect : std::uint8_t {
+  JSON_Schema_2020_12,
+  JSON_Schema_2020_12_Hyper,
+  JSON_Schema_2019_09,
+  JSON_Schema_2019_09_Hyper,
+  JSON_Schema_Draft_7,
+  JSON_Schema_Draft_7_Hyper,
+  JSON_Schema_Draft_6,
+  JSON_Schema_Draft_6_Hyper,
+  JSON_Schema_Draft_4,
+  JSON_Schema_Draft_4_Hyper,
+  JSON_Schema_Draft_3,
+  JSON_Schema_Draft_3_Hyper,
+  JSON_Schema_Draft_2_Hyper,
+  JSON_Schema_Draft_1_Hyper,
+  JSON_Schema_Draft_0_Hyper
+};
+
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
 // For some strange reason, GCC on Debian 11 believes that a member of
@@ -203,8 +223,7 @@ struct SchemaIteratorEntry {
   // TODO: Use "known" enum classes + strings for dialects
   std::string_view dialect;
   Vocabularies vocabularies;
-  // TODO: Use "known" enum classes for base dialects
-  std::string base_dialect;
+  std::optional<SchemaBaseDialect> base_dialect;
   std::reference_wrapper<const JSON> subschema;
   bool orphan;
 };

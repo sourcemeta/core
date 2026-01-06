@@ -112,7 +112,7 @@ TEST(JSONSchema_walker, true) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_TRUE(entries.at(0).dialect.empty());
-  EXPECT_TRUE(entries.at(0).base_dialect.empty());
+  EXPECT_FALSE(entries.at(0).base_dialect.has_value());
   EXPECT_TRUE(entries.at(0).vocabularies.empty());
 }
 
@@ -132,7 +132,7 @@ TEST(JSONSchema_walker, false) {
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_TRUE(entries.at(0).dialect.empty());
-  EXPECT_TRUE(entries.at(0).base_dialect.empty());
+  EXPECT_FALSE(entries.at(0).base_dialect.has_value());
   EXPECT_TRUE(entries.at(0).vocabularies.empty());
 }
 
@@ -176,19 +176,22 @@ TEST(JSONSchema_walker, value) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schema");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/schema/schema");
   EXPECT_EQ(entries.at(2).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(2).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, value_with_dialect_no_identifier) {
@@ -222,14 +225,16 @@ TEST(JSONSchema_walker, value_with_dialect_no_identifier) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   // `$schema` outside a schema resource is ignored
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schema");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, value_invalid) {
@@ -255,8 +260,9 @@ TEST(JSONSchema_walker, value_invalid) {
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, elements) {
@@ -292,24 +298,28 @@ TEST(JSONSchema_walker, elements) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schemas/0");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/schemas/1");
   EXPECT_EQ(entries.at(2).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(2).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(3).pointer),
             "/schemas/1/schema");
   EXPECT_EQ(entries.at(3).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(3).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(3).base_dialect.has_value());
+  EXPECT_EQ(entries.at(3).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, elements_invalid) {
@@ -335,8 +345,9 @@ TEST(JSONSchema_walker, elements_invalid) {
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, members) {
@@ -381,20 +392,23 @@ TEST(JSONSchema_walker, members) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
             "/schemaMap/foo");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/schemaMap/foo/schema");
   EXPECT_EQ(entries.at(2).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(2).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, members_invalid) {
@@ -420,8 +434,9 @@ TEST(JSONSchema_walker, members_invalid) {
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, value_or_elements) {
@@ -463,20 +478,23 @@ TEST(JSONSchema_walker, value_or_elements) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
             "/schemaOrSchemas");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/schemaOrSchemas/schemaOrSchemas/0");
   EXPECT_EQ(entries.at(2).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(2).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, no_metaschema_and_no_default) {
@@ -500,7 +518,7 @@ TEST(JSONSchema_walker, no_metaschema_and_no_default) {
   EXPECT_EQ(entries.size(), 1);
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_TRUE(entries.at(0).dialect.empty());
-  EXPECT_TRUE(entries.at(0).base_dialect.empty());
+  EXPECT_FALSE(entries.at(0).base_dialect.has_value());
 }
 
 TEST(JSONSchema_walker, no_metaschema_with_default) {
@@ -542,19 +560,22 @@ TEST(JSONSchema_walker, no_metaschema_with_default) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schema");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/schema/schema");
   EXPECT_EQ(entries.at(2).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(2).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, unknown_keyword_from_other_vocab) {
@@ -588,13 +609,15 @@ TEST(JSONSchema_walker, unknown_keyword_from_other_vocab) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schema");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, multi_metaschemas) {
@@ -637,19 +660,22 @@ TEST(JSONSchema_walker, multi_metaschemas) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schema");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/custom-vocab");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/schema/custom");
   EXPECT_EQ(entries.at(2).dialect, "https://sourcemeta.com/custom-vocab");
-  EXPECT_EQ(entries.at(2).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, flat) {
@@ -687,14 +713,16 @@ TEST(JSONSchema_walker, flat) {
 
     EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer), "/schema");
     EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-    EXPECT_EQ(entries.at(0).base_dialect,
-              "https://json-schema.org/draft/2020-12/schema");
+    EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+    EXPECT_EQ(entries.at(0).base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
     EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
               "/schemaMap/foo");
     EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-    EXPECT_EQ(entries.at(1).base_dialect,
-              "https://json-schema.org/draft/2020-12/schema");
+    EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+    EXPECT_EQ(entries.at(1).base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
   } else {
     EXPECT_EQ(subschemas.at(1), sourcemeta::core::parse_json(R"JSON({
       "schema": { "foo": 1 }
@@ -705,14 +733,16 @@ TEST(JSONSchema_walker, flat) {
 
     EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schema");
     EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-    EXPECT_EQ(entries.at(1).base_dialect,
-              "https://json-schema.org/draft/2020-12/schema");
+    EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+    EXPECT_EQ(entries.at(1).base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
     EXPECT_EQ(sourcemeta::core::to_string(entries.at(0).pointer),
               "/schemaMap/foo");
     EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-    EXPECT_EQ(entries.at(0).base_dialect,
-              "https://json-schema.org/draft/2020-12/schema");
+    EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+    EXPECT_EQ(entries.at(0).base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
   }
 }
 
@@ -789,14 +819,16 @@ TEST(JSONSchema_walker, members_with_array) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
             "/schemaMap/foo");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, elements_with_string_items) {
@@ -823,13 +855,15 @@ TEST(JSONSchema_walker, elements_with_string_items) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/schemas/0");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
 TEST(JSONSchema_walker, value_or_elements_with_string_items) {
@@ -856,12 +890,14 @@ TEST(JSONSchema_walker, value_or_elements_with_string_items) {
 
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
             "/schemaOrSchemas/0");
   EXPECT_EQ(entries.at(1).dialect, "https://sourcemeta.com/test-metaschema");
-  EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
+  EXPECT_EQ(entries.at(1).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }

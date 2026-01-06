@@ -27,7 +27,9 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_hyperschema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/hyper-schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4_Hyper);
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_schema) {
@@ -37,7 +39,9 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_schema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_links) {
@@ -46,7 +50,9 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_draft_links) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/hyper-schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4_Hyper);
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_base_one_hop) {
@@ -55,7 +61,9 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_base_one_hop) {
   })JSON");
   const auto base_dialect{
       sourcemeta::core::base_dialect(document, test_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
 }
 
 TEST(JSONSchema_base_dialect_draft4, jsonschema_base_two_hops) {
@@ -64,5 +72,7 @@ TEST(JSONSchema_base_dialect_draft4, jsonschema_base_two_hops) {
   })JSON");
   const auto base_dialect{
       sourcemeta::core::base_dialect(document, test_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-04/schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
 }

@@ -86,7 +86,7 @@ TEST(JSONSchema_identify_2019_09, base_dialect_shortcut) {
     "$schema": "https://json-schema.org/draft/2019-09/schema"
   })JSON");
   const auto id{sourcemeta::core::identify(
-      document, "https://json-schema.org/draft/2019-09/schema")};
+      document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09)};
   EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
@@ -98,8 +98,8 @@ TEST(JSONSchema_identify_2019_09, anonymize_with_base_dialect) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(base_dialect.empty());
-  sourcemeta::core::anonymize(document, base_dialect);
+  EXPECT_TRUE(base_dialect.has_value());
+  sourcemeta::core::anonymize(document, base_dialect.value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema"
@@ -115,8 +115,8 @@ TEST(JSONSchema_identify_2019_09, anonymize_with_base_dialect_no_id) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(base_dialect.empty());
-  sourcemeta::core::anonymize(document, base_dialect);
+  EXPECT_TRUE(base_dialect.has_value());
+  sourcemeta::core::anonymize(document, base_dialect.value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema"
@@ -192,10 +192,10 @@ TEST(JSONSchema_identify_2019_09, reidentify_replace_base_dialect_shortcut) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(base_dialect.empty());
+  EXPECT_TRUE(base_dialect.has_value());
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               base_dialect);
+                               base_dialect.value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$id": "https://example.com/my-new-id",

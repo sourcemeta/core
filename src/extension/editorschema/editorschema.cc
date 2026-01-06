@@ -79,7 +79,9 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
     }
 
     // Get rid of the keywords we don't want anymore
-    anonymize(subschema, entry.second.base_dialect);
+    const auto maybe_base_dialect{to_base_dialect(entry.second.base_dialect)};
+    assert(maybe_base_dialect.has_value());
+    anonymize(subschema, maybe_base_dialect.value());
     const auto vocabularies{frame.vocabularies(entry.second, resolver)};
     if (vocabularies.contains(Vocabularies::Known::JSON_Schema_2020_12_Core)) {
       subschema.erase_keys({"$vocabulary", "$anchor", "$dynamicAnchor"});
