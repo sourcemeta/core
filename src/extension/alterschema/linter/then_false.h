@@ -18,8 +18,8 @@ public:
              Vocabularies::Known::JSON_Schema_2019_09_Applicator,
              Vocabularies::Known::JSON_Schema_Draft_7}) &&
         schema.is_object() && schema.defines("if") && schema.defines("then") &&
-        is_schema(schema.at("then")) && schema.at("then").is_boolean() &&
-        !schema.at("then").to_boolean() && is_schema(schema.at("if")) &&
+        schema.at("then").is_boolean() && !schema.at("then").to_boolean() &&
+        is_schema(schema.at("if")) &&
         !(schema.at("if").is_boolean() && schema.at("if").to_boolean()) &&
         (!schema.defines("else") ||
          (schema.at("else").is_boolean() && schema.at("else").to_boolean())) &&
