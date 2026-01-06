@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 
-#include <cassert> // assert
+#include <cassert>    // assert
+#include <filesystem> // std::filesystem
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
@@ -147,6 +148,20 @@ static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
   }
 }
 
+static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
+  const auto schema{sourcemeta::core::read_json(
+      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+      "2020_12_iso_language_2023_set_3.json")};
+
+  for (auto _ : state) {
+    sourcemeta::core::PointerWalker walker{schema};
+    auto pointer_count =
+        static_cast<std::size_t>(std::distance(walker.cbegin(), walker.cend()));
+    benchmark::DoNotOptimize(pointer_count);
+  }
+}
+
 BENCHMARK(Pointer_Object_Traverse);
 BENCHMARK(Pointer_Object_Try_Traverse);
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
+BENCHMARK(Pointer_Walker_Schema_ISO_Language);

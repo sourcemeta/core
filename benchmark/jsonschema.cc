@@ -79,19 +79,6 @@ static void Schema_Iterator_ISO_Language(benchmark::State &state) {
   }
 }
 
-static void Schema_PointerWalker_ISO_Language(benchmark::State &state) {
-  const auto schema{sourcemeta::core::read_json(
-      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
-      "2020_12_iso_language_2023_set_3.json")};
-
-  for (auto _ : state) {
-    sourcemeta::core::PointerWalker walker{schema};
-    auto pointer_count =
-        static_cast<std::size_t>(std::distance(walker.cbegin(), walker.cend()));
-    benchmark::DoNotOptimize(pointer_count);
-  }
-}
-
 static void
 Schema_Frame_ISO_Language_Locations_To_JSON(benchmark::State &state) {
   sourcemeta::core::PointerPositionTracker tracker;
@@ -169,7 +156,6 @@ BENCHMARK(Schema_Frame_OMC_References);
 BENCHMARK(Schema_Frame_OMC_Locations);
 BENCHMARK(Schema_Frame_ISO_Language_Locations);
 BENCHMARK(Schema_Iterator_ISO_Language);
-BENCHMARK(Schema_PointerWalker_ISO_Language);
 BENCHMARK(Schema_Frame_ISO_Language_Locations_To_JSON);
 BENCHMARK(Schema_Tracker_ISO_Language);
 BENCHMARK(Schema_Tracker_ISO_Language_To_JSON);
