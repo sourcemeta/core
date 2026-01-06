@@ -3,6 +3,8 @@
 #include <sourcemeta/core/uri.h>
 
 #include <map>
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 TEST(URI, default_constructor) {
   const sourcemeta::core::URI uri;
@@ -138,4 +140,47 @@ TEST(URI, map) {
   EXPECT_FALSE(map.contains(sourcemeta::core::URI{"https://foo.org"}));
   EXPECT_TRUE(map.at(sourcemeta::core::URI{"https://example.com"}));
   EXPECT_FALSE(map.at(sourcemeta::core::URI{"https://foo.com"}));
+}
+
+TEST(URI, from_string_view) {
+  const std::string_view input{"https://example.com/path"};
+  const sourcemeta::core::URI uri{input};
+  EXPECT_EQ(uri.recompose(), "https://example.com/path");
+}
+
+TEST(URI, from_string) {
+  const std::string input{"https://example.com/path"};
+  const sourcemeta::core::URI uri{input};
+  EXPECT_EQ(uri.recompose(), "https://example.com/path");
+}
+
+TEST(URI, from_string_literal) {
+  const sourcemeta::core::URI uri{"https://example.com/path"};
+  EXPECT_EQ(uri.recompose(), "https://example.com/path");
+}
+
+TEST(URI, implicit_conversion_from_string) {
+  const std::string base{"https://example.com"};
+  sourcemeta::core::URI uri{"foo/bar"};
+  uri.resolve_from(base);
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
+}
+
+TEST(URI, implicit_conversion_from_string_view) {
+  const std::string_view base{"https://example.com"};
+  sourcemeta::core::URI uri{"foo/bar"};
+  uri.resolve_from(base);
+  EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
+}
+
+TEST(URI, canonicalize_from_string_view) {
+  const std::string_view input{"hTtP://ExAmPlE.com:80/TEST"};
+  const auto result{sourcemeta::core::URI::canonicalize(input)};
+  EXPECT_EQ(result, "http://example.com/TEST");
+}
+
+TEST(URI, canonicalize_from_string) {
+  const std::string input{"hTtP://ExAmPlE.com:80/TEST"};
+  const auto result{sourcemeta::core::URI::canonicalize(input)};
+  EXPECT_EQ(result, "http://example.com/TEST");
 }

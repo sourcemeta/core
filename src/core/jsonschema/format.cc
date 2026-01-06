@@ -2,7 +2,7 @@
 
 #include <cstdint>       // std::uint64_t
 #include <limits>        // std::numeric_limits
-#include <string>        // std::string
+#include <string_view>   // std::string_view
 #include <unordered_map> // std::unordered_map
 
 namespace {

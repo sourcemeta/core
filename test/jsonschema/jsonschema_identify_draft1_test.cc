@@ -20,10 +20,8 @@ TEST(JSONSchema_identify_draft1, valid_one_hop) {
     "id": "https://example.com/my-schema",
     "$schema": "https://sourcemeta.com/metaschema"
   })JSON");
-  std::optional<std::string> id{
-      sourcemeta::core::identify(document, test_resolver)};
-  EXPECT_TRUE(id.has_value());
-  EXPECT_EQ(id.value(), "https://example.com/my-schema");
+  const auto id{sourcemeta::core::identify(document, test_resolver)};
+  EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
 TEST(JSONSchema_identify_draft1, new_one_hop) {
@@ -31,25 +29,24 @@ TEST(JSONSchema_identify_draft1, new_one_hop) {
     "$id": "https://example.com/my-schema",
     "$schema": "https://sourcemeta.com/metaschema"
   })JSON");
-  std::optional<std::string> id{
-      sourcemeta::core::identify(document, test_resolver)};
-  EXPECT_FALSE(id.has_value());
+  const auto id{sourcemeta::core::identify(document, test_resolver)};
+  EXPECT_TRUE(id.empty());
 }
 
 TEST(JSONSchema_identify_draft1, id_boolean_default_dialect) {
   const sourcemeta::core::JSON document{true};
-  std::optional<std::string> id{
+  const auto id{
       sourcemeta::core::identify(document, sourcemeta::core::schema_resolver,
                                  "http://json-schema.org/draft-01/schema#")};
-  EXPECT_FALSE(id.has_value());
+  EXPECT_TRUE(id.empty());
 }
 
 TEST(JSONSchema_identify_draft1, empty_object_default_dialect) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json("{}");
-  std::optional<std::string> id{
+  const auto id{
       sourcemeta::core::identify(document, sourcemeta::core::schema_resolver,
                                  "http://json-schema.org/draft-01/schema#")};
-  EXPECT_FALSE(id.has_value());
+  EXPECT_TRUE(id.empty());
 }
 
 TEST(JSONSchema_identify_draft1, valid_id) {
@@ -57,10 +54,9 @@ TEST(JSONSchema_identify_draft1, valid_id) {
     "id": "https://example.com/my-schema",
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
-  std::optional<std::string> id{
+  const auto id{
       sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(id.has_value());
-  EXPECT_EQ(id.value(), "https://example.com/my-schema");
+  EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
 TEST(JSONSchema_identify_draft1, new_id) {
@@ -68,9 +64,9 @@ TEST(JSONSchema_identify_draft1, new_id) {
     "$id": "https://example.com/my-schema",
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
-  std::optional<std::string> id{
+  const auto id{
       sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(id.has_value());
+  EXPECT_TRUE(id.empty());
 }
 
 TEST(JSONSchema_identify_draft1, default_dialect_precedence) {
@@ -78,11 +74,10 @@ TEST(JSONSchema_identify_draft1, default_dialect_precedence) {
     "id": "https://example.com/my-schema",
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
-  std::optional<std::string> id{sourcemeta::core::identify(
+  const auto id{sourcemeta::core::identify(
       document, sourcemeta::core::schema_resolver,
       "https://json-schema.org/draft/2020-12/schema")};
-  EXPECT_TRUE(id.has_value());
-  EXPECT_EQ(id.value(), "https://example.com/my-schema");
+  EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
 TEST(JSONSchema_identify_draft1, base_dialect_shortcut) {
@@ -90,10 +85,9 @@ TEST(JSONSchema_identify_draft1, base_dialect_shortcut) {
     "id": "https://example.com/my-schema",
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
-  const std::optional<std::string> id{sourcemeta::core::identify(
+  const auto id{sourcemeta::core::identify(
       document, "http://json-schema.org/draft-01/hyper-schema#")};
-  EXPECT_TRUE(id.has_value());
-  EXPECT_EQ(id.value(), "https://example.com/my-schema");
+  EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
 TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect) {
@@ -104,7 +98,7 @@ TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_FALSE(base_dialect.empty());
   sourcemeta::core::anonymize(document, base_dialect);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -121,7 +115,7 @@ TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect_no_id) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_FALSE(base_dialect.empty());
   sourcemeta::core::anonymize(document, base_dialect);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
@@ -137,10 +131,8 @@ TEST(JSONSchema_identify_draft1, sibling_unknown_ref) {
     "$schema": "http://json-schema.org/draft-01/schema#",
     "$ref": "#"
   })JSON");
-  std::optional<std::string> id{
-      sourcemeta::core::identify(document, test_resolver)};
-  EXPECT_TRUE(id.has_value());
-  EXPECT_EQ(id.value(), "https://example.com/my-schema");
+  const auto id{sourcemeta::core::identify(document, test_resolver)};
+  EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
 TEST(JSONSchema_identify_draft1, reidentify_replace) {
@@ -200,7 +192,7 @@ TEST(JSONSchema_identify_draft1, reidentify_replace_base_dialect_shortcut) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(!base_dialect.empty());
+  EXPECT_FALSE(base_dialect.empty());
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
                                base_dialect);

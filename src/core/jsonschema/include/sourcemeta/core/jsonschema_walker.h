@@ -11,7 +11,6 @@
 
 #include <cstdint>     // std::uint64_t
 #include <optional>    // std::optional
-#include <string>      // std::string
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 

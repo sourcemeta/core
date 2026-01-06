@@ -6,7 +6,8 @@
 namespace {
 enum class SchemaWalkerType_t : std::uint8_t { Deep, Flat };
 
-auto ref_overrides_adjacent_keywords(std::string_view base_dialect) -> bool {
+auto ref_overrides_adjacent_keywords(const std::string_view base_dialect)
+    -> bool {
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
   // See
@@ -55,14 +56,14 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   auto id{
       sourcemeta::core::identify(subschema, resolver, maybe_current_dialect)};
   const auto different_parent_dialect{maybe_current_dialect != dialect};
-  if (!id.has_value() && different_parent_dialect) {
+  if (id.empty() && different_parent_dialect) {
     id = sourcemeta::core::identify(subschema, base_dialect);
-    if (id.has_value()) {
+    if (!id.empty()) {
       maybe_current_dialect = dialect;
     }
   }
 
-  const auto is_schema_resource{level == 0 || id.has_value()};
+  const auto is_schema_resource{level == 0 || !id.empty()};
   const std::string_view current_dialect{
       is_schema_resource ? maybe_current_dialect : dialect};
   auto resolved_current_base_dialect{

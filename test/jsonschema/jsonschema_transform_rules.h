@@ -365,7 +365,7 @@ public:
     schema.rename("definitions", "$defs");
   }
 
-  [[nodiscard]] auto rereference(const std::string &,
+  [[nodiscard]] auto rereference(const std::string_view,
                                  const sourcemeta::core::Pointer &,
                                  const sourcemeta::core::Pointer &target,
                                  const sourcemeta::core::Pointer &current) const

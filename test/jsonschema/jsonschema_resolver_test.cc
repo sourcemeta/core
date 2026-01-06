@@ -11,11 +11,11 @@
     EXPECT_TRUE(result.has_value());                                           \
     const sourcemeta::core::JSON &document{result.value()};                    \
     EXPECT_TRUE(sourcemeta::core::is_schema(document));                        \
-    std::optional<std::string> id{sourcemeta::core::identify(                  \
+    const auto id{sourcemeta::core::identify(                                  \
         document, sourcemeta::core::schema_resolver)};                         \
-    EXPECT_TRUE(id.has_value());                                               \
-    EXPECT_EQ(sourcemeta::core::URI{id.value()}.canonicalize().recompose(),    \
-              sourcemeta::core::URI{identifier}.canonicalize().recompose());   \
+    EXPECT_EQ(                                                                 \
+        sourcemeta::core::URI{std::string{id}}.canonicalize().recompose(),     \
+        sourcemeta::core::URI{identifier}.canonicalize().recompose());         \
   }
 
 TEST(JSONSchema_resolver, jsonschema_2020_12) {
