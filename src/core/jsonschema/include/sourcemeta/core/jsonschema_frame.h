@@ -177,8 +177,8 @@ public:
       // point to different places.
       std::map<std::pair<SchemaReferenceType, JSON::String>, Location>;
 
-  /// A set of paths to frame within a schema wrapper
-  using Paths = std::set<WeakPointer>;
+  /// A list of paths to frame within a schema wrapper
+  using Paths = std::vector<WeakPointer>;
 
   /// Export the frame entries as JSON
   [[nodiscard]] auto to_json(
