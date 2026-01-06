@@ -34,8 +34,9 @@ TEST(JSONSchema_keyword_iterator, draft_2020_12) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "https://json-schema.org/draft/2020-12/schema");
-    EXPECT_EQ(entry.base_dialect,
-              "https://json-schema.org/draft/2020-12/schema");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
     EXPECT_EQ(entry.vocabularies.size(), 7);
   }
 
@@ -125,8 +126,9 @@ TEST(JSONSchema_keyword_iterator, draft_2019_09) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "https://json-schema.org/draft/2019-09/schema");
-    EXPECT_EQ(entry.base_dialect,
-              "https://json-schema.org/draft/2019-09/schema");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
     EXPECT_EQ(entry.vocabularies.size(), 6);
   }
 
@@ -212,7 +214,9 @@ TEST(JSONSchema_keyword_iterator, draft7) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-07/schema#");
-    EXPECT_EQ(entry.base_dialect, "http://json-schema.org/draft-07/schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -277,7 +281,9 @@ TEST(JSONSchema_keyword_iterator, draft6) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-06/schema#");
-    EXPECT_EQ(entry.base_dialect, "http://json-schema.org/draft-06/schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_6);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -333,7 +339,9 @@ TEST(JSONSchema_keyword_iterator, draft4) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-04/schema#");
-    EXPECT_EQ(entry.base_dialect, "http://json-schema.org/draft-04/schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -388,7 +396,9 @@ TEST(JSONSchema_keyword_iterator, draft3) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-03/schema#");
-    EXPECT_EQ(entry.base_dialect, "http://json-schema.org/draft-03/schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_3);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -436,8 +446,9 @@ TEST(JSONSchema_keyword_iterator, draft2) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-02/schema#");
-    EXPECT_EQ(entry.base_dialect,
-              "http://json-schema.org/draft-02/hyper-schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_2_Hyper);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -474,8 +485,9 @@ TEST(JSONSchema_keyword_iterator, draft1) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-01/schema#");
-    EXPECT_EQ(entry.base_dialect,
-              "http://json-schema.org/draft-01/hyper-schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_1_Hyper);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -512,8 +524,9 @@ TEST(JSONSchema_keyword_iterator, draft0) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "http://json-schema.org/draft-00/schema#");
-    EXPECT_EQ(entry.base_dialect,
-              "http://json-schema.org/draft-00/hyper-schema#");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_0_Hyper);
     EXPECT_EQ(entry.vocabularies.size(), 1);
   }
 
@@ -556,7 +569,7 @@ TEST(JSONSchema_keyword_iterator, unknown_keyword) {
   EXPECT_EQ(entries.at(0).dialect,
             "https://json-schema.org/draft/2020-12/schema");
   EXPECT_EQ(entries.at(0).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
   EXPECT_EQ(entries.at(0).vocabularies.size(), 7);
 
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/foobar");
@@ -564,7 +577,7 @@ TEST(JSONSchema_keyword_iterator, unknown_keyword) {
   EXPECT_EQ(entries.at(1).dialect,
             "https://json-schema.org/draft/2020-12/schema");
   EXPECT_EQ(entries.at(1).base_dialect,
-            "https://json-schema.org/draft/2020-12/schema");
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
   EXPECT_EQ(entries.at(1).vocabularies.size(), 7);
 }
 
@@ -584,8 +597,9 @@ TEST(JSONSchema_keyword_iterator, with_default_dialect) {
 
     // The same for all entries
     EXPECT_EQ(entry.dialect, "https://json-schema.org/draft/2020-12/schema");
-    EXPECT_EQ(entry.base_dialect,
-              "https://json-schema.org/draft/2020-12/schema");
+    EXPECT_TRUE(entry.base_dialect.has_value());
+    EXPECT_EQ(entry.base_dialect.value(),
+              sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
     EXPECT_EQ(entry.vocabularies.size(), 7);
   }
 
@@ -618,7 +632,7 @@ TEST(JSONSchema_keyword_iterator, no_default_dialect) {
 
     // The same for all entries
     EXPECT_TRUE(entry.dialect.empty());
-    EXPECT_TRUE(entry.base_dialect.empty());
+    EXPECT_FALSE(entry.base_dialect.has_value());
     EXPECT_EQ(entry.vocabularies.size(), 0);
   }
 

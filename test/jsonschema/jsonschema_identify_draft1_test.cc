@@ -86,7 +86,8 @@ TEST(JSONSchema_identify_draft1, base_dialect_shortcut) {
     "$schema": "http://json-schema.org/draft-01/schema#"
   })JSON");
   const auto id{sourcemeta::core::identify(
-      document, "http://json-schema.org/draft-01/hyper-schema#")};
+      document,
+      sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_1_Hyper)};
   EXPECT_EQ(id, "https://example.com/my-schema");
 }
 
@@ -98,8 +99,8 @@ TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(base_dialect.empty());
-  sourcemeta::core::anonymize(document, base_dialect);
+  EXPECT_TRUE(base_dialect.has_value());
+  sourcemeta::core::anonymize(document, base_dialect.value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-01/schema#"
@@ -115,8 +116,8 @@ TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect_no_id) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(base_dialect.empty());
-  sourcemeta::core::anonymize(document, base_dialect);
+  EXPECT_TRUE(base_dialect.has_value());
+  sourcemeta::core::anonymize(document, base_dialect.value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-01/schema#"
@@ -192,10 +193,10 @@ TEST(JSONSchema_identify_draft1, reidentify_replace_base_dialect_shortcut) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_FALSE(base_dialect.empty());
+  EXPECT_TRUE(base_dialect.has_value());
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               base_dialect);
+                               base_dialect.value());
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",

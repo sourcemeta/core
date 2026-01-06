@@ -81,7 +81,7 @@ auto dependencies_internal(
 
     const auto remote_base_dialect{sourcemeta::core::base_dialect(
         remote.value(), resolver, default_dialect)};
-    if (remote_base_dialect.empty()) {
+    if (!remote_base_dialect.has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
           identifier, key.second,
           "The JSON document is not a valid JSON Schema");
@@ -204,7 +204,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     const auto remote_base_dialect{sourcemeta::core::base_dialect(
         remote.value(), resolver, default_dialect)};
-    if (remote_base_dialect.empty()) {
+    if (!remote_base_dialect.has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
           identifier, key.second,
           "The JSON document is not a valid JSON Schema");
@@ -214,7 +214,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
       // Always insert an identifier, as a schema might refer to another schema
       // using another URI (i.e. due to relying on HTTP re-directions, etc)
       sourcemeta::core::reidentify(remote.value(), identifier,
-                                   remote_base_dialect);
+                                   remote_base_dialect.value());
     }
 
     bundle_schema(root, container, remote.value(), frame, walker, resolver,

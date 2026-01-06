@@ -10,7 +10,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_schema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_hyperschema) {
@@ -20,7 +22,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_hyperschema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/hyper-schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09_Hyper);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_links) {
@@ -29,7 +33,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_links) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_output) {
@@ -38,7 +44,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_output) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_output_hyperschema) {
@@ -47,7 +55,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_output_hyperschema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_applicator) {
@@ -56,7 +66,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_applicator) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_content) {
@@ -65,7 +77,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_content) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_core) {
@@ -74,7 +88,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_core) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_format) {
@@ -83,7 +99,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_format) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_hyperschema) {
@@ -92,7 +110,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_hyperschema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/hyper-schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09_Hyper);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_meta_data) {
@@ -101,7 +121,9 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_meta_data) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }
 
 TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_validation) {
@@ -110,5 +132,7 @@ TEST(JSONSchema_base_dialect_2019_09, jsonschema_meta_validation) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
 }

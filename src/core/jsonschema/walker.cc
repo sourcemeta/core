@@ -6,20 +6,26 @@
 namespace {
 enum class SchemaWalkerType_t : std::uint8_t { Deep, Flat };
 
-auto ref_overrides_adjacent_keywords(const std::string_view base_dialect)
-    -> bool {
+auto ref_overrides_adjacent_keywords(
+    const sourcemeta::core::SchemaBaseDialect base_dialect) -> bool {
+  using sourcemeta::core::SchemaBaseDialect;
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
   // See
   // https://json-schema.org/draft-07/draft-handrews-json-schema-01#rfc.section.8.3
-  return base_dialect == "http://json-schema.org/draft-07/schema#" ||
-         base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-06/schema#" ||
-         base_dialect == "http://json-schema.org/draft-06/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-04/schema#" ||
-         base_dialect == "http://json-schema.org/draft-04/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-03/schema#" ||
-         base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
+  switch (base_dialect) {
+    case SchemaBaseDialect::JSON_Schema_Draft_7:
+    case SchemaBaseDialect::JSON_Schema_Draft_7_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_6:
+    case SchemaBaseDialect::JSON_Schema_Draft_6_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_4:
+    case SchemaBaseDialect::JSON_Schema_Draft_4_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_3:
+    case SchemaBaseDialect::JSON_Schema_Draft_3_Hyper:
+      return true;
+    default:
+      return false;
+  }
 }
 
 auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
@@ -28,7 +34,8 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
           const sourcemeta::core::JSON &subschema,
           const sourcemeta::core::SchemaWalker &walker,
           const sourcemeta::core::SchemaResolver &resolver,
-          std::string_view dialect, std::string_view base_dialect,
+          const std::string_view dialect,
+          const sourcemeta::core::SchemaBaseDialect base_dialect,
           const SchemaWalkerType_t type, const std::size_t level,
           const bool orphan) -> void {
   if (!is_schema(subschema)) {
@@ -66,26 +73,26 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   const auto is_schema_resource{level == 0 || !id.empty()};
   const std::string_view current_dialect{
       is_schema_resource ? maybe_current_dialect : dialect};
-  auto resolved_current_base_dialect{
+  const auto maybe_resolved_base_dialect{
       is_schema_resource && current_dialect != dialect
           ? sourcemeta::core::base_dialect(subschema, resolver, current_dialect)
-          : std::string{base_dialect}};
-  const std::string_view current_base_dialect{
-      resolved_current_base_dialect.empty() ? base_dialect
-                                            : resolved_current_base_dialect};
+          : std::nullopt};
+  const auto current_base_dialect{maybe_resolved_base_dialect.has_value()
+                                      ? maybe_resolved_base_dialect.value()
+                                      : base_dialect};
 
   const auto vocabularies{sourcemeta::core::vocabularies(
       resolver, current_base_dialect, current_dialect)};
 
   if (type == SchemaWalkerType_t::Deep || level > 0) {
-    sourcemeta::core::SchemaIteratorEntry entry{
-        .parent = parent,
-        .pointer = pointer,
-        .dialect = current_dialect,
-        .vocabularies = vocabularies,
-        .base_dialect = std::string{current_base_dialect},
-        .subschema = subschema,
-        .orphan = orphan};
+    sourcemeta::core::SchemaIteratorEntry entry{.parent = parent,
+                                                .pointer = pointer,
+                                                .dialect = current_dialect,
+                                                .vocabularies = vocabularies,
+                                                .base_dialect =
+                                                    current_base_dialect,
+                                                .subschema = subschema,
+                                                .orphan = orphan};
     subschemas.push_back(std::move(entry));
   }
 
@@ -357,17 +364,17 @@ sourcemeta::core::SchemaIterator::SchemaIterator(
                                                 .pointer = pointer,
                                                 .dialect = "",
                                                 .vocabularies = {},
-                                                .base_dialect = "",
+                                                .base_dialect = std::nullopt,
                                                 .subschema = schema,
                                                 .orphan = false};
     this->subschemas.push_back(std::move(entry));
   } else {
     const auto resolved_base_dialect{
         sourcemeta::core::base_dialect(schema, resolver, resolved_dialect)};
-    assert(!resolved_base_dialect.empty());
+    assert(resolved_base_dialect.has_value());
     walk(std::nullopt, pointer, this->subschemas, schema, walker, resolver,
-         resolved_dialect, resolved_base_dialect, SchemaWalkerType_t::Deep, 0,
-         false);
+         resolved_dialect, resolved_base_dialect.value(),
+         SchemaWalkerType_t::Deep, 0, false);
   }
 }
 
@@ -375,17 +382,17 @@ sourcemeta::core::SchemaIteratorFlat::SchemaIteratorFlat(
     const sourcemeta::core::JSON &schema,
     const sourcemeta::core::SchemaWalker &walker,
     const sourcemeta::core::SchemaResolver &resolver,
-    std::string_view default_dialect) {
+    const std::string_view default_dialect) {
   const std::string_view resolved_dialect{
       sourcemeta::core::dialect(schema, default_dialect)};
   if (!resolved_dialect.empty()) {
     sourcemeta::core::WeakPointer pointer;
     const auto resolved_base_dialect{
         sourcemeta::core::base_dialect(schema, resolver, resolved_dialect)};
-    assert(!resolved_base_dialect.empty());
+    assert(resolved_base_dialect.has_value());
     walk(std::nullopt, pointer, this->subschemas, schema, walker, resolver,
-         resolved_dialect, resolved_base_dialect, SchemaWalkerType_t::Flat, 0,
-         false);
+         resolved_dialect, resolved_base_dialect.value(),
+         SchemaWalkerType_t::Flat, 0, false);
   }
 }
 
@@ -393,7 +400,7 @@ sourcemeta::core::SchemaKeywordIterator::SchemaKeywordIterator(
     const sourcemeta::core::JSON &schema,
     const sourcemeta::core::SchemaWalker &walker,
     const sourcemeta::core::SchemaResolver &resolver,
-    std::string_view default_dialect) {
+    const std::string_view default_dialect) {
   assert(is_schema(schema));
   if (schema.is_boolean()) {
     return;
@@ -401,12 +408,12 @@ sourcemeta::core::SchemaKeywordIterator::SchemaKeywordIterator(
 
   const std::string_view resolved_dialect{
       sourcemeta::core::dialect(schema, default_dialect)};
-  const std::string resolved_base_dialect{
+  const auto maybe_base_dialect{
       sourcemeta::core::base_dialect(schema, resolver, resolved_dialect)};
 
   Vocabularies vocabularies{
-      !resolved_base_dialect.empty() && !resolved_dialect.empty()
-          ? sourcemeta::core::vocabularies(resolver, resolved_base_dialect,
+      maybe_base_dialect.has_value() && !resolved_dialect.empty()
+          ? sourcemeta::core::vocabularies(resolver, maybe_base_dialect.value(),
                                            resolved_dialect)
           : Vocabularies{}};
 
@@ -418,7 +425,7 @@ sourcemeta::core::SchemaKeywordIterator::SchemaKeywordIterator(
         .pointer = std::move(entry_pointer),
         .dialect = resolved_dialect,
         .vocabularies = vocabularies,
-        .base_dialect = resolved_base_dialect,
+        .base_dialect = maybe_base_dialect,
         .subschema = entry.second,
         .orphan = false};
     this->entries.push_back(std::move(subschema_entry));

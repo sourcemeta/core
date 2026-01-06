@@ -179,29 +179,42 @@ auto find_every_base(
 }
 
 // TODO: Why do we have this function both here and on `walker.cc`?
-auto ref_overrides_adjacent_keywords(const std::string_view base_dialect)
-    -> bool {
+auto ref_overrides_adjacent_keywords(
+    const sourcemeta::core::SchemaBaseDialect base_dialect) -> bool {
+  using sourcemeta::core::SchemaBaseDialect;
   // In older drafts, the presence of `$ref` would override any sibling
   // keywords
   // See
   // https://json-schema.org/draft-07/draft-handrews-json-schema-01#rfc.section.8.3
-  return base_dialect == "http://json-schema.org/draft-07/schema#" ||
-         base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-06/schema#" ||
-         base_dialect == "http://json-schema.org/draft-06/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-04/schema#" ||
-         base_dialect == "http://json-schema.org/draft-04/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-03/schema#" ||
-         base_dialect == "http://json-schema.org/draft-03/hyper-schema#";
+  switch (base_dialect) {
+    case SchemaBaseDialect::JSON_Schema_Draft_7:
+    case SchemaBaseDialect::JSON_Schema_Draft_7_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_6:
+    case SchemaBaseDialect::JSON_Schema_Draft_6_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_4:
+    case SchemaBaseDialect::JSON_Schema_Draft_4_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_3:
+    case SchemaBaseDialect::JSON_Schema_Draft_3_Hyper:
+      return true;
+    default:
+      return false;
+  }
 }
 
-auto supports_id_anchors(const std::string_view base_dialect) -> bool {
-  return base_dialect == "http://json-schema.org/draft-07/schema#" ||
-         base_dialect == "http://json-schema.org/draft-07/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-06/schema#" ||
-         base_dialect == "http://json-schema.org/draft-06/hyper-schema#" ||
-         base_dialect == "http://json-schema.org/draft-04/schema#" ||
-         base_dialect == "http://json-schema.org/draft-04/hyper-schema#";
+auto supports_id_anchors(const sourcemeta::core::SchemaBaseDialect base_dialect)
+    -> bool {
+  using sourcemeta::core::SchemaBaseDialect;
+  switch (base_dialect) {
+    case SchemaBaseDialect::JSON_Schema_Draft_7:
+    case SchemaBaseDialect::JSON_Schema_Draft_7_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_6:
+    case SchemaBaseDialect::JSON_Schema_Draft_6_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_4:
+    case SchemaBaseDialect::JSON_Schema_Draft_4_Hyper:
+      return true;
+    default:
+      return false;
+  }
 }
 
 auto fragment_string(const sourcemeta::core::URI &uri)
@@ -391,16 +404,18 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
     const auto root_base_dialect{
         sourcemeta::core::base_dialect(schema, resolver, default_dialect)};
-    if (root_base_dialect.empty()) {
+    if (!root_base_dialect.has_value()) {
       throw SchemaUnknownBaseDialectError();
     }
+    const std::string root_base_dialect_string{
+        to_string(root_base_dialect.value())};
 
     // If we are dealing with nested schemas, then by definition
     // the root has no identifier
     std::optional<JSON::String> root_id{std::nullopt};
     if (path.empty()) {
-      const auto maybe_id{
-          sourcemeta::core::identify(schema, root_base_dialect, default_id)};
+      const auto maybe_id{sourcemeta::core::identify(
+          schema, root_base_dialect.value(), default_id)};
       if (!maybe_id.empty()) {
         root_id = URI::canonicalize(maybe_id);
       }
@@ -422,8 +437,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       store(this->locations_, SchemaReferenceType::Static,
             SchemaFrame::LocationType::Resource, default_id_canonical, root_id,
             root_id.value(), path_pointer, sourcemeta::core::empty_pointer,
-            std::string{root_dialect}, std::string{root_base_dialect},
-            std::nullopt);
+            std::string{root_dialect}, root_base_dialect_string, std::nullopt);
 
       base_uris.insert({path_pointer, {root_id.value(), default_id_canonical}});
     }
@@ -444,7 +458,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           {to_pointer(entry.pointer), {std::string{entry.dialect}}});
 
       // Base dialect
-      assert(!entry.base_dialect.empty());
+      assert(entry.base_dialect.has_value());
 
       // Schema identifier
       // We need to store the default_id in a local variable to ensure
@@ -452,8 +466,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       const std::string default_id_for_entry{
           entry.pointer.empty() && root_id.has_value() ? root_id.value()
                                                        : std::string{}};
-      const auto maybe_id{sourcemeta::core::identify(
-          entry.subschema.get(), entry.base_dialect, default_id_for_entry)};
+      const auto maybe_id{sourcemeta::core::identify(entry.subschema.get(),
+                                                     entry.base_dialect.value(),
+                                                     default_id_for_entry)};
       std::optional<JSON::String> id{
           !maybe_id.empty()
               ? std::make_optional<JSON::String>(std::string{maybe_id})
@@ -480,10 +495,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               ? std::make_optional(to_pointer(entry.common.parent.value()))
               : std::nullopt};
       if (entry.id.has_value()) {
+        assert(entry.common.base_dialect.has_value());
         const bool ref_overrides =
-            ref_overrides_adjacent_keywords(entry.common.base_dialect);
+            ref_overrides_adjacent_keywords(entry.common.base_dialect.value());
         const bool is_pre_2019_09_location_independent_identifier =
-            supports_id_anchors(entry.common.base_dialect) &&
+            supports_id_anchors(entry.common.base_dialect.value()) &&
             sourcemeta::core::URI{entry.id.value()}.is_fragment_only();
 
         if ((!entry.common.subschema.get().defines("$ref") || !ref_overrides) &&
@@ -528,13 +544,14 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
             if (!maybe_relative_is_absolute ||
                 maybe_match == this->locations_.cend()) {
-              assert(!entry.common.base_dialect.empty());
+              assert(entry.common.base_dialect.has_value());
 
               store(this->locations_, SchemaReferenceType::Static,
                     SchemaFrame::LocationType::Resource, new_id, root_id,
                     new_id, common_pointer, sourcemeta::core::empty_pointer,
                     std::string{entry.common.dialect},
-                    std::string{entry.common.base_dialect}, common_parent);
+                    std::string{to_string(entry.common.base_dialect.value())},
+                    common_parent);
             }
 
             auto base_uri_match{base_uris.find(common_pointer)};
@@ -596,7 +613,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   root_id, "", common_pointer,
                   common_pointer.resolve_from(bases.second),
                   std::string{entry.common.dialect},
-                  std::string{entry.common.base_dialect}, common_parent);
+                  std::string{to_string(entry.common.base_dialect.value())},
+                  common_parent);
           }
 
           if (type == AnchorType::Dynamic || type == AnchorType::All) {
@@ -605,7 +623,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   root_id, "", common_pointer,
                   common_pointer.resolve_from(bases.second),
                   std::string{entry.common.dialect},
-                  std::string{entry.common.base_dialect}, common_parent);
+                  std::string{to_string(entry.common.base_dialect.value())},
+                  common_parent);
 
             // Register a dynamic anchor as a static anchor if possible too
             if (entry.common.vocabularies.contains(
@@ -615,8 +634,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     root_id, "", common_pointer,
                     common_pointer.resolve_from(bases.second),
                     std::string{entry.common.dialect},
-                    std::string{entry.common.base_dialect}, common_parent,
-                    true);
+                    std::string{to_string(entry.common.base_dialect.value())},
+                    common_parent, true);
             }
           }
         } else {
@@ -639,7 +658,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     base_string, common_pointer,
                     common_pointer.resolve_from(bases.second),
                     std::string{entry.common.dialect},
-                    std::string{entry.common.base_dialect}, common_parent);
+                    std::string{to_string(entry.common.base_dialect.value())},
+                    common_parent);
             }
 
             if (type == AnchorType::Dynamic || type == AnchorType::All) {
@@ -649,7 +669,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     base_string, common_pointer,
                     common_pointer.resolve_from(bases.second),
                     std::string{entry.common.dialect},
-                    std::string{entry.common.base_dialect}, common_parent);
+                    std::string{to_string(entry.common.base_dialect.value())},
+                    common_parent);
 
               // Register a dynamic anchor as a static anchor if possible too
               if (entry.common.vocabularies.contains(
@@ -660,8 +681,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                       base_string, common_pointer,
                       common_pointer.resolve_from(bases.second),
                       std::string{entry.common.dialect},
-                      std::string{entry.common.base_dialect}, common_parent,
-                      true);
+                      std::string{to_string(entry.common.base_dialect.value())},
+                      common_parent, true);
               }
             }
 
@@ -715,7 +736,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
           const std::string current_base_dialect{
               maybe_base_entry == this->locations_.cend()
-                  ? std::string{root_base_dialect}
+                  ? root_base_dialect_string
                   : maybe_base_entry->second.base_dialect};
 
           const auto subschema{subschemas.find(pointer)};
@@ -933,7 +954,9 @@ auto SchemaFrame::standalone() const -> bool {
 auto SchemaFrame::vocabularies(const Location &location,
                                const SchemaResolver &resolver) const
     -> Vocabularies {
-  return sourcemeta::core::vocabularies(resolver, location.base_dialect,
+  const auto base_dialect{to_base_dialect(location.base_dialect)};
+  assert(base_dialect.has_value());
+  return sourcemeta::core::vocabularies(resolver, base_dialect.value(),
                                         location.dialect);
 }
 

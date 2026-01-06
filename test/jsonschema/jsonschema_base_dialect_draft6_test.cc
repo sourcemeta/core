@@ -10,7 +10,9 @@ TEST(JSONSchema_base_dialect_draft6, jsonschema_draft_hyperschema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-06/hyper-schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_6_Hyper);
 }
 
 TEST(JSONSchema_base_dialect_draft6, jsonschema_draft_schema) {
@@ -20,7 +22,9 @@ TEST(JSONSchema_base_dialect_draft6, jsonschema_draft_schema) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-06/schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_6);
 }
 
 TEST(JSONSchema_base_dialect_draft6, jsonschema_draft_links) {
@@ -29,5 +33,7 @@ TEST(JSONSchema_base_dialect_draft6, jsonschema_draft_links) {
   })JSON");
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-06/hyper-schema#");
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_6_Hyper);
 }
