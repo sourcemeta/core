@@ -2456,8 +2456,7 @@ TEST(JSONSchema_frame_2020_12, zero_paths) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(document, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver, std::nullopt, std::nullopt,
-                {});
+                sourcemeta::core::schema_resolver, "", "", {});
 
   EXPECT_EQ(frame.locations().size(), 0);
   EXPECT_EQ(frame.references().size(), 0);
@@ -2476,7 +2475,7 @@ TEST(JSONSchema_frame_2020_12, single_nested_path_recursive_with_identifier) {
       sourcemeta::core::SchemaFrame::Mode::References};
   const sourcemeta::core::Pointer wrapper_path{"wrapper"};
   frame.analyse(document, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver, std::nullopt, std::nullopt,
+                sourcemeta::core::schema_resolver, "", "",
                 {sourcemeta::core::to_weak_pointer(wrapper_path)});
 
   EXPECT_EQ(frame.locations().size(), 8);
@@ -2545,7 +2544,7 @@ TEST(JSONSchema_frame_2020_12,
   const sourcemeta::core::Pointer wrapper_path{"wrapper"};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver,
-                "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+                "https://json-schema.org/draft/2020-12/schema", "",
                 {sourcemeta::core::to_weak_pointer(wrapper_path)});
 
   EXPECT_EQ(frame.locations().size(), 2);
@@ -2584,7 +2583,7 @@ TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
   const sourcemeta::core::Pointer wrapper_path{"wrapper"};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver,
-                "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+                "https://json-schema.org/draft/2020-12/schema", "",
                 {sourcemeta::core::to_weak_pointer(wrapper_path)});
 
   EXPECT_EQ(frame.locations().size(), 10);
@@ -2670,7 +2669,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
   const sourcemeta::core::Pointer path3{"common", "with-id"};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver,
-                "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+                "https://json-schema.org/draft/2020-12/schema", "",
                 {sourcemeta::core::to_weak_pointer(path1),
                  sourcemeta::core::to_weak_pointer(path2),
                  sourcemeta::core::to_weak_pointer(path3)});
@@ -2788,7 +2787,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
   const sourcemeta::core::Pointer path2{"common", "test"};
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver,
-                "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+                "https://json-schema.org/draft/2020-12/schema", "",
                 {sourcemeta::core::to_weak_pointer(path1),
                  sourcemeta::core::to_weak_pointer(path2)});
 
@@ -2846,8 +2845,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_no_base_dialect) {
   const sourcemeta::core::Pointer path3{"common", "with-id"};
 
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver, std::nullopt,
-                             std::nullopt,
+                             sourcemeta::core::schema_resolver, "", "",
                              {sourcemeta::core::to_weak_pointer(path1),
                               sourcemeta::core::to_weak_pointer(path2),
                               sourcemeta::core::to_weak_pointer(path3)}),
@@ -2874,8 +2872,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_id) {
   const sourcemeta::core::Pointer path2{"common", "bar"};
 
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver, std::nullopt,
-                             std::nullopt,
+                             sourcemeta::core::schema_resolver, "", "",
                              {sourcemeta::core::to_weak_pointer(path1),
                               sourcemeta::core::to_weak_pointer(path2)}),
                sourcemeta::core::SchemaFrameError);
@@ -2900,8 +2897,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_anonymous_anchors) {
 
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
                              sourcemeta::core::schema_resolver,
-                             "https://json-schema.org/draft/2020-12/schema",
-                             std::nullopt,
+                             "https://json-schema.org/draft/2020-12/schema", "",
                              {sourcemeta::core::to_weak_pointer(path1),
                               sourcemeta::core::to_weak_pointer(path2)}),
                sourcemeta::core::SchemaFrameError);

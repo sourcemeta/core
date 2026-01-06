@@ -302,10 +302,10 @@
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(index).pointer),            \
             expected_schema_location);                                         \
   EXPECT_OPTIONAL_POINTER(entries.at(index).parent, expected_parent_location); \
-  EXPECT_TRUE(entries.at(index).dialect.has_value());                          \
-  EXPECT_TRUE(entries.at(index).base_dialect.has_value());                     \
-  EXPECT_EQ(entries.at(index).dialect.value(), expected_dialect);              \
-  EXPECT_EQ(entries.at(index).base_dialect.value(), expected_base_dialect);    \
+  EXPECT_FALSE(entries.at(index).dialect.empty());                             \
+  EXPECT_FALSE(entries.at(index).base_dialect.empty());                        \
+  EXPECT_EQ(entries.at(index).dialect, expected_dialect);                      \
+  EXPECT_EQ(entries.at(index).base_dialect, expected_base_dialect);            \
   EXPECT_FALSE(entries.at(index).vocabularies.empty());
 
 #define EXPECT_WALKER_ENTRY_2020_12(entries, index, expected_schema_location,  \

@@ -201,10 +201,10 @@ struct SchemaIteratorEntry {
   std::optional<WeakPointer> parent;
   WeakPointer pointer;
   // TODO: Use "known" enum classes + strings for dialects
-  std::optional<JSON::String> dialect;
+  std::string_view dialect;
   Vocabularies vocabularies;
   // TODO: Use "known" enum classes for base dialects
-  std::optional<JSON::String> base_dialect;
+  std::string base_dialect;
   std::reference_wrapper<const JSON> subschema;
   bool orphan;
 };

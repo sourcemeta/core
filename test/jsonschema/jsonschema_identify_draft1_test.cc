@@ -104,8 +104,8 @@ TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  sourcemeta::core::anonymize(document, base_dialect.value());
+  EXPECT_TRUE(!base_dialect.empty());
+  sourcemeta::core::anonymize(document, base_dialect);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-01/schema#"
@@ -121,8 +121,8 @@ TEST(JSONSchema_identify_draft1, anonymize_with_base_dialect_no_id) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  sourcemeta::core::anonymize(document, base_dialect.value());
+  EXPECT_TRUE(!base_dialect.empty());
+  sourcemeta::core::anonymize(document, base_dialect);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-01/schema#"
@@ -200,10 +200,10 @@ TEST(JSONSchema_identify_draft1, reidentify_replace_base_dialect_shortcut) {
 
   const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_TRUE(!base_dialect.empty());
 
   sourcemeta::core::reidentify(document, "https://example.com/my-new-id",
-                               base_dialect.value());
+                               base_dialect);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "id": "https://example.com/my-new-id",

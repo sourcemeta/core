@@ -141,18 +141,16 @@ auto is_empty_schema(const JSON &schema) -> bool;
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto identify(const JSON &schema, const SchemaResolver &resolver,
-              const std::optional<std::string> &default_dialect = std::nullopt,
-              const std::optional<std::string> &default_id = std::nullopt)
-    -> std::optional<std::string>;
+              std::string_view default_dialect = "",
+              std::string_view default_id = "") -> std::optional<std::string>;
 
 /// @ingroup jsonschema
 ///
 /// A shortcut to sourcemeta::core::identify if you know the base dialect
 /// of the schema.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto identify(const JSON &schema, const std::string &base_dialect,
-              const std::optional<std::string> &default_id = std::nullopt)
-    -> std::optional<std::string>;
+auto identify(const JSON &schema, std::string_view base_dialect,
+              std::string_view default_id = "") -> std::optional<std::string>;
 
 /// @ingroup jsonschema
 ///
@@ -180,7 +178,7 @@ auto identify(const JSON &schema, const std::string &base_dialect,
 /// assert(!id.has_value());
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto anonymize(JSON &schema, const std::string &base_dialect) -> void;
+auto anonymize(JSON &schema, std::string_view base_dialect) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -208,18 +206,17 @@ auto anonymize(JSON &schema, const std::string &base_dialect) -> void;
 /// assert(id.value() == "https://example.com/my-new-id");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto reidentify(
-    JSON &schema, const std::string &new_identifier,
-    const SchemaResolver &resolver,
-    const std::optional<std::string> &default_dialect = std::nullopt) -> void;
+auto reidentify(JSON &schema, std::string_view new_identifier,
+                const SchemaResolver &resolver,
+                std::string_view default_dialect = "") -> void;
 
 /// @ingroup jsonschema
 ///
 /// A shortcut to sourcemeta::core::reidentify if you know the base
 /// dialect of the schema.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto reidentify(JSON &schema, const std::string &new_identifier,
-                const std::string &base_dialect) -> void;
+auto reidentify(JSON &schema, std::string_view new_identifier,
+                std::string_view base_dialect) -> void;
 
 /// @ingroup jsonschema
 ///
@@ -237,16 +234,13 @@ auto reidentify(JSON &schema, const std::string &new_identifier,
 ///   "type": "object"
 /// })JSON");
 ///
-/// const std::optional<std::string>
-///   dialect{sourcemeta::core::dialect(document)};
-/// assert(dialect.has_value());
-/// assert(dialect.value() ==
-///   "https://json-schema.org/draft/2020-12/schema");
+/// const auto dialect{sourcemeta::core::dialect(document)};
+/// assert(!dialect.empty());
+/// assert(dialect == "https://json-schema.org/draft/2020-12/schema");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto dialect(const JSON &schema,
-             const std::optional<std::string> &default_dialect = std::nullopt)
-    -> std::optional<std::string>;
+auto dialect(const JSON &schema, std::string_view default_dialect = "")
+    -> std::string_view;
 
 /// @ingroup jsonschema
 ///
@@ -273,15 +267,14 @@ auto dialect(const JSON &schema,
 ///
 /// This function will throw if the metaschema cannot be determined or resolved.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto metaschema(
-    const JSON &schema, const SchemaResolver &resolver,
-    const std::optional<std::string> &default_dialect = std::nullopt) -> JSON;
+auto metaschema(const JSON &schema, const SchemaResolver &resolver,
+                std::string_view default_dialect = "") -> JSON;
 
 /// @ingroup jsonschema
 ///
 /// Get the URI of the base dialect that applies to the given schema. If you set
 /// a default dialect URI, this will be used if the given schema does not
-/// declare the `$schema` keyword. The result of this function is unset
+/// declare the `$schema` keyword. The result of this function is empty
 /// if its base dialect could not be determined. For example:
 ///
 /// ```cpp
@@ -295,18 +288,19 @@ auto metaschema(
 ///   "type": "object"
 /// })JSON");
 ///
-/// const std::optional<std::string> base_dialect{
+/// const auto base_dialect{
 ///   sourcemeta::core::base_dialect(
 ///     document, sourcemeta::core::schema_resolver)};
 ///
-/// assert(base_dialect.has_value());
-/// assert(base_dialect.value() ==
-///   "https://json-schema.org/draft/2020-12/schema");
+/// assert(!base_dialect.empty());
+/// assert(base_dialect == "https://json-schema.org/draft/2020-12/schema");
 /// ```
+// TODO: Ideally this would return std::string_view to avoid copying, but
+// the recursive metaschema resolution creates lifetime issues where views
+// can point into local variables that get destroyed on return
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto base_dialect(const JSON &schema, const SchemaResolver &resolver,
-                  const std::optional<std::string> &default_dialect =
-                      std::nullopt) -> std::optional<std::string>;
+                  std::string_view default_dialect = "") -> std::string;
 
 /// @ingroup jsonschema
 ///
@@ -342,17 +336,15 @@ auto base_dialect(const JSON &schema, const SchemaResolver &resolver,
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto vocabularies(const JSON &schema, const SchemaResolver &resolver,
-                  const std::optional<std::string> &default_dialect =
-                      std::nullopt) -> Vocabularies;
+                  std::string_view default_dialect = "") -> Vocabularies;
 
 /// @ingroup jsonschema
 ///
 /// A shortcut to sourcemeta::core::vocabularies based on the base
 /// dialect and dialect URI.
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto vocabularies(const SchemaResolver &resolver,
-                  const std::string &base_dialect, const std::string &dialect)
-    -> Vocabularies;
+auto vocabularies(const SchemaResolver &resolver, std::string_view base_dialect,
+                  std::string_view dialect) -> Vocabularies;
 
 /// @ingroup jsonschema
 ///
@@ -378,8 +370,7 @@ auto vocabularies(const SchemaResolver &resolver,
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto format(JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
-            const std::optional<JSON::String> &default_dialect = std::nullopt)
-    -> void;
+            std::string_view default_dialect = "") -> void;
 
 /// @ingroup jsonschema
 ///
@@ -429,8 +420,7 @@ auto wrap(const JSON::String &identifier) -> JSON;
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto wrap(const JSON &schema, const Pointer &pointer,
-          const SchemaResolver &resolver,
-          const std::optional<std::string> &default_dialect = std::nullopt)
+          const SchemaResolver &resolver, std::string_view default_dialect = "")
     -> JSON;
 
 /// @ingroup jsonschema

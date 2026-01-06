@@ -23,8 +23,7 @@ auto dependencies_internal(
     const sourcemeta::core::SchemaWalker &walker,
     const sourcemeta::core::SchemaResolver &resolver,
     const sourcemeta::core::DependencyCallback &callback,
-    const std::optional<std::string> &default_dialect,
-    const std::optional<std::string> &default_id,
+    std::string_view default_dialect, std::string_view default_id,
     const sourcemeta::core::SchemaFrame::Paths &paths,
     std::unordered_set<sourcemeta::core::JSON::String> &visited) -> void {
   sourcemeta::core::SchemaFrame frame{
@@ -80,9 +79,9 @@ auto dependencies_internal(
           "The JSON document is not a valid JSON Schema");
     }
 
-    const auto base_dialect{sourcemeta::core::base_dialect(
+    const auto remote_base_dialect{sourcemeta::core::base_dialect(
         remote.value(), resolver, default_dialect)};
-    if (!base_dialect.has_value()) {
+    if (remote_base_dialect.empty()) {
       throw sourcemeta::core::SchemaReferenceError(
           identifier, key.second,
           "The JSON document is not a valid JSON Schema");
@@ -137,8 +136,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    sourcemeta::core::SchemaFrame &frame,
                    const sourcemeta::core::SchemaWalker &walker,
                    const sourcemeta::core::SchemaResolver &resolver,
-                   const std::optional<std::string> &default_dialect,
-                   const std::optional<std::string> &default_id,
+                   std::string_view default_dialect,
+                   std::string_view default_id,
                    const sourcemeta::core::SchemaFrame::Paths &paths,
                    const std::size_t depth = 0) -> void {
   // Keep in mind that the resulting frame does miss some information. For
@@ -203,9 +202,9 @@ auto bundle_schema(sourcemeta::core::JSON &root,
           "The JSON document is not a valid JSON Schema");
     }
 
-    const auto base_dialect{sourcemeta::core::base_dialect(
+    const auto remote_base_dialect{sourcemeta::core::base_dialect(
         remote.value(), resolver, default_dialect)};
-    if (!base_dialect.has_value()) {
+    if (remote_base_dialect.empty()) {
       throw sourcemeta::core::SchemaReferenceError(
           identifier, key.second,
           "The JSON document is not a valid JSON Schema");
@@ -215,7 +214,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
       // Always insert an identifier, as a schema might refer to another schema
       // using another URI (i.e. due to relying on HTTP re-directions, etc)
       sourcemeta::core::reidentify(remote.value(), identifier,
-                                   base_dialect.value());
+                                   remote_base_dialect);
     }
 
     bundle_schema(root, container, remote.value(), frame, walker, resolver,
@@ -231,8 +230,7 @@ namespace sourcemeta::core {
 auto dependencies(const JSON &schema, const SchemaWalker &walker,
                   const SchemaResolver &resolver,
                   const DependencyCallback &callback,
-                  const std::optional<std::string> &default_dialect,
-                  const std::optional<std::string> &default_id,
+                  std::string_view default_dialect, std::string_view default_id,
                   const SchemaFrame::Paths &paths) -> void {
   std::unordered_set<sourcemeta::core::JSON::String> visited;
   dependencies_internal(schema, walker, resolver, callback, default_dialect,
@@ -242,9 +240,8 @@ auto dependencies(const JSON &schema, const SchemaWalker &walker,
 // TODO: Refactor this function to internally rely on the `.dependencies()`
 // function
 auto bundle(JSON &schema, const SchemaWalker &walker,
-            const SchemaResolver &resolver,
-            const std::optional<std::string> &default_dialect,
-            const std::optional<std::string> &default_id,
+            const SchemaResolver &resolver, std::string_view default_dialect,
+            std::string_view default_id,
             const std::optional<Pointer> &default_container,
             const SchemaFrame::Paths &paths) -> void {
   SchemaFrame frame{SchemaFrame::Mode::References};
@@ -261,9 +258,9 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
   // bundled schema. Otherwise, potential relative references based on this
   // implicit base URI will likely not resolve unless end users happen to
   // know that this implicit base URI is.
-  if (default_id.has_value() &&
+  if (!default_id.empty() &&
       !identify(schema, resolver, default_dialect).has_value()) {
-    reidentify(schema, default_id.value(), resolver, default_dialect);
+    reidentify(schema, default_id, resolver, default_dialect);
   }
 
   const auto vocabularies{
@@ -337,9 +334,8 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
 }
 
 auto bundle(const JSON &schema, const SchemaWalker &walker,
-            const SchemaResolver &resolver,
-            const std::optional<std::string> &default_dialect,
-            const std::optional<std::string> &default_id,
+            const SchemaResolver &resolver, std::string_view default_dialect,
+            std::string_view default_id,
             const std::optional<Pointer> &default_container,
             const SchemaFrame::Paths &paths) -> JSON {
   JSON copy = schema;

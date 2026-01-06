@@ -67,12 +67,13 @@ using DependencyCallback =
 ///   });
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto dependencies(
-    const JSON &schema, const SchemaWalker &walker,
-    const SchemaResolver &resolver, const DependencyCallback &callback,
-    const std::optional<std::string> &default_dialect = std::nullopt,
-    const std::optional<std::string> &default_id = std::nullopt,
-    const SchemaFrame::Paths &paths = {empty_weak_pointer}) -> void;
+auto dependencies(const JSON &schema, const SchemaWalker &walker,
+                  const SchemaResolver &resolver,
+                  const DependencyCallback &callback,
+                  std::string_view default_dialect = "",
+                  std::string_view default_id = "",
+                  const SchemaFrame::Paths &paths = {empty_weak_pointer})
+    -> void;
 
 /// @ingroup jsonschema
 ///
@@ -126,8 +127,8 @@ auto dependencies(
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto bundle(JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
-            const std::optional<std::string> &default_dialect = std::nullopt,
-            const std::optional<std::string> &default_id = std::nullopt,
+            std::string_view default_dialect = "",
+            std::string_view default_id = "",
             const std::optional<Pointer> &default_container = std::nullopt,
             const SchemaFrame::Paths &paths = {empty_weak_pointer}) -> void;
 
@@ -185,8 +186,8 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto bundle(const JSON &schema, const SchemaWalker &walker,
             const SchemaResolver &resolver,
-            const std::optional<std::string> &default_dialect = std::nullopt,
-            const std::optional<std::string> &default_id = std::nullopt,
+            std::string_view default_dialect = "",
+            std::string_view default_id = "",
             const std::optional<Pointer> &default_container = std::nullopt,
             const SchemaFrame::Paths &paths = {empty_weak_pointer}) -> JSON;
 

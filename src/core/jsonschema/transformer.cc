@@ -101,11 +101,11 @@ auto SchemaTransformRule::check(const JSON &schema, const JSON &root,
                          resolver);
 }
 
-auto SchemaTransformer::check(
-    const JSON &schema, const SchemaWalker &walker,
-    const SchemaResolver &resolver, const SchemaTransformer::Callback &callback,
-    const std::optional<JSON::String> &default_dialect,
-    const std::optional<JSON::String> &default_id) const
+auto SchemaTransformer::check(const JSON &schema, const SchemaWalker &walker,
+                              const SchemaResolver &resolver,
+                              const SchemaTransformer::Callback &callback,
+                              std::string_view default_dialect,
+                              std::string_view default_id) const
     -> std::pair<bool, std::uint8_t> {
   SchemaFrame frame{SchemaFrame::Mode::References};
 
@@ -158,11 +158,11 @@ auto SchemaTransformer::check(
           calculate_health_percentage(subschema_count, subschema_failures)};
 }
 
-auto SchemaTransformer::apply(
-    JSON &schema, const SchemaWalker &walker, const SchemaResolver &resolver,
-    const SchemaTransformer::Callback &callback,
-    const std::optional<JSON::String> &default_dialect,
-    const std::optional<JSON::String> &default_id) const
+auto SchemaTransformer::apply(JSON &schema, const SchemaWalker &walker,
+                              const SchemaResolver &resolver,
+                              const SchemaTransformer::Callback &callback,
+                              std::string_view default_dialect,
+                              std::string_view default_id) const
     -> std::pair<bool, std::uint8_t> {
   // There is no point in applying an empty bundle
   assert(!this->rules.empty());

@@ -617,8 +617,8 @@ TEST(JSONSchema_keyword_iterator, no_default_dialect) {
     entries.push_back(entry);
 
     // The same for all entries
-    EXPECT_FALSE(entry.dialect.has_value());
-    EXPECT_FALSE(entry.base_dialect.has_value());
+    EXPECT_TRUE(entry.dialect.empty());
+    EXPECT_TRUE(entry.base_dialect.empty());
     EXPECT_EQ(entry.vocabularies.size(), 0);
   }
 

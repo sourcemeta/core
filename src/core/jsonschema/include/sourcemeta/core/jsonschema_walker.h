@@ -61,10 +61,9 @@ private:
 
 public:
   using const_iterator = typename internal::const_iterator;
-  SchemaIterator(
-      const JSON &input, const SchemaWalker &walker,
-      const SchemaResolver &resolver,
-      const std::optional<std::string> &default_dialect = std::nullopt);
+  SchemaIterator(const JSON &input, const SchemaWalker &walker,
+                 const SchemaResolver &resolver,
+                 std::string_view default_dialect = "");
   [[nodiscard]] auto begin() const -> const_iterator;
   [[nodiscard]] auto end() const -> const_iterator;
   [[nodiscard]] auto cbegin() const -> const_iterator;
@@ -128,10 +127,9 @@ private:
 
 public:
   using const_iterator = typename internal::const_iterator;
-  SchemaIteratorFlat(
-      const JSON &input, const SchemaWalker &walker,
-      const SchemaResolver &resolver,
-      const std::optional<std::string> &default_dialect = std::nullopt);
+  SchemaIteratorFlat(const JSON &input, const SchemaWalker &walker,
+                     const SchemaResolver &resolver,
+                     std::string_view default_dialect = "");
   [[nodiscard]] auto begin() const -> const_iterator;
   [[nodiscard]] auto end() const -> const_iterator;
   [[nodiscard]] auto cbegin() const -> const_iterator;
@@ -185,10 +183,9 @@ private:
 
 public:
   using const_iterator = typename internal::const_iterator;
-  SchemaKeywordIterator(
-      const JSON &input, const SchemaWalker &walker,
-      const SchemaResolver &resolver,
-      const std::optional<std::string> &default_dialect = std::nullopt);
+  SchemaKeywordIterator(const JSON &input, const SchemaWalker &walker,
+                        const SchemaResolver &resolver,
+                        std::string_view default_dialect = "");
   [[nodiscard]] auto begin() const -> const_iterator;
   [[nodiscard]] auto end() const -> const_iterator;
   [[nodiscard]] auto cbegin() const -> const_iterator;

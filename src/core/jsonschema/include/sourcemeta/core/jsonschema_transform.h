@@ -251,19 +251,19 @@ public:
                                       const SchemaTransformRule::Result &)>;
 
   /// Apply the bundle of rules to a schema
-  [[nodiscard]] auto
-  apply(JSON &schema, const SchemaWalker &walker,
-        const SchemaResolver &resolver, const Callback &callback,
-        const std::optional<JSON::String> &default_dialect = std::nullopt,
-        const std::optional<JSON::String> &default_id = std::nullopt) const
+  [[nodiscard]] auto apply(JSON &schema, const SchemaWalker &walker,
+                           const SchemaResolver &resolver,
+                           const Callback &callback,
+                           std::string_view default_dialect = "",
+                           std::string_view default_id = "") const
       -> std::pair<bool, std::uint8_t>;
 
   /// Report back the rules from the bundle that need to be applied to a schema
-  [[nodiscard]] auto
-  check(const JSON &schema, const SchemaWalker &walker,
-        const SchemaResolver &resolver, const Callback &callback,
-        const std::optional<JSON::String> &default_dialect = std::nullopt,
-        const std::optional<JSON::String> &default_id = std::nullopt) const
+  [[nodiscard]] auto check(const JSON &schema, const SchemaWalker &walker,
+                           const SchemaResolver &resolver,
+                           const Callback &callback,
+                           std::string_view default_dialect = "",
+                           std::string_view default_id = "") const
       -> std::pair<bool, std::uint8_t>;
 
   [[nodiscard]] auto begin() const -> auto { return this->rules.cbegin(); }

@@ -8,11 +8,9 @@ TEST(JSONSchema_base_dialect_draft0, jsonschema_draft_hyperschema) {
     "$schema": "http://json-schema.org/draft-00/hyper-schema#",
     "type": "object"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-00/hyper-schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft0, jsonschema_draft_schema) {
@@ -20,31 +18,25 @@ TEST(JSONSchema_base_dialect_draft0, jsonschema_draft_schema) {
     "$schema": "http://json-schema.org/draft-00/schema#",
     "type": "object"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-00/hyper-schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft0, jsonschema_draft_jsonref) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/json-ref#"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-00/hyper-schema#");
 }
 
 TEST(JSONSchema_base_dialect_draft0, jsonschema_draft_links) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/links#"
   })JSON");
-  const std::optional<std::string> base_dialect{sourcemeta::core::base_dialect(
+  const auto base_dialect{sourcemeta::core::base_dialect(
       document, sourcemeta::core::schema_resolver)};
-  EXPECT_TRUE(base_dialect.has_value());
-  EXPECT_EQ(base_dialect.value(),
-            "http://json-schema.org/draft-00/hyper-schema#");
+  EXPECT_EQ(base_dialect, "http://json-schema.org/draft-00/hyper-schema#");
 }

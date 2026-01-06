@@ -53,7 +53,7 @@ namespace sourcemeta::core {
 
 auto for_editor(JSON &schema, const SchemaWalker &walker,
                 const SchemaResolver &resolver,
-                const std::optional<std::string> &default_dialect) -> void {
+                std::string_view default_dialect) -> void {
   // (1) Bring in all of the references
   bundle(schema, walker, resolver, default_dialect);
 

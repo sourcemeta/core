@@ -12,9 +12,9 @@ TEST(JSONSchema_identify, boolean_no_dialect) {
 
 TEST(JSONSchema_identify, boolean_no_dialect_with_default_id) {
   const sourcemeta::core::JSON document{true};
-  std::optional<std::string> id{sourcemeta::core::identify(
-      document, sourcemeta::core::schema_resolver, std::nullopt,
-      "https://www.sourcemeta.com/foo")};
+  std::optional<std::string> id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver,
+                                 "", "https://www.sourcemeta.com/foo")};
   EXPECT_TRUE(id.has_value());
   EXPECT_EQ(id.value(), "https://www.sourcemeta.com/foo");
 }

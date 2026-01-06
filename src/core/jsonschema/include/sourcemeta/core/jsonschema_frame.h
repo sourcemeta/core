@@ -186,12 +186,11 @@ public:
 
   /// Analyse a schema or set of schemas from a given root. Passing
   /// multiple paths that have any overlap is undefined behaviour
-  auto
-  analyse(const JSON &root, const SchemaWalker &walker,
-          const SchemaResolver &resolver,
-          const std::optional<JSON::String> &default_dialect = std::nullopt,
-          const std::optional<JSON::String> &default_id = std::nullopt,
-          const Paths &paths = {empty_weak_pointer}) -> void;
+  auto analyse(const JSON &root, const SchemaWalker &walker,
+               const SchemaResolver &resolver,
+               std::string_view default_dialect = "",
+               std::string_view default_id = "",
+               const Paths &paths = {empty_weak_pointer}) -> void;
 
   /// Access the analysed schema locations
   [[nodiscard]] auto locations() const noexcept -> const Locations &;
