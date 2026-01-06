@@ -152,7 +152,8 @@ public:
 
   /// A location entry
   struct Location {
-    // TODO: Turn this into a weak pointer
+    // TODO: Turn this into a weak pointer, or better, to a reference to the
+    // parent location
     std::optional<Pointer> parent;
     LocationType type;
     std::optional<JSON::String> root;
@@ -161,8 +162,8 @@ public:
     Pointer pointer;
     // TODO: Turn this into a weak pointer
     Pointer relative_pointer;
-    JSON::String dialect;
-    JSON::String base_dialect;
+    std::string_view dialect;
+    SchemaBaseDialect base_dialect;
   };
 
   /// A JSON Schema reference frame is a mapping of URIs to schema identifiers,

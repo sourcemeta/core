@@ -9,29 +9,26 @@
 #define EXPECT_FRAME_STATIC_DRAFT0_RESOURCE(                                   \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
-  EXPECT_FRAME_STATIC_RESOURCE(                                                \
-      frame, reference, root_id, expected_pointer,                             \
-      "http://json-schema.org/draft-00/schema#",                               \
-      "http://json-schema.org/draft-00/hyper-schema#", expected_base,          \
-      expected_relative_pointer, expected_parent);
+  EXPECT_FRAME_STATIC_RESOURCE(frame, reference, root_id, expected_pointer,    \
+                               "http://json-schema.org/draft-00/schema#",      \
+                               JSON_Schema_Draft_0_Hyper, expected_base,       \
+                               expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT0_POINTER(                                    \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_POINTER(frame, reference, root_id, expected_pointer,     \
                               "http://json-schema.org/draft-00/schema#",       \
-                              "http://json-schema.org/draft-00/hyper-schema#", \
-                              expected_base, expected_relative_pointer,        \
-                              expected_parent);
+                              JSON_Schema_Draft_0_Hyper, expected_base,        \
+                              expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT0_SUBSCHEMA(                                  \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
-  EXPECT_FRAME_STATIC_SUBSCHEMA(                                               \
-      frame, reference, root_id, expected_pointer,                             \
-      "http://json-schema.org/draft-00/schema#",                               \
-      "http://json-schema.org/draft-00/hyper-schema#", expected_base,          \
-      expected_relative_pointer, expected_parent);
+  EXPECT_FRAME_STATIC_SUBSCHEMA(frame, reference, root_id, expected_pointer,   \
+                                "http://json-schema.org/draft-00/schema#",     \
+                                JSON_Schema_Draft_0_Hyper, expected_base,      \
+                                expected_relative_pointer, expected_parent);
 
 TEST(JSONSchema_frame_draft0, anonymous_with_nested_schema_resource) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -48,29 +45,27 @@ TEST(JSONSchema_frame_draft0, anonymous_with_nested_schema_resource) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalProperties",
-      "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "");
+      "http://json-schema.org/draft-00/schema#", JSON_Schema_Draft_0_Hyper, "");
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/id", "/additionalProperties/id",
-      "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "/additionalProperties");
+      "http://json-schema.org/draft-00/schema#", JSON_Schema_Draft_0_Hyper,
+      "/additionalProperties");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", std::nullopt);
+      JSON_Schema_Draft_0_Hyper, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "");
+      JSON_Schema_Draft_0_Hyper, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalProperties", "/additionalProperties",
-      "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "");
+      "http://json-schema.org/draft-00/schema#", JSON_Schema_Draft_0_Hyper, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalProperties/id", "/additionalProperties/id",
-      "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "/additionalProperties");
+      "http://json-schema.org/draft-00/schema#", JSON_Schema_Draft_0_Hyper,
+      "/additionalProperties");
 
   // References
 
@@ -509,13 +504,13 @@ TEST(JSONSchema_frame_draft0, ref_metaschema) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", std::nullopt);
+      JSON_Schema_Draft_0_Hyper, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "");
+      JSON_Schema_Draft_0_Hyper, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-00/schema#",
-      "http://json-schema.org/draft-00/hyper-schema#", "");
+      JSON_Schema_Draft_0_Hyper, "");
 
   // References
 

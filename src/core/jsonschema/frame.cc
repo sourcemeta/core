@@ -113,14 +113,13 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
   return result;
 }
 
+template <typename StringType>
 auto find_nearest_bases(
-    const std::unordered_map<sourcemeta::core::Pointer,
-                             std::vector<sourcemeta::core::JSON::String>>
+    const std::unordered_map<sourcemeta::core::Pointer, std::vector<StringType>>
         &bases,
     const sourcemeta::core::Pointer &pointer,
     const std::optional<std::string_view> &default_base)
-    -> std::pair<std::vector<sourcemeta::core::JSON::String>,
-                 sourcemeta::core::Pointer> {
+    -> std::pair<std::vector<StringType>, sourcemeta::core::Pointer> {
   auto current_pointer{pointer};
   while (true) {
     const auto match{bases.find(current_pointer)};
@@ -136,7 +135,7 @@ auto find_nearest_bases(
   }
 
   if (default_base.has_value()) {
-    return {{std::string{default_base.value()}},
+    return {{StringType{default_base.value()}},
             sourcemeta::core::empty_pointer};
   }
 
@@ -241,8 +240,8 @@ auto store(sourcemeta::core::SchemaFrame::Locations &frame,
            const sourcemeta::core::JSON::String &base_id,
            const sourcemeta::core::Pointer &pointer_from_root,
            const sourcemeta::core::Pointer &pointer_from_base,
-           const sourcemeta::core::JSON::String &dialect,
-           const sourcemeta::core::JSON::String &base_dialect,
+           const std::string_view dialect,
+           const sourcemeta::core::SchemaBaseDialect base_dialect,
            const std::optional<sourcemeta::core::Pointer> &parent,
            const bool ignore_if_present = false,
            const bool already_canonical = false) -> void {
@@ -333,9 +332,10 @@ auto SchemaFrame::to_json(
         "relativePointer",
         sourcemeta::core::to_json(location.second.relative_pointer));
     entry.assign_assume_new("dialect",
-                            sourcemeta::core::to_json(location.second.dialect));
+                            JSON{JSON::String{location.second.dialect}});
     entry.assign_assume_new(
-        "baseDialect", sourcemeta::core::to_json(location.second.base_dialect));
+        "baseDialect",
+        JSON{JSON::String{to_string(location.second.base_dialect)}});
 
     switch (location.first.first) {
       case SchemaReferenceType::Static:
@@ -390,7 +390,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   std::unordered_map<Pointer, CacheSubschema> subschemas;
   std::unordered_map<sourcemeta::core::Pointer, std::vector<JSON::String>>
       base_uris;
-  std::unordered_map<sourcemeta::core::Pointer, std::vector<JSON::String>>
+  std::unordered_map<sourcemeta::core::Pointer, std::vector<std::string_view>>
       base_dialects;
 
   for (const auto &path : paths) {
@@ -407,8 +407,6 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     if (!root_base_dialect.has_value()) {
       throw SchemaUnknownBaseDialectError();
     }
-    const std::string root_base_dialect_string{
-        to_string(root_base_dialect.value())};
 
     // If we are dealing with nested schemas, then by definition
     // the root has no identifier
@@ -437,7 +435,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       store(this->locations_, SchemaReferenceType::Static,
             SchemaFrame::LocationType::Resource, default_id_canonical, root_id,
             root_id.value(), path_pointer, sourcemeta::core::empty_pointer,
-            std::string{root_dialect}, root_base_dialect_string, std::nullopt);
+            root_dialect, root_base_dialect.value(), std::nullopt);
 
       base_uris.insert({path_pointer, {root_id.value(), default_id_canonical}});
     }
@@ -454,8 +452,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
       // Dialect
       assert(!entry.dialect.empty());
-      base_dialects.insert(
-          {to_pointer(entry.pointer), {std::string{entry.dialect}}});
+      base_dialects.insert({to_pointer(entry.pointer), {entry.dialect}});
 
       // Base dialect
       assert(entry.base_dialect.has_value());
@@ -549,8 +546,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               store(this->locations_, SchemaReferenceType::Static,
                     SchemaFrame::LocationType::Resource, new_id, root_id,
                     new_id, common_pointer, sourcemeta::core::empty_pointer,
-                    std::string{entry.common.dialect},
-                    std::string{to_string(entry.common.base_dialect.value())},
+                    entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent);
             }
 
@@ -612,8 +608,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                   root_id, "", common_pointer,
                   common_pointer.resolve_from(bases.second),
-                  std::string{entry.common.dialect},
-                  std::string{to_string(entry.common.base_dialect.value())},
+                  entry.common.dialect, entry.common.base_dialect.value(),
                   common_parent);
           }
 
@@ -622,8 +617,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                   root_id, "", common_pointer,
                   common_pointer.resolve_from(bases.second),
-                  std::string{entry.common.dialect},
-                  std::string{to_string(entry.common.base_dialect.value())},
+                  entry.common.dialect, entry.common.base_dialect.value(),
                   common_parent);
 
             // Register a dynamic anchor as a static anchor if possible too
@@ -633,8 +627,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                     root_id, "", common_pointer,
                     common_pointer.resolve_from(bases.second),
-                    std::string{entry.common.dialect},
-                    std::string{to_string(entry.common.base_dialect.value())},
+                    entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent, true);
             }
           }
@@ -657,8 +650,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                     base_string, common_pointer,
                     common_pointer.resolve_from(bases.second),
-                    std::string{entry.common.dialect},
-                    std::string{to_string(entry.common.base_dialect.value())},
+                    entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent);
             }
 
@@ -668,8 +660,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                     base_string, common_pointer,
                     common_pointer.resolve_from(bases.second),
-                    std::string{entry.common.dialect},
-                    std::string{to_string(entry.common.base_dialect.value())},
+                    entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent);
 
               // Register a dynamic anchor as a static anchor if possible too
@@ -680,8 +671,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                       SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                       base_string, common_pointer,
                       common_pointer.resolve_from(bases.second),
-                      std::string{entry.common.dialect},
-                      std::string{to_string(entry.common.base_dialect.value())},
+                      entry.common.dialect, entry.common.base_dialect.value(),
                       common_parent, true);
               }
             }
@@ -706,10 +696,12 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     for (const auto &relative_pointer : pointers) {
       const auto pointer{path_pointer.concat(relative_pointer)};
 
-      const auto dialects{
+      const auto dialect_match{
           find_nearest_bases(base_dialects, pointer,
                              std::optional<std::string_view>{root_dialect})};
-      assert(dialects.first.size() == 1);
+      assert(dialect_match.first.size() == 1);
+      const auto &dialect_for_pointer{
+          base_dialects.at(dialect_match.second).front()};
 
       auto every_base_result = find_every_base(base_uris, pointer);
 
@@ -735,9 +727,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           const auto maybe_base_entry{this->locations_.find(
               {SchemaReferenceType::Static, current_base})};
 
-          const std::string current_base_dialect{
+          const SchemaBaseDialect current_base_dialect_enum{
               maybe_base_entry == this->locations_.cend()
-                  ? root_base_dialect_string
+                  ? root_base_dialect.value()
                   : maybe_base_entry->second.base_dialect};
 
           const auto subschema{subschemas.find(pointer)};
@@ -747,15 +739,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   SchemaFrame::LocationType::Subschema, result, root_id,
                   current_base, pointer,
                   pointer.resolve_from(nearest_bases.second),
-                  dialects.first.front(), current_base_dialect,
+                  dialect_for_pointer, current_base_dialect_enum,
                   subschema->second.parent, false, true);
           } else {
             store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Pointer, result, root_id,
                   current_base, pointer,
                   pointer.resolve_from(nearest_bases.second),
-                  dialects.first.front(), current_base_dialect, dialects.second,
-                  false, true);
+                  dialect_for_pointer, current_base_dialect_enum,
+                  dialect_match.second, false, true);
           }
         }
       }
@@ -955,9 +947,7 @@ auto SchemaFrame::standalone() const -> bool {
 auto SchemaFrame::vocabularies(const Location &location,
                                const SchemaResolver &resolver) const
     -> Vocabularies {
-  const auto base_dialect{to_base_dialect(location.base_dialect)};
-  assert(base_dialect.has_value());
-  return sourcemeta::core::vocabularies(resolver, base_dialect.value(),
+  return sourcemeta::core::vocabularies(resolver, location.base_dialect,
                                         location.dialect);
 }
 
