@@ -3,6 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include <algorithm> // std::sort
 #include <set>
 #include <string>
 #include <tuple>
@@ -634,6 +635,12 @@ TEST(JSONSchema_transformer, check_top_level) {
 
   EXPECT_EQ(entries.size(), 2);
 
+  // Sort entries by rule name for deterministic comparison
+  std::sort(entries.begin(), entries.end(),
+            [](const auto &left, const auto &right) {
+              return std::get<1>(left) < std::get<1>(right);
+            });
+
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
   EXPECT_EQ(std::get<2>(entries.at(0)), "Keyword foo is not permitted");
@@ -892,6 +899,12 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
   EXPECT_EQ(result.second, 0);
 
   EXPECT_EQ(entries.size(), 2);
+
+  // Sort entries by rule name for deterministic comparison
+  std::sort(entries.begin(), entries.end(),
+            [](const auto &left, const auto &right) {
+              return std::get<1>(left) < std::get<1>(right);
+            });
 
   EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
   EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");

@@ -12,14 +12,26 @@
 #include <sourcemeta/core/jsonschema_walker.h>
 
 #include <cstdint>       // std::uint8_t
-#include <functional>    // std::reference_wrapper
-#include <map>           // std::map
+#include <functional>    // std::reference_wrapper, std::hash
 #include <optional>      // std::optional
-#include <set>           // std::set
 #include <tuple>         // std::tuple
+#include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::pair
 #include <vector>        // std::vector
+
+// TODO: Move this into a new src/lang/hash module along with some helpers from
+// `json_hash.h`
+/// @ingroup jsonschema
+/// The standard library does not provide a std::hash specialization for
+/// std::pair, so we define our own for any pair of hashable types
+namespace std {
+template <typename T1, typename T2> struct hash<std::pair<T1, T2>> {
+  auto operator()(const std::pair<T1, T2> &pair) const noexcept -> std::size_t {
+    return std::hash<T1>{}(pair.first) ^ (std::hash<T2>{}(pair.second) << 1);
+  }
+};
+} // namespace std
 
 namespace sourcemeta::core {
 
@@ -128,8 +140,8 @@ public:
   /// The reference type is part of the key as it is possible to
   /// have a static and a dynamic reference to the same location
   /// on the same schema object.
-  using References =
-      std::map<std::pair<SchemaReferenceType, Pointer>, ReferencesEntry>;
+  using References = std::unordered_map<std::pair<SchemaReferenceType, Pointer>,
+                                        ReferencesEntry>;
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -171,13 +183,14 @@ public:
   using Locations =
       // While it might seem weird that we namespace the location URIs with a
       // reference type, it is essential for distinguishing schema resource URIs
-      // from `$recursiveRef: true` on another place of the schema schema
+      // from `$recursiveAnchor: true` on another place of the schema schema
       // resource, as otherwise they would both have the exact same URI, but
       // point to different places.
-      std::map<std::pair<SchemaReferenceType, JSON::String>, Location>;
+      std::unordered_map<std::pair<SchemaReferenceType, JSON::String>,
+                         Location>;
 
-  /// A set of paths to frame within a schema wrapper
-  using Paths = std::set<WeakPointer>;
+  /// A list of paths to frame within a schema wrapper
+  using Paths = std::vector<WeakPointer>;
 
   /// Export the frame entries as JSON
   [[nodiscard]] auto to_json(

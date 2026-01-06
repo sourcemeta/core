@@ -3,7 +3,6 @@
 #include <algorithm>     // std::sort, std::all_of, std::any_of
 #include <cassert>       // assert
 #include <functional>    // std::less
-#include <map>           // std::map
 #include <optional>      // std::optional
 #include <sstream>       // std::ostringstream
 #include <unordered_map> // std::unordered_map
@@ -17,8 +16,8 @@ namespace {
 
 auto find_anchors(const sourcemeta::core::JSON &schema,
                   const sourcemeta::core::Vocabularies &vocabularies)
-    -> std::map<sourcemeta::core::JSON::String, AnchorType> {
-  std::map<sourcemeta::core::JSON::String, AnchorType> result;
+    -> std::unordered_map<sourcemeta::core::JSON::String, AnchorType> {
+  std::unordered_map<sourcemeta::core::JSON::String, AnchorType> result;
 
   // 2020-12
   if (schema.is_object() &&
@@ -354,27 +353,39 @@ auto SchemaFrame::to_json(
   }
 
   root.assign_assume_new("references", JSON::make_array());
+
+  // Sort references by key to ensure deterministic output
+  std::vector<References::const_pointer> sorted_references;
+  sorted_references.reserve(this->references_.size());
   for (const auto &reference : this->references_) {
+    sorted_references.push_back(&reference);
+  }
+
+  std::ranges::sort(sorted_references, [](const auto *left, const auto *right) {
+    return left->first < right->first;
+  });
+
+  for (const auto *reference : sorted_references) {
     auto entry{JSON::make_object()};
     entry.assign_assume_new("type",
-                            sourcemeta::core::to_json(reference.first.first));
+                            sourcemeta::core::to_json(reference->first.first));
     entry.assign_assume_new("origin",
-                            sourcemeta::core::to_json(reference.first.second));
+                            sourcemeta::core::to_json(reference->first.second));
 
     if (tracker.has_value()) {
-      entry.assign_assume_new("position",
-                              sourcemeta::core::to_json(
-                                  tracker.value().get(reference.first.second)));
+      entry.assign_assume_new(
+          "position", sourcemeta::core::to_json(
+                          tracker.value().get(reference->first.second)));
     } else {
       entry.assign_assume_new("position", sourcemeta::core::to_json(nullptr));
     }
 
-    entry.assign_assume_new(
-        "destination", sourcemeta::core::to_json(reference.second.destination));
+    entry.assign_assume_new("destination", sourcemeta::core::to_json(
+                                               reference->second.destination));
     entry.assign_assume_new("base",
-                            sourcemeta::core::to_json(reference.second.base));
+                            sourcemeta::core::to_json(reference->second.base));
     entry.assign_assume_new(
-        "fragment", sourcemeta::core::to_json(reference.second.fragment));
+        "fragment", sourcemeta::core::to_json(reference->second.fragment));
     root.at("references").push_back(std::move(entry));
   }
 
@@ -872,7 +883,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   // A schema is standalone if all references can be resolved within itself
   if (this->standalone()) {
     // Find all dynamic anchors
-    std::map<JSON::String, std::vector<JSON::String>> dynamic_anchors;
+    std::unordered_map<JSON::String, std::vector<JSON::String>> dynamic_anchors;
     for (const auto &entry : this->locations_) {
       if (entry.first.first != SchemaReferenceType::Dynamic ||
           entry.second.type != SchemaFrame::LocationType::Anchor) {
