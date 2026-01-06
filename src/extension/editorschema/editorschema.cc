@@ -75,13 +75,12 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
 
     // Make sure that the top-level schema ALWAYS has a `$schema` declaration
     if (entry.second.pointer.empty() && !subschema.defines("$schema")) {
-      subschema.assign_assume_new("$schema", JSON{entry.second.base_dialect});
+      subschema.assign_assume_new(
+          "$schema", JSON{JSON::String{to_string(entry.second.base_dialect)}});
     }
 
     // Get rid of the keywords we don't want anymore
-    const auto maybe_base_dialect{to_base_dialect(entry.second.base_dialect)};
-    assert(maybe_base_dialect.has_value());
-    anonymize(subschema, maybe_base_dialect.value());
+    anonymize(subschema, entry.second.base_dialect);
     const auto vocabularies{frame.vocabularies(entry.second, resolver)};
     if (vocabularies.contains(Vocabularies::Known::JSON_Schema_2020_12_Core)) {
       subschema.erase_keys({"$vocabulary", "$anchor", "$dynamicAnchor"});
@@ -121,7 +120,8 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
         assert(uri.has_value());
         const auto origin{frame.traverse(uri.value().get())};
         assert(origin.has_value());
-        set(schema, key.second, JSON{origin.value().get().base_dialect});
+        set(schema, key.second,
+            JSON{JSON::String{to_string(origin.value().get().base_dialect)}});
         continue;
       }
 

@@ -11,45 +11,40 @@
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_POINTER(frame, reference, root_id, expected_pointer,     \
                               "https://json-schema.org/draft/2020-12/schema",  \
-                              "https://json-schema.org/draft/2020-12/schema",  \
-                              expected_base, expected_relative_pointer,        \
-                              expected_parent);
+                              JSON_Schema_2020_12, expected_base,              \
+                              expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_2020_12_RESOURCE(                                  \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_RESOURCE(frame, reference, root_id, expected_pointer,    \
                                "https://json-schema.org/draft/2020-12/schema", \
-                               "https://json-schema.org/draft/2020-12/schema", \
-                               expected_base, expected_relative_pointer,       \
-                               expected_parent);
+                               JSON_Schema_2020_12, expected_base,             \
+                               expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_2020_12_ANCHOR(                                    \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_ANCHOR(frame, reference, root_id, expected_pointer,      \
                              "https://json-schema.org/draft/2020-12/schema",   \
-                             "https://json-schema.org/draft/2020-12/schema",   \
-                             expected_base, expected_relative_pointer,         \
-                             expected_parent);
+                             JSON_Schema_2020_12, expected_base,               \
+                             expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(                                 \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_SUBSCHEMA(                                               \
       frame, reference, root_id, expected_pointer,                             \
-      "https://json-schema.org/draft/2020-12/schema",                          \
-      "https://json-schema.org/draft/2020-12/schema", expected_base,           \
-      expected_relative_pointer, expected_parent);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,     \
+      expected_base, expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_DYNAMIC_2020_12_ANCHOR(                                   \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_DYNAMIC_ANCHOR(frame, reference, root_id, expected_pointer,     \
                               "https://json-schema.org/draft/2020-12/schema",  \
-                              "https://json-schema.org/draft/2020-12/schema",  \
-                              expected_base, expected_relative_pointer,        \
-                              expected_parent);
+                              JSON_Schema_2020_12, expected_base,              \
+                              expected_relative_pointer, expected_parent);
 
 TEST(JSONSchema_frame_2020_12, anonymous_with_nested_schema_resource) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -66,30 +61,27 @@ TEST(JSONSchema_frame_2020_12, anonymous_with_nested_schema_resource) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalProperties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$id", "/additionalProperties/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/additionalProperties");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/additionalProperties");
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalProperties", "/additionalProperties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalProperties/$id", "/additionalProperties/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/additionalProperties");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/additionalProperties");
 
   // References
 
@@ -1202,35 +1194,30 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_without_id) {
 
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "#test", "/properties/foo",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#test", "/properties/foo",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   // Static frames
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$dynamicAnchor",
       "/properties/foo/$dynamicAnchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/properties/foo");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/properties/foo");
 
   // References
 
@@ -1265,38 +1252,32 @@ TEST(JSONSchema_frame_2020_12,
 
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "#test", "/$defs/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#test", "/$defs/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   // Static frames
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$dynamicRef", "/$dynamicRef",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs", "/$defs",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/test", "/$defs/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/test/$dynamicAnchor", "/$defs/test/$dynamicAnchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/test");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/test");
 
   // References
 
@@ -1335,46 +1316,39 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_single_dynamic_anchor_external) {
 
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "#test", "/$defs/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#test", "/$defs/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   // Static frames
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$dynamicRef", "/$dynamicRef",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs", "/$defs",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/test", "/$defs/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/test/$dynamicAnchor", "/$defs/test/$dynamicAnchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/test");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/test");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/foo", "/$defs/foo",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/foo/$ref", "/$defs/foo/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/foo");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/foo");
 
   // References
 
@@ -1427,23 +1401,20 @@ TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$ref", "/properties/foo/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/properties/foo");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/properties/foo");
 
   // References
 
@@ -1472,14 +1443,13 @@ TEST(JSONSchema_frame_2020_12, ref_metaschema) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      JSON_Schema_2020_12, "");
 
   // References
 
@@ -2332,59 +2302,55 @@ TEST(JSONSchema_frame_2020_12, cross_id_anonymous_nested) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs", "/$defs",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   // From the top
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/schema", "/$defs/schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/schema");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/schema/$id", "/$defs/schema/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/schema");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/schema/items", "/$defs/schema/items",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/schema");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema");
 
   // From within
 
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/$defs/schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$schema", "/$defs/schema/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/schema");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$id", "/$defs/schema/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/schema");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com#/items", "/$defs/schema/items",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/$defs/schema");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema");
 
   // References
 
@@ -2501,20 +2467,20 @@ TEST(JSONSchema_frame_2020_12, single_nested_path_recursive_with_identifier) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper", "/wrapper",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$id", "/wrapper/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$schema", "/wrapper/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$ref", "/wrapper/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
 
   // References
 
@@ -2551,12 +2517,12 @@ TEST(JSONSchema_frame_2020_12,
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper", "/wrapper",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$ref", "/wrapper/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
 
   // References
 
@@ -2590,25 +2556,25 @@ TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper", "/wrapper",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper/items", "/wrapper/items",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/items/$id", "/wrapper/items/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper/items");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper/items");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/items/$schema", "/wrapper/items/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper/items");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper/items");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/items/$anchor", "/wrapper/items/$anchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper/items");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper/items");
 
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
       frame, "https://www.sourcemeta.com/schema", std::nullopt,
@@ -2678,46 +2644,46 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper", "/wrapper",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$ref", "/wrapper/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/common/test", "/common/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/test/$anchor", "/common/test/$anchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/test");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/test");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/test/$ref", "/common/test/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/test");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/test");
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/common/with-id", "/common/with-id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/with-id/$id", "/common/with-id/$id",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/with-id");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/with-id");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/with-id/$schema", "/common/with-id/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/with-id");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/with-id");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/with-id/$anchor", "/common/with-id/$anchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/with-id");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/with-id");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/with-id/type", "/common/with-id/type",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/with-id");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/with-id");
 
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
       frame, "https://www.sourcemeta.com/schema", std::nullopt,
@@ -2743,8 +2709,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#foo", "/common/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_FRAME_STATIC_2020_12_ANCHOR(
       frame, "https://www.sourcemeta.com/schema#bar", std::nullopt,
       "/common/with-id", "https://www.sourcemeta.com/schema", "", std::nullopt);
@@ -2795,21 +2761,21 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper", "/wrapper",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$ref", "/wrapper/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/common/test", "/common/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/test/$ref", "/common/test/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/test");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/test");
 
   // References
 
@@ -2937,21 +2903,21 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/wrapper", "/wrapper",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/wrapper/$ref", "/wrapper/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/wrapper");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/wrapper");
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/common/test", "/common/test",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/common/test/$ref", "/common/test/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/common/test");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/common/test");
 
   // References
 
@@ -2977,15 +2943,13 @@ TEST(JSONSchema_frame_2020_12, anchor_with_invalid_type) {
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$anchor", "/$anchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   EXPECT_EQ(frame.references().size(), 1);
   EXPECT_STATIC_REFERENCE(
@@ -3008,15 +2972,13 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_invalid_type) {
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$dynamicAnchor", "/$dynamicAnchor",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   EXPECT_EQ(frame.references().size(), 1);
   EXPECT_STATIC_REFERENCE(
@@ -3039,15 +3001,13 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_with_invalid_type) {
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$dynamicRef", "/$dynamicRef",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
 
   EXPECT_EQ(frame.references().size(), 1);
   EXPECT_STATIC_REFERENCE(
@@ -3084,49 +3044,43 @@ TEST(JSONSchema_frame_2020_12,
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt);
+      JSON_Schema_2020_12, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$ref", "/properties/foo/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/properties/foo");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties", "/properties/foo/properties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/properties/foo");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo/properties/bar",
       "/properties/foo/properties/bar",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", "/properties/foo");
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/$ref",
       "/properties/foo/properties/bar/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "/properties/foo/properties/bar");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo/properties/bar/additionalProperties",
       "/properties/foo/properties/bar/additionalProperties",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "/properties/foo/properties/bar");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/additionalProperties/$ref",
       "/properties/foo/properties/bar/additionalProperties/$ref",
-      "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "/properties/foo/properties/bar/additionalProperties");
 
   EXPECT_EQ(frame.references().size(), 4);

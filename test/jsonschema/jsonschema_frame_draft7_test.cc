@@ -11,36 +11,32 @@
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_POINTER(frame, reference, root_id, expected_pointer,     \
                               "http://json-schema.org/draft-07/schema#",       \
-                              "http://json-schema.org/draft-07/schema#",       \
-                              expected_base, expected_relative_pointer,        \
-                              expected_parent);
+                              JSON_Schema_Draft_7, expected_base,              \
+                              expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT7_RESOURCE(                                   \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_RESOURCE(frame, reference, root_id, expected_pointer,    \
                                "http://json-schema.org/draft-07/schema#",      \
-                               "http://json-schema.org/draft-07/schema#",      \
-                               expected_base, expected_relative_pointer,       \
-                               expected_parent);
+                               JSON_Schema_Draft_7, expected_base,             \
+                               expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT7_ANCHOR(                                     \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_ANCHOR(frame, reference, root_id, expected_pointer,      \
                              "http://json-schema.org/draft-07/schema#",        \
-                             "http://json-schema.org/draft-07/schema#",        \
-                             expected_base, expected_relative_pointer,         \
-                             expected_parent);
+                             JSON_Schema_Draft_7, expected_base,               \
+                             expected_relative_pointer, expected_parent);
 
 #define EXPECT_FRAME_STATIC_DRAFT7_SUBSCHEMA(                                  \
     frame, reference, root_id, expected_pointer, expected_base,                \
     expected_relative_pointer, expected_parent)                                \
   EXPECT_FRAME_STATIC_SUBSCHEMA(frame, reference, root_id, expected_pointer,   \
                                 "http://json-schema.org/draft-07/schema#",     \
-                                "http://json-schema.org/draft-07/schema#",     \
-                                expected_base, expected_relative_pointer,      \
-                                expected_parent);
+                                JSON_Schema_Draft_7, expected_base,            \
+                                expected_relative_pointer, expected_parent);
 
 TEST(JSONSchema_frame_draft7, anonymous_with_nested_schema_resource) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -57,29 +53,27 @@ TEST(JSONSchema_frame_draft7, anonymous_with_nested_schema_resource) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalProperties",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$id", "/additionalProperties/$id",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/additionalProperties");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/additionalProperties");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalProperties", "/additionalProperties",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalProperties/$id", "/additionalProperties/$id",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/additionalProperties");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/additionalProperties");
 
   // References
 
@@ -518,13 +512,13 @@ TEST(JSONSchema_frame_draft7, ref_metaschema) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
 
   // References
 
@@ -563,40 +557,36 @@ TEST(JSONSchema_frame_draft7, location_independent_identifier_anonymous) {
   // Pointers
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions", "/definitions",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // Foo
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/definitions/foo", "/definitions/foo",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/foo/$id", "/definitions/foo/$id",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/definitions/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/definitions/foo");
 
   // Bar
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/definitions/bar", "/definitions/bar",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/bar/$ref", "/definitions/bar/$ref",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/definitions/bar");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/definitions/bar");
 
   // Anchors
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#foo", "/definitions/foo",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // References
 
@@ -635,29 +625,26 @@ TEST(JSONSchema_frame_draft7, ref_with_id) {
   // so we do know about the dialect anyway
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$id", "/$id", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions", "/definitions",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/string", "/definitions/string",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/string/type", "/definitions/string/type",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // References
 
@@ -691,28 +678,25 @@ TEST(JSONSchema_frame_draft7, ref_with_definitions) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions", "/definitions",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // Note that this is NOT considered to be a subschema, as `$ref` overrides it
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/string", "/definitions/string",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/string/type", "/definitions/string/type",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // References
 
@@ -746,25 +730,22 @@ TEST(JSONSchema_frame_draft7, ref_with_properties) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/string", "/properties/string",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/string/type", "/properties/string/type",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
 
   // References
 
@@ -900,46 +881,44 @@ TEST(JSONSchema_frame_draft7, ref_invalidates_sibling_subschemas_and_refs) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$ref", "/properties/foo/$ref",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/properties/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties", "/properties/foo/properties",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/properties/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar",
       "/properties/foo/properties/bar",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/properties/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/$ref",
       "/properties/foo/properties/bar/$ref",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/properties/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/additionalProperties",
       "/properties/foo/properties/bar/additionalProperties",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/properties/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/additionalProperties/$ref",
       "/properties/foo/properties/bar/additionalProperties/$ref",
-      "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "/properties/foo");
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo");
 
   EXPECT_EQ(frame.references().size(), 2);
 
@@ -969,16 +948,16 @@ TEST(JSONSchema_frame_draft7, top_level_relative_ref_with_id) {
   // Note that `$id` is IGNORED given the sibling `$ref`
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", std::nullopt);
+      JSON_Schema_Draft_7, std::nullopt);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$id", "/$id", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "http://json-schema.org/draft-07/schema#",
-      "http://json-schema.org/draft-07/schema#", "");
+      JSON_Schema_Draft_7, "");
 
   EXPECT_EQ(frame.references().size(), 2);
 
