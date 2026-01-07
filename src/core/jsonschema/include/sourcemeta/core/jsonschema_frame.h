@@ -105,11 +105,12 @@ public:
 
   /// A location entry
   struct Location {
-    // TODO: Turn this into a weak pointer, or better, to a reference to the
-    // parent location
-    std::optional<Pointer> parent;
+    std::optional<WeakPointer> parent;
     LocationType type;
+    // TODO: This is potentially the same for every single location entry?
+    // Can we elevate it as a member of the frame?
     std::optional<JSON::String> root;
+    // TODO: Can be a string view into the location map?
     JSON::String base;
     // TODO: Turn this into a weak pointer
     Pointer pointer;
