@@ -54,8 +54,8 @@
                      expected_base_dialect, expected_base,                     \
                      expected_relative_pointer, expected_parent)               \
   EXPECT_TRUE((frame).locations().contains({(expected_type), (reference)}));   \
-  EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).root,       \
-            std::optional<sourcemeta::core::JSON::String>(root_id));           \
+  EXPECT_EQ((frame).root(),                                                    \
+            std::optional<std::string_view>(root_id));                         \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).pointer,    \
             TO_POINTER(expected_pointer));                                     \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).dialect,    \
@@ -164,10 +164,7 @@
                                  expected_pointer, expected_dialect,           \
                                  expected_base_dialect, expected_parent)       \
   EXPECT_TRUE((frame).locations().contains({(expected_type), (reference)}));   \
-  EXPECT_FALSE((frame)                                                         \
-                   .locations()                                                \
-                   .at({(expected_type), (reference)})                         \
-                   .root.has_value());                                         \
+  EXPECT_FALSE((frame).root().has_value());                                    \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).pointer,    \
             TO_POINTER(expected_pointer));                                     \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).dialect,    \
