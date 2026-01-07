@@ -37,32 +37,29 @@ auto dependencies_internal(const sourcemeta::core::JSON &schema,
       std::tuple<sourcemeta::core::JSON, sourcemeta::core::JSON::String>>
       found;
 
-  for (const auto &[key, reference] : frame.references()) {
-    if (frame.traverse(reference.destination).has_value() ||
-
-        // We don't want to report official schemas, as we can expect
-        // virtually all implementations to understand them out of the box
-        is_official_metaschema_reference(key.second, reference.destination)) {
-      continue;
+  frame.for_each_unresolved_reference([&](const auto &pointer,
+                                          const auto &reference) {
+    // We don't want to report official schemas, as we can expect
+    // virtually all implementations to understand them out of the box
+    if (is_official_metaschema_reference(pointer, reference.destination)) {
+      return;
     }
 
     if (reference.base.empty()) {
       throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, key.second,
-          "Could not resolve schema reference");
+          reference.destination, pointer, "Could not resolve schema reference");
     }
 
     // To not infinitely loop on circular references
     if (visited.contains(reference.base)) {
-      continue;
+      return;
     }
 
     // If we can't find the destination but there is a base and we can
     // find the base, then we are facing an unresolved fragment
     if (frame.traverse(reference.base).has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, key.second,
-          "Could not resolve schema reference");
+          reference.destination, pointer, "Could not resolve schema reference");
     }
 
     assert(!reference.base.empty());
@@ -75,23 +72,21 @@ auto dependencies_internal(const sourcemeta::core::JSON &schema,
 
     if (!sourcemeta::core::is_schema(remote.value())) {
       throw sourcemeta::core::SchemaReferenceError(
-          identifier, key.second,
-          "The JSON document is not a valid JSON Schema");
+          identifier, pointer, "The JSON document is not a valid JSON Schema");
     }
 
     const auto remote_base_dialect{sourcemeta::core::base_dialect(
         remote.value(), resolver, default_dialect)};
     if (!remote_base_dialect.has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
-          identifier, key.second,
-          "The JSON document is not a valid JSON Schema");
+          identifier, pointer, "The JSON document is not a valid JSON Schema");
     }
 
-    callback(origin, key.second, identifier, remote.value());
+    callback(origin, pointer, identifier, remote.value());
     found.emplace_back(std::move(remote).value(),
                        sourcemeta::core::JSON::String{identifier});
     visited.emplace(identifier);
-  }
+  });
 
   for (const auto &entry : found) {
     dependencies_internal(std::get<0>(entry), walker, resolver, callback,
@@ -154,42 +149,40 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     frame.analyse(subschema, walker, resolver, default_dialect, default_id);
   }
 
-  for (const auto &[key, reference] : frame.references()) {
-    if (frame.traverse(reference.destination).has_value() ||
-
-        // We don't want to bundle official schemas, as we can expect
-        // virtually all implementations to understand them out of the box
-        is_official_metaschema_reference(key.second, reference.destination)) {
-      continue;
+  frame.for_each_unresolved_reference([&](const auto &pointer,
+                                          const auto &reference) {
+    // We don't want to bundle official schemas, as we can expect
+    // virtually all implementations to understand them out of the box
+    if (is_official_metaschema_reference(pointer, reference.destination)) {
+      return;
     }
 
     // If we can't find the destination but there is a base and we can
     // find base, then we are facing an unresolved fragment
     if (!reference.base.empty() && frame.traverse(reference.base).has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, key.second,
-          "Could not resolve schema reference");
+          reference.destination, pointer, "Could not resolve schema reference");
     }
 
     if (reference.base.empty()) {
       throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, key.second,
-          "Could not resolve schema reference");
+          reference.destination, pointer, "Could not resolve schema reference");
     }
 
     assert(!reference.base.empty());
     const sourcemeta::core::JSON::String identifier{reference.base};
 
-    // Skip if already bundled to avoid infinite loops on circular references
+    // Skip if already bundled to avoid infinite loops on circular
+    // references
     if (bundled.contains(identifier)) {
-      continue;
+      return;
     }
 
     auto remote{resolver(identifier)};
     if (!remote.has_value()) {
       if (frame.traverse(identifier).has_value()) {
         throw sourcemeta::core::SchemaReferenceError(
-            reference.destination, key.second,
+            reference.destination, pointer,
             "Could not resolve schema reference");
       }
 
@@ -199,36 +192,36 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     if (!sourcemeta::core::is_schema(remote.value())) {
       throw sourcemeta::core::SchemaReferenceError(
-          identifier, key.second,
-          "The JSON document is not a valid JSON Schema");
+          identifier, pointer, "The JSON document is not a valid JSON Schema");
     }
 
     const auto remote_base_dialect{sourcemeta::core::base_dialect(
         remote.value(), resolver, default_dialect)};
     if (!remote_base_dialect.has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
-          identifier, key.second,
-          "The JSON document is not a valid JSON Schema");
+          identifier, pointer, "The JSON document is not a valid JSON Schema");
     }
 
-    // If the reference has a fragment, verify it exists in the remote schema
+    // If the reference has a fragment, verify it exists in the remote
+    // schema
     if (reference.fragment.has_value()) {
-      // TODO: The fact that we have to re-frame on each loop pass to check for
-      // this is probably insanely slow
+      // TODO: The fact that we have to re-frame on each loop pass to check
+      // for this is probably insanely slow
       sourcemeta::core::SchemaFrame remote_frame{
           sourcemeta::core::SchemaFrame::Mode::Locations};
       remote_frame.analyse(remote.value(), walker, resolver, default_dialect,
                            identifier);
       if (!remote_frame.traverse(reference.destination).has_value()) {
         throw sourcemeta::core::SchemaReferenceError(
-            reference.destination, key.second,
+            reference.destination, pointer,
             "Could not resolve schema reference");
       }
     }
 
     if (remote.value().is_object()) {
-      // Always insert an identifier, as a schema might refer to another schema
-      // using another URI (i.e. due to relying on HTTP re-directions, etc)
+      // Always insert an identifier, as a schema might refer to another
+      // schema using another URI (i.e. due to relying on HTTP
+      // re-directions, etc)
       sourcemeta::core::reidentify(remote.value(), identifier,
                                    remote_base_dialect.value());
     }
@@ -237,7 +230,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     bundle_schema(root, container, remote.value(), walker, resolver,
                   default_dialect, identifier, paths, bundled, depth + 1);
     embed_schema(root, container, identifier, std::move(remote).value());
-  }
+  });
 }
 
 } // namespace
@@ -268,11 +261,8 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations};
   initial_frame.analyse(schema, walker, resolver, default_dialect, default_id,
                         paths);
-  for (const auto &[key, location] : initial_frame.locations()) {
-    if (location.type == SchemaFrame::LocationType::Resource) {
-      bundled.emplace(key.second);
-    }
-  }
+  initial_frame.for_each_resource_uri(
+      [&bundled](const auto uri) { bundled.emplace(uri); });
   if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
