@@ -52,53 +52,6 @@ namespace sourcemeta::core {
 /// frame.analyse(document,
 ///   sourcemeta::core::schema_walker,
 ///   sourcemeta::core::schema_resolver);
-///
-/// // IDs
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/foo"}));
-///
-/// // Anchors
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#test"}));
-///
-/// // Root Pointers
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/$id"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/$schema"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/items"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/items/$id"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/items/type"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/properties"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/properties/foo"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/properties/foo/$anchor"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/properties/foo/type"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/properties/bar"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/schema#/properties/bar/$ref"}));
-///
-/// // Subpointers
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/foo#/$id"}));
-/// assert(frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   "https://www.example.com/foo#/type"}));
-///
-/// // References
-/// assert(frame.references().contains({sourcemeta::core::SchemaReferenceType::Static,
-///   { "properties", "bar", "$ref" }}));
-/// assert(frame.references().at({sourcemeta::core::SchemaReferenceType::Static,
-///   { "properties", "bar", "$ref" }}).destination ==
-///     "https://www.example.com/schema#/properties/foo");
 /// ```
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaFrame {
 public:
@@ -199,6 +152,11 @@ public:
   /// Access the analysed schema references
   [[nodiscard]] auto references() const noexcept -> const References &;
 
+  /// Get a specific reference entry by type and pointer
+  [[nodiscard]] auto reference(const SchemaReferenceType type,
+                               const Pointer &pointer) const
+      -> std::optional<std::reference_wrapper<const ReferencesEntry>>;
+
   /// Check whether the analysed schema has no external references
   [[nodiscard]] auto standalone() const -> bool;
 
@@ -232,6 +190,16 @@ public:
               const Pointer &relative_schema_location = empty_pointer) const
       -> std::pair<SchemaReferenceType,
                    std::optional<std::reference_wrapper<const Location>>>;
+
+  /// Iterate over all resource URIs in the frame
+  auto for_each_resource_uri(
+      const std::function<void(std::string_view)> &callback) const -> void;
+
+  /// Iterate over all unresolved references (where destination cannot be
+  /// traversed)
+  auto for_each_unresolved_reference(
+      const std::function<void(const Pointer &, const ReferencesEntry &)>
+          &callback) const -> void;
 
   /// Check if there are any references to a given location pointer
   [[nodiscard]] auto has_references_to(const Pointer &pointer) const -> bool;

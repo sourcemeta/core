@@ -954,6 +954,17 @@ auto SchemaFrame::references() const noexcept -> const References & {
   return this->references_;
 }
 
+auto SchemaFrame::reference(const SchemaReferenceType type,
+                            const Pointer &pointer) const
+    -> std::optional<std::reference_wrapper<const ReferencesEntry>> {
+  const auto result{this->references_.find({type, pointer})};
+  if (result != this->references_.cend()) {
+    return result->second;
+  }
+
+  return std::nullopt;
+}
+
 auto SchemaFrame::standalone() const -> bool {
   return std::ranges::all_of(this->references_, [&](const auto &reference) {
     assert(!reference.first.second.empty());
@@ -1055,6 +1066,25 @@ auto SchemaFrame::dereference(const Location &location,
                              maybe_reference_entry->second.destination})};
   assert(destination != this->locations_.cend());
   return {SchemaReferenceType::Static, destination->second};
+}
+
+auto SchemaFrame::for_each_resource_uri(
+    const std::function<void(std::string_view)> &callback) const -> void {
+  for (const auto &[key, location] : this->locations_) {
+    if (location.type == LocationType::Resource) {
+      callback(key.second);
+    }
+  }
+}
+
+auto SchemaFrame::for_each_unresolved_reference(
+    const std::function<void(const Pointer &, const ReferencesEntry &)>
+        &callback) const -> void {
+  for (const auto &[key, reference] : this->references_) {
+    if (!this->traverse(reference.destination).has_value()) {
+      callback(key.second, reference);
+    }
+  }
 }
 
 auto SchemaFrame::has_references_to(const Pointer &pointer) const -> bool {
