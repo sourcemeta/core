@@ -29,8 +29,8 @@ public:
         schema.is_object() && schema.defines("items") &&
         ((schema.at("items").is_boolean() && schema.at("items").to_boolean()) ||
          (schema.at("items").is_object() && schema.at("items").empty())));
-    ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"items"})));
+    ONLY_CONTINUE_IF(
+        !frame.has_references_through(location.pointer.concat({"items"})));
     return APPLIES_TO_KEYWORDS("items");
   }
 

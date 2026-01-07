@@ -25,7 +25,7 @@ public:
          (schema.at("unevaluatedItems").is_object() &&
           schema.at("unevaluatedItems").empty())));
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"unevaluatedItems"})));
+        location.pointer.concat({"unevaluatedItems"})));
     return APPLIES_TO_KEYWORDS("unevaluatedItems");
   }
 

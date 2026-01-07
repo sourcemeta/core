@@ -20,8 +20,8 @@ public:
         (schema.at("then").is_object() ||
          (!schema.defines("if") ||
           !(schema.at("if").is_boolean() && schema.at("if").to_boolean()))));
-    ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"then"})));
+    ONLY_CONTINUE_IF(
+        !frame.has_references_through(location.pointer.concat({"then"})));
     return APPLIES_TO_KEYWORDS("then");
   }
 

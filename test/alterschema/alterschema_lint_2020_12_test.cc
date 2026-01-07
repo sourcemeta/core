@@ -7503,3 +7503,460 @@ TEST(AlterSchema_lint_2020_12,
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12,
+     additional_properties_default_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "additionalProperties": true,
+        "properties": {
+          "foo": { "$ref": "#/additionalProperties" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "additionalProperties": true,
+        "properties": {
+          "foo": { "$ref": "#/additionalProperties" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     unevaluated_properties_default_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "unevaluatedProperties": true,
+        "properties": {
+          "foo": { "$ref": "#/unevaluatedProperties" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "unevaluatedProperties": true,
+        "properties": {
+          "foo": { "$ref": "#/unevaluatedProperties" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     unevaluated_items_default_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "unevaluatedItems": true,
+        "properties": {
+          "foo": { "$ref": "#/unevaluatedItems" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "unevaluatedItems": true,
+        "properties": {
+          "foo": { "$ref": "#/unevaluatedItems" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     content_schema_default_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "contentSchema": true,
+        "properties": {
+          "foo": { "$ref": "#/contentSchema" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "contentSchema": true,
+        "properties": {
+          "foo": { "$ref": "#/contentSchema" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     items_schema_default_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "$ref": "#/$defs/nested" },
+      { "$ref": "#/$defs/ref_to_items" }
+    ],
+    "$defs": {
+      "ref_to_items": { "$ref": "nested#/items" },
+      "nested": {
+        "$id": "nested",
+        "type": "array",
+        "items": true
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "allOf": [
+      { "$ref": "#/$defs/nested" },
+      { "$ref": "#/$defs/ref_to_items" }
+    ],
+    "$defs": {
+      "ref_to_items": { "$ref": "nested#/items" },
+      "nested": {
+        "$id": "nested",
+        "type": "array",
+        "items": true
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     property_names_default_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "propertyNames": {},
+        "properties": {
+          "foo": { "$ref": "#/propertyNames" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "propertyNames": {},
+        "properties": {
+          "foo": { "$ref": "#/propertyNames" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, not_false_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "not": false,
+        "properties": {
+          "foo": { "$ref": "#/not" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "not": false,
+        "properties": {
+          "foo": { "$ref": "#/not" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, then_without_if_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "then": { "type": "string" },
+        "properties": {
+          "foo": { "$ref": "#/then" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "then": { "type": "string" },
+        "properties": {
+          "foo": { "$ref": "#/then" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, else_without_if_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "else": { "type": "string" },
+        "properties": {
+          "foo": { "$ref": "#/else" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "else": { "type": "string" },
+        "properties": {
+          "foo": { "$ref": "#/else" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12,
+     if_without_then_else_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "if": { "type": "string" },
+        "properties": {
+          "foo": { "$ref": "#/if" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "if": { "type": "string" },
+        "properties": {
+          "foo": { "$ref": "#/if" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, then_empty_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "if": { "type": "string" },
+        "then": {},
+        "properties": {
+          "foo": { "$ref": "#/then" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "if": { "type": "string" },
+        "then": {},
+        "properties": {
+          "foo": { "$ref": "#/then" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, else_empty_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "if": { "type": "string" },
+        "else": {},
+        "properties": {
+          "foo": { "$ref": "#/else" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "if": { "type": "string" },
+        "else": {},
+        "properties": {
+          "foo": { "$ref": "#/else" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(
+    AlterSchema_lint_2020_12,
+    non_applicable_type_specific_keywords_items_nested_resource_with_reference) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "type": "object",
+        "items": { "type": "string" },
+        "additionalProperties": { "$ref": "#/items" }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/nested",
+    "$defs": {
+      "nested": {
+        "$id": "nested",
+        "type": "object",
+        "items": { "type": "string" },
+        "additionalProperties": { "$ref": "#/items" }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

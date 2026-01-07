@@ -21,8 +21,8 @@ public:
                           Vocabularies::Known::JSON_Schema_Draft_7}) &&
                      schema.is_object() && schema.defines("if") &&
                      !schema.defines("then") && !schema.defines("else"));
-    ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"if"})));
+    ONLY_CONTINUE_IF(
+        !frame.has_references_through(location.pointer.concat({"if"})));
     return APPLIES_TO_KEYWORDS("if");
   }
 

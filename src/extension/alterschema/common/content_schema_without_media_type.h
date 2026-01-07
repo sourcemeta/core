@@ -21,7 +21,7 @@ public:
                      schema.is_object() && schema.defines("contentSchema") &&
                      !schema.defines("contentMediaType"));
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"contentSchema"})));
+        location.pointer.concat({"contentSchema"})));
     return APPLIES_TO_KEYWORDS("contentSchema");
   }
 

@@ -20,8 +20,8 @@ public:
                           Vocabularies::Known::JSON_Schema_Draft_7}) &&
                      schema.is_object() && schema.defines("else") &&
                      !schema.defines("if"));
-    ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"else"})));
+    ONLY_CONTINUE_IF(
+        !frame.has_references_through(location.pointer.concat({"else"})));
     return APPLIES_TO_KEYWORDS("else");
   }
 

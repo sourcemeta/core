@@ -33,7 +33,7 @@ public:
                       (schema.at("additionalProperties").is_object() &&
                        schema.at("additionalProperties").empty())));
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"additionalProperties"})));
+        location.pointer.concat({"additionalProperties"})));
     return APPLIES_TO_KEYWORDS("additionalProperties");
   }
 
