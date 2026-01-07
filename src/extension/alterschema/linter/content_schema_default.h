@@ -24,7 +24,7 @@ public:
                       (schema.at("contentSchema").is_object() &&
                        schema.at("contentSchema").empty())));
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"contentSchema"})));
+        location.pointer.concat({"contentSchema"})));
     return APPLIES_TO_KEYWORDS("contentSchema");
   }
 

@@ -25,7 +25,7 @@ public:
          (schema.at("unevaluatedProperties").is_object() &&
           schema.at("unevaluatedProperties").empty())));
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"unevaluatedProperties"})));
+        location.pointer.concat({"unevaluatedProperties"})));
     return APPLIES_TO_KEYWORDS("unevaluatedProperties");
   }
 

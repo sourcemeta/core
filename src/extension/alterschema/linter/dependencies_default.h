@@ -24,7 +24,7 @@ public:
         schema.at("dependencies").is_object() &&
         schema.at("dependencies").empty());
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"dependencies"})));
+        location.pointer.concat({"dependencies"})));
     return APPLIES_TO_KEYWORDS("dependencies");
   }
 

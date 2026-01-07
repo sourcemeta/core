@@ -75,7 +75,7 @@ public:
       if ((metadata.instances & current_types).none()) {
         // Skip keywords that have references pointing to them
         if (frame.has_references_through(
-                location.relative_pointer.concat({entry.first}))) {
+                location.pointer.concat({entry.first}))) {
           continue;
         }
 

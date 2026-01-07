@@ -20,8 +20,8 @@ public:
                      schema.is_object() && schema.defines("not") &&
                      schema.at("not").is_boolean() &&
                      !schema.at("not").to_boolean());
-    ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"not"})));
+    ONLY_CONTINUE_IF(
+        !frame.has_references_through(location.pointer.concat({"not"})));
     return APPLIES_TO_KEYWORDS("not");
   }
 

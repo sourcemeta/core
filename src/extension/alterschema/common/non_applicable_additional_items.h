@@ -24,7 +24,7 @@ public:
                      schema.is_object() && schema.defines("additionalItems"));
 
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"additionalItems"})));
+        location.pointer.concat({"additionalItems"})));
 
     if (schema.defines("items") && is_schema(schema.at("items"))) {
       return APPLIES_TO_KEYWORDS("additionalItems", "items");

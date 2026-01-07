@@ -52,8 +52,7 @@ public:
       }
 
       // Skip entries that have direct references pointing to them
-      const auto entry_pointer{
-          location.relative_pointer.concat({"allOf", index - 1})};
+      const auto entry_pointer{location.pointer.concat({"allOf", index - 1})};
       if (frame.has_references_to(entry_pointer)) {
         continue;
       }

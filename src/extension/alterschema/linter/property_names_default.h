@@ -24,7 +24,7 @@ public:
                      schema.at("propertyNames").is_object() &&
                      schema.at("propertyNames").empty());
     ONLY_CONTINUE_IF(!frame.has_references_through(
-        location.relative_pointer.concat({"propertyNames"})));
+        location.pointer.concat({"propertyNames"})));
     return APPLIES_TO_KEYWORDS("propertyNames");
   }
 
