@@ -115,11 +115,11 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
 
 template <typename StringType>
 auto find_nearest_bases(
-    const std::unordered_map<sourcemeta::core::Pointer, std::vector<StringType>>
-        &bases,
-    const sourcemeta::core::Pointer &pointer,
+    const std::unordered_map<sourcemeta::core::WeakPointer,
+                             std::vector<StringType>> &bases,
+    const sourcemeta::core::WeakPointer &pointer,
     const std::optional<std::string_view> &default_base)
-    -> std::pair<std::vector<StringType>, sourcemeta::core::Pointer> {
+    -> std::pair<std::vector<StringType>, sourcemeta::core::WeakPointer> {
   auto current_pointer{pointer};
   while (true) {
     const auto match{bases.find(current_pointer)};
@@ -136,21 +136,21 @@ auto find_nearest_bases(
 
   if (default_base.has_value()) {
     return {{StringType{default_base.value()}},
-            sourcemeta::core::empty_pointer};
+            sourcemeta::core::empty_weak_pointer};
   }
 
-  return {{}, sourcemeta::core::empty_pointer};
+  return {{}, sourcemeta::core::empty_weak_pointer};
 }
 
 auto find_every_base(
-    const std::unordered_map<sourcemeta::core::Pointer,
+    const std::unordered_map<sourcemeta::core::WeakPointer,
                              std::vector<sourcemeta::core::JSON::String>>
         &bases,
-    const sourcemeta::core::Pointer &pointer)
-    -> std::vector<
-        std::pair<sourcemeta::core::JSON::String, sourcemeta::core::Pointer>> {
+    const sourcemeta::core::WeakPointer &pointer)
+    -> std::vector<std::pair<sourcemeta::core::JSON::String,
+                             sourcemeta::core::WeakPointer>> {
   std::vector<
-      std::pair<sourcemeta::core::JSON::String, sourcemeta::core::Pointer>>
+      std::pair<sourcemeta::core::JSON::String, sourcemeta::core::WeakPointer>>
       result;
 
   auto current_pointer{pointer};
@@ -170,8 +170,8 @@ auto find_every_base(
   }
 
   if (result.empty() ||
-      result.back().second != sourcemeta::core::empty_pointer) {
-    result.emplace_back("", sourcemeta::core::empty_pointer);
+      result.back().second != sourcemeta::core::empty_weak_pointer) {
+    result.emplace_back("", sourcemeta::core::empty_weak_pointer);
   }
 
   return result;
@@ -258,7 +258,7 @@ auto store(sourcemeta::core::SchemaFrame::Locations &frame,
            const sourcemeta::core::Pointer &pointer_from_base,
            const std::string_view dialect,
            const sourcemeta::core::SchemaBaseDialect base_dialect,
-           const std::optional<sourcemeta::core::Pointer> &parent,
+           const std::optional<sourcemeta::core::WeakPointer> &parent,
            const bool ignore_if_present = false,
            const bool already_canonical = false) -> void {
   const auto canonical{
@@ -290,7 +290,7 @@ struct InternalEntry {
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct CacheSubschema {
   bool orphan{};
-  std::optional<sourcemeta::core::Pointer> parent{};
+  std::optional<sourcemeta::core::WeakPointer> parent{};
 };
 
 } // namespace
@@ -411,11 +411,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   assert(std::unordered_set<WeakPointer>(paths.cbegin(), paths.cend()).size() ==
          paths.size());
   std::vector<InternalEntry> subschema_entries;
-  std::unordered_map<Pointer, CacheSubschema> subschemas;
-  std::unordered_map<sourcemeta::core::Pointer, std::vector<JSON::String>>
-      base_uris;
-  std::unordered_map<sourcemeta::core::Pointer, std::vector<std::string_view>>
-      base_dialects;
+  std::unordered_map<WeakPointer, CacheSubschema> subschemas;
+  std::unordered_map<WeakPointer, std::vector<JSON::String>> base_uris;
+  std::unordered_map<WeakPointer, std::vector<std::string_view>> base_dialects;
 
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
@@ -461,7 +459,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             root_id.value(), path_pointer, sourcemeta::core::empty_pointer,
             root_dialect, root_base_dialect.value(), std::nullopt);
 
-      base_uris.insert({path_pointer, {root_id.value(), default_id_canonical}});
+      base_uris.insert({path, {root_id.value(), default_id_canonical}});
     }
 
     std::vector<std::size_t> current_subschema_entries;
@@ -476,7 +474,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
       // Dialect
       assert(!entry.dialect.empty());
-      base_dialects.insert({to_pointer(entry.pointer), {entry.dialect}});
+      base_dialects.insert({entry.pointer, {entry.dialect}});
 
       // Base dialect
       assert(entry.base_dialect.has_value());
@@ -496,13 +494,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               : std::nullopt};
 
       // Store information
-      const auto entry_pointer{to_pointer(entry.pointer)};
-      const auto entry_parent{
-          entry.parent.has_value()
-              ? std::make_optional(to_pointer(entry.parent.value()))
-              : std::nullopt};
-      subschemas.emplace(entry_pointer, CacheSubschema{.orphan = entry.orphan,
-                                                       .parent = entry_parent});
+      subschemas.emplace(entry.pointer, CacheSubschema{.orphan = entry.orphan,
+                                                       .parent = entry.parent});
       subschema_entries.emplace_back(
           InternalEntry{.common = std::move(entry), .id = std::move(id)});
       current_subschema_entries.emplace_back(subschema_entries.size() - 1);
@@ -510,11 +503,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
     for (const auto &entry_index : current_subschema_entries) {
       const auto &entry{subschema_entries[entry_index]};
-      const auto common_pointer{to_pointer(entry.common.pointer)};
-      const auto common_parent{
-          entry.common.parent.has_value()
-              ? std::make_optional(to_pointer(entry.common.parent.value()))
-              : std::nullopt};
+      const auto &common_pointer_weak{entry.common.pointer};
+      const auto common_pointer{to_pointer(common_pointer_weak)};
+      const auto &common_parent{entry.common.parent};
       if (entry.id.has_value()) {
         assert(entry.common.base_dialect.has_value());
         const bool ref_overrides =
@@ -529,7 +520,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             // care of it as an anchor
             !is_pre_2019_09_location_independent_identifier) {
           const auto bases{find_nearest_bases(
-              base_uris, common_pointer,
+              base_uris, common_pointer_weak,
               entry.id ? std::optional<std::string_view>{*entry.id}
                        : std::nullopt)};
           for (const auto &base_string : bases.first) {
@@ -574,7 +565,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     common_parent);
             }
 
-            auto base_uri_match{base_uris.find(common_pointer)};
+            auto base_uri_match{base_uris.find(common_pointer_weak)};
             if (base_uri_match != base_uris.cend()) {
               if (std::find(base_uri_match->second.cbegin(),
                             base_uri_match->second.cend(),
@@ -582,7 +573,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                 base_uri_match->second.push_back(new_id);
               }
             } else {
-              base_uris.insert({common_pointer, {new_id}});
+              base_uris.insert({common_pointer_weak, {new_id}});
             }
           }
         }
@@ -595,7 +586,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         if (!maybe_metaschema.empty()) {
           sourcemeta::core::URI metaschema{maybe_metaschema};
           const auto nearest_bases{find_nearest_bases(
-              base_uris, common_pointer,
+              base_uris, common_pointer_weak,
               entry.id ? std::optional<std::string_view>{*entry.id}
                        : std::nullopt)};
           if (!nearest_bases.first.empty()) {
@@ -619,7 +610,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       for (const auto &[name, type] : find_anchors(entry.common.subschema.get(),
                                                    entry.common.vocabularies)) {
         const auto bases{find_nearest_bases(
-            base_uris, common_pointer,
+            base_uris, common_pointer_weak,
             entry.id ? std::optional<std::string_view>{*entry.id}
                      : std::nullopt)};
 
@@ -627,11 +618,12 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           const auto anchor_uri{sourcemeta::core::URI::from_fragment(name)};
           const auto relative_anchor_uri{anchor_uri.recompose()};
 
+          const auto bases_second_pointer{to_pointer(bases.second)};
           if (type == AnchorType::Static || type == AnchorType::All) {
             store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                   root_id, "", common_pointer,
-                  common_pointer.resolve_from(bases.second),
+                  common_pointer.resolve_from(bases_second_pointer),
                   entry.common.dialect, entry.common.base_dialect.value(),
                   common_parent);
           }
@@ -640,7 +632,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             store(this->locations_, SchemaReferenceType::Dynamic,
                   SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                   root_id, "", common_pointer,
-                  common_pointer.resolve_from(bases.second),
+                  common_pointer.resolve_from(bases_second_pointer),
                   entry.common.dialect, entry.common.base_dialect.value(),
                   common_parent);
 
@@ -650,12 +642,13 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               store(this->locations_, SchemaReferenceType::Static,
                     SchemaFrame::LocationType::Anchor, relative_anchor_uri,
                     root_id, "", common_pointer,
-                    common_pointer.resolve_from(bases.second),
+                    common_pointer.resolve_from(bases_second_pointer),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent, true);
             }
           }
         } else {
+          const auto bases_second_pointer{to_pointer(bases.second)};
           bool is_first = true;
           for (const auto &base_string : bases.first) {
             sourcemeta::core::URI anchor_uri_builder{base_string};
@@ -673,7 +666,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     sourcemeta::core::SchemaReferenceType::Static,
                     SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                     base_string, common_pointer,
-                    common_pointer.resolve_from(bases.second),
+                    common_pointer.resolve_from(bases_second_pointer),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent);
             }
@@ -683,7 +676,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     sourcemeta::core::SchemaReferenceType::Dynamic,
                     SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                     base_string, common_pointer,
-                    common_pointer.resolve_from(bases.second),
+                    common_pointer.resolve_from(bases_second_pointer),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent);
 
@@ -694,7 +687,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                       sourcemeta::core::SchemaReferenceType::Static,
                       SchemaFrame::LocationType::Anchor, anchor_uri, root_id,
                       base_string, common_pointer,
-                      common_pointer.resolve_from(bases.second),
+                      common_pointer.resolve_from(bases_second_pointer),
                       entry.common.dialect, entry.common.base_dialect.value(),
                       common_parent, true);
               }
@@ -708,33 +701,35 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
     // It is important for the loop that follows to assume a specific ordering
     // where smaller pointers (by number of tokens) are scanned first.
-    std::vector<sourcemeta::core::Pointer> pointers;
+    std::vector<sourcemeta::core::WeakPointer> pointers;
     for (const auto &weak_pointer : sourcemeta::core::PointerWalker{schema}) {
-      pointers.push_back(to_pointer(weak_pointer));
+      pointers.push_back(weak_pointer);
     }
 
     std::ranges::sort(pointers, std::less<>());
 
     // Pre-compute every possible pointer to the schema
-    const auto path_pointer{to_pointer(path)};
     for (const auto &relative_pointer : pointers) {
-      const auto pointer{path_pointer.concat(relative_pointer)};
+      const auto pointer_weak{path.concat(relative_pointer)};
+      const auto pointer{to_pointer(pointer_weak)};
 
       const auto dialect_match{
-          find_nearest_bases(base_dialects, pointer,
+          find_nearest_bases(base_dialects, pointer_weak,
                              std::optional<std::string_view>{root_dialect})};
       assert(dialect_match.first.size() == 1);
       const auto &dialect_for_pointer{
           base_dialects.at(dialect_match.second).front()};
 
-      auto every_base_result = find_every_base(base_uris, pointer);
+      auto every_base_result = find_every_base(base_uris, pointer_weak);
 
       for (const auto &base : every_base_result) {
+        const auto base_second_pointer{to_pointer(base.second)};
         auto relative_pointer_uri{
-            base.first.empty()
-                ? sourcemeta::core::to_uri(pointer.resolve_from(base.second))
-                : sourcemeta::core::to_uri(pointer.resolve_from(base.second))
-                      .resolve_from({base.first})};
+            base.first.empty() ? sourcemeta::core::to_uri(
+                                     pointer.resolve_from(base_second_pointer))
+                               : sourcemeta::core::to_uri(
+                                     pointer.resolve_from(base_second_pointer))
+                                     .resolve_from({base.first})};
 
         relative_pointer_uri.canonicalize();
         auto result{relative_pointer_uri.recompose()};
@@ -743,8 +738,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             this->locations_.contains({SchemaReferenceType::Static, result});
 
         if (!contains) {
-          const auto nearest_bases{find_nearest_bases(
-              base_uris, pointer, std::optional<std::string_view>{base.first})};
+          const auto nearest_bases{
+              find_nearest_bases(base_uris, pointer_weak,
+                                 std::optional<std::string_view>{base.first})};
           assert(!nearest_bases.first.empty());
           const auto &current_base{nearest_bases.first.front()};
 
@@ -756,20 +752,20 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   ? root_base_dialect.value()
                   : maybe_base_entry->second.base_dialect};
 
-          const auto subschema{subschemas.find(pointer)};
+          const auto subschema{subschemas.find(pointer_weak)};
 
           if (subschema != subschemas.cend()) {
             store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Subschema, result, root_id,
                   current_base, pointer,
-                  pointer.resolve_from(nearest_bases.second),
+                  pointer.resolve_from(to_pointer(nearest_bases.second)),
                   dialect_for_pointer, current_base_dialect_enum,
                   subschema->second.parent, false, true);
           } else {
             store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Pointer, result, root_id,
                   current_base, pointer,
-                  pointer.resolve_from(nearest_bases.second),
+                  pointer.resolve_from(to_pointer(nearest_bases.second)),
                   dialect_for_pointer, current_base_dialect_enum,
                   dialect_match.second, false, true);
           }
@@ -784,10 +780,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
   // Resolve references after all framing was performed
   for (const auto &entry : subschema_entries) {
-    const auto common_pointer{to_pointer(entry.common.pointer)};
+    const auto &common_pointer_weak{entry.common.pointer};
+    const auto common_pointer{to_pointer(common_pointer_weak)};
     if (entry.common.subschema.get().is_object()) {
       const auto nearest_bases{find_nearest_bases(
-          base_uris, common_pointer,
+          base_uris, common_pointer_weak,
           entry.id ? std::optional<std::string_view>{*entry.id}
                    : std::nullopt)};
       if (entry.common.subschema.get().defines("$ref")) {
