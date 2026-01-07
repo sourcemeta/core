@@ -606,11 +606,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           assert(entry.common.subschema.get().defines("$schema"));
           const auto [it, inserted] = this->references_.insert_or_assign(
               {SchemaReferenceType::Static, common_pointer.concat({"$schema"})},
-              SchemaFrame::ReferencesEntry{
-                  .original = std::string{maybe_metaschema},
-                  .destination = metaschema.recompose(),
-                  .base = std::string_view{},
-                  .fragment = std::nullopt});
+              SchemaFrame::ReferencesEntry{.original = maybe_metaschema,
+                                           .destination =
+                                               metaschema.recompose(),
+                                           .base = std::string_view{},
+                                           .fragment = std::nullopt});
           set_base_and_fragment(it->second);
         }
       }
@@ -929,8 +929,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           SchemaFrame::References::key_type{SchemaReferenceType::Static,
                                             reference.first.second},
           SchemaFrame::References::mapped_type{
-              match->second.front(), match->second.front(), std::string_view{},
-              std::nullopt});
+              reference.second.original, match->second.front(),
+              std::string_view{}, std::nullopt});
     }
 
     // Because we can't mutate a map as we are traversing it
