@@ -46,27 +46,27 @@ auto dependencies_internal(const sourcemeta::core::JSON &schema,
       continue;
     }
 
-    if (!reference.base.has_value()) {
+    if (reference.base.empty()) {
       throw sourcemeta::core::SchemaReferenceError(
           reference.destination, key.second,
           "Could not resolve schema reference");
     }
 
     // To not infinitely loop on circular references
-    if (visited.contains(reference.base.value())) {
+    if (visited.contains(reference.base)) {
       continue;
     }
 
     // If we can't find the destination but there is a base and we can
     // find the base, then we are facing an unresolved fragment
-    if (frame.traverse(reference.base.value()).has_value()) {
+    if (frame.traverse(reference.base).has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
           reference.destination, key.second,
           "Could not resolve schema reference");
     }
 
-    assert(reference.base.has_value());
-    const auto &identifier{reference.base.value()};
+    assert(!reference.base.empty());
+    const auto &identifier{reference.base};
     auto remote{resolver(identifier)};
     if (!remote.has_value()) {
       throw sourcemeta::core::SchemaResolutionError(
@@ -165,21 +165,20 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     // If we can't find the destination but there is a base and we can
     // find base, then we are facing an unresolved fragment
-    if (reference.base.has_value() &&
-        frame.traverse(reference.base.value()).has_value()) {
+    if (!reference.base.empty() && frame.traverse(reference.base).has_value()) {
       throw sourcemeta::core::SchemaReferenceError(
           reference.destination, key.second,
           "Could not resolve schema reference");
     }
 
-    if (!reference.base.has_value()) {
+    if (reference.base.empty()) {
       throw sourcemeta::core::SchemaReferenceError(
           reference.destination, key.second,
           "Could not resolve schema reference");
     }
 
-    assert(reference.base.has_value());
-    const sourcemeta::core::JSON::String identifier{reference.base.value()};
+    assert(!reference.base.empty());
+    const sourcemeta::core::JSON::String identifier{reference.base};
 
     // Skip if already bundled to avoid infinite loops on circular references
     if (bundled.contains(identifier)) {

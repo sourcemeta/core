@@ -568,7 +568,7 @@ TEST(JSONSchema_frame_draft3, ref_with_id) {
       frame, "/$schema", "http://json-schema.org/draft-03/schema",
       "http://json-schema.org/draft-03/schema", std::nullopt,
       "http://json-schema.org/draft-03/schema#");
-  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", "",
                           "/definitions/string", "#/definitions/string");
 }
 

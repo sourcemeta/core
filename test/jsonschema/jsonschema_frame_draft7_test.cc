@@ -596,8 +596,8 @@ TEST(JSONSchema_frame_draft7, location_independent_identifier_anonymous) {
       frame, "/$schema", "http://json-schema.org/draft-07/schema",
       "http://json-schema.org/draft-07/schema", std::nullopt,
       "http://json-schema.org/draft-07/schema#");
-  EXPECT_STATIC_REFERENCE(frame, "/definitions/bar/$ref", "#foo", std::nullopt,
-                          "foo", "#foo");
+  EXPECT_STATIC_REFERENCE(frame, "/definitions/bar/$ref", "#foo", "", "foo",
+                          "#foo");
 }
 
 TEST(JSONSchema_frame_draft7, ref_with_id) {
@@ -654,7 +654,7 @@ TEST(JSONSchema_frame_draft7, ref_with_id) {
       frame, "/$schema", "http://json-schema.org/draft-07/schema",
       "http://json-schema.org/draft-07/schema", std::nullopt,
       "http://json-schema.org/draft-07/schema#");
-  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", "",
                           "/definitions/string", "#/definitions/string");
 }
 
@@ -706,7 +706,7 @@ TEST(JSONSchema_frame_draft7, ref_with_definitions) {
       frame, "/$schema", "http://json-schema.org/draft-07/schema",
       "http://json-schema.org/draft-07/schema", std::nullopt,
       "http://json-schema.org/draft-07/schema#");
-  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/definitions/string", "",
                           "/definitions/string", "#/definitions/string");
 }
 
@@ -755,7 +755,7 @@ TEST(JSONSchema_frame_draft7, ref_with_properties) {
       frame, "/$schema", "http://json-schema.org/draft-07/schema",
       "http://json-schema.org/draft-07/schema", std::nullopt,
       "http://json-schema.org/draft-07/schema#");
-  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/properties/string", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/properties/string", "",
                           "/properties/string", "#/properties/string");
 }
 
@@ -927,8 +927,8 @@ TEST(JSONSchema_frame_draft7, ref_invalidates_sibling_subschemas_and_refs) {
       "http://json-schema.org/draft-07/schema", std::nullopt,
       "http://json-schema.org/draft-07/schema#");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
-                          "#/definitions/enabled", std::nullopt,
-                          "/definitions/enabled", "#/definitions/enabled");
+                          "#/definitions/enabled", "", "/definitions/enabled",
+                          "#/definitions/enabled");
 }
 
 TEST(JSONSchema_frame_draft7, top_level_relative_ref_with_id) {

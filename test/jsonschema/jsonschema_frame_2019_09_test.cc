@@ -1118,8 +1118,8 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor_anonymous) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
-  EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "",
-                          std::nullopt, std::nullopt, "#");
+  EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "", "",
+                          std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor) {
@@ -1217,8 +1217,8 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false_anonymous) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
-  EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "",
-                          std::nullopt, std::nullopt, "#");
+  EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "", "",
+                          std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false) {
@@ -1327,8 +1327,8 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true_anonymous) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
-  EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "",
-                           std::nullopt, std::nullopt, "#");
+  EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "", "",
+                           std::nullopt, "#");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true) {
@@ -2169,13 +2169,13 @@ TEST(JSONSchema_frame_2019_09,
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
-                          "#/definitions/enabled", std::nullopt,
-                          "/definitions/enabled", "#/definitions/enabled");
+                          "#/definitions/enabled", "", "/definitions/enabled",
+                          "#/definitions/enabled");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/properties/bar/$ref",
-                          "#/definitions/config", std::nullopt,
-                          "/definitions/config", "#/definitions/config");
+                          "#/definitions/config", "", "/definitions/config",
+                          "#/definitions/config");
   EXPECT_STATIC_REFERENCE(
       frame, "/properties/foo/properties/bar/additionalProperties/$ref",
-      "#/definitions/threshold", std::nullopt, "/definitions/threshold",
+      "#/definitions/threshold", "", "/definitions/threshold",
       "#/definitions/threshold");
 }

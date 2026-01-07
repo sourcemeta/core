@@ -43,9 +43,9 @@ public:
     // If there is a base beyond the fragment, the base must exist.
     // Otherwise it is likely an external reference?
     const auto &reference_base{reference_entry->second.base};
-    if (reference_base.has_value()) {
+    if (!reference_base.empty()) {
       const auto base_location{frame.locations().find(
-          {SchemaReferenceType::Static, JSON::String{reference_base.value()}})};
+          {SchemaReferenceType::Static, JSON::String{reference_base}})};
       ONLY_CONTINUE_IF(base_location != frame.locations().end());
     }
 

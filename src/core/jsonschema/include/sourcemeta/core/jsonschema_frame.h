@@ -116,8 +116,8 @@ public:
     JSON::String original;
     // TODO: Make this a string view over the locations map
     JSON::String destination;
-    // TODO: This can be empty to signify no base?
-    std::optional<std::string_view> base;
+    // Empty means no base
+    std::string_view base;
     std::optional<std::string_view> fragment;
   };
 
