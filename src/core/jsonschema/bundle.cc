@@ -214,6 +214,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     // If the reference has a fragment, verify it exists in the remote schema
     if (reference.fragment.has_value()) {
+      // TODO: The fact that we have to re-frame on each loop pass to check for
+      // this is probably insanely slow
       sourcemeta::core::SchemaFrame remote_frame{
           sourcemeta::core::SchemaFrame::Mode::Locations};
       remote_frame.analyse(remote.value(), walker, resolver, default_dialect,
