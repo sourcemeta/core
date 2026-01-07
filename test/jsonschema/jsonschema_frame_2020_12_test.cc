@@ -2447,19 +2447,18 @@ TEST(JSONSchema_frame_2020_12, single_nested_path_recursive_with_identifier) {
   // From the nested identifier
 
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
-      frame, "https://www.sourcemeta.com/schema", std::nullopt, "/wrapper",
+      frame, "https://www.sourcemeta.com/schema", "", "/wrapper",
       "https://www.sourcemeta.com/schema", "", std::nullopt);
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$id", std::nullopt,
-      "/wrapper/$id", "https://www.sourcemeta.com/schema", "/$id", "/wrapper");
+      frame, "https://www.sourcemeta.com/schema#/$id", "", "/wrapper/$id",
+      "https://www.sourcemeta.com/schema", "/$id", "/wrapper");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$schema", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/$schema", "",
       "/wrapper/$schema", "https://www.sourcemeta.com/schema", "/$schema",
       "/wrapper");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$ref", std::nullopt,
-      "/wrapper/$ref", "https://www.sourcemeta.com/schema", "/$ref",
-      "/wrapper");
+      frame, "https://www.sourcemeta.com/schema#/$ref", "", "/wrapper/$ref",
+      "https://www.sourcemeta.com/schema", "/$ref", "/wrapper");
 
   // From the root
 
@@ -2575,26 +2574,25 @@ TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
       "/wrapper/items");
 
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
-      frame, "https://www.sourcemeta.com/schema", std::nullopt,
-      "/wrapper/items", "https://www.sourcemeta.com/schema", "", "/wrapper");
+      frame, "https://www.sourcemeta.com/schema", "", "/wrapper/items",
+      "https://www.sourcemeta.com/schema", "", "/wrapper");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$id", std::nullopt,
-      "/wrapper/items/$id", "https://www.sourcemeta.com/schema", "/$id",
-      "/wrapper/items");
+      frame, "https://www.sourcemeta.com/schema#/$id", "", "/wrapper/items/$id",
+      "https://www.sourcemeta.com/schema", "/$id", "/wrapper/items");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$schema", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/$schema", "",
       "/wrapper/items/$schema", "https://www.sourcemeta.com/schema", "/$schema",
       "/wrapper/items");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$anchor", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/$anchor", "",
       "/wrapper/items/$anchor", "https://www.sourcemeta.com/schema", "/$anchor",
       "/wrapper/items");
 
   // Anchors
 
   EXPECT_FRAME_STATIC_2020_12_ANCHOR(
-      frame, "https://www.sourcemeta.com/schema#test", std::nullopt,
-      "/wrapper/items", "https://www.sourcemeta.com/schema", "", "/wrapper");
+      frame, "https://www.sourcemeta.com/schema#test", "", "/wrapper/items",
+      "https://www.sourcemeta.com/schema", "", "/wrapper");
 
   // References
 
@@ -2684,22 +2682,22 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
       "/common/with-id");
 
   EXPECT_FRAME_STATIC_2020_12_RESOURCE(
-      frame, "https://www.sourcemeta.com/schema", std::nullopt,
-      "/common/with-id", "https://www.sourcemeta.com/schema", "", std::nullopt);
+      frame, "https://www.sourcemeta.com/schema", "", "/common/with-id",
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$id", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/$id", "",
       "/common/with-id/$id", "https://www.sourcemeta.com/schema", "/$id",
       "/common/with-id");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$schema", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/$schema", "",
       "/common/with-id/$schema", "https://www.sourcemeta.com/schema",
       "/$schema", "/common/with-id");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/$anchor", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/$anchor", "",
       "/common/with-id/$anchor", "https://www.sourcemeta.com/schema",
       "/$anchor", "/common/with-id");
   EXPECT_FRAME_STATIC_2020_12_POINTER(
-      frame, "https://www.sourcemeta.com/schema#/type", std::nullopt,
+      frame, "https://www.sourcemeta.com/schema#/type", "",
       "/common/with-id/type", "https://www.sourcemeta.com/schema", "/type",
       "/common/with-id");
 
@@ -2710,8 +2708,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       std::nullopt);
   EXPECT_FRAME_STATIC_2020_12_ANCHOR(
-      frame, "https://www.sourcemeta.com/schema#bar", std::nullopt,
-      "/common/with-id", "https://www.sourcemeta.com/schema", "", std::nullopt);
+      frame, "https://www.sourcemeta.com/schema#bar", "", "/common/with-id",
+      "https://www.sourcemeta.com/schema", "", std::nullopt);
 
   // References
 

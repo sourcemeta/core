@@ -107,9 +107,6 @@ public:
   struct Location {
     std::optional<WeakPointer> parent;
     LocationType type;
-    // TODO: This is potentially the same for every single location entry?
-    // Can we elevate it as a member of the frame?
-    std::optional<JSON::String> root;
     // TODO: Can be a string view into the location map?
     JSON::String base;
     // TODO: Turn this into a weak pointer
@@ -160,6 +157,9 @@ public:
 
   /// Check whether the analysed schema has no external references
   [[nodiscard]] auto standalone() const -> bool;
+
+  /// Get the root schema identifier (empty if none)
+  [[nodiscard]] auto root() const noexcept -> const JSON::String &;
 
   /// Get the vocabularies associated with a location entry
   [[nodiscard]] auto vocabularies(const Location &location,
@@ -217,6 +217,7 @@ private:
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251 4275)
 #endif
+  JSON::String root_;
   Locations locations_;
   References references_;
 #if defined(_MSC_VER)
