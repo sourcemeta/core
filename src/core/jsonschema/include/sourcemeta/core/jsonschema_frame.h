@@ -107,8 +107,7 @@ public:
   struct Location {
     std::optional<WeakPointer> parent;
     LocationType type;
-    // TODO: Can be a string view into the location map?
-    JSON::String base;
+    std::string_view base;
     // TODO: Turn this into a weak pointer
     Pointer pointer;
     // TODO: Turn this into a weak pointer
