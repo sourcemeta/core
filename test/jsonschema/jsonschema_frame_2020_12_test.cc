@@ -920,18 +920,18 @@ TEST(JSONSchema_frame_2020_12, dynamic_refs_with_no_id) {
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
 
-  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$dynamicRef", "",
-                          std::nullopt, std::nullopt, "#");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$dynamicRef", "", "",
+                          std::nullopt, "#");
   EXPECT_STATIC_REFERENCE(frame, "/properties/bar/$dynamicRef",
-                          "#/properties/baz", std::nullopt, "/properties/baz",
+                          "#/properties/baz", "", "/properties/baz",
                           "#/properties/baz");
   EXPECT_STATIC_REFERENCE(frame, "/properties/qux/$dynamicRef",
                           "https://www.example.com", "https://www.example.com",
                           std::nullopt, "#");
-  EXPECT_STATIC_REFERENCE(frame, "/properties/anchor/$dynamicRef", "#baz",
-                          std::nullopt, "baz", "#baz");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/anchor/$dynamicRef", "#baz", "",
+                          "baz", "#baz");
   EXPECT_DYNAMIC_REFERENCE(frame, "/properties/extra/$dynamicRef", "#dynamic",
-                           std::nullopt, "dynamic", "#dynamic");
+                           "", "dynamic", "#dynamic");
   EXPECT_DYNAMIC_REFERENCE(frame, "/properties/unknown/$dynamicRef",
                            "https://www.example.com/foo#xxx",
                            "https://www.example.com/foo", "xxx",
@@ -1287,8 +1287,7 @@ TEST(JSONSchema_frame_2020_12,
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_STATIC_REFERENCE(frame, "/$dynamicRef", "#test", std::nullopt, "test",
-                          "#test");
+  EXPECT_STATIC_REFERENCE(frame, "/$dynamicRef", "#test", "", "test", "#test");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_ref_to_single_dynamic_anchor_external) {
@@ -1358,8 +1357,7 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_single_dynamic_anchor_external) {
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_DYNAMIC_REFERENCE(frame, "/$dynamicRef", "#test", std::nullopt, "test",
-                           "#test");
+  EXPECT_DYNAMIC_REFERENCE(frame, "/$dynamicRef", "#test", "", "test", "#test");
   EXPECT_STATIC_REFERENCE(frame, "/$defs/foo/$ref", "https://sourcemeta.com",
                           "https://sourcemeta.com", std::nullopt,
                           "https://sourcemeta.com");
@@ -1424,8 +1422,8 @@ TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref", "", std::nullopt,
-                          std::nullopt, "#");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref", "", "", std::nullopt,
+                          "#");
 }
 
 TEST(JSONSchema_frame_2020_12, ref_metaschema) {
@@ -2360,7 +2358,7 @@ TEST(JSONSchema_frame_2020_12, cross_id_anonymous_nested) {
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/$defs/schema/items", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "#/$defs/schema/items", "",
                           "/$defs/schema/items", "#/$defs/schema/items");
   EXPECT_STATIC_REFERENCE(frame, "/$defs/schema/$schema",
                           "https://json-schema.org/draft/2020-12/schema",
@@ -2529,8 +2527,8 @@ TEST(JSONSchema_frame_2020_12,
   EXPECT_EQ(frame.references().size(), 1);
 
   // Without an identifier, the reference goes from the root
-  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/wrapper", std::nullopt,
-                          "/wrapper", "#/wrapper");
+  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/wrapper", "", "/wrapper",
+                          "#/wrapper");
 }
 
 TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
@@ -2719,10 +2717,10 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
 
   EXPECT_EQ(frame.references().size(), 3);
 
-  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/common/test", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/common/test", "",
                           "/common/test", "#/common/test");
-  EXPECT_STATIC_REFERENCE(frame, "/common/test/$ref", "#/common/with-id",
-                          std::nullopt, "/common/with-id", "#/common/with-id");
+  EXPECT_STATIC_REFERENCE(frame, "/common/test/$ref", "#/common/with-id", "",
+                          "/common/with-id", "#/common/with-id");
   EXPECT_STATIC_REFERENCE(frame, "/common/with-id/$schema",
                           "https://json-schema.org/draft/2020-12/schema",
                           "https://json-schema.org/draft/2020-12/schema",
@@ -2781,10 +2779,10 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
 
   EXPECT_EQ(frame.references().size(), 2);
 
-  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/common/test", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/common/test", "",
                           "/common/test", "#/common/test");
-  EXPECT_STATIC_REFERENCE(frame, "/common/test/$ref", "#/common/with-id",
-                          std::nullopt, "/common/with-id", "#/common/with-id");
+  EXPECT_STATIC_REFERENCE(frame, "/common/test/$ref", "#/common/with-id", "",
+                          "/common/with-id", "#/common/with-id");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_no_base_dialect) {
@@ -2923,10 +2921,10 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {
 
   EXPECT_EQ(frame.references().size(), 2);
 
-  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/common/test", std::nullopt,
+  EXPECT_STATIC_REFERENCE(frame, "/wrapper/$ref", "#/common/test", "",
                           "/common/test", "#/common/test");
-  EXPECT_STATIC_REFERENCE(frame, "/common/test/$ref", "#/common/with-id",
-                          std::nullopt, "/common/with-id", "#/common/with-id");
+  EXPECT_STATIC_REFERENCE(frame, "/common/test/$ref", "#/common/with-id", "",
+                          "/common/with-id", "#/common/with-id");
 }
 
 TEST(JSONSchema_frame_2020_12, anchor_with_invalid_type) {
@@ -3090,14 +3088,14 @@ TEST(JSONSchema_frame_2020_12,
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref",
-                          "#/definitions/enabled", std::nullopt,
-                          "/definitions/enabled", "#/definitions/enabled");
+                          "#/definitions/enabled", "", "/definitions/enabled",
+                          "#/definitions/enabled");
   EXPECT_STATIC_REFERENCE(frame, "/properties/foo/properties/bar/$ref",
-                          "#/definitions/config", std::nullopt,
-                          "/definitions/config", "#/definitions/config");
+                          "#/definitions/config", "", "/definitions/config",
+                          "#/definitions/config");
   EXPECT_STATIC_REFERENCE(
       frame, "/properties/foo/properties/bar/additionalProperties/$ref",
-      "#/definitions/threshold", std::nullopt, "/definitions/threshold",
+      "#/definitions/threshold", "", "/definitions/threshold",
       "#/definitions/threshold");
 }
 

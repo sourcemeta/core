@@ -219,7 +219,7 @@ auto supports_id_anchors(const sourcemeta::core::SchemaBaseDialect base_dialect)
 auto set_base_and_fragment(
     sourcemeta::core::SchemaFrame::ReferencesEntry &entry) -> void {
   if (entry.destination.empty()) {
-    entry.base = std::nullopt;
+    entry.base = std::string_view{};
     entry.fragment = std::nullopt;
     return;
   }
@@ -229,7 +229,7 @@ auto set_base_and_fragment(
     // Has a fragment
     if (hash_position == 0) {
       // Starts with #, so no base
-      entry.base = std::nullopt;
+      entry.base = std::string_view{};
     } else {
       entry.base = std::string_view{entry.destination}.substr(0, hash_position);
     }
@@ -388,10 +388,10 @@ auto SchemaFrame::to_json(
     entry.assign_assume_new(
         "destination", sourcemeta::core::to_json(reference.second.destination));
     entry.assign_assume_new(
-        "base", reference.second.base.has_value()
-                    ? sourcemeta::core::to_json(
-                          JSON::String{reference.second.base.value()})
-                    : sourcemeta::core::to_json(nullptr));
+        "base",
+        !reference.second.base.empty()
+            ? sourcemeta::core::to_json(JSON::String{reference.second.base})
+            : sourcemeta::core::to_json(nullptr));
     entry.assign_assume_new(
         "fragment", reference.second.fragment.has_value()
                         ? sourcemeta::core::to_json(
@@ -609,7 +609,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               SchemaFrame::ReferencesEntry{
                   .original = std::string{maybe_metaschema},
                   .destination = metaschema.recompose(),
-                  .base = std::nullopt,
+                  .base = std::string_view{},
                   .fragment = std::nullopt});
           set_base_and_fragment(it->second);
         }
@@ -804,7 +804,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               {SchemaReferenceType::Static, common_pointer.concat({"$ref"})},
               SchemaFrame::ReferencesEntry{.original = original,
                                            .destination = ref.recompose(),
-                                           .base = std::nullopt,
+                                           .base = std::string_view{},
                                            .fragment = std::nullopt});
           set_base_and_fragment(it->second);
         }
@@ -839,7 +839,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             {reference_type, common_pointer.concat({"$recursiveRef"})},
             SchemaFrame::ReferencesEntry{.original = ref,
                                          .destination = anchor_uri.recompose(),
-                                         .base = std::nullopt,
+                                         .base = std::string_view{},
                                          .fragment = std::nullopt});
         set_base_and_fragment(it->second);
       }
@@ -877,7 +877,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                common_pointer.concat({"$dynamicRef"})},
               SchemaFrame::ReferencesEntry{.original = original,
                                            .destination = std::move(ref_string),
-                                           .base = std::nullopt,
+                                           .base = std::string_view{},
                                            .fragment = std::nullopt});
           set_base_and_fragment(it->second);
         }
@@ -928,9 +928,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       to_insert.emplace_back(
           SchemaFrame::References::key_type{SchemaReferenceType::Static,
                                             reference.first.second},
-          SchemaFrame::References::mapped_type{match->second.front(),
-                                               match->second.front(),
-                                               std::nullopt, std::nullopt});
+          SchemaFrame::References::mapped_type{
+              match->second.front(), match->second.front(), std::string_view{},
+              std::nullopt});
     }
 
     // Because we can't mutate a map as we are traversing it

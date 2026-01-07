@@ -1272,15 +1272,15 @@ TEST(JSONSchema_frame, refs_with_no_id) {
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref", "", std::nullopt,
-                          std::nullopt, "#");
-  EXPECT_STATIC_REFERENCE(frame, "/properties/bar/$ref", "#/properties/baz",
-                          std::nullopt, "/properties/baz", "#/properties/baz");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref", "", "", std::nullopt,
+                          "#");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/bar/$ref", "#/properties/baz", "",
+                          "/properties/baz", "#/properties/baz");
   EXPECT_STATIC_REFERENCE(frame, "/properties/qux/$ref",
                           "https://www.example.com", "https://www.example.com",
                           std::nullopt, "#");
-  EXPECT_STATIC_REFERENCE(frame, "/properties/anchor/$ref", "#baz",
-                          std::nullopt, "baz", "#baz");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/anchor/$ref", "#baz", "", "baz",
+                          "#baz");
 }
 
 TEST(JSONSchema_frame, no_dynamic_ref_on_old_drafts) {
