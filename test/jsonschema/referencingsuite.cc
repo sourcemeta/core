@@ -55,9 +55,9 @@ public:
       frame.analyse(schema.first, sourcemeta::core::schema_walker,
                     sourcemeta::core::schema_resolver, this->dialect, uri);
       for (const auto &[key, entry] : frame.locations()) {
-        new_entries.insert(
-            {key.second,
-             {sourcemeta::core::get(schema.first, entry.pointer), entry.base}});
+        new_entries.insert({key.second,
+                            {sourcemeta::core::get(schema.first, entry.pointer),
+                             std::string{entry.base}}});
       }
     }
 
