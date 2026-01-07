@@ -69,9 +69,9 @@
   EXPECT_EQ(                                                                   \
       (frame).locations().at({(expected_type), (reference)}).base_dialect,     \
       sourcemeta::core::SchemaBaseDialect::expected_base_dialect);             \
-  EXPECT_EQ(                                                                   \
-      (frame).locations().at({(expected_type), (reference)}).relative_pointer, \
-      TO_POINTER(expected_relative_pointer));                                  \
+  EXPECT_EQ((frame).relative_instance_location(                                \
+                (frame).locations().at({(expected_type), (reference)})),       \
+            TO_POINTER(expected_relative_pointer));                            \
   EXPECT_OPTIONAL_POINTER(                                                     \
       (frame).locations().at({(expected_type), (reference)}).parent,           \
       expected_parent);

@@ -67,7 +67,8 @@ public:
   /// A single entry in a JSON Schema reference map
   struct ReferencesEntry {
     std::string_view original;
-    // TODO: Make this a string view over the locations map
+    // TODO: This one is tricky to turn into a view, as there is no
+    // location entry to point to if it is an external unresolved reference
     JSON::String destination;
     // Empty means no base
     std::string_view base;
@@ -110,8 +111,7 @@ public:
     std::string_view base;
     // TODO: Turn this into a weak pointer
     Pointer pointer;
-    // TODO: Turn this into a weak pointer
-    Pointer relative_pointer;
+    std::size_t relative_pointer;
     std::string_view dialect;
     SchemaBaseDialect base_dialect;
   };
@@ -207,6 +207,10 @@ public:
   /// Check if there are any references that go through a given location pointer
   [[nodiscard]] auto has_references_through(const Pointer &pointer) const
       -> bool;
+
+  /// Get the relative instance location pointer for a given location entry
+  [[nodiscard]] auto relative_instance_location(const Location &location) const
+      -> Pointer;
 
 private:
   Mode mode_;
