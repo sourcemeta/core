@@ -216,14 +216,30 @@ auto supports_id_anchors(const sourcemeta::core::SchemaBaseDialect base_dialect)
   }
 }
 
-auto fragment_string(const sourcemeta::core::URI &uri)
-    -> std::optional<sourcemeta::core::JSON::String> {
-  const auto fragment{uri.fragment()};
-  if (fragment.has_value()) {
-    return sourcemeta::core::JSON::String{fragment.value()};
+auto set_base_and_fragment(
+    sourcemeta::core::SchemaFrame::ReferencesEntry &entry) -> void {
+  if (entry.destination.empty()) {
+    entry.base = std::nullopt;
+    entry.fragment = std::nullopt;
+    return;
   }
 
-  return std::nullopt;
+  const auto hash_position{entry.destination.find('#')};
+  if (hash_position != std::string::npos) {
+    // Has a fragment
+    if (hash_position == 0) {
+      // Starts with #, so no base
+      entry.base = std::nullopt;
+    } else {
+      entry.base = std::string_view{entry.destination}.substr(0, hash_position);
+    }
+    entry.fragment =
+        std::string_view{entry.destination}.substr(hash_position + 1);
+  } else {
+    // No fragment
+    entry.base = std::string_view{entry.destination};
+    entry.fragment = std::nullopt;
+  }
 }
 
 [[noreturn]]
@@ -371,10 +387,16 @@ auto SchemaFrame::to_json(
 
     entry.assign_assume_new(
         "destination", sourcemeta::core::to_json(reference.second.destination));
-    entry.assign_assume_new("base",
-                            sourcemeta::core::to_json(reference.second.base));
     entry.assign_assume_new(
-        "fragment", sourcemeta::core::to_json(reference.second.fragment));
+        "base", reference.second.base.has_value()
+                    ? sourcemeta::core::to_json(
+                          JSON::String{reference.second.base.value()})
+                    : sourcemeta::core::to_json(nullptr));
+    entry.assign_assume_new(
+        "fragment", reference.second.fragment.has_value()
+                        ? sourcemeta::core::to_json(
+                              JSON::String{reference.second.fragment.value()})
+                        : sourcemeta::core::to_json(nullptr));
     root.at("references").push_back(std::move(entry));
   }
 
@@ -581,15 +603,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           }
 
           metaschema.canonicalize();
-          const JSON::String destination{metaschema.recompose()};
           assert(entry.common.subschema.get().defines("$schema"));
-          this->references_.insert_or_assign(
+          const auto [it, inserted] = this->references_.insert_or_assign(
               {SchemaReferenceType::Static, common_pointer.concat({"$schema"})},
               SchemaFrame::ReferencesEntry{
                   .original = std::string{maybe_metaschema},
-                  .destination = destination,
-                  .base = metaschema.recompose_without_fragment(),
-                  .fragment = fragment_string(metaschema)});
+                  .destination = metaschema.recompose(),
+                  .base = std::nullopt,
+                  .fragment = std::nullopt});
+          set_base_and_fragment(it->second);
         }
       }
 
@@ -778,13 +800,13 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           }
 
           ref.canonicalize();
-          this->references_.insert_or_assign(
+          const auto [it, inserted] = this->references_.insert_or_assign(
               {SchemaReferenceType::Static, common_pointer.concat({"$ref"})},
               SchemaFrame::ReferencesEntry{.original = original,
                                            .destination = ref.recompose(),
-                                           .base =
-                                               ref.recompose_without_fragment(),
-                                           .fragment = fragment_string(ref)});
+                                           .base = std::nullopt,
+                                           .fragment = std::nullopt});
+          set_base_and_fragment(it->second);
         }
       }
 
@@ -813,13 +835,13 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                                       ? SchemaReferenceType::Static
                                       : SchemaReferenceType::Dynamic};
         const sourcemeta::core::URI anchor_uri{anchor_uri_string};
-        this->references_.insert_or_assign(
+        const auto [it, inserted] = this->references_.insert_or_assign(
             {reference_type, common_pointer.concat({"$recursiveRef"})},
-            SchemaFrame::ReferencesEntry{
-                .original = ref,
-                .destination = anchor_uri.recompose(),
-                .base = anchor_uri.recompose_without_fragment(),
-                .fragment = fragment_string(anchor_uri)});
+            SchemaFrame::ReferencesEntry{.original = ref,
+                                         .destination = anchor_uri.recompose(),
+                                         .base = std::nullopt,
+                                         .fragment = std::nullopt});
+        set_base_and_fragment(it->second);
       }
 
       if (entry.common.vocabularies.contains(
@@ -849,15 +871,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
               !has_fragment ||
               (has_fragment && maybe_static_frame != this->locations_.end() &&
                maybe_dynamic_frame == this->locations_.end())};
-          this->references_.insert_or_assign(
+          const auto [it, inserted] = this->references_.insert_or_assign(
               {behaves_as_static ? SchemaReferenceType::Static
                                  : SchemaReferenceType::Dynamic,
                common_pointer.concat({"$dynamicRef"})},
               SchemaFrame::ReferencesEntry{.original = original,
                                            .destination = std::move(ref_string),
-                                           .base =
-                                               ref.recompose_without_fragment(),
-                                           .fragment = fragment_string(ref)});
+                                           .base = std::nullopt,
+                                           .fragment = std::nullopt});
+          set_base_and_fragment(it->second);
         }
       }
     }
@@ -893,7 +915,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         continue;
       }
 
-      const auto match{dynamic_anchors.find(reference.second.fragment.value())};
+      const auto match{dynamic_anchors.find(
+          JSON::String{reference.second.fragment.value()})};
       assert(match != dynamic_anchors.cend());
       // Otherwise we can assume there is only one possible target for the
       // dynamic reference
@@ -902,14 +925,12 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       }
 
       to_delete.push_back(reference.first);
-      const URI new_destination{match->second.front()};
       to_insert.emplace_back(
           SchemaFrame::References::key_type{SchemaReferenceType::Static,
                                             reference.first.second},
-          SchemaFrame::References::mapped_type{
-              match->second.front(), match->second.front(),
-              new_destination.recompose_without_fragment(),
-              fragment_string(new_destination)});
+          SchemaFrame::References::mapped_type{match->second.front(),
+                                               match->second.front(),
+                                               std::nullopt, std::nullopt});
     }
 
     // Because we can't mutate a map as we are traversing it
@@ -919,7 +940,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     }
 
     for (auto &&entry : to_insert) {
-      this->references_.emplace(std::move(entry));
+      const auto [it, inserted] = this->references_.emplace(std::move(entry));
+      set_base_and_fragment(it->second);
     }
   }
 }
@@ -977,16 +999,17 @@ auto SchemaFrame::traverse(const Location &location,
   return dynamic_match->second;
 }
 
-auto SchemaFrame::traverse(const JSON::String &uri) const
+auto SchemaFrame::traverse(const std::string_view uri) const
     -> std::optional<std::reference_wrapper<const Location>> {
+  const JSON::String uri_string{uri};
   const auto static_result{
-      this->locations_.find({SchemaReferenceType::Static, uri})};
+      this->locations_.find({SchemaReferenceType::Static, uri_string})};
   if (static_result != this->locations_.cend()) {
     return static_result->second;
   }
 
   const auto dynamic_result{
-      this->locations_.find({SchemaReferenceType::Dynamic, uri})};
+      this->locations_.find({SchemaReferenceType::Dynamic, uri_string})};
   if (dynamic_result != this->locations_.cend()) {
     return dynamic_result->second;
   }
