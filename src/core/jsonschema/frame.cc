@@ -328,7 +328,8 @@ auto SchemaFrame::to_json(
                             sourcemeta::core::to_json(location.second.parent));
     entry.assign_assume_new("type",
                             sourcemeta::core::to_json(location.second.type));
-    entry.assign_assume_new("root", sourcemeta::core::to_json(this->root_));
+    entry.assign_assume_new("root", this->root_.empty() ? JSON{nullptr}
+                                                        : JSON{this->root_});
     entry.assign_assume_new("base",
                             sourcemeta::core::to_json(location.second.base));
     entry.assign_assume_new("pointer",
@@ -435,9 +436,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           schema, root_base_dialect.value(), default_id)};
       if (!maybe_id.empty()) {
         root_id = URI::canonicalize(maybe_id);
+        this->root_ = root_id.value();
       }
-
-      this->root_ = root_id;
     }
 
     const std::string_view root_dialect{
@@ -975,12 +975,8 @@ auto SchemaFrame::standalone() const -> bool {
   });
 }
 
-auto SchemaFrame::root() const noexcept -> std::optional<std::string_view> {
-  if (this->root_.has_value()) {
-    return this->root_.value();
-  }
-
-  return std::nullopt;
+auto SchemaFrame::root() const noexcept -> const JSON::String & {
+  return this->root_;
 }
 
 auto SchemaFrame::vocabularies(const Location &location,
