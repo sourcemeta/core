@@ -252,7 +252,8 @@ auto SchemaTransformer::apply(JSON &schema, const SchemaWalker &walker,
 
           const auto new_fragment{rule->rereference(
               reference.second.destination, reference.first.second,
-              target.relative_pointer, entry.second.relative_pointer)};
+              frame.relative_instance_location(target),
+              frame.relative_instance_location(entry.second))};
 
           // Note we use the base from the original reference before any
           // canonicalisation takes place so that we don't overly change
