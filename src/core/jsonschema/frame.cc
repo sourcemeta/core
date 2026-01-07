@@ -912,9 +912,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   // A schema is standalone if all references can be resolved within itself
   if (this->standalone()) {
     // Find all dynamic anchors
-    // Keys are fragments (views into locations_ strings)
     // Values are pointers to full URIs in locations_
-    std::unordered_map<std::string_view, std::vector<const JSON::String *>>
+    std::unordered_map<JSON::String, std::vector<const JSON::String *>>
         dynamic_anchors;
     for (const auto &entry : this->locations_) {
       if (entry.first.first != SchemaReferenceType::Dynamic ||
@@ -923,7 +922,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       }
 
       const URI anchor_uri{entry.first.second};
-      const std::string_view fragment{anchor_uri.fragment().value_or("")};
+      // Copy the fragment to avoid dangling string_view (anchor_uri is local)
+      const JSON::String fragment{anchor_uri.fragment().value_or("")};
       dynamic_anchors[fragment].push_back(&entry.first.second);
     }
 
@@ -938,7 +938,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
         continue;
       }
 
-      const auto match{dynamic_anchors.find(reference.second.fragment.value())};
+      const auto match{dynamic_anchors.find(
+          JSON::String{reference.second.fragment.value()})};
       assert(match != dynamic_anchors.cend());
       // Otherwise we can assume there is only one possible target for the
       // dynamic reference
