@@ -113,7 +113,7 @@ public:
 
   /// A single entry in a JSON Schema reference map
   struct ReferencesEntry {
-    JSON::String original;
+    std::string_view original;
     // TODO: Make this a string view over the locations map
     JSON::String destination;
     // Empty means no base
