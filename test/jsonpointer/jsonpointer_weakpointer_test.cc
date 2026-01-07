@@ -431,3 +431,64 @@ TEST(JSONWeakPointer_pointer, hash_three_token_consistency) {
   EXPECT_EQ(hasher(multi_1), hasher(multi_2));
   EXPECT_NE(hasher(multi_1), hasher(multi_3));
 }
+
+TEST(JSONWeakPointer_pointer, slice_from_zero) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
+                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer result{pointer.slice(0)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_TRUE(result.at(0).is_property());
+  EXPECT_EQ(result.at(0).to_property(), "foo");
+  EXPECT_TRUE(result.at(1).is_property());
+  EXPECT_EQ(result.at(1).to_property(), "bar");
+  EXPECT_TRUE(result.at(2).is_property());
+  EXPECT_EQ(result.at(2).to_property(), "baz");
+}
+
+TEST(JSONWeakPointer_pointer, slice_from_one) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
+                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer result{pointer.slice(1)};
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_TRUE(result.at(0).is_property());
+  EXPECT_EQ(result.at(0).to_property(), "bar");
+  EXPECT_TRUE(result.at(1).is_property());
+  EXPECT_EQ(result.at(1).to_property(), "baz");
+}
+
+TEST(JSONWeakPointer_pointer, slice_from_two) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
+                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer result{pointer.slice(2)};
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).is_property());
+  EXPECT_EQ(result.at(0).to_property(), "baz");
+}
+
+TEST(JSONWeakPointer_pointer, slice_from_end) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
+                                              std::cref(baz)};
+  const sourcemeta::core::WeakPointer result{pointer.slice(3)};
+  EXPECT_EQ(result.size(), 0);
+  EXPECT_TRUE(result.empty());
+}
+
+TEST(JSONWeakPointer_pointer, slice_empty_from_zero) {
+  const sourcemeta::core::WeakPointer pointer;
+  const sourcemeta::core::WeakPointer result{pointer.slice(0)};
+  EXPECT_EQ(result.size(), 0);
+  EXPECT_TRUE(result.empty());
+}
+
+TEST(JSONWeakPointer_pointer, slice_with_indices) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 1, std::cref(bar),
+                                              2};
+  const sourcemeta::core::WeakPointer result{pointer.slice(1)};
+  EXPECT_EQ(result.size(), 3);
+  EXPECT_TRUE(result.at(0).is_index());
+  EXPECT_EQ(result.at(0).to_index(), 1);
+  EXPECT_TRUE(result.at(1).is_property());
+  EXPECT_EQ(result.at(1).to_property(), "bar");
+  EXPECT_TRUE(result.at(2).is_index());
+  EXPECT_EQ(result.at(2).to_index(), 2);
+}
