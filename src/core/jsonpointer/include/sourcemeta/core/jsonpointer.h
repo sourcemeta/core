@@ -575,6 +575,18 @@ SOURCEMETA_CORE_JSONPOINTER_EXPORT
 auto to_uri(const Pointer &pointer, const URI &base) -> URI;
 
 /// @ingroup jsonpointer
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto to_uri(const WeakPointer &pointer) -> URI;
+
+/// @ingroup jsonpointer
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto to_uri(const WeakPointer &pointer, const URI &base) -> URI;
+
+/// @ingroup jsonpointer
+SOURCEMETA_CORE_JSONPOINTER_EXPORT
+auto to_uri(const WeakPointer &pointer, const std::string_view base) -> URI;
+
+/// @ingroup jsonpointer
 ///
 /// Walk over every element of a JSON document, top-down, using weak pointers.
 /// Note that the resulting weak pointers hold references to strings in the JSON
