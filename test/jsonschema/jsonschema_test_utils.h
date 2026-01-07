@@ -61,6 +61,11 @@
             (expected_dialect));                                               \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).base,       \
             (expected_base));                                                  \
+  EXPECT_TRUE(                                                                 \
+      (frame)                                                                  \
+          .traverse(                                                           \
+              (frame).locations().at({(expected_type), (reference)}).base)     \
+          .has_value());                                                       \
   EXPECT_EQ(                                                                   \
       (frame).locations().at({(expected_type), (reference)}).base_dialect,     \
       sourcemeta::core::SchemaBaseDialect::expected_base_dialect);             \
