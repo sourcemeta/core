@@ -153,7 +153,7 @@ public:
 
   /// Get a specific reference entry by type and pointer
   [[nodiscard]] auto reference(const SchemaReferenceType type,
-                               const Pointer &pointer) const
+                               const WeakPointer &pointer) const
       -> std::optional<std::reference_wrapper<const ReferencesEntry>>;
 
   /// Check whether the analysed schema has no external references
@@ -170,12 +170,12 @@ public:
   /// Get the URI associated with a location entry
   [[nodiscard]] auto
   uri(const Location &location,
-      const Pointer &relative_schema_location = empty_pointer) const
+      const WeakPointer &relative_schema_location = empty_weak_pointer) const
       -> JSON::String;
 
   /// Get the location associated by traversing a pointer from another location
   [[nodiscard]] auto traverse(const Location &location,
-                              const Pointer &relative_schema_location) const
+                              const WeakPointer &relative_schema_location) const
       -> const Location &;
 
   /// Get the location associated with a given URI
@@ -191,9 +191,9 @@ public:
       -> std::optional<std::reference_wrapper<const JSON::String>>;
 
   /// Try to dereference a reference location into its destination location
-  [[nodiscard]] auto
-  dereference(const Location &location,
-              const Pointer &relative_schema_location = empty_pointer) const
+  [[nodiscard]] auto dereference(
+      const Location &location,
+      const WeakPointer &relative_schema_location = empty_weak_pointer) const
       -> std::pair<SchemaReferenceType,
                    std::optional<std::reference_wrapper<const Location>>>;
 

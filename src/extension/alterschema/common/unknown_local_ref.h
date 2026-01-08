@@ -29,7 +29,8 @@ public:
                      schema.at(KEYWORD).is_string());
 
     // Find the keyword location entry
-    const auto keyword_pointer{to_pointer(location.pointer).concat({KEYWORD})};
+    auto keyword_pointer{location.pointer};
+    keyword_pointer.push_back(std::cref(KEYWORD));
     const auto reference_entry{
         frame.reference(SchemaReferenceType::Static, keyword_pointer)};
     ONLY_CONTINUE_IF(reference_entry.has_value());
