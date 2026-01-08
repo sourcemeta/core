@@ -56,40 +56,6 @@ auto SchemaTransformRule::rereference(const std::string_view reference,
                                    "The reference broke after transformation");
 }
 
-auto SchemaTransformRule::apply(JSON &schema, const JSON &root,
-                                const Vocabularies &vocabularies,
-                                const SchemaWalker &walker,
-                                const SchemaResolver &resolver,
-                                const SchemaFrame &frame,
-                                const SchemaFrame::Location &location) const
-    -> std::pair<bool, Result> {
-  auto outcome{this->condition(schema, root, vocabularies, frame, location,
-                               walker, resolver)};
-  if (!outcome.applies) {
-    return {true, std::move(outcome)};
-  }
-
-  try {
-    this->transform(schema, outcome);
-  } catch (const SchemaAbortError &) {
-    return {false, std::move(outcome)};
-  }
-
-  // The condition must always be false after applying the
-  // transformation in order to avoid infinite loops
-  if (this->condition(schema, root, vocabularies, frame, location, walker,
-                      resolver)
-          .applies) {
-    // TODO: Throw a better custom error that also highlights the schema
-    // location
-    std::ostringstream error;
-    error << "Rule condition holds after application: " << this->name();
-    throw std::runtime_error(error.str());
-  }
-
-  return {true, std::move(outcome)};
-}
-
 auto SchemaTransformRule::check(const JSON &schema, const JSON &root,
                                 const Vocabularies &vocabularies,
                                 const SchemaWalker &walker,
@@ -199,17 +165,38 @@ auto SchemaTransformer::apply(JSON &schema, const SchemaWalker &walker,
 
       bool subschema_failed{false};
       for (const auto &rule : this->rules) {
-        const auto subresult{rule->apply(current, schema, current_vocabularies,
-                                         walker, resolver, frame,
-                                         entry.second)};
-        // This means the rule is fixable
-        if (subresult.first) {
-          applied = subresult.second.applies || applied;
+        auto outcome{rule->condition(current, schema, current_vocabularies,
+                                     frame, entry.second, walker, resolver)};
+
+        bool rule_fixable{true};
+        if (outcome.applies) {
+          try {
+            rule->transform(current, outcome);
+          } catch (const SchemaAbortError &) {
+            rule_fixable = false;
+          }
+
+          if (rule_fixable) {
+            // The condition must always be false after applying the
+            // transformation in order to avoid infinite loops
+            if (rule->condition(current, schema, current_vocabularies, frame,
+                                entry.second, walker, resolver)
+                    .applies) {
+              std::ostringstream error;
+              error << "Rule condition holds after application: "
+                    << rule->name();
+              throw std::runtime_error(error.str());
+            }
+          }
+        }
+
+        if (rule_fixable) {
+          applied = outcome.applies || applied;
         } else {
           result = false;
           subschema_failed = true;
           callback(entry.second.pointer, rule->name(), rule->message(),
-                   subresult.second);
+                   outcome);
         }
 
         if (!applied) {
