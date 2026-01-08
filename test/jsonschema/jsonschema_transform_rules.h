@@ -207,8 +207,9 @@ public:
             const sourcemeta::core::SchemaWalker &,
             const sourcemeta::core::SchemaResolver &) const
       -> sourcemeta::core::SchemaTransformRule::Result override {
+    const sourcemeta::core::Pointer expected{"properties", "baz"};
     return !schema.defines("baz") &&
-           location.pointer == sourcemeta::core::Pointer{"properties", "baz"};
+           location.pointer == sourcemeta::core::to_weak_pointer(expected);
   }
 
   auto transform(sourcemeta::core::JSON &schema,
