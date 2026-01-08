@@ -429,6 +429,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                           std::string_view default_dialect,
                           std::string_view default_id,
                           const SchemaFrame::Paths &paths) -> void {
+  this->reset();
   assert(std::unordered_set<WeakPointer>(paths.cbegin(), paths.cend()).size() ==
          paths.size());
   std::vector<InternalEntry> subschema_entries;
@@ -1056,10 +1057,21 @@ auto SchemaFrame::traverse(const std::string_view uri) const
   return std::nullopt;
 }
 
+auto SchemaFrame::traverse(const Pointer &pointer) const
+    -> std::optional<std::reference_wrapper<const Location>> {
+  // TODO: This is slow. Consider adding a pointer-indexed secondary
+  // lookup structure to SchemaFrame
+  for (const auto &entry : this->locations_) {
+    if (entry.second.pointer == pointer) {
+      return entry.second;
+    }
+  }
+
+  return std::nullopt;
+}
+
 auto SchemaFrame::uri(const Pointer &pointer) const
     -> std::optional<std::reference_wrapper<const JSON::String>> {
-  // TODO: This is potentially very slow. Traversing by pointer shouldn't
-  // require an O(N) operation
   for (const auto &entry : this->locations_) {
     if (entry.second.pointer == pointer) {
       return entry.first.second;
@@ -1178,6 +1190,16 @@ auto SchemaFrame::has_references_through(const Pointer &pointer) const -> bool {
 auto SchemaFrame::relative_instance_location(const Location &location) const
     -> Pointer {
   return location.pointer.slice(location.relative_pointer);
+}
+
+auto SchemaFrame::empty() const noexcept -> bool {
+  return this->locations_.empty() && this->references_.empty();
+}
+
+auto SchemaFrame::reset() -> void {
+  this->root_.clear();
+  this->locations_.clear();
+  this->references_.clear();
 }
 
 } // namespace sourcemeta::core
