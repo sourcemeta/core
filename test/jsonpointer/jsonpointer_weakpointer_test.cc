@@ -2,7 +2,9 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/uri.h>
 
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -491,4 +493,65 @@ TEST(JSONWeakPointer_pointer, slice_with_indices) {
   EXPECT_EQ(result.at(1).to_property(), "bar");
   EXPECT_TRUE(result.at(2).is_index());
   EXPECT_EQ(result.at(2).to_index(), 2);
+}
+
+TEST(JSONWeakPointer_to_uri, empty) {
+  const sourcemeta::core::WeakPointer pointer;
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#");
+}
+
+TEST(JSONWeakPointer_to_uri, with_property_tokens) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar),
+                                              std::cref(baz)};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#/foo/bar/baz");
+}
+
+TEST(JSONWeakPointer_to_uri, with_index_tokens) {
+  const sourcemeta::core::WeakPointer pointer{0, 1, 2};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#/0/1/2");
+}
+
+TEST(JSONWeakPointer_to_uri, with_mixed_tokens) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), 1,
+                                              std::cref(bar)};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
+  EXPECT_EQ(fragment.recompose(), "#/foo/1/bar");
+}
+
+TEST(JSONWeakPointer_to_uri, with_absolute_base_uri) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::URI base{"https://www.example.com"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
+}
+
+TEST(JSONWeakPointer_to_uri, with_relative_base_uri) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::URI base{"../baz"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
+  EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
+}
+
+TEST(JSONWeakPointer_to_uri, with_absolute_base_string_view) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const std::string_view base{"https://www.example.com"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
+  EXPECT_EQ(fragment.recompose(), "https://www.example.com#/foo/bar");
+}
+
+TEST(JSONWeakPointer_to_uri, with_empty_base_string_view) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const std::string_view base{""};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
+  EXPECT_EQ(fragment.recompose(), "#/foo/bar");
+}
+
+TEST(JSONWeakPointer_to_uri, with_relative_base_string_view) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
+  const std::string_view base{"../baz"};
+  const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
+  EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
 }
