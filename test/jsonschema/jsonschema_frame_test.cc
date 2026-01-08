@@ -1625,13 +1625,29 @@ TEST(JSONSchema_frame, has_references_to_2020_12) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  EXPECT_TRUE(frame.has_references_to({"properties", "foo"}));
-  EXPECT_TRUE(frame.has_references_to({"properties", "bar"}));
-  EXPECT_TRUE(frame.has_references_to({"properties", "baz"}));
-  EXPECT_TRUE(frame.has_references_to({"$defs", "bookending"}));
-  EXPECT_FALSE(frame.has_references_to({"$defs", "static"}));
-  EXPECT_FALSE(frame.has_references_to({"$defs", "dynamic"}));
-  EXPECT_FALSE(frame.has_references_to({"$defs", "dynamic-non-anchor"}));
+  const sourcemeta::core::Pointer properties_foo{"properties", "foo"};
+  const sourcemeta::core::Pointer properties_bar{"properties", "bar"};
+  const sourcemeta::core::Pointer properties_baz{"properties", "baz"};
+  const sourcemeta::core::Pointer defs_bookending{"$defs", "bookending"};
+  const sourcemeta::core::Pointer defs_static{"$defs", "static"};
+  const sourcemeta::core::Pointer defs_dynamic{"$defs", "dynamic"};
+  const sourcemeta::core::Pointer defs_dynamic_non_anchor{"$defs",
+                                                          "dynamic-non-anchor"};
+
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_foo)));
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_bar)));
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_baz)));
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(defs_bookending)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(defs_static)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(defs_dynamic)));
+  EXPECT_FALSE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(defs_dynamic_non_anchor)));
 }
 
 TEST(JSONSchema_frame, has_references_to_2019_09) {
@@ -1674,11 +1690,22 @@ TEST(JSONSchema_frame, has_references_to_2019_09) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  EXPECT_TRUE(frame.has_references_to({"properties", "foo"}));
-  EXPECT_TRUE(frame.has_references_to({"properties", "bar"}));
-  EXPECT_FALSE(frame.has_references_to({"properties", "baz"}));
-  EXPECT_FALSE(frame.has_references_to({"properties", "qux"}));
-  EXPECT_TRUE(frame.has_references_to({"$defs", "bookending"}));
+  const sourcemeta::core::Pointer properties_foo{"properties", "foo"};
+  const sourcemeta::core::Pointer properties_bar{"properties", "bar"};
+  const sourcemeta::core::Pointer properties_baz{"properties", "baz"};
+  const sourcemeta::core::Pointer properties_qux{"properties", "qux"};
+  const sourcemeta::core::Pointer defs_bookending{"$defs", "bookending"};
+
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_foo)));
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_bar)));
+  EXPECT_FALSE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_baz)));
+  EXPECT_FALSE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_qux)));
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(defs_bookending)));
 }
 
 TEST(JSONSchema_frame, has_references_through) {
@@ -1702,12 +1729,22 @@ TEST(JSONSchema_frame, has_references_through) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  EXPECT_TRUE(frame.has_references_to({"properties", "foo"}));
-  EXPECT_TRUE(frame.has_references_through({"properties", "foo"}));
-  EXPECT_TRUE(frame.has_references_through({"properties"}));
-  EXPECT_FALSE(frame.has_references_to({"properties"}));
-  EXPECT_FALSE(frame.has_references_to({"$defs"}));
-  EXPECT_FALSE(frame.has_references_through({"$defs"}));
+  const sourcemeta::core::Pointer properties_foo{"properties", "foo"};
+  const sourcemeta::core::Pointer properties{"properties"};
+  const sourcemeta::core::Pointer defs{"$defs"};
+
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(properties_foo)));
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(properties_foo)));
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(properties)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(properties)));
+  EXPECT_FALSE(
+      frame.has_references_to(sourcemeta::core::to_weak_pointer(defs)));
+  EXPECT_FALSE(
+      frame.has_references_through(sourcemeta::core::to_weak_pointer(defs)));
 }
 
 TEST(JSONSchema_frame, has_references_through_without_id) {
@@ -1724,8 +1761,12 @@ TEST(JSONSchema_frame, has_references_through_without_id) {
   frame.analyse(document, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
-  EXPECT_TRUE(frame.has_references_to({"contentSchema"}));
-  EXPECT_TRUE(frame.has_references_through({"contentSchema"}));
+  const sourcemeta::core::Pointer content_schema{"contentSchema"};
+
+  EXPECT_TRUE(frame.has_references_to(
+      sourcemeta::core::to_weak_pointer(content_schema)));
+  EXPECT_TRUE(frame.has_references_through(
+      sourcemeta::core::to_weak_pointer(content_schema)));
 }
 
 TEST(JSONSchema_frame, to_json_empty) {

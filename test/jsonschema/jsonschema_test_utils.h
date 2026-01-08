@@ -55,8 +55,10 @@
                      expected_relative_pointer, expected_parent)               \
   EXPECT_TRUE((frame).locations().contains({(expected_type), (reference)}));   \
   EXPECT_EQ((frame).root(), (root_id));                                        \
-  EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).pointer,    \
-            TO_POINTER(expected_pointer));                                     \
+  EXPECT_EQ(                                                                   \
+      sourcemeta::core::to_string(                                             \
+          (frame).locations().at({(expected_type), (reference)}).pointer),     \
+      (expected_pointer));                                                     \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).dialect,    \
             (expected_dialect));                                               \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).base,       \
@@ -69,9 +71,9 @@
   EXPECT_EQ(                                                                   \
       (frame).locations().at({(expected_type), (reference)}).base_dialect,     \
       sourcemeta::core::SchemaBaseDialect::expected_base_dialect);             \
-  EXPECT_EQ((frame).relative_instance_location(                                \
-                (frame).locations().at({(expected_type), (reference)})),       \
-            TO_POINTER(expected_relative_pointer));                            \
+  EXPECT_EQ(sourcemeta::core::to_string((frame).relative_instance_location(    \
+                (frame).locations().at({(expected_type), (reference)}))),      \
+            (expected_relative_pointer));                                      \
   EXPECT_OPTIONAL_POINTER(                                                     \
       (frame).locations().at({(expected_type), (reference)}).parent,           \
       expected_parent);
@@ -169,8 +171,10 @@
                                  expected_base_dialect, expected_parent)       \
   EXPECT_TRUE((frame).locations().contains({(expected_type), (reference)}));   \
   EXPECT_TRUE((frame).root().empty());                                         \
-  EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).pointer,    \
-            TO_POINTER(expected_pointer));                                     \
+  EXPECT_EQ(                                                                   \
+      sourcemeta::core::to_string(                                             \
+          (frame).locations().at({(expected_type), (reference)}).pointer),     \
+      (expected_pointer));                                                     \
   EXPECT_EQ((frame).locations().at({(expected_type), (reference)}).dialect,    \
             (expected_dialect));                                               \
   EXPECT_EQ(                                                                   \

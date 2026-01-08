@@ -278,7 +278,7 @@ TEST(JSONWeakPointer_pointer, push_back_pointer) {
   EXPECT_EQ(destination.at(2).to_property(), "baz");
 }
 
-TEST(JSONWeakPointer_try_get, complex_true) {
+TEST(JSONWeakPointer_pointer, try_get_complex_true) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "foo": {
       "bar": [ 1, 2, { "baz": "qux" } ]
@@ -293,7 +293,7 @@ TEST(JSONWeakPointer_try_get, complex_true) {
   EXPECT_EQ(*result, document.at("foo").at("bar").at(2).at("baz"));
 }
 
-TEST(JSONWeakPointer_try_get, complex_false) {
+TEST(JSONWeakPointer_pointer, try_get_complex_false) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "foo": {
       "bar": [ 1, 2, { "baz": "qux" } ]
@@ -305,6 +305,52 @@ TEST(JSONWeakPointer_try_get, complex_false) {
 
   const auto result{sourcemeta::core::try_get(document, pointer)};
   EXPECT_FALSE(result);
+}
+
+TEST(JSONWeakPointer_pointer, get_mutable_empty_pointer) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": { "bar": 1 }
+  })JSON")};
+
+  const sourcemeta::core::WeakPointer pointer;
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, pointer)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_TRUE(result.defines("foo"));
+}
+
+TEST(JSONWeakPointer_pointer, get_mutable_nested) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": {
+      "bar": [ 1, 2, { "baz": "qux" } ]
+    }
+  })JSON")};
+
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar), 2,
+                                              std::cref(baz)};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(document, pointer)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "qux");
+
+  // Verify we can modify through the reference
+  result = sourcemeta::core::JSON{"modified"};
+  EXPECT_EQ(document.at("foo").at("bar").at(2).at("baz").to_string(),
+            "modified");
+}
+
+TEST(JSONWeakPointer_pointer, get_mutable_from_pointer_conversion) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "foo": { "bar": 1 }
+  })JSON")};
+
+  const sourcemeta::core::Pointer pointer{"foo", "bar"};
+  sourcemeta::core::JSON &result{sourcemeta::core::get(
+      document, sourcemeta::core::to_weak_pointer(pointer))};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result.to_integer(), 1);
+
+  // Verify we can modify through the reference
+  result = sourcemeta::core::JSON{42};
+  EXPECT_EQ(document.at("foo").at("bar").to_integer(), 42);
 }
 
 TEST(JSONWeakPointer_pointer, to_pointer) {

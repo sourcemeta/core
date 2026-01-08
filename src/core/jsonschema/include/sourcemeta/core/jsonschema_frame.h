@@ -82,8 +82,11 @@ public:
   /// The reference type is part of the key as it is possible to
   /// have a static and a dynamic reference to the same location
   /// on the same schema object.
-  using References =
-      std::map<std::pair<SchemaReferenceType, Pointer>, ReferencesEntry>;
+  using References = std::map<std::pair<SchemaReferenceType,
+                                        // TODO: Turn this into a weak pointer
+                                        // or reference to the location pointer?
+                                        Pointer>,
+                              ReferencesEntry>;
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -109,8 +112,7 @@ public:
     std::optional<WeakPointer> parent;
     LocationType type;
     std::string_view base;
-    // TODO: Turn this into a weak pointer
-    Pointer pointer;
+    WeakPointer pointer;
     std::size_t relative_pointer;
     std::string_view dialect;
     SchemaBaseDialect base_dialect;
@@ -181,11 +183,11 @@ public:
       -> std::optional<std::reference_wrapper<const Location>>;
 
   /// Get the location associated with a given pointer
-  [[nodiscard]] auto traverse(const Pointer &pointer) const
+  [[nodiscard]] auto traverse(const WeakPointer &pointer) const
       -> std::optional<std::reference_wrapper<const Location>>;
 
   /// Turn an absolute pointer into a location URI
-  [[nodiscard]] auto uri(const Pointer &pointer) const
+  [[nodiscard]] auto uri(const WeakPointer &pointer) const
       -> std::optional<std::reference_wrapper<const JSON::String>>;
 
   /// Try to dereference a reference location into its destination location
@@ -206,15 +208,21 @@ public:
           &callback) const -> void;
 
   /// Check if there are any references to a given location pointer
-  [[nodiscard]] auto has_references_to(const Pointer &pointer) const -> bool;
+  [[nodiscard]] auto has_references_to(const WeakPointer &pointer) const
+      -> bool;
 
   /// Check if there are any references that go through a given location pointer
-  [[nodiscard]] auto has_references_through(const Pointer &pointer) const
+  [[nodiscard]] auto has_references_through(const WeakPointer &pointer) const
       -> bool;
+  /// Check if there are any references that go through a given location pointer
+  /// with a tail token
+  [[nodiscard]] auto
+  has_references_through(const WeakPointer &pointer,
+                         const WeakPointer::Token &tail) const -> bool;
 
   /// Get the relative instance location pointer for a given location entry
   [[nodiscard]] auto relative_instance_location(const Location &location) const
-      -> Pointer;
+      -> WeakPointer;
 
   /// Check if the frame has no analysed data
   [[nodiscard]] auto empty() const noexcept -> bool;
