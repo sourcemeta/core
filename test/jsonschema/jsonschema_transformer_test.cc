@@ -1496,3 +1496,36 @@ TEST(JSONSchema_transformer, iterators) {
   EXPECT_TRUE(rules.contains("example_rule_2"));
   EXPECT_TRUE(rules.contains("example_rule_3"));
 }
+
+// This test reproduces a use-after-free bug where location.dialect (a
+// string_view pointing into the schema) becomes invalid after transform()
+// modifies the schema. The transformer calls condition() again after
+// transform() to verify the rule was applied, but location.dialect now
+// points to freed memory.
+TEST(JSONSchema_transformer, location_dialect_use_after_free) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRuleDialectUseAfterFree>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result = bundle.apply(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-transformed": true,
+    "x-padding-1": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "x-padding-2": "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY",
+    "x-padding-3": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}

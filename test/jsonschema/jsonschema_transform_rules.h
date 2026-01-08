@@ -466,4 +466,60 @@ public:
   }
 };
 
+// This rule is designed to trigger a use-after-free bug in the transformer.
+// It checks location.dialect in condition(), then completely replaces the
+// schema object in transform(), which frees the memory that location.dialect
+// points to. When the transformer calls condition() again after transform()
+// to verify the rule was applied, it will access freed memory.
+//
+// The key trick: we check that dialect does NOT equal some unrelated string.
+// After transform() frees the memory, location.dialect contains garbage that
+// almost certainly won't equal "xxxxxxx", so the condition still returns true,
+// causing the transformer to think the rule didn't apply and throw an error
+// or loop infinitely.
+class ExampleRuleDialectUseAfterFree final
+    : public sourcemeta::core::SchemaTransformRule {
+public:
+  ExampleRuleDialectUseAfterFree()
+      : sourcemeta::core::SchemaTransformRule(
+            "example_rule_dialect_use_after_free", "") {};
+
+  [[nodiscard]] auto
+  condition(const sourcemeta::core::JSON &schema,
+            const sourcemeta::core::JSON &,
+            const sourcemeta::core::Vocabularies &,
+            const sourcemeta::core::SchemaFrame &,
+            const sourcemeta::core::SchemaFrame::Location &location,
+            const sourcemeta::core::SchemaWalker &,
+            const sourcemeta::core::SchemaResolver &) const
+      -> sourcemeta::core::SchemaTransformRule::Result override {
+    // Check location.dialect - this string_view points into the schema.
+    // We check NOT equal to garbage, so after memory is freed and contains
+    // random data, the condition will still be true (garbage != "xxxxxxx").
+    return !schema.defines("x-transformed") && location.dialect != "xxxxxxx";
+  }
+
+  auto transform(sourcemeta::core::JSON &schema,
+                 const sourcemeta::core::SchemaTransformRule::Result &) const
+      -> void override {
+    // Completely clear and rebuild the schema object to ensure the old
+    // $schema string memory is freed. This will cause location.dialect
+    // to become a dangling pointer.
+    schema.clear();
+    schema.into_object();
+    // Restore a valid $schema but as a NEW string allocation
+    schema.assign(
+        "$schema",
+        sourcemeta::core::JSON{"https://json-schema.org/draft/2020-12/schema"});
+    // Add many keys to try to overwrite the old freed memory with garbage
+    schema.assign("x-transformed", sourcemeta::core::JSON{true});
+    schema.assign("x-padding-1",
+                  sourcemeta::core::JSON{"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"});
+    schema.assign("x-padding-2",
+                  sourcemeta::core::JSON{"YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"});
+    schema.assign("x-padding-3",
+                  sourcemeta::core::JSON{"ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"});
+  }
+};
+
 #endif
