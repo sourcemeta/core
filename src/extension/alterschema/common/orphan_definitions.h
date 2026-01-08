@@ -37,17 +37,15 @@ public:
       const auto destination_location{frame.traverse(reference.destination)};
       if (destination_location.has_value()) {
         const auto &destination_pointer{destination_location->get().pointer};
-        const auto source_pointer{to_weak_pointer(key.second)};
         if (has_defs) {
-          process_reference(source_pointer, destination_pointer,
-                            location.pointer, "$defs", has_external_to_defs,
+          process_reference(key.second, destination_pointer, location.pointer,
+                            "$defs", has_external_to_defs,
                             outside_referenced_defs);
         }
 
         if (has_definitions) {
-          process_reference(source_pointer, destination_pointer,
-                            location.pointer, "definitions",
-                            has_external_to_definitions,
+          process_reference(key.second, destination_pointer, location.pointer,
+                            "definitions", has_external_to_definitions,
                             outside_referenced_definitions);
         }
       }

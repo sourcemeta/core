@@ -264,28 +264,16 @@
 
 #define EXPECT_REFERENCE(frame, expected_type, expected_pointer, expected_uri, \
                          expected_base, expected_fragment, expected_original)  \
-  EXPECT_TRUE((frame).references().contains(                                   \
-      {expected_type, TO_POINTER(expected_pointer)}));                         \
-  EXPECT_EQ((frame)                                                            \
-                .references()                                                  \
-                .at({expected_type, TO_POINTER(expected_pointer)})             \
-                .destination,                                                  \
-            (expected_uri));                                                   \
-  EXPECT_EQ((frame)                                                            \
-                .references()                                                  \
-                .at({expected_type, TO_POINTER(expected_pointer)})             \
-                .base,                                                         \
-            (expected_base));                                                  \
-  EXPECT_EQ((frame)                                                            \
-                .references()                                                  \
-                .at({expected_type, TO_POINTER(expected_pointer)})             \
-                .fragment,                                                     \
-            (expected_fragment));                                              \
-  EXPECT_EQ((frame)                                                            \
-                .references()                                                  \
-                .at({expected_type, TO_POINTER(expected_pointer)})             \
-                .original,                                                     \
-            (expected_original));
+  {                                                                            \
+    const auto __ref_pointer{TO_POINTER(expected_pointer)};                    \
+    const auto __ref_entry{(frame).reference(                                  \
+        expected_type, sourcemeta::core::to_weak_pointer(__ref_pointer))};     \
+    EXPECT_TRUE(__ref_entry.has_value());                                      \
+    EXPECT_EQ(__ref_entry->get().destination, (expected_uri));                 \
+    EXPECT_EQ(__ref_entry->get().base, (expected_base));                       \
+    EXPECT_EQ(__ref_entry->get().fragment, (expected_fragment));               \
+    EXPECT_EQ(__ref_entry->get().original, (expected_original));               \
+  }
 
 #define EXPECT_STATIC_REFERENCE(frame, expected_pointer, expected_uri,         \
                                 expected_base, expected_fragment,              \
