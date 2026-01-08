@@ -109,6 +109,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/property_names_default.h"
 #include "linter/property_names_type_default.h"
 #include "linter/simple_properties_identifiers.h"
+#include "linter/then_false.h"
 #include "linter/title_description_equal.h"
 #include "linter/title_trailing_period.h"
 #include "linter/title_trim.h"
@@ -150,6 +151,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<NotFalse>();
   bundle.add<ThenEmpty>();
   bundle.add<ElseEmpty>();
+  bundle.add<ThenFalse>();
   bundle.add<ThenWithoutIf>();
   bundle.add<DependenciesPropertyTautology>();
   bundle.add<DependentRequiredTautology>();
