@@ -979,9 +979,9 @@ auto SchemaFrame::references() const noexcept -> const References & {
 }
 
 auto SchemaFrame::reference(const SchemaReferenceType type,
-                            const Pointer &pointer) const
+                            const WeakPointer &pointer) const
     -> std::optional<std::reference_wrapper<const ReferencesEntry>> {
-  const auto result{this->references_.find({type, pointer})};
+  const auto result{this->references_.find({type, to_pointer(pointer)})};
   if (result != this->references_.cend()) {
     return result->second;
   }
@@ -1015,16 +1015,16 @@ auto SchemaFrame::vocabularies(const Location &location,
 }
 
 auto SchemaFrame::uri(const Location &location,
-                      const Pointer &relative_schema_location) const
+                      const WeakPointer &relative_schema_location) const
     -> JSON::String {
-  return to_uri(to_pointer(this->relative_instance_location(location))
-                    .concat(relative_schema_location),
+  return to_uri(this->relative_instance_location(location).concat(
+                    relative_schema_location),
                 location.base)
       .recompose();
 }
 
 auto SchemaFrame::traverse(const Location &location,
-                           const Pointer &relative_schema_location) const
+                           const WeakPointer &relative_schema_location) const
     -> const Location & {
   const auto new_uri{this->uri(location, relative_schema_location)};
   const auto static_match{
@@ -1082,11 +1082,11 @@ auto SchemaFrame::uri(const WeakPointer &pointer) const
 }
 
 auto SchemaFrame::dereference(const Location &location,
-                              const Pointer &relative_schema_location) const
+                              const WeakPointer &relative_schema_location) const
     -> std::pair<SchemaReferenceType,
                  std::optional<std::reference_wrapper<const Location>>> {
   const auto effective_location{
-      to_pointer(location.pointer).concat(relative_schema_location)};
+      to_pointer(location.pointer.concat(relative_schema_location))};
   const auto maybe_reference_entry{this->references_.find(
       {SchemaReferenceType::Static, effective_location})};
   if (maybe_reference_entry == this->references_.cend()) {
