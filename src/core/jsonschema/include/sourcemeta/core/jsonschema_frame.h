@@ -82,11 +82,8 @@ public:
   /// The reference type is part of the key as it is possible to
   /// have a static and a dynamic reference to the same location
   /// on the same schema object.
-  using References = std::map<std::pair<SchemaReferenceType,
-                                        // TODO: Turn this into a weak pointer
-                                        // or reference to the location pointer?
-                                        Pointer>,
-                              ReferencesEntry>;
+  using References =
+      std::map<std::pair<SchemaReferenceType, WeakPointer>, ReferencesEntry>;
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -204,7 +201,7 @@ public:
   /// Iterate over all unresolved references (where destination cannot be
   /// traversed)
   auto for_each_unresolved_reference(
-      const std::function<void(const Pointer &, const ReferencesEntry &)>
+      const std::function<void(const WeakPointer &, const ReferencesEntry &)>
           &callback) const -> void;
 
   /// Check if there are any references to a given location pointer

@@ -94,26 +94,27 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
       if (key.first == SchemaReferenceType::Dynamic) {
         if (reference.fragment.has_value()) {
           const auto destination{top_dynamic_anchor_location(
-              frame, to_weak_pointer(key.second), reference.fragment.value(),
+              frame, key.second, reference.fragment.value(),
               reference.destination)};
           if (!destination.has_value()) {
             continue;
           }
 
           reference_changes.push_back(
-              {key.second, to_uri(destination.value().get()).recompose(),
-               keyword, true});
+              {to_pointer(key.second),
+               to_uri(destination.value().get()).recompose(), keyword, true});
         } else {
-          reference_changes.push_back({key.second, "", keyword, true});
+          reference_changes.push_back(
+              {to_pointer(key.second), "", keyword, true});
         }
       } else {
         if (keyword == "$schema") {
-          const auto uri{frame.uri(to_weak_pointer(key.second))};
+          const auto uri{frame.uri(key.second)};
           assert(uri.has_value());
           const auto origin{frame.traverse(uri.value().get())};
           assert(origin.has_value());
           reference_changes.push_back(
-              {key.second,
+              {to_pointer(key.second),
                JSON::String{to_string(origin.value().get().base_dialect)},
                keyword, false});
           continue;
@@ -124,11 +125,12 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
           const bool should_rename =
               keyword == "$dynamicRef" || keyword == "$recursiveRef";
           reference_changes.push_back(
-              {key.second, to_uri(result.value().get().pointer).recompose(),
-               keyword, should_rename});
+              {to_pointer(key.second),
+               to_uri(result.value().get().pointer).recompose(), keyword,
+               should_rename});
         } else {
           reference_changes.push_back(
-              {key.second, reference.destination, keyword, false});
+              {to_pointer(key.second), reference.destination, keyword, false});
         }
       }
     }

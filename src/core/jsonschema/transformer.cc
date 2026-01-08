@@ -220,7 +220,8 @@ auto SchemaTransformer::apply(JSON &schema, const SchemaWalker &walker,
 
           const auto &target{destination.value().get()};
           potentially_broken_references.push_back(
-              {reference.first.second, JSON::String{reference.second.original},
+              {to_pointer(reference.first.second),
+               JSON::String{reference.second.original},
                reference.second.destination, to_pointer(target.pointer),
                target.relative_pointer});
         }

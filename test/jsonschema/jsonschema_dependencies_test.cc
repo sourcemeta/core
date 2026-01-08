@@ -84,7 +84,8 @@ TEST(JSONSchema_dependencies, multiple_refs) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) {
-        traces.emplace_back(origin, pointer, target);
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
       });
 
   EXPECT_EQ(traces.size(), 3);
@@ -113,7 +114,8 @@ TEST(JSONSchema_dependencies, across_dialects) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) {
-        traces.emplace_back(origin, pointer, target);
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
       });
 
   EXPECT_EQ(traces.size(), 3);
@@ -140,7 +142,8 @@ TEST(JSONSchema_dependencies, across_dialects_top_level_ref_draft) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) {
-        traces.emplace_back(origin, pointer, target);
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
       });
 
   EXPECT_EQ(traces.size(), 2);
@@ -167,7 +170,8 @@ TEST(JSONSchema_dependencies,
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) {
-        traces.emplace_back(origin, pointer, target);
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
       });
 
   EXPECT_EQ(traces.size(), 1);
@@ -191,7 +195,8 @@ TEST(JSONSchema_dependencies,
                    document, sourcemeta::core::schema_walker, test_resolver,
                    [&traces](const auto &origin, const auto &pointer,
                              const auto &target, const auto &) {
-                     traces.emplace_back(origin, pointer, target);
+                     traces.emplace_back(
+                         origin, sourcemeta::core::to_pointer(pointer), target);
                    }),
                sourcemeta::core::SchemaResolutionError);
 }
@@ -208,7 +213,10 @@ TEST(JSONSchema_dependencies,
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
-                const auto &) { traces.emplace_back(origin, pointer, target); },
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      },
       "http://json-schema.org/draft-07/schema#");
 
   EXPECT_EQ(traces.size(), 1);
@@ -231,7 +239,8 @@ TEST(JSONSchema_dependencies, across_dialects_const) {
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
                 const auto &) {
-        traces.emplace_back(origin, pointer, target);
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
       });
 
   EXPECT_EQ(traces.size(), 3);
@@ -256,7 +265,10 @@ TEST(JSONSchema_dependencies, with_default_id) {
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
-                const auto &) { traces.emplace_back(origin, pointer, target); },
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      },
       "", "https://www.sourcemeta.com/default");
 
   EXPECT_EQ(traces.size(), 3);
@@ -282,7 +294,10 @@ TEST(JSONSchema_dependencies, with_default_dialect) {
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
-                const auto &) { traces.emplace_back(origin, pointer, target); },
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      },
       "https://json-schema.org/draft/2020-12/schema");
 
   EXPECT_EQ(traces.size(), 1);
@@ -361,7 +376,10 @@ TEST(JSONSchema_dependencies, custom_paths_no_external) {
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
-                const auto &) { traces.emplace_back(origin, pointer, target); },
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      },
       "https://json-schema.org/draft/2020-12/schema", "",
       {
           sourcemeta::core::to_weak_pointer(path1),
@@ -398,7 +416,10 @@ TEST(JSONSchema_dependencies, custom_paths_with_externals) {
   sourcemeta::core::dependencies(
       document, sourcemeta::core::schema_walker, test_resolver,
       [&traces](const auto &origin, const auto &pointer, const auto &target,
-                const auto &) { traces.emplace_back(origin, pointer, target); },
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      },
       "https://json-schema.org/draft/2020-12/schema", "",
       {
           sourcemeta::core::to_weak_pointer(path1),
