@@ -180,6 +180,10 @@ public:
   [[nodiscard]] auto traverse(const std::string_view uri) const
       -> std::optional<std::reference_wrapper<const Location>>;
 
+  /// Get the location associated with a given pointer
+  [[nodiscard]] auto traverse(const Pointer &pointer) const
+      -> std::optional<std::reference_wrapper<const Location>>;
+
   /// Turn an absolute pointer into a location URI
   [[nodiscard]] auto uri(const Pointer &pointer) const
       -> std::optional<std::reference_wrapper<const JSON::String>>;
@@ -211,6 +215,12 @@ public:
   /// Get the relative instance location pointer for a given location entry
   [[nodiscard]] auto relative_instance_location(const Location &location) const
       -> Pointer;
+
+  /// Check if the frame has no analysed data
+  [[nodiscard]] auto empty() const noexcept -> bool;
+
+  /// Reset the frame, clearing all analysed data
+  auto reset() -> void;
 
 private:
   Mode mode_;
