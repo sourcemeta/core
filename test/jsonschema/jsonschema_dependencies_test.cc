@@ -58,6 +58,30 @@ static auto test_resolver(std::string_view identifier)
     return sourcemeta::core::parse_json(R"JSON([
       "foo", "bar", "baz"
     ])JSON");
+  } else if (identifier == "https://www.sourcemeta.com/sibling-a") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/sibling-a",
+      "$ref": "shared"
+    })JSON");
+  } else if (identifier == "https://www.sourcemeta.com/sibling-b") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/sibling-b",
+      "$ref": "shared"
+    })JSON");
+  } else if (identifier == "https://www.sourcemeta.com/shared") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/shared",
+      "$ref": "deep"
+    })JSON");
+  } else if (identifier == "https://www.sourcemeta.com/deep") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://www.sourcemeta.com/deep",
+      "type": "string"
+    })JSON");
   } else {
     return sourcemeta::core::schema_resolver(identifier);
   }
@@ -436,4 +460,78 @@ TEST(JSONSchema_dependencies, custom_paths_with_externals) {
                     "https://www.sourcemeta.com/test-3");
   EXPECT_DEPENDENCY(traces, 2, "https://www.sourcemeta.com/test-3",
                     "/allOf/0/$ref", "https://www.sourcemeta.com/test-4");
+}
+
+TEST(JSONSchema_dependencies, multiple_refs_to_same_target_within_schema) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "anyOf": [
+      {
+        "properties": {
+          "foo": { "$ref": "https://www.sourcemeta.com/test-1" }
+        }
+      },
+      {
+        "properties": {
+          "bar": { "$ref": "https://www.sourcemeta.com/test-1" }
+        }
+      },
+      {
+        "properties": {
+          "baz": { "$ref": "https://www.sourcemeta.com/test-1" }
+        }
+      }
+    ]
+  })JSON");
+
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
+      traces;
+
+  sourcemeta::core::dependencies(
+      document, sourcemeta::core::schema_walker, test_resolver,
+      [&traces](const auto &origin, const auto &pointer, const auto &target,
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      });
+
+  EXPECT_EQ(traces.size(), 1);
+
+  EXPECT_DEPENDENCY(traces, 0, "https://www.example.com",
+                    "/anyOf/0/properties/foo/$ref",
+                    "https://www.sourcemeta.com/test-1");
+}
+
+TEST(JSONSchema_dependencies, sibling_schemas_with_shared_dependency) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.example.com",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "a": { "$ref": "https://www.sourcemeta.com/sibling-a" },
+      "b": { "$ref": "https://www.sourcemeta.com/sibling-b" }
+    }
+  })JSON");
+
+  std::vector<std::tuple<std::string, sourcemeta::core::Pointer, std::string>>
+      traces;
+
+  sourcemeta::core::dependencies(
+      document, sourcemeta::core::schema_walker, test_resolver,
+      [&traces](const auto &origin, const auto &pointer, const auto &target,
+                const auto &) {
+        traces.emplace_back(origin, sourcemeta::core::to_pointer(pointer),
+                            target);
+      });
+
+  EXPECT_EQ(traces.size(), 4);
+
+  EXPECT_DEPENDENCY(traces, 0, "https://www.example.com", "/properties/a/$ref",
+                    "https://www.sourcemeta.com/sibling-a");
+  EXPECT_DEPENDENCY(traces, 1, "https://www.example.com", "/properties/b/$ref",
+                    "https://www.sourcemeta.com/sibling-b");
+  EXPECT_DEPENDENCY(traces, 2, "https://www.sourcemeta.com/sibling-a", "/$ref",
+                    "https://www.sourcemeta.com/shared");
+  EXPECT_DEPENDENCY(traces, 3, "https://www.sourcemeta.com/shared", "/$ref",
+                    "https://www.sourcemeta.com/deep");
 }
