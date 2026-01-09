@@ -452,3 +452,20 @@ TEST(JSONSchema_format, boolean_subschema_does_not_crash) {
   "additionalProperties": true
 })JSON");
 }
+
+TEST(JSONSchema_format, reorder_does_not_invalidate_child_pointers) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "not": {},
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  sourcemeta::core::format(document, sourcemeta::core::schema_walker,
+                           sourcemeta::core::schema_resolver);
+
+  std::ostringstream stream;
+  sourcemeta::core::prettify(document, stream);
+  EXPECT_EQ(stream.str(), R"JSON({
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "not": {}
+})JSON");
+}
