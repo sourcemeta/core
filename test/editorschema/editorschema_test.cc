@@ -179,6 +179,8 @@ TEST(EditorSchema, 2020_12_bundle) {
     }
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_2020_12);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
@@ -226,6 +228,8 @@ TEST(EditorSchema, 2020_12_static_dynamic_reference) {
     }
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_2020_12);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
@@ -393,6 +397,8 @@ TEST(EditorSchema, 2020_12_bundle_metaschema) {
     "type": "string"
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_2020_12);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2020_12);
 
@@ -426,6 +432,8 @@ TEST(EditorSchema, 2019_09_bundle) {
     }
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_2019_09);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2019_09);
 
@@ -468,6 +476,8 @@ TEST(EditorSchema, 2019_09_bundle_metaschema) {
     "type": "string"
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_2019_09);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_2019_09);
 
@@ -498,6 +508,8 @@ TEST(EditorSchema, draft7_bundle) {
     }
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_draft7);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_draft7);
 
@@ -603,6 +615,8 @@ TEST(EditorSchema, draft7_bundle_metaschema) {
     "type": "string"
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_draft7);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_draft7);
 
@@ -633,6 +647,8 @@ TEST(EditorSchema, draft6_bundle) {
     }
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_draft6);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_draft6);
 
@@ -664,6 +680,8 @@ TEST(EditorSchema, draft6_bundle_metaschema) {
     "type": "string"
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_draft6);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_draft6);
 
@@ -694,6 +712,8 @@ TEST(EditorSchema, draft4_bundle) {
     }
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_draft4);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_draft4);
 
@@ -725,6 +745,8 @@ TEST(EditorSchema, draft4_bundle_metaschema) {
     "type": "string"
   })JSON");
 
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver_draft4);
   sourcemeta::core::for_editor(document, sourcemeta::core::schema_walker,
                                test_resolver_draft4);
 
