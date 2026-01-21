@@ -838,7 +838,7 @@ TEST(JSONSchema_walker_draft6, instance_locations) {
   EXPECT_WALKER_ENTRY_DRAFT6(entries, 9, "/patternProperties/^f", "");
   EXPECT_WALKER_ENTRY_DRAFT6(entries, 10, "/patternProperties/x$", "");
   EXPECT_WALKER_ENTRY_DRAFT6(entries, 11, "/dependencies/baz", "");
-  EXPECT_WALKER_ENTRY_DRAFT6(entries, 12, "/propertyNames", "");
+  EXPECT_WALKER_ENTRY_DRAFT6_PROPERTY_NAME(entries, 12, "/propertyNames", "");
 
   // Applicators (array)
   EXPECT_WALKER_ENTRY_DRAFT6(entries, 13, "/contains", "");
@@ -883,4 +883,44 @@ TEST(JSONSchema_walker_draft6, definitions_subschemas) {
   EXPECT_WALKER_ENTRY_DRAFT6_ORPHAN(
       entries, 3, "/definitions/foo/properties/bar/additionalProperties",
       "/definitions/foo/properties/bar");
+}
+
+TEST(JSONSchema_walker_draft6, propertyNames_targets) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "propertyNames": {
+      "anyOf": [
+        { "minLength": 1 },
+        { "maxLength": 10 }
+      ],
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "definitions": {
+        "test": {
+          "type": "string"
+        }
+      }
+    }
+  })JSON");
+
+  std::vector<sourcemeta::core::SchemaIteratorEntry> entries;
+  for (const auto &entry : sourcemeta::core::SchemaIterator(
+           document, sourcemeta::core::schema_walker,
+           sourcemeta::core::schema_resolver)) {
+    entries.push_back(entry);
+  }
+
+  EXPECT_EQ(entries.size(), 6);
+
+  EXPECT_WALKER_ENTRY_DRAFT6(entries, 0, "", std::nullopt);
+  EXPECT_WALKER_ENTRY_DRAFT6_PROPERTY_NAME(entries, 1, "/propertyNames", "");
+  EXPECT_WALKER_ENTRY_DRAFT6_PROPERTY_NAME(entries, 2, "/propertyNames/anyOf/0",
+                                           "/propertyNames");
+  EXPECT_WALKER_ENTRY_DRAFT6_PROPERTY_NAME(entries, 3, "/propertyNames/anyOf/1",
+                                           "/propertyNames");
+  EXPECT_WALKER_ENTRY_DRAFT6(entries, 4, "/propertyNames/additionalProperties",
+                             "/propertyNames");
+  EXPECT_WALKER_ENTRY_DRAFT6_ORPHAN(
+      entries, 5, "/propertyNames/definitions/test", "/propertyNames");
 }
