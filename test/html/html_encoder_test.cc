@@ -435,3 +435,11 @@ TEST(HTML_encoder, push_back_return_reference) {
 
   EXPECT_EQ(&ref, &element);
 }
+
+TEST(HTML_encoder, template_element_tag_name) {
+  using namespace sourcemeta::core::html;
+
+  EXPECT_EQ(template_("Content").render(), "<template>Content</template>");
+  EXPECT_EQ(template_({{"id", "my-template"}}, "Content").render(),
+            "<template id=\"my-template\">Content</template>");
+}
