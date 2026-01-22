@@ -1512,9 +1512,15 @@ TEST(JSONSchema_frame_2020_12, location_independent_identifier_anonymous) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_EQ(error.identifier(), "#foo");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2020_12, ref_with_id) {
@@ -3041,27 +3047,17 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_with_invalid_type) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  frame.analyse(document, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver);
 
-  EXPECT_EQ(frame.locations().size(), 3);
-  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
-      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
-      JSON_Schema_2020_12, std::nullopt, false);
-  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
-      frame, "#/$schema", "/$schema",
-      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
-      false);
-  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
-      frame, "#/$dynamicRef", "/$dynamicRef",
-      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
-      false);
-
-  EXPECT_EQ(frame.references().size(), 1);
-  EXPECT_STATIC_REFERENCE(
-      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
-      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
-      "https://json-schema.org/draft/2020-12/schema");
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$dynamicRef");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2020_12,
@@ -3377,4 +3373,180 @@ TEST(JSONSchema_frame_2020_12, circular_ref_through_defs) {
   EXPECT_STATIC_REFERENCE(
       frame, "/$defs/b/$ref", "https://www.sourcemeta.com/schema#/$defs/a",
       "https://www.sourcemeta.com/schema", "/$defs/a", "#/$defs/a");
+}
+
+TEST(JSONSchema_frame_2020_12, nested_invalid_schema_keyword) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "nested": {
+        "$schema": 123
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, invalid_id_not_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": 123
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, invalid_id_not_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "not a valid uri"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "not a valid uri");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, nested_invalid_schema_not_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "nested": {
+        "$schema": "not a valid uri"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$schema");
+    EXPECT_EQ(error.value(), "not a valid uri");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, invalid_ref_not_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": 123
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$ref");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, invalid_ref_not_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "not a valid uri"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$ref");
+    EXPECT_EQ(error.value(), "not a valid uri");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, invalid_dynamic_ref_not_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicRef": 123
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$dynamicRef");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, invalid_dynamic_ref_not_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicRef": "not a valid uri"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$dynamicRef");
+    EXPECT_EQ(error.value(), "not a valid uri");
+  } catch (...) {
+    FAIL();
+  }
 }
