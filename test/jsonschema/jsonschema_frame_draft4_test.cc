@@ -842,25 +842,17 @@ TEST(JSONSchema_frame_draft4, ref_with_invalid_type) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  frame.analyse(document, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver);
 
-  EXPECT_EQ(frame.locations().size(), 3);
-  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
-      frame, "", "", "http://json-schema.org/draft-04/schema#",
-      JSON_Schema_Draft_4, std::nullopt, false);
-  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
-      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-04/schema#",
-      JSON_Schema_Draft_4, "", false);
-  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
-      frame, "#/$ref", "/$ref", "http://json-schema.org/draft-04/schema#",
-      JSON_Schema_Draft_4, "", false);
-
-  EXPECT_EQ(frame.references().size(), 1);
-  EXPECT_STATIC_REFERENCE(
-      frame, "/$schema", "http://json-schema.org/draft-04/schema",
-      "http://json-schema.org/draft-04/schema", std::nullopt,
-      "http://json-schema.org/draft-04/schema#");
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$ref");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_draft4, ref_invalidates_sibling_subschemas_and_refs) {
@@ -1028,4 +1020,25 @@ TEST(JSONSchema_frame_draft4, nested_relative_ref_with_id) {
   EXPECT_STATIC_REFERENCE(frame, "/additionalProperties/$ref",
                           "https://example.com/bar", "https://example.com/bar",
                           std::nullopt, "bar");
+}
+
+TEST(JSONSchema_frame_draft4, invalid_id_not_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "id": 123
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
 }

@@ -886,9 +886,15 @@ TEST(JSONSchema_frame_2019_09, location_independent_identifier_anonymous) {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_EQ(error.identifier(), "#foo");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_true_with_id) {
@@ -2363,4 +2369,46 @@ TEST(JSONSchema_frame_2019_09, propertyNames_with_nested_applicators) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+}
+
+TEST(JSONSchema_frame_2019_09, invalid_recursive_anchor_not_boolean) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveAnchor": "foo"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$recursiveAnchor");
+    EXPECT_EQ(error.value(), "\"foo\"");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2019_09, invalid_recursive_ref_not_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$recursiveRef": 123
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$recursiveRef");
+    EXPECT_EQ(error.value(), "123");
+  } catch (...) {
+    FAIL();
+  }
 }
