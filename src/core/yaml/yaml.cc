@@ -369,6 +369,16 @@ auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
     case YAML_ALIAS_EVENT: {
       const std::string anchor_name{
           reinterpret_cast<char *>(event->data.alias.anchor)};
+      const std::uint64_t alias_start_line{(override_start_mark
+                                                ? override_start_mark->line
+                                                : event->start_mark.line) +
+                                           1};
+      const std::uint64_t alias_start_column{(override_start_mark
+                                                  ? override_start_mark->column
+                                                  : event->start_mark.column) +
+                                             1};
+      const std::uint64_t alias_end_line{event->end_mark.line + 1};
+      const std::uint64_t alias_end_column{event->end_mark.column};
       yaml_event_delete(event);
 
       const auto anchor_it{anchors.find(anchor_name)};
@@ -380,25 +390,29 @@ auto consume_value_event(yaml_parser_t *parser, yaml_event_t *event,
 
       if (callback) {
         const auto &callbacks{anchor_it->second.callbacks};
-        if (result.is_object() || result.is_array()) {
-          for (std::size_t callback_index = 1;
-               callback_index < callbacks.size() - 1; callback_index++) {
-            callback(std::get<0>(callbacks[callback_index]),
-                     std::get<1>(callbacks[callback_index]),
-                     std::get<2>(callbacks[callback_index]),
-                     std::get<3>(callbacks[callback_index]),
-                     std::get<4>(callbacks[callback_index]),
-                     std::get<5>(callbacks[callback_index]),
-                     std::get<6>(callbacks[callback_index]));
+        if (!callbacks.empty()) {
+          const auto value_type{std::get<1>(callbacks.front())};
+          callback(sourcemeta::core::JSON::ParsePhase::Pre, value_type,
+                   alias_start_line, alias_start_column, context, index,
+                   property);
+
+          if (result.is_object() || result.is_array()) {
+            for (std::size_t callback_index = 1;
+                 callback_index < callbacks.size() - 1; callback_index++) {
+              callback(std::get<0>(callbacks[callback_index]),
+                       std::get<1>(callbacks[callback_index]),
+                       std::get<2>(callbacks[callback_index]),
+                       std::get<3>(callbacks[callback_index]),
+                       std::get<4>(callbacks[callback_index]),
+                       std::get<5>(callbacks[callback_index]),
+                       std::get<6>(callbacks[callback_index]));
+            }
           }
-        } else {
-          if (!callbacks.empty()) {
-            const auto &post_trace = callbacks.back();
-            callback(std::get<0>(post_trace), std::get<1>(post_trace),
-                     std::get<2>(post_trace), std::get<3>(post_trace),
-                     std::get<4>(post_trace), std::get<5>(post_trace),
-                     std::get<6>(post_trace));
-          }
+
+          callback(sourcemeta::core::JSON::ParsePhase::Post, value_type,
+                   alias_end_line, alias_end_column,
+                   sourcemeta::core::JSON::ParseContext::Root, 0,
+                   sourcemeta::core::JSON::StringView{});
         }
       }
 

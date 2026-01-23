@@ -378,17 +378,18 @@ TEST(YAML_parse_callback, yaml_or_json_stub_test_2) {
 
 TEST(YAML_parse_callback, yaml_simple_anchor_and_alias) {
   const auto input{"anchor: &node foo\nalias: *node"};
-  PARSE_YAML_WITH_TRACES(document, input, 5);
+  PARSE_YAML_WITH_TRACES(document, input, 6);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "anchor");
   EXPECT_TRACE(2, Post, String, 1, 17, Root, 0, "");
-  EXPECT_TRACE(3, Post, String, 1, 17, Root, 0, "");
-  EXPECT_TRACE(4, Post, Object, 3, 0, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 2, 1, Property, 0, "alias");
+  EXPECT_TRACE(4, Post, String, 2, 12, Root, 0, "");
+  EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
 }
 
 TEST(YAML_parse_callback, yaml_anchor_object_with_alias) {
   const auto input{"original: &obj {x: 1, y: 2}\ncopy: *obj"};
-  PARSE_YAML_WITH_TRACES(document, input, 12);
+  PARSE_YAML_WITH_TRACES(document, input, 14);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 1, Property, 0, "original");
   EXPECT_TRACE(2, Pre, Integer, 1, 17, Property, 0, "x");
@@ -396,16 +397,18 @@ TEST(YAML_parse_callback, yaml_anchor_object_with_alias) {
   EXPECT_TRACE(4, Pre, Integer, 1, 23, Property, 0, "y");
   EXPECT_TRACE(5, Post, Integer, 1, 26, Root, 0, "");
   EXPECT_TRACE(6, Post, Object, 1, 27, Root, 0, "");
-  EXPECT_TRACE(7, Pre, Integer, 1, 17, Property, 0, "x");
-  EXPECT_TRACE(8, Post, Integer, 1, 20, Root, 0, "");
-  EXPECT_TRACE(9, Pre, Integer, 1, 23, Property, 0, "y");
-  EXPECT_TRACE(10, Post, Integer, 1, 26, Root, 0, "");
-  EXPECT_TRACE(11, Post, Object, 3, 0, Root, 0, "");
+  EXPECT_TRACE(7, Pre, Object, 2, 1, Property, 0, "copy");
+  EXPECT_TRACE(8, Pre, Integer, 1, 17, Property, 0, "x");
+  EXPECT_TRACE(9, Post, Integer, 1, 20, Root, 0, "");
+  EXPECT_TRACE(10, Pre, Integer, 1, 23, Property, 0, "y");
+  EXPECT_TRACE(11, Post, Integer, 1, 26, Root, 0, "");
+  EXPECT_TRACE(12, Post, Object, 2, 10, Root, 0, "");
+  EXPECT_TRACE(13, Post, Object, 3, 0, Root, 0, "");
 }
 
 TEST(YAML_parse_callback, yaml_anchor_array_with_multiple_aliases) {
   const auto input{"items: &list [a, b, c]\nfirst: *list\nsecond: *list"};
-  PARSE_YAML_WITH_TRACES(document, input, 22);
+  PARSE_YAML_WITH_TRACES(document, input, 26);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Array, 1, 1, Property, 0, "items");
   EXPECT_TRACE(2, Pre, String, 1, 15, Index, 0, "");
@@ -415,31 +418,36 @@ TEST(YAML_parse_callback, yaml_anchor_array_with_multiple_aliases) {
   EXPECT_TRACE(6, Pre, String, 1, 21, Index, 2, "");
   EXPECT_TRACE(7, Post, String, 1, 21, Root, 0, "");
   EXPECT_TRACE(8, Post, Array, 1, 22, Root, 0, "");
-  EXPECT_TRACE(9, Pre, String, 1, 15, Index, 0, "");
-  EXPECT_TRACE(10, Post, String, 1, 15, Root, 0, "");
-  EXPECT_TRACE(11, Pre, String, 1, 18, Index, 1, "");
-  EXPECT_TRACE(12, Post, String, 1, 18, Root, 0, "");
-  EXPECT_TRACE(13, Pre, String, 1, 21, Index, 2, "");
-  EXPECT_TRACE(14, Post, String, 1, 21, Root, 0, "");
-  EXPECT_TRACE(15, Pre, String, 1, 15, Index, 0, "");
-  EXPECT_TRACE(16, Post, String, 1, 15, Root, 0, "");
-  EXPECT_TRACE(17, Pre, String, 1, 18, Index, 1, "");
-  EXPECT_TRACE(18, Post, String, 1, 18, Root, 0, "");
-  EXPECT_TRACE(19, Pre, String, 1, 21, Index, 2, "");
-  EXPECT_TRACE(20, Post, String, 1, 21, Root, 0, "");
-  EXPECT_TRACE(21, Post, Object, 4, 0, Root, 0, "");
+  EXPECT_TRACE(9, Pre, Array, 2, 1, Property, 0, "first");
+  EXPECT_TRACE(10, Pre, String, 1, 15, Index, 0, "");
+  EXPECT_TRACE(11, Post, String, 1, 15, Root, 0, "");
+  EXPECT_TRACE(12, Pre, String, 1, 18, Index, 1, "");
+  EXPECT_TRACE(13, Post, String, 1, 18, Root, 0, "");
+  EXPECT_TRACE(14, Pre, String, 1, 21, Index, 2, "");
+  EXPECT_TRACE(15, Post, String, 1, 21, Root, 0, "");
+  EXPECT_TRACE(16, Post, Array, 2, 12, Root, 0, "");
+  EXPECT_TRACE(17, Pre, Array, 3, 1, Property, 0, "second");
+  EXPECT_TRACE(18, Pre, String, 1, 15, Index, 0, "");
+  EXPECT_TRACE(19, Post, String, 1, 15, Root, 0, "");
+  EXPECT_TRACE(20, Pre, String, 1, 18, Index, 1, "");
+  EXPECT_TRACE(21, Post, String, 1, 18, Root, 0, "");
+  EXPECT_TRACE(22, Pre, String, 1, 21, Index, 2, "");
+  EXPECT_TRACE(23, Post, String, 1, 21, Root, 0, "");
+  EXPECT_TRACE(24, Post, Array, 3, 13, Root, 0, "");
+  EXPECT_TRACE(25, Post, Object, 4, 0, Root, 0, "");
 }
 
 TEST(YAML_parse_callback, yaml_nested_anchor_and_alias) {
   const auto input{"outer:\n  inner: &val 42\n  ref: *val"};
-  PARSE_YAML_WITH_TRACES(document, input, 7);
+  PARSE_YAML_WITH_TRACES(document, input, 8);
   EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Pre, Object, 1, 1, Property, 0, "outer");
   EXPECT_TRACE(2, Pre, Integer, 2, 3, Property, 0, "inner");
   EXPECT_TRACE(3, Post, Integer, 2, 16, Root, 0, "");
-  EXPECT_TRACE(4, Post, Integer, 2, 16, Root, 0, "");
-  EXPECT_TRACE(5, Post, Object, 4, 0, Root, 0, "");
+  EXPECT_TRACE(4, Pre, Integer, 3, 3, Property, 0, "ref");
+  EXPECT_TRACE(5, Post, Integer, 3, 11, Root, 0, "");
   EXPECT_TRACE(6, Post, Object, 4, 0, Root, 0, "");
+  EXPECT_TRACE(7, Post, Object, 4, 0, Root, 0, "");
 }
 
 TEST(YAML_parse_callback, decimal_large_integer) {
@@ -463,4 +471,15 @@ TEST(YAML_parse_callback, decimal_in_object) {
   EXPECT_TRACE(1, Pre, Decimal, 1, 1, Property, 0, "large");
   EXPECT_TRACE(2, Post, Decimal, 1, 37, Root, 0, "");
   EXPECT_TRACE(3, Post, Object, 2, 0, Root, 0, "");
+}
+
+TEST(YAML_parse_callback, scalar_alias_pre_post_balance) {
+  const auto input{"anchor: &node foo\nalias: *node"};
+  PARSE_YAML_WITH_TRACES(document, input, 6);
+  EXPECT_TRACE(0, Pre, Object, 1, 1, Root, 0, "");
+  EXPECT_TRACE(1, Pre, String, 1, 1, Property, 0, "anchor");
+  EXPECT_TRACE(2, Post, String, 1, 17, Root, 0, "");
+  EXPECT_TRACE(3, Pre, String, 2, 1, Property, 0, "alias");
+  EXPECT_TRACE(4, Post, String, 2, 12, Root, 0, "");
+  EXPECT_TRACE(5, Post, Object, 3, 0, Root, 0, "");
 }
