@@ -161,23 +161,14 @@ TEST(AlterSchema_canonicalize_draft4, boolean_true_1) {
       { "enum": [ null ] },
       { "enum": [ false, true ] },
       {
-        "minProperties": 0,
         "type": "object",
         "properties": {
-          "foo": {
-            "anyOf": [
-              { "enum": [ null ] },
-              { "enum": [ false, true ] },
-              { "properties": {}, "minProperties": 0, "type": "object" },
-              { "minItems": 0, "type": "array" },
-              { "minLength": 0, "type": "string" },
-              { "type": "number" }
-            ]
-          }
-        }
+          "foo": true
+        },
+        "minProperties": 0
       },
-      { "minItems": 0, "type": "array" },
-      { "minLength": 0, "type": "string" },
+      { "type": "array", "minItems": 0 },
+      { "type": "string", "minLength": 0 },
       { "type": "number" }
     ]
   })JSON");
@@ -201,26 +192,8 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_covered_by_required_1) {
     "minProperties": 2,
     "required": [ "foo", "bar" ],
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
+      "foo": true,
+      "bar": true
     }
   })JSON");
 
@@ -242,26 +215,8 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_1) {
     "required": [ "foo", "bar" ],
     "minProperties": 2,
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
+      "foo": true,
+      "bar": true
     }
   })JSON");
 
@@ -284,26 +239,8 @@ TEST(AlterSchema_canonicalize_draft4, min_properties_implicit_2) {
     "required": [ "foo", "bar" ],
     "minProperties": 2,
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
+      "foo": true,
+      "bar": true
     }
   })JSON");
 

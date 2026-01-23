@@ -148,7 +148,7 @@ TEST(AlterSchema_lint_2019_09, nested_ref_to_unknown_location) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "properties": {
-      "foo": {}
+      "foo": true
     }
   })JSON");
 
@@ -209,7 +209,7 @@ TEST(AlterSchema_lint_2019_09, deeply_nested_ref_to_unknown_location) {
       "foo": {
         "items": {
           "properties": {
-            "bar": {}
+            "bar": true
           }
         }
       }
@@ -301,7 +301,7 @@ TEST(AlterSchema_lint_2019_09, mixed_nested_refs_valid_and_invalid) {
       "name": {
         "$ref": "#/$defs/string"
       },
-      "age": {}
+      "age": true
     }
   })JSON");
 
@@ -1312,8 +1312,7 @@ TEST(AlterSchema_lint_2019_09, duplicate_allof_branches_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "type": "integer",
-    "allOf": [ false ]
+    "not": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1330,6 +1329,148 @@ TEST(AlterSchema_lint_2019_09, duplicate_anyof_branches_1) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "anyOf": [ { "type": "string" }, { "type": "integer" } ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, anyof_true_simplify_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "anyOf": [ true, { "type": "string" } ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, anyof_true_simplify_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "anyOf": [ { "type": "string" }, {} ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, anyof_false_simplify_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "anyOf": [ false ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "not": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, anyof_false_simplify_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "anyOf": [ false ],
+    "not": { "type": "string" }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "anyOf": [ false ],
+    "not": { "type": "string" }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, oneof_false_simplify_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "oneOf": [ false ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "not": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, oneof_false_simplify_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "oneOf": [ false ],
+    "not": { "type": "string" }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "oneOf": [ false ],
+    "not": { "type": "string" }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, oneof_to_anyof_disjoint_types_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "oneOf": [
+      { "type": "string" },
+      { "type": "integer" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "anyOf": [
+      { "type": "string" },
+      { "type": "integer" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2019_09, oneof_to_anyof_disjoint_types_2) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "oneOf": [
+      { "type": "string" },
+      { "type": "string" }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "oneOf": [
+      { "type": "string" },
+      { "type": "string" }
+    ]
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -2932,7 +3073,6 @@ TEST(AlterSchema_lint_2019_09, not_false_4) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "type": "string",
     "not": true
   })JSON");
 
@@ -3021,7 +3161,7 @@ TEST(AlterSchema_lint_2019_09, required_properties_in_properties_3) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "required": [ "foo", "bar" ],
     "properties": {
-      "foo": {},
+      "foo": true,
       "bar": false,
       "baz": true
     }
@@ -3950,4 +4090,24 @@ TEST(AlterSchema_lint_2019_09,
 
   EXPECT_TRUE(result.first);
   EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2019_09, empty_object_as_true_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "foo": {}
+    }
+  })JSON");
+
+  LINT_AND_FIX(document);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "properties": {
+      "foo": true
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }
