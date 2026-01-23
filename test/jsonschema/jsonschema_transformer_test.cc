@@ -1496,3 +1496,437 @@ TEST(JSONSchema_transformer, iterators) {
   EXPECT_TRUE(rules.contains("example_rule_2"));
   EXPECT_TRUE(rules.contains("example_rule_3"));
 }
+
+TEST(JSONSchema_transformer, check_exclude_keyword_string_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": "example_rule_1"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_EQ(entries.size(), 0);
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_string_no_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": "other_rule"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_array_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": [ "example_rule_1" ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_EQ(entries.size(), 0);
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_array_multiple_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": [ "other_rule", "example_rule_1", "another_rule" ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_EQ(entries.size(), 0);
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_array_no_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": [ "other_rule", "another_rule" ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_wrong_type) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": 123
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_nested_only) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "properties": {
+      "test": {
+        "foo": "baz",
+        "x-exclude": "example_rule_1"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<0>(entries.at(0)), sourcemeta::core::Pointer{});
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_multiple_rules) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+  bundle.add<ExampleRule2>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "value1",
+    "bar": "value2",
+    "x-exclude": "example_rule_1"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_2");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_no_keyword_set) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": "example_rule_1"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result = bundle.check(document, sourcemeta::core::schema_walker,
+                                   sourcemeta::core::schema_resolver,
+                                   transformer_callback_trace(entries));
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, apply_exclude_keyword_string_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": "example_rule_1"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_TRUE(document.defines("foo"));
+}
+
+TEST(JSONSchema_transformer, apply_exclude_keyword_string_no_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": "other_rule"
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_FALSE(document.defines("foo"));
+}
+
+TEST(JSONSchema_transformer, apply_exclude_keyword_array_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": [ "example_rule_1" ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_TRUE(document.defines("foo"));
+}
+
+TEST(JSONSchema_transformer, apply_exclude_keyword_array_multiple_match) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+  bundle.add<ExampleRule2>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "value1",
+    "bar": "value2",
+    "x-exclude": [ "example_rule_1", "example_rule_2" ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+}
+
+TEST(JSONSchema_transformer, apply_exclude_keyword_nested_selective) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "root",
+    "properties": {
+      "test": {
+        "foo": "nested",
+        "x-exclude": "example_rule_1"
+      }
+    }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.apply(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.at("properties").at("test").defines("foo"));
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_empty_string) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": ""
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_empty_array) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": []
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_boolean) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": true
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_null) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": null
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_object) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": { "rule": "example_rule_1" }
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(entries.size(), 1);
+  EXPECT_EQ(std::get<1>(entries.at(0)), "example_rule_1");
+}
+
+TEST(JSONSchema_transformer, check_exclude_keyword_array_with_non_strings) {
+  sourcemeta::core::SchemaTransformer bundle;
+  bundle.add<ExampleRule1>();
+
+  const auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "foo": "bar",
+    "x-exclude": [ 123, true, "example_rule_1" ]
+  })JSON");
+
+  TestTransformTraces entries;
+  const auto result =
+      bundle.check(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   transformer_callback_trace(entries), "", "", "x-exclude");
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(result.second, 100);
+  EXPECT_EQ(entries.size(), 0);
+}
