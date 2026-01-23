@@ -139,3 +139,89 @@ TEST(URI_relative_to, different_directories_same_host_needs_dotdot_3) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../../d.json");
 }
+
+TEST(URI_relative_to, file_same_directory) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///home/user/schemas/other.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "other.json");
+}
+
+TEST(URI_relative_to, file_subdirectory) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas"};
+  sourcemeta::core::URI uri{"file:///home/user/schemas/sub/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "sub/test.json");
+}
+
+TEST(URI_relative_to, file_parent_directory) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas/sub/base.json"};
+  sourcemeta::core::URI uri{"file:///home/user/schemas/other.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../other.json");
+}
+
+TEST(URI_relative_to, file_different_root) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///var/data/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../../var/data/test.json");
+}
+
+TEST(URI_relative_to, file_same_file) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///home/user/schemas/base.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "");
+}
+
+TEST(URI_relative_to, file_with_fragment) {
+  const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///home/user/schemas/other.json#/defs/foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "other.json#/defs/foo");
+}
+
+TEST(URI_relative_to, file_windows_same_directory) {
+  const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/other.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "other.json");
+}
+
+TEST(URI_relative_to, file_windows_subdirectory) {
+  const sourcemeta::core::URI base{"file:///C:/Users/user/schemas"};
+  sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/sub/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "sub/test.json");
+}
+
+TEST(URI_relative_to, file_windows_parent_directory) {
+  const sourcemeta::core::URI base{
+      "file:///C:/Users/user/schemas/sub/base.json"};
+  sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/other.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../other.json");
+}
+
+TEST(URI_relative_to, file_windows_different_drive) {
+  const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///D:/Data/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../../../D:/Data/test.json");
+}
+
+TEST(URI_relative_to, file_windows_same_file) {
+  const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
+  sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/base.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "");
+}
+
+TEST(URI_relative_to, file_windows_with_fragment) {
+  const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
+  sourcemeta::core::URI uri{
+      "file:///C:/Users/user/schemas/other.json#/defs/foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "other.json#/defs/foo");
+}
