@@ -38,16 +38,22 @@ auto PointerPositionTracker::operator()(
 
 auto PointerPositionTracker::get(const Pointer &pointer) const
     -> std::optional<Position> {
+  assert(this->stack.empty());
+  assert(this->current.empty());
   const auto result{this->data.find(pointer)};
   return result == this->data.cend() ? std::nullopt
                                      : std::optional<Position>{result->second};
 }
 
 auto PointerPositionTracker::size() const -> std::size_t {
+  assert(this->stack.empty());
+  assert(this->current.empty());
   return this->data.size();
 }
 
 auto PointerPositionTracker::to_json() const -> JSON {
+  assert(this->stack.empty());
+  assert(this->current.empty());
   auto result{JSON::make_object()};
   for (const auto &entry : this->data) {
     result.assign_assume_new(to_string(entry.first),
