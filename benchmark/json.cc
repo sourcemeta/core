@@ -3,7 +3,11 @@
 #include <algorithm> // std::ranges
 #include <cassert>   // assert
 
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
+
+#include <filesystem> // std::filesystem
+#include <sstream>    // std::ostringstream
 
 static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
   // From Unreal Engine `uproject` files
@@ -322,6 +326,20 @@ static void JSON_Parse_Decimal(benchmark::State &state) {
   }
 }
 
+static void JSON_Parse_Schema_ISO_Language(benchmark::State &state) {
+  auto stream{sourcemeta::core::read_file(
+      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+      "2020_12_iso_language_2023_set_3.json")};
+  std::ostringstream buffer;
+  buffer << stream.rdbuf();
+  const auto schema{buffer.str()};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(schema)};
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
 static void JSON_Fast_Hash_Helm_Chart_Lock(benchmark::State &state) {
   // From `helm-chart-lock`
   const auto document{sourcemeta::core::parse_json(R"JSON({
@@ -543,6 +561,7 @@ BENCHMARK(JSON_Array_Of_Objects_Unique);
 BENCHMARK(JSON_Parse_1);
 BENCHMARK(JSON_Parse_Real);
 BENCHMARK(JSON_Parse_Decimal);
+BENCHMARK(JSON_Parse_Schema_ISO_Language);
 BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock);
 BENCHMARK(JSON_Equality_Helm_Chart_Lock);
 BENCHMARK(JSON_String_Equal)->Args({10})->Args({100});
