@@ -89,24 +89,24 @@ TEST(JSON_string, unicode_length_1) {
   EXPECT_EQ(document.at("name").byte_size(), 9);
 }
 
-TEST(JSON_string, contains_true) {
+TEST(JSON_string, includes_true) {
   const sourcemeta::core::JSON document{"foo bar baz"};
-  EXPECT_TRUE(document.contains("foo"));
+  EXPECT_TRUE(document.includes("foo"));
 }
 
-TEST(JSON_string, contains_false) {
+TEST(JSON_string, includes_false) {
   const sourcemeta::core::JSON document{"foo bar baz"};
-  EXPECT_FALSE(document.contains("fooo"));
+  EXPECT_FALSE(document.includes("fooo"));
 }
 
-TEST(JSON_string, contains_character_true) {
+TEST(JSON_string, includes_character_true) {
   const sourcemeta::core::JSON document{"foo"};
-  EXPECT_TRUE(document.contains('f'));
+  EXPECT_TRUE(document.includes('f'));
 }
 
-TEST(JSON_string, contains_character_false) {
+TEST(JSON_string, includes_character_false) {
   const sourcemeta::core::JSON document{"foo"};
-  EXPECT_FALSE(document.contains('b'));
+  EXPECT_FALSE(document.includes('b'));
 }
 
 TEST(JSON_string, trim_const) {

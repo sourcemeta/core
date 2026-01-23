@@ -328,6 +328,46 @@ TEST(JSON_array, contains_string_key_false) {
   EXPECT_FALSE(document.contains(sourcemeta::core::JSON{"baz"}));
 }
 
+TEST(JSON_array, contains_string_literal_true) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ "foo", "bar", "baz" ])JSON");
+  EXPECT_TRUE(document.contains("bar"));
+}
+
+TEST(JSON_array, contains_string_literal_false) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ "foo", "bar", "baz" ])JSON");
+  EXPECT_FALSE(document.contains("qux"));
+}
+
+TEST(JSON_array, contains_string_view_true) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ "foo", "bar", "baz" ])JSON");
+  const sourcemeta::core::JSON::StringView element{"bar"};
+  EXPECT_TRUE(document.contains(element));
+}
+
+TEST(JSON_array, contains_string_view_false) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ "foo", "bar", "baz" ])JSON");
+  const sourcemeta::core::JSON::StringView element{"qux"};
+  EXPECT_FALSE(document.contains(element));
+}
+
+TEST(JSON_array, contains_string_from_std_string) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ "foo", "bar", "baz" ])JSON");
+  const std::string element{"bar"};
+  EXPECT_TRUE(document.contains(element));
+}
+
+TEST(JSON_array, contains_string_in_mixed_array) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(R"JSON([ 1, "bar", true, null ])JSON");
+  EXPECT_TRUE(document.contains("bar"));
+  EXPECT_FALSE(document.contains("foo"));
+}
+
 TEST(JSON_array, defines_any_with_iterators_has_one) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false,\"baz\":true}");
