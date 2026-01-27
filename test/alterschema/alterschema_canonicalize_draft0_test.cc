@@ -18,9 +18,7 @@ TEST(AlterSchema_canonicalize_draft0, boolean_true_1) {
     "$schema": "http://json-schema.org/draft-00/schema#",
     "type": [ "null", "boolean", "object", "array", "string", "number" ],
     "properties": {
-      "foo": {
-        "type": [ "null", "boolean", "object", "array", "string", "number" ]
-      }
+      "foo": true
     }
   })JSON");
 

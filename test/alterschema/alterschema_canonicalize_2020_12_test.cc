@@ -18,9 +18,7 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_2) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0,
-    "allOf": [ false ]
+    "not": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -40,9 +38,7 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_3) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0,
-    "allOf": [ false ]
+    "not": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -69,9 +65,65 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_4) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "not": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_2020_12, allof_false_simplify_preserves_id) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
     "type": "string",
-    "minLength": 0,
     "allOf": [ false ]
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "not": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_2020_12, allof_false_simplify_preserves_anchor) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "myanchor",
+    "type": "string",
+    "allOf": [ false ]
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "myanchor",
+    "not": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_2020_12, allof_false_simplify_removes_defs) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "string",
+    "allOf": [ false ],
+    "$defs": {
+      "foo": { "type": "number" }
+    }
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "not": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -93,7 +145,6 @@ TEST(AlterSchema_canonicalize_2020_12, duplicate_allof_branches_5) {
     "multipleOf": 2,
     "type": "number",
     "anyOf": [
-      false,
       { "type": "number", "multipleOf": 1 }
     ]
   })JSON");
@@ -119,39 +170,12 @@ TEST(AlterSchema_canonicalize_2020_12, dependent_required_tautology_3) {
     "type": "object",
     "required": [ "foo", "bar", "baz" ],
     "dependentRequired": {},
-    "minProperties": 3,
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "baz": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
-    }
+      "foo": true,
+      "bar": true,
+      "baz": true
+    },
+    "minProperties": 3
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -311,7 +335,7 @@ TEST(AlterSchema_canonicalize_2020_12, exclusive_maximum_integer_to_maximum_5) {
       { "enum": [ null ] },
       { "enum": [ false, true ] },
       { "properties": {}, "minProperties": 0, "type": "object" },
-      { "minItems": 0, "type": "array" },
+      { "minItems": 0, "type": "array", "items": true },
       { "minLength": 0, "type": "string" },
       { "type": "number", "exclusiveMaximum": 1 }
     ]
@@ -390,7 +414,7 @@ TEST(AlterSchema_canonicalize_2020_12, exclusive_minimum_integer_to_minimum_5) {
       { "enum": [ null ] },
       { "enum": [ false, true ] },
       { "properties": {}, "minProperties": 0, "type": "object" },
-      { "minItems": 0, "type": "array" },
+      { "minItems": 0, "type": "array", "items": true },
       { "minLength": 0, "type": "string" },
       { "type": "number", "exclusiveMinimum": 1 }
     ]
@@ -415,23 +439,14 @@ TEST(AlterSchema_canonicalize_2020_12, boolean_true_1) {
       { "enum": [ null ] },
       { "enum": [ false, true ] },
       {
-        "minProperties": 0,
         "type": "object",
         "properties": {
-          "foo": {
-            "anyOf": [
-              { "enum": [ null ] },
-              { "enum": [ false, true ] },
-              { "properties": {}, "minProperties": 0, "type": "object" },
-              { "minItems": 0, "type": "array" },
-              { "minLength": 0, "type": "string" },
-              { "type": "number" }
-            ]
-          }
-        }
+          "foo": true
+        },
+        "minProperties": 0
       },
-      { "minItems": 0, "type": "array" },
-      { "minLength": 0, "type": "string" },
+      { "type": "array", "minItems": 0, "items": true },
+      { "type": "string", "minLength": 0 },
       { "type": "number" }
     ]
   })JSON");
@@ -523,7 +538,8 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_3) {
       },
       {
         "type": "array",
-        "minItems": 0
+        "minItems": 0,
+        "items": true
       },
       {
         "type": "string",
@@ -560,7 +576,8 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_4) {
       },
       {
         "type": "array",
-        "minItems": 0
+        "minItems": 0,
+        "items": true
       }
     ],
     "$ref": "#/$defs/foo",
@@ -604,7 +621,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_5) {
               { "enum": [ null ] },
               { "enum": [ false, true ] },
               { "type": "object", "minProperties": 0, "properties": {} },
-              { "type": "array", "minItems": 0 },
+              { "type": "array", "minItems": 0, "items": true },
               { "type": "string", "minLength": 1 },
               { "type": "number" }
             ]
@@ -614,7 +631,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_5) {
               { "enum": [ null ] },
               { "enum": [ false, true ] },
               { "type": "object", "minProperties": 0, "properties": {} },
-              { "type": "array", "minItems": 0 },
+              { "type": "array", "minItems": 0, "items": true },
               { "type": "string", "minLength": 0 },
               { "type": "number", "minimum": 0 }
             ]
@@ -647,7 +664,8 @@ TEST(AlterSchema_canonicalize_2020_12, max_contains_covered_by_max_items_1) {
     },
     "maxContains": 1,
     "minItems": 0,
-    "maxItems": 1
+    "maxItems": 1,
+    "items": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -669,26 +687,8 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_covered_by_required_1) {
     "minProperties": 2,
     "required": [ "foo", "bar" ],
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
+      "foo": true,
+      "bar": true
     }
   })JSON");
 
@@ -708,29 +708,11 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_implicit_1) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "required": [ "foo", "bar" ],
-    "minProperties": 2,
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
-    }
+      "foo": true,
+      "bar": true
+    },
+    "minProperties": 2
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -750,29 +732,11 @@ TEST(AlterSchema_canonicalize_2020_12, min_properties_implicit_2) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "required": [ "foo", "bar" ],
-    "minProperties": 2,
     "properties": {
-      "foo": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      },
-      "bar": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
-    }
+      "foo": true,
+      "bar": true
+    },
+    "minProperties": 2
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -793,7 +757,8 @@ TEST(AlterSchema_canonicalize_2020_12, min_items_given_min_contains_1) {
     "type": "array",
     "contains": { "enum": [ false, true ] },
     "minContains": 3,
-    "minItems": 3
+    "minItems": 3,
+    "items": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -811,7 +776,8 @@ TEST(AlterSchema_canonicalize_2020_12, min_items_given_min_contains_2) {
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "array",
-    "minItems": 0
+    "minItems": 0,
+    "items": true
   })JSON");
 
   EXPECT_EQ(document, expected);
@@ -1152,37 +1118,18 @@ TEST(AlterSchema_canonicalize_2020_12, allof_two_required_branches_1) {
     "type": "object",
     "required": [ "b" ],
     "anyOf": [
-      false,
       {
         "type": "object",
         "required": [ "a" ],
         "properties": {
-          "a": {
-            "anyOf": [
-              { "enum": [ null ] },
-              { "enum": [ false, true ] },
-              { "type": "object", "minProperties": 0, "properties": {} },
-              { "type": "array", "minItems": 0 },
-              { "type": "string", "minLength": 0 },
-              { "type": "number" }
-            ]
-          }
+          "a": true
         },
         "minProperties": 1
       }
     ],
     "minProperties": 1,
     "properties": {
-      "b": {
-        "anyOf": [
-          { "enum": [ null ] },
-          { "enum": [ false, true ] },
-          { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
-          { "type": "string", "minLength": 0 },
-          { "type": "number" }
-        ]
-      }
+      "b": true
     }
   })JSON");
 
@@ -1227,7 +1174,6 @@ TEST(AlterSchema_canonicalize_2020_12, allof_two_properties_branches_1) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
     "anyOf": [
-      false,
       {
         "type": "object",
         "properties": {
@@ -1236,7 +1182,7 @@ TEST(AlterSchema_canonicalize_2020_12, allof_two_properties_branches_1) {
               { "enum": [ null ] },
               { "enum": [ false, true ] },
               { "type": "object", "minProperties": 0, "properties": {} },
-              { "type": "array", "minItems": 0 },
+              { "type": "array", "minItems": 0, "items": true },
               { "type": "string", "minLength": 0 },
               { "type": "number" }
             ]
@@ -1258,7 +1204,7 @@ TEST(AlterSchema_canonicalize_2020_12, allof_two_properties_branches_1) {
                   { "enum": [ null ] },
                   { "enum": [ false, true ] },
                   { "type": "object", "minProperties": 0, "properties": {} },
-                  { "type": "array", "minItems": 0 },
+                  { "type": "array", "minItems": 0, "items": true },
                   { "type": "string", "minLength": 0 },
                   { "type": "number" }
                 ]
@@ -1266,7 +1212,7 @@ TEST(AlterSchema_canonicalize_2020_12, allof_two_properties_branches_1) {
             },
             "minProperties": 0
           },
-          { "type": "array", "minItems": 0 },
+          { "type": "array", "minItems": 0, "items": true },
           { "type": "string", "minLength": 0 },
           { "type": "number" }
         ]
@@ -1296,7 +1242,7 @@ TEST(AlterSchema_canonicalize_2020_12,
       { "enum": [ null ] },
       { "enum": [ false, true ] },
       { "type": "object", "minProperties": 0, "properties": {} },
-      { "type": "array", "minItems": 0 },
+      { "type": "array", "minItems": 0, "items": true },
       { "type": "string", "minLength": 0 },
       { "type": "number" }
     ]
@@ -1323,13 +1269,12 @@ TEST(AlterSchema_canonicalize_2020_12,
     "type": "string",
     "minLength": 0,
     "anyOf": [
-      false,
       {
         "anyOf": [
           { "enum": [ null ] },
           { "enum": [ false, true ] },
           { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
+          { "type": "array", "minItems": 0, "items": true },
           { "type": "string", "minLength": 1 },
           { "type": "number" }
         ]
@@ -1363,7 +1308,7 @@ TEST(AlterSchema_canonicalize_2020_12,
           { "enum": [ null ] },
           { "enum": [ false, true ] },
           { "type": "object", "minProperties": 0, "properties": {} },
-          { "type": "array", "minItems": 0 },
+          { "type": "array", "minItems": 0, "items": true },
           { "type": "string", "minLength": 0 },
           { "type": "number", "minimum": 0 }
         ]
@@ -1393,6 +1338,101 @@ TEST(AlterSchema_canonicalize_2020_12,
     "if": false,
     "then": false,
     "else": false
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_2020_12,
+     allof_two_properties_branches_with_typed_values_1) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "allOf": [
+      {
+        "properties": {
+          "name": { "type": "string" }
+        }
+      },
+      {
+        "properties": {
+          "age": { "type": "integer" }
+        }
+      }
+    ]
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "anyOf": [
+      {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 0 }
+        },
+        "minProperties": 0
+      }
+    ],
+    "allOf": [
+      {
+        "anyOf": [
+          { "enum": [ null ] },
+          { "enum": [ false, true ] },
+          {
+            "type": "object",
+            "properties": {
+              "age": { "type": "integer", "multipleOf": 1 }
+            },
+            "minProperties": 0
+          },
+          { "type": "array", "minItems": 0, "items": true },
+          { "type": "string", "minLength": 0 },
+          { "type": "number" }
+        ]
+      }
+    ],
+    "minProperties": 0,
+    "properties": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_2020_12, items_implicit_1) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "array"
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "array",
+    "minItems": 0,
+    "items": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_canonicalize_2020_12, items_implicit_2) {
+  auto document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "array",
+    "items": { "type": "string" }
+  })JSON");
+
+  CANONICALIZE(document);
+
+  const auto expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "array",
+    "minItems": 0,
+    "items": { "type": "string", "minLength": 0 }
   })JSON");
 
   EXPECT_EQ(document, expected);
