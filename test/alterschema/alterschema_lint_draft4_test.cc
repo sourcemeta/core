@@ -286,52 +286,6 @@ TEST(AlterSchema_lint_draft4, non_applicable_enum_validation_keywords_9) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_draft4, additional_properties_default_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "additionalProperties": true
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft4, additional_properties_default_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "additionalProperties": {}
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft4, additional_properties_default_3) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "additionalProperties": false
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "additionalProperties": false
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_draft4, items_schema_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",

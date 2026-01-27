@@ -843,52 +843,6 @@ TEST(AlterSchema_lint_2020_12, unevaluated_items_default_3) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, additional_properties_default_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": true
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_2020_12, additional_properties_default_2) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": {}
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_2020_12, additional_properties_default_3) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": false
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_2020_12, content_schema_default_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -7211,28 +7165,6 @@ TEST(AlterSchema_lint_2020_12, items_schema_default_with_reference) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, additional_properties_default_with_reference) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": true,
-    "items": {
-      "$ref": "#/additionalProperties"
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "additionalProperties": true,
-    "items": {
-      "$ref": "#/additionalProperties"
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_lint_2020_12, unevaluated_properties_default_with_reference) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -7498,41 +7430,6 @@ TEST(AlterSchema_lint_2020_12,
     },
     "additionalProperties": {
       "$ref": "#/items"
-    }
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_2020_12,
-     additional_properties_default_nested_resource_with_reference) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "#/$defs/nested",
-    "$defs": {
-      "nested": {
-        "$id": "nested",
-        "additionalProperties": true,
-        "properties": {
-          "foo": { "$ref": "#/additionalProperties" }
-        }
-      }
-    }
-  })JSON");
-
-  LINT_AND_FIX(document);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$ref": "#/$defs/nested",
-    "$defs": {
-      "nested": {
-        "$id": "nested",
-        "additionalProperties": true,
-        "properties": {
-          "foo": { "$ref": "#/additionalProperties" }
-        }
-      }
     }
   })JSON");
 
