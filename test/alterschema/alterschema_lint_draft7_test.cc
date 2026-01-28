@@ -10,7 +10,9 @@ TEST(AlterSchema_lint_draft7, enum_to_const_1) {
     "enum": [ 1 ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -27,7 +29,9 @@ TEST(AlterSchema_lint_draft7, const_with_type_1) {
     "const": "foo"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -44,7 +48,9 @@ TEST(AlterSchema_lint_draft7, const_with_type_2) {
     "const": "foo"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -61,7 +67,9 @@ TEST(AlterSchema_lint_draft7, const_with_type_3) {
     "const": "foo"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -79,7 +87,9 @@ TEST(AlterSchema_lint_draft7, const_with_type_4) {
     "const": "foo"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -97,7 +107,9 @@ TEST(AlterSchema_lint_draft7, enum_with_type_1) {
     "enum": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -114,7 +126,9 @@ TEST(AlterSchema_lint_draft7, enum_with_type_2) {
     "enum": [ "foo", 1 ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -132,7 +146,9 @@ TEST(AlterSchema_lint_draft7, enum_with_type_3) {
     "enum": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -149,7 +165,9 @@ TEST(AlterSchema_lint_draft7, enum_with_type_4) {
     "enum": [ "foo", "bar", "null" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -166,7 +184,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_1) {
     "minimum": 0
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -184,7 +204,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_2) {
     "maxLength": 5
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -202,7 +224,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_3) {
     "minimum": 0
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -219,7 +243,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_4) {
     "minLength": 2
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -239,7 +265,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_5) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -263,7 +291,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_6) {
     "minimum": 10
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -286,7 +316,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_7) {
     "minItems": 2
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -311,7 +343,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_8) {
     "maxProperties": 5
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -343,7 +377,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_enum_validation_keywords_9) {
     "maxProperties": 5
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -364,7 +400,9 @@ TEST(AlterSchema_lint_draft7, single_type_array_1) {
     "type": [ "string" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -380,7 +418,9 @@ TEST(AlterSchema_lint_draft7, content_media_type_without_encoding_1) {
     "contentMediaType": "application/json"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -395,7 +435,9 @@ TEST(AlterSchema_lint_draft7, then_without_if_1) {
     "then": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -411,7 +453,9 @@ TEST(AlterSchema_lint_draft7, then_without_if_2) {
     "then": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -428,7 +472,9 @@ TEST(AlterSchema_lint_draft7, else_without_if_1) {
     "else": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -444,7 +490,9 @@ TEST(AlterSchema_lint_draft7, else_without_if_2) {
     "else": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -461,7 +509,9 @@ TEST(AlterSchema_lint_draft7, if_without_then_else_1) {
     "if": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -476,7 +526,9 @@ TEST(AlterSchema_lint_draft7, items_schema_default_1) {
     "items": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -491,7 +543,9 @@ TEST(AlterSchema_lint_draft7, items_schema_default_2) {
     "items": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -506,7 +560,9 @@ TEST(AlterSchema_lint_draft7, items_schema_default_3) {
     "items": { "type": "string" }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -522,7 +578,9 @@ TEST(AlterSchema_lint_draft7, items_array_default_1) {
     "items": []
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -537,7 +595,9 @@ TEST(AlterSchema_lint_draft7, duplicate_enum_values_7) {
     "enum": [ 1, {}, 2, 1, 1, 3, {} ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -553,7 +613,9 @@ TEST(AlterSchema_lint_draft7, duplicate_required_values_1) {
     "required": [ "foo", "bar", "baz", "foo" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -575,7 +637,9 @@ TEST(AlterSchema_lint_draft7, exclusive_maximum_number_and_maximum_1) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -592,7 +656,9 @@ TEST(AlterSchema_lint_draft7, exclusive_maximum_number_and_maximum_2) {
     "maximum": 2
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -609,7 +675,9 @@ TEST(AlterSchema_lint_draft7, exclusive_maximum_number_and_maximum_3) {
     "maximum": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -626,7 +694,9 @@ TEST(AlterSchema_lint_draft7, exclusive_minimum_number_and_minimum_1) {
     "minimum": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -643,7 +713,9 @@ TEST(AlterSchema_lint_draft7, exclusive_minimum_number_and_minimum_2) {
     "minimum": 2
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -660,7 +732,9 @@ TEST(AlterSchema_lint_draft7, exclusive_minimum_number_and_minimum_3) {
     "minimum": 4
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -676,7 +750,9 @@ TEST(AlterSchema_lint_draft7, duplicate_allof_branches_1) {
     "allOf": [ { "type": "string" }, { "type": "integer" }, { "type": "string" } ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -692,7 +768,9 @@ TEST(AlterSchema_lint_draft7, duplicate_anyof_branches_1) {
     "anyOf": [ { "type": "string" }, { "type": "integer" }, { "type": "string" } ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -708,7 +786,9 @@ TEST(AlterSchema_lint_draft7, anyof_true_simplify_1) {
     "anyOf": [ true, { "type": "string" } ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -723,7 +803,9 @@ TEST(AlterSchema_lint_draft7, anyof_true_simplify_2) {
     "anyOf": [ { "type": "string" }, {} ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -738,7 +820,9 @@ TEST(AlterSchema_lint_draft7, anyof_false_simplify_1) {
     "anyOf": [ false ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -755,7 +839,9 @@ TEST(AlterSchema_lint_draft7, anyof_false_simplify_2) {
     "not": { "type": "string" }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -772,7 +858,9 @@ TEST(AlterSchema_lint_draft7, oneof_false_simplify_1) {
     "oneOf": [ false ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -789,7 +877,9 @@ TEST(AlterSchema_lint_draft7, oneof_false_simplify_2) {
     "not": { "type": "string" }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -809,7 +899,9 @@ TEST(AlterSchema_lint_draft7, oneof_to_anyof_disjoint_types_1) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -831,7 +923,9 @@ TEST(AlterSchema_lint_draft7, oneof_to_anyof_disjoint_types_2) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -851,7 +945,9 @@ TEST(AlterSchema_lint_draft7, maximum_real_for_integer_1) {
     "maximum": 3.5
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -869,7 +965,9 @@ TEST(AlterSchema_lint_draft7, minimum_real_for_integer_1) {
     "minimum": 3.5
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -887,7 +985,9 @@ TEST(AlterSchema_lint_draft7, maximum_real_for_integer_decimal_1) {
     "maximum": 9.99999999999999999999999999999e400
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -905,7 +1005,9 @@ TEST(AlterSchema_lint_draft7, minimum_real_for_integer_decimal_1) {
     "minimum": 9.99999999999999999999999999999e400
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -927,7 +1029,9 @@ TEST(AlterSchema_lint_draft7, dependent_required_tautology_1) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -955,7 +1059,9 @@ TEST(AlterSchema_lint_draft7, dependent_required_tautology_2) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -976,7 +1082,9 @@ TEST(AlterSchema_lint_draft7, properties_default_1) {
     "properties": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -991,7 +1099,9 @@ TEST(AlterSchema_lint_draft7, pattern_properties_default_1) {
     "patternProperties": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1007,7 +1117,9 @@ TEST(AlterSchema_lint_draft7, unsatisfiable_min_properties_1) {
     "minProperties": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1029,7 +1141,9 @@ TEST(AlterSchema_lint_draft7, unsatisfiable_min_properties_2) {
     "minProperties": 4
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1052,7 +1166,9 @@ TEST(AlterSchema_lint_draft7, unsatisfiable_min_properties_3) {
     "minProperties": 2
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1077,7 +1193,9 @@ TEST(AlterSchema_lint_draft7, drop_non_array_keywords_1) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1099,7 +1217,9 @@ TEST(AlterSchema_lint_draft7, drop_non_boolean_keywords_1) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1120,7 +1240,9 @@ TEST(AlterSchema_lint_draft7, drop_non_null_keywords_1) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1141,7 +1263,9 @@ TEST(AlterSchema_lint_draft7, drop_non_numeric_keywords_1) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1162,7 +1286,9 @@ TEST(AlterSchema_lint_draft7, drop_non_numeric_keywords_2) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1183,7 +1309,9 @@ TEST(AlterSchema_lint_draft7, drop_non_object_keywords_1) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1205,7 +1333,9 @@ TEST(AlterSchema_lint_draft7, drop_non_string_keywords_1) {
     "minItems": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1223,7 +1353,9 @@ TEST(AlterSchema_lint_draft7, type_boolean_as_enum_3) {
     "type": "boolean"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1239,7 +1371,9 @@ TEST(AlterSchema_lint_draft7, type_null_as_enum_3) {
     "type": "null"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1255,7 +1389,9 @@ TEST(AlterSchema_lint_draft7, const_as_enum_2) {
     "const": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1272,7 +1408,9 @@ TEST(AlterSchema_lint_draft7, exclusive_maximum_integer_to_maximum_4) {
     "exclusiveMaximum": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1290,7 +1428,9 @@ TEST(AlterSchema_lint_draft7, exclusive_minimum_integer_to_minimum_4) {
     "exclusiveMinimum": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1309,7 +1449,9 @@ TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_1) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1327,7 +1469,9 @@ TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_2) {
     "maximum": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1345,7 +1489,9 @@ TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_decimal_1) {
     "maximum": 1.0e400
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1363,7 +1509,9 @@ TEST(AlterSchema_lint_draft7, equal_numeric_bounds_to_const_decimal_2) {
     "maximum": 1.23456789012345678901234567890e500
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1381,7 +1529,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_1) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1401,7 +1551,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_2) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1420,7 +1572,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_3) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1440,7 +1594,9 @@ TEST(AlterSchema_lint_draft7, multiple_of_default_1) {
     "multipleOf": 1
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1459,7 +1615,9 @@ TEST(AlterSchema_lint_draft7, multiple_of_default_2) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1487,7 +1645,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_properties_1) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1515,7 +1675,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_ref_wrapper_draft_elevation) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1537,7 +1699,9 @@ TEST(AlterSchema_lint_draft7,
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1559,7 +1723,9 @@ TEST(AlterSchema_lint_draft7,
     "type": "object"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1584,7 +1750,9 @@ TEST(AlterSchema_lint_draft7,
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1608,7 +1776,9 @@ TEST(AlterSchema_lint_draft7,
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1627,7 +1797,9 @@ TEST(AlterSchema_lint_draft7, draft_official_dialect_without_empty_fragment_1) {
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1644,7 +1816,9 @@ TEST(AlterSchema_lint_draft7,
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/hyper-schema#",
@@ -1661,7 +1835,9 @@ TEST(AlterSchema_lint_draft7,
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1680,7 +1856,9 @@ TEST(AlterSchema_lint_draft7, additional_items_with_schema_items_1) {
     "additionalItems": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1705,7 +1883,9 @@ TEST(AlterSchema_lint_draft7, additional_items_with_schema_items_2) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1727,7 +1907,9 @@ TEST(AlterSchema_lint_draft7,
     "additionalItems": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1746,7 +1928,9 @@ TEST(AlterSchema_lint_draft7,
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1766,7 +1950,9 @@ TEST(AlterSchema_lint_draft7, additional_items_with_schema_items_array_items) {
     "additionalItems": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1793,7 +1979,9 @@ TEST(AlterSchema_lint_draft7, then_empty_1) {
     "then": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1815,7 +2003,9 @@ TEST(AlterSchema_lint_draft7, else_empty_1) {
     "else": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1838,7 +2028,9 @@ TEST(AlterSchema_lint_draft7, then_empty_2) {
     "else": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1863,7 +2055,9 @@ TEST(AlterSchema_lint_draft7, else_empty_2) {
     "else": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1900,7 +2094,9 @@ TEST(AlterSchema_lint_draft7, then_empty_3) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1928,7 +2124,9 @@ TEST(AlterSchema_lint_draft7, then_empty_4) {
     "then": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -1947,7 +2145,9 @@ TEST(AlterSchema_lint_draft7, property_names_type_default_1) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1967,7 +2167,9 @@ TEST(AlterSchema_lint_draft7, property_names_default_1) {
     "propertyNames": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1984,7 +2186,9 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_1) {
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2002,7 +2206,9 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_2) {
     "description": "A string field"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2024,7 +2230,9 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_3) {
     "type": "object"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2042,7 +2250,9 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_4) {
     "description": "Documentation only"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2058,7 +2268,9 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_5) {
     "$ref": "#/definitions/foo"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2080,7 +2292,9 @@ TEST(AlterSchema_lint_draft7, draft_ref_siblings_6) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2103,7 +2317,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_type_specific_keywords_1) {
     "maxLength": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2121,7 +2337,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_type_specific_keywords_2) {
     "maxLength": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2139,7 +2357,9 @@ TEST(AlterSchema_lint_draft7, non_applicable_type_specific_keywords_3) {
     "maxLength": 3
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2157,7 +2377,9 @@ TEST(AlterSchema_lint_draft7, not_false_1) {
     "not": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2174,7 +2396,9 @@ TEST(AlterSchema_lint_draft7, not_false_2) {
     "not": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2190,7 +2414,9 @@ TEST(AlterSchema_lint_draft7, not_false_3) {
     "not": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2206,7 +2432,9 @@ TEST(AlterSchema_lint_draft7, not_false_4) {
     "not": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2225,7 +2453,9 @@ TEST(AlterSchema_lint_draft7, not_false_5) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2244,7 +2474,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2267,7 +2499,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_2) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2292,7 +2526,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_3) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2314,7 +2550,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_4) {
     "properties": {}
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2334,7 +2572,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_5) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2355,7 +2595,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_16) {
     "additionalProperties": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2376,7 +2618,9 @@ TEST(AlterSchema_lint_draft7, required_properties_in_properties_17) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2397,7 +2641,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_1) {
     "fooBar": true
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2415,7 +2661,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_2) {
     "baz": 123
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2435,7 +2683,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_3) {
     "needsPrefix": "value"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2457,7 +2707,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_4) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2478,7 +2730,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_5) {
     "type": "object"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2499,7 +2753,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_6) {
     "additionalProperties": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2521,7 +2777,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_7) {
     "title": "test"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2539,7 +2797,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_8) {
     "type": "object"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2560,7 +2820,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_9) {
     "type": "object"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2586,7 +2848,9 @@ TEST(AlterSchema_lint_draft7, unknown_keywords_prefix_10) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2610,7 +2874,9 @@ TEST(AlterSchema_lint_draft7, top_level_ref_with_id) {
     "$ref": "https://example.com"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2626,7 +2892,9 @@ TEST(AlterSchema_lint_draft7, additional_items_with_no_items) {
     "additionalItems": false
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#"
@@ -2642,7 +2910,9 @@ TEST(AlterSchema_lint_draft7, comment_trim_1) {
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2660,7 +2930,9 @@ TEST(AlterSchema_lint_draft7, comment_trim_2) {
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2710,7 +2982,9 @@ TEST(AlterSchema_lint_draft7, duplicate_examples_1) {
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2728,7 +3002,9 @@ TEST(AlterSchema_lint_draft7, duplicate_examples_2) {
     "type": "string"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2748,7 +3024,9 @@ TEST(AlterSchema_lint_draft7, orphan_definitions_1) {
     "type": "object"
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2769,7 +3047,9 @@ TEST(AlterSchema_lint_draft7, orphan_definitions_2) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2796,7 +3076,9 @@ TEST(AlterSchema_lint_draft7, orphan_definitions_3) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2821,7 +3103,9 @@ TEST(AlterSchema_lint_draft7,
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2846,7 +3130,9 @@ TEST(AlterSchema_lint_draft7,
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2865,7 +3151,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_with_id_not_elevated) {
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2886,7 +3174,9 @@ TEST(AlterSchema_lint_draft7,
     ]
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3009,7 +3299,9 @@ TEST(AlterSchema_lint_draft7, unnecessary_allof_wrapper_draft_with_reference) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3035,7 +3327,9 @@ TEST(AlterSchema_lint_draft7, dependencies_default_with_reference) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3065,7 +3359,9 @@ TEST(AlterSchema_lint_draft7,
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3107,7 +3403,9 @@ TEST(AlterSchema_lint_draft7,
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3140,7 +3438,9 @@ TEST(AlterSchema_lint_draft7, empty_object_as_true_1) {
     }
   })JSON");
 
-  LINT_AND_FIX(document);
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",

@@ -14,7 +14,9 @@ TEST(AlterSchema_canonicalize_draft7, duplicate_allof_branches_2) {
     ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -34,7 +36,9 @@ TEST(AlterSchema_canonicalize_draft7, duplicate_allof_branches_3) {
     ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -61,7 +65,9 @@ TEST(AlterSchema_canonicalize_draft7, duplicate_allof_branches_4) {
     ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -77,7 +83,9 @@ TEST(AlterSchema_canonicalize_draft7, type_boolean_as_enum_1) {
     "type": "boolean"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -94,7 +102,9 @@ TEST(AlterSchema_canonicalize_draft7, type_boolean_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -111,7 +121,9 @@ TEST(AlterSchema_canonicalize_draft7, type_null_as_enum_1) {
     "type": "null"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -128,7 +140,9 @@ TEST(AlterSchema_canonicalize_draft7, type_null_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -145,7 +159,9 @@ TEST(AlterSchema_canonicalize_draft7, const_as_enum_1) {
     "const": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -162,7 +178,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_maximum_integer_to_maximum_1) {
     "exclusiveMaximum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -181,7 +199,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_maximum_integer_to_maximum_2) {
     "exclusiveMaximum": 1.2
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -200,7 +220,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_maximum_integer_to_maximum_3) {
     "exclusiveMaximum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -217,7 +239,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_maximum_integer_to_maximum_5) {
     "exclusiveMaximum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -241,7 +265,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_minimum_integer_to_minimum_1) {
     "exclusiveMinimum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -260,7 +286,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_minimum_integer_to_minimum_2) {
     "exclusiveMinimum": 1.2
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -279,7 +307,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_minimum_integer_to_minimum_3) {
     "exclusiveMinimum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -296,7 +326,9 @@ TEST(AlterSchema_canonicalize_draft7, exclusive_minimum_integer_to_minimum_5) {
     "exclusiveMinimum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -321,7 +353,9 @@ TEST(AlterSchema_canonicalize_draft7,
     "exclusiveMaximum": 1.0e400
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -341,7 +375,9 @@ TEST(AlterSchema_canonicalize_draft7,
     "exclusiveMaximum": 9.99999999999999999999999999999e400
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -361,7 +397,9 @@ TEST(AlterSchema_canonicalize_draft7,
     "exclusiveMinimum": 1.0e400
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -381,7 +419,9 @@ TEST(AlterSchema_canonicalize_draft7,
     "exclusiveMinimum": 9.99999999999999999999999999999e400
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -401,7 +441,9 @@ TEST(AlterSchema_canonicalize_draft7, boolean_true_1) {
     }
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -432,7 +474,9 @@ TEST(AlterSchema_canonicalize_draft7, min_properties_covered_by_required_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -455,7 +499,9 @@ TEST(AlterSchema_canonicalize_draft7, min_properties_implicit_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -479,7 +525,9 @@ TEST(AlterSchema_canonicalize_draft7, min_properties_implicit_2) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -501,7 +549,9 @@ TEST(AlterSchema_canonicalize_draft7, items_implicit_1) {
     "type": "array"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
