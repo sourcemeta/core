@@ -5,6 +5,7 @@
 
 class ExampleRule1 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule1()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_1", "Keyword foo is not permitted") {};
@@ -30,6 +31,7 @@ public:
 class ExampleRule1WithPointer final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule1WithPointer()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_1", "Keyword foo is not permitted") {};
@@ -59,6 +61,7 @@ public:
 class ExampleRule1WithDescription final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule1WithDescription()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_1", "Keyword foo is not permitted") {};
@@ -90,6 +93,7 @@ public:
 class ExampleRuleWithManyPointers final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleWithManyPointers()
       : sourcemeta::core::SchemaTransformRule("example_rule_with_many_pointers",
                                               "Foo Bar") {};
@@ -121,6 +125,7 @@ public:
 
 class ExampleRule2 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule2()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_2", "Keyword bar is not permitted") {};
@@ -145,6 +150,7 @@ public:
 
 class ExampleRule3 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule3()
       : sourcemeta::core::SchemaTransformRule("example_rule_3",
                                               "Example rule 3") {};
@@ -170,6 +176,7 @@ public:
 
 class ExampleRule4 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule4()
       : sourcemeta::core::SchemaTransformRule("example_rule_4",
                                               "Example rule 4") {};
@@ -194,6 +201,7 @@ public:
 
 class ExampleRule5 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule5()
       : sourcemeta::core::SchemaTransformRule("example_rule_5",
                                               "Example rule 5") {};
@@ -221,6 +229,7 @@ public:
 
 class ExampleRule6 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule6()
       : sourcemeta::core::SchemaTransformRule("example_rule_6",
                                               "Example rule 6") {};
@@ -247,6 +256,7 @@ public:
 
 class ExampleRule7 final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRule7()
       : sourcemeta::core::SchemaTransformRule("example_rule_1",
                                               "My custom message") {};
@@ -272,6 +282,7 @@ public:
 class ExampleRuleConflictsWith1 final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleConflictsWith1()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_conflicts_with_1",
@@ -298,6 +309,7 @@ public:
 class ExampleRuleUnfixable1 final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::false_type;
   ExampleRuleUnfixable1()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_unfixable_1",
@@ -318,6 +330,7 @@ public:
 class ExampleRuleDefinitionsToDefsNoRereference final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleDefinitionsToDefsNoRereference()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_definitions_to_defs_no_rereference",
@@ -344,6 +357,7 @@ public:
 class ExampleRuleDefinitionsToDefsWithRereference final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleDefinitionsToDefsWithRereference()
       : sourcemeta::core::SchemaTransformRule(
             "example_rule_definitions_to_defs_with_rereference",
@@ -379,6 +393,7 @@ public:
 class ExampleRuleRemoveIdentifiers final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleRemoveIdentifiers()
       : sourcemeta::core::SchemaTransformRule("example_rule_remove_identifiers",
                                               "Remove all identifiers") {};
@@ -404,6 +419,7 @@ public:
 
 class ExampleRuleDraftTag final : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleDraftTag()
       : sourcemeta::core::SchemaTransformRule("example_rule_draft_tag", "") {};
 
@@ -438,6 +454,7 @@ public:
 class ExampleRuleModernTag final
     : public sourcemeta::core::SchemaTransformRule {
 public:
+  using mutates = std::true_type;
   ExampleRuleModernTag()
       : sourcemeta::core::SchemaTransformRule("example_rule_modern_tag", "") {};
 

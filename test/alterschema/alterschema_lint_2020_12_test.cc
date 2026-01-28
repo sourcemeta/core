@@ -5710,6 +5710,140 @@ TEST(AlterSchema_lint_2020_12, description_trim_5) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, description_trim_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "a": {
+        "description": " untrimmed description a "
+      },
+      "b": {
+        "description": " untrimmed description b "
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 3);
+  EXPECT_LINT_TRACE(traces, 0, "", "top_level_title",
+                    "Set a concise non-empty title at the top level of the "
+                    "schema to explain what the definition is about");
+  EXPECT_LINT_TRACE(traces, 1, "", "top_level_description",
+                    "Set a non-empty description at the top level of the "
+                    "schema to explain what the definition is about in detail");
+  EXPECT_LINT_TRACE(traces, 2, "", "top_level_examples",
+                    "Set a non-empty examples array at the top level of the "
+                    "schema to illustrate the expected data");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "a": {
+        "description": "untrimmed description a"
+      },
+      "b": {
+        "description": "untrimmed description b"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, description_trim_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "My Title",
+    "description": "My Description",
+    "examples": [ "foo" ],
+    "allOf": [
+      { "minLength": 1 },
+      { "minLength": 1 },
+      { "minLength": 1 },
+      {
+        "properties": {
+          "foo": { "description": " untrimmed " }
+        }
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "My Title",
+    "description": "My Description",
+    "examples": [ "foo" ],
+    "properties": {
+      "foo": { "description": "untrimmed" }
+    },
+    "minLength": 1
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, unfixable_allof_renumber_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "My Title",
+    "description": "My Description",
+    "examples": [ "foo" ],
+    "properties": {
+      "foo-bar": { "type": "number" }
+    },
+    "allOf": [
+      { "minLength": 1 },
+      { "minLength": 1 },
+      { "minLength": 1 },
+      {
+        "properties": {
+          "foo-bar": { "type": "string" }
+        }
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 2);
+  EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
+                    "Set `properties` to identifier names that can be easily "
+                    "mapped to programming languages (matching "
+                    "[A-Za-z_][A-Za-z0-9_]*)");
+  EXPECT_LINT_TRACE(traces, 1, "/allOf/0", "simple_properties_identifiers",
+                    "Set `properties` to identifier names that can be easily "
+                    "mapped to programming languages (matching "
+                    "[A-Za-z_][A-Za-z0-9_]*)");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "My Title",
+    "description": "My Description",
+    "examples": [ "foo" ],
+    "properties": {
+      "foo-bar": { "type": "number" }
+    },
+    "minLength": 1,
+    "allOf": [
+      {
+        "properties": {
+          "foo-bar": { "type": "string" }
+        }
+      }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12, title_trim_and_trailing_period_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
