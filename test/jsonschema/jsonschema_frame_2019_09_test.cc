@@ -1953,12 +1953,12 @@ TEST(JSONSchema_frame_2019_09, ref_with_id) {
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/$defs/string",
       "https://www.sourcemeta.com/schema", "/$defs/string",
-      "https://www.sourcemeta.com/schema", "/$defs/string", "", false, false);
+      "https://www.sourcemeta.com/schema", "/$defs/string", "", false, true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$defs/string/type",
       "https://www.sourcemeta.com/schema", "/$defs/string/type",
       "https://www.sourcemeta.com/schema", "/$defs/string/type",
-      "/$defs/string", false, false);
+      "/$defs/string", false, true);
 
   // References
 
@@ -2018,22 +2018,22 @@ TEST(JSONSchema_frame_2019_09, ref_from_definitions) {
       frame, "https://www.sourcemeta.com/schema#/definitions/middle",
       "https://www.sourcemeta.com/schema", "/definitions/middle",
       "https://www.sourcemeta.com/schema", "/definitions/middle", "", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/definitions/middle/$ref",
       "https://www.sourcemeta.com/schema", "/definitions/middle/$ref",
       "https://www.sourcemeta.com/schema", "/definitions/middle/$ref",
-      "/definitions/middle", false, false);
+      "/definitions/middle", false, true);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/definitions/string",
       "https://www.sourcemeta.com/schema", "/definitions/string",
       "https://www.sourcemeta.com/schema", "/definitions/string", "", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/definitions/string/type",
       "https://www.sourcemeta.com/schema", "/definitions/string/type",
       "https://www.sourcemeta.com/schema", "/definitions/string/type",
-      "/definitions/string", false, false);
+      "/definitions/string", false, true);
 
   // References
 
@@ -2113,7 +2113,7 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
   // Anchors
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(frame, "common#foo", "common",
                                      "/$defs/foo", "common", "/$defs/foo", "",
-                                     false, false);
+                                     false, true);
 
   // JSON Pointers
 
@@ -2136,10 +2136,10 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
                                       false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(frame, "common#/$defs/foo", "common",
                                         "/$defs/foo", "common", "/$defs/foo",
-                                        "", false, false);
+                                        "", false, true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "common#/$defs/foo/$anchor", "common", "/$defs/foo/$anchor",
-      "common", "/$defs/foo/$anchor", "/$defs/foo", false, false);
+      "common", "/$defs/foo/$anchor", "/$defs/foo", false, true);
 
   // References
 
@@ -2331,7 +2331,7 @@ TEST(JSONSchema_frame_2019_09, propertyNames_with_nested_applicators) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames/$defs/test", "/propertyNames/$defs/test",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", false, false);
+      "/propertyNames", false, true);
 
   // Anchors
 
@@ -2402,7 +2402,7 @@ TEST(JSONSchema_frame_2019_09, propertyNames_with_nested_applicators) {
       frame, "#/propertyNames/$defs/test/type",
       "/propertyNames/$defs/test/type",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/$defs/test", false, false);
+      "/propertyNames/$defs/test", false, true);
 
   // References
 

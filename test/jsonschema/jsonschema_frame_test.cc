@@ -43,12 +43,12 @@ TEST(JSONSchema_frame, nested_schemas_mixing_dialects) {
       frame, "https://www.sourcemeta.com/foo",
       "https://www.sourcemeta.com/test", "/$defs/foo",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/foo", "", "", false, false);
+      "https://www.sourcemeta.com/foo", "", "", false, true);
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://www.sourcemeta.com/bar",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/bar", "", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/bar", "", "/$defs/foo", false, true);
 
   // JSON Pointers
 
@@ -71,85 +71,85 @@ TEST(JSONSchema_frame, nested_schemas_mixing_dialects) {
       frame, "https://www.sourcemeta.com/test#/$defs/foo",
       "https://www.sourcemeta.com/test", "/$defs/foo",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/foo", "", "", false, false);
+      "https://www.sourcemeta.com/foo", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/test#/$defs/foo/id",
       "https://www.sourcemeta.com/test", "/$defs/foo/id",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/foo", "/id", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/foo", "/id", "/$defs/foo", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/test#/$defs/foo/$schema",
       "https://www.sourcemeta.com/test", "/$defs/foo/$schema",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/foo", "/$schema", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/foo", "/$schema", "/$defs/foo", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/test#/$defs/foo/definitions",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/foo", "/definitions", "/$defs/foo", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/test#/$defs/foo/definitions/bar",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/bar", "", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/bar", "", "/$defs/foo", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/test#/$defs/foo/definitions/bar/id",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar/id",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/bar", "/id", "/$defs/foo/definitions/bar",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/test#/$defs/foo/definitions/bar/type",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar/type",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/bar", "/type", "/$defs/foo/definitions/bar",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/foo#/id",
       "https://www.sourcemeta.com/test", "/$defs/foo/id",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/foo", "/id", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/foo", "/id", "/$defs/foo", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/foo#/$schema",
       "https://www.sourcemeta.com/test", "/$defs/foo/$schema",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/foo", "/$schema", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/foo", "/$schema", "/$defs/foo", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/foo#/definitions",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/foo", "/definitions", "/$defs/foo", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/foo#/definitions/bar",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
-      "https://www.sourcemeta.com/bar", "", "/$defs/foo", false, false);
+      "https://www.sourcemeta.com/bar", "", "/$defs/foo", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/foo#/definitions/bar/id",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar/id",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/bar", "/id", "/$defs/foo/definitions/bar",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/foo#/definitions/bar/type",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar/type",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/bar", "/type", "/$defs/foo/definitions/bar",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/bar#/id",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar/id",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/bar", "/id", "/$defs/foo/definitions/bar",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://www.sourcemeta.com/bar#/type",
       "https://www.sourcemeta.com/test", "/$defs/foo/definitions/bar/type",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://www.sourcemeta.com/bar", "/type", "/$defs/foo/definitions/bar",
-      false, false);
+      false, true);
 
   // References
 
@@ -222,30 +222,29 @@ TEST(JSONSchema_frame, nested_schemas_sibling_ref_nested_2020_12_draft7) {
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://example.com/embedded", "https://example.com/main",
       "/$defs/embedded", "https://json-schema.org/draft/2020-12/schema",
-      JSON_Schema_2020_12, "https://example.com/embedded", "", "", false,
-      false);
+      JSON_Schema_2020_12, "https://example.com/embedded", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/$schema",
       "https://example.com/main", "/$defs/embedded/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/$schema", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/$id", "https://example.com/main",
       "/$defs/embedded/$id", "https://json-schema.org/draft/2020-12/schema",
       JSON_Schema_2020_12, "https://example.com/embedded", "/$id",
-      "/$defs/embedded", false, false);
+      "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/$ref", "https://example.com/main",
       "/$defs/embedded/$ref", "https://json-schema.org/draft/2020-12/schema",
       JSON_Schema_2020_12, "https://example.com/embedded", "/$ref",
-      "/$defs/embedded", false, false);
+      "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/definitions",
       "https://example.com/main", "/$defs/embedded/definitions",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/definitions", "/$defs/embedded", false,
-      false);
+      true);
 
   // Note that this is still considered to be a subschema, but a 2020-12 one.
   // The logic is that we try to interpret it as Draft 7, given `$schema`, but
@@ -257,54 +256,54 @@ TEST(JSONSchema_frame, nested_schemas_sibling_ref_nested_2020_12_draft7) {
       "https://example.com/main", "/$defs/embedded/definitions/foo",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/definitions/foo", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/definitions/foo/type",
       "https://example.com/main", "/$defs/embedded/definitions/foo/type",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/definitions/foo/type",
-      "/$defs/embedded/definitions/foo", false, false);
+      "/$defs/embedded/definitions/foo", false, true);
 
   // From the root
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/main#/$defs/embedded",
       "https://example.com/main", "/$defs/embedded",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "https://example.com/embedded", "", "", false, false);
+      "https://example.com/embedded", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$schema",
       "https://example.com/main", "/$defs/embedded/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/$schema", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$id",
       "https://example.com/main", "/$defs/embedded/$id",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "https://example.com/embedded", "/$id", "/$defs/embedded", false, false);
+      "https://example.com/embedded", "/$id", "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$ref",
       "https://example.com/main", "/$defs/embedded/$ref",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "https://example.com/embedded", "/$ref", "/$defs/embedded", false, false);
+      "https://example.com/embedded", "/$ref", "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/definitions",
       "https://example.com/main", "/$defs/embedded/definitions",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/definitions", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/main#/$defs/embedded/definitions/foo",
       "https://example.com/main", "/$defs/embedded/definitions/foo",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/definitions/foo", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/definitions/foo/type",
       "https://example.com/main", "/$defs/embedded/definitions/foo/type",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/embedded", "/definitions/foo/type",
-      "/$defs/embedded/definitions/foo", false, false);
+      "/$defs/embedded/definitions/foo", false, true);
 
   // References
 
@@ -389,109 +388,107 @@ TEST(JSONSchema_frame,
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://example.com/embedded", "https://example.com/main",
       "/$defs/embedded", "http://json-schema.org/draft-07/schema#",
-      JSON_Schema_Draft_7, "https://example.com/embedded", "", "", false,
-      false);
+      JSON_Schema_Draft_7, "https://example.com/embedded", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/$schema",
       "https://example.com/main", "/$defs/embedded/$schema",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/$schema", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/$id", "https://example.com/main",
       "/$defs/embedded/$id", "http://json-schema.org/draft-07/schema#",
       JSON_Schema_Draft_7, "https://example.com/embedded", "/$id",
-      "/$defs/embedded", false, false);
+      "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/allOf", "https://example.com/main",
       "/$defs/embedded/allOf", "http://json-schema.org/draft-07/schema#",
       JSON_Schema_Draft_7, "https://example.com/embedded", "/allOf",
-      "/$defs/embedded", false, false);
+      "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/embedded#/allOf/0",
       "https://example.com/main", "/$defs/embedded/allOf/0",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/allOf/0", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/allOf/0/$ref",
       "https://example.com/main", "/$defs/embedded/allOf/0/$ref",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/allOf/0/$ref",
-      "/$defs/embedded/allOf/0", false, false);
+      "/$defs/embedded/allOf/0", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/definitions",
       "https://example.com/main", "/$defs/embedded/definitions",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/definitions", "/$defs/embedded", false,
-      false);
+      true);
 
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/embedded#/definitions/foo",
       "https://example.com/main", "/$defs/embedded/definitions/foo",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/definitions/foo", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/embedded#/definitions/foo/type",
       "https://example.com/main", "/$defs/embedded/definitions/foo/type",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/definitions/foo/type",
-      "/$defs/embedded/definitions/foo", false, false);
+      "/$defs/embedded/definitions/foo", false, true);
 
   // From the root
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/main#/$defs/embedded",
       "https://example.com/main", "/$defs/embedded",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
-      "https://example.com/embedded", "", "", false, false);
+      "https://example.com/embedded", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$schema",
       "https://example.com/main", "/$defs/embedded/$schema",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/$schema", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$id",
       "https://example.com/main", "/$defs/embedded/$id",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
-      "https://example.com/embedded", "/$id", "/$defs/embedded", false, false);
+      "https://example.com/embedded", "/$id", "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/allOf",
       "https://example.com/main", "/$defs/embedded/allOf",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
-      "https://example.com/embedded", "/allOf", "/$defs/embedded", false,
-      false);
+      "https://example.com/embedded", "/allOf", "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/main#/$defs/embedded/allOf/0",
       "https://example.com/main", "/$defs/embedded/allOf/0",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/allOf/0", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/allOf/0/$ref",
       "https://example.com/main", "/$defs/embedded/allOf/0/$ref",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/allOf/0/$ref",
-      "/$defs/embedded/allOf/0", false, false);
+      "/$defs/embedded/allOf/0", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/definitions",
       "https://example.com/main", "/$defs/embedded/definitions",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/definitions", "/$defs/embedded", false,
-      false);
+      true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/main#/$defs/embedded/definitions/foo",
       "https://example.com/main", "/$defs/embedded/definitions/foo",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/definitions/foo", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/definitions/foo/type",
       "https://example.com/main", "/$defs/embedded/definitions/foo/type",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/embedded", "/definitions/foo/type",
-      "/$defs/embedded/definitions/foo", false, false);
+      "/$defs/embedded/definitions/foo", false, true);
 
   // References
 
@@ -574,44 +571,44 @@ TEST(JSONSchema_frame, nested_schemas_sibling_ref_nested_2020_12_draft4) {
       frame, "https://example.com/main#/$defs/embedded",
       "https://example.com/main", "/$defs/embedded",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "https://example.com/main", "/$defs/embedded", "", false, false);
+      "https://example.com/main", "/$defs/embedded", "", false, true);
 
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$schema",
       "https://example.com/main", "/$defs/embedded/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/main", "/$defs/embedded/$schema", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/id",
       "https://example.com/main", "/$defs/embedded/id",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/main", "/$defs/embedded/id", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/$ref",
       "https://example.com/main", "/$defs/embedded/$ref",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/main", "/$defs/embedded/$ref", "/$defs/embedded",
-      false, false);
+      false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/definitions",
       "https://example.com/main", "/$defs/embedded/definitions",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/main", "/$defs/embedded/definitions",
-      "/$defs/embedded", false, false);
+      "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/main#/$defs/embedded/definitions/foo",
       "https://example.com/main", "/$defs/embedded/definitions/foo",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/main", "/$defs/embedded/definitions/foo",
-      "/$defs/embedded", false, false);
+      "/$defs/embedded", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/main#/$defs/embedded/definitions/foo/type",
       "https://example.com/main", "/$defs/embedded/definitions/foo/type",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/main", "/$defs/embedded/definitions/foo/type",
-      "/$defs/embedded/definitions/foo", false, false);
+      "/$defs/embedded/definitions/foo", false, true);
 
   // References
 
@@ -891,11 +888,11 @@ TEST(JSONSchema_frame, cross_2020_12_to_2019_09_without_id) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/schema", "/$defs/schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
-      false, false);
+      false, true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "/$defs/schema", false, false);
+      "/$defs/schema", false, true);
 }
 
 TEST(JSONSchema_frame, cross_2020_12_to_draft7_without_id) {
@@ -933,11 +930,11 @@ TEST(JSONSchema_frame, cross_2020_12_to_draft7_without_id) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/schema", "/$defs/schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
-      false, false);
+      false, true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "/$defs/schema", false, false);
+      "/$defs/schema", false, true);
 }
 
 TEST(JSONSchema_frame, cross_2020_12_to_draft6_without_id) {
@@ -975,11 +972,11 @@ TEST(JSONSchema_frame, cross_2020_12_to_draft6_without_id) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/schema", "/$defs/schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
-      false, false);
+      false, true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "/$defs/schema", false, false);
+      "/$defs/schema", false, true);
 }
 
 TEST(JSONSchema_frame, cross_2020_12_to_draft4_without_id) {
@@ -1017,11 +1014,11 @@ TEST(JSONSchema_frame, cross_2020_12_to_draft4_without_id) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/$defs/schema", "/$defs/schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
-      false, false);
+      false, true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
-      "/$defs/schema", false, false);
+      "/$defs/schema", false, true);
 }
 
 TEST(JSONSchema_frame, cross_draft7_to_draft4_without_id) {
@@ -1058,11 +1055,11 @@ TEST(JSONSchema_frame, cross_draft7_to_draft4_without_id) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/definitions/schema", "/definitions/schema",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "", false,
-      false);
+      true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/schema/$schema", "/definitions/schema/$schema",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
-      "/definitions/schema", false, false);
+      "/definitions/schema", false, true);
 }
 
 TEST(JSONSchema_frame, cross_draft7_to_2020_12_without_id) {
@@ -1101,11 +1098,11 @@ TEST(JSONSchema_frame, cross_draft7_to_2020_12_without_id) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/definitions/schema", "/definitions/schema",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "", false,
-      false);
+      true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/schema/$schema", "/definitions/schema/$schema",
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
-      "/definitions/schema", false, false);
+      "/definitions/schema", false, true);
 }
 
 TEST(JSONSchema_frame, anchor_on_absolute_subid) {
@@ -1581,7 +1578,7 @@ TEST(JSONSchema_frame, mode_references) {
                                 "https://www.example.com", "/$defs/helper",
                                 "https://json-schema.org/draft/2020-12/schema",
                                 JSON_Schema_2020_12, "https://www.example.com",
-                                "/$defs/helper", "", false, false);
+                                "/$defs/helper", "", false, true);
 
   // References
 
@@ -1664,7 +1661,7 @@ TEST(JSONSchema_frame, mode_locations) {
                                 "https://www.example.com", "/$defs/helper",
                                 "https://json-schema.org/draft/2020-12/schema",
                                 JSON_Schema_2020_12, "https://www.example.com",
-                                "/$defs/helper", "", false, false);
+                                "/$defs/helper", "", false, true);
 
   // References
 

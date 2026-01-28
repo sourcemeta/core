@@ -584,27 +584,27 @@ TEST(JSONSchema_frame_draft6, location_independent_identifier_anonymous) {
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/definitions/foo", "/definitions/foo",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6, "", false,
-      false);
+      true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/foo/$id", "/definitions/foo/$id",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
-      "/definitions/foo", false, false);
+      "/definitions/foo", false, true);
 
   // Bar
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/definitions/bar", "/definitions/bar",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6, "", false,
-      false);
+      true);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/definitions/bar/$ref", "/definitions/bar/$ref",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
-      "/definitions/bar", false, false);
+      "/definitions/bar", false, true);
 
   // Anchors
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#foo", "/definitions/foo",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6, "", false,
-      false);
+      true);
 
   // References
 
@@ -738,7 +738,7 @@ TEST(JSONSchema_frame_draft6, relative_base_uri_with_ref) {
   // Anchors
   EXPECT_FRAME_STATIC_DRAFT6_ANCHOR(frame, "common#foo", "common",
                                     "/definitions/foo", "common",
-                                    "/definitions/foo", "", false, false);
+                                    "/definitions/foo", "", false, true);
 
   // JSON Pointers
 
@@ -760,10 +760,10 @@ TEST(JSONSchema_frame_draft6, relative_base_uri_with_ref) {
                                      "", false, false);
   EXPECT_FRAME_STATIC_DRAFT6_SUBSCHEMA(frame, "common#/definitions/foo",
                                        "common", "/definitions/foo", "common",
-                                       "/definitions/foo", "", false, false);
+                                       "/definitions/foo", "", false, true);
   EXPECT_FRAME_STATIC_DRAFT6_POINTER(
       frame, "common#/definitions/foo/$id", "common", "/definitions/foo/$id",
-      "common", "/definitions/foo/$id", "/definitions/foo", false, false);
+      "common", "/definitions/foo/$id", "/definitions/foo", false, true);
 
   // References
 
@@ -994,7 +994,7 @@ TEST(JSONSchema_frame_draft6, propertyNames_with_nested_applicators) {
       frame, "#/propertyNames/definitions/test",
       "/propertyNames/definitions/test",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
-      "/propertyNames", false, false);
+      "/propertyNames", false, true);
 
   // JSON Pointers
 
@@ -1028,7 +1028,7 @@ TEST(JSONSchema_frame_draft6, propertyNames_with_nested_applicators) {
       frame, "#/propertyNames/definitions/test/type",
       "/propertyNames/definitions/test/type",
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
-      "/propertyNames/definitions/test", false, false);
+      "/propertyNames/definitions/test", false, true);
 
   // References
 
