@@ -64,6 +64,20 @@ static void Schema_Frame_ISO_Language_Locations(benchmark::State &state) {
   }
 }
 
+static void Schema_Frame_KrakenD_References(benchmark::State &state) {
+  const auto schema{
+      sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                  "schemas" / "2019_09_krakend.json")};
+
+  for (auto _ : state) {
+    sourcemeta::core::SchemaFrame frame{
+        sourcemeta::core::SchemaFrame::Mode::References};
+    frame.analyse(schema, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    benchmark::DoNotOptimize(frame);
+  }
+}
+
 static void Schema_Iterator_ISO_Language(benchmark::State &state) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
@@ -169,6 +183,7 @@ BENCHMARK(Schema_Frame_WoT_References);
 BENCHMARK(Schema_Frame_OMC_References);
 BENCHMARK(Schema_Frame_OMC_Locations);
 BENCHMARK(Schema_Frame_ISO_Language_Locations);
+BENCHMARK(Schema_Frame_KrakenD_References);
 BENCHMARK(Schema_Iterator_ISO_Language);
 BENCHMARK(Schema_Frame_ISO_Language_Locations_To_JSON);
 BENCHMARK(Schema_Tracker_ISO_Language);
