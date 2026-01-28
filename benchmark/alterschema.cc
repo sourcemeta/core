@@ -45,5 +45,27 @@ static void Alterschema_Check_Readibility_OMC(benchmark::State &state) {
   }
 }
 
+static void Alterschema_Apply_Readibility_KrakenD(benchmark::State &state) {
+  sourcemeta::core::SchemaTransformer bundle;
+  sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);
+
+  const auto schema{
+      sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                  "schemas" / "2019_09_krakend.json")};
+
+  for (auto _ : state) {
+    state.PauseTiming();
+    auto copy = schema;
+    state.ResumeTiming();
+    auto result = bundle.apply(
+        copy, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
+        [](const auto &, const auto &, const auto &, const auto &) {});
+    assert(!result.first);
+    benchmark::DoNotOptimize(result);
+  }
+}
+
 BENCHMARK(Alterschema_Check_Readibility_ISO_Language_Set_3);
 BENCHMARK(Alterschema_Check_Readibility_OMC);
+BENCHMARK(Alterschema_Apply_Readibility_KrakenD);
