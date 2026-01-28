@@ -10,7 +10,9 @@ TEST(AlterSchema_canonicalize_draft3, type_boolean_as_enum_1) {
     "type": "boolean"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -27,7 +29,9 @@ TEST(AlterSchema_canonicalize_draft3, type_boolean_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -44,7 +48,9 @@ TEST(AlterSchema_canonicalize_draft3, type_null_as_enum_1) {
     "type": "null"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -61,7 +67,9 @@ TEST(AlterSchema_canonicalize_draft3, type_null_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -80,7 +88,9 @@ TEST(AlterSchema_canonicalize_draft3, boolean_true_1) {
     }
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
@@ -101,7 +111,9 @@ TEST(AlterSchema_canonicalize_draft3, equal_numeric_bounds_to_enum_2) {
     "maximum": 3
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",

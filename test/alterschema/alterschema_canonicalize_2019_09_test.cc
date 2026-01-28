@@ -14,7 +14,9 @@ TEST(AlterSchema_canonicalize_2019_09, duplicate_allof_branches_2) {
     ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -34,7 +36,9 @@ TEST(AlterSchema_canonicalize_2019_09, duplicate_allof_branches_3) {
     ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -61,7 +65,9 @@ TEST(AlterSchema_canonicalize_2019_09, duplicate_allof_branches_4) {
     ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -77,7 +83,9 @@ TEST(AlterSchema_canonicalize_2019_09, type_boolean_as_enum_1) {
     "type": "boolean"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -94,7 +102,9 @@ TEST(AlterSchema_canonicalize_2019_09, type_boolean_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -111,7 +121,9 @@ TEST(AlterSchema_canonicalize_2019_09, type_null_as_enum_1) {
     "type": "null"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -128,7 +140,9 @@ TEST(AlterSchema_canonicalize_2019_09, type_null_as_enum_2) {
     "enum": [ 1, 2, 3 ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -145,7 +159,9 @@ TEST(AlterSchema_canonicalize_2019_09, const_as_enum_1) {
     "const": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -162,7 +178,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_maximum_integer_to_maximum_1) {
     "exclusiveMaximum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -181,7 +199,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_maximum_integer_to_maximum_2) {
     "exclusiveMaximum": 1.2
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -200,7 +220,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_maximum_integer_to_maximum_3) {
     "exclusiveMaximum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -217,7 +239,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_maximum_integer_to_maximum_5) {
     "exclusiveMaximum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -241,7 +265,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_minimum_integer_to_minimum_1) {
     "exclusiveMinimum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -260,7 +286,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_minimum_integer_to_minimum_2) {
     "exclusiveMinimum": 1.2
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -279,7 +307,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_minimum_integer_to_minimum_3) {
     "exclusiveMinimum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -296,7 +326,9 @@ TEST(AlterSchema_canonicalize_2019_09, exclusive_minimum_integer_to_minimum_5) {
     "exclusiveMinimum": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -321,7 +353,9 @@ TEST(AlterSchema_canonicalize_2019_09, boolean_true_1) {
     }
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -353,7 +387,9 @@ TEST(AlterSchema_canonicalize_2019_09, max_contains_covered_by_max_items_1) {
     "maxItems": 1
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -379,7 +415,9 @@ TEST(AlterSchema_canonicalize_2019_09, min_properties_covered_by_required_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -402,7 +440,9 @@ TEST(AlterSchema_canonicalize_2019_09, min_properties_implicit_1) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -426,7 +466,9 @@ TEST(AlterSchema_canonicalize_2019_09, min_properties_implicit_2) {
     "required": [ "foo", "bar" ]
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -450,7 +492,9 @@ TEST(AlterSchema_canonicalize_2019_09, min_items_given_min_contains_1) {
     "minContains": 3
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -471,7 +515,9 @@ TEST(AlterSchema_canonicalize_2019_09, min_items_given_min_contains_2) {
     "minContains": 3
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -491,7 +537,9 @@ TEST(AlterSchema_canonicalize_2019_09,
     "exclusiveMaximum": 1.0e400
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -511,7 +559,9 @@ TEST(AlterSchema_canonicalize_2019_09,
     "exclusiveMinimum": 1.0e400
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -529,7 +579,9 @@ TEST(AlterSchema_canonicalize_2019_09, items_implicit_1) {
     "type": "array"
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",

@@ -43,19 +43,31 @@ static auto alterschema_test_resolver(std::string_view identifier)
   EXPECT_EQ(std::get<1>((traces).at(index)), (name));                          \
   EXPECT_EQ(std::get<2>((traces).at(index)), (message));
 
-#define LINT_AND_FIX(traces)                                                   \
+#define LINT_AND_FIX(document, result, traces)                                 \
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
+                         sourcemeta::core::SchemaTransformRule::Result>>       \
+      traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
-  [[maybe_unused]] const auto lint_result = bundle.apply(                      \
+  const auto result = bundle.apply(                                            \
       document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
-      [](const auto &, const auto &, const auto &, const auto &) {});
+      [&traces](const auto &pointer, const auto &name, const auto &message,    \
+                const auto &outcome) {                                         \
+        traces.emplace_back(pointer, name, message, outcome);                  \
+      });
 
-#define CANONICALIZE(document)                                                 \
+#define CANONICALIZE(document, result, traces)                                 \
+  std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
+                         sourcemeta::core::SchemaTransformRule::Result>>       \
+      traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
                         sourcemeta::core::AlterSchemaMode::Canonicalizer);     \
-  [[maybe_unused]] const auto canonicalize_result = bundle.apply(              \
+  const auto result = bundle.apply(                                            \
       document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
-      [](const auto &, const auto &, const auto &, const auto &) {});
+      [&traces](const auto &pointer, const auto &name, const auto &message,    \
+                const auto &outcome) {                                         \
+        traces.emplace_back(pointer, name, message, outcome);                  \
+      });
 
 #endif

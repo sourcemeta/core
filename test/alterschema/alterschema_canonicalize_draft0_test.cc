@@ -12,7 +12,9 @@ TEST(AlterSchema_canonicalize_draft0, boolean_true_1) {
     }
   })JSON");
 
-  CANONICALIZE(document);
+  CANONICALIZE(document, result, traces);
+
+  EXPECT_TRUE(result.first);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-00/schema#",
