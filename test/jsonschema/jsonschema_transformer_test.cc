@@ -1487,8 +1487,8 @@ TEST(JSONSchema_transformer, iterators) {
   bundle.add<ExampleRule3>();
 
   std::set<std::string_view> rules;
-  for (const auto &[rule, mutates] : bundle) {
-    rules.insert(rule->name());
+  for (const auto &rule : bundle) {
+    rules.insert(std::get<0>(rule)->name());
   }
 
   EXPECT_EQ(rules.size(), 3);
