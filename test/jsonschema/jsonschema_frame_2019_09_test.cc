@@ -8,48 +8,53 @@
 
 #define EXPECT_FRAME_STATIC_2019_09_POINTER(                                   \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_parent, expected_property_name)        \
+    expected_relative_pointer, expected_parent, expected_property_name,        \
+    expected_orphan)                                                           \
   EXPECT_FRAME_STATIC_POINTER(frame, reference, root_id, expected_pointer,     \
                               "https://json-schema.org/draft/2019-09/schema",  \
                               JSON_Schema_2019_09, expected_base,              \
                               expected_relative_pointer, expected_parent,      \
-                              expected_property_name);
+                              expected_property_name, expected_orphan);
 
 #define EXPECT_FRAME_STATIC_2019_09_RESOURCE(                                  \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_parent, expected_property_name)        \
+    expected_relative_pointer, expected_parent, expected_property_name,        \
+    expected_orphan)                                                           \
   EXPECT_FRAME_STATIC_RESOURCE(frame, reference, root_id, expected_pointer,    \
                                "https://json-schema.org/draft/2019-09/schema", \
                                JSON_Schema_2019_09, expected_base,             \
                                expected_relative_pointer, expected_parent,     \
-                               expected_property_name);
+                               expected_property_name, expected_orphan);
 
 #define EXPECT_FRAME_STATIC_2019_09_ANCHOR(                                    \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_parent, expected_property_name)        \
+    expected_relative_pointer, expected_parent, expected_property_name,        \
+    expected_orphan)                                                           \
   EXPECT_FRAME_STATIC_ANCHOR(frame, reference, root_id, expected_pointer,      \
                              "https://json-schema.org/draft/2019-09/schema",   \
                              JSON_Schema_2019_09, expected_base,               \
                              expected_relative_pointer, expected_parent,       \
-                             expected_property_name);
+                             expected_property_name, expected_orphan);
 
 #define EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(                                 \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_parent, expected_property_name)        \
+    expected_relative_pointer, expected_parent, expected_property_name,        \
+    expected_orphan)                                                           \
   EXPECT_FRAME_STATIC_SUBSCHEMA(                                               \
       frame, reference, root_id, expected_pointer,                             \
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,     \
       expected_base, expected_relative_pointer, expected_parent,               \
-      expected_property_name);
+      expected_property_name, expected_orphan);
 
 #define EXPECT_FRAME_DYNAMIC_2019_09_ANCHOR(                                   \
     frame, reference, root_id, expected_pointer, expected_base,                \
-    expected_relative_pointer, expected_parent, expected_property_name)        \
+    expected_relative_pointer, expected_parent, expected_property_name,        \
+    expected_orphan)                                                           \
   EXPECT_FRAME_DYNAMIC_ANCHOR(frame, reference, root_id, expected_pointer,     \
                               "https://json-schema.org/draft/2019-09/schema",  \
                               JSON_Schema_2019_09, expected_base,              \
                               expected_relative_pointer, expected_parent,      \
-                              expected_property_name);
+                              expected_property_name, expected_orphan);
 
 TEST(JSONSchema_frame_2019_09, anonymous_with_nested_schema_resource) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
@@ -67,29 +72,29 @@ TEST(JSONSchema_frame_2019_09, anonymous_with_nested_schema_resource) {
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalProperties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$id", "/additionalProperties/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalProperties", false);
+      "/additionalProperties", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalProperties", "/additionalProperties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalProperties/$id", "/additionalProperties/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalProperties", false);
+      "/additionalProperties", false, false);
 
   // References
 
@@ -116,18 +121,18 @@ TEST(JSONSchema_frame_2019_09, empty_schema) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
 
   // References
 
@@ -154,18 +159,18 @@ TEST(JSONSchema_frame_2019_09, empty_schema_trailing_hash) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
 
   // References
 
@@ -196,39 +201,40 @@ TEST(JSONSchema_frame_2019_09, one_level_applicators_without_identifiers) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/items",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/schema", "/items", "", false);
+      "https://www.sourcemeta.com/schema", "/items", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/type",
       "https://www.sourcemeta.com/schema", "/items/type",
-      "https://www.sourcemeta.com/schema", "/items/type", "/items", false);
+      "https://www.sourcemeta.com/schema", "/items/type", "/items", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties",
       "https://www.sourcemeta.com/schema", "/properties",
-      "https://www.sourcemeta.com/schema", "/properties", "", false);
+      "https://www.sourcemeta.com/schema", "/properties", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/foo",
       "https://www.sourcemeta.com/schema", "/properties/foo",
-      "https://www.sourcemeta.com/schema", "/properties/foo", "", false);
+      "https://www.sourcemeta.com/schema", "/properties/foo", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/foo/type",
       "https://www.sourcemeta.com/schema", "/properties/foo/type",
       "https://www.sourcemeta.com/schema", "/properties/foo/type",
-      "/properties/foo", false);
+      "/properties/foo", false, false);
 
   // References
 
@@ -260,68 +266,70 @@ TEST(JSONSchema_frame_2019_09, one_level_applicators_with_identifiers) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/test/qux",
       "https://www.sourcemeta.com/test/qux", "",
-      "https://www.sourcemeta.com/test/qux", "", std::nullopt, false);
+      "https://www.sourcemeta.com/test/qux", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/foo",
       "https://www.sourcemeta.com/test/qux", "/items",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
 
   // Anchors
 
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/test/qux#test",
       "https://www.sourcemeta.com/test/qux", "/properties/foo",
-      "https://www.sourcemeta.com/test/qux", "/properties/foo", "", false);
+      "https://www.sourcemeta.com/test/qux", "/properties/foo", "", false,
+      false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/$id",
       "https://www.sourcemeta.com/test/qux", "/$id",
-      "https://www.sourcemeta.com/test/qux", "/$id", "", false);
+      "https://www.sourcemeta.com/test/qux", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/$schema",
       "https://www.sourcemeta.com/test/qux", "/$schema",
-      "https://www.sourcemeta.com/test/qux", "/$schema", "", false);
+      "https://www.sourcemeta.com/test/qux", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/test/qux#/items",
       "https://www.sourcemeta.com/test/qux", "/items",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/items/$id",
       "https://www.sourcemeta.com/test/qux", "/items/$id",
-      "https://www.sourcemeta.com/foo", "/$id", "/items", false);
+      "https://www.sourcemeta.com/foo", "/$id", "/items", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/items/type",
       "https://www.sourcemeta.com/test/qux", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", "/items", false);
+      "https://www.sourcemeta.com/foo", "/type", "/items", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/properties",
       "https://www.sourcemeta.com/test/qux", "/properties",
-      "https://www.sourcemeta.com/test/qux", "/properties", "", false);
+      "https://www.sourcemeta.com/test/qux", "/properties", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/test/qux#/properties/foo",
       "https://www.sourcemeta.com/test/qux", "/properties/foo",
-      "https://www.sourcemeta.com/test/qux", "/properties/foo", "", false);
+      "https://www.sourcemeta.com/test/qux", "/properties/foo", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/properties/foo/$anchor",
       "https://www.sourcemeta.com/test/qux", "/properties/foo/$anchor",
       "https://www.sourcemeta.com/test/qux", "/properties/foo/$anchor",
-      "/properties/foo", false);
+      "/properties/foo", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test/qux#/properties/foo/type",
       "https://www.sourcemeta.com/test/qux", "/properties/foo/type",
       "https://www.sourcemeta.com/test/qux", "/properties/foo/type",
-      "/properties/foo", false);
+      "/properties/foo", false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/$id",
       "https://www.sourcemeta.com/test/qux", "/items/$id",
-      "https://www.sourcemeta.com/foo", "/$id", "/items", false);
+      "https://www.sourcemeta.com/foo", "/$id", "/items", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/type",
       "https://www.sourcemeta.com/test/qux", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", "/items", false);
+      "https://www.sourcemeta.com/foo", "/type", "/items", false, false);
 
   // References
 
@@ -352,42 +360,42 @@ TEST(JSONSchema_frame_2019_09, subschema_absolute_identifier) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/foo",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/items",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/$id",
       "https://www.sourcemeta.com/schema", "/items/$id",
-      "https://www.sourcemeta.com/foo", "/$id", "/items", false);
+      "https://www.sourcemeta.com/foo", "/$id", "/items", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/type",
       "https://www.sourcemeta.com/schema", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", "/items", false);
+      "https://www.sourcemeta.com/foo", "/type", "/items", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/$id",
       "https://www.sourcemeta.com/schema", "/items/$id",
-      "https://www.sourcemeta.com/foo", "/$id", "/items", false);
+      "https://www.sourcemeta.com/foo", "/$id", "/items", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/type",
       "https://www.sourcemeta.com/schema", "/items/type",
-      "https://www.sourcemeta.com/foo", "/type", "/items", false);
+      "https://www.sourcemeta.com/foo", "/type", "/items", false, false);
 
   // References
 
@@ -433,136 +441,150 @@ TEST(JSONSchema_frame_2019_09, nested_schemas) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/foo",
       "https://www.sourcemeta.com/schema", "/properties/foo",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/foo#test",
       "https://www.sourcemeta.com/schema", "/properties/foo",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/bar",
       "https://www.sourcemeta.com/schema", "/properties/bar",
-      "https://www.sourcemeta.com/bar", "", "", false);
+      "https://www.sourcemeta.com/bar", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/baz",
       "https://www.sourcemeta.com/schema", "/properties/baz",
-      "https://www.sourcemeta.com/baz", "", "", false);
+      "https://www.sourcemeta.com/baz", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/baz#extra",
       "https://www.sourcemeta.com/schema", "/properties/baz/items",
-      "https://www.sourcemeta.com/baz", "/items", "/properties/baz", false);
+      "https://www.sourcemeta.com/baz", "/items", "/properties/baz", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/qux",
       "https://www.sourcemeta.com/schema", "/properties/foo/items",
-      "https://www.sourcemeta.com/qux", "", "/properties/foo", false);
+      "https://www.sourcemeta.com/qux", "", "/properties/foo", false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties",
       "https://www.sourcemeta.com/schema", "/properties",
-      "https://www.sourcemeta.com/schema", "/properties", "", false);
+      "https://www.sourcemeta.com/schema", "/properties", "", false, false);
 
   // foo
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/foo",
       "https://www.sourcemeta.com/schema", "/properties/foo",
-      "https://www.sourcemeta.com/foo", "", "", false);
+      "https://www.sourcemeta.com/foo", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/foo/$id",
       "https://www.sourcemeta.com/schema", "/properties/foo/$id",
-      "https://www.sourcemeta.com/foo", "/$id", "/properties/foo", false);
+      "https://www.sourcemeta.com/foo", "/$id", "/properties/foo", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/foo/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/foo/$anchor",
-      "https://www.sourcemeta.com/foo", "/$anchor", "/properties/foo", false);
+      "https://www.sourcemeta.com/foo", "/$anchor", "/properties/foo", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/foo/items",
       "https://www.sourcemeta.com/schema", "/properties/foo/items",
-      "https://www.sourcemeta.com/qux", "", "/properties/foo", false);
+      "https://www.sourcemeta.com/qux", "", "/properties/foo", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/foo/items/$id",
       "https://www.sourcemeta.com/schema", "/properties/foo/items/$id",
-      "https://www.sourcemeta.com/qux", "/$id", "/properties/foo/items", false);
+      "https://www.sourcemeta.com/qux", "/$id", "/properties/foo/items", false,
+      false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/$id",
       "https://www.sourcemeta.com/schema", "/properties/foo/$id",
-      "https://www.sourcemeta.com/foo", "/$id", "/properties/foo", false);
+      "https://www.sourcemeta.com/foo", "/$id", "/properties/foo", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/foo/$anchor",
-      "https://www.sourcemeta.com/foo", "/$anchor", "/properties/foo", false);
+      "https://www.sourcemeta.com/foo", "/$anchor", "/properties/foo", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/foo#/items",
       "https://www.sourcemeta.com/schema", "/properties/foo/items",
-      "https://www.sourcemeta.com/qux", "", "/properties/foo", false);
+      "https://www.sourcemeta.com/qux", "", "/properties/foo", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/foo#/items/$id",
       "https://www.sourcemeta.com/schema", "/properties/foo/items/$id",
-      "https://www.sourcemeta.com/qux", "/$id", "/properties/foo/items", false);
+      "https://www.sourcemeta.com/qux", "/$id", "/properties/foo/items", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/qux#/$id",
       "https://www.sourcemeta.com/schema", "/properties/foo/items/$id",
-      "https://www.sourcemeta.com/qux", "/$id", "/properties/foo/items", false);
+      "https://www.sourcemeta.com/qux", "/$id", "/properties/foo/items", false,
+      false);
 
   // bar
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/bar",
       "https://www.sourcemeta.com/schema", "/properties/bar",
-      "https://www.sourcemeta.com/bar", "", "", false);
+      "https://www.sourcemeta.com/bar", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/bar/$id",
       "https://www.sourcemeta.com/schema", "/properties/bar/$id",
-      "https://www.sourcemeta.com/bar", "/$id", "/properties/bar", false);
+      "https://www.sourcemeta.com/bar", "/$id", "/properties/bar", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/bar#/$id",
       "https://www.sourcemeta.com/schema", "/properties/bar/$id",
-      "https://www.sourcemeta.com/bar", "/$id", "/properties/bar", false);
+      "https://www.sourcemeta.com/bar", "/$id", "/properties/bar", false,
+      false);
 
   // baz
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/baz",
       "https://www.sourcemeta.com/schema", "/properties/baz",
-      "https://www.sourcemeta.com/baz", "", "", false);
+      "https://www.sourcemeta.com/baz", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/baz/$id",
       "https://www.sourcemeta.com/schema", "/properties/baz/$id",
-      "https://www.sourcemeta.com/baz", "/$id", "/properties/baz", false);
+      "https://www.sourcemeta.com/baz", "/$id", "/properties/baz", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/baz/items",
       "https://www.sourcemeta.com/schema", "/properties/baz/items",
-      "https://www.sourcemeta.com/baz", "/items", "/properties/baz", false);
+      "https://www.sourcemeta.com/baz", "/items", "/properties/baz", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/baz/items/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/baz/items/$anchor",
       "https://www.sourcemeta.com/baz", "/items/$anchor",
-      "/properties/baz/items", false);
+      "/properties/baz/items", false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/baz#/$id",
       "https://www.sourcemeta.com/schema", "/properties/baz/$id",
-      "https://www.sourcemeta.com/baz", "/$id", "/properties/baz", false);
+      "https://www.sourcemeta.com/baz", "/$id", "/properties/baz", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/baz#/items",
       "https://www.sourcemeta.com/schema", "/properties/baz/items",
-      "https://www.sourcemeta.com/baz", "/items", "/properties/baz", false);
+      "https://www.sourcemeta.com/baz", "/items", "/properties/baz", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/baz#/items/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/baz/items/$anchor",
       "https://www.sourcemeta.com/baz", "/items/$anchor",
-      "/properties/baz/items", false);
+      "/properties/baz/items", false, false);
 
   // References
 
@@ -620,18 +642,18 @@ TEST(JSONSchema_frame_2019_09, explicit_argument_id_same) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
 
   // References
 
@@ -660,26 +682,26 @@ TEST(JSONSchema_frame_2019_09, anchor_top_level) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$anchor",
       "https://www.sourcemeta.com/schema", "/$anchor",
-      "https://www.sourcemeta.com/schema", "/$anchor", "", false);
+      "https://www.sourcemeta.com/schema", "/$anchor", "", false, false);
 
   // Anchors
 
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/schema#foo",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // References
 
@@ -722,105 +744,110 @@ TEST(JSONSchema_frame_2019_09, explicit_argument_id_different) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/test",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.sourcemeta.com/test", "", "", false);
+      "https://www.sourcemeta.com/test", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.example.com", "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.example.com/test",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.example.com/test", "", "", false);
+      "https://www.example.com/test", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.test.com", "https://www.sourcemeta.com/schema",
-      "/properties/two", "https://www.test.com", "", "", false);
+      "/properties/two", "https://www.test.com", "", "", false, false);
 
   // Anchors
 
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/schema#foo",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/schema", "/items", "", false);
+      "https://www.sourcemeta.com/schema", "/items", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.example.com#foo", "https://www.sourcemeta.com/schema",
-      "/items", "https://www.example.com", "/items", "", false);
+      "/items", "https://www.example.com", "/items", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/test#bar",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.sourcemeta.com/test", "", "", false);
+      "https://www.sourcemeta.com/test", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.example.com/test#bar",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.example.com/test", "", "", false);
+      "https://www.example.com/test", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(
       frame, "https://www.test.com#baz", "https://www.sourcemeta.com/schema",
-      "/properties/two", "https://www.test.com", "", "", false);
+      "/properties/two", "https://www.test.com", "", "", false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/items",
       "https://www.sourcemeta.com/schema", "/items",
-      "https://www.sourcemeta.com/schema", "/items", "", false);
+      "https://www.sourcemeta.com/schema", "/items", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/items/$anchor",
       "https://www.sourcemeta.com/schema", "/items/$anchor",
-      "https://www.sourcemeta.com/schema", "/items/$anchor", "/items", false);
+      "https://www.sourcemeta.com/schema", "/items/$anchor", "/items", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties",
       "https://www.sourcemeta.com/schema", "/properties",
-      "https://www.sourcemeta.com/schema", "/properties", "", false);
+      "https://www.sourcemeta.com/schema", "/properties", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/one",
       "https://www.sourcemeta.com/schema", "/properties/one",
-      "https://www.sourcemeta.com/test", "", "", false);
+      "https://www.sourcemeta.com/test", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/one/$id",
       "https://www.sourcemeta.com/schema", "/properties/one/$id",
-      "https://www.sourcemeta.com/test", "/$id", "/properties/one", false);
+      "https://www.sourcemeta.com/test", "/$id", "/properties/one", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/one/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/one/$anchor",
-      "https://www.sourcemeta.com/test", "/$anchor", "/properties/one", false);
+      "https://www.sourcemeta.com/test", "/$anchor", "/properties/one", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/properties/two",
       "https://www.sourcemeta.com/schema", "/properties/two",
-      "https://www.test.com", "", "", false);
+      "https://www.test.com", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/two/$id",
       "https://www.sourcemeta.com/schema", "/properties/two/$id",
-      "https://www.test.com", "/$id", "/properties/two", false);
+      "https://www.test.com", "/$id", "/properties/two", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/properties/two/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/two/$anchor",
-      "https://www.test.com", "/$anchor", "/properties/two", false);
+      "https://www.test.com", "/$anchor", "/properties/two", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test#/$id",
       "https://www.sourcemeta.com/schema", "/properties/one/$id",
-      "https://www.sourcemeta.com/test", "/$id", "/properties/one", false);
+      "https://www.sourcemeta.com/test", "/$id", "/properties/one", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/test#/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/one/$anchor",
-      "https://www.sourcemeta.com/test", "/$anchor", "/properties/one", false);
+      "https://www.sourcemeta.com/test", "/$anchor", "/properties/one", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.test.com#/$id", "https://www.sourcemeta.com/schema",
       "/properties/two/$id", "https://www.test.com", "/$id", "/properties/two",
-      false);
+      false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.test.com#/$anchor",
       "https://www.sourcemeta.com/schema", "/properties/two/$anchor",
-      "https://www.test.com", "/$anchor", "/properties/two", false);
+      "https://www.test.com", "/$anchor", "/properties/two", false, false);
 
   // References
 
@@ -847,14 +874,14 @@ TEST(JSONSchema_frame_2019_09, ref_metaschema) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$ref", "/$ref", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, "", false);
+      JSON_Schema_2019_09, "", false, false);
 
   // References
 
@@ -916,29 +943,30 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_true_with_id) {
   EXPECT_FRAME_DYNAMIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // Static identifiers
 
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // Static pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/$recursiveAnchor",
-      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false);
+      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false,
+      false);
 
   // References
 
@@ -969,22 +997,23 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_false_with_id) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // Static pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/$recursiveAnchor",
-      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false);
+      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false,
+      false);
 
   // References
 
@@ -1018,30 +1047,30 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_true_without_id) {
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "", "/properties/foo",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   // Static frames
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$recursiveAnchor",
       "/properties/foo/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo", false);
+      "/properties/foo", false, false);
 
   // References
 
@@ -1074,24 +1103,24 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_false_without_id) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$recursiveAnchor",
       "/properties/foo/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo", false);
+      "/properties/foo", false, false);
 
   // References
 
@@ -1120,20 +1149,20 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor_anonymous) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalItems", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // References
 
@@ -1166,25 +1195,26 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/additionalItems",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/schema", "/additionalItems", "", false);
+      "https://www.sourcemeta.com/schema", "/additionalItems", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // References
 
@@ -1218,24 +1248,24 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false_anonymous) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$recursiveAnchor", "/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalItems", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // References
 
@@ -1269,29 +1299,31 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/$recursiveAnchor",
-      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false);
+      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/additionalItems",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/schema", "/additionalItems", "", false);
+      "https://www.sourcemeta.com/schema", "/additionalItems", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // References
 
@@ -1325,30 +1357,30 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true_anonymous) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$recursiveAnchor", "/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalItems", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // Anchors
 
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
 
   // References
 
@@ -1382,36 +1414,38 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/$recursiveAnchor",
-      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false);
+      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/additionalItems",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/schema", "/additionalItems", "", false);
+      "https://www.sourcemeta.com/schema", "/additionalItems", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // Anchors
 
   EXPECT_FRAME_DYNAMIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // References
 
@@ -1448,48 +1482,48 @@ TEST(JSONSchema_frame_2019_09,
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalItems", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$id", "/additionalItems/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveAnchor",
       "/additionalItems/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$id", "/additionalItems/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$recursiveAnchor",
       "/additionalItems/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // References
 
@@ -1525,55 +1559,55 @@ TEST(JSONSchema_frame_2019_09,
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "https://example.com", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalItems", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$id", "/additionalItems/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveAnchor",
       "/additionalItems/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$id", "/additionalItems/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$recursiveAnchor",
       "/additionalItems/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "https://example.com#/$recursiveRef",
       "/additionalItems/$recursiveRef",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // Anchors
 
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "https://example.com", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   // References
 
@@ -1608,38 +1642,40 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_nested_recursive_anchor_true) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame,
       "https://www.sourcemeta.com/schema#/additionalItems/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveAnchor",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/additionalItems",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/schema", "/additionalItems", "", false);
+      "https://www.sourcemeta.com/schema", "/additionalItems", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // Anchors
 
   EXPECT_FRAME_DYNAMIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/schema", "/additionalItems", "", false);
+      "https://www.sourcemeta.com/schema", "/additionalItems", "", false,
+      false);
 
   // References
 
@@ -1677,69 +1713,72 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_multiple_recursive_anchor_true) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/nested",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/nested", "", "", false);
+      "https://www.sourcemeta.com/nested", "", "", false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/$recursiveAnchor",
-      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false);
+      "https://www.sourcemeta.com/schema", "/$recursiveAnchor", "", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/additionalItems",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/nested", "", "", false);
+      "https://www.sourcemeta.com/nested", "", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/additionalItems/$id",
       "https://www.sourcemeta.com/schema", "/additionalItems/$id",
-      "https://www.sourcemeta.com/nested", "/$id", "/additionalItems", false);
+      "https://www.sourcemeta.com/nested", "/$id", "/additionalItems", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame,
       "https://www.sourcemeta.com/schema#/additionalItems/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveAnchor",
       "https://www.sourcemeta.com/nested", "/$recursiveAnchor",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/nested", "/$recursiveRef", "/additionalItems",
-      false);
+      false, false);
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/nested#/$id",
       "https://www.sourcemeta.com/schema", "/additionalItems/$id",
-      "https://www.sourcemeta.com/nested", "/$id", "/additionalItems", false);
+      "https://www.sourcemeta.com/nested", "/$id", "/additionalItems", false,
+      false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/nested#/$recursiveAnchor",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveAnchor",
       "https://www.sourcemeta.com/nested", "/$recursiveAnchor",
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/nested#/$recursiveRef",
       "https://www.sourcemeta.com/schema", "/additionalItems/$recursiveRef",
       "https://www.sourcemeta.com/nested", "/$recursiveRef", "/additionalItems",
-      false);
+      false, false);
 
   // Anchors
 
   EXPECT_FRAME_DYNAMIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
   EXPECT_FRAME_DYNAMIC_2019_09_ANCHOR(
       frame, "https://www.sourcemeta.com/nested",
       "https://www.sourcemeta.com/schema", "/additionalItems",
-      "https://www.sourcemeta.com/nested", "", "", false);
+      "https://www.sourcemeta.com/nested", "", "", false, false);
 
   // References
 
@@ -1813,53 +1852,53 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_on_relative_id) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
       frame, "middle", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$recursiveAnchor", "/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/additionalItems", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$id", "/additionalItems/$id",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/additionalItems/$recursiveAnchor",
       "/additionalItems/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "middle#/$recursiveAnchor", "/additionalItems/$recursiveAnchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/additionalItems", false);
+      "/additionalItems", false, false);
 
   // Anchors
 
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
       frame, "middle", "/additionalItems",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
 
   // References
 
@@ -1891,35 +1930,35 @@ TEST(JSONSchema_frame_2019_09, ref_with_id) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$ref",
       "https://www.sourcemeta.com/schema", "/$ref",
-      "https://www.sourcemeta.com/schema", "/$ref", "", false);
+      "https://www.sourcemeta.com/schema", "/$ref", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$defs",
       "https://www.sourcemeta.com/schema", "/$defs",
-      "https://www.sourcemeta.com/schema", "/$defs", "", false);
+      "https://www.sourcemeta.com/schema", "/$defs", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/$defs/string",
       "https://www.sourcemeta.com/schema", "/$defs/string",
-      "https://www.sourcemeta.com/schema", "/$defs/string", "", false);
+      "https://www.sourcemeta.com/schema", "/$defs/string", "", false, true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$defs/string/type",
       "https://www.sourcemeta.com/schema", "/$defs/string/type",
       "https://www.sourcemeta.com/schema", "/$defs/string/type",
-      "/$defs/string", false);
+      "/$defs/string", false, true);
 
   // References
 
@@ -1955,44 +1994,46 @@ TEST(JSONSchema_frame_2019_09, ref_from_definitions) {
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(
       frame, "https://www.sourcemeta.com/schema",
       "https://www.sourcemeta.com/schema", "",
-      "https://www.sourcemeta.com/schema", "", std::nullopt, false);
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$id",
       "https://www.sourcemeta.com/schema", "/$id",
-      "https://www.sourcemeta.com/schema", "/$id", "", false);
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$schema",
       "https://www.sourcemeta.com/schema", "/$schema",
-      "https://www.sourcemeta.com/schema", "/$schema", "", false);
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/$ref",
       "https://www.sourcemeta.com/schema", "/$ref",
-      "https://www.sourcemeta.com/schema", "/$ref", "", false);
+      "https://www.sourcemeta.com/schema", "/$ref", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/definitions",
       "https://www.sourcemeta.com/schema", "/definitions",
-      "https://www.sourcemeta.com/schema", "/definitions", "", false);
+      "https://www.sourcemeta.com/schema", "/definitions", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/definitions/middle",
       "https://www.sourcemeta.com/schema", "/definitions/middle",
-      "https://www.sourcemeta.com/schema", "/definitions/middle", "", false);
+      "https://www.sourcemeta.com/schema", "/definitions/middle", "", false,
+      true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/definitions/middle/$ref",
       "https://www.sourcemeta.com/schema", "/definitions/middle/$ref",
       "https://www.sourcemeta.com/schema", "/definitions/middle/$ref",
-      "/definitions/middle", false);
+      "/definitions/middle", false, true);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(
       frame, "https://www.sourcemeta.com/schema#/definitions/string",
       "https://www.sourcemeta.com/schema", "/definitions/string",
-      "https://www.sourcemeta.com/schema", "/definitions/string", "", false);
+      "https://www.sourcemeta.com/schema", "/definitions/string", "", false,
+      true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "https://www.sourcemeta.com/schema#/definitions/string/type",
       "https://www.sourcemeta.com/schema", "/definitions/string/type",
       "https://www.sourcemeta.com/schema", "/definitions/string/type",
-      "/definitions/string", false);
+      "/definitions/string", false, true);
 
   // References
 
@@ -2027,15 +2068,15 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_without_ref) {
   EXPECT_EQ(frame.locations().size(), 3);
 
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(frame, "common", "common", "", "common",
-                                       "", std::nullopt, false);
+                                       "", std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/$schema", "common",
                                       "/$schema", "common", "/$schema", "",
-                                      false);
+                                      false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/$id", "common", "/$id",
-                                      "common", "/$id", "", false);
+                                      "common", "/$id", "", false, false);
 
   // References
 
@@ -2067,36 +2108,38 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
   EXPECT_EQ(frame.locations().size(), 10);
 
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(frame, "common", "common", "", "common",
-                                       "", std::nullopt, false);
+                                       "", std::nullopt, false, false);
 
   // Anchors
   EXPECT_FRAME_STATIC_2019_09_ANCHOR(frame, "common#foo", "common",
                                      "/$defs/foo", "common", "/$defs/foo", "",
-                                     false);
+                                     false, true);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/$schema", "common",
                                       "/$schema", "common", "/$schema", "",
-                                      false);
+                                      false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/$id", "common", "/$id",
-                                      "common", "/$id", "", false);
+                                      "common", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/allOf", "common",
-                                      "/allOf", "common", "/allOf", "", false);
+                                      "/allOf", "common", "/allOf", "", false,
+                                      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(frame, "common#/allOf/0", "common",
                                         "/allOf/0", "common", "/allOf/0", "",
-                                        false);
-  EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/allOf/0/$ref", "common",
-                                      "/allOf/0/$ref", "common",
-                                      "/allOf/0/$ref", "/allOf/0", false);
+                                        false, false);
+  EXPECT_FRAME_STATIC_2019_09_POINTER(
+      frame, "common#/allOf/0/$ref", "common", "/allOf/0/$ref", "common",
+      "/allOf/0/$ref", "/allOf/0", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "common#/$defs", "common",
-                                      "/$defs", "common", "/$defs", "", false);
+                                      "/$defs", "common", "/$defs", "", false,
+                                      false);
   EXPECT_FRAME_STATIC_2019_09_SUBSCHEMA(frame, "common#/$defs/foo", "common",
                                         "/$defs/foo", "common", "/$defs/foo",
-                                        "", false);
+                                        "", false, true);
   EXPECT_FRAME_STATIC_2019_09_POINTER(
       frame, "common#/$defs/foo/$anchor", "common", "/$defs/foo/$anchor",
-      "common", "/$defs/foo/$anchor", "/$defs/foo", false);
+      "common", "/$defs/foo/$anchor", "/$defs/foo", false, true);
 
   // References
 
@@ -2123,15 +2166,15 @@ TEST(JSONSchema_frame_2019_09, relative_id_leading_slash) {
 
   EXPECT_EQ(frame.locations().size(), 3);
   EXPECT_FRAME_STATIC_2019_09_RESOURCE(frame, "/base", "/base", "", "/base", "",
-                                       std::nullopt, false);
+                                       std::nullopt, false, false);
 
   // JSON Pointers
 
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "/base#/$id", "/base", "/$id",
-                                      "/base", "/$id", "", false);
+                                      "/base", "/$id", "", false, false);
   EXPECT_FRAME_STATIC_2019_09_POINTER(frame, "/base#/$schema", "/base",
                                       "/$schema", "/base", "/$schema", "",
-                                      false);
+                                      false, false);
 
   // References
 
@@ -2171,47 +2214,47 @@ TEST(JSONSchema_frame_2019_09,
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties", "/properties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo", "/properties/foo",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/$ref", "/properties/foo/$ref",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo", false);
+      "/properties/foo", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties", "/properties/foo/properties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo", false);
+      "/properties/foo", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo/properties/bar",
       "/properties/foo/properties/bar",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo", false);
+      "/properties/foo", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/$ref",
       "/properties/foo/properties/bar/$ref",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo/properties/bar", false);
+      "/properties/foo/properties/bar", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/properties/foo/properties/bar/additionalProperties",
       "/properties/foo/properties/bar/additionalProperties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo/properties/bar", false);
+      "/properties/foo/properties/bar", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/properties/foo/properties/bar/additionalProperties/$ref",
       "/properties/foo/properties/bar/additionalProperties/$ref",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/properties/foo/properties/bar/additionalProperties", false);
+      "/properties/foo/properties/bar/additionalProperties", false, false);
 
   EXPECT_EQ(frame.references().size(), 4);
 
@@ -2263,103 +2306,103 @@ TEST(JSONSchema_frame_2019_09, propertyNames_with_nested_applicators) {
 
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames", "/propertyNames",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      true);
+      true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames/anyOf/0", "/propertyNames/anyOf/0",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames/anyOf/1", "/propertyNames/anyOf/1",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames/anyOf/2", "/propertyNames/anyOf/2",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames/additionalProperties",
       "/propertyNames/additionalProperties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", false);
+      "/propertyNames", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
       frame, "#/propertyNames/$defs/test", "/propertyNames/$defs/test",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", false);
+      "/propertyNames", false, true);
 
   // Anchors
 
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#outer", "", "https://json-schema.org/draft/2019-09/schema",
-      JSON_Schema_2019_09, std::nullopt, false);
+      JSON_Schema_2019_09, std::nullopt, false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#inner", "/propertyNames",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      true);
+      true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#nested", "/propertyNames/anyOf/2",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
       frame, "#other", "/propertyNames/additionalProperties",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", false);
+      "/propertyNames", false, false);
 
   // JSON Pointers
 
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$schema", "/$schema",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/$anchor", "/$anchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
-      false);
+      false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/$anchor", "/propertyNames/$anchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/anyOf", "/propertyNames/anyOf",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/anyOf/0/minLength",
       "/propertyNames/anyOf/0/minLength",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/anyOf/0", true);
+      "/propertyNames/anyOf/0", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/anyOf/1/maxLength",
       "/propertyNames/anyOf/1/maxLength",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/anyOf/1", true);
+      "/propertyNames/anyOf/1", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/anyOf/2/$anchor",
       "/propertyNames/anyOf/2/$anchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/anyOf/2", true);
+      "/propertyNames/anyOf/2", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/additionalProperties/$anchor",
       "/propertyNames/additionalProperties/$anchor",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/additionalProperties", false);
+      "/propertyNames/additionalProperties", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/additionalProperties/type",
       "/propertyNames/additionalProperties/type",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/additionalProperties", false);
+      "/propertyNames/additionalProperties", false, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/$defs", "/propertyNames/$defs",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames", true);
+      "/propertyNames", true, false);
   EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
       frame, "#/propertyNames/$defs/test/type",
       "/propertyNames/$defs/test/type",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
-      "/propertyNames/$defs/test", false);
+      "/propertyNames/$defs/test", false, true);
 
   // References
 
