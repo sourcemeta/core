@@ -6014,3 +6014,121 @@ TEST(JSONSchema_frame_2020_12, unreferenced_dynamic_anchor) {
                                       "#/$defs/string/$dynamicAnchor");
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/string/type");
 }
+
+TEST(JSONSchema_frame_2020_12, property_named_defs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schema",
+    "$ref": "#/$defs/helper",
+    "$defs": {
+      "helper": {
+        "properties": {
+          "$defs": { "type": "string" },
+          "definitions": { "type": "number" }
+        }
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 11);
+
+  // Resources
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://example.com/schema", "https://example.com/schema", "",
+      "https://example.com/schema", "", std::nullopt, false, false);
+
+  // Subschemas
+
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://example.com/schema#/$defs/helper",
+      "https://example.com/schema", "/$defs/helper",
+      "https://example.com/schema", "/$defs/helper", "", false, true);
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://example.com/schema#/$defs/helper/properties/$defs",
+      "https://example.com/schema", "/$defs/helper/properties/$defs",
+      "https://example.com/schema", "/$defs/helper/properties/$defs",
+      "/$defs/helper", false, true);
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://example.com/schema#/$defs/helper/properties/definitions",
+      "https://example.com/schema", "/$defs/helper/properties/definitions",
+      "https://example.com/schema", "/$defs/helper/properties/definitions",
+      "/$defs/helper", false, true);
+
+  // Pointers
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/schema#/$id", "https://example.com/schema",
+      "/$id", "https://example.com/schema", "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/schema#/$schema",
+      "https://example.com/schema", "/$schema", "https://example.com/schema",
+      "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/schema#/$ref", "https://example.com/schema",
+      "/$ref", "https://example.com/schema", "/$ref", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/schema#/$defs", "https://example.com/schema",
+      "/$defs", "https://example.com/schema", "/$defs", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/schema#/$defs/helper/properties",
+      "https://example.com/schema", "/$defs/helper/properties",
+      "https://example.com/schema", "/$defs/helper/properties", "/$defs/helper",
+      false, true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/schema#/$defs/helper/properties/$defs/type",
+      "https://example.com/schema", "/$defs/helper/properties/$defs/type",
+      "https://example.com/schema", "/$defs/helper/properties/$defs/type",
+      "/$defs/helper/properties/$defs", false, true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame,
+      "https://example.com/schema#/$defs/helper/properties/definitions/type",
+      "https://example.com/schema", "/$defs/helper/properties/definitions/type",
+      "https://example.com/schema", "/$defs/helper/properties/definitions/type",
+      "/$defs/helper/properties/definitions", false, true);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$ref", "https://example.com/schema#/$defs/helper",
+      "https://example.com/schema", "/$defs/helper", "#/$defs/helper");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/schema#/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/schema#/$defs");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://example.com/schema#/$defs/helper/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/$defs");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/$defs/type");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/definitions");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/definitions/type");
+}
