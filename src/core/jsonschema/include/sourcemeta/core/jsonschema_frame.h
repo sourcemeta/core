@@ -17,6 +17,7 @@
 #include <optional>      // std::optional
 #include <set>           // std::set
 #include <tuple>         // std::tuple
+#include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::pair
 #include <vector>        // std::vector
@@ -191,6 +192,11 @@ public:
   [[nodiscard]] auto traverse(const WeakPointer &pointer) const
       -> std::optional<std::reference_wrapper<const Location>>;
 
+  /// Get the location of a specific type associated with a given pointer
+  [[nodiscard]] auto traverse(const WeakPointer &pointer,
+                              const LocationType type) const
+      -> std::optional<std::reference_wrapper<const Location>>;
+
   /// Turn an absolute pointer into a location URI
   [[nodiscard]] auto uri(const WeakPointer &pointer) const
       -> std::optional<std::reference_wrapper<const JSON::String>>;
@@ -236,9 +242,15 @@ public:
   auto reset() -> void;
 
   /// Determines if a location could be evaluated during validation
-  [[nodiscard]] auto is_reachable(const Location &location) const -> bool;
+  [[nodiscard]] auto is_reachable(const Location &location,
+                                  const SchemaWalker &walker,
+                                  const SchemaResolver &resolver) const -> bool;
 
 private:
+  auto populate_pointer_to_location() const -> void;
+  auto populate_reachability(const SchemaWalker &walker,
+                             const SchemaResolver &resolver) const -> void;
+
   Mode mode_;
 // Exporting symbols that depends on the standard C++ library is considered
 // safe.
@@ -249,6 +261,13 @@ private:
   JSON::String root_;
   Locations locations_;
   References references_;
+  mutable std::unordered_map<std::reference_wrapper<const WeakPointer>,
+                             std::vector<const Location *>, WeakPointer::Hasher,
+                             WeakPointer::Comparator>
+      pointer_to_location_;
+  mutable std::unordered_map<std::reference_wrapper<const WeakPointer>, bool,
+                             WeakPointer::Hasher, WeakPointer::Comparator>
+      reachability_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif

@@ -493,13 +493,19 @@
 #define EXPECT_FRAME_LOCATION_REACHABLE(frame, reference_type, reference)      \
   EXPECT_TRUE((frame).locations().contains(                                    \
       {sourcemeta::core::SchemaReferenceType::reference_type, (reference)}));  \
-  EXPECT_TRUE((frame).is_reachable((frame).locations().at(                     \
-      {sourcemeta::core::SchemaReferenceType::reference_type, (reference)})))
+  EXPECT_TRUE((frame).is_reachable(                                            \
+      (frame).locations().at(                                                  \
+          {sourcemeta::core::SchemaReferenceType::reference_type,              \
+           (reference)}),                                                      \
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver))
 
 #define EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, reference_type, reference)  \
   EXPECT_TRUE((frame).locations().contains(                                    \
       {sourcemeta::core::SchemaReferenceType::reference_type, (reference)}));  \
-  EXPECT_FALSE((frame).is_reachable((frame).locations().at(                    \
-      {sourcemeta::core::SchemaReferenceType::reference_type, (reference)})))
+  EXPECT_FALSE((frame).is_reachable(                                           \
+      (frame).locations().at(                                                  \
+          {sourcemeta::core::SchemaReferenceType::reference_type,              \
+           (reference)}),                                                      \
+      sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver))
 
 #endif
