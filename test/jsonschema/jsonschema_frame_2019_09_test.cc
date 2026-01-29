@@ -104,6 +104,15 @@ TEST(JSONSchema_frame_2019_09, anonymous_with_nested_schema_resource) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalProperties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalProperties/$id");
 }
 
 TEST(JSONSchema_frame_2019_09, empty_schema) {
@@ -142,6 +151,15 @@ TEST(JSONSchema_frame_2019_09, empty_schema) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
 }
 
 TEST(JSONSchema_frame_2019_09, empty_schema_trailing_hash) {
@@ -180,6 +198,15 @@ TEST(JSONSchema_frame_2019_09, empty_schema_trailing_hash) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
 }
 
 TEST(JSONSchema_frame_2019_09, one_level_applicators_without_identifiers) {
@@ -244,6 +271,25 @@ TEST(JSONSchema_frame_2019_09, one_level_applicators_without_identifiers) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items/type");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo/type");
 }
 
 TEST(JSONSchema_frame_2019_09, one_level_applicators_with_identifiers) {
@@ -339,6 +385,39 @@ TEST(JSONSchema_frame_2019_09, one_level_applicators_with_identifiers) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test/qux");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test/qux#test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test/qux#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test/qux#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/items/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/items/type");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/test/qux#/properties/foo/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/test/qux#/properties/foo/type");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/type");
 }
 
 TEST(JSONSchema_frame_2019_09, subschema_absolute_identifier) {
@@ -405,6 +484,27 @@ TEST(JSONSchema_frame_2019_09, subschema_absolute_identifier) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items/type");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/type");
 }
 
 TEST(JSONSchema_frame_2019_09, nested_schemas) {
@@ -594,6 +694,72 @@ TEST(JSONSchema_frame_2019_09, nested_schemas) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/baz#extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/foo/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/foo/items/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#/items/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/qux#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/bar#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/baz/items/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/baz#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/baz#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/baz#/items/$anchor");
 }
 
 TEST(JSONSchema_frame_2019_09, id_override) {
@@ -663,6 +829,15 @@ TEST(JSONSchema_frame_2019_09, explicit_argument_id_same) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
 }
 
 TEST(JSONSchema_frame_2019_09, anchor_top_level) {
@@ -711,6 +886,19 @@ TEST(JSONSchema_frame_2019_09, anchor_top_level) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#foo");
 }
 
 TEST(JSONSchema_frame_2019_09, explicit_argument_id_different) {
@@ -857,6 +1045,82 @@ TEST(JSONSchema_frame_2019_09, explicit_argument_id_different) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com#foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test#bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com/test#bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com#baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/one");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/one/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/one/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/two");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/two/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/two/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test#/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.test.com#/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/items/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/properties/one");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/one/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/one/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/properties/two");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/two/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/two/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com/test#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com/test#/$anchor");
 }
 
 TEST(JSONSchema_frame_2019_09, ref_metaschema) {
@@ -895,6 +1159,12 @@ TEST(JSONSchema_frame_2019_09, ref_metaschema) {
       frame, "/$ref", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$ref");
 }
 
 TEST(JSONSchema_frame_2019_09, location_independent_identifier_anonymous) {
@@ -976,6 +1246,19 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_true_with_id) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$recursiveAnchor");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_false_with_id) {
@@ -1023,6 +1306,17 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_false_with_id) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$recursiveAnchor");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_true_without_id) {
@@ -1080,6 +1374,16 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_true_without_id) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/properties/foo/$recursiveAnchor");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_false_without_id) {
@@ -1130,6 +1434,15 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_false_without_id) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/properties/foo/$recursiveAnchor");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor_anonymous) {
@@ -1174,6 +1487,14 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor_anonymous) {
       "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "", "",
                           std::nullopt, "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveRef");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor) {
@@ -1228,6 +1549,20 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_no_recursive_anchor) {
                           "https://www.sourcemeta.com/schema",
                           "https://www.sourcemeta.com/schema", std::nullopt,
                           "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false_anonymous) {
@@ -1277,6 +1612,15 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false_anonymous) {
       "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "", "",
                           std::nullopt, "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveRef");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false) {
@@ -1337,6 +1681,22 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_false) {
                           "https://www.sourcemeta.com/schema",
                           "https://www.sourcemeta.com/schema", std::nullopt,
                           "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true_anonymous) {
@@ -1392,6 +1752,16 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true_anonymous) {
       "https://json-schema.org/draft/2019-09/schema");
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef", "", "",
                            std::nullopt, "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true) {
@@ -1459,6 +1829,24 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_recursive_anchor_true) {
                            "https://www.sourcemeta.com/schema",
                            "https://www.sourcemeta.com/schema", std::nullopt,
                            "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://www.sourcemeta.com/schema");
 }
 
 TEST(JSONSchema_frame_2019_09,
@@ -1536,6 +1924,23 @@ TEST(JSONSchema_frame_2019_09,
   EXPECT_STATIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                           "https://example.com", "https://example.com",
                           std::nullopt, "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com#/$recursiveRef");
 }
 
 TEST(JSONSchema_frame_2019_09,
@@ -1620,6 +2025,24 @@ TEST(JSONSchema_frame_2019_09,
   EXPECT_DYNAMIC_REFERENCE(frame, "/additionalItems/$recursiveRef",
                            "https://example.com", "https://example.com",
                            std::nullopt, "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com#/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "https://example.com");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_nested_recursive_anchor_true) {
@@ -1689,6 +2112,25 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_nested_recursive_anchor_true) {
                            "https://www.sourcemeta.com/schema",
                            "https://www.sourcemeta.com/schema", std::nullopt,
                            "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://www.sourcemeta.com/schema");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_ref_multiple_recursive_anchor_true) {
@@ -1792,6 +2234,39 @@ TEST(JSONSchema_frame_2019_09, recursive_ref_multiple_recursive_anchor_true) {
                            "https://www.sourcemeta.com/nested",
                            "https://www.sourcemeta.com/nested", std::nullopt,
                            "#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/nested");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/additionalItems/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/additionalItems/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/nested#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/nested#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/nested#/$recursiveRef");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://www.sourcemeta.com/nested");
 }
 
 TEST(JSONSchema_frame_2019_09, recursive_anchor_conflict) {
@@ -1908,6 +2383,20 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_on_relative_id) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "middle");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalItems/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/additionalItems/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "middle#/$recursiveAnchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "middle");
 }
 
 TEST(JSONSchema_frame_2019_09, ref_with_id) {
@@ -1971,6 +2460,23 @@ TEST(JSONSchema_frame_2019_09, ref_with_id) {
   EXPECT_STATIC_REFERENCE(
       frame, "/$ref", "https://www.sourcemeta.com/schema#/$defs/string",
       "https://www.sourcemeta.com/schema", "/$defs/string", "#/$defs/string");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$defs");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/string/type");
 }
 
 TEST(JSONSchema_frame_2019_09, ref_from_definitions) {
@@ -2052,6 +2558,29 @@ TEST(JSONSchema_frame_2019_09, ref_from_definitions) {
       "https://www.sourcemeta.com/schema#/definitions/string",
       "https://www.sourcemeta.com/schema", "/definitions/string",
       "#/definitions/string");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions/middle");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/definitions/middle/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/definitions/string/type");
 }
 
 TEST(JSONSchema_frame_2019_09, relative_base_uri_without_ref) {
@@ -2086,6 +2615,12 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_without_ref) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$id");
 }
 
 TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
@@ -2151,6 +2686,19 @@ TEST(JSONSchema_frame_2019_09, relative_base_uri_with_ref) {
       "https://json-schema.org/draft/2019-09/schema");
   EXPECT_STATIC_REFERENCE(frame, "/allOf/0/$ref", "common#foo", "common", "foo",
                           "#foo");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/allOf");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/allOf/0");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/allOf/0/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$defs");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$defs/foo/$anchor");
 }
 
 TEST(JSONSchema_frame_2019_09, relative_id_leading_slash) {
@@ -2184,6 +2732,12 @@ TEST(JSONSchema_frame_2019_09, relative_id_leading_slash) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "/base");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "/base#/$id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "/base#/$schema");
 }
 
 TEST(JSONSchema_frame_2019_09,
@@ -2272,6 +2826,24 @@ TEST(JSONSchema_frame_2019_09,
       frame, "/properties/foo/properties/bar/additionalProperties/$ref",
       "#/definitions/threshold", "", "/definitions/threshold",
       "#/definitions/threshold");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo/properties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/properties/foo/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/properties/foo/properties/bar/$ref");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "#/properties/foo/properties/bar/additionalProperties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "#/properties/foo/properties/bar/additionalProperties/$ref");
 }
 
 TEST(JSONSchema_frame_2019_09, propertyNames_with_nested_applicators) {
@@ -2412,6 +2984,39 @@ TEST(JSONSchema_frame_2019_09, propertyNames_with_nested_applicators) {
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames/anyOf/0");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames/anyOf/1");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames/anyOf/2");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/propertyNames/additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "#/propertyNames/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#outer");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#inner");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#nested");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#other");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames/anyOf");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/propertyNames/anyOf/0/minLength");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/propertyNames/anyOf/1/maxLength");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/propertyNames/anyOf/2/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "#/propertyNames/additionalProperties/$anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/propertyNames/additionalProperties/type");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/propertyNames/$defs");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "#/propertyNames/$defs/test/type");
 }
 
 TEST(JSONSchema_frame_2019_09, invalid_recursive_anchor_not_boolean) {

@@ -1359,4 +1359,171 @@ auto SchemaFrame::reset() -> void {
   this->references_.clear();
 }
 
+static auto is_definitions_container(
+    const WeakPointer &pointer_location,
+    const std::map<WeakPointer, const SchemaFrame::Location *> &pointer_index)
+    -> bool {
+  for (const auto &[candidate_pointer, candidate_location] : pointer_index) {
+    // Check if candidate is a direct child of this pointer
+    if (candidate_pointer.size() == pointer_location.size() + 1 &&
+        candidate_pointer.starts_with(pointer_location) &&
+        candidate_location->orphan &&
+        (candidate_location->type == SchemaFrame::LocationType::Subschema ||
+         candidate_location->type == SchemaFrame::LocationType::Resource)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static auto compute_orphan_depth(
+    const WeakPointer &pointer,
+    const std::map<WeakPointer, const SchemaFrame::Location *> &pointer_index)
+    -> std::size_t {
+  std::size_t depth{0};
+  bool previous_was_non_orphan{true};
+  const SchemaFrame::Location *previous_orphan_subschema{nullptr};
+
+  for (std::size_t index = 0; index < pointer.size(); ++index) {
+    const auto current{pointer.slice(0, index + 1)};
+    const auto iter{pointer_index.find(current)};
+    if (iter == pointer_index.end()) {
+      continue;
+    }
+
+    const auto &location{*iter->second};
+    if (location.orphan) {
+      if (location.type == SchemaFrame::LocationType::Pointer) {
+        if (previous_orphan_subschema != nullptr &&
+            is_definitions_container(current, pointer_index)) {
+          if (location.parent.has_value()) {
+            const auto parent_iter{pointer_index.find(location.parent.value())};
+            if (parent_iter != pointer_index.end() &&
+                parent_iter->second->parent.has_value()) {
+              const auto grandparent_iter{
+                  pointer_index.find(parent_iter->second->parent.value())};
+              if (grandparent_iter != pointer_index.end() &&
+                  grandparent_iter->second->orphan) {
+                depth++;
+              }
+            }
+          }
+        }
+        previous_was_non_orphan = false;
+      } else if (location.type == SchemaFrame::LocationType::Subschema ||
+                 location.type == SchemaFrame::LocationType::Resource) {
+        if (previous_was_non_orphan) {
+          depth++;
+        }
+        previous_orphan_subschema = &location;
+        previous_was_non_orphan = false;
+      }
+    } else {
+      previous_orphan_subschema = nullptr;
+      previous_was_non_orphan = true;
+    }
+  }
+
+  return depth;
+}
+
+static auto is_applicator_descendant(
+    const WeakPointer &parent, const WeakPointer &child,
+    const std::map<WeakPointer, const SchemaFrame::Location *> &pointer_index)
+    -> bool {
+  if (child == parent) {
+    return true;
+  }
+
+  if (!child.starts_with(parent)) {
+    return false;
+  }
+
+  const auto parent_depth{compute_orphan_depth(parent, pointer_index)};
+  const auto child_depth{compute_orphan_depth(child, pointer_index)};
+
+  return child_depth <= parent_depth;
+}
+
+// TODO: Optimise this. Right now it works, but its very inefficient
+auto SchemaFrame::is_reachable(const Location &location) const -> bool {
+  if (!location.orphan) {
+    return true;
+  }
+
+  std::map<WeakPointer, const Location *> pointer_index;
+  for (const auto &entry : this->locations_) {
+    pointer_index.emplace(entry.second.pointer, &entry.second);
+  }
+
+  std::set<WeakPointer> visited;
+  std::function<bool(const WeakPointer &)> is_reachable_via_references =
+      [&](const WeakPointer &target_pointer) -> bool {
+    if (visited.contains(target_pointer)) {
+      return false;
+    }
+
+    visited.insert(target_pointer);
+
+    for (const auto &reference : this->references_) {
+      const auto destination_location{this->locations_.find(
+          {SchemaReferenceType::Static, reference.second.destination})};
+      if (destination_location == this->locations_.cend()) {
+        const auto dynamic_destination{this->locations_.find(
+            {SchemaReferenceType::Dynamic, reference.second.destination})};
+        if (dynamic_destination == this->locations_.cend()) {
+          continue;
+        }
+
+        if (is_applicator_descendant(dynamic_destination->second.pointer,
+                                     target_pointer, pointer_index)) {
+          const auto &source_pointer{reference.first.second};
+          if (source_pointer.empty()) {
+            continue;
+          }
+
+          const auto parent_pointer{source_pointer.initial()};
+
+          const auto parent_location{this->traverse(parent_pointer)};
+          if (parent_location.has_value()) {
+            if (!parent_location->get().orphan) {
+              return true;
+            }
+
+            if (is_reachable_via_references(parent_pointer)) {
+              return true;
+            }
+          }
+        }
+
+        continue;
+      }
+
+      if (is_applicator_descendant(destination_location->second.pointer,
+                                   target_pointer, pointer_index)) {
+        const auto &source_pointer{reference.first.second};
+        if (source_pointer.empty()) {
+          continue;
+        }
+        const auto parent_pointer{source_pointer.initial()};
+
+        const auto parent_location{this->traverse(parent_pointer)};
+        if (parent_location.has_value()) {
+          if (!parent_location->get().orphan) {
+            return true;
+          }
+
+          if (is_reachable_via_references(parent_pointer)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
+  return is_reachable_via_references(location.pointer);
+}
+
 } // namespace sourcemeta::core

@@ -229,6 +229,9 @@ public:
   /// Reset the frame, clearing all analysed data
   auto reset() -> void;
 
+  /// Determines if a location could be evaluated during validation
+  [[nodiscard]] auto is_reachable(const Location &location) const -> bool;
+
 private:
   Mode mode_;
 // Exporting symbols that depends on the standard C++ library is considered
