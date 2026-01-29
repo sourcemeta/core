@@ -1359,4 +1359,124 @@ auto SchemaFrame::reset() -> void {
   this->references_.clear();
 }
 
+static auto is_applicator_descendant(const WeakPointer &parent,
+                                     const WeakPointer &child) -> bool {
+  // Exact match: a pointer is trivially an applicator descendant of itself
+  if (child == parent) {
+    return true;
+  }
+
+  if (child.size() < parent.size()) {
+    return false;
+  }
+
+  if (!child.starts_with(parent)) {
+    return false;
+  }
+
+  // Check segments in relative path for $defs or definitions
+  for (auto index = parent.size(); index < child.size(); ++index) {
+    const auto &token{child.at(index)};
+    if (token.is_property()) {
+      const auto &name{token.to_property()};
+      if (name == "$defs" || name == "definitions") {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+auto SchemaFrame::is_reachable(const Location &location) const -> bool {
+  // Non-orphan locations are always reachable via applicators from root
+  if (!location.orphan) {
+    return true;
+  }
+
+  // For orphan locations, check if reachable via references
+  // We use a set of visited pointers to detect cycles
+  std::set<WeakPointer> visited;
+
+  // Recursive lambda to check reachability via references
+  std::function<bool(const WeakPointer &)> is_reachable_via_references =
+      [&](const WeakPointer &target_pointer) -> bool {
+    if (visited.contains(target_pointer)) {
+      return false;
+    }
+    visited.insert(target_pointer);
+
+    for (const auto &reference : this->references_) {
+      // Get the destination location for this reference
+      const auto destination_location{this->locations_.find(
+          {SchemaReferenceType::Static, reference.second.destination})};
+      if (destination_location == this->locations_.cend()) {
+        // Try dynamic reference type
+        const auto dynamic_destination{this->locations_.find(
+            {SchemaReferenceType::Dynamic, reference.second.destination})};
+        if (dynamic_destination == this->locations_.cend()) {
+          // External reference or unresolved - skip
+          continue;
+        }
+
+        // Check if target is an applicator descendant of this destination
+        if (is_applicator_descendant(dynamic_destination->second.pointer,
+                                     target_pointer)) {
+          // Get the parent subschema of the reference source
+          // reference.first.second is the source pointer (e.g., /foo/$ref)
+          const auto &source_pointer{reference.first.second};
+          // The parent is one level up from the reference keyword
+          if (source_pointer.empty()) {
+            continue;
+          }
+          const auto parent_pointer{source_pointer.initial()};
+
+          // Find the parent location
+          const auto parent_location{this->traverse(parent_pointer)};
+          if (parent_location.has_value()) {
+            // Check if the parent is reachable
+            if (!parent_location->get().orphan) {
+              return true;
+            }
+            // Parent is also orphan, check recursively
+            if (is_reachable_via_references(parent_pointer)) {
+              return true;
+            }
+          }
+        }
+
+        continue;
+      }
+
+      // Check if target is an applicator descendant of this destination
+      if (is_applicator_descendant(destination_location->second.pointer,
+                                   target_pointer)) {
+        // Get the parent subschema of the reference source
+        const auto &source_pointer{reference.first.second};
+        if (source_pointer.empty()) {
+          continue;
+        }
+        const auto parent_pointer{source_pointer.initial()};
+
+        // Find the parent location
+        const auto parent_location{this->traverse(parent_pointer)};
+        if (parent_location.has_value()) {
+          // Check if the parent is reachable
+          if (!parent_location->get().orphan) {
+            return true;
+          }
+          // Parent is also orphan, check recursively
+          if (is_reachable_via_references(parent_pointer)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
+
+  return is_reachable_via_references(location.pointer);
+}
+
 } // namespace sourcemeta::core
