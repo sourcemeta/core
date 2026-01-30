@@ -386,7 +386,9 @@ TEST(JSONWeakPointer_pointer, to_weak_pointer) {
 }
 
 TEST(JSONWeakPointer_pointer, hash_unordered_set) {
-  std::unordered_set<sourcemeta::core::WeakPointer> set;
+  std::unordered_set<sourcemeta::core::WeakPointer,
+                     sourcemeta::core::WeakPointer::Hasher>
+      set;
 
   // Test empty pointer
   const sourcemeta::core::WeakPointer empty{};
@@ -419,7 +421,9 @@ TEST(JSONWeakPointer_pointer, hash_unordered_set) {
 }
 
 TEST(JSONWeakPointer_pointer, hash_unordered_map) {
-  std::unordered_map<sourcemeta::core::WeakPointer, int> map;
+  std::unordered_map<sourcemeta::core::WeakPointer, int,
+                     sourcemeta::core::WeakPointer::Hasher>
+      map;
 
   // Test empty pointer
   const sourcemeta::core::WeakPointer empty{};
@@ -444,14 +448,14 @@ TEST(JSONWeakPointer_pointer, hash_unordered_map) {
 }
 
 TEST(JSONWeakPointer_pointer, hash_empty_consistency) {
-  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer::Hasher hasher;
   const sourcemeta::core::WeakPointer empty_1{};
   const sourcemeta::core::WeakPointer empty_2{};
   EXPECT_EQ(hasher(empty_1), hasher(empty_2));
 }
 
 TEST(JSONWeakPointer_pointer, hash_single_token_consistency) {
-  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer::Hasher hasher;
   const sourcemeta::core::WeakPointer single_1{std::cref(foo)};
   const sourcemeta::core::WeakPointer single_2{std::cref(foo)};
   const sourcemeta::core::WeakPointer single_3{std::cref(bar)};
@@ -460,7 +464,7 @@ TEST(JSONWeakPointer_pointer, hash_single_token_consistency) {
 }
 
 TEST(JSONWeakPointer_pointer, hash_two_token_consistency) {
-  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer::Hasher hasher;
   const sourcemeta::core::WeakPointer two_1{std::cref(foo), std::cref(bar)};
   const sourcemeta::core::WeakPointer two_2{std::cref(foo), std::cref(bar)};
   const sourcemeta::core::WeakPointer two_3{std::cref(foo), std::cref(baz)};
@@ -469,7 +473,7 @@ TEST(JSONWeakPointer_pointer, hash_two_token_consistency) {
 }
 
 TEST(JSONWeakPointer_pointer, hash_three_token_consistency) {
-  const std::hash<sourcemeta::core::WeakPointer> hasher;
+  const sourcemeta::core::WeakPointer::Hasher hasher;
   const sourcemeta::core::WeakPointer multi_1{std::cref(foo), std::cref(bar),
                                               1};
   const sourcemeta::core::WeakPointer multi_2{std::cref(foo), std::cref(bar),
@@ -478,6 +482,38 @@ TEST(JSONWeakPointer_pointer, hash_three_token_consistency) {
                                               1};
   EXPECT_EQ(hasher(multi_1), hasher(multi_2));
   EXPECT_NE(hasher(multi_1), hasher(multi_3));
+}
+
+TEST(JSONWeakPointer_pointer, hash_reference_wrapper_unordered_map) {
+  const sourcemeta::core::WeakPointer pointer_1{std::cref(foo), std::cref(bar)};
+  const sourcemeta::core::WeakPointer pointer_2{std::cref(baz)};
+  const sourcemeta::core::WeakPointer pointer_3{std::cref(foo), std::cref(bar),
+                                                std::cref(baz)};
+
+  std::unordered_map<
+      std::reference_wrapper<const sourcemeta::core::WeakPointer>, int,
+      sourcemeta::core::WeakPointer::Hasher,
+      sourcemeta::core::WeakPointer::Comparator>
+      map;
+
+  map.emplace(std::cref(pointer_1), 1);
+  map.emplace(std::cref(pointer_2), 2);
+  map.emplace(std::cref(pointer_3), 3);
+
+  EXPECT_EQ(map.size(), 3);
+  EXPECT_TRUE(map.contains(pointer_1));
+  EXPECT_TRUE(map.contains(pointer_2));
+  EXPECT_TRUE(map.contains(pointer_3));
+  EXPECT_EQ(map.at(pointer_1), 1);
+  EXPECT_EQ(map.at(pointer_2), 2);
+  EXPECT_EQ(map.at(pointer_3), 3);
+
+  const sourcemeta::core::WeakPointer lookup{std::cref(foo), std::cref(bar)};
+  EXPECT_TRUE(map.contains(lookup));
+  EXPECT_EQ(map.at(lookup), 1);
+
+  const sourcemeta::core::WeakPointer missing{std::cref(qux)};
+  EXPECT_FALSE(map.contains(missing));
 }
 
 TEST(JSONWeakPointer_pointer, slice_from_zero) {

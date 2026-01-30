@@ -251,7 +251,9 @@ TEST(JSONPointer_pointer, push_back_index_move) {
 }
 
 TEST(JSONPointer_pointer, hash_unordered_set) {
-  std::unordered_set<sourcemeta::core::Pointer> set;
+  std::unordered_set<sourcemeta::core::Pointer,
+                     sourcemeta::core::Pointer::Hasher>
+      set;
 
   // Test empty pointer
   const sourcemeta::core::Pointer empty{};
@@ -282,7 +284,9 @@ TEST(JSONPointer_pointer, hash_unordered_set) {
 }
 
 TEST(JSONPointer_pointer, hash_unordered_map) {
-  std::unordered_map<sourcemeta::core::Pointer, int> map;
+  std::unordered_map<sourcemeta::core::Pointer, int,
+                     sourcemeta::core::Pointer::Hasher>
+      map;
 
   // Test empty pointer
   const sourcemeta::core::Pointer empty{};
@@ -306,14 +310,14 @@ TEST(JSONPointer_pointer, hash_unordered_map) {
 }
 
 TEST(JSONPointer_pointer, hash_empty_consistency) {
-  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer empty_1{};
   const sourcemeta::core::Pointer empty_2{};
   EXPECT_EQ(hasher(empty_1), hasher(empty_2));
 }
 
 TEST(JSONPointer_pointer, hash_single_token_consistency) {
-  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer single_1{"foo"};
   const sourcemeta::core::Pointer single_2{"foo"};
   const sourcemeta::core::Pointer single_3{"bar"};
@@ -322,7 +326,7 @@ TEST(JSONPointer_pointer, hash_single_token_consistency) {
 }
 
 TEST(JSONPointer_pointer, hash_two_token_consistency) {
-  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer two_1{"foo", "bar"};
   const sourcemeta::core::Pointer two_2{"foo", "bar"};
   const sourcemeta::core::Pointer two_3{"foo", "baz"};
@@ -331,7 +335,7 @@ TEST(JSONPointer_pointer, hash_two_token_consistency) {
 }
 
 TEST(JSONPointer_pointer, hash_three_token_consistency) {
-  const std::hash<sourcemeta::core::Pointer> hasher;
+  const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer multi_1{"foo", "bar", 1};
   const sourcemeta::core::Pointer multi_2{"foo", "bar", 1};
   const sourcemeta::core::Pointer multi_3{"foo", "baz", 1};
