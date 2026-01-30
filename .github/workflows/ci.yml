@@ -30,12 +30,6 @@ jobs:
             cxx: clang++
             type: shared
             shell: sh
-          - os: macos-latest
-            cc: gcc-13
-            cxx: g++-13
-            type: static
-            shell: sh
-            benchmark: macos/gcc
           - os: ubuntu-latest
             cc: clang
             cxx: clang++
@@ -65,9 +59,6 @@ jobs:
           - os: windows-latest
             type: shared
             shell: pwsh
-          - os: windows-latest
-            type: static
-            shell: msys2 {0}
 
           # Sanitizers
           - os: ubuntu-latest
@@ -86,12 +77,6 @@ jobs:
       CC: ${{ matrix.platform.cc }}
       CXX: ${{ matrix.platform.cxx }}
     steps:
-      - name: Install dependencies (MSYS2)
-        uses: msys2/setup-msys2@v2
-        if: matrix.platform.shell == 'msys2 {0}'
-        with:
-          install: cmake make gcc diffutils
-
       - uses: actions/checkout@v4
       - name: Install dependencies (macOS)
         if: runner.os == 'macos'
