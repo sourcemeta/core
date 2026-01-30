@@ -6954,6 +6954,38 @@ TEST(AlterSchema_lint_2020_12, orphan_definitions_27) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, orphan_definitions_28) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/outer/$defs/inner",
+    "$defs": {
+      "outer": {
+        "$defs": {
+          "inner": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$ref": "#/$defs/outer/$defs/inner",
+    "$defs": {
+      "outer": {
+        "$defs": {
+          "inner": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_2020_12,
      unnecessary_allof_wrapper_unevaluated_properties_depends_on_properties) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({

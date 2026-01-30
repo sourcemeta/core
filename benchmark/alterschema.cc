@@ -40,7 +40,7 @@ static void Alterschema_Check_Readibility_OMC(benchmark::State &state) {
         schema, sourcemeta::core::schema_walker,
         sourcemeta::core::schema_resolver,
         [](const auto &, const auto &, const auto &, const auto &) {});
-    assert(result.first);
+    assert(!result.first);
     benchmark::DoNotOptimize(result);
   }
 }
