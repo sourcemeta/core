@@ -97,7 +97,8 @@ endif()
 # Note we don't enable LTO on RelWithDebInfo, as it breaks debugging symbols
 # on at least AppleClang, making stepping through source code impossible.
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+option(SOURCEMETA_CMAKE_DISABLE_LTO "Disable LTO on Release builds" OFF)
+if(NOT SOURCEMETA_CMAKE_DISABLE_LTO AND CMAKE_BUILD_TYPE STREQUAL "Release")
   if(SOURCEMETA_COMPILER_GCC AND NOT BUILD_SHARED_LIBS)
     message(STATUS "Enabling Fat LTO")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto -ffat-lto-objects")

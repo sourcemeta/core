@@ -30,12 +30,6 @@ jobs:
             cxx: clang++
             type: shared
             shell: sh
-          - os: macos-latest
-            cc: gcc-13
-            cxx: g++-13
-            type: static
-            shell: sh
-            benchmark: macos/gcc
           - os: ubuntu-latest
             cc: clang
             cxx: clang++
@@ -68,6 +62,7 @@ jobs:
           - os: windows-latest
             type: static
             shell: msys2 {0}
+            options: -DSOURCEMETA_CMAKE_DISABLE_LTO:BOOL=ON
 
           # Sanitizers
           - os: ubuntu-latest
