@@ -11,15 +11,18 @@ namespace {
 // See https://arxiv.org/abs/2503.11288 for an academic study of this topic
 auto top_dynamic_anchor_location(
     const sourcemeta::core::SchemaFrame &frame,
+    const std::map<sourcemeta::core::WeakPointer,
+                   std::reference_wrapper<const sourcemeta::core::JSON::String>>
+        &pointer_to_uri,
     const sourcemeta::core::WeakPointer &current,
     const std::string_view fragment,
     const sourcemeta::core::JSON::String &default_uri)
     -> std::optional<
         std::reference_wrapper<const sourcemeta::core::WeakPointer>> {
   // Get the location object of where we are at the moment
-  const auto uri{frame.uri(current)};
-  assert(uri.has_value());
-  const auto match{frame.traverse(uri.value().get())};
+  const auto uri_iterator{pointer_to_uri.find(current)};
+  assert(uri_iterator != pointer_to_uri.end());
+  const auto match{frame.traverse(uri_iterator->second.get())};
   assert(match.has_value());
   const auto &location{match.value().get()};
 
@@ -33,9 +36,9 @@ auto top_dynamic_anchor_location(
   if (location.parent.has_value()) {
     // If there is a parent resource, keep looking there, but update the default
     // if the current resource has the dynamic anchor we want
-    return top_dynamic_anchor_location(frame, location.parent.value(), fragment,
-                                       anchor.has_value() ? anchor_uri
-                                                          : default_uri);
+    return top_dynamic_anchor_location(
+        frame, pointer_to_uri, location.parent.value(), fragment,
+        anchor.has_value() ? anchor_uri : default_uri);
 
     // If we are at the top of the schema and it declares the dynamic anchor, we
     // should use that
@@ -104,7 +107,7 @@ auto for_editor(JSON &schema, const SchemaWalker &walker,
       if (key.first == SchemaReferenceType::Dynamic) {
         if (reference.fragment.has_value()) {
           const auto destination{top_dynamic_anchor_location(
-              frame, key.second, reference.fragment.value(),
+              frame, pointer_to_uri, key.second, reference.fragment.value(),
               reference.destination)};
           if (!destination.has_value()) {
             continue;
