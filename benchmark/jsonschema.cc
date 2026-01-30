@@ -78,6 +78,31 @@ static void Schema_Frame_KrakenD_References(benchmark::State &state) {
   }
 }
 
+static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
+  const auto schema{
+      sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                  "schemas" / "2019_09_krakend.json")};
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(schema, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  for (auto _ : state) {
+    for (const auto &entry : frame.locations()) {
+      if (entry.second.type ==
+          sourcemeta::core::SchemaFrame::LocationType::Pointer) {
+        continue;
+      }
+
+      auto result{frame.is_reachable(entry.second,
+                                     sourcemeta::core::schema_walker,
+                                     sourcemeta::core::schema_resolver)};
+      benchmark::DoNotOptimize(result);
+    }
+  }
+}
+
 static void Schema_Iterator_ISO_Language(benchmark::State &state) {
   const auto schema{sourcemeta::core::read_json(
       std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
@@ -179,29 +204,12 @@ static void Schema_Frame_Many_Resources_References(benchmark::State &state) {
   }
 }
 
-static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
-  const auto schema{
-      sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
-                                  "schemas" / "2019_09_krakend.json")};
-
-  sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::References};
-  frame.analyse(schema, sourcemeta::core::schema_walker,
-                sourcemeta::core::schema_resolver);
-
-  for (auto _ : state) {
-    for (const auto &entry : frame.locations()) {
-      auto result{frame.is_reachable(entry.second)};
-      benchmark::DoNotOptimize(result);
-    }
-  }
-}
-
 BENCHMARK(Schema_Frame_WoT_References);
 BENCHMARK(Schema_Frame_OMC_References);
 BENCHMARK(Schema_Frame_OMC_Locations);
 BENCHMARK(Schema_Frame_ISO_Language_Locations);
 BENCHMARK(Schema_Frame_KrakenD_References);
+BENCHMARK(Schema_Frame_KrakenD_Reachable);
 BENCHMARK(Schema_Iterator_ISO_Language);
 BENCHMARK(Schema_Frame_ISO_Language_Locations_To_JSON);
 BENCHMARK(Schema_Tracker_ISO_Language);
@@ -209,4 +217,3 @@ BENCHMARK(Schema_Tracker_ISO_Language_To_JSON);
 BENCHMARK(Schema_Format_ISO_Language_To_JSON);
 BENCHMARK(Schema_Bundle_Meta_2020_12);
 BENCHMARK(Schema_Frame_Many_Resources_References);
-BENCHMARK(Schema_Frame_KrakenD_Reachable);
