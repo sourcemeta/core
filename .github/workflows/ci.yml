@@ -39,7 +39,7 @@ jobs:
           - os: ubuntu-latest
             cc: clang
             cxx: clang++
-            type: static
+            type: shared
             shell: sh
             benchmark: linux/llvm
           - os: ubuntu-latest
