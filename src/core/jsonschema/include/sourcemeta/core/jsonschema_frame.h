@@ -61,6 +61,12 @@ public:
 
   SchemaFrame(const Mode mode) : mode_{mode} {}
 
+  // We rely on internal caches that would be dangling otherwise
+  SchemaFrame(const SchemaFrame &) = delete;
+  auto operator=(const SchemaFrame &) -> SchemaFrame & = delete;
+  SchemaFrame(SchemaFrame &&) = delete;
+  auto operator=(SchemaFrame &&) -> SchemaFrame & = delete;
+
   // Query the current mode that the schema frame was configured with
   [[nodiscard]] auto mode() const noexcept -> Mode { return this->mode_; }
 
