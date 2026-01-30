@@ -1196,6 +1196,7 @@ auto SchemaFrame::traverse(const WeakPointer &pointer) const
 auto SchemaFrame::traverse(const WeakPointer &pointer,
                            const LocationType type) const
     -> std::optional<std::reference_wrapper<const Location>> {
+  assert(type != LocationType::Pointer);
   this->populate_pointer_to_location();
   const auto iterator{this->pointer_to_location_.find(std::cref(pointer))};
   if (iterator == this->pointer_to_location_.cend()) {
@@ -1401,6 +1402,10 @@ auto SchemaFrame::populate_pointer_to_location() const -> void {
 
   this->pointer_to_location_.reserve(this->locations_.size());
   for (const auto &entry : this->locations_) {
+    if (entry.second.type == LocationType::Pointer) {
+      continue;
+    }
+
     this->pointer_to_location_[std::cref(entry.second.pointer)].push_back(
         &entry.second);
   }
@@ -1424,24 +1429,23 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
   if (this->pointer_to_location_.empty()) {
     std::unordered_set<std::reference_wrapper<const WeakPointer>,
                        WeakPointer::Hasher, WeakPointer::Comparator>
-        has_non_pointer_location;
-    std::unordered_set<std::reference_wrapper<const WeakPointer>,
-                       WeakPointer::Hasher, WeakPointer::Comparator>
         has_non_orphan;
 
     for (const auto &entry : this->locations_) {
+      if (entry.second.type == LocationType::Pointer) {
+        continue;
+      }
+
       auto [iterator, inserted] = this->pointer_to_location_.try_emplace(
           std::cref(entry.second.pointer), std::vector<const Location *>{});
       iterator->second.push_back(&entry.second);
-      if (entry.second.type != LocationType::Pointer) {
-        has_non_pointer_location.insert(iterator->first);
-        if (!entry.second.orphan) {
-          has_non_orphan.insert(iterator->first);
-        }
+      if (!entry.second.orphan) {
+        has_non_orphan.insert(iterator->first);
       }
     }
 
-    for (const auto &pointer_reference : has_non_pointer_location) {
+    for (const auto &[pointer_reference, locations] :
+         this->pointer_to_location_) {
       const bool is_reachable = has_non_orphan.contains(pointer_reference);
       this->reachability_.emplace(pointer_reference, is_reachable);
       if (!is_reachable) {
@@ -1451,17 +1455,9 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
   } else {
     for (const auto &[pointer_reference, locations] :
          this->pointer_to_location_) {
-      const auto has_non_pointer{
-          std::ranges::any_of(locations, [](const Location *location) {
-            return location->type != LocationType::Pointer;
-          })};
-      if (!has_non_pointer) {
-        continue;
-      }
-
       const auto any_non_orphan{
           std::ranges::any_of(locations, [](const Location *location) {
-            return location->type != LocationType::Pointer && !location->orphan;
+            return !location->orphan;
           })};
       this->reachability_.emplace(pointer_reference, any_non_orphan);
       if (!any_non_orphan) {
