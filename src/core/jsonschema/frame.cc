@@ -440,8 +440,9 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                           std::string_view default_id,
                           const SchemaFrame::Paths &paths) -> void {
   this->reset();
-  assert(std::unordered_set<WeakPointer>(paths.cbegin(), paths.cend()).size() ==
-         paths.size());
+  assert((std::unordered_set<WeakPointer, WeakPointer::Hasher>(paths.cbegin(),
+                                                               paths.cend())
+              .size() == paths.size()));
   std::vector<InternalEntry> subschema_entries;
   std::map<WeakPointer, CacheSubschema> subschemas;
   std::map<WeakPointer, std::vector<JSON::String>> base_uris;
