@@ -598,11 +598,13 @@ auto sourcemeta::core::wrap(
     sourcemeta::core::WeakPointer &base) -> sourcemeta::core::JSON {
   assert(location.type != SchemaFrame::LocationType::Pointer);
   const auto &pointer{location.pointer};
-  assert(try_get(schema, pointer));
   if (pointer.empty()) {
-    return schema;
+    auto copy = schema;
+    copy.assign("$schema", JSON{location.dialect});
+    return copy;
   }
 
+  assert(try_get(schema, pointer));
   const auto has_internal_references{
       std::any_of(frame.references().cbegin(), frame.references().cend(),
                   [&pointer](const auto &reference) {
@@ -611,12 +613,12 @@ auto sourcemeta::core::wrap(
 
   if (!has_internal_references) {
     auto subschema{get(schema, pointer)};
-    subschema.assign("$schema", JSON{JSON::String{location.dialect}});
+    subschema.assign("$schema", JSON{location.dialect});
     return subschema;
   }
 
   auto copy = schema;
-  copy.assign("$schema", JSON{JSON::String{location.dialect}});
+  copy.assign("$schema", JSON{location.dialect});
 
   auto result{JSON::make_object()};
   // JSON Schema 2020-12 is the first dialect that truly supports
