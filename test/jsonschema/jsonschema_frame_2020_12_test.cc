@@ -5549,3 +5549,400 @@ TEST(JSONSchema_frame_2020_12, property_named_defs) {
       frame, Static,
       "https://example.com/schema#/$defs/helper/properties/definitions");
 }
+
+TEST(JSONSchema_frame_2020_12, nested_schema_with_dynamic_anchor_and_refs) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$dynamicAnchor": "meta",
+        "$ref": "#/$defs/foo",
+        "$defs": {
+          "foo": {},
+          "bar": {},
+          "baz": {
+            "$ref": "#/$defs/bar",
+            "default": 0
+          }
+        },
+        "$id": "__sourcemeta-core-wrap__"
+      }
+    },
+    "$ref": "__sourcemeta-core-wrap__#/$defs/baz"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 28);
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
+      JSON_Schema_2020_12, std::nullopt, false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema", "/$defs/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_RESOURCE(
+      frame, "__sourcemeta-core-wrap__", "/$defs/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "__sourcemeta-core-wrap__#/$defs/foo", "/$defs/schema/$defs/foo",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "__sourcemeta-core-wrap__#/$defs/bar", "/$defs/schema/$defs/bar",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "__sourcemeta-core-wrap__#/$defs/baz", "/$defs/schema/$defs/baz",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema/$defs/foo", "/$defs/schema/$defs/foo",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema/$defs/bar", "/$defs/schema/$defs/bar",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/schema/$defs/baz", "/$defs/schema/$defs/baz",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+
+  // Anchors
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_ANCHOR(
+      frame, "__sourcemeta-core-wrap__#meta", "/$defs/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, true);
+  EXPECT_ANONYMOUS_FRAME_DYNAMIC_ANCHOR(
+      frame, "__sourcemeta-core-wrap__#meta", "/$defs/schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, true);
+
+  // JSON Pointers
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs", "/$defs",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$ref", "/$ref", "https://json-schema.org/draft/2020-12/schema",
+      JSON_Schema_2020_12, "", false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$schema", "/$defs/schema/$schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$dynamicAnchor",
+      "/$defs/schema/$dynamicAnchor",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$ref", "/$defs/schema/$ref",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$defs", "/$defs/schema/$defs",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$defs/baz/$ref",
+      "/$defs/schema/$defs/baz/$ref",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema/$defs/baz", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$defs/baz/default",
+      "/$defs/schema/$defs/baz/default",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema/$defs/baz", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "__sourcemeta-core-wrap__#/$id", "/$defs/schema/$id",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$schema", "/$defs/schema/$schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$dynamicAnchor", "/$defs/schema/$dynamicAnchor",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$ref", "/$defs/schema/$ref",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$defs", "/$defs/schema/$defs",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$defs/baz/$ref", "/$defs/schema/$defs/baz/$ref",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema/$defs/baz", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$defs/baz/default",
+      "/$defs/schema/$defs/baz/default",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema/$defs/baz", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/schema/$id", "/$defs/schema/$id",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "/$defs/schema", false, true);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 5);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/$ref", "__sourcemeta-core-wrap__#/$defs/baz",
+                          "__sourcemeta-core-wrap__", "/$defs/baz",
+                          "__sourcemeta-core-wrap__#/$defs/baz");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/schema/$schema",
+                          "https://json-schema.org/draft/2020-12/schema",
+                          "https://json-schema.org/draft/2020-12/schema",
+                          std::nullopt,
+                          "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$defs/schema/$ref", "__sourcemeta-core-wrap__#/$defs/foo",
+      "__sourcemeta-core-wrap__", "/$defs/foo", "#/$defs/foo");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/schema/$defs/baz/$ref",
+                          "__sourcemeta-core-wrap__#/$defs/bar",
+                          "__sourcemeta-core-wrap__", "/$defs/bar",
+                          "#/$defs/bar");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#meta");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Dynamic,
+                                      "__sourcemeta-core-wrap__#meta");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/schema/$defs/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/schema/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "#/$defs/schema/$defs/foo");
+}
+
+TEST(JSONSchema_frame_2020_12,
+     dynamic_ref_with_unreferenced_dynamic_anchor_target) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$dynamicRef": "#meta",
+    "$defs": {
+      "unreferenced": {
+        "$id": "unreferenced",
+        "$dynamicAnchor": "meta"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 13);
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://example.com/root", "https://example.com/root", "",
+      "https://example.com/root", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://example.com/unreferenced", "https://example.com/root",
+      "/$defs/unreferenced", "https://example.com/unreferenced", "", "", false,
+      true);
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://example.com/root#/$defs/unreferenced",
+      "https://example.com/root", "/$defs/unreferenced",
+      "https://example.com/unreferenced", "", "", false, true);
+
+  // Anchors
+
+  EXPECT_FRAME_STATIC_2020_12_ANCHOR(
+      frame, "https://example.com/unreferenced#meta",
+      "https://example.com/root", "/$defs/unreferenced",
+      "https://example.com/unreferenced", "", "", false, true);
+  EXPECT_FRAME_DYNAMIC_2020_12_ANCHOR(
+      frame, "https://example.com/unreferenced#meta",
+      "https://example.com/root", "/$defs/unreferenced",
+      "https://example.com/unreferenced", "", "", false, true);
+
+  // JSON Pointers
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$schema", "https://example.com/root",
+      "/$schema", "https://example.com/root", "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$id", "https://example.com/root",
+      "/$id", "https://example.com/root", "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$dynamicRef",
+      "https://example.com/root", "/$dynamicRef", "https://example.com/root",
+      "/$dynamicRef", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$defs", "https://example.com/root",
+      "/$defs", "https://example.com/root", "/$defs", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$defs/unreferenced/$id",
+      "https://example.com/root", "/$defs/unreferenced/$id",
+      "https://example.com/unreferenced", "/$id", "/$defs/unreferenced", false,
+      true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$defs/unreferenced/$dynamicAnchor",
+      "https://example.com/root", "/$defs/unreferenced/$dynamicAnchor",
+      "https://example.com/unreferenced", "/$dynamicAnchor",
+      "/$defs/unreferenced", false, true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/unreferenced#/$id",
+      "https://example.com/root", "/$defs/unreferenced/$id",
+      "https://example.com/unreferenced", "/$id", "/$defs/unreferenced", false,
+      true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/unreferenced#/$dynamicAnchor",
+      "https://example.com/root", "/$defs/unreferenced/$dynamicAnchor",
+      "https://example.com/unreferenced", "/$dynamicAnchor",
+      "/$defs/unreferenced", false, true);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_DYNAMIC_REFERENCE(frame, "/$dynamicRef",
+                           "https://example.com/root#meta",
+                           "https://example.com/root", "meta", "#meta");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com/root");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/unreferenced#meta");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://example.com/unreferenced#meta");
+}
+
+TEST(JSONSchema_frame_2020_12,
+     dynamic_ref_with_unreferenced_static_anchor_target) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/root",
+    "$dynamicRef": "#meta",
+    "$defs": {
+      "unreferenced": {
+        "$id": "unreferenced",
+        "$anchor": "meta"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 12);
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://example.com/root", "https://example.com/root", "",
+      "https://example.com/root", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://example.com/unreferenced", "https://example.com/root",
+      "/$defs/unreferenced", "https://example.com/unreferenced", "", "", false,
+      true);
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://example.com/root#/$defs/unreferenced",
+      "https://example.com/root", "/$defs/unreferenced",
+      "https://example.com/unreferenced", "", "", false, true);
+
+  // Anchors
+
+  EXPECT_FRAME_STATIC_2020_12_ANCHOR(
+      frame, "https://example.com/unreferenced#meta",
+      "https://example.com/root", "/$defs/unreferenced",
+      "https://example.com/unreferenced", "", "", false, true);
+
+  // JSON Pointers
+
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$schema", "https://example.com/root",
+      "/$schema", "https://example.com/root", "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$id", "https://example.com/root",
+      "/$id", "https://example.com/root", "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$dynamicRef",
+      "https://example.com/root", "/$dynamicRef", "https://example.com/root",
+      "/$dynamicRef", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$defs", "https://example.com/root",
+      "/$defs", "https://example.com/root", "/$defs", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$defs/unreferenced/$id",
+      "https://example.com/root", "/$defs/unreferenced/$id",
+      "https://example.com/unreferenced", "/$id", "/$defs/unreferenced", false,
+      true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/root#/$defs/unreferenced/$anchor",
+      "https://example.com/root", "/$defs/unreferenced/$anchor",
+      "https://example.com/unreferenced", "/$anchor", "/$defs/unreferenced",
+      false, true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/unreferenced#/$id",
+      "https://example.com/root", "/$defs/unreferenced/$id",
+      "https://example.com/unreferenced", "/$id", "/$defs/unreferenced", false,
+      true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://example.com/unreferenced#/$anchor",
+      "https://example.com/root", "/$defs/unreferenced/$anchor",
+      "https://example.com/unreferenced", "/$anchor", "/$defs/unreferenced",
+      false, true);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_DYNAMIC_REFERENCE(frame, "/$dynamicRef",
+                           "https://example.com/root#meta",
+                           "https://example.com/root", "meta", "#meta");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com/root");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://example.com/unreferenced#meta");
+}
