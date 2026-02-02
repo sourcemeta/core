@@ -2512,7 +2512,8 @@ TEST(AlterSchema_lint_draft4, simple_properties_identifiers_applies_non_meta) {
   EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
                     "Set `properties` to identifier names that can be easily "
                     "mapped to programming languages (matching "
-                    "[A-Za-z_][A-Za-z0-9_]*)");
+                    "[A-Za-z_][A-Za-z0-9_]*)",
+                    false);
 }
 
 TEST(AlterSchema_lint_draft4,

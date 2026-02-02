@@ -17,10 +17,10 @@ Alterschema_Check_Readibility_ISO_Language_Set_3(benchmark::State &state) {
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);
 
   for (auto _ : state) {
-    auto result = bundle.check(
-        schema, sourcemeta::core::schema_walker,
-        sourcemeta::core::schema_resolver,
-        [](const auto &, const auto &, const auto &, const auto &) {});
+    auto result = bundle.check(schema, sourcemeta::core::schema_walker,
+                               sourcemeta::core::schema_resolver,
+                               [](const auto &, const auto &, const auto &,
+                                  const auto &, const auto &) {});
     assert(result.first);
     assert(result.second == 100);
     benchmark::DoNotOptimize(result);
@@ -36,10 +36,10 @@ static void Alterschema_Check_Readibility_OMC(benchmark::State &state) {
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);
 
   for (auto _ : state) {
-    auto result = bundle.check(
-        schema, sourcemeta::core::schema_walker,
-        sourcemeta::core::schema_resolver,
-        [](const auto &, const auto &, const auto &, const auto &) {});
+    auto result = bundle.check(schema, sourcemeta::core::schema_walker,
+                               sourcemeta::core::schema_resolver,
+                               [](const auto &, const auto &, const auto &,
+                                  const auto &, const auto &) {});
     assert(!result.first);
     benchmark::DoNotOptimize(result);
   }
@@ -57,10 +57,10 @@ static void Alterschema_Apply_Readibility_KrakenD(benchmark::State &state) {
     state.PauseTiming();
     auto copy = schema;
     state.ResumeTiming();
-    auto result = bundle.apply(
-        copy, sourcemeta::core::schema_walker,
-        sourcemeta::core::schema_resolver,
-        [](const auto &, const auto &, const auto &, const auto &) {});
+    auto result = bundle.apply(copy, sourcemeta::core::schema_walker,
+                               sourcemeta::core::schema_resolver,
+                               [](const auto &, const auto &, const auto &,
+                                  const auto &, const auto &) {});
     assert(!result.first);
     benchmark::DoNotOptimize(result);
   }

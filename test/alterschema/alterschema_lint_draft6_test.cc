@@ -2581,7 +2581,8 @@ TEST(AlterSchema_lint_draft6, top_level_examples_1) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_examples",
                     "Set a non-empty examples array at the top level of the "
-                    "schema to illustrate the expected data");
+                    "schema to illustrate the expected data",
+                    false);
 }
 
 TEST(AlterSchema_lint_draft6, top_level_examples_2) {
@@ -2872,7 +2873,8 @@ TEST(AlterSchema_lint_draft6, simple_properties_identifiers_applies_non_meta) {
   EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
                     "Set `properties` to identifier names that can be easily "
                     "mapped to programming languages (matching "
-                    "[A-Za-z_][A-Za-z0-9_]*)");
+                    "[A-Za-z_][A-Za-z0-9_]*)",
+                    false);
 }
 
 TEST(AlterSchema_lint_draft6,
