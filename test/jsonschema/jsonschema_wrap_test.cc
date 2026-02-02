@@ -751,3 +751,55 @@ TEST(JSONSchema_wrap, subschema_with_nested_ref) {
   EXPECT_TRUE(base.at(0).is_property());
   EXPECT_EQ(base.at(0).to_property(), "$ref");
 }
+
+TEST(JSONSchema_wrap, 2020_12_boolean_subschema_true) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "properties": {
+      "foo": true
+    }
+  })JSON")};
+
+  const auto [result, base]{wrap_schema(schema, {"properties", "foo"})};
+
+  const auto expected{sourcemeta::core::parse_json("true")};
+
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
+}
+
+TEST(JSONSchema_wrap, 2020_12_boolean_subschema_false) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com",
+    "properties": {
+      "foo": false
+    }
+  })JSON")};
+
+  const auto [result, base]{wrap_schema(schema, {"properties", "foo"})};
+
+  const auto expected{sourcemeta::core::parse_json("false")};
+
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
+}
+
+TEST(JSONSchema_wrap, 2020_12_top_level_boolean_true) {
+  const auto schema{sourcemeta::core::parse_json("true")};
+  const auto [result, base]{
+      wrap_schema(schema, {}, "https://json-schema.org/draft/2020-12/schema")};
+  const auto expected{sourcemeta::core::parse_json("true")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
+}
+
+TEST(JSONSchema_wrap, 2020_12_top_level_boolean_false) {
+  const auto schema{sourcemeta::core::parse_json("false")};
+  const auto [result, base]{
+      wrap_schema(schema, {}, "https://json-schema.org/draft/2020-12/schema")};
+  const auto expected{sourcemeta::core::parse_json("false")};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
+}
