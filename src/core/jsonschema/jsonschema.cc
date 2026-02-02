@@ -594,8 +594,8 @@ auto sourcemeta::core::wrap(
     const sourcemeta::core::JSON &schema,
     const sourcemeta::core::SchemaFrame &frame,
     const sourcemeta::core::SchemaFrame::Location &location,
-    const sourcemeta::core::SchemaResolver &resolver)
-    -> sourcemeta::core::JSON {
+    const sourcemeta::core::SchemaResolver &resolver,
+    sourcemeta::core::WeakPointer &base) -> sourcemeta::core::JSON {
   assert(location.type != SchemaFrame::LocationType::Pointer);
   const auto &pointer{location.pointer};
   assert(try_get(schema, pointer));
@@ -666,6 +666,8 @@ auto sourcemeta::core::wrap(
                  .recompose()});
   }
 
+  static const JSON::String REF{"$ref"};
+  base.push_back(REF);
   return result;
 }
 

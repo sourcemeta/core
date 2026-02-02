@@ -3,10 +3,12 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include <utility> // std::pair
+
 static auto wrap_schema(const sourcemeta::core::JSON &schema,
                         const sourcemeta::core::Pointer &pointer,
                         std::string_view default_dialect = "")
-    -> sourcemeta::core::JSON {
+    -> std::pair<sourcemeta::core::JSON, sourcemeta::core::Pointer> {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(schema, sourcemeta::core::schema_walker,
@@ -14,8 +16,10 @@ static auto wrap_schema(const sourcemeta::core::JSON &schema,
   const auto location{
       frame.traverse(sourcemeta::core::to_weak_pointer(pointer))};
   assert(location.has_value());
-  return sourcemeta::core::wrap(schema, frame, location.value().get(),
-                                sourcemeta::core::schema_resolver);
+  sourcemeta::core::WeakPointer base;
+  auto result{sourcemeta::core::wrap(schema, frame, location.value().get(),
+                                     sourcemeta::core::schema_resolver, base)};
+  return {std::move(result), sourcemeta::core::to_pointer(base)};
 }
 
 TEST(JSONSchema_wrap, identifier_without_fragment) {
@@ -64,7 +68,7 @@ TEST(JSONSchema_wrap, schema_without_identifier) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"items"})};
+  const auto [result, base]{wrap_schema(schema, {"items"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -72,6 +76,7 @@ TEST(JSONSchema_wrap, schema_without_identifier) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_without_identifier_and_relative_uri) {
@@ -82,7 +87,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_and_relative_uri) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"items"})};
+  const auto [result, base]{wrap_schema(schema, {"items"})};
 
   // We don't want the relative reference to be resolved against
   // an absolute base
@@ -101,6 +106,9 @@ TEST(JSONSchema_wrap, schema_without_identifier_and_relative_uri) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_EQ(base.size(), 1);
+  EXPECT_TRUE(base.at(0).is_property());
+  EXPECT_EQ(base.at(0).to_property(), "$ref");
 }
 
 TEST(JSONSchema_wrap, schema_without_identifier_with_default_dialect) {
@@ -110,7 +118,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_with_default_dialect) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(
+  const auto [result, base]{wrap_schema(
       schema, {"items"}, "https://json-schema.org/draft/2020-12/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -119,6 +127,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_with_default_dialect) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap,
@@ -130,7 +139,7 @@ TEST(JSONSchema_wrap,
     }
   })JSON")};
 
-  const auto result{wrap_schema(
+  const auto [result, base]{wrap_schema(
       schema, {"items"}, "https://json-schema.org/draft/2019-09/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -139,6 +148,7 @@ TEST(JSONSchema_wrap,
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_without_identifier_empty_pointer) {
@@ -149,7 +159,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_empty_pointer) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -159,6 +169,7 @@ TEST(JSONSchema_wrap, schema_without_identifier_empty_pointer) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_without_identifier_without_dialect) {
@@ -181,7 +192,7 @@ TEST(JSONSchema_wrap, schema_with_identifier) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"items"})};
+  const auto [result, base]{wrap_schema(schema, {"items"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -189,6 +200,7 @@ TEST(JSONSchema_wrap, schema_with_identifier) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_trailing_empty_fragment) {
@@ -200,7 +212,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_trailing_empty_fragment) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"items"})};
+  const auto [result, base]{wrap_schema(schema, {"items"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -208,6 +220,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_trailing_empty_fragment) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_different_default_dialect) {
@@ -219,7 +232,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_different_default_dialect) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(
+  const auto [result, base]{wrap_schema(
       schema, {"items"}, "https://json-schema.org/draft/2019-09/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -228,6 +241,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_different_default_dialect) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_default_dialect) {
@@ -238,7 +252,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_default_dialect) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(
+  const auto [result, base]{wrap_schema(
       schema, {"items"}, "https://json-schema.org/draft/2019-09/schema")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -247,6 +261,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_default_dialect) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_empty_pointer) {
@@ -258,7 +273,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_empty_pointer) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -269,6 +284,7 @@ TEST(JSONSchema_wrap, schema_with_identifier_empty_pointer) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, schema_with_identifier_no_dialect) {
@@ -288,7 +304,7 @@ TEST(JSONSchema_wrap, draft4_standalone_ref_with_default_dialect) {
     "$ref": "https://example.com"
   })JSON")};
 
-  const auto result{
+  const auto [result, base]{
       wrap_schema(schema, {}, "http://json-schema.org/draft-04/schema#")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -296,6 +312,7 @@ TEST(JSONSchema_wrap, draft4_standalone_ref_with_default_dialect) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_empty) {
@@ -308,7 +325,7 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -320,6 +337,7 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_with_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_empty) {
@@ -331,7 +349,7 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
@@ -342,6 +360,7 @@ TEST(JSONSchema_wrap, draft4_top_level_ref_without_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft6_standalone_ref_with_default_dialect) {
@@ -349,7 +368,7 @@ TEST(JSONSchema_wrap, draft6_standalone_ref_with_default_dialect) {
     "$ref": "https://example.com"
   })JSON")};
 
-  const auto result{
+  const auto [result, base]{
       wrap_schema(schema, {}, "http://json-schema.org/draft-06/schema#")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -357,6 +376,7 @@ TEST(JSONSchema_wrap, draft6_standalone_ref_with_default_dialect) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_empty) {
@@ -369,7 +389,7 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -381,6 +401,7 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_with_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_empty) {
@@ -392,7 +413,7 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
@@ -403,6 +424,7 @@ TEST(JSONSchema_wrap, draft6_top_level_ref_without_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft7_standalone_ref_with_default_dialect) {
@@ -410,7 +432,7 @@ TEST(JSONSchema_wrap, draft7_standalone_ref_with_default_dialect) {
     "$ref": "https://example.com"
   })JSON")};
 
-  const auto result{
+  const auto [result, base]{
       wrap_schema(schema, {}, "http://json-schema.org/draft-07/schema#")};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -418,6 +440,7 @@ TEST(JSONSchema_wrap, draft7_standalone_ref_with_default_dialect) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_empty) {
@@ -430,7 +453,7 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -442,6 +465,7 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_with_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_empty) {
@@ -453,7 +477,7 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -464,6 +488,7 @@ TEST(JSONSchema_wrap, draft7_top_level_ref_without_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_empty) {
@@ -476,7 +501,7 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -488,6 +513,7 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_defs_foo) {
@@ -500,13 +526,14 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_with_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"$defs", "foo"})};
+  const auto [result, base]{wrap_schema(schema, {"$defs", "foo"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema"
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_empty) {
@@ -518,7 +545,7 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -529,6 +556,7 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_defs_foo) {
@@ -540,13 +568,14 @@ TEST(JSONSchema_wrap, 2019_09_top_level_ref_without_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"$defs", "foo"})};
+  const auto [result, base]{wrap_schema(schema, {"$defs", "foo"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema"
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_empty) {
@@ -559,7 +588,7 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -571,6 +600,7 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_defs_foo) {
@@ -583,13 +613,14 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_with_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"$defs", "foo"})};
+  const auto [result, base]{wrap_schema(schema, {"$defs", "foo"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_empty) {
@@ -601,7 +632,7 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_empty) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {})};
+  const auto [result, base]{wrap_schema(schema, {})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -612,6 +643,7 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_empty) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_defs_foo) {
@@ -623,13 +655,14 @@ TEST(JSONSchema_wrap, 2020_12_top_level_ref_without_id_defs_foo) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"$defs", "foo"})};
+  const auto [result, base]{wrap_schema(schema, {"$defs", "foo"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema"
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_TRUE(base.empty());
 }
 
 TEST(JSONSchema_wrap, subschema_with_direct_ref) {
@@ -644,7 +677,7 @@ TEST(JSONSchema_wrap, subschema_with_direct_ref) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"properties", "foo"})};
+  const auto [result, base]{wrap_schema(schema, {"properties", "foo"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -664,6 +697,9 @@ TEST(JSONSchema_wrap, subschema_with_direct_ref) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_EQ(base.size(), 1);
+  EXPECT_TRUE(base.at(0).is_property());
+  EXPECT_EQ(base.at(0).to_property(), "$ref");
 }
 
 TEST(JSONSchema_wrap, subschema_with_nested_ref) {
@@ -683,7 +719,7 @@ TEST(JSONSchema_wrap, subschema_with_nested_ref) {
     }
   })JSON")};
 
-  const auto result{wrap_schema(schema, {"properties", "foo"})};
+  const auto [result, base]{wrap_schema(schema, {"properties", "foo"})};
 
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -708,4 +744,7 @@ TEST(JSONSchema_wrap, subschema_with_nested_ref) {
   })JSON")};
 
   EXPECT_EQ(result, expected);
+  EXPECT_EQ(base.size(), 1);
+  EXPECT_TRUE(base.at(0).is_property());
+  EXPECT_EQ(base.at(0).to_property(), "$ref");
 }
