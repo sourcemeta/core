@@ -5734,7 +5734,7 @@ TEST(AlterSchema_lint_2020_12, description_trim_6) {
   EXPECT_FALSE(result.first);
   EXPECT_EQ(traces.size(), 5);
 
-  // First, the mutable rules that were applied
+  // The mutable rules that were applied
   EXPECT_LINT_TRACE(traces, 0, "/properties/a", "description_trim",
                     "Descriptions should not contain leading or trailing "
                     "whitespace",
@@ -5744,7 +5744,7 @@ TEST(AlterSchema_lint_2020_12, description_trim_6) {
                     "whitespace",
                     true);
 
-  // Then, the non-mutable rules that couldn't be fixed
+  // The non-mutable rules that couldn't be fixed
   EXPECT_LINT_TRACE(traces, 2, "", "top_level_title",
                     "Set a concise non-empty title at the top level of the "
                     "schema to explain what the definition is about",
@@ -5796,7 +5796,6 @@ TEST(AlterSchema_lint_2020_12, description_trim_7) {
   EXPECT_TRUE(result.first);
   EXPECT_EQ(traces.size(), 5);
 
-  // All rules were applied (mutable) - order may vary based on rule execution
   EXPECT_LINT_TRACE(
       traces, 0, "", "duplicate_allof_branches",
       "Setting duplicate subschemas in `allOf` is redundant, as it produces "
@@ -5862,7 +5861,7 @@ TEST(AlterSchema_lint_2020_12, unfixable_allof_renumber_1) {
   EXPECT_FALSE(result.first);
   EXPECT_EQ(traces.size(), 5);
 
-  // First, the mutable rules that were applied
+  // The mutable rules that were applied
   EXPECT_LINT_TRACE(
       traces, 0, "", "duplicate_allof_branches",
       "Setting duplicate subschemas in `allOf` is redundant, as it produces "
@@ -5878,7 +5877,7 @@ TEST(AlterSchema_lint_2020_12, unfixable_allof_renumber_1) {
                     "Empty schemas in `allOf` are redundant and can be removed",
                     true);
 
-  // Then, the non-mutable rules that matched but couldn't be fixed
+  // The non-mutable rules that matched but couldn't be fixed
   EXPECT_LINT_TRACE(traces, 3, "", "simple_properties_identifiers",
                     "Set `properties` to identifier names that can be easily "
                     "mapped to programming languages (matching "
