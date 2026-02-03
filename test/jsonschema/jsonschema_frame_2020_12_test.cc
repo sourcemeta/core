@@ -3426,9 +3426,9 @@ TEST(JSONSchema_frame_2020_12, single_nested_path_recursive_with_identifier) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper");
 }
 
 TEST(JSONSchema_frame_2020_12,
@@ -3468,7 +3468,7 @@ TEST(JSONSchema_frame_2020_12,
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper");
 }
 
 TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
@@ -3548,12 +3548,12 @@ TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper/items");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema#test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema#test");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
@@ -3678,14 +3678,14 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/with-id");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#foo");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema#bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/common/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/common/with-id");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema#bar");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
@@ -3746,8 +3746,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/common/test");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_no_base_dialect) {
@@ -3893,8 +3893,8 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/common/test");
 }
 
 TEST(JSONSchema_frame_2020_12, anchor_with_invalid_type) {
