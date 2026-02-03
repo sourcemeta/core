@@ -88,6 +88,8 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
   frame.analyse(schema, sourcemeta::core::schema_walker,
                 sourcemeta::core::schema_resolver);
 
+  const auto &base{frame.traverse(frame.root())->get()};
+
   for (auto _ : state) {
     for (const auto &entry : frame.locations()) {
       if (entry.second.type ==
@@ -95,7 +97,7 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
         continue;
       }
 
-      auto result{frame.is_reachable(entry.second,
+      auto result{frame.is_reachable(base, entry.second,
                                      sourcemeta::core::schema_walker,
                                      sourcemeta::core::schema_resolver)};
       benchmark::DoNotOptimize(result);

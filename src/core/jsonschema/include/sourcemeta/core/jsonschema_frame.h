@@ -242,7 +242,8 @@ public:
   auto reset() -> void;
 
   /// Determines if a location could be evaluated during validation
-  [[nodiscard]] auto is_reachable(const Location &location,
+  [[nodiscard]] auto is_reachable(const Location &base,
+                                  const Location &location,
                                   const SchemaWalker &walker,
                                   const SchemaResolver &resolver) const -> bool;
 

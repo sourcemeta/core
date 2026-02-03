@@ -86,9 +86,11 @@ TEST(JSONSchema_frame_draft2, anonymous_with_nested_schema_resource) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalProperties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com",
+                                  frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalProperties",
+                                  frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, empty_schema) {
@@ -130,8 +132,8 @@ TEST(JSONSchema_frame_draft2, empty_schema) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, empty_schema_trailing_hash) {
@@ -173,8 +175,8 @@ TEST(JSONSchema_frame_draft2, empty_schema_trailing_hash) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, one_level_applicators_without_identifiers) {
@@ -242,12 +244,13 @@ TEST(JSONSchema_frame_draft2, one_level_applicators_without_identifiers) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema#/items");
   EXPECT_FRAME_LOCATION_REACHABLE(
-      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo");
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, one_level_applicators_with_identifiers) {
@@ -314,12 +317,13 @@ TEST(JSONSchema_frame_draft2, one_level_applicators_with_identifiers) {
 
   // Reachability
 
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/foo", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/test/qux");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/foo");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/test/qux#/items");
+                                  "https://www.sourcemeta.com/test/qux#/items",
+                                  frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, subschema_absolute_identifier) {
@@ -389,12 +393,12 @@ TEST(JSONSchema_frame_draft2, subschema_absolute_identifier) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/foo");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/foo", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items", frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, id_override) {
@@ -452,8 +456,8 @@ TEST(JSONSchema_frame_draft2, explicit_argument_id_same) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, explicit_argument_id_different) {
@@ -550,22 +554,26 @@ TEST(JSONSchema_frame_draft2, explicit_argument_id_different) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/schema");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.sourcemeta.com/test");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.example.com/test");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com");
   EXPECT_FRAME_LOCATION_REACHABLE(
-      frame, Static, "https://www.sourcemeta.com/schema#/properties/one");
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
-      frame, Static, "https://www.sourcemeta.com/schema#/properties/two");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.example.com#/properties/one");
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
-                                  "https://www.example.com#/properties/two");
+      frame, Static, "https://www.sourcemeta.com/test", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com",
+                                  frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com/test",
+                                  frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com",
+                                  frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/one",
+      frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/two",
+      frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/one", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/two", frame.root());
 }
 
 TEST(JSONSchema_frame_draft2, ref_metaschema) {
@@ -606,5 +614,5 @@ TEST(JSONSchema_frame_draft2, ref_metaschema) {
 
   // Reachability
 
-  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
 }
