@@ -1435,14 +1435,14 @@ auto SchemaFrame::populate_reachability(const Location &base,
   // ---------------------------------------------------------------------------
 
   std::vector<std::reference_wrapper<const WeakPointer>> unreachable_pointers;
+  std::unordered_set<std::reference_wrapper<const WeakPointer>,
+                     WeakPointer::Hasher, WeakPointer::Comparator>
+      pointers_with_non_orphan;
 
   if (this->pointer_to_location_.empty()) {
     std::unordered_set<std::reference_wrapper<const WeakPointer>,
                        WeakPointer::Hasher, WeakPointer::Comparator>
         has_non_pointer_location;
-    std::unordered_set<std::reference_wrapper<const WeakPointer>,
-                       WeakPointer::Hasher, WeakPointer::Comparator>
-        has_non_orphan;
 
     for (const auto &entry : this->locations_) {
       auto [iterator, inserted] = this->pointer_to_location_.try_emplace(
@@ -1451,7 +1451,7 @@ auto SchemaFrame::populate_reachability(const Location &base,
       if (entry.second.type != LocationType::Pointer) {
         has_non_pointer_location.insert(iterator->first);
         if (!entry.second.orphan) {
-          has_non_orphan.insert(iterator->first);
+          pointers_with_non_orphan.insert(iterator->first);
         }
       }
     }
@@ -1462,7 +1462,7 @@ auto SchemaFrame::populate_reachability(const Location &base,
       if (pointer == base.pointer) {
         is_reachable = true;
       } else if (pointer.starts_with(base.pointer)) {
-        is_reachable = has_non_orphan.contains(pointer_reference);
+        is_reachable = pointers_with_non_orphan.contains(pointer_reference);
       }
 
       cache.emplace(pointer_reference, is_reachable);
@@ -1481,16 +1481,20 @@ auto SchemaFrame::populate_reachability(const Location &base,
         continue;
       }
 
+      const bool has_non_orphan{
+          std::ranges::any_of(locations, [](const Location *location) {
+            return location->type != LocationType::Pointer && !location->orphan;
+          })};
+      if (has_non_orphan) {
+        pointers_with_non_orphan.insert(pointer_reference);
+      }
+
       const auto &pointer{pointer_reference.get()};
       bool is_reachable{false};
       if (pointer == base.pointer) {
         is_reachable = true;
       } else if (pointer.starts_with(base.pointer)) {
-        is_reachable =
-            std::ranges::any_of(locations, [](const Location *location) {
-              return location->type != LocationType::Pointer &&
-                     !location->orphan;
-            });
+        is_reachable = has_non_orphan;
       }
 
       cache.emplace(pointer_reference, is_reachable);
@@ -1688,19 +1692,9 @@ auto SchemaFrame::populate_reachability(const Location &base,
         cache[read_iterator->pointer] = true;
         for (auto &[cache_pointer, cache_reachable] : cache) {
           if (!cache_reachable &&
-              cache_pointer.get().starts_with(reached_pointer)) {
-            const auto locations_it =
-                this->pointer_to_location_.find(cache_pointer);
-            if (locations_it != this->pointer_to_location_.end()) {
-              const bool has_non_orphan{std::ranges::any_of(
-                  locations_it->second, [](const Location *location) {
-                    return location->type != LocationType::Pointer &&
-                           !location->orphan;
-                  })};
-              if (has_non_orphan) {
-                cache_reachable = true;
-              }
-            }
+              cache_pointer.get().starts_with(reached_pointer) &&
+              pointers_with_non_orphan.contains(cache_pointer)) {
+            cache_reachable = true;
           }
         }
         changed = true;
