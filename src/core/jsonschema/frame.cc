@@ -1457,7 +1457,14 @@ auto SchemaFrame::populate_reachability(const Location &base,
     }
 
     for (const auto &pointer_reference : has_non_pointer_location) {
-      const bool is_reachable = has_non_orphan.contains(pointer_reference);
+      const auto &pointer{pointer_reference.get()};
+      bool is_reachable{false};
+      if (pointer == base.pointer) {
+        is_reachable = true;
+      } else if (pointer.starts_with(base.pointer)) {
+        is_reachable = has_non_orphan.contains(pointer_reference);
+      }
+
       cache.emplace(pointer_reference, is_reachable);
       if (!is_reachable) {
         unreachable_pointers.push_back(pointer_reference);
@@ -1474,12 +1481,20 @@ auto SchemaFrame::populate_reachability(const Location &base,
         continue;
       }
 
-      const auto any_non_orphan{
-          std::ranges::any_of(locations, [](const Location *location) {
-            return location->type != LocationType::Pointer && !location->orphan;
-          })};
-      cache.emplace(pointer_reference, any_non_orphan);
-      if (!any_non_orphan) {
+      const auto &pointer{pointer_reference.get()};
+      bool is_reachable{false};
+      if (pointer == base.pointer) {
+        is_reachable = true;
+      } else if (pointer.starts_with(base.pointer)) {
+        is_reachable =
+            std::ranges::any_of(locations, [](const Location *location) {
+              return location->type != LocationType::Pointer &&
+                     !location->orphan;
+            });
+      }
+
+      cache.emplace(pointer_reference, is_reachable);
+      if (!is_reachable) {
         unreachable_pointers.push_back(pointer_reference);
       }
     }
@@ -1567,7 +1582,8 @@ auto SchemaFrame::populate_reachability(const Location &base,
     PotentialReach entry{.pointer = pointer_reference, .potential_sources = {}};
 
     WeakPointer ancestor = pointer;
-    while (!ancestor.empty()) {
+    bool first_iteration{true};
+    while (first_iteration || !ancestor.empty()) {
       auto destination_iterator =
           references_by_destination.find(std::cref(ancestor));
       if (destination_iterator != references_by_destination.end()) {
@@ -1619,7 +1635,12 @@ auto SchemaFrame::populate_reachability(const Location &base,
               .source_pointer = source_pointer, .crosses = crosses});
         }
       }
+
+      if (ancestor.empty()) {
+        break;
+      }
       ancestor = ancestor.initial();
+      first_iteration = false;
     }
 
     if (!entry.potential_sources.empty()) {
@@ -1651,13 +1672,10 @@ auto SchemaFrame::populate_reachability(const Location &base,
         }
 
         const auto &source_parent{potential_source.source_pointer->initial()};
-        bool source_parent_reachable{source_parent.empty()};
-        if (!source_parent_reachable) {
-          const auto reachability_iterator{
-              cache.find(std::cref(source_parent))};
-          source_parent_reachable = reachability_iterator != cache.end() &&
-                                    reachability_iterator->second;
-        }
+        const auto reachability_iterator{cache.find(std::cref(source_parent))};
+        const bool source_parent_reachable{reachability_iterator !=
+                                               cache.end() &&
+                                           reachability_iterator->second};
 
         if (source_parent_reachable) {
           became_reachable = true;
@@ -1666,7 +1684,25 @@ auto SchemaFrame::populate_reachability(const Location &base,
       }
 
       if (became_reachable) {
+        const auto &reached_pointer{read_iterator->pointer.get()};
         cache[read_iterator->pointer] = true;
+        for (auto &[cache_pointer, cache_reachable] : cache) {
+          if (!cache_reachable &&
+              cache_pointer.get().starts_with(reached_pointer)) {
+            const auto locations_it =
+                this->pointer_to_location_.find(cache_pointer);
+            if (locations_it != this->pointer_to_location_.end()) {
+              const bool has_non_orphan{std::ranges::any_of(
+                  locations_it->second, [](const Location *location) {
+                    return location->type != LocationType::Pointer &&
+                           !location->orphan;
+                  })};
+              if (has_non_orphan) {
+                cache_reachable = true;
+              }
+            }
+          }
+        }
         changed = true;
       } else {
         if (write_iterator != read_iterator) {

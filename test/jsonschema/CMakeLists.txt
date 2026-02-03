@@ -96,6 +96,10 @@ target_link_libraries(sourcemeta_core_jsonschema_unit
 target_link_libraries(sourcemeta_core_jsonschema_unit
   PRIVATE sourcemeta::core::uri)
 
+if(MSVC)
+  target_compile_options(sourcemeta_core_jsonschema_unit PRIVATE /bigobj)
+endif()
+
 # JSON Schema Referencing Suite
 # See https://github.com/python-jsonschema/referencing-suite
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema_referencing_suite
