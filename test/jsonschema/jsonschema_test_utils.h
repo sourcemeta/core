@@ -490,19 +490,25 @@
       sourcemeta::core::to_string((result).at((index)).get().first.second),    \
       (origin));
 
-#define EXPECT_FRAME_LOCATION_REACHABLE(frame, reference_type, reference)      \
+#define EXPECT_FRAME_LOCATION_REACHABLE(frame, reference_type, reference,      \
+                                        base)                                  \
   EXPECT_TRUE((frame).locations().contains(                                    \
       {sourcemeta::core::SchemaReferenceType::reference_type, (reference)}));  \
+  EXPECT_TRUE((frame).traverse((base)).has_value());                           \
   EXPECT_TRUE((frame).is_reachable(                                            \
+      (frame).traverse((base))->get(),                                         \
       (frame).locations().at(                                                  \
           {sourcemeta::core::SchemaReferenceType::reference_type,              \
            (reference)}),                                                      \
       sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver))
 
-#define EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, reference_type, reference)  \
+#define EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, reference_type, reference,  \
+                                            base)                              \
   EXPECT_TRUE((frame).locations().contains(                                    \
       {sourcemeta::core::SchemaReferenceType::reference_type, (reference)}));  \
+  EXPECT_TRUE((frame).traverse((base)).has_value());                           \
   EXPECT_FALSE((frame).is_reachable(                                           \
+      (frame).traverse((base))->get(),                                         \
       (frame).locations().at(                                                  \
           {sourcemeta::core::SchemaReferenceType::reference_type,              \
            (reference)}),                                                      \

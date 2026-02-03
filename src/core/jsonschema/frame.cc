@@ -1682,19 +1682,10 @@ auto SchemaFrame::populate_reachability(const Location &base,
   return cache;
 }
 
-auto SchemaFrame::is_reachable(const Location &location,
+auto SchemaFrame::is_reachable(const Location &base, const Location &location,
                                const SchemaWalker &walker,
                                const SchemaResolver &resolver) const -> bool {
   assert(location.type != LocationType::Pointer);
-
-  // If we cannot determine the root entry point, like in a wrapper type, then
-  // we cannot determine reachability
-  const auto root_location{this->traverse(this->root_)};
-  if (!root_location.has_value()) {
-    return false;
-  }
-
-  const Location &base{root_location->get()};
   const auto &cache{this->populate_reachability(base, walker, resolver)};
   const auto iterator{cache.find(std::cref(location.pointer))};
   assert(iterator != cache.end());
