@@ -2391,7 +2391,8 @@ TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_9) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "unnecessary_allof_ref_wrapper_modern",
                     "Wrapping `$ref` in `allOf` was only necessary in JSON "
-                    "Schema Draft 7 and older");
+                    "Schema Draft 7 and older",
+                    true);
 }
 
 TEST(AlterSchema_lint_2020_12, unnecessary_allof_wrapper_10) {
@@ -4531,7 +4532,8 @@ TEST(AlterSchema_lint_2020_12, unknown_keywords_prefix_12) {
       traces, 0, "", "unknown_keywords_prefix",
       "Future versions of JSON Schema will refuse to evaluate unknown "
       "keywords or custom keywords from optional vocabularies that don't "
-      "have an x- prefix");
+      "have an x- prefix",
+      true);
   EXPECT_EQ(std::get<3>(traces.at(0)).locations.size(), 2);
   EXPECT_EQ(
       sourcemeta::core::to_string(std::get<3>(traces.at(0)).locations.at(0)),
@@ -5005,7 +5007,8 @@ TEST(AlterSchema_lint_2020_12, top_level_title_1) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_title",
                     "Set a concise non-empty title at the top level of the "
-                    "schema to explain what the definition is about");
+                    "schema to explain what the definition is about",
+                    false);
 }
 
 TEST(AlterSchema_lint_2020_12, top_level_title_2) {
@@ -5048,7 +5051,8 @@ TEST(AlterSchema_lint_2020_12, top_level_description_1) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_description",
                     "Set a non-empty description at the top level of the "
-                    "schema to explain what the definition is about in detail");
+                    "schema to explain what the definition is about in detail",
+                    false);
 }
 
 TEST(AlterSchema_lint_2020_12, top_level_description_2) {
@@ -5090,7 +5094,8 @@ TEST(AlterSchema_lint_2020_12, top_level_title_3) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_title",
                     "Set a concise non-empty title at the top level of the "
-                    "schema to explain what the definition is about");
+                    "schema to explain what the definition is about",
+                    false);
 }
 
 TEST(AlterSchema_lint_2020_12, top_level_title_4) {
@@ -5130,7 +5135,8 @@ TEST(AlterSchema_lint_2020_12, top_level_description_3) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_description",
                     "Set a non-empty description at the top level of the "
-                    "schema to explain what the definition is about in detail");
+                    "schema to explain what the definition is about in detail",
+                    false);
 }
 
 TEST(AlterSchema_lint_2020_12, top_level_description_4) {
@@ -5726,16 +5732,31 @@ TEST(AlterSchema_lint_2020_12, description_trim_6) {
   LINT_AND_FIX(document, result, traces);
 
   EXPECT_FALSE(result.first);
-  EXPECT_EQ(traces.size(), 3);
-  EXPECT_LINT_TRACE(traces, 0, "", "top_level_title",
+  EXPECT_EQ(traces.size(), 5);
+
+  // The mutable rules that were applied
+  EXPECT_LINT_TRACE(traces, 0, "/properties/a", "description_trim",
+                    "Descriptions should not contain leading or trailing "
+                    "whitespace",
+                    true);
+  EXPECT_LINT_TRACE(traces, 1, "/properties/b", "description_trim",
+                    "Descriptions should not contain leading or trailing "
+                    "whitespace",
+                    true);
+
+  // The non-mutable rules that couldn't be fixed
+  EXPECT_LINT_TRACE(traces, 2, "", "top_level_title",
                     "Set a concise non-empty title at the top level of the "
-                    "schema to explain what the definition is about");
-  EXPECT_LINT_TRACE(traces, 1, "", "top_level_description",
+                    "schema to explain what the definition is about",
+                    false);
+  EXPECT_LINT_TRACE(traces, 3, "", "top_level_description",
                     "Set a non-empty description at the top level of the "
-                    "schema to explain what the definition is about in detail");
-  EXPECT_LINT_TRACE(traces, 2, "", "top_level_examples",
+                    "schema to explain what the definition is about in detail",
+                    false);
+  EXPECT_LINT_TRACE(traces, 4, "", "top_level_examples",
                     "Set a non-empty examples array at the top level of the "
-                    "schema to illustrate the expected data");
+                    "schema to illustrate the expected data",
+                    false);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5773,7 +5794,32 @@ TEST(AlterSchema_lint_2020_12, description_trim_7) {
   LINT_AND_FIX(document, result, traces);
 
   EXPECT_TRUE(result.first);
-  EXPECT_EQ(traces.size(), 0);
+  EXPECT_EQ(traces.size(), 5);
+
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "duplicate_allof_branches",
+      "Setting duplicate subschemas in `allOf` is redundant, as it produces "
+      "unnecessary additional validation that is guaranteed to not affect the "
+      "validation result",
+      true);
+  EXPECT_LINT_TRACE(
+      traces, 1, "", "unnecessary_allof_wrapper",
+      "Keywords inside `allOf` that do not conflict with the parent schema can "
+      "be elevated",
+      true);
+  EXPECT_LINT_TRACE(
+      traces, 2, "", "duplicate_allof_branches",
+      "Setting duplicate subschemas in `allOf` is redundant, as it produces "
+      "unnecessary additional validation that is guaranteed to not affect the "
+      "validation result",
+      true);
+  EXPECT_LINT_TRACE(traces, 3, "", "drop_allof_empty_schemas",
+                    "Empty schemas in `allOf` are redundant and can be removed",
+                    true);
+  EXPECT_LINT_TRACE(traces, 4, "/properties/foo", "description_trim",
+                    "Descriptions should not contain leading or trailing "
+                    "whitespace",
+                    true);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5813,15 +5859,35 @@ TEST(AlterSchema_lint_2020_12, unfixable_allof_renumber_1) {
   LINT_AND_FIX(document, result, traces);
 
   EXPECT_FALSE(result.first);
-  EXPECT_EQ(traces.size(), 2);
-  EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
+  EXPECT_EQ(traces.size(), 5);
+
+  // The mutable rules that were applied
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "duplicate_allof_branches",
+      "Setting duplicate subschemas in `allOf` is redundant, as it produces "
+      "unnecessary additional validation that is guaranteed to not affect the "
+      "validation result",
+      true);
+  EXPECT_LINT_TRACE(
+      traces, 1, "", "unnecessary_allof_wrapper",
+      "Keywords inside `allOf` that do not conflict with the parent schema can "
+      "be elevated",
+      true);
+  EXPECT_LINT_TRACE(traces, 2, "", "drop_allof_empty_schemas",
+                    "Empty schemas in `allOf` are redundant and can be removed",
+                    true);
+
+  // The non-mutable rules that matched but couldn't be fixed
+  EXPECT_LINT_TRACE(traces, 3, "", "simple_properties_identifiers",
                     "Set `properties` to identifier names that can be easily "
                     "mapped to programming languages (matching "
-                    "[A-Za-z_][A-Za-z0-9_]*)");
-  EXPECT_LINT_TRACE(traces, 1, "/allOf/0", "simple_properties_identifiers",
+                    "[A-Za-z_][A-Za-z0-9_]*)",
+                    false);
+  EXPECT_LINT_TRACE(traces, 4, "/allOf/0", "simple_properties_identifiers",
                     "Set `properties` to identifier names that can be easily "
                     "mapped to programming languages (matching "
-                    "[A-Za-z_][A-Za-z0-9_]*)");
+                    "[A-Za-z_][A-Za-z0-9_]*)",
+                    false);
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -6031,7 +6097,8 @@ TEST(AlterSchema_lint_2020_12, top_level_examples_1) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_examples",
                     "Set a non-empty examples array at the top level of the "
-                    "schema to illustrate the expected data");
+                    "schema to illustrate the expected data",
+                    false);
 }
 
 TEST(AlterSchema_lint_2020_12, top_level_examples_2) {
@@ -6069,7 +6136,8 @@ TEST(AlterSchema_lint_2020_12, top_level_examples_3) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_examples",
                     "Set a non-empty examples array at the top level of the "
-                    "schema to illustrate the expected data");
+                    "schema to illustrate the expected data",
+                    false);
 }
 
 TEST(AlterSchema_lint_2020_12, top_level_examples_4) {
@@ -7533,7 +7601,8 @@ TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_hyphen) {
   EXPECT_LINT_TRACE(
       traces, 0, "", "simple_properties_identifiers",
       "Set `properties` to identifier names that can be easily mapped "
-      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)",
+      false);
 }
 
 TEST(AlterSchema_lint_2020_12,
@@ -7555,7 +7624,8 @@ TEST(AlterSchema_lint_2020_12,
   EXPECT_LINT_TRACE(
       traces, 0, "", "simple_properties_identifiers",
       "Set `properties` to identifier names that can be easily mapped "
-      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)",
+      false);
 }
 
 TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_special_char) {
@@ -7576,7 +7646,8 @@ TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_special_char) {
   EXPECT_LINT_TRACE(
       traces, 0, "", "simple_properties_identifiers",
       "Set `properties` to identifier names that can be easily mapped "
-      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)",
+      false);
 }
 
 TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_space) {
@@ -7597,7 +7668,8 @@ TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_space) {
   EXPECT_LINT_TRACE(
       traces, 0, "", "simple_properties_identifiers",
       "Set `properties` to identifier names that can be easily mapped "
-      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)",
+      false);
 }
 
 TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_nested) {
@@ -7623,7 +7695,8 @@ TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_nested) {
   EXPECT_LINT_TRACE(
       traces, 0, "/properties/valid", "simple_properties_identifiers",
       "Set `properties` to identifier names that can be easily mapped "
-      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)");
+      "to programming languages (matching [A-Za-z_][A-Za-z0-9_]*)",
+      false);
 }
 
 TEST(AlterSchema_lint_2020_12, simple_properties_identifiers_skip_metaschema) {

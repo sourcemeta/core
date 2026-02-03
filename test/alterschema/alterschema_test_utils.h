@@ -26,39 +26,40 @@ static auto alterschema_test_resolver(std::string_view identifier)
 
 #define LINT_WITHOUT_FIX(document, result, traces)                             \
   std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
-                         sourcemeta::core::SchemaTransformRule::Result>>       \
+                         sourcemeta::core::SchemaTransformRule::Result, bool>> \
       traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
   const auto result = bundle.check(                                            \
       document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
       [&traces](const auto &pointer, const auto &name, const auto &message,    \
-                const auto &outcome) {                                         \
-        traces.emplace_back(pointer, name, message, outcome);                  \
+                const auto &outcome, const auto &fixable) {                    \
+        traces.emplace_back(pointer, name, message, outcome, fixable);         \
       });
 
-#define EXPECT_LINT_TRACE(traces, index, pointer, name, message)               \
+#define EXPECT_LINT_TRACE(traces, index, pointer, name, message, fixable)      \
   EXPECT_EQ(sourcemeta::core::to_string(std::get<0>((traces).at(index))),      \
             (pointer));                                                        \
   EXPECT_EQ(std::get<1>((traces).at(index)), (name));                          \
-  EXPECT_EQ(std::get<2>((traces).at(index)), (message));
+  EXPECT_EQ(std::get<2>((traces).at(index)), (message));                       \
+  EXPECT_EQ(std::get<4>((traces).at(index)), (fixable));
 
 #define LINT_AND_FIX(document, result, traces)                                 \
   std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
-                         sourcemeta::core::SchemaTransformRule::Result>>       \
+                         sourcemeta::core::SchemaTransformRule::Result, bool>> \
       traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle, sourcemeta::core::AlterSchemaMode::Linter);    \
   const auto result = bundle.apply(                                            \
       document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
       [&traces](const auto &pointer, const auto &name, const auto &message,    \
-                const auto &outcome) {                                         \
-        traces.emplace_back(pointer, name, message, outcome);                  \
+                const auto &outcome, const auto &fixable) {                    \
+        traces.emplace_back(pointer, name, message, outcome, fixable);         \
       });
 
 #define CANONICALIZE(document, result, traces)                                 \
   std::vector<std::tuple<sourcemeta::core::Pointer, std::string, std::string,  \
-                         sourcemeta::core::SchemaTransformRule::Result>>       \
+                         sourcemeta::core::SchemaTransformRule::Result, bool>> \
       traces;                                                                  \
   sourcemeta::core::SchemaTransformer bundle;                                  \
   sourcemeta::core::add(bundle,                                                \
@@ -66,8 +67,8 @@ static auto alterschema_test_resolver(std::string_view identifier)
   const auto result = bundle.apply(                                            \
       document, sourcemeta::core::schema_walker, alterschema_test_resolver,    \
       [&traces](const auto &pointer, const auto &name, const auto &message,    \
-                const auto &outcome) {                                         \
-        traces.emplace_back(pointer, name, message, outcome);                  \
+                const auto &outcome, const auto &fixable) {                    \
+        traces.emplace_back(pointer, name, message, outcome, fixable);         \
       });
 
 #endif

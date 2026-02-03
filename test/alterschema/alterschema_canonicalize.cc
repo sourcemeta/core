@@ -16,15 +16,14 @@ auto main(int argc, char *argv[]) -> int {
   sourcemeta::core::SchemaTransformer bundle;
   sourcemeta::core::add(bundle,
                         sourcemeta::core::AlterSchemaMode::Canonicalizer);
-  const auto result{bundle.apply(document, sourcemeta::core::schema_walker,
-                                 sourcemeta::core::schema_resolver,
-                                 [](const auto &pointer, const auto &name,
-                                    const auto &message, const auto &) {
-                                   std::cerr
-                                       << sourcemeta::core::to_string(pointer)
-                                       << ": " << name << ": " << message
-                                       << "\n";
-                                 })};
+  const auto result{
+      bundle.apply(document, sourcemeta::core::schema_walker,
+                   sourcemeta::core::schema_resolver,
+                   [](const auto &pointer, const auto &name,
+                      const auto &message, const auto &, const auto &) {
+                     std::cerr << sourcemeta::core::to_string(pointer) << ": "
+                               << name << ": " << message << "\n";
+                   })};
 
   sourcemeta::core::format(document, sourcemeta::core::schema_walker,
                            sourcemeta::core::schema_resolver);

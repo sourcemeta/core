@@ -2380,7 +2380,8 @@ TEST(AlterSchema_lint_2019_09, unnecessary_allof_wrapper_6) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "unnecessary_allof_ref_wrapper_modern",
                     "Wrapping `$ref` in `allOf` was only necessary in JSON "
-                    "Schema Draft 7 and older");
+                    "Schema Draft 7 and older",
+                    true);
 }
 
 TEST(AlterSchema_lint_2019_09, multiple_of_default_1) {
@@ -3923,7 +3924,8 @@ TEST(AlterSchema_lint_2019_09, top_level_examples_1) {
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "top_level_examples",
                     "Set a non-empty examples array at the top level of the "
-                    "schema to illustrate the expected data");
+                    "schema to illustrate the expected data",
+                    false);
 }
 
 TEST(AlterSchema_lint_2019_09, top_level_examples_2) {
@@ -4437,7 +4439,8 @@ TEST(AlterSchema_lint_2019_09, simple_properties_identifiers_applies_non_meta) {
   EXPECT_LINT_TRACE(traces, 0, "", "simple_properties_identifiers",
                     "Set `properties` to identifier names that can be easily "
                     "mapped to programming languages (matching "
-                    "[A-Za-z_][A-Za-z0-9_]*)");
+                    "[A-Za-z_][A-Za-z0-9_]*)",
+                    false);
 }
 
 TEST(AlterSchema_lint_2019_09,
