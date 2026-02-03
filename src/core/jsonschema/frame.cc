@@ -1417,12 +1417,18 @@ auto SchemaFrame::populate_pointer_to_location() const -> void {
 
 // TODO: Find a way to split or simplify this monster while preserving
 // its performance?
-auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
+auto SchemaFrame::populate_reachability(const Location &base,
+                                        const SchemaWalker &walker,
                                         const SchemaResolver &resolver) const
-    -> void {
-  if (!this->reachability_.empty()) {
-    return;
+    -> const ReachabilityCache & {
+  for (auto &entry : this->reachability_) {
+    if (entry.first == &base) {
+      return entry.second;
+    }
   }
+
+  auto &cache =
+      this->reachability_.emplace_back(&base, ReachabilityCache{}).second;
 
   // ---------------------------------------------------------------------------
   // (1) Find all unreachable pointers
@@ -1452,7 +1458,7 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
 
     for (const auto &pointer_reference : has_non_pointer_location) {
       const bool is_reachable = has_non_orphan.contains(pointer_reference);
-      this->reachability_.emplace(pointer_reference, is_reachable);
+      cache.emplace(pointer_reference, is_reachable);
       if (!is_reachable) {
         unreachable_pointers.push_back(pointer_reference);
       }
@@ -1472,7 +1478,7 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
           std::ranges::any_of(locations, [](const Location *location) {
             return location->type != LocationType::Pointer && !location->orphan;
           })};
-      this->reachability_.emplace(pointer_reference, any_non_orphan);
+      cache.emplace(pointer_reference, any_non_orphan);
       if (!any_non_orphan) {
         unreachable_pointers.push_back(pointer_reference);
       }
@@ -1648,10 +1654,9 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
         bool source_parent_reachable{source_parent.empty()};
         if (!source_parent_reachable) {
           const auto reachability_iterator{
-              this->reachability_.find(std::cref(source_parent))};
-          source_parent_reachable =
-              reachability_iterator != this->reachability_.end() &&
-              reachability_iterator->second;
+              cache.find(std::cref(source_parent))};
+          source_parent_reachable = reachability_iterator != cache.end() &&
+                                    reachability_iterator->second;
         }
 
         if (source_parent_reachable) {
@@ -1661,7 +1666,7 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
       }
 
       if (became_reachable) {
-        this->reachability_[read_iterator->pointer] = true;
+        cache[read_iterator->pointer] = true;
         changed = true;
       } else {
         if (write_iterator != read_iterator) {
@@ -1673,15 +1678,26 @@ auto SchemaFrame::populate_reachability(const SchemaWalker &walker,
     unreachable_with_sources.erase(write_iterator,
                                    unreachable_with_sources.end());
   }
+
+  return cache;
 }
 
 auto SchemaFrame::is_reachable(const Location &location,
                                const SchemaWalker &walker,
                                const SchemaResolver &resolver) const -> bool {
   assert(location.type != LocationType::Pointer);
-  this->populate_reachability(walker, resolver);
-  const auto iterator{this->reachability_.find(std::cref(location.pointer))};
-  assert(iterator != this->reachability_.end());
+
+  // If we cannot determine the root entry point, like in a wrapper type, then
+  // we cannot determine reachability
+  const auto root_location{this->traverse(this->root_)};
+  if (!root_location.has_value()) {
+    return false;
+  }
+
+  const Location &base{root_location->get()};
+  const auto &cache{this->populate_reachability(base, walker, resolver)};
+  const auto iterator{cache.find(std::cref(location.pointer))};
+  assert(iterator != cache.end());
   return iterator->second;
 }
 
