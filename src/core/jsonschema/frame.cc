@@ -1462,7 +1462,8 @@ auto SchemaFrame::populate_reachability(const Location &base,
       if (pointer == base.pointer) {
         is_reachable = true;
       } else if (pointer.starts_with(base.pointer)) {
-        is_reachable = pointers_with_non_orphan.contains(pointer_reference);
+        is_reachable =
+            base.orphan || pointers_with_non_orphan.contains(pointer_reference);
       }
 
       cache.emplace(pointer_reference, is_reachable);
@@ -1494,7 +1495,7 @@ auto SchemaFrame::populate_reachability(const Location &base,
       if (pointer == base.pointer) {
         is_reachable = true;
       } else if (pointer.starts_with(base.pointer)) {
-        is_reachable = has_non_orphan;
+        is_reachable = base.orphan || has_non_orphan;
       }
 
       cache.emplace(pointer_reference, is_reachable);
@@ -1505,7 +1506,57 @@ auto SchemaFrame::populate_reachability(const Location &base,
   }
 
   // ---------------------------------------------------------------------------
-  // (2) Build a reverse mapping from reference destinations to their sources
+  // (2) Filter out descendants that cross a container boundary
+  // ---------------------------------------------------------------------------
+
+  if (base.orphan) {
+    std::vector<std::reference_wrapper<const WeakPointer>> nested_entries;
+    for (const auto &entry : this->locations_) {
+      if (entry.second.type != LocationType::Subschema) {
+        continue;
+      }
+      const auto &pointer{entry.second.pointer};
+      if (pointer == base.pointer || !pointer.starts_with(base.pointer)) {
+        continue;
+      }
+      if (!entry.second.parent.has_value()) {
+        continue;
+      }
+      const auto &parent_pointer{entry.second.parent.value()};
+      const auto relative{pointer.slice(parent_pointer.size())};
+      if (relative.empty() || !relative.at(0).is_property()) {
+        continue;
+      }
+      const auto parent_location{this->traverse(parent_pointer)};
+      if (!parent_location.has_value()) {
+        continue;
+      }
+      const auto vocabularies{
+          this->vocabularies(parent_location->get(), resolver)};
+      const auto &keyword_result{
+          walker(relative.at(0).to_property(), vocabularies)};
+      if (keyword_result.type == SchemaKeywordType::LocationMembers) {
+        nested_entries.push_back(std::cref(pointer));
+      }
+    }
+
+    for (auto &[cache_pointer, cache_reachable] : cache) {
+      if (!cache_reachable) {
+        continue;
+      }
+      const auto &pointer{cache_pointer.get()};
+      for (const auto &nested : nested_entries) {
+        if (pointer.starts_with(nested.get())) {
+          cache_reachable = false;
+          unreachable_pointers.push_back(cache_pointer);
+          break;
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // (3) Build a reverse mapping from reference destinations to their sources
   // ---------------------------------------------------------------------------
 
   std::unordered_map<std::string_view, std::vector<const WeakPointer *>>
@@ -1565,7 +1616,7 @@ auto SchemaFrame::populate_reachability(const Location &base,
   }
 
   // ---------------------------------------------------------------------------
-  // (3) Precompute which references could make each orphan reachable
+  // (4) Precompute which references could make each orphan reachable
   // ---------------------------------------------------------------------------
 
   struct PotentialSource {
@@ -1658,7 +1709,7 @@ auto SchemaFrame::populate_reachability(const Location &base,
   });
 
   // ---------------------------------------------------------------------------
-  // (4) Propagate reachability through references using fixpoint iteration
+  // (5) Propagate reachability through references using fixpoint iteration
   // ---------------------------------------------------------------------------
 
   bool changed{true};

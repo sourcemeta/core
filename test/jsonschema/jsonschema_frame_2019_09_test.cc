@@ -2987,3 +2987,103 @@ TEST(JSONSchema_frame_2019_09, invalid_recursive_ref_not_string) {
     FAIL();
   }
 }
+
+TEST(JSONSchema_frame_2019_09, ref_from_def_to_sibling_def) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$defs": {
+      "foo": {
+        "properties": {
+          "bar": { "$ref": "#/$defs/bar" }
+        }
+      },
+      "bar": {}
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 8);
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2019-09/schema",
+      JSON_Schema_2019_09, std::nullopt, false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/foo", "/$defs/foo",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
+      false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/foo/properties/bar", "/$defs/foo/properties/bar",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
+      "/$defs/foo", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/$defs/bar", "/$defs/bar",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
+      false, true);
+
+  // JSON Pointers
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
+      false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs", "/$defs",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09, "",
+      false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/foo/properties", "/$defs/foo/properties",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
+      "/$defs/foo", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$defs/foo/properties/bar/$ref",
+      "/$defs/foo/properties/bar/$ref",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
+      "/$defs/foo/properties/bar", false, true);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_STATIC_REFERENCE(frame, "/$defs/foo/properties/bar/$ref",
+                          "#/$defs/bar", "", "/$defs/bar", "#/$defs/bar");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/foo",
+                                      frame.root());
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/foo/properties/bar", frame.root());
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/bar",
+                                      frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/foo", "#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/foo/properties/bar",
+                                  "#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/bar", "#/$defs/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "#/$defs/foo/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/foo",
+                                      "#/$defs/foo/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/foo/properties/bar",
+                                  "#/$defs/foo/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/bar",
+                                  "#/$defs/foo/properties/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/foo",
+                                      "#/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/foo/properties/bar", "#/$defs/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/bar", "#/$defs/bar");
+}
