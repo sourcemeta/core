@@ -1613,23 +1613,19 @@ auto SchemaFrame::populate_reachability_graph(
   this->populate_location_members(walker, resolver);
   this->populate_reference_graph();
 
-  // Build parent -> child edges for ALL location types (including Pointer)
   for (const auto &entry : this->locations_) {
     if (entry.second.pointer.empty()) {
       continue;
     }
 
     const auto parent_pointer{entry.second.pointer.initial()};
-    auto parent_iter =
+    auto parent_iterator =
         this->pointer_to_location_.find(std::cref(parent_pointer));
-    if (parent_iter == this->pointer_to_location_.end()) {
+    if (parent_iterator == this->pointer_to_location_.end()) {
       continue;
     }
 
-    // Add edge from ALL parent locations at this pointer path
-    // This ensures that regardless of which Location* we start BFS with,
-    // we'll find the edges
-    for (const Location *parent_location : parent_iter->second) {
+    for (const Location *parent_location : parent_iterator->second) {
       this->reachability_graph_[parent_location].push_back(
           ReachabilityEdge{.target = &entry.second,
                            .orphan_context_only = entry.second.orphan,
@@ -1637,27 +1633,28 @@ auto SchemaFrame::populate_reachability_graph(
     }
   }
 
-  // Build reference edges: source_parent -> destination
-  for (const auto &[destination_ref, sources] :
+  for (const auto &[destination_reference, sources] :
        this->references_by_destination_) {
-    auto dest_locations_iter = this->pointer_to_location_.find(destination_ref);
-    if (dest_locations_iter == this->pointer_to_location_.end()) {
+    auto destination_locations_iterator =
+        this->pointer_to_location_.find(destination_reference);
+    if (destination_locations_iterator == this->pointer_to_location_.end()) {
       continue;
     }
 
-    // Find any non-Pointer destination location (prefer Subschema/Resource)
-    const Location *dest_location{nullptr};
-    for (const auto *loc : dest_locations_iter->second) {
-      if (loc->type != LocationType::Pointer) {
-        dest_location = loc;
+    const Location *destination_location{nullptr};
+    for (const auto *location : destination_locations_iterator->second) {
+      if (location->type != LocationType::Pointer) {
+        destination_location = location;
         break;
       }
     }
-    // If no non-Pointer location, use any location
-    if (!dest_location && !dest_locations_iter->second.empty()) {
-      dest_location = dest_locations_iter->second.front();
+
+    if (!destination_location &&
+        !destination_locations_iterator->second.empty()) {
+      destination_location = destination_locations_iterator->second.front();
     }
-    if (!dest_location) {
+
+    if (!destination_location) {
       continue;
     }
 
@@ -1665,18 +1662,18 @@ auto SchemaFrame::populate_reachability_graph(
       if (source_pointer->empty()) {
         continue;
       }
+
       const auto source_parent_pointer{source_pointer->initial()};
-      auto source_parent_iter =
+      auto source_parent_iterator =
           this->pointer_to_location_.find(std::cref(source_parent_pointer));
-      if (source_parent_iter == this->pointer_to_location_.end()) {
+      if (source_parent_iterator == this->pointer_to_location_.end()) {
         continue;
       }
 
-      // Add reference edges from ALL source parent locations
       for (const Location *source_parent_location :
-           source_parent_iter->second) {
+           source_parent_iterator->second) {
         this->reachability_graph_[source_parent_location].push_back(
-            ReachabilityEdge{.target = dest_location,
+            ReachabilityEdge{.target = destination_location,
                              .orphan_context_only = false,
                              .is_reference = true});
       }
@@ -1689,30 +1686,24 @@ auto SchemaFrame::populate_reachability(const Location &base,
                                         const SchemaResolver &resolver) const
     -> const ReachabilityCache & {
   const ReachabilityKey key{.pointer = &base.pointer, .orphan = base.orphan};
-  auto cache_iter = this->reachability_.find(key);
-  if (cache_iter != this->reachability_.end()) {
-    return cache_iter->second;
+  auto cache_iterator = this->reachability_.find(key);
+  if (cache_iterator != this->reachability_.end()) {
+    return cache_iterator->second;
   }
 
   auto &cache = this->reachability_[key];
-
-  // Build the reachability graph (once per frame, shared across all bases)
   this->populate_reachability_graph(walker, resolver);
-
-  // Use the base location directly (it's a reference to an entry in locations_)
   const Location *base_location{&base};
-
-  // BFS queue and visited set
   std::vector<const Location *> queue;
   std::unordered_set<const Location *> visited;
 
-  // Helper lambda to mark all locations at a pointer path as reachable
   auto mark_pointer_reachable = [this, &cache](const WeakPointer &pointer) {
-    auto locations_iter = this->pointer_to_location_.find(std::cref(pointer));
-    if (locations_iter != this->pointer_to_location_.end()) {
-      for (const auto *loc : locations_iter->second) {
-        if (loc->type != LocationType::Pointer) {
-          cache.emplace(std::cref(loc->pointer), true);
+    auto locations_iterator =
+        this->pointer_to_location_.find(std::cref(pointer));
+    if (locations_iterator != this->pointer_to_location_.end()) {
+      for (const auto *location : locations_iterator->second) {
+        if (location->type != LocationType::Pointer) {
+          cache.emplace(std::cref(location->pointer), true);
         }
       }
     }
@@ -1726,42 +1717,25 @@ auto SchemaFrame::populate_reachability(const Location &base,
   while (queue_index < queue.size()) {
     const Location *current = queue[queue_index++];
 
-    auto edges_iter = this->reachability_graph_.find(current);
-    if (edges_iter == this->reachability_graph_.end()) {
+    auto edges_iterator = this->reachability_graph_.find(current);
+    if (edges_iterator == this->reachability_graph_.end()) {
       continue;
     }
 
-    for (const auto &edge : edges_iter->second) {
-      // Skip if already visited
+    for (const auto &edge : edges_iterator->second) {
       if (visited.contains(edge.target)) {
         continue;
       }
 
-      // For orphan_context_only edges (hierarchical edges to orphan children):
-      // - From non-orphan base AND non-orphan current: block (orphans should be
-      //   reached via references first)
-      // - From non-orphan base AND orphan current: allow (we've entered orphan
-      //   context via reference, can reach non-nested orphan descendants)
-      // - From orphan base: allow (but filtered by nested boundary check below)
       if (edge.orphan_context_only && !base.orphan && !current->orphan) {
         continue;
       }
 
-      // When traversing via a HIERARCHICAL edge to an orphan that's a direct
-      // child of a LocationMembers keyword ($defs entry), check if we're
-      // crossing into a nested orphan context.
-      //
-      // A target in location_members_children_ is under a LocationMembers
-      // keyword. Block if the keyword is at or under current (meaning we're
-      // either at the $defs trying to enter, or entering a nested $defs).
       if (!edge.is_reference && edge.orphan_context_only) {
-        auto target_ref = this->location_members_children_.find(
+        auto target_iterator = this->location_members_children_.find(
             std::cref(edge.target->pointer));
-        if (target_ref != this->location_members_children_.end()) {
-          // Target is a child of a LocationMembers keyword
-          // The keyword is at target.pointer.initial()
+        if (target_iterator != this->location_members_children_.end()) {
           const auto keyword_path{edge.target->pointer.initial()};
-          // Block if keyword is at or under current
           if (keyword_path.starts_with(current->pointer)) {
             continue;
           }
@@ -1783,8 +1757,6 @@ auto SchemaFrame::is_reachable(const Location &base, const Location &location,
   assert(location.type != LocationType::Pointer);
   const auto &cache{this->populate_reachability(base, walker, resolver)};
   const auto iterator{cache.find(std::cref(location.pointer))};
-  // With the new graph-based approach, only reachable locations are in the
-  // cache. If not found, the location is unreachable.
   return iterator != cache.end() && iterator->second;
 }
 

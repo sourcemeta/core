@@ -302,13 +302,9 @@ private:
   };
   mutable std::unordered_map<const Location *, std::vector<PotentialSource>>
       potential_sources_by_location_;
-  // Reachability graph: edges represent "if source is reachable, target
-  // becomes reachable"
   struct ReachabilityEdge {
     const Location *target;
-    // If true, this edge leads to an orphan location (child of LocationMembers)
     bool orphan_context_only;
-    // If true, this is a reference edge (not a hierarchical parent-child edge)
     bool is_reference;
   };
   mutable std::unordered_map<const Location *, std::vector<ReachabilityEdge>>
