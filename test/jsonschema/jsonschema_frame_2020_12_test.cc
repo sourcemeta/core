@@ -112,6 +112,12 @@ TEST(JSONSchema_frame_2020_12, anonymous_with_nested_schema_resource) {
                                   frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "https://example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/additionalProperties",
+                                  "https://example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com",
+                                  "https://example.com");
 }
 
 TEST(JSONSchema_frame_2020_12, empty_schema) {
@@ -272,6 +278,26 @@ TEST(JSONSchema_frame_2020_12, one_level_applicators_without_identifiers) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/items",
+                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/items");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
 }
 
 TEST(JSONSchema_frame_2020_12, one_level_applicators_with_identifiers) {
@@ -381,6 +407,38 @@ TEST(JSONSchema_frame_2020_12, one_level_applicators_with_identifiers) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/test/qux#/properties/foo",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/test/qux",
+                                      "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo",
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#test",
+      "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test/qux#/items",
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/properties/foo",
+      "https://www.sourcemeta.com/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux",
+      "https://www.sourcemeta.com/test/qux#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/foo",
+      "https://www.sourcemeta.com/test/qux#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#test",
+      "https://www.sourcemeta.com/test/qux#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/items",
+      "https://www.sourcemeta.com/test/qux#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test/qux#/properties/foo",
+      "https://www.sourcemeta.com/test/qux#/properties/foo");
 }
 
 TEST(JSONSchema_frame_2020_12, subschema_absolute_identifier) {
@@ -448,6 +506,16 @@ TEST(JSONSchema_frame_2020_12, subschema_absolute_identifier) {
       frame, Static, "https://www.sourcemeta.com/foo", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/items", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo",
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/items",
+                                  "https://www.sourcemeta.com/foo");
 }
 
 TEST(JSONSchema_frame_2020_12, nested_schemas) {
@@ -673,6 +741,88 @@ TEST(JSONSchema_frame_2020_12, nested_schemas) {
       frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/baz#/items", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo",
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/foo#test",
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/qux",
+                                  "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/bar",
+                                      "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/baz",
+                                      "https://www.sourcemeta.com/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/baz#extra",
+                                      "https://www.sourcemeta.com/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/foo",
+                                      "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/foo#test",
+                                      "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/qux",
+                                  "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/bar",
+                                      "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/baz",
+                                      "https://www.sourcemeta.com/qux");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/baz#extra",
+                                      "https://www.sourcemeta.com/qux");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/foo",
+                                      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/qux",
+                                      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/bar",
+                                  "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/baz",
+                                      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/baz#extra",
+                                      "https://www.sourcemeta.com/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/foo",
+                                      "https://www.sourcemeta.com/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/qux",
+                                      "https://www.sourcemeta.com/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/bar",
+                                      "https://www.sourcemeta.com/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/baz",
+                                  "https://www.sourcemeta.com/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/baz#extra",
+                                  "https://www.sourcemeta.com/baz");
 }
 
 TEST(JSONSchema_frame_2020_12, id_override) {
@@ -986,6 +1136,50 @@ TEST(JSONSchema_frame_2020_12, explicit_argument_id_different) {
       frame, Static, "https://www.example.com#/properties/one", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.example.com#/properties/two", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/items",
+                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#foo",
+                                  "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test",
+      "https://www.sourcemeta.com/schema#/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.test.com",
+      "https://www.sourcemeta.com/schema#/items");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items",
+      "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test",
+                                  "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test#bar",
+                                  "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "https://www.test.com",
+                                      "https://www.sourcemeta.com/test");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.test.com");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/items",
+      "https://www.test.com");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test", "https://www.test.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com",
+                                  "https://www.test.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.test.com#baz",
+                                  "https://www.test.com");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_refs_with_id) {
@@ -1238,6 +1432,161 @@ TEST(JSONSchema_frame_2020_12, dynamic_refs_with_id) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/unknown",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/anchor",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/dynamic",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/extra",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/unknown",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#baz",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/dynamic",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#baz",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/test",
+                                  "https://www.sourcemeta.com/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/qux",
+      "https://www.sourcemeta.com/test");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/anchor");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/anchor",
+      "https://www.sourcemeta.com/schema#/properties/anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#baz",
+      "https://www.sourcemeta.com/schema#/properties/anchor");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test",
+      "https://www.sourcemeta.com/schema#/properties/anchor");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/dynamic",
+      "https://www.sourcemeta.com/schema#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#dynamic",
+      "https://www.sourcemeta.com/schema#/properties/dynamic");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/extra");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/extra");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/extra",
+      "https://www.sourcemeta.com/schema#/properties/extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/dynamic",
+      "https://www.sourcemeta.com/schema#/properties/extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#dynamic",
+      "https://www.sourcemeta.com/schema#/properties/extra");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/unknown");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/unknown");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/unknown");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/unknown",
+      "https://www.sourcemeta.com/schema#/properties/unknown");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/test",
+      "https://www.sourcemeta.com/schema#/properties/unknown");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_refs_with_no_id) {
@@ -1448,6 +1797,86 @@ TEST(JSONSchema_frame_2020_12, dynamic_refs_with_no_id) {
                                   frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/unknown",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/bar",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/baz",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/dynamic",
+                                  "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/bar",
+                                  "#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/baz",
+                                  "#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#baz", "#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "https://www.example.com",
+                                      "#/properties/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/baz",
+                                  "#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#baz", "#/properties/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "https://www.example.com",
+                                      "#/properties/baz");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "https://www.example.com");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "https://www.example.com");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/baz",
+                                      "https://www.example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com",
+                                  "https://www.example.com");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/qux",
+                                  "https://www.example.com");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/anchor",
+                                  "#/properties/anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/baz",
+                                  "#/properties/anchor");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#baz", "#/properties/anchor");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/properties/anchor");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/dynamic",
+                                  "#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#dynamic",
+                                  "#/properties/dynamic");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/properties/dynamic");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/extra",
+                                  "#/properties/extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/dynamic",
+                                  "#/properties/extra");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#dynamic",
+                                  "#/properties/extra");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/properties/extra");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "#/properties/unknown");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/unknown",
+                                  "#/properties/unknown");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/properties/unknown");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "https://www.example.com",
+                                      "#/properties/unknown");
 }
 
 TEST(JSONSchema_frame_2020_12, ref_to_dynamic_anchor) {
@@ -1545,6 +1974,32 @@ TEST(JSONSchema_frame_2020_12, ref_to_dynamic_anchor) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
 }
 
 TEST(JSONSchema_frame_2020_12, different_dynamic_and_refs_in_same_object) {
@@ -1643,6 +2098,26 @@ TEST(JSONSchema_frame_2020_12, different_dynamic_and_refs_in_same_object) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
 }
 
 TEST(JSONSchema_frame_2020_12, same_dynamic_and_refs_in_same_object) {
@@ -1742,6 +2217,26 @@ TEST(JSONSchema_frame_2020_12, same_dynamic_and_refs_in_same_object) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_id) {
@@ -1904,6 +2399,41 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_id) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#test",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Dynamic, "https://www.sourcemeta.com/schema#test",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "https://www.sourcemeta.com/schema",
+                                      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/bar",
+                                  "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/bar#test",
+                                  "https://www.sourcemeta.com/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://www.sourcemeta.com/bar#test",
+                                  "https://www.sourcemeta.com/bar");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_anchor_without_id) {
@@ -1973,6 +2503,12 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_without_id) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#test", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#test", "#/properties/foo");
 }
 
 TEST(JSONSchema_frame_2020_12,
@@ -2047,6 +2583,12 @@ TEST(JSONSchema_frame_2020_12,
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#test", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/test", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/test",
+                                  "#/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#test", "#/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#test", "#/$defs/test");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_ref_to_single_dynamic_anchor_external) {
@@ -2136,6 +2678,19 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_single_dynamic_anchor_external) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/test", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/foo",
                                       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/test",
+                                  "#/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#test", "#/$defs/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#test", "#/$defs/test");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/foo",
+                                      "#/$defs/test");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/foo", "#/$defs/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/test",
+                                      "#/$defs/foo");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_anchor_same_on_schema_resource) {
@@ -2208,6 +2763,10 @@ TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
 }
 
 TEST(JSONSchema_frame_2020_12, ref_metaschema) {
@@ -2348,6 +2907,13 @@ TEST(JSONSchema_frame_2020_12, ref_with_id) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/$defs/string",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/string",
+      "https://www.sourcemeta.com/schema#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, ref_from_definitions) {
@@ -2440,6 +3006,26 @@ TEST(JSONSchema_frame_2020_12, ref_from_definitions) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/definitions/string",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/definitions/middle");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions/middle",
+      "https://www.sourcemeta.com/schema#/definitions/middle");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions/string",
+      "https://www.sourcemeta.com/schema#/definitions/middle");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/definitions/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions/middle",
+      "https://www.sourcemeta.com/schema#/definitions/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/definitions/string",
+      "https://www.sourcemeta.com/schema#/definitions/string");
 }
 
 TEST(JSONSchema_frame_2020_12, relative_base_uri_without_ref) {
@@ -2552,6 +3138,20 @@ TEST(JSONSchema_frame_2020_12, relative_base_uri_with_ref) {
                                   frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$defs/foo",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "common",
+                                      "common#/allOf/0");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/allOf/0",
+                                  "common#/allOf/0");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$defs/foo",
+                                  "common#/allOf/0");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "common",
+                                      "common#/$defs/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "common#/allOf/0",
+                                      "common#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "common#/$defs/foo",
+                                  "common#/$defs/foo");
 }
 
 TEST(JSONSchema_frame_2020_12, relative_base_with_relative_path_ref) {
@@ -2669,6 +3269,13 @@ TEST(JSONSchema_frame_2020_12, idempotent_with_refs) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/$defs/string",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/string",
+      "https://www.sourcemeta.com/schema#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, allof_refs) {
@@ -2743,6 +3350,14 @@ TEST(JSONSchema_frame_2020_12, allof_refs) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/allOf/0", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/allOf/1", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/allOf/0");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/allOf/0", "#/allOf/0");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/allOf/1", "#/allOf/0");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/allOf/1");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/allOf/0", "#/allOf/1");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/allOf/1", "#/allOf/1");
 }
 
 TEST(JSONSchema_frame_2020_12, properties_with_refs) {
@@ -2859,6 +3474,70 @@ TEST(JSONSchema_frame_2020_12, properties_with_refs) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/items",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/items",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/items",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/items",
+      "https://www.sourcemeta.com/schema#/properties/baz");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/baz/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/baz/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/baz/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz",
+      "https://www.sourcemeta.com/schema#/properties/baz/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/baz/items",
+      "https://www.sourcemeta.com/schema#/properties/baz/items");
 }
 
 TEST(JSONSchema_frame_2020_12, property_ref_defs) {
@@ -3000,6 +3679,117 @@ TEST(JSONSchema_frame_2020_12, property_ref_defs) {
                                   "https://www.sourcemeta.com/schema#/$defs/"
                                   "helper/items/additionalProperties",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper/items",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper/items",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper",
+      "https://www.sourcemeta.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper/items",
+      "https://www.sourcemeta.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/$defs/helper");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper/items",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/helper/items",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/$defs/helper/items/"
+      "additionalProperties");
 }
 
 TEST(JSONSchema_frame_2020_12, property_cross_ref) {
@@ -3118,6 +3908,83 @@ TEST(JSONSchema_frame_2020_12, property_cross_ref) {
       frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#foo", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar/items",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar/items",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/properties/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar/items",
+      "https://www.sourcemeta.com/schema#/properties/bar/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/properties/bar/items");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar",
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/bar/items",
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties",
+      "https://www.sourcemeta.com/schema#/properties/bar/items/"
+      "additionalProperties");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_ref_multiple_targets) {
@@ -3252,6 +4119,25 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_multiple_targets) {
                                   "https://www.example.com#test", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Dynamic, "https://www.example.com/foo#test", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.example.com",
+      "https://www.example.com#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/properties/foo",
+                                  "https://www.example.com#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.example.com#/properties/bar",
+      "https://www.example.com#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://www.example.com",
+                                  "https://www.example.com#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/properties/foo",
+                                  "https://www.example.com#/properties/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.example.com#/properties/bar",
+                                  "https://www.example.com#/properties/bar");
 }
 
 TEST(JSONSchema_frame_2020_12, cross_id_anonymous_nested) {
@@ -3357,6 +4243,19 @@ TEST(JSONSchema_frame_2020_12, cross_id_anonymous_nested) {
                                       frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "https://example.com#/items",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/schema");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/schema",
+                                  "#/$defs/schema");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/schema/items",
+                                      "#/$defs/schema");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "#/$defs/schema/items");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/schema",
+                                      "#/$defs/schema/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/schema/items",
+                                  "#/$defs/schema/items");
 }
 
 TEST(JSONSchema_frame_2020_12, relative_id_with_absolute_default_id) {
@@ -3627,6 +4526,11 @@ TEST(JSONSchema_frame_2020_12, single_nested_anonymous_with_nested_resource) {
       frame, Static, "https://www.sourcemeta.com/schema", "#/wrapper");
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#test", "#/wrapper");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper",
+                                      "#/wrapper/items");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper/items",
+                                  "#/wrapper/items");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
@@ -3760,6 +4664,20 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#foo", "#/wrapper");
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#bar", "#/wrapper");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper",
+                                      "#/common/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test",
+                                  "#/common/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/with-id",
+                                  "#/common/test");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper",
+                                      "#/common/with-id");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/common/test",
+                                      "#/common/with-id");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/with-id",
+                                  "#/common/with-id");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
@@ -3822,6 +4740,11 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_cross_ref_missing_target) {
 
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper", "#/wrapper");
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test", "#/wrapper");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper",
+                                      "#/common/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test",
+                                  "#/common/test");
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_no_base_dialect) {
@@ -3969,6 +4892,11 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {
 
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/wrapper", "#/wrapper");
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test", "#/wrapper");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/wrapper",
+                                      "#/common/test");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/common/test",
+                                  "#/common/test");
 }
 
 TEST(JSONSchema_frame_2020_12, anchor_with_invalid_type) {
@@ -4247,6 +5175,26 @@ TEST(JSONSchema_frame_2020_12, ref_to_ref_chain) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#/$defs/child",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/parent");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/parent",
+      "https://www.sourcemeta.com/schema#/$defs/parent");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/child",
+      "https://www.sourcemeta.com/schema#/$defs/parent");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/child");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/parent",
+      "https://www.sourcemeta.com/schema#/$defs/child");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/$defs/child",
+      "https://www.sourcemeta.com/schema#/$defs/child");
 }
 
 TEST(JSONSchema_frame_2020_12, nested_defs_unreferenced) {
@@ -4332,6 +5280,28 @@ TEST(JSONSchema_frame_2020_12, nested_defs_unreferenced) {
       frame, Static,
       "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused",
+      "https://www.sourcemeta.com/schema#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#/properties/foo",
+      "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused",
+      "https://www.sourcemeta.com/schema#/properties/foo/$defs/unused");
 }
 
 TEST(JSONSchema_frame_2020_12, circular_ref_through_defs) {
@@ -4422,6 +5392,26 @@ TEST(JSONSchema_frame_2020_12, circular_ref_through_defs) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
                                   "https://www.sourcemeta.com/schema#/$defs/b",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$defs/a",
+                                  "https://www.sourcemeta.com/schema#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$defs/b",
+                                  "https://www.sourcemeta.com/schema#/$defs/a");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$defs/a",
+                                  "https://www.sourcemeta.com/schema#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://www.sourcemeta.com/schema#/$defs/b",
+                                  "https://www.sourcemeta.com/schema#/$defs/b");
 }
 
 TEST(JSONSchema_frame_2020_12, nested_invalid_schema_keyword) {
@@ -4696,6 +5686,37 @@ TEST(JSONSchema_frame_2020_12, ref_to_orphan_chain) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/a", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/a",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c",
+                                  "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", "#/$defs/a");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/b");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", "#/$defs/b");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/c");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/c");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/c");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/c");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", "#/$defs/c");
 }
 
 TEST(JSONSchema_frame_2020_12, orphan_chain_unreferenced) {
@@ -4775,6 +5796,21 @@ TEST(JSONSchema_frame_2020_12, orphan_chain_unreferenced) {
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/a", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/b", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/c", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", "#/$defs/a");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", "#/$defs/b");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/c");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/c");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/c");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/c", "#/$defs/c");
 }
 
 TEST(JSONSchema_frame_2020_12, circular_orphan_refs) {
@@ -4844,6 +5880,14 @@ TEST(JSONSchema_frame_2020_12, circular_orphan_refs) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/a", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/b", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/a");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/a");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/a", "#/$defs/b");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/b", "#/$defs/b");
 }
 
 TEST(JSONSchema_frame_2020_12, ref_from_deep_nesting) {
@@ -4951,6 +5995,26 @@ TEST(JSONSchema_frame_2020_12, ref_from_deep_nesting) {
       frame, Static, "#/properties/x/properties/y/properties/z", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "", "#/properties/x/properties/y/properties/z");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/properties/x",
+      "#/properties/x/properties/y/properties/z");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/properties/x/properties/y",
+      "#/properties/x/properties/y/properties/z");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/properties/x/properties/y/properties/z",
+                                  "#/properties/x/properties/y/properties/z");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/properties/x/properties/y/properties/z");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/x",
+                                      "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, orphan_refs_reachable_target) {
@@ -5039,6 +6103,30 @@ TEST(JSONSchema_frame_2020_12, orphan_refs_reachable_target) {
                                   frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/orphan",
                                       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/orphan",
+                                      "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/orphan",
+                                      "#/$defs/string");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/orphan");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/orphan");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/orphan");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/orphan",
+                                  "#/$defs/orphan");
 }
 
 TEST(JSONSchema_frame_2020_12, root_dynamic_anchor) {
@@ -5182,6 +6270,18 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_static_anchor) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#target", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_ref_to_pointer) {
@@ -5258,6 +6358,18 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_pointer) {
                                   frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, dynamic_ref_to_dynamic_anchor) {
@@ -5350,6 +6462,23 @@ TEST(JSONSchema_frame_2020_12, dynamic_ref_to_dynamic_anchor) {
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#target", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
                                   frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#target", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#target",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#target", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#target", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, static_ref_to_dynamic_anchor) {
@@ -5475,6 +6604,61 @@ TEST(JSONSchema_frame_2020_12, static_ref_to_dynamic_anchor) {
   EXPECT_FRAME_LOCATION_NON_REACHABLE(
       frame, Static, "#/$defs/string/additionalProperties/$defs/nested",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/properties/foo",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#target", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#target",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/properties/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties", "#/properties/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties/$defs/nested",
+      "#/properties/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#target", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#target", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties/$defs/nested",
+      "#/$defs/string");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "#/$defs/string/additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/properties/foo",
+                                      "#/$defs/string/additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/string",
+                                      "#/$defs/string/additionalProperties");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "#/$defs/string/additionalProperties",
+                                  "#/$defs/string/additionalProperties");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties/$defs/nested",
+      "#/$defs/string/additionalProperties");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "", "#/$defs/string/additionalProperties/$defs/nested");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/properties/foo",
+      "#/$defs/string/additionalProperties/$defs/nested");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/string",
+      "#/$defs/string/additionalProperties/$defs/nested");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties",
+      "#/$defs/string/additionalProperties/$defs/nested");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "#/$defs/string/additionalProperties/$defs/nested",
+      "#/$defs/string/additionalProperties/$defs/nested");
 }
 
 TEST(JSONSchema_frame_2020_12, unreferenced_dynamic_anchor) {
@@ -5548,6 +6732,12 @@ TEST(JSONSchema_frame_2020_12, unreferenced_dynamic_anchor) {
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Dynamic, "#unused", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/string",
                                       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#unused", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic, "#unused", "#/$defs/string");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/$defs/string",
+                                  "#/$defs/string");
 }
 
 TEST(JSONSchema_frame_2020_12, property_named_defs) {
@@ -5647,8 +6837,57 @@ TEST(JSONSchema_frame_2020_12, property_named_defs) {
       frame, Static, "https://example.com/schema#/$defs/helper", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/$defs",
+      frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
       "https://example.com/schema#/$defs/helper/properties/definitions",
       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://example.com/schema",
+      "https://example.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/schema#/$defs/helper",
+                                  "https://example.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/$defs",
+      "https://example.com/schema#/$defs/helper");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/definitions",
+      "https://example.com/schema#/$defs/helper");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://example.com/schema",
+      "https://example.com/schema#/$defs/helper/properties/$defs");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://example.com/schema#/$defs/helper",
+      "https://example.com/schema#/$defs/helper/properties/$defs");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/$defs",
+      "https://example.com/schema#/$defs/helper/properties/$defs");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/definitions",
+      "https://example.com/schema#/$defs/helper/properties/$defs");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://example.com/schema",
+      "https://example.com/schema#/$defs/helper/properties/definitions");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static, "https://example.com/schema#/$defs/helper",
+      "https://example.com/schema#/$defs/helper/properties/definitions");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/$defs",
+      "https://example.com/schema#/$defs/helper/properties/definitions");
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static,
+      "https://example.com/schema#/$defs/helper/properties/definitions",
+      "https://example.com/schema#/$defs/helper/properties/definitions");
 }
 
 TEST(JSONSchema_frame_2020_12, nested_schema_with_dynamic_anchor_and_refs) {
@@ -5849,6 +7088,68 @@ TEST(JSONSchema_frame_2020_12, nested_schema_with_dynamic_anchor_and_refs) {
                                   frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/$defs/schema/$defs/foo",
                                       frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "__sourcemeta-core-wrap__",
+                                  "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#meta",
+                                  "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "__sourcemeta-core-wrap__#meta",
+                                  "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/foo",
+                                  "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/bar",
+                                      "__sourcemeta-core-wrap__");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/baz",
+                                      "__sourcemeta-core-wrap__");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "__sourcemeta-core-wrap__#/$defs/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "__sourcemeta-core-wrap__",
+                                      "__sourcemeta-core-wrap__#/$defs/foo");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/foo",
+                                  "__sourcemeta-core-wrap__#/$defs/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/bar",
+                                      "__sourcemeta-core-wrap__#/$defs/foo");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/baz",
+                                      "__sourcemeta-core-wrap__#/$defs/foo");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "__sourcemeta-core-wrap__#/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "__sourcemeta-core-wrap__",
+                                      "__sourcemeta-core-wrap__#/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/foo",
+                                      "__sourcemeta-core-wrap__#/$defs/bar");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/bar",
+                                  "__sourcemeta-core-wrap__#/$defs/bar");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/baz",
+                                      "__sourcemeta-core-wrap__#/$defs/bar");
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "",
+                                      "__sourcemeta-core-wrap__#/$defs/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "__sourcemeta-core-wrap__",
+                                      "__sourcemeta-core-wrap__#/$defs/baz");
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static,
+                                      "__sourcemeta-core-wrap__#/$defs/foo",
+                                      "__sourcemeta-core-wrap__#/$defs/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/bar",
+                                  "__sourcemeta-core-wrap__#/$defs/baz");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "__sourcemeta-core-wrap__#/$defs/baz",
+                                  "__sourcemeta-core-wrap__#/$defs/baz");
 }
 
 TEST(JSONSchema_frame_2020_12,
@@ -5953,6 +7254,18 @@ TEST(JSONSchema_frame_2020_12,
       frame, Static, "https://example.com/unreferenced#meta", frame.root());
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Dynamic, "https://example.com/unreferenced#meta", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "https://example.com/root",
+                                      "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/unreferenced",
+                                  "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/unreferenced#meta",
+                                  "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Dynamic,
+                                  "https://example.com/unreferenced#meta",
+                                  "https://example.com/unreferenced");
 }
 
 TEST(JSONSchema_frame_2020_12,
@@ -6051,4 +7364,13 @@ TEST(JSONSchema_frame_2020_12,
       frame, Static, "https://example.com/unreferenced", frame.root());
   EXPECT_FRAME_LOCATION_NON_REACHABLE(
       frame, Static, "https://example.com/unreferenced#meta", frame.root());
+
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "https://example.com/root",
+                                      "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/unreferenced",
+                                  "https://example.com/unreferenced");
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static,
+                                  "https://example.com/unreferenced#meta",
+                                  "https://example.com/unreferenced");
 }
