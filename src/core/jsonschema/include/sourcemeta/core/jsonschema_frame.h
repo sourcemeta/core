@@ -262,6 +262,9 @@ private:
                              std::vector<const Location *>, WeakPointer::Hasher,
                              WeakPointer::Comparator>
       pointer_to_location_;
+  mutable std::unordered_set<std::reference_wrapper<const WeakPointer>,
+                             WeakPointer::Hasher, WeakPointer::Comparator>
+      pointers_with_non_orphan_;
   using ReachabilityCache =
       std::unordered_map<std::reference_wrapper<const WeakPointer>, bool,
                          WeakPointer::Hasher, WeakPointer::Comparator>;
