@@ -99,10 +99,17 @@ static void Schema_Frame_KrakenD_Reachable(benchmark::State &state) {
         continue;
       }
 
-      auto result{frame.is_reachable(
-          frame.traverse(frame.root()).value().get(), entry.second,
-          sourcemeta::core::schema_walker, sourcemeta::core::schema_resolver)};
-      benchmark::DoNotOptimize(result);
+      for (const auto &subentry : frame.locations()) {
+        if (subentry.second.type ==
+                sourcemeta::core::SchemaFrame::LocationType::Resource ||
+            subentry.second.type ==
+                sourcemeta::core::SchemaFrame::LocationType::Subschema) {
+          auto result{frame.is_reachable(subentry.second, entry.second,
+                                         sourcemeta::core::schema_walker,
+                                         sourcemeta::core::schema_resolver)};
+          benchmark::DoNotOptimize(result);
+        }
+      }
     }
   }
 }
