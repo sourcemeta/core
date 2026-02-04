@@ -1444,6 +1444,9 @@ auto SchemaFrame::populate_reachability(const Location &base,
                        WeakPointer::Hasher, WeakPointer::Comparator>
         has_non_pointer_location;
 
+    this->pointer_to_location_.reserve(this->locations_.size());
+    has_non_pointer_location.reserve(this->locations_.size());
+    pointers_with_non_orphan.reserve(this->locations_.size());
     for (const auto &entry : this->locations_) {
       auto [iterator, inserted] = this->pointer_to_location_.try_emplace(
           std::cref(entry.second.pointer), std::vector<const Location *>{});
@@ -1715,6 +1718,7 @@ auto SchemaFrame::populate_reachability(const Location &base,
   bool changed{true};
   while (changed) {
     changed = false;
+    std::vector<std::reference_wrapper<const WeakPointer>> newly_reachable;
 
     auto write_iterator = unreachable_with_sources.begin();
     for (auto read_iterator = unreachable_with_sources.begin();
@@ -1739,15 +1743,8 @@ auto SchemaFrame::populate_reachability(const Location &base,
       }
 
       if (became_reachable) {
-        const auto &reached_pointer{read_iterator->pointer.get()};
         cache[read_iterator->pointer] = true;
-        for (auto &[cache_pointer, cache_reachable] : cache) {
-          if (!cache_reachable &&
-              cache_pointer.get().starts_with(reached_pointer) &&
-              pointers_with_non_orphan.contains(cache_pointer)) {
-            cache_reachable = true;
-          }
-        }
+        newly_reachable.push_back(read_iterator->pointer);
         changed = true;
       } else {
         if (write_iterator != read_iterator) {
@@ -1758,6 +1755,21 @@ auto SchemaFrame::populate_reachability(const Location &base,
     }
     unreachable_with_sources.erase(write_iterator,
                                    unreachable_with_sources.end());
+
+    for (auto &[cache_pointer, cache_reachable] : cache) {
+      if (cache_reachable) {
+        continue;
+      }
+      if (!pointers_with_non_orphan.contains(cache_pointer)) {
+        continue;
+      }
+      for (const auto &reached : newly_reachable) {
+        if (cache_pointer.get().starts_with(reached.get())) {
+          cache_reachable = true;
+          break;
+        }
+      }
+    }
   }
 
   return cache;
