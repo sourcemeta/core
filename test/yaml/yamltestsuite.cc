@@ -3,26 +3,14 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/yaml.h>
 
-#include <exception>     // std::exception
-#include <filesystem>    // std::filesystem
-#include <fstream>       // std::ifstream
-#include <string>        // std::string
-#include <unordered_set> // std::unordered_set
-#include <vector>        // std::vector
+#include <algorithm>  // std::min
+#include <exception>  // std::exception
+#include <filesystem> // std::filesystem
+#include <fstream>    // std::ifstream
+#include <string>     // std::string
+#include <vector>     // std::vector
 
 enum class YAMLTestType { Success, Error };
-
-// Tests that fail due to known libyaml limitations:
-// - Zero-indented block scalars (libyaml YAML 1.1 limitation)
-// - Colons in anchor names (valid in YAML 1.2, not YAML 1.1)
-// - Various libyaml parsing errors and false negatives
-const std::unordered_set<std::string> SKIPPED_TESTS{
-    "26DV", "2LFX", "2SXE", "3HFZ", "4H7K", "58MP", "5MUD", "5T43",
-    "652Z", "6BCT", "6CA3", "6LVF", "7Z25", "8XYN", "9C9N", "9HCY",
-    "9JBA", "9SA2", "A2M4", "BEC7", "BS4K", "CVW2", "DBG4", "DK3J",
-    "E76Z", "EB22", "FP8R", "G5U8", "HMQ5", "K3WX", "KS4U", "M7A3",
-    "NJ66", "Q5MG", "QB6E", "QLJ7", "R4YG", "RHX7", "S98Z", "SU5Z",
-    "UT92", "W4TN", "W5VH", "X4QW", "Y2GN", "YJV2"};
 
 class YAMLTest : public testing::Test {
 public:
@@ -63,7 +51,9 @@ public:
       }
 
       EXPECT_EQ(yaml_documents.size(), json_documents.size());
-      for (std::size_t index = 0; index < yaml_documents.size(); index++) {
+      const auto compare_count{
+          std::min(yaml_documents.size(), json_documents.size())};
+      for (std::size_t index = 0; index < compare_count; index++) {
         EXPECT_EQ(yaml_documents[index], json_documents[index]);
       }
     } else if (this->type == YAMLTestType::Error) {
@@ -97,10 +87,6 @@ int main(int argc, char **argv) {
 
     const auto test_directory{entry.path()};
     const auto test_name{test_directory.filename().string()};
-
-    if (SKIPPED_TESTS.find(test_name) != SKIPPED_TESTS.end()) {
-      continue;
-    }
 
     const auto json_file{test_directory / "in.json"};
     const auto error_file{test_directory / "error"};

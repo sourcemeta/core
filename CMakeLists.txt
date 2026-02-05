@@ -122,7 +122,6 @@ if(SOURCEMETA_CORE_JSONL)
 endif()
 
 if(SOURCEMETA_CORE_YAML)
-  find_package(yaml REQUIRED)
   add_subdirectory(src/core/yaml)
 endif()
 
