@@ -12,7 +12,6 @@
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/punycode.h>
-#include <sourcemeta/core/schemaconfig.h>
 #include <sourcemeta/core/time.h>
 #include <sourcemeta/core/uri.h>
 #include <sourcemeta/core/uritemplate.h>
