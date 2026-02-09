@@ -1,12 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/io.h>
 
-#include <cassert>    // assert
 #include <cstdint>    // std::uint64_t
 #include <filesystem> // std::filesystem
-#include <fstream>    // std::ifstream
-#include <sstream>    // std::ostringstream, std::istringstream
+#include <sstream>    // std::ostringstream
 #include <string>     // std::string, std::getline
 
 static auto hex_to_bytes(const std::string &hex) -> std::string {
@@ -41,9 +40,8 @@ private:
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   const std::filesystem::path suite_path{PYCA_CRYPTOGRAPHY_PATH};
-  std::ifstream stream{suite_path / "hashes" / "MD5" / "rfc-1321.txt"};
-  assert(stream.is_open());
-  stream.exceptions(std::ios_base::badbit);
+  auto stream = sourcemeta::core::read_file(suite_path / "hashes" / "MD5" /
+                                            "rfc-1321.txt");
 
   std::string line;
   std::string current_message_hex;

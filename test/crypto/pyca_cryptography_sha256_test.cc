@@ -1,12 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/io.h>
 
-#include <cassert>    // assert
 #include <cstdint>    // std::uint64_t
 #include <filesystem> // std::filesystem
-#include <fstream>    // std::ifstream
-#include <sstream>    // std::ostringstream, std::istringstream
+#include <sstream>    // std::ostringstream
 #include <string>     // std::string, std::getline
 
 static auto strip_cr(std::string &value) -> void {
@@ -86,9 +85,7 @@ private:
 
 static auto register_msg_tests(const std::filesystem::path &file_path,
                                const std::string &suite_name) -> void {
-  std::ifstream stream{file_path};
-  assert(stream.is_open());
-  stream.exceptions(std::ios_base::badbit);
+  auto stream = sourcemeta::core::read_file(file_path);
 
   std::string line;
   std::string current_message_hex;
@@ -123,9 +120,7 @@ static auto register_msg_tests(const std::filesystem::path &file_path,
 
 static auto register_monte_tests(const std::filesystem::path &file_path)
     -> void {
-  std::ifstream stream{file_path};
-  assert(stream.is_open());
-  stream.exceptions(std::ios_base::badbit);
+  auto stream = sourcemeta::core::read_file(file_path);
 
   std::string line;
   std::string seed;
