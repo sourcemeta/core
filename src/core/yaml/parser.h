@@ -41,7 +41,6 @@ public:
   auto parse() -> JSON {
     std::optional<Token> token;
 
-    // Check for pending token from previous document in multi-document stream
     if (!this->pending_tokens_.empty()) {
       token = this->pending_tokens_.front();
       this->pending_tokens_.pop_front();
@@ -58,14 +57,12 @@ public:
     }
 
     if (!token.has_value() || token->type == TokenType::StreamEnd) {
-      // For empty/blank documents, report error at position (1, 1)
       throw YAMLParseError{1, 1, "Empty YAML document"};
     }
 
     if (token->type == TokenType::DirectiveYAML ||
         token->type == TokenType::DirectiveTag ||
         token->type == TokenType::DirectiveReserved) {
-      // process_directives modifies token in place to be the next non-directive
       this->process_directives(token.value());
     }
 
@@ -74,12 +71,9 @@ public:
       const auto pos_before_next{this->lexer_->position()};
       token = this->lexer_->next();
 
-      // Empty document: return null if next token is end-of-stream, document
-      // end, or start of a new document
       if (!token.has_value() || token->type == TokenType::StreamEnd ||
           token->type == TokenType::DocumentEnd ||
           token->type == TokenType::DocumentStart) {
-        // Save the next document start marker for subsequent parse calls
         if (token.has_value() && token->type == TokenType::DocumentStart) {
           this->pending_tokens_.push_back(token.value());
           this->pending_token_position_ = pos_before_next;
@@ -89,16 +83,12 @@ public:
     } else if (!token.has_value() || token->type == TokenType::StreamEnd) {
       throw YAMLParseError{1, 1, "Empty YAML document"};
     } else if (token->type == TokenType::DocumentEnd) {
-      // Skip bare document end markers and check what follows
       while (token.has_value() && token->type == TokenType::DocumentEnd) {
         token = this->lexer_->next();
       }
-      // If stream ends after the document end marker(s), there's no document
       if (!token.has_value() || token->type == TokenType::StreamEnd) {
         throw YAMLParseError{1, 1, "Empty YAML document"};
       }
-      // If there's more content after, this was an empty document between
-      // documents - save the next token and return null
       this->pending_tokens_.push_back(token.value());
       return JSON{nullptr};
     }
@@ -113,12 +103,8 @@ public:
       token = this->next_token();
     }
 
-    // Put back any token that's not StreamEnd for the next document
-    // Documents can start with DocumentStart (---) or directly with content
     if (token.has_value() && token->type != TokenType::StreamEnd) {
       this->pending_tokens_.push_back(token.value());
-      // For DocumentStart tokens, use the token's position (where --- starts)
-      // For other tokens, use the lexer position before we read the token
       if (token->type == TokenType::DocumentStart) {
         this->pending_token_position_ = token->position;
       } else {
@@ -138,7 +124,6 @@ public:
 
   auto validate_end_of_stream() -> void {
     auto token{this->next_token()};
-    // Skip document end markers
     bool saw_document_end{false};
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
       saw_document_end = true;
@@ -147,11 +132,8 @@ public:
     if (!token.has_value() || token->type == TokenType::StreamEnd) {
       return;
     }
-    // Validate subsequent documents by parsing them fully
-    // This catches errors like undefined tag handles in later documents
     while (token.has_value() && token->type != TokenType::StreamEnd) {
       if (token->type == TokenType::DocumentStart) {
-        // Clear tag directives for each new document
         this->tag_directives_.clear();
         token = this->next_token();
         if (!token.has_value() || token->type == TokenType::StreamEnd) {
@@ -165,7 +147,6 @@ public:
       if (token->type == TokenType::DirectiveYAML ||
           token->type == TokenType::DirectiveTag ||
           token->type == TokenType::DirectiveReserved) {
-        // Directives are only valid after document end markers
         if (!saw_document_end) {
           throw YAMLParseError{token->line, token->column,
                                "Directive not allowed without preceding "
@@ -174,12 +155,10 @@ public:
         this->process_directives(token.value());
         continue;
       }
-      // After ..., bare documents are allowed per YAML 1.2.2 spec
       if (!saw_document_end && token->type != TokenType::DocumentStart) {
         throw YAMLParseError{token->line, token->column,
                              "Unexpected content after document"};
       }
-      // Parse and discard the document value (this validates it)
       this->parse_value(token.value(), JSON::ParseContext::Root, 0,
                         std::string_view{});
       saw_document_end = false;
@@ -203,21 +182,16 @@ private:
                                "Duplicate %YAML directive"};
         }
         seen_yaml_directive = true;
-        // Validate %YAML directive content: only "%YAML X.Y" with optional
-        // comment
         const auto content{token.value};
         auto cursor{static_cast<std::size_t>(5)};
-        // Skip whitespace after %YAML
         while (cursor < content.size() &&
                (content[cursor] == ' ' || content[cursor] == '\t')) {
           cursor++;
         }
-        // Skip version number (digits, dot)
         while (cursor < content.size() && content[cursor] != ' ' &&
                content[cursor] != '\t' && content[cursor] != '#') {
           cursor++;
         }
-        // After version, only whitespace and comment are valid
         while (cursor < content.size() &&
                (content[cursor] == ' ' || content[cursor] == '\t')) {
           cursor++;
@@ -227,15 +201,12 @@ private:
                                "Invalid content in %YAML directive"};
         }
       } else if (token.type == TokenType::DirectiveTag) {
-        // Parse %TAG <handle> <prefix>
         const auto content{token.value};
-        // Skip "%TAG" prefix and whitespace
         auto cursor{static_cast<std::size_t>(4)};
         while (cursor < content.size() &&
                (content[cursor] == ' ' || content[cursor] == '\t')) {
           cursor++;
         }
-        // Read handle (e.g. "!!" or "!name!")
         const auto handle_start{cursor};
         while (cursor < content.size() && content[cursor] != ' ' &&
                content[cursor] != '\t') {
@@ -243,12 +214,10 @@ private:
         }
         const auto handle{
             std::string{content.substr(handle_start, cursor - handle_start)}};
-        // Skip whitespace
         while (cursor < content.size() &&
                (content[cursor] == ' ' || content[cursor] == '\t')) {
           cursor++;
         }
-        // Read prefix (e.g. "tag:yaml.org,2002:")
         const auto prefix_start{cursor};
         while (cursor < content.size() && content[cursor] != ' ' &&
                content[cursor] != '\t' && content[cursor] != '\n' &&
@@ -269,27 +238,20 @@ private:
     }
   }
 
-  // Resolve a tag shorthand using %TAG directives
-  // e.g. with %TAG !! tag:example.com,2000:app/, !!int -> tag:example.com,...
   auto resolve_tag(const std::string_view raw_tag) -> std::string {
-    // Verbatim tags like !<uri> are already resolved
     if (raw_tag.size() > 2 && raw_tag[0] == '!' && raw_tag[1] == '<' &&
         raw_tag.back() == '>') {
       return std::string{raw_tag.substr(1, raw_tag.size() - 2)};
     }
 
-    // Try to find the longest matching handle
-    // Handles are like "!!", "!", "!name!"
     if (raw_tag.starts_with("!!")) {
       const auto iterator{this->tag_directives_.find("!!")};
       if (iterator != this->tag_directives_.end()) {
         return iterator->second + std::string{raw_tag.substr(2)};
       }
-      // Default: !! maps to tag:yaml.org,2002:
       return "tag:yaml.org,2002:" + std::string{raw_tag.substr(2)};
     }
 
-    // Check for named handles like !name!suffix
     if (raw_tag.size() > 1 && raw_tag[0] == '!') {
       const auto second_bang{raw_tag.find('!', 1)};
       if (second_bang != std::string_view::npos &&
@@ -303,7 +265,6 @@ private:
       }
     }
 
-    // No resolution needed (primary tag handle "!" or unresolved)
     return std::string{raw_tag};
   }
 
@@ -322,6 +283,37 @@ private:
     }
   }
 
+  [[nodiscard]] auto effective_line(const Token &token,
+                                    const JSON::ParseContext context,
+                                    const std::uint64_t key_line) const
+      -> std::uint64_t {
+    return (context == JSON::ParseContext::Property && key_line > 0)
+               ? key_line
+               : token.line;
+  }
+
+  [[nodiscard]] auto effective_column(const Token &token,
+                                      const JSON::ParseContext context,
+                                      const std::uint64_t key_column) const
+      -> std::uint64_t {
+    return (context == JSON::ParseContext::Property && key_column > 0)
+               ? key_column
+               : token.column;
+  }
+
+  [[nodiscard]] auto json_to_key_string(const JSON &value) const
+      -> std::string {
+    if (value.is_string()) {
+      return value.to_string();
+    }
+    if (value.is_null()) {
+      return "";
+    }
+    std::ostringstream stream;
+    stream << value;
+    return stream.str();
+  }
+
   auto parse_value(const Token &token, const JSON::ParseContext context,
                    const std::size_t index, const std::string_view property,
                    const std::uint64_t key_line = 0,
@@ -331,17 +323,11 @@ private:
     std::optional<std::string> tag;
     std::size_t anchor_count{0};
     Token current_token{token};
-    // Track the first token's column to use as base indentation for mappings
-    // Initially use the first token's column, but update after processing
-    // tag/anchor if the content is on a different line
     std::uint64_t node_start_column{token.column};
     std::uint64_t prefix_line{token.line};
 
     while (current_token.type == TokenType::Anchor ||
            current_token.type == TokenType::Tag) {
-      // In block context, value tokens (tags/anchors) on a different line
-      // must be more indented than the parent mapping's indentation level
-      // The block_indent represents the parent mapping's indentation
       if (this->lexer_->flow_level() == 0 &&
           context == JSON::ParseContext::Property && key_line > 0 &&
           current_token.line != key_line) {
@@ -364,12 +350,9 @@ private:
       }
 
       auto next{this->lexer_->next()};
-      // Handle tag/anchor followed by end of input or end-of-value tokens
-      // In these cases, the value is implicitly empty/null with the tag applied
       if (!next.has_value() || next->type == TokenType::StreamEnd ||
           next->type == TokenType::DocumentEnd ||
           next->type == TokenType::DocumentStart) {
-        // Apply tag to empty value - !!str becomes "", others become null
         JSON empty_value{nullptr};
         if (tag.has_value()) {
           if (tag.value() == "tag:yaml.org,2002:str") {
@@ -415,7 +398,6 @@ private:
       }
     }
 
-    // Handle tag/anchor followed by flow terminators (empty value with tag)
     if (tag.has_value() && (current_token.type == TokenType::FlowEntry ||
                             current_token.type == TokenType::MappingEnd ||
                             current_token.type == TokenType::SequenceEnd)) {
@@ -427,15 +409,10 @@ private:
       return empty_value;
     }
 
-    // If the content (after tags/anchors) is on a different line than the
-    // initial prefix tokens, use the content's column for indentation
     if (current_token.line != prefix_line) {
       node_start_column = 0;
     }
 
-    // YAML 1.2.2: block collection indicators after node properties
-    // (anchor/tag) must start on a new line, not on the same line as the
-    // properties
     if ((anchor_name.has_value() || tag.has_value()) &&
         this->lexer_->flow_level() == 0 && current_token.line == prefix_line &&
         current_token.type == TokenType::BlockSequenceEntry) {
@@ -455,21 +432,16 @@ private:
       case TokenType::Scalar: {
         auto next{this->next_token()};
         if (next.has_value() && next->type == TokenType::BlockMappingValue) {
-          // YAML 1.2.2: implicit mapping keys must be on a single line
           if (current_token.multiline) {
             throw YAMLParseError{current_token.line, current_token.column,
                                  "Multi-line implicit mapping key"};
           }
-          // YAML 1.2.2: in flow context, the key and value indicator must
-          // be on the same line
           if (this->lexer_->flow_level() > 0 &&
               next->line != current_token.line) {
             throw YAMLParseError{next->line, next->column,
                                  "Implicit key and value indicator on "
                                  "different lines in flow context"};
           }
-          // YAML 1.2.2: in block context, an implicit mapping as a value
-          // cannot start on the same line as the parent mapping key
           if (this->lexer_->flow_level() == 0 &&
               context == JSON::ParseContext::Property && key_line > 0 &&
               current_token.line == key_line) {
@@ -477,9 +449,6 @@ private:
                                  "Implicit mapping key in block value on "
                                  "same line as parent key"};
           }
-          // YAML 1.2.2: on a document start (---) line, node properties
-          // before an implicit mapping key are not allowed because the
-          // block mapping must start on a new line after properties
           if (this->lexer_->flow_level() == 0 &&
               (anchor_name.has_value() || tag.has_value()) &&
               this->document_start_line_ > 0 &&
@@ -489,10 +458,6 @@ private:
                 "Node properties before implicit mapping key on "
                 "document start line"};
           }
-          // If there was an anchor before the key ON THE SAME LINE, it
-          // attaches to the key scalar, not to the mapping. When anchor and
-          // key are on different lines (e.g., anchor on parent's value line),
-          // the anchor is on the whole mapping structure
           if (anchor_name.has_value() && anchor_line == current_token.line) {
             JSON key_value{std::string{current_token.value}};
             this->recording_anchor_ = false;
@@ -508,7 +473,6 @@ private:
               current_token, context, index, property, key_line, key_column,
               node_start_column);
         } else {
-          // YAML 1.2.2: a scalar node cannot have multiple anchors
           if (anchor_count > 1) {
             throw YAMLParseError{current_token.line, current_token.column,
                                  "Multiple anchors on a scalar node"};
@@ -539,31 +503,16 @@ private:
                                            property, key_line, key_column);
         break;
       case TokenType::Alias: {
-        // Check if alias is used as a key (followed by :)
         auto next{this->next_token()};
         if (next.has_value() && next->type == TokenType::BlockMappingValue) {
-          // Alias used as a block mapping key - resolve it to get the key
-          // string
           const std::string alias_name{current_token.value};
           const auto iterator{this->anchors_.find(alias_name)};
           if (iterator == this->anchors_.end()) {
             throw YAMLUnknownAnchorError{alias_name, current_token.line,
                                          current_token.column};
           }
-          // The resolved value becomes the key string
-          const auto &resolved_value{iterator->second.value};
-          std::string key_string;
-          if (resolved_value.is_string()) {
-            key_string = resolved_value.to_string();
-          } else if (resolved_value.is_null()) {
-            key_string = "";
-          } else {
-            // For other types, stringify them
-            std::ostringstream stream;
-            stream << resolved_value;
-            key_string = stream.str();
-          }
-          // Create a pseudo-token for the resolved key
+          const auto key_string{
+              this->json_to_key_string(iterator->second.value)};
           Token key_token{current_token};
           key_token.type = TokenType::Scalar;
           key_token.value = key_string;
@@ -571,7 +520,6 @@ private:
               key_token, context, index, property, key_line, key_column,
               node_start_column);
         } else {
-          // YAML 1.2.2: anchoring an alias node is not allowed
           if (anchor_name.has_value()) {
             throw YAMLParseError{current_token.line, current_token.column,
                                  "Cannot anchor an alias node"};
@@ -609,16 +557,10 @@ private:
                     const std::uint64_t key_column = 0) -> JSON {
     JSON result{this->interpret_scalar(token.value, token.scalar_style, tag)};
 
-    const auto pre_line{
-        (context == JSON::ParseContext::Property && key_line > 0) ? key_line
-                                                                  : token.line};
-    const auto pre_column{
-        (context == JSON::ParseContext::Property && key_column > 0)
-            ? key_column
-            : token.column};
-
-    this->invoke_callback(JSON::ParsePhase::Pre, result.type(), pre_line,
-                          pre_column, context, index, property);
+    this->invoke_callback(JSON::ParsePhase::Pre, result.type(),
+                          this->effective_line(token, context, key_line),
+                          this->effective_column(token, context, key_column),
+                          context, index, property);
 
     auto end_column{token.column};
     if (!token.value.empty()) {
@@ -640,7 +582,6 @@ private:
                         const std::optional<std::string> &tag) -> JSON {
     if (tag.has_value()) {
       const auto &tag_value{tag.value()};
-      // Non-specific tag "!" means keep value as string without coercion
       if (tag_value == "!" || tag_value == "tag:yaml.org,2002:str") {
         return JSON{std::string{value}};
       }
@@ -659,11 +600,9 @@ private:
       if (tag_value == "tag:yaml.org,2002:float") {
         return this->parse_float(value);
       }
-      // Unknown/custom tags - treat value as string
       return JSON{std::string{value}};
     }
 
-    // Quoted and block scalars are always strings, even when empty
     if (style == ScalarStyle::SingleQuoted ||
         style == ScalarStyle::DoubleQuoted || style == ScalarStyle::Literal ||
         style == ScalarStyle::Folded) {
@@ -849,7 +788,6 @@ private:
       }
     }
 
-    // Double has ~15-17 significant decimal digits; use Decimal for more
     constexpr std::size_t double_precision_limit{15};
     if (significant_digits > double_precision_limit) {
       return JSON{Decimal{std::string{value}}};
@@ -857,7 +795,6 @@ private:
 
     try {
       const auto result{std::stod(std::string{value})};
-      // If the float is an exact integer (e.g. 450.00), store as integer
       const auto as_integer{static_cast<std::int64_t>(result)};
       if (result == static_cast<double>(as_integer)) {
         return JSON{as_integer};
@@ -874,16 +811,11 @@ private:
                           const std::string_view property,
                           const std::uint64_t key_line = 0,
                           const std::uint64_t key_column = 0) -> JSON {
-    const auto pre_line{
-        (context == JSON::ParseContext::Property && key_line > 0)
-            ? key_line
-            : start_token.line};
-    const auto pre_column{
-        (context == JSON::ParseContext::Property && key_column > 0)
-            ? key_column
-            : start_token.column};
-    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Object, pre_line,
-                          pre_column, context, index, property);
+    this->invoke_callback(
+        JSON::ParsePhase::Pre, JSON::Type::Object,
+        this->effective_line(start_token, context, key_line),
+        this->effective_column(start_token, context, key_column), context,
+        index, property);
 
     JSON result{JSON::make_object()};
     std::unordered_set<std::string> seen_keys;
@@ -898,7 +830,6 @@ private:
 
       auto key_token{token.value()};
 
-      // Process anchors and tags before the key
       std::optional<std::string> key_tag;
       while (key_token.type == TokenType::Anchor ||
              key_token.type == TokenType::Tag) {
@@ -915,11 +846,9 @@ private:
 
       std::string key;
       if (key_token.type == TokenType::BlockMappingValue) {
-        // Tag/anchor directly followed by ':' means empty key with tag
         if (key_tag.has_value() && key_tag.value() == "tag:yaml.org,2002:str") {
           key = "";
         }
-        // key_token is the ':' - handle it below without reading next token
       } else if (key_token.type == TokenType::Scalar) {
         key = std::string{key_token.value};
       } else {
@@ -932,11 +861,9 @@ private:
       }
       seen_keys.insert(key);
 
-      // If key_token is already the ':', skip reading the next token
       if (key_token.type != TokenType::BlockMappingValue) {
         token = this->next_token();
 
-        // In flow mappings, a key without ':' has an implicit null value
         if (!token.has_value()) {
           throw YAMLParseError{this->lexer_->line(), this->lexer_->column(),
                                "Unexpected end of input in flow mapping"};
@@ -944,7 +871,6 @@ private:
 
         if (token->type == TokenType::FlowEntry ||
             token->type == TokenType::MappingEnd) {
-          // Implicit null value - key not followed by ':'
           result.assign(key, JSON{nullptr});
           continue;
         }
@@ -984,7 +910,6 @@ private:
       }
     }
 
-    // Use the closing bracket's position for Post callback
     const auto end_line{token.has_value() ? token->line : this->lexer_->line()};
     const auto end_column{token.has_value() ? token->column
                                             : this->lexer_->column()};
@@ -1001,16 +926,11 @@ private:
                            const std::string_view property,
                            const std::uint64_t key_line = 0,
                            const std::uint64_t key_column = 0) -> JSON {
-    const auto pre_line{
-        (context == JSON::ParseContext::Property && key_line > 0)
-            ? key_line
-            : start_token.line};
-    const auto pre_column{
-        (context == JSON::ParseContext::Property && key_column > 0)
-            ? key_column
-            : start_token.column};
-    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Array, pre_line,
-                          pre_column, context, index, property);
+    this->invoke_callback(
+        JSON::ParsePhase::Pre, JSON::Type::Array,
+        this->effective_line(start_token, context, key_line),
+        this->effective_column(start_token, context, key_column), context,
+        index, property);
 
     JSON result{JSON::make_array()};
     const auto parent_block_indent{this->lexer_->block_indent()};
@@ -1019,8 +939,6 @@ private:
     std::size_t element_index{0};
 
     while (token.has_value() && token->type != TokenType::SequenceEnd) {
-      // In block context, flow content on continuation lines must be indented
-      // more than the parent block level
       if (parent_block_indent != SIZE_MAX && token->line != start_token.line) {
         const auto token_indent{
             token->column > 0 ? static_cast<std::size_t>(token->column - 1)
@@ -1032,13 +950,11 @@ private:
         }
       }
       if (token->type == TokenType::FlowEntry) {
-        // Leading comma (before any values) is invalid
         if (element_index == 0) {
           throw YAMLParseError{token->line, token->column,
                                "Leading comma in flow sequence"};
         }
         token = this->next_token();
-        // Consecutive commas (empty entry) are invalid
         if (token.has_value() && token->type == TokenType::FlowEntry) {
           throw YAMLParseError{token->line, token->column,
                                "Empty entry in flow sequence"};
@@ -1046,7 +962,6 @@ private:
         continue;
       }
 
-      // Handle explicit key (?) in flow sequence - creates implicit mapping
       if (token->type == TokenType::BlockMappingKey) {
         auto mapping{JSON::make_object()};
         token = this->next_token();
@@ -1055,8 +970,6 @@ private:
                                "Unexpected end after explicit key in flow"};
         }
 
-        // Get the key - handle scalar directly to avoid parse_value treating
-        // it as a mapping when followed by :
         std::string key_string;
         if (token->type == TokenType::Scalar) {
           key_string = std::string{token->value};
@@ -1066,15 +979,7 @@ private:
           auto key_value{this->parse_value(token.value(),
                                            JSON::ParseContext::Index,
                                            element_index, std::string_view{})};
-          if (key_value.is_string()) {
-            key_string = key_value.to_string();
-          } else if (key_value.is_null()) {
-            key_string = "";
-          } else {
-            std::ostringstream stream;
-            stream << key_value;
-            key_string = stream.str();
-          }
+          key_string = this->json_to_key_string(key_value);
           token = this->next_token();
         }
 
@@ -1110,7 +1015,6 @@ private:
       }
     }
 
-    // Use the closing bracket's position for Post callback
     const auto end_line{token.has_value() ? token->line : this->lexer_->line()};
     const auto end_column{token.has_value() ? token->column
                                             : this->lexer_->column()};
@@ -1127,16 +1031,11 @@ private:
                             const std::string_view property,
                             const std::uint64_t key_line = 0,
                             const std::uint64_t key_column = 0) -> JSON {
-    const auto pre_line{
-        (context == JSON::ParseContext::Property && key_line > 0)
-            ? key_line
-            : start_token.line};
-    const auto pre_column{
-        (context == JSON::ParseContext::Property && key_column > 0)
-            ? key_column
-            : start_token.column};
-    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Array, pre_line,
-                          pre_column, context, index, property);
+    this->invoke_callback(
+        JSON::ParsePhase::Pre, JSON::Type::Array,
+        this->effective_line(start_token, context, key_line),
+        this->effective_column(start_token, context, key_column), context,
+        index, property);
 
     JSON result{JSON::make_array()};
     std::size_t element_index{0};
@@ -1160,7 +1059,6 @@ private:
     } else if (token.has_value() &&
                token->type == TokenType::BlockSequenceEntry &&
                token->column == base_column) {
-      // The first entry has no content (e.g., only a comment), emit null
       result.push_back(JSON{nullptr});
       element_index++;
     }
@@ -1170,9 +1068,6 @@ private:
       this->lexer_->set_block_indent(sequence_indent);
 
       if (token->column > base_column) {
-        // A nested sequence entry must be indented at least 2 columns past the
-        // parent entry (past the `- ` indicator). An entry between base_column
-        // and base_column+2 is at an invalid indentation level
         if (token->column < base_column + 2) {
           throw YAMLParseError{token->line, token->column,
                                "Wrong indentation for sequence entry"};
@@ -1225,16 +1120,11 @@ private:
                            const std::string_view property,
                            const std::uint64_t key_line = 0,
                            const std::uint64_t key_column = 0) -> JSON {
-    const auto pre_line{
-        (context == JSON::ParseContext::Property && key_line > 0)
-            ? key_line
-            : start_token.line};
-    const auto pre_column{
-        (context == JSON::ParseContext::Property && key_column > 0)
-            ? key_column
-            : start_token.column};
-    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Object, pre_line,
-                          pre_column, context, index, property);
+    this->invoke_callback(
+        JSON::ParsePhase::Pre, JSON::Type::Object,
+        this->effective_line(start_token, context, key_line),
+        this->effective_column(start_token, context, key_column), context,
+        index, property);
 
     JSON result{JSON::make_object()};
     std::unordered_set<std::string_view> seen_keys;
@@ -1252,7 +1142,6 @@ private:
         token = *this->next_token();
       }
 
-      // Skip over tags and anchors on the key
       while (token.type == TokenType::Tag || token.type == TokenType::Anchor) {
         token = *this->next_token();
       }
@@ -1420,21 +1309,14 @@ private:
       const std::uint64_t parent_key_line = 0,
       const std::uint64_t parent_key_column = 0,
       const std::uint64_t node_start_column = 0) -> JSON {
-    const auto pre_line{
-        (context == JSON::ParseContext::Property && parent_key_line > 0)
-            ? parent_key_line
-            : key_token.line};
-    const auto pre_column{
-        (context == JSON::ParseContext::Property && parent_key_column > 0)
-            ? parent_key_column
-            : key_token.column};
-    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Object, pre_line,
-                          pre_column, context, index, property);
+    this->invoke_callback(
+        JSON::ParsePhase::Pre, JSON::Type::Object,
+        this->effective_line(key_token, context, parent_key_line),
+        this->effective_column(key_token, context, parent_key_column), context,
+        index, property);
 
     JSON result{JSON::make_object()};
     std::unordered_set<std::string> seen_keys;
-    // Use node_start_column if provided (e.g., when key had a preceding tag),
-    // otherwise use the key's column
     const auto base_column{node_start_column > 0 ? node_start_column
                                                  : key_token.column};
 
@@ -1444,7 +1326,6 @@ private:
     const auto first_key_line{key_token.line};
     seen_keys.insert(key);
 
-    // Set block indent so lexer knows the minimum indent for plain scalars
     this->lexer_->set_block_indent(static_cast<std::size_t>(base_column - 1));
     auto next{this->next_token()};
 
@@ -1471,7 +1352,6 @@ private:
                next->type == TokenType::BlockSequenceEntry ||
                next->type == TokenType::Anchor ||
                next->type == TokenType::Tag || next->type == TokenType::Alias) {
-      // Block sequence entry on the same line as the mapping key is invalid
       if (next->type == TokenType::BlockSequenceEntry &&
           next->line == key_line) {
         throw YAMLParseError{
@@ -1491,8 +1371,6 @@ private:
             next->type == TokenType::BlockMappingKey ||
             next->type == TokenType::Anchor || next->type == TokenType::Tag ||
             next->type == TokenType::Alias)) {
-      // YAML 1.2.2: a mapping that starts on the document start (---) line
-      // is a compact flow node and cannot continue onto subsequent lines
       if (this->document_start_line_ > 0 &&
           first_key_line == this->document_start_line_ &&
           next->line != this->document_start_line_) {
@@ -1500,8 +1378,6 @@ private:
                              "Block mapping continuation after document "
                              "start line"};
       }
-      // Reset block indent for this mapping level before each iteration,
-      // since nested value parsing may have changed it
       this->lexer_->set_block_indent(static_cast<std::size_t>(base_column - 1));
 
       if (next->type == TokenType::BlockMappingKey) {
@@ -1515,7 +1391,6 @@ private:
           continue;
         }
 
-        // Explicit key: read key scalar, then check for value indicator
         key = next->value;
         key_line = next->line;
         key_column = next->column;
@@ -1527,7 +1402,6 @@ private:
 
         auto colon{this->next_token()};
         if (!colon.has_value() || colon->type != TokenType::BlockMappingValue) {
-          // No value indicator - implicit null value
           result.assign(std::string{key}, JSON{nullptr});
           if (colon.has_value()) {
             this->pending_tokens_.push_back(colon.value());
@@ -1536,7 +1410,6 @@ private:
           continue;
         }
 
-        // Has value indicator, parse value
         next = this->next_token();
         if (!next.has_value() || next->type == TokenType::StreamEnd ||
             next->type == TokenType::DocumentEnd ||
@@ -1562,11 +1435,9 @@ private:
         continue;
       }
 
-      // Track the effective column for indentation (the first token's col)
       auto effective_column{next->column};
 
       if (next->type == TokenType::Anchor) {
-        // Skip anchor on key - we don't need it for JSON conversion
         next = this->next_token();
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
@@ -1574,15 +1445,12 @@ private:
       }
 
       if (next->type == TokenType::Tag) {
-        // Skip tag on key - it modifies the key's type interpretation
-        // but for JSON conversion we just need the key value
         next = this->next_token();
         if (!next.has_value() || next->type != TokenType::Scalar) {
           continue;
         }
       }
 
-      // Handle alias as key - resolve it to get the key string
       if (next->type == TokenType::Alias) {
         if (effective_column != base_column) {
           break;
@@ -1592,19 +1460,7 @@ private:
         if (iterator == this->anchors_.end()) {
           throw YAMLUnknownAnchorError{alias_name, next->line, next->column};
         }
-        const auto &resolved_value{iterator->second.value};
-        std::string resolved_key;
-        if (resolved_value.is_string()) {
-          resolved_key = resolved_value.to_string();
-        } else if (resolved_value.is_null()) {
-          resolved_key = "";
-        } else {
-          std::ostringstream stream;
-          stream << resolved_value;
-          resolved_key = stream.str();
-        }
-
-        key = resolved_key;
+        key = this->json_to_key_string(iterator->second.value);
         key_line = next->line;
         key_column = next->column;
 
@@ -1658,7 +1514,6 @@ private:
       key_line = next->line;
       key_column = next->column;
 
-      // YAML 1.2.2: implicit block mapping keys must be on a single line
       if (next->multiline) {
         throw YAMLParseError{next->line, next->column,
                              "Multi-line implicit mapping key"};
@@ -1671,10 +1526,6 @@ private:
 
       auto colon{this->next_token()};
       if (!colon.has_value() || colon->type != TokenType::BlockMappingValue) {
-        // In an implicit block mapping, a scalar without ':' is not a
-        // valid mapping entry. Push back what follows and end the mapping
-        // The 'next' variable still holds the key scalar and will be
-        // pushed back by the post-loop code
         if (colon.has_value()) {
           this->pending_tokens_.push_back(colon.value());
         }
@@ -1721,8 +1572,6 @@ private:
     if (next.has_value() && next->type != TokenType::StreamEnd &&
         next->type != TokenType::DocumentEnd) {
       this->pending_tokens_.push_back(next.value());
-      // For document start markers, save the position for multi-document
-      // parsing
       if (next->type == TokenType::DocumentStart) {
         this->pending_token_position_ = next->position;
       }
@@ -1742,9 +1591,7 @@ private:
   std::vector<CallbackRecord> current_anchor_callbacks_;
   std::deque<Token> pending_tokens_;
   std::optional<std::size_t> pending_token_position_;
-  // %TAG directive mappings: handle -> prefix
   std::unordered_map<std::string, std::string> tag_directives_;
-  // Line number of the `---` document start marker (0 if none)
   std::uint64_t document_start_line_{0};
 };
 
