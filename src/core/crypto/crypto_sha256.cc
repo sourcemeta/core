@@ -3,7 +3,6 @@
 #include <array>   // std::array
 #include <cstdint> // std::uint32_t, std::uint64_t
 #include <cstring> // std::memcpy
-#include <iomanip> // std::hex, std::setfill
 
 namespace {
 
@@ -13,12 +12,46 @@ inline constexpr auto rotate_right(std::uint32_t value,
   return (value >> count) | (value << (32u - count));
 }
 
+// FIPS 180-4 Section 4.1.2 logical functions
+inline constexpr auto big_sigma_0(std::uint32_t value) noexcept
+    -> std::uint32_t {
+  return rotate_right(value, 2u) ^ rotate_right(value, 13u) ^
+         rotate_right(value, 22u);
+}
+
+inline constexpr auto big_sigma_1(std::uint32_t value) noexcept
+    -> std::uint32_t {
+  return rotate_right(value, 6u) ^ rotate_right(value, 11u) ^
+         rotate_right(value, 25u);
+}
+
+inline constexpr auto small_sigma_0(std::uint32_t value) noexcept
+    -> std::uint32_t {
+  return rotate_right(value, 7u) ^ rotate_right(value, 18u) ^ (value >> 3u);
+}
+
+inline constexpr auto small_sigma_1(std::uint32_t value) noexcept
+    -> std::uint32_t {
+  return rotate_right(value, 17u) ^ rotate_right(value, 19u) ^ (value >> 10u);
+}
+
+// Equivalent to (x & y) ^ (~x & z) but avoids a bitwise NOT
+inline constexpr auto choice(std::uint32_t x, std::uint32_t y,
+                             std::uint32_t z) noexcept -> std::uint32_t {
+  return z ^ (x & (y ^ z));
+}
+
+inline constexpr auto majority(std::uint32_t x, std::uint32_t y,
+                               std::uint32_t z) noexcept -> std::uint32_t {
+  return (x & y) ^ (x & z) ^ (y & z);
+}
+
 inline auto sha256_process_block(const unsigned char *block,
                                  std::array<std::uint32_t, 8> &state) noexcept
     -> void {
   // First 32 bits of the fractional parts of the cube roots
   // of the first 64 prime numbers (FIPS 180-4 Section 4.2.2)
-  static constexpr std::array<std::uint32_t, 64> k = {
+  static constexpr std::array<std::uint32_t, 64> round_constants = {
       {0x428a2f98U, 0x71374491U, 0xb5c0fbcfU, 0xe9b5dba5U, 0x3956c25bU,
        0x59f111f1U, 0x923f82a4U, 0xab1c5ed5U, 0xd807aa98U, 0x12835b01U,
        0x243185beU, 0x550c7dc3U, 0x72be5d74U, 0x80deb1feU, 0x9bdc06a7U,
@@ -34,7 +67,7 @@ inline auto sha256_process_block(const unsigned char *block,
        0x90befffaU, 0xa4506cebU, 0xbef9a3f7U, 0xc67178f2U}};
 
   // Decode 16 big-endian 32-bit words from the block
-  std::array<std::uint32_t, 64> schedule{};
+  std::array<std::uint32_t, 64> schedule;
   for (std::uint64_t word_index = 0; word_index < 16u; ++word_index) {
     const std::uint64_t byte_index = word_index * 4u;
     schedule[word_index] =
@@ -46,54 +79,35 @@ inline auto sha256_process_block(const unsigned char *block,
 
   // Extend the message schedule (FIPS 180-4 Section 6.2.2 step 1)
   for (std::uint64_t index = 16u; index < 64u; ++index) {
-    const auto s0 = rotate_right(schedule[index - 15u], 7u) ^
-                    rotate_right(schedule[index - 15u], 18u) ^
-                    (schedule[index - 15u] >> 3u);
-    const auto s1 = rotate_right(schedule[index - 2u], 17u) ^
-                    rotate_right(schedule[index - 2u], 19u) ^
-                    (schedule[index - 2u] >> 10u);
-    schedule[index] = schedule[index - 16u] + s0 + schedule[index - 7u] + s1;
+    schedule[index] =
+        small_sigma_1(schedule[index - 2u]) + schedule[index - 7u] +
+        small_sigma_0(schedule[index - 15u]) + schedule[index - 16u];
   }
 
-  auto a = state[0];
-  auto b = state[1];
-  auto c = state[2];
-  auto d = state[3];
-  auto e = state[4];
-  auto f = state[5];
-  auto g = state[6];
-  auto h = state[7];
+  auto working = state;
 
   // Compression function (FIPS 180-4 Section 6.2.2 step 3)
   for (std::uint64_t round_index = 0u; round_index < 64u; ++round_index) {
-    const auto big_sigma_1 =
-        rotate_right(e, 6u) ^ rotate_right(e, 11u) ^ rotate_right(e, 25u);
-    const auto ch = (e & f) ^ ((~e) & g);
-    const auto temp_1 =
-        h + big_sigma_1 + ch + k[round_index] + schedule[round_index];
-    const auto big_sigma_0 =
-        rotate_right(a, 2u) ^ rotate_right(a, 13u) ^ rotate_right(a, 22u);
-    const auto maj = (a & b) ^ (a & c) ^ (b & c);
-    const auto temp_2 = big_sigma_0 + maj;
+    const auto temporary_1 = working[7] + big_sigma_1(working[4]) +
+                             choice(working[4], working[5], working[6]) +
+                             round_constants[round_index] +
+                             schedule[round_index];
+    const auto temporary_2 =
+        big_sigma_0(working[0]) + majority(working[0], working[1], working[2]);
 
-    h = g;
-    g = f;
-    f = e;
-    e = d + temp_1;
-    d = c;
-    c = b;
-    b = a;
-    a = temp_1 + temp_2;
+    working[7] = working[6];
+    working[6] = working[5];
+    working[5] = working[4];
+    working[4] = working[3] + temporary_1;
+    working[3] = working[2];
+    working[2] = working[1];
+    working[1] = working[0];
+    working[0] = temporary_1 + temporary_2;
   }
 
-  state[0] += a;
-  state[1] += b;
-  state[2] += c;
-  state[3] += d;
-  state[4] += e;
-  state[5] += f;
-  state[6] += g;
-  state[7] += h;
+  for (std::uint64_t index = 0u; index < 8u; ++index) {
+    state[index] += working[index];
+  }
 }
 
 } // namespace
@@ -140,16 +154,12 @@ auto sha256(const std::string_view input, std::ostream &output) -> void {
       static_cast<std::uint64_t>(input_length) * 8ull;
 
   if (remaining_bytes < 56u) {
-    // Enough room for length in the first final block
-    // Place length at final_block[56..63] in big-endian
     for (std::uint64_t index = 0u; index < 8u; ++index) {
       final_block[56u + index] = static_cast<unsigned char>(
           (message_length_bits >> (8u * (7u - index))) & 0xffu);
     }
     sha256_process_block(final_block.data(), state);
   } else {
-    // Need two blocks: process final_block[0..63] then final_block[64..127]
-    // with length
     for (std::uint64_t index = 0u; index < 8u; ++index) {
       final_block[64u + 56u + index] = static_cast<unsigned char>(
           (message_length_bits >> (8u * (7u - index))) & 0xffu);
@@ -159,28 +169,15 @@ auto sha256(const std::string_view input, std::ostream &output) -> void {
     sha256_process_block(final_block.data() + 64u, state);
   }
 
-  // Produce the final digest (big-endian)
-  std::array<unsigned char, 32> digest;
+  // Produce the final hex digest directly from state words (big-endian)
+  static constexpr char hex_digits[] = "0123456789abcdef";
   for (std::uint64_t state_index = 0u; state_index < 8u; ++state_index) {
-    const std::uint32_t value = state[state_index];
-    const std::uint64_t base_index = state_index * 4u;
-    digest[base_index + 0u] =
-        static_cast<unsigned char>((value >> 24u) & 0xffu);
-    digest[base_index + 1u] =
-        static_cast<unsigned char>((value >> 16u) & 0xffu);
-    digest[base_index + 2u] = static_cast<unsigned char>((value >> 8u) & 0xffu);
-    digest[base_index + 3u] = static_cast<unsigned char>(value & 0xffu);
+    const auto value = state[state_index];
+    for (std::uint64_t nibble = 0u; nibble < 8u; ++nibble) {
+      const auto shift = 28u - nibble * 4u;
+      output.put(hex_digits[(value >> shift) & 0x0fu]);
+    }
   }
-
-  const auto original_flags = output.flags();
-  const auto original_fill = output.fill();
-  output << std::hex << std::setfill('0');
-  for (const unsigned char octet : digest) {
-    output << std::setw(2) << static_cast<std::uint64_t>(octet);
-  }
-
-  output.flags(original_flags);
-  output.fill(original_fill);
 }
 
 } // namespace sourcemeta::core
