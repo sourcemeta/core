@@ -1,4 +1,4 @@
-#include <sourcemeta/core/md5.h>
+#include <sourcemeta/core/crypto_md5.h>
 
 #include <array>   // std::array
 #include <cstdint> // std::uint32_t, std::uint64_t
