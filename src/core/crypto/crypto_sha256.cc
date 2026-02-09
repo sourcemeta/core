@@ -172,12 +172,15 @@ auto sha256(const std::string_view input, std::ostream &output) -> void {
     digest[base_index + 3u] = static_cast<unsigned char>(value & 0xffu);
   }
 
+  const auto original_flags = output.flags();
+  const auto original_fill = output.fill();
   output << std::hex << std::setfill('0');
   for (const unsigned char octet : digest) {
     output << std::setw(2) << static_cast<std::uint64_t>(octet);
   }
 
-  output.unsetf(std::ios_base::hex);
+  output.flags(original_flags);
+  output.fill(original_fill);
 }
 
 } // namespace sourcemeta::core

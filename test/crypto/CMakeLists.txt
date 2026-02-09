@@ -1,5 +1,7 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
-  SOURCES crypto_md5_test.cc)
+  SOURCES
+    crypto_md5_test.cc
+    crypto_sha256_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto)
@@ -12,12 +14,6 @@ target_compile_definitions(sourcemeta_core_pyca_cryptography_md5_unit
   PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
 target_link_libraries(sourcemeta_core_pyca_cryptography_md5_unit
   PRIVATE sourcemeta::core::crypto sourcemeta::core::io)
-
-# SHA-256 Unit Tests
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto_sha256
-  SOURCES crypto_sha256_test.cc)
-target_link_libraries(sourcemeta_core_crypto_sha256_unit
-  PRIVATE sourcemeta::core::crypto)
 
 # pyca/cryptography SHA-256 Test Vectors
 # See https://github.com/pyca/cryptography
