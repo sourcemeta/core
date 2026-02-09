@@ -13,6 +13,7 @@ jsonschema-draft0 https://github.com/json-schema-org/json-schema-spec 7ea575aef8
 openapi https://github.com/OAI/OpenAPI-Specification 74906beddddab9e555337031b2a8d8e9338c4972
 referencing-suite https://github.com/python-jsonschema/referencing-suite 61c4cc202b1e96ed5adcaf4842a595f68d659212
 uritemplate-test https://github.com/uri-templates/uritemplate-test 1eb27ab4462b9e5819dc47db99044f5fd1fa9bc7
+pyca-cryptography https://github.com/pyca/cryptography c4935a7021af37c38e0684b0546c1b4378518342
 yaml https://github.com/yaml/libyaml 0.2.5
 pcre2 https://github.com/PCRE2Project/pcre2 pcre2-10.47
 googletest https://github.com/google/googletest a7f443b80b105f940225332ed3c31f2790092f47
