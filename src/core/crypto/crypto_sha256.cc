@@ -170,7 +170,9 @@ auto sha256(const std::string_view input, std::ostream &output) -> void {
   }
 
   // Produce the final hex digest directly from state words (big-endian)
-  static constexpr char hex_digits[] = "0123456789abcdef";
+  static constexpr std::array<char, 17> hex_digits{
+      {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
+       'e', 'f', '\0'}};
   for (std::uint64_t state_index = 0u; state_index < 8u; ++state_index) {
     const auto value = state[state_index];
     for (std::uint64_t nibble = 0u; nibble < 8u; ++nibble) {
