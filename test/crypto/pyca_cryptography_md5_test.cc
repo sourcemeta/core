@@ -2,7 +2,8 @@
 
 #include <sourcemeta/core/crypto.h>
 
-#include <cstdint>    // std::uint8_t
+#include <cassert>    // assert
+#include <cstdint>    // std::uint64_t
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ifstream
 #include <sstream>    // std::ostringstream, std::istringstream
@@ -12,9 +13,8 @@ static auto hex_to_bytes(const std::string &hex) -> std::string {
   std::string result;
   result.reserve(hex.size() / 2);
   for (std::string::size_type index = 0; index + 1 < hex.size(); index += 2) {
-    const auto byte{
-        static_cast<char>(std::stoi(hex.substr(index, 2), nullptr, 16))};
-    result.push_back(byte);
+    result.push_back(static_cast<char>(static_cast<unsigned char>(
+        std::stoi(hex.substr(index, 2), nullptr, 16))));
   }
 
   return result;
@@ -42,11 +42,12 @@ auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   const std::filesystem::path suite_path{PYCA_CRYPTOGRAPHY_PATH};
   std::ifstream stream{suite_path / "hashes" / "MD5" / "rfc-1321.txt"};
+  assert(stream.is_open());
   stream.exceptions(std::ios_base::badbit);
 
   std::string line;
   std::string current_message_hex;
-  std::uint8_t current_length_bits{0};
+  std::uint64_t current_length_bits{0};
 
   while (std::getline(stream, line)) {
     if (line.empty() || line.front() == '#') {
@@ -55,7 +56,7 @@ auto main(int argc, char **argv) -> int {
 
     if (line.starts_with("Len = ")) {
       current_length_bits =
-          static_cast<std::uint8_t>(std::stoi(line.substr(6)));
+          static_cast<std::uint64_t>(std::stoul(line.substr(6)));
     } else if (line.starts_with("Msg = ")) {
       current_message_hex = line.substr(6);
     } else if (line.starts_with("MD = ")) {
