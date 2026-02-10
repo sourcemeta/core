@@ -1,6 +1,7 @@
 #ifndef SOURCEMETA_CORE_YAML_LEXER_H_
 #define SOURCEMETA_CORE_YAML_LEXER_H_
 
+#include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/yaml_error.h>
 
 #include <cstdint>     // std::uint8_t, std::uint64_t
@@ -817,7 +818,7 @@ private:
                            "Invalid hex escape sequence"};
     }
 
-    return this->codepoint_to_utf8(static_cast<std::uint32_t>(codepoint));
+    return codepoint_to_utf8(static_cast<char32_t>(codepoint));
   }
 
   [[nodiscard]] auto calculate_parent_indentation(
@@ -860,27 +861,6 @@ private:
     }
 
     return 0;
-  }
-
-  [[nodiscard]] auto codepoint_to_utf8(const std::uint32_t codepoint) const
-      -> std::string {
-    std::string result;
-    if (codepoint < 0x80) {
-      result += static_cast<char>(codepoint);
-    } else if (codepoint < 0x800) {
-      result += static_cast<char>(0xC0 | (codepoint >> 6));
-      result += static_cast<char>(0x80 | (codepoint & 0x3F));
-    } else if (codepoint < 0x10000) {
-      result += static_cast<char>(0xE0 | (codepoint >> 12));
-      result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-      result += static_cast<char>(0x80 | (codepoint & 0x3F));
-    } else {
-      result += static_cast<char>(0xF0 | (codepoint >> 18));
-      result += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
-      result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
-      result += static_cast<char>(0x80 | (codepoint & 0x3F));
-    }
-    return result;
   }
 
   auto detect_block_scalar_indent(const std::size_t explicit_indent,

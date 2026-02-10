@@ -8,3 +8,4 @@ endif()
 
 target_link_libraries(sourcemeta_core_yaml PUBLIC sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_yaml PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_yaml PRIVATE sourcemeta::core::unicode)

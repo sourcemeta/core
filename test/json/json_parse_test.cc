@@ -1120,7 +1120,7 @@ TEST(JSON_parse, string_unicode_length_surrogates) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.size(), 1);
-  EXPECT_EQ(document.byte_size(), 3);
+  EXPECT_EQ(document.byte_size(), 4);
 }
 
 TEST(JSON_parse, string_unicode_code_point_equality) {

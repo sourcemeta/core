@@ -5,6 +5,7 @@
 #include <sourcemeta/core/json_value.h>
 
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/unicode.h>
 
 #include "grammar.h"
 
@@ -128,6 +129,11 @@ auto parse_string_unicode(
   // This means we are at the beginning of a UTF-16 surrogate pair high code
   // point See
   // https://en.wikipedia.org/wiki/UTF-16#Code_points_from_U+010000_to_U+10FFFF
+  // Lone low surrogate without a preceding high surrogate
+  if (code_point >= 0xDC00 && code_point <= 0xDFFF) {
+    throw JSONParseError(line, column);
+  }
+
   if (code_point >= 0xD800 && code_point <= 0xDBFF) {
     // Next, we expect "\"
     column += 1;
@@ -156,22 +162,7 @@ auto parse_string_unicode(
     }
   }
 
-  // Convert a Unicode codepoint into UTF-8
-  // See https://en.wikipedia.org/wiki/UTF-8#Description
-
-  if (code_point <= 0x7F) {
-    // UTF-8
-    result.put(static_cast<CharT>(code_point));
-  } else if (code_point <= 0x7FF) {
-    // UTF-16
-    result.put(static_cast<CharT>(0xC0 | ((code_point >> 6) & 0x1F)));
-    result.put(static_cast<CharT>(0x80 | (code_point & 0x3F)));
-  } else {
-    // UTF-32
-    result.put(static_cast<CharT>(0xE0 | ((code_point >> 12) & 0x0F)));
-    result.put(static_cast<CharT>(0x80 | ((code_point >> 6) & 0x3F)));
-    result.put(static_cast<CharT>(0x80 | (code_point & 0x3F)));
-  }
+  codepoint_to_utf8(static_cast<char32_t>(code_point), result);
 }
 
 auto parse_string_escape(
