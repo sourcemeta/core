@@ -603,9 +603,7 @@ private:
       return JSON{std::string{value}};
     }
 
-    if (style == ScalarStyle::SingleQuoted ||
-        style == ScalarStyle::DoubleQuoted || style == ScalarStyle::Literal ||
-        style == ScalarStyle::Folded) {
+    if (style != ScalarStyle::Plain) {
       return JSON{std::string{value}};
     }
 
@@ -626,15 +624,9 @@ private:
     }
 
     if (value == ".inf" || value == ".Inf" || value == ".INF" ||
-        value == "+.inf" || value == "+.Inf" || value == "+.INF") {
-      return JSON{std::string{value}};
-    }
-
-    if (value == "-.inf" || value == "-.Inf" || value == "-.INF") {
-      return JSON{std::string{value}};
-    }
-
-    if (value == ".nan" || value == ".NaN" || value == ".NAN") {
+        value == "+.inf" || value == "+.Inf" || value == "+.INF" ||
+        value == "-.inf" || value == "-.Inf" || value == "-.INF" ||
+        value == ".nan" || value == ".NaN" || value == ".NAN") {
       return JSON{std::string{value}};
     }
 
@@ -699,24 +691,15 @@ private:
   }
 
   auto parse_number(const std::string_view value) -> JSON {
-    if (value.size() > 1 && value[0] == '0' &&
-        (value[1] == 'x' || value[1] == 'X')) {
-      return this->parse_hex_integer(value);
-    }
-
-    if (value.size() > 1 && value[0] == '0' &&
-        (value[1] == 'o' || value[1] == 'O')) {
-      return this->parse_octal_integer(value);
-    }
-
-    if (value.size() > 2 && (value[0] == '-' || value[0] == '+') &&
-        value[1] == '0' && (value[2] == 'x' || value[2] == 'X')) {
-      return this->parse_hex_integer(value);
-    }
-
-    if (value.size() > 2 && (value[0] == '-' || value[0] == '+') &&
-        value[1] == '0' && (value[2] == 'o' || value[2] == 'O')) {
-      return this->parse_octal_integer(value);
+    const std::size_t prefix{(value[0] == '-' || value[0] == '+') ? 1u : 0u};
+    if (value.size() > prefix + 1 && value[prefix] == '0') {
+      const char indicator{value[prefix + 1]};
+      if (indicator == 'x' || indicator == 'X') {
+        return this->parse_base_integer(value, 16);
+      }
+      if (indicator == 'o' || indicator == 'O') {
+        return this->parse_base_integer(value, 8);
+      }
     }
 
     bool has_dot{false};
@@ -751,24 +734,13 @@ private:
     }
   }
 
-  auto parse_hex_integer(const std::string_view value) -> JSON {
+  auto parse_base_integer(const std::string_view value, const int base)
+      -> JSON {
     try {
       const bool negative{value[0] == '-'};
       const std::size_t start{(value[0] == '-' || value[0] == '+') ? 3u : 2u};
       const auto result{static_cast<std::int64_t>(
-          std::stoll(std::string{value.substr(start)}, nullptr, 16))};
-      return JSON{negative ? -result : result};
-    } catch (...) {
-      return JSON{std::string{value}};
-    }
-  }
-
-  auto parse_octal_integer(const std::string_view value) -> JSON {
-    try {
-      const bool negative{value[0] == '-'};
-      const std::size_t start{(value[0] == '-' || value[0] == '+') ? 3u : 2u};
-      const auto result{static_cast<std::int64_t>(
-          std::stoll(std::string{value.substr(start)}, nullptr, 8))};
+          std::stoll(std::string{value.substr(start)}, nullptr, base))};
       return JSON{negative ? -result : result};
     } catch (...) {
       return JSON{std::string{value}};
@@ -1537,17 +1509,9 @@ private:
       if (!next.has_value() || next->type == TokenType::Scalar) {
         if (next.has_value()) {
           auto after{this->next_token()};
-          if (after.has_value() &&
-              after->type == TokenType::BlockMappingValue) {
+          if (after.has_value()) {
             this->pending_tokens_.push_back(after.value());
-            auto value{this->parse_value(next.value(),
-                                         JSON::ParseContext::Property, 0, key,
-                                         key_line, key_column)};
-            result.assign(std::string{key}, std::move(value));
-            next = this->next_token();
-            continue;
           }
-          this->pending_tokens_.push_back(after.value());
           auto value{this->parse_value(next.value(),
                                        JSON::ParseContext::Property, 0, key,
                                        key_line, key_column)};

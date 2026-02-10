@@ -609,21 +609,10 @@ private:
     if (this->position_ >= this->input_.size()) {
       return;
     }
-    if (this->column_ == 1 && this->position_ + 2 < this->input_.size()) {
-      const char first{this->peek()};
-      const char second{this->peek(1)};
-      const char third{this->peek(2)};
-      if ((first == '-' && second == '-' && third == '-') ||
-          (first == '.' && second == '.' && third == '.')) {
-        if (this->position_ + 3 >= this->input_.size()) {
-          throw YAMLParseError{this->line_, this->column_,
-                               "Document marker inside flow scalar"};
-        }
-        if (is_whitespace(this->input_[this->position_ + 3])) {
-          throw YAMLParseError{this->line_, this->column_,
-                               "Document marker inside flow scalar"};
-        }
-      }
+    if (this->column_ == 1 && (this->check_document_marker('-') ||
+                               this->check_document_marker('.'))) {
+      throw YAMLParseError{this->line_, this->column_,
+                           "Document marker inside flow scalar"};
     }
     if (this->flow_level_ == 0 && this->block_indent_ != SIZE_MAX) {
       const auto current_indent{static_cast<std::size_t>(this->column_ - 1)};
