@@ -4,6 +4,7 @@
 #include "lexer.h"
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/yaml_error.h>
 
 #include <cstdint>       // std::uint64_t
@@ -725,30 +726,23 @@ private:
   }
 
   auto parse_integer(const std::string_view value) -> JSON {
-    try {
-      const auto result{
-          static_cast<std::int64_t>(std::stoll(std::string{value}))};
-      return JSON{result};
-    } catch (...) {
-      return JSON{Decimal{std::string{value}}};
-    }
+    const auto result{to_int64_t(std::string{value})};
+    return result.has_value() ? JSON{result.value()}
+                              : JSON{Decimal{std::string{value}}};
   }
 
   auto parse_base_integer(const std::string_view value, const int base)
       -> JSON {
-    try {
-      const bool negative{value[0] == '-'};
-      const std::size_t start{(value[0] == '-' || value[0] == '+') ? 3u : 2u};
-      const auto result{static_cast<std::int64_t>(
-          std::stoll(std::string{value.substr(start)}, nullptr, base))};
-      return JSON{negative ? -result : result};
-    } catch (...) {
-      return JSON{std::string{value}};
+    const bool negative{value[0] == '-'};
+    const std::size_t start{(value[0] == '-' || value[0] == '+') ? 3u : 2u};
+    const auto result{to_int64_t(std::string{value.substr(start)}, base)};
+    if (result.has_value()) {
+      return JSON{negative ? -result.value() : result.value()};
     }
+    return JSON{std::string{value}};
   }
 
   auto parse_float(const std::string_view value) -> JSON {
-    // Count significant digits to determine if we need Decimal precision
     std::size_t significant_digits{0};
     bool seen_nonzero{false};
     for (const char character : value) {
@@ -765,16 +759,17 @@ private:
       return JSON{Decimal{std::string{value}}};
     }
 
-    try {
-      const auto result{std::stod(std::string{value})};
-      const auto as_integer{static_cast<std::int64_t>(result)};
-      if (result == static_cast<double>(as_integer)) {
-        return JSON{as_integer};
-      }
-      return JSON{result};
-    } catch (...) {
+    const auto result{to_double(std::string{value})};
+    if (!result.has_value()) {
       return JSON{Decimal{std::string{value}}};
     }
+
+    const auto as_integer{static_cast<std::int64_t>(result.value())};
+    if (result.value() == static_cast<double>(as_integer)) {
+      return JSON{as_integer};
+    }
+
+    return JSON{result.value()};
   }
 
   auto parse_flow_mapping(const Token &start_token,
