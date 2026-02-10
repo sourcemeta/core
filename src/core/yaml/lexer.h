@@ -99,7 +99,7 @@ public:
       }
     }
 
-    if (this->check_document_marker('-')) {
+    if (this->column_ == 1 && this->check_document_marker('-')) {
       this->advance(3);
       return Token{.type = TokenType::DocumentStart,
                    .value = "---",
@@ -108,7 +108,7 @@ public:
                    .position = current_position};
     }
 
-    if (this->check_document_marker('.')) {
+    if (this->column_ == 1 && this->check_document_marker('.')) {
       this->advance(3);
       this->validate_trailing_content();
       return Token{.type = TokenType::DocumentEnd,
@@ -798,7 +798,25 @@ private:
       this->advance(1);
     }
 
-    const auto codepoint{std::stoul(hex, nullptr, 16)};
+    if (hex.size() != digits) {
+      throw YAMLParseError{this->line_, this->column_,
+                           "Truncated hex escape sequence"};
+    }
+
+    std::size_t parsed{0};
+    unsigned long codepoint{};
+    try {
+      codepoint = std::stoul(hex, &parsed, 16);
+    } catch (...) {
+      throw YAMLParseError{this->line_, this->column_,
+                           "Invalid hex escape sequence"};
+    }
+
+    if (parsed != hex.size()) {
+      throw YAMLParseError{this->line_, this->column_,
+                           "Invalid hex escape sequence"};
+    }
+
     return this->codepoint_to_utf8(static_cast<std::uint32_t>(codepoint));
   }
 
@@ -1245,7 +1263,8 @@ private:
       if (next_char == '-' || next_char == '?' || next_char == ':') {
         const char after{this->peek(1)};
         if (after == '\0' || is_whitespace(after)) {
-          if (next_line_indent == 0 || next_line_indent <= start_column - 3) {
+          if (next_line_indent == 0 || start_column < 3 ||
+              next_line_indent <= start_column - 3) {
             this->position_ = saved_position;
             this->line_ = saved_line;
             this->column_ = saved_column;

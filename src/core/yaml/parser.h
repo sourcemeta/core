@@ -7,6 +7,7 @@
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/yaml_error.h>
 
+#include <cassert>       // assert
 #include <cstdint>       // std::uint64_t
 #include <optional>      // std::optional
 #include <sstream>       // std::ostringstream
@@ -242,7 +243,7 @@ private:
   auto resolve_tag(const std::string_view raw_tag) -> std::string {
     if (raw_tag.size() > 2 && raw_tag[0] == '!' && raw_tag[1] == '<' &&
         raw_tag.back() == '>') {
-      return std::string{raw_tag.substr(1, raw_tag.size() - 2)};
+      return std::string{raw_tag.substr(2, raw_tag.size() - 3)};
     }
 
     if (raw_tag.starts_with("!!")) {
@@ -1106,11 +1107,15 @@ private:
       this->lexer_->set_block_indent(mapping_indent);
 
       if (token.type == TokenType::BlockMappingKey) {
-        token = *this->next_token();
+        auto next{this->next_token()};
+        assert(next.has_value());
+        token = next.value();
       }
 
       while (token.type == TokenType::Tag || token.type == TokenType::Anchor) {
-        token = *this->next_token();
+        auto next{this->next_token()};
+        assert(next.has_value());
+        token = next.value();
       }
 
       if (token.type != TokenType::Scalar &&
@@ -1176,7 +1181,9 @@ private:
           }
           seen_keys.insert(key);
           result.assign(std::string{key}, JSON{nullptr});
-          token = *this->next_token();
+          auto next_after_key{this->next_token()};
+          assert(next_after_key.has_value());
+          token = next_after_key.value();
           continue;
         }
 

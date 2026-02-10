@@ -388,3 +388,86 @@ TEST(YAML_parse, yaml_or_json_invalid_yaml_throws_yaml_error) {
     FAIL() << "Expected YAMLParseError, got different exception";
   }
 }
+
+TEST(YAML_parse, verbatim_tag_bool) {
+  const std::string input{"!<tag:yaml.org,2002:bool> true"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_boolean());
+  EXPECT_EQ(result, sourcemeta::core::JSON{true});
+}
+
+TEST(YAML_parse, verbatim_tag_int) {
+  const std::string input{"!<tag:yaml.org,2002:int> 42"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_integer());
+  EXPECT_EQ(result, sourcemeta::core::JSON{42});
+}
+
+TEST(YAML_parse, verbatim_tag_null) {
+  const std::string input{"!<tag:yaml.org,2002:null> ~"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(YAML_parse, verbatim_tag_str) {
+  const std::string input{"!<tag:yaml.org,2002:str> true"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result, sourcemeta::core::JSON{"true"});
+}
+
+TEST(YAML_parse, verbatim_tag_float) {
+  const std::string input{"!<tag:yaml.org,2002:float> 3.14"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+}
+
+TEST(YAML_parse, plain_scalar_triple_dash_value) {
+  const std::string input{"key: ---"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"---"});
+}
+
+TEST(YAML_parse, plain_scalar_triple_dot_value) {
+  const std::string input{"key: ..."};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("key"), sourcemeta::core::JSON{"..."});
+}
+
+TEST(YAML_parse, invalid_hex_escape) {
+  const std::string input{"\"\\xGG\""};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL() << "Expected YAMLParseError to be thrown";
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL() << "Expected YAMLParseError, got different exception";
+  }
+}
+
+TEST(YAML_parse, invalid_unicode_escape_4) {
+  const std::string input{"\"\\uZZZZ\""};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL() << "Expected YAMLParseError to be thrown";
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL() << "Expected YAMLParseError, got different exception";
+  }
+}
+
+TEST(YAML_parse, invalid_unicode_escape_8) {
+  const std::string input{"\"\\UZZZZZZZZ\""};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL() << "Expected YAMLParseError to be thrown";
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL() << "Expected YAMLParseError, got different exception";
+  }
+}
