@@ -4,10 +4,7 @@
 #include <cstdint>  // std::uint8_t
 #include <istream>  // std::istream
 #include <optional> // std::optional, std::nullopt
-#include <ostream>  // std::ostream
 #include <string>   // std::u32string
-
-// TODO: We might want to extract this into a "unicode" module
 
 namespace sourcemeta::core {
 
@@ -59,27 +56,6 @@ inline auto utf8_to_utf32(std::istream &input)
   }
 
   return result;
-}
-
-inline auto utf32_to_utf8(const std::u32string &codepoints,
-                          std::ostream &output) -> void {
-  for (const auto code_point : codepoints) {
-    if (code_point < 0x80) {
-      output.put(static_cast<char>(code_point));
-    } else if (code_point < 0x800) {
-      output.put(static_cast<char>(0xC0 | (code_point >> 6)));
-      output.put(static_cast<char>(0x80 | (code_point & 0x3F)));
-    } else if (code_point < 0x10000) {
-      output.put(static_cast<char>(0xE0 | (code_point >> 12)));
-      output.put(static_cast<char>(0x80 | ((code_point >> 6) & 0x3F)));
-      output.put(static_cast<char>(0x80 | (code_point & 0x3F)));
-    } else {
-      output.put(static_cast<char>(0xF0 | (code_point >> 18)));
-      output.put(static_cast<char>(0x80 | ((code_point >> 12) & 0x3F)));
-      output.put(static_cast<char>(0x80 | ((code_point >> 6) & 0x3F)));
-      output.put(static_cast<char>(0x80 | (code_point & 0x3F)));
-    }
-  }
 }
 
 } // namespace sourcemeta::core

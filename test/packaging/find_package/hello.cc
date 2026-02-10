@@ -13,6 +13,7 @@
 #include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/punycode.h>
 #include <sourcemeta/core/time.h>
+#include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/uri.h>
 #include <sourcemeta/core/uritemplate.h>
 #include <sourcemeta/core/uuid.h>

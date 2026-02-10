@@ -1,5 +1,6 @@
 #include <sourcemeta/core/punycode.h>
 #include <sourcemeta/core/punycode_error.h>
+#include <sourcemeta/core/unicode.h>
 
 #include "utf8.h"
 
@@ -285,7 +286,9 @@ auto punycode_to_utf8(std::istream &input, std::ostream &output) -> void {
 
   std::u32string decoded;
   punycode_decode(encoded, decoded);
-  utf32_to_utf8(decoded, output);
+  for (const auto code_point : decoded) {
+    codepoint_to_utf8(code_point, output);
+  }
 }
 
 auto utf8_to_punycode(const std::string_view input) -> std::string {
@@ -304,7 +307,9 @@ auto punycode_to_utf8(const std::string_view input) -> std::string {
   std::u32string decoded;
   punycode_decode(input, decoded);
   std::ostringstream output_stream;
-  utf32_to_utf8(decoded, output_stream);
+  for (const auto code_point : decoded) {
+    codepoint_to_utf8(code_point, output_stream);
+  }
   return output_stream.str();
 }
 
