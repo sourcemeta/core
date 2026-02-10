@@ -420,6 +420,7 @@ TEST(YAML_parse, verbatim_tag_float) {
   const std::string input{"!<tag:yaml.org,2002:float> 3.14"};
   const auto result{sourcemeta::core::parse_yaml(input)};
   EXPECT_TRUE(result.is_real());
+  EXPECT_DOUBLE_EQ(result.to_real(), 3.14);
 }
 
 TEST(YAML_parse, plain_scalar_triple_dash_value) {
