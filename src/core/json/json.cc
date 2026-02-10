@@ -13,6 +13,7 @@
 #include <fstream>      // std::ifstream
 #include <istream>      // std::basic_istream
 #include <ostream>      // std::basic_ostream
+#include <sstream>      // std::basic_ostringstream
 #include <system_error> // std::make_error_code, std::errc
 
 namespace sourcemeta::core {
@@ -21,7 +22,20 @@ namespace sourcemeta::core {
 auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
                 std::uint64_t &line, std::uint64_t &column,
                 const JSON::ParseCallback &callback) -> JSON {
-  return internal_parse_json(stream, line, column, callback);
+  const auto start_position{stream.tellg()};
+  std::basic_ostringstream<JSON::Char, JSON::CharTraits> buffer;
+  buffer << stream.rdbuf();
+  const auto input{buffer.str()};
+  const char *cursor{input.data()};
+  const char *end{input.data() + input.size()};
+  auto result{internal_parse_json(cursor, end, line, column, callback)};
+  if (start_position != static_cast<std::streampos>(-1)) {
+    const auto consumed{static_cast<std::streamoff>(cursor - input.data())};
+    stream.clear();
+    stream.seekg(start_position + consumed);
+  }
+
+  return result;
 }
 
 auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
