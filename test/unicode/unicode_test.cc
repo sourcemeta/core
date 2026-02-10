@@ -2,8 +2,8 @@
 
 #include <sourcemeta/core/unicode.h>
 
-#include <sstream> // std::ostringstream
-#include <string>  // std::string
+#include <sstream> // std::istringstream, std::ostringstream
+#include <string>  // std::string, std::u32string
 
 TEST(Unicode, codepoint_to_utf8_ascii_letter) {
   EXPECT_EQ(sourcemeta::core::codepoint_to_utf8(0x41), "A");
@@ -84,4 +84,81 @@ TEST(Unicode, codepoint_to_utf8_stream_multiple_codepoints) {
   sourcemeta::core::codepoint_to_utf8(0xE9, output);
   sourcemeta::core::codepoint_to_utf8(0x1F600, output);
   EXPECT_EQ(output.str(), "H\xC3\xA9\xF0\x9F\x98\x80");
+}
+
+TEST(Unicode, utf8_to_utf32_ascii) {
+  std::istringstream input{"Hello"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0x48, 0x65, 0x6C, 0x6C, 0x6F};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_empty) {
+  std::istringstream input{""};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().empty());
+}
+
+TEST(Unicode, utf8_to_utf32_two_byte) {
+  std::istringstream input{"\xC3\xA9"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0xE9};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_three_byte_cjk) {
+  std::istringstream input{"\xE4\xB8\x96"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0x4E16};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_four_byte_emoji) {
+  std::istringstream input{"\xF0\x9F\x98\x80"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0x1F600};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_mixed) {
+  std::istringstream input{"H\xC3\xA9\xE4\xB8\x96\xF0\x9F\x98\x80"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0x48, 0xE9, 0x4E16, 0x1F600};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_invalid_continuation) {
+  std::istringstream input{"\xC3\x00"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Unicode, utf8_to_utf32_truncated_sequence) {
+  std::istringstream input{"\xE4\xB8"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Unicode, utf8_to_utf32_overlong_encoding) {
+  std::istringstream input{"\xC0\x80"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Unicode, utf8_to_utf32_surrogate_codepoint) {
+  std::istringstream input{"\xED\xA0\x80"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Unicode, utf8_to_utf32_invalid_start_byte) {
+  std::istringstream input{"\xFF"};
+  const auto result{sourcemeta::core::utf8_to_utf32(input)};
+  EXPECT_FALSE(result.has_value());
 }

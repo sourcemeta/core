@@ -2,8 +2,6 @@
 #include <sourcemeta/core/punycode_error.h>
 #include <sourcemeta/core/unicode.h>
 
-#include "utf8.h"
-
 #include <algorithm> // std::ranges::sort
 #include <cassert>   // assert
 #include <cstdint>   // std::uint32_t, std::uint64_t
