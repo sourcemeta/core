@@ -5,10 +5,11 @@
 #include <sourcemeta/core/unicode_export.h>
 #endif
 
-#include <istream>  // std::istream
-#include <optional> // std::optional
-#include <ostream>  // std::ostream
-#include <string>   // std::string, std::u32string
+#include <istream>     // std::istream
+#include <optional>    // std::optional
+#include <ostream>     // std::ostream
+#include <string>      // std::string, std::u32string
+#include <string_view> // std::string_view
 
 /// @defgroup unicode Unicode
 /// @brief Unicode encoding utilities.
@@ -65,6 +66,22 @@ auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void;
 /// ```
 SOURCEMETA_CORE_UNICODE_EXPORT
 auto utf8_to_utf32(std::istream &input) -> std::optional<std::u32string>;
+
+/// @ingroup unicode
+/// Decode a UTF-8 string into a sequence of Unicode codepoints (UTF-32).
+/// Returns std::nullopt if the input contains invalid UTF-8. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// const auto result{sourcemeta::core::utf8_to_utf32("A")};
+/// assert(result.has_value());
+/// assert(result.value() == std::u32string{0x41});
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto utf8_to_utf32(const std::string_view input)
+    -> std::optional<std::u32string>;
 
 } // namespace sourcemeta::core
 

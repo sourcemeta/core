@@ -6,7 +6,7 @@
 #include <cassert>   // assert
 #include <cstdint>   // std::uint32_t, std::uint64_t
 #include <limits>    // std::numeric_limits
-#include <sstream>   // std::istringstream, std::ostringstream
+#include <sstream>   // std::ostringstream
 #include <vector>    // std::vector
 
 namespace sourcemeta::core {
@@ -290,8 +290,7 @@ auto punycode_to_utf8(std::istream &input, std::ostream &output) -> void {
 }
 
 auto utf8_to_punycode(const std::string_view input) -> std::string {
-  std::istringstream input_stream{std::string{input}};
-  const auto codepoints = utf8_to_utf32(input_stream);
+  const auto codepoints = utf8_to_utf32(input);
   if (!codepoints.has_value()) {
     throw PunycodeError("Invalid UTF-8 input");
   }

@@ -1,7 +1,7 @@
 #include <sourcemeta/core/unicode.h>
 
 #include <cstdint> // std::uint8_t
-#include <sstream> // std::ostringstream
+#include <sstream> // std::istringstream, std::ostringstream
 
 namespace sourcemeta::core {
 
@@ -76,6 +76,12 @@ auto utf8_to_utf32(std::istream &input) -> std::optional<std::u32string> {
   }
 
   return result;
+}
+
+auto utf8_to_utf32(const std::string_view input)
+    -> std::optional<std::u32string> {
+  std::istringstream stream{std::string{input}};
+  return utf8_to_utf32(stream);
 }
 
 } // namespace sourcemeta::core

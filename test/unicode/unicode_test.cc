@@ -162,3 +162,29 @@ TEST(Unicode, utf8_to_utf32_invalid_start_byte) {
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
+
+TEST(Unicode, utf8_to_utf32_string_view_ascii) {
+  const auto result{sourcemeta::core::utf8_to_utf32("Hello")};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0x48, 0x65, 0x6C, 0x6C, 0x6F};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_string_view_empty) {
+  const auto result{sourcemeta::core::utf8_to_utf32("")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_TRUE(result.value().empty());
+}
+
+TEST(Unicode, utf8_to_utf32_string_view_mixed) {
+  const auto result{
+      sourcemeta::core::utf8_to_utf32("H\xC3\xA9\xE4\xB8\x96\xF0\x9F\x98\x80")};
+  EXPECT_TRUE(result.has_value());
+  const std::u32string expected{0x48, 0xE9, 0x4E16, 0x1F600};
+  EXPECT_EQ(result.value(), expected);
+}
+
+TEST(Unicode, utf8_to_utf32_string_view_invalid) {
+  const auto result{sourcemeta::core::utf8_to_utf32("\xFF")};
+  EXPECT_FALSE(result.has_value());
+}
