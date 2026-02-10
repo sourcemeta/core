@@ -129,6 +129,11 @@ auto parse_string_unicode(
   // This means we are at the beginning of a UTF-16 surrogate pair high code
   // point See
   // https://en.wikipedia.org/wiki/UTF-16#Code_points_from_U+010000_to_U+10FFFF
+  // Lone low surrogate without a preceding high surrogate
+  if (code_point >= 0xDC00 && code_point <= 0xDFFF) {
+    throw JSONParseError(line, column);
+  }
+
   if (code_point >= 0xD800 && code_point <= 0xDBFF) {
     // Next, we expect "\"
     column += 1;
