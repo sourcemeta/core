@@ -1,11 +1,14 @@
 #include <sourcemeta/core/unicode.h>
 
+#include <cassert> // assert
 #include <cstdint> // std::uint8_t
 #include <sstream> // std::istringstream, std::ostringstream
 
 namespace sourcemeta::core {
 
 auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void {
+  assert(codepoint <= 0x10FFFF);
+  assert(codepoint < 0xD800 || codepoint > 0xDFFF);
   if (codepoint < 0x80) {
     output.put(static_cast<char>(codepoint));
   } else if (codepoint < 0x800) {
@@ -73,6 +76,10 @@ auto utf8_to_utf32(std::istream &input) -> std::optional<std::u32string> {
     }
 
     result.push_back(code_point);
+  }
+
+  if (!input.eof()) {
+    return std::nullopt;
   }
 
   return result;

@@ -134,7 +134,7 @@ TEST(Unicode, utf8_to_utf32_mixed) {
 }
 
 TEST(Unicode, utf8_to_utf32_invalid_continuation) {
-  std::istringstream input{"\xC3\x00"};
+  std::istringstream input{"\xC3\x28"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
