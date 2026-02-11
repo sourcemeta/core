@@ -496,7 +496,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     // definition known by two names, and we should handle that accordingly
     const bool has_explicit_different_id{root_id.has_value() &&
                                          !default_id.empty() &&
-                                         root_id.value() != default_id};
+                                         URI::canonicalize(root_id.value()) != URI::canonicalize(default_id)};
     if (has_explicit_different_id) {
       const auto default_id_canonical{URI::canonicalize(default_id)};
       // Use this->root_ as base - it contains root_id.value() and persists
