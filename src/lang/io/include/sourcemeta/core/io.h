@@ -92,10 +92,7 @@ auto read_file(const std::filesystem::path &path)
         std::make_error_code(std::errc::is_a_directory));
   }
 
-  // Open in binary mode to avoid text-mode \r\n to \n translation on
-  // Windows, which causes stream position mismatches when callers read
-  // the content into a buffer and then seek back
-  std::ifstream stream{sourcemeta::core::canonical(path), std::ios::binary};
+  std::ifstream stream{sourcemeta::core::canonical(path)};
   stream.exceptions(std::ifstream::badbit);
   assert(!stream.fail());
   assert(stream.is_open());

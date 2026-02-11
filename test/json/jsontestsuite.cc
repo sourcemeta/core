@@ -16,7 +16,7 @@ public:
       : test_path{path}, type{category} {}
 
   void TestBody() override {
-    std::ifstream stream{this->test_path};
+    std::ifstream stream{this->test_path, std::ios::binary};
     stream.exceptions(std::ios_base::badbit);
     if (this->type == JSONTestType::Accept) {
       sourcemeta::core::parse_json(stream);
