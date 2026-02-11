@@ -6,7 +6,6 @@
 #include <cstddef>          // std::size_t
 #include <initializer_list> // std::initializer_list
 #include <iterator>         // std::advance
-#include <string_view>      // std::string_view
 #include <utility>          // std::pair, std::move
 #include <vector>           // std::vector
 
@@ -129,7 +128,7 @@ public:
   [[nodiscard]] inline auto hash(const char *raw_data,
                                  const std::size_t raw_size) const noexcept
       -> hash_type {
-    return hasher(std::string_view{raw_data, raw_size});
+    return hasher(raw_data, raw_size);
   }
 
   /// Attempt to find an entry by key
