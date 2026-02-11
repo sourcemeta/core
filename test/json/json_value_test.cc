@@ -16,7 +16,12 @@ TEST(JSON_value, general_traits) {
 
 // BIG WARNING! Increase this number will make projects like Blaze slower,
 // as it will affect cache lines when dealing with JSON documents
-TEST(JSON_value, size) { EXPECT_EQ(sizeof(sourcemeta::core::JSON), 32); }
+TEST(JSON_value, size) {
+  // The union's largest member is std::string, whose size varies across
+  // standard library implementations (24 on libc++, 32 on libstdc++).
+  // The Type enum (1 byte) is padded to 8 bytes for alignment.
+  EXPECT_EQ(sizeof(sourcemeta::core::JSON), sizeof(std::string) + 8);
+}
 
 TEST(JSON_value, copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON>::value);
