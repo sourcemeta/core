@@ -228,15 +228,15 @@ auto supports_id_anchors(const sourcemeta::core::SchemaBaseDialect base_dialect)
     -> bool {
   using sourcemeta::core::SchemaBaseDialect;
   switch (base_dialect) {
-  case SchemaBaseDialect::JSON_Schema_Draft_7:
-  case SchemaBaseDialect::JSON_Schema_Draft_7_Hyper:
-  case SchemaBaseDialect::JSON_Schema_Draft_6:
-  case SchemaBaseDialect::JSON_Schema_Draft_6_Hyper:
-  case SchemaBaseDialect::JSON_Schema_Draft_4:
-  case SchemaBaseDialect::JSON_Schema_Draft_4_Hyper:
-    return true;
-  default:
-    return false;
+    case SchemaBaseDialect::JSON_Schema_Draft_7:
+    case SchemaBaseDialect::JSON_Schema_Draft_7_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_6:
+    case SchemaBaseDialect::JSON_Schema_Draft_6_Hyper:
+    case SchemaBaseDialect::JSON_Schema_Draft_4:
+    case SchemaBaseDialect::JSON_Schema_Draft_4_Hyper:
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -331,17 +331,17 @@ auto to_json(const SchemaReferenceType value) -> JSON {
 
 auto to_json(const SchemaFrame::LocationType value) -> JSON {
   switch (value) {
-  case SchemaFrame::LocationType::Resource:
-    return JSON{"resource"};
-  case SchemaFrame::LocationType::Anchor:
-    return JSON{"anchor"};
-  case SchemaFrame::LocationType::Pointer:
-    return JSON{"pointer"};
-  case SchemaFrame::LocationType::Subschema:
-    return JSON{"subschema"};
-  default:
-    assert(false);
-    return JSON{nullptr};
+    case SchemaFrame::LocationType::Resource:
+      return JSON{"resource"};
+    case SchemaFrame::LocationType::Anchor:
+      return JSON{"anchor"};
+    case SchemaFrame::LocationType::Pointer:
+      return JSON{"pointer"};
+    case SchemaFrame::LocationType::Subschema:
+      return JSON{"subschema"};
+    default:
+      assert(false);
+      return JSON{nullptr};
   }
 }
 
@@ -385,18 +385,18 @@ auto SchemaFrame::to_json(
     entry.assign_assume_new("orphan", JSON{location.second.orphan});
 
     switch (location.first.first) {
-    case SchemaReferenceType::Static:
-      root.at("locations")
-          .at("static")
-          .assign_assume_new(location.first.second, std::move(entry));
-      break;
-    case SchemaReferenceType::Dynamic:
-      root.at("locations")
-          .at("dynamic")
-          .assign_assume_new(location.first.second, std::move(entry));
-      break;
-    default:
-      assert(false);
+      case SchemaReferenceType::Static:
+        root.at("locations")
+            .at("static")
+            .assign_assume_new(location.first.second, std::move(entry));
+        break;
+      case SchemaReferenceType::Dynamic:
+        root.at("locations")
+            .at("dynamic")
+            .assign_assume_new(location.first.second, std::move(entry));
+        break;
+      default:
+        assert(false);
     }
   }
 
