@@ -124,6 +124,13 @@ public:
     return this->hasher(key);
   }
 
+  /// Compute a hash from raw data
+  [[nodiscard]] inline auto hash(const char *raw_data,
+                                 const std::size_t raw_size) const noexcept
+      -> hash_type {
+    return this->hasher(raw_data, raw_size);
+  }
+
   /// Attempt to find an entry by key
   [[nodiscard]] inline auto find(const Key &key) const -> const_iterator {
     const auto key_hash{this->hash(key)};
@@ -370,6 +377,18 @@ public:
     return key_hash;
   }
 
+  /// Emplace an object property with a pre-computed hash
+  inline auto emplace_assume_new(Key &&key, mapped_type &&value,
+                                 const hash_type key_hash) -> void {
+    this->data.push_back({std::move(key), std::move(value), key_hash});
+  }
+
+  /// Emplace an object property with a pre-computed hash
+  inline auto emplace_assume_new(const Key &key, mapped_type &&value,
+                                 const hash_type key_hash) -> void {
+    this->data.push_back({key, std::move(value), key_hash});
+  }
+
   /// Remove every property in the object
   inline auto clear() noexcept -> void { this->data.clear(); }
 
@@ -442,7 +461,7 @@ private:
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251)
 #endif
-  Hash hasher;
+  static constexpr Hash hasher{};
   underlying_type data;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)

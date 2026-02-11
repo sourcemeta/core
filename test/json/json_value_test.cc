@@ -16,7 +16,7 @@ TEST(JSON_value, general_traits) {
 
 // BIG WARNING! Increase this number will make projects like Blaze slower,
 // as it will affect cache lines when dealing with JSON documents
-TEST(JSON_value, size) { EXPECT_EQ(sizeof(sourcemeta::core::JSON), 40); }
+TEST(JSON_value, size) { EXPECT_EQ(sizeof(sourcemeta::core::JSON), 32); }
 
 TEST(JSON_value, copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON>::value);
