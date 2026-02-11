@@ -23,8 +23,8 @@ namespace sourcemeta::core {
 
 namespace internal {
 
-inline auto unescape_string(const char *data, const std::uint32_t length)
-    -> typename JSON::String {
+inline auto unescape_string(const char *data, const std::uint32_t length) ->
+    typename JSON::String {
   typename JSON::String result;
   const char *cursor{data};
   const char *string_end{data + length};
@@ -104,12 +104,11 @@ inline auto unescape_string(const char *data, const std::uint32_t length)
           assert(cursor + 6 <= string_end);
           cursor += 2;
           const auto low{parse_hex4(cursor)};
-          code_point =
-              0x10000 + ((code_point - 0xD800) << 10) + (low - 0xDC00);
+          code_point = 0x10000 + ((code_point - 0xD800) << 10) + (low - 0xDC00);
         }
 
-        sourcemeta::core::codepoint_to_utf8(
-            static_cast<char32_t>(code_point), result);
+        sourcemeta::core::codepoint_to_utf8(static_cast<char32_t>(code_point),
+                                            result);
         break;
       }
       default:
@@ -122,11 +121,9 @@ inline auto unescape_string(const char *data, const std::uint32_t length)
 
 inline auto construct_number(const char *data, const std::uint32_t length)
     -> JSON {
-  const bool has_dot{
-      std::memchr(data, '.', length) != nullptr};
-  const bool has_exponent{
-      std::memchr(data, 'e', length) != nullptr ||
-      std::memchr(data, 'E', length) != nullptr};
+  const bool has_dot{std::memchr(data, '.', length) != nullptr};
+  const bool has_exponent{std::memchr(data, 'e', length) != nullptr ||
+                          std::memchr(data, 'E', length) != nullptr};
 
   if (has_exponent) {
     try {
@@ -154,11 +151,10 @@ inline auto construct_number(const char *data, const std::uint32_t length)
       first_nonzero_position = 0;
     }
 
-    const auto decimal_after_first_nonzero{
-        decimal_position > first_nonzero_position};
-    const auto significant_digits{
-        length - first_nonzero_position -
-        (decimal_after_first_nonzero ? 1 : 0)};
+    const auto decimal_after_first_nonzero{decimal_position >
+                                           first_nonzero_position};
+    const auto significant_digits{length - first_nonzero_position -
+                                  (decimal_after_first_nonzero ? 1 : 0)};
     constexpr std::size_t MAX_SAFE_SIGNIFICANT_DIGITS{15};
     if (significant_digits > MAX_SAFE_SIGNIFICANT_DIGITS) {
       try {
@@ -222,15 +218,14 @@ inline auto post_column_for(const TapeEntry &entry) -> std::uint64_t {
 
 #define CALLBACK_PRE(value_type, entry_ref, context, index, property)          \
   if (callback) {                                                              \
-    callback(JSON::ParsePhase::Pre, JSON::Type::value_type,                    \
-             (entry_ref).line, (entry_ref).column, context, index, property);  \
+    callback(JSON::ParsePhase::Pre, JSON::Type::value_type, (entry_ref).line,  \
+             (entry_ref).column, context, index, property);                    \
   }
 
 #define CALLBACK_POST(value_type, post_line, post_column)                      \
   if (callback) {                                                              \
-    callback(JSON::ParsePhase::Post, JSON::Type::value_type,                   \
-             post_line, post_column,                                           \
-             JSON::ParseContext::Root, 0, JSON::StringView{});                 \
+    callback(JSON::ParsePhase::Post, JSON::Type::value_type, post_line,        \
+             post_column, JSON::ParseContext::Root, 0, JSON::StringView{});    \
   }
 
 inline auto construct_json(const char *buffer,
@@ -273,8 +268,8 @@ inline auto construct_json(const char *buffer,
     case TapeType::String: {
       CALLBACK_PRE(String, entry, JSON::ParseContext::Root, 0,
                    JSON::StringView{});
-      auto value{Result{internal::unescape_string(buffer + entry.offset,
-                                                  entry.length)}};
+      auto value{Result{
+          internal::unescape_string(buffer + entry.offset, entry.length)}};
       CALLBACK_POST(String, entry.line, internal::post_column_for(entry));
       return value;
     }
@@ -312,7 +307,7 @@ inline auto construct_json(const char *buffer,
    * Construct an array
    */
 
-do_construct_array : {
+do_construct_array: {
   const auto &array_entry{tape[tape_index]};
   assert(array_entry.type == TapeType::ArrayStart);
   const auto child_count{array_entry.count};
@@ -404,8 +399,8 @@ do_construct_array_item: {
         CALLBACK_PRE(Decimal, item_entry, JSON::ParseContext::Index,
                      current_index, JSON::StringView{});
       } else {
-        CALLBACK_PRE(Real, item_entry, JSON::ParseContext::Index,
-                     current_index, JSON::StringView{});
+        CALLBACK_PRE(Real, item_entry, JSON::ParseContext::Index, current_index,
+                     JSON::StringView{});
       }
       const auto value_type{value.type()};
       frames.back().get().push_back(std::move(value));
@@ -441,7 +436,7 @@ do_construct_array_item_separator:
    * Construct an object
    */
 
-do_construct_object : {
+do_construct_object: {
   const auto &object_entry{tape[tape_index]};
   assert(object_entry.type == TapeType::ObjectStart);
   const auto property_count{object_entry.count};
@@ -501,8 +496,8 @@ do_construct_object_value: {
   switch (value_entry.type) {
     case TapeType::ArrayStart:
       if (callback) {
-        callback(JSON::ParsePhase::Pre, JSON::Type::Array, key_line,
-                 key_column, JSON::ParseContext::Property, 0, key);
+        callback(JSON::ParsePhase::Pre, JSON::Type::Array, key_line, key_column,
+                 JSON::ParseContext::Property, 0, key);
       }
       goto do_construct_array;
     case TapeType::ObjectStart:
@@ -535,8 +530,8 @@ do_construct_object_value: {
       goto do_construct_object_property_end;
     case TapeType::Null:
       if (callback) {
-        callback(JSON::ParsePhase::Pre, JSON::Type::Null, key_line,
-                 key_column, JSON::ParseContext::Property, 0, key);
+        callback(JSON::ParsePhase::Pre, JSON::Type::Null, key_line, key_column,
+                 JSON::ParseContext::Property, 0, key);
       }
       frames.back().get().assign_assume_new(std::move(key), JSON{nullptr},
                                             key_hash);
