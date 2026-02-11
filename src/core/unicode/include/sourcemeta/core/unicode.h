@@ -51,6 +51,21 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void;
 
 /// @ingroup unicode
+/// Encode a single Unicode codepoint as UTF-8, appending to an existing string.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// std::string output;
+/// sourcemeta::core::codepoint_to_utf8(0x41, output);
+/// assert(output == "A");
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto codepoint_to_utf8(const char32_t codepoint, std::string &output) -> void;
+
+/// @ingroup unicode
 /// Decode a UTF-8 byte stream into a sequence of Unicode codepoints (UTF-32).
 /// Returns std::nullopt if the input contains invalid UTF-8. For example:
 ///

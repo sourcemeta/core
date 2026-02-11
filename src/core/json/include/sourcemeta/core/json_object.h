@@ -183,6 +183,11 @@ public:
   /// Check if the object is empty
   [[nodiscard]] inline auto empty() const -> bool { return this->data.empty(); }
 
+  /// Reserve capacity for a given number of entries
+  inline auto reserve(const size_type capacity) -> void {
+    this->data.reserve(capacity);
+  }
+
   /// Access an object entry by its underlying positional index
   [[nodiscard]] inline auto at(const size_type index) const -> const Entry & {
     return this->data.at(index);

@@ -86,6 +86,44 @@ TEST(Unicode, codepoint_to_utf8_stream_multiple_codepoints) {
   EXPECT_EQ(output.str(), "H\xC3\xA9\xF0\x9F\x98\x80");
 }
 
+TEST(Unicode, codepoint_to_utf8_string_ascii_letter) {
+  std::string output;
+  sourcemeta::core::codepoint_to_utf8(0x41, output);
+  EXPECT_EQ(output, "A");
+}
+
+TEST(Unicode, codepoint_to_utf8_string_two_byte_latin_e_acute) {
+  std::string output;
+  sourcemeta::core::codepoint_to_utf8(0xE9, output);
+  EXPECT_EQ(output, "\xC3\xA9");
+}
+
+TEST(Unicode, codepoint_to_utf8_string_three_byte_cjk) {
+  std::string output;
+  sourcemeta::core::codepoint_to_utf8(0x4E16, output);
+  EXPECT_EQ(output, "\xE4\xB8\x96");
+}
+
+TEST(Unicode, codepoint_to_utf8_string_four_byte_emoji) {
+  std::string output;
+  sourcemeta::core::codepoint_to_utf8(0x1F600, output);
+  EXPECT_EQ(output, "\xF0\x9F\x98\x80");
+}
+
+TEST(Unicode, codepoint_to_utf8_string_multiple_codepoints) {
+  std::string output;
+  sourcemeta::core::codepoint_to_utf8(0x48, output);
+  sourcemeta::core::codepoint_to_utf8(0xE9, output);
+  sourcemeta::core::codepoint_to_utf8(0x1F600, output);
+  EXPECT_EQ(output, "H\xC3\xA9\xF0\x9F\x98\x80");
+}
+
+TEST(Unicode, codepoint_to_utf8_string_four_byte_max) {
+  std::string output;
+  sourcemeta::core::codepoint_to_utf8(0x10FFFF, output);
+  EXPECT_EQ(output, "\xF4\x8F\xBF\xBF");
+}
+
 TEST(Unicode, utf8_to_utf32_ascii) {
   std::istringstream input{"Hello"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
