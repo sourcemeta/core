@@ -229,9 +229,11 @@ inline auto scan_string_escape(const std::uint64_t line, std::uint64_t &column,
 template <bool TrackPositions>
 inline auto scan_string(const std::uint64_t line, std::uint64_t &column,
                         const char *&cursor, const char *end) -> void {
+  using CharT = typename JSON::Char;
   while (cursor < end) {
     const char *scan{cursor};
-    while (scan < end && *scan != '"' && *scan != '\\' &&
+    while (scan < end && *scan != internal::token_string_quote<CharT> &&
+           *scan != internal::token_string_escape<CharT> &&
            static_cast<unsigned char>(*scan) >= 0x20) {
       scan++;
     }
@@ -276,8 +278,10 @@ template <bool TrackPositions>
 inline auto scan_digits(const std::uint64_t line, std::uint64_t &column,
                         const char *&cursor, const char *end,
                         const bool at_least_one) -> void {
+  using CharT = typename JSON::Char;
   bool found{false};
-  while (cursor < end && *cursor >= '0' && *cursor <= '9') {
+  while (cursor < end && *cursor >= internal::token_number_zero<CharT> &&
+         *cursor <= internal::token_number_nine<CharT>) {
     found = true;
     if constexpr (TrackPositions) {
       column += 1;
@@ -296,8 +300,10 @@ template <bool TrackPositions>
 inline auto scan_number(const std::uint64_t line, std::uint64_t &column,
                         const char *&cursor, const char *end, const char first)
     -> void {
-  if (first == '-') {
-    if (cursor >= end || *cursor < '0' || *cursor > '9') {
+  using CharT = typename JSON::Char;
+  if (first == internal::token_number_minus<CharT>) {
+    if (cursor >= end || *cursor < internal::token_number_zero<CharT> ||
+        *cursor > internal::token_number_nine<CharT>) {
       if constexpr (TrackPositions) {
         column += 1;
       }
@@ -305,16 +311,18 @@ inline auto scan_number(const std::uint64_t line, std::uint64_t &column,
     }
   }
 
-  const char int_start{first == '-' ? *cursor : first};
-  if (first == '-') {
+  const char int_start{first == internal::token_number_minus<CharT> ? *cursor
+                                                                    : first};
+  if (first == internal::token_number_minus<CharT>) {
     if constexpr (TrackPositions) {
       column += 1;
     }
     cursor++;
   }
 
-  if (int_start == '0') {
-    if (cursor < end && *cursor >= '0' && *cursor <= '9') {
+  if (int_start == internal::token_number_zero<CharT>) {
+    if (cursor < end && *cursor >= internal::token_number_zero<CharT> &&
+        *cursor <= internal::token_number_nine<CharT>) {
       if constexpr (TrackPositions) {
         column += 1;
       }
@@ -324,7 +332,7 @@ inline auto scan_number(const std::uint64_t line, std::uint64_t &column,
     scan_digits<TrackPositions>(line, column, cursor, end, false);
   }
 
-  if (cursor < end && *cursor == '.') {
+  if (cursor < end && *cursor == internal::token_number_decimal_point<CharT>) {
     if constexpr (TrackPositions) {
       column += 1;
     }
@@ -332,12 +340,15 @@ inline auto scan_number(const std::uint64_t line, std::uint64_t &column,
     scan_digits<TrackPositions>(line, column, cursor, end, true);
   }
 
-  if (cursor < end && (*cursor == 'e' || *cursor == 'E')) {
+  if (cursor < end &&
+      (*cursor == internal::token_number_exponent_lowercase<CharT> ||
+       *cursor == internal::token_number_exponent_uppercase<CharT>)) {
     if constexpr (TrackPositions) {
       column += 1;
     }
     cursor++;
-    if (cursor < end && (*cursor == '+' || *cursor == '-')) {
+    if (cursor < end && (*cursor == internal::token_number_plus<CharT> ||
+                         *cursor == internal::token_number_minus<CharT>)) {
       if constexpr (TrackPositions) {
         column += 1;
       }
@@ -361,6 +372,7 @@ inline auto scan_json(const char *&cursor, const char *end,
     std::uint32_t child_count;
   };
 
+  using CharT = typename JSON::Char;
   char character = 0;
   std::vector<ContainerFrame> container_stack;
   container_stack.reserve(32);
@@ -381,19 +393,19 @@ inline auto scan_json(const char *&cursor, const char *end,
     const auto value_line{line};
     const auto value_column{column};
     switch (character) {
-      case 't':
+      case internal::token_true<CharT>:
         internal::scan_true<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::True, 0, 0, 0, value_line, value_column});
         return;
-      case 'f':
+      case internal::token_false<CharT>:
         internal::scan_false<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::False, 0, 0, 0, value_line, value_column});
         return;
-      case 'n':
+      case internal::token_null<CharT>:
         internal::scan_null<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::Null, 0, 0, 0, value_line, value_column});
         return;
-      case '"': {
+      case internal::token_string_quote<CharT>: {
         const auto string_start{
             static_cast<std::uint32_t>(cursor - buffer_start)};
         internal::scan_string<TrackPositions>(line, column, cursor, end);
@@ -403,21 +415,21 @@ inline auto scan_json(const char *&cursor, const char *end,
                         value_line, value_column});
         return;
       }
-      case '[':
+      case internal::token_array_begin<CharT>:
         goto do_scan_array;
-      case '{':
+      case internal::token_object_begin<CharT>:
         goto do_scan_object;
-      case '-':
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9': {
+      case internal::token_number_minus<CharT>:
+      case internal::token_number_zero<CharT>:
+      case internal::token_number_one<CharT>:
+      case internal::token_number_two<CharT>:
+      case internal::token_number_three<CharT>:
+      case internal::token_number_four<CharT>:
+      case internal::token_number_five<CharT>:
+      case internal::token_number_six<CharT>:
+      case internal::token_number_seven<CharT>:
+      case internal::token_number_eight<CharT>:
+      case internal::token_number_nine<CharT>: {
         const auto number_start{
             static_cast<std::uint32_t>(cursor - buffer_start - 1)};
         internal::scan_number<TrackPositions>(line, column, cursor, end,
@@ -450,7 +462,7 @@ do_scan_array: {
     throw JSONParseError(line, column);
   }
 
-  if (*cursor == ']') {
+  if (*cursor == internal::token_array_end<CharT>) {
     if constexpr (TrackPositions) {
       column += 1;
     }
@@ -484,23 +496,23 @@ do_scan_array_item:
     const auto value_line{line};
     const auto value_column{column};
     switch (character) {
-      case '[':
+      case internal::token_array_begin<CharT>:
         goto do_scan_array;
-      case '{':
+      case internal::token_object_begin<CharT>:
         goto do_scan_object;
-      case 't':
+      case internal::token_true<CharT>:
         internal::scan_true<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::True, 0, 0, 0, value_line, value_column});
         goto do_scan_array_item_separator;
-      case 'f':
+      case internal::token_false<CharT>:
         internal::scan_false<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::False, 0, 0, 0, value_line, value_column});
         goto do_scan_array_item_separator;
-      case 'n':
+      case internal::token_null<CharT>:
         internal::scan_null<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::Null, 0, 0, 0, value_line, value_column});
         goto do_scan_array_item_separator;
-      case '"': {
+      case internal::token_string_quote<CharT>: {
         const auto string_start{
             static_cast<std::uint32_t>(cursor - buffer_start)};
         internal::scan_string<TrackPositions>(line, column, cursor, end);
@@ -510,17 +522,17 @@ do_scan_array_item:
                         value_line, value_column});
         goto do_scan_array_item_separator;
       }
-      case '-':
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9': {
+      case internal::token_number_minus<CharT>:
+      case internal::token_number_zero<CharT>:
+      case internal::token_number_one<CharT>:
+      case internal::token_number_two<CharT>:
+      case internal::token_number_three<CharT>:
+      case internal::token_number_four<CharT>:
+      case internal::token_number_five<CharT>:
+      case internal::token_number_six<CharT>:
+      case internal::token_number_seven<CharT>:
+      case internal::token_number_eight<CharT>:
+      case internal::token_number_nine<CharT>: {
         const auto number_start{
             static_cast<std::uint32_t>(cursor - buffer_start - 1)};
         internal::scan_number<TrackPositions>(line, column, cursor, end,
@@ -549,9 +561,9 @@ do_scan_array_item_separator:
   }
   character = *cursor++;
   switch (character) {
-    case ',':
+    case internal::token_array_delimiter<CharT>:
       goto do_scan_array_item;
-    case ']': {
+    case internal::token_array_end<CharT>: {
       assert(!container_stack.empty());
       auto &frame{container_stack.back()};
       tape[frame.tape_index].count = frame.child_count;
@@ -580,7 +592,7 @@ do_scan_object: {
     throw JSONParseError(line, column);
   }
 
-  if (*cursor == '}') {
+  if (*cursor == internal::token_object_end<CharT>) {
     if constexpr (TrackPositions) {
       column += 1;
     }
@@ -610,7 +622,7 @@ do_scan_object_key:
   }
   character = *cursor++;
   switch (character) {
-    case '"': {
+    case internal::token_string_quote<CharT>: {
       const auto key_start{static_cast<std::uint32_t>(cursor - buffer_start)};
       const auto key_line{line};
       const auto key_column{column};
@@ -638,7 +650,7 @@ do_scan_object_separator:
   }
   character = *cursor++;
   switch (character) {
-    case ':':
+    case internal::token_object_key_delimiter<CharT>:
       goto do_scan_object_value;
     default:
       throw JSONParseError(line, column);
@@ -661,23 +673,23 @@ do_scan_object_value:
     const auto value_line{line};
     const auto value_column{column};
     switch (character) {
-      case '[':
+      case internal::token_array_begin<CharT>:
         goto do_scan_array;
-      case '{':
+      case internal::token_object_begin<CharT>:
         goto do_scan_object;
-      case 't':
+      case internal::token_true<CharT>:
         internal::scan_true<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::True, 0, 0, 0, value_line, value_column});
         goto do_scan_object_property_end;
-      case 'f':
+      case internal::token_false<CharT>:
         internal::scan_false<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::False, 0, 0, 0, value_line, value_column});
         goto do_scan_object_property_end;
-      case 'n':
+      case internal::token_null<CharT>:
         internal::scan_null<TrackPositions>(line, column, cursor, end);
         tape.push_back({TapeType::Null, 0, 0, 0, value_line, value_column});
         goto do_scan_object_property_end;
-      case '"': {
+      case internal::token_string_quote<CharT>: {
         const auto string_start{
             static_cast<std::uint32_t>(cursor - buffer_start)};
         internal::scan_string<TrackPositions>(line, column, cursor, end);
@@ -687,17 +699,17 @@ do_scan_object_value:
                         value_line, value_column});
         goto do_scan_object_property_end;
       }
-      case '-':
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9': {
+      case internal::token_number_minus<CharT>:
+      case internal::token_number_zero<CharT>:
+      case internal::token_number_one<CharT>:
+      case internal::token_number_two<CharT>:
+      case internal::token_number_three<CharT>:
+      case internal::token_number_four<CharT>:
+      case internal::token_number_five<CharT>:
+      case internal::token_number_six<CharT>:
+      case internal::token_number_seven<CharT>:
+      case internal::token_number_eight<CharT>:
+      case internal::token_number_nine<CharT>: {
         const auto number_start{
             static_cast<std::uint32_t>(cursor - buffer_start - 1)};
         internal::scan_number<TrackPositions>(line, column, cursor, end,
@@ -726,9 +738,9 @@ do_scan_object_property_end:
   }
   character = *cursor++;
   switch (character) {
-    case ',':
+    case internal::token_object_delimiter<CharT>:
       goto do_scan_object_key;
-    case '}': {
+    case internal::token_object_end<CharT>: {
       assert(!container_stack.empty());
       auto &frame{container_stack.back()};
       tape[frame.tape_index].count = frame.child_count;
