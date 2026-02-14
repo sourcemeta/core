@@ -16,7 +16,6 @@
 #include <sourcemeta/core/unicode.h>
 #include <sourcemeta/core/uri.h>
 #include <sourcemeta/core/uritemplate.h>
-#include <sourcemeta/core/uuid.h>
 #include <sourcemeta/core/yaml.h>
 
 #include <cstdlib>  // EXIT_SUCCESS

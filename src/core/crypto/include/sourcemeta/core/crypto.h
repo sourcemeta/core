@@ -2,7 +2,7 @@
 #define SOURCEMETA_CORE_CRYPTO_H_
 
 /// @defgroup crypto Crypto
-/// @brief Cryptographic hash functions.
+/// @brief Cryptographic hash functions and UUID generation.
 ///
 /// This functionality is included as follows:
 ///
@@ -12,5 +12,6 @@
 
 #include <sourcemeta/core/crypto_md5.h>
 #include <sourcemeta/core/crypto_sha256.h>
+#include <sourcemeta/core/crypto_uuid.h>
 
 #endif
