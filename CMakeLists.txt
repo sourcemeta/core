@@ -10,7 +10,6 @@ option(SOURCEMETA_CORE_LANG_NUMERIC "Build the Sourcemeta Core language numeric 
 option(SOURCEMETA_CORE_UNICODE "Build the Sourcemeta Core Unicode library" ON)
 option(SOURCEMETA_CORE_PUNYCODE "Build the Sourcemeta Core Punycode library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
-option(SOURCEMETA_CORE_UUID "Build the Sourcemeta Core UUID library" ON)
 option(SOURCEMETA_CORE_CRYPTO "Build the Sourcemeta Core Crypto library" ON)
 option(SOURCEMETA_CORE_REGEX "Build the Sourcemeta Core Regex library" ON)
 option(SOURCEMETA_CORE_URI "Build the Sourcemeta Core URI library" ON)
@@ -87,10 +86,6 @@ endif()
 
 if(SOURCEMETA_CORE_TIME)
   add_subdirectory(src/core/time)
-endif()
-
-if(SOURCEMETA_CORE_UUID)
-  add_subdirectory(src/core/uuid)
 endif()
 
 if(SOURCEMETA_CORE_CRYPTO)
@@ -207,10 +202,6 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_TIME)
     add_subdirectory(test/time)
-  endif()
-
-  if(SOURCEMETA_CORE_UUID)
-    add_subdirectory(test/uuid)
   endif()
 
   if(SOURCEMETA_CORE_CRYPTO)
