@@ -35,3 +35,4 @@ vectors/cryptography_vectors/hashes/blake2
 vectors/cryptography_vectors/hashes/SHA1
 vectors/cryptography_vectors/hashes/SHAKE
 vectors/cryptography_vectors/hashes/SHA3
+vectors/cryptography_vectors/hashes/MD5
