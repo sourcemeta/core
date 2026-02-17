@@ -248,7 +248,7 @@ Decimal::Decimal(const std::int64_t integral_value) {
   this->data()->value.data = this->data()->buffer;
 
   std::uint32_t status = 0;
-  mpd_qset_i64(&this->data()->value, integral_value, &decimal_context, &status);
+  mpd_qset_i64(&this->data()->value, integral_value, &max_context, &status);
 
   if (status & MPD_Malloc_error) {
     throw NumericOutOfMemoryError{};
@@ -265,7 +265,7 @@ Decimal::Decimal(const std::uint64_t integral_value) {
   this->data()->value.data = this->data()->buffer;
 
   std::uint32_t status = 0;
-  mpd_qset_u64(&this->data()->value, integral_value, &decimal_context, &status);
+  mpd_qset_u64(&this->data()->value, integral_value, &max_context, &status);
 
   if (status & MPD_Malloc_error) {
     throw NumericOutOfMemoryError{};
@@ -839,14 +839,16 @@ auto Decimal::operator>(const Decimal &other) const -> bool {
   std::uint32_t status = 0;
   const int result =
       mpd_qcmp(&this->data()->value, &other.data()->value, &status);
-  return result > 0;
+  // mpd_qcmp returns INT_MAX when either operand is NaN
+  return result != std::numeric_limits<int>::max() && result > 0;
 }
 
 auto Decimal::operator>=(const Decimal &other) const -> bool {
   std::uint32_t status = 0;
   const int result =
       mpd_qcmp(&this->data()->value, &other.data()->value, &status);
-  return result >= 0;
+  // mpd_qcmp returns INT_MAX when either operand is NaN
+  return result != std::numeric_limits<int>::max() && result >= 0;
 }
 
 } // namespace sourcemeta::core

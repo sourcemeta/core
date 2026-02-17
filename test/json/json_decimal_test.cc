@@ -202,7 +202,7 @@ TEST(JSON_decimal, unsigned_integer_construction) {
       static_cast<std::uint64_t>(18446744073709551615ULL)};
   const sourcemeta::core::JSON document{value};
   EXPECT_TRUE(document.is_decimal());
-  EXPECT_EQ(document.to_decimal().to_uint64(), 18446744073709550000ULL);
+  EXPECT_EQ(document.to_decimal().to_uint64(), 18446744073709551615ULL);
 }
 
 TEST(JSON_decimal, multiple_copies) {
