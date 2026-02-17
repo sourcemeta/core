@@ -1764,3 +1764,82 @@ TEST(Numeric_decimal, multithreaded_construction) {
     thread.join();
   }
 }
+
+TEST(Numeric_decimal, factory_snan) {
+  const auto snan_value{sourcemeta::core::Decimal::snan()};
+  EXPECT_TRUE(snan_value.is_nan());
+  EXPECT_TRUE(snan_value.is_snan());
+  EXPECT_FALSE(snan_value.is_qnan());
+  EXPECT_FALSE(snan_value.is_finite());
+  EXPECT_FALSE(snan_value.is_infinite());
+}
+
+TEST(Numeric_decimal, factory_nan_with_payload) {
+  const auto nan_value{sourcemeta::core::Decimal::nan(123)};
+  EXPECT_TRUE(nan_value.is_nan());
+  EXPECT_TRUE(nan_value.is_qnan());
+  EXPECT_FALSE(nan_value.is_snan());
+  EXPECT_EQ(nan_value.nan_payload(), 123);
+}
+
+TEST(Numeric_decimal, factory_snan_with_payload) {
+  const auto snan_value{sourcemeta::core::Decimal::snan(456)};
+  EXPECT_TRUE(snan_value.is_nan());
+  EXPECT_TRUE(snan_value.is_snan());
+  EXPECT_FALSE(snan_value.is_qnan());
+  EXPECT_EQ(snan_value.nan_payload(), 456);
+}
+
+TEST(Numeric_decimal, is_snan_false_for_qnan) {
+  const auto nan_value{sourcemeta::core::Decimal::nan()};
+  EXPECT_FALSE(nan_value.is_snan());
+  EXPECT_TRUE(nan_value.is_qnan());
+}
+
+TEST(Numeric_decimal, is_qnan_false_for_snan) {
+  const auto snan_value{sourcemeta::core::Decimal::snan()};
+  EXPECT_FALSE(snan_value.is_qnan());
+  EXPECT_TRUE(snan_value.is_snan());
+}
+
+TEST(Numeric_decimal, is_nan_true_for_both) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::nan().is_nan());
+  EXPECT_TRUE(sourcemeta::core::Decimal::snan().is_nan());
+}
+
+TEST(Numeric_decimal, nan_payload_zero_for_plain_nan) {
+  EXPECT_EQ(sourcemeta::core::Decimal::nan().nan_payload(), 0);
+}
+
+TEST(Numeric_decimal, nan_payload_zero_for_plain_snan) {
+  EXPECT_EQ(sourcemeta::core::Decimal::snan().nan_payload(), 0);
+}
+
+TEST(Numeric_decimal, parse_snan_string) {
+  const sourcemeta::core::Decimal value{"sNaN"};
+  EXPECT_TRUE(value.is_nan());
+  EXPECT_TRUE(value.is_snan());
+  EXPECT_EQ(value.nan_payload(), 0);
+}
+
+TEST(Numeric_decimal, parse_nan_with_payload_string) {
+  const sourcemeta::core::Decimal value{"NaN123"};
+  EXPECT_TRUE(value.is_nan());
+  EXPECT_TRUE(value.is_qnan());
+  EXPECT_EQ(value.nan_payload(), 123);
+}
+
+TEST(Numeric_decimal, parse_snan_with_payload_string) {
+  const sourcemeta::core::Decimal value{"sNaN789"};
+  EXPECT_TRUE(value.is_nan());
+  EXPECT_TRUE(value.is_snan());
+  EXPECT_EQ(value.nan_payload(), 789);
+}
+
+TEST(Numeric_decimal, snan_arithmetic_produces_qnan) {
+  const auto snan_value{sourcemeta::core::Decimal::snan()};
+  const auto result{snan_value + sourcemeta::core::Decimal{1}};
+  EXPECT_TRUE(result.is_nan());
+  EXPECT_TRUE(result.is_qnan());
+  EXPECT_FALSE(result.is_snan());
+}

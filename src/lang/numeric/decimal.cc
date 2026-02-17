@@ -305,9 +305,37 @@ Decimal::Decimal(const std::string &string_value)
 Decimal::Decimal(const std::string_view string_value)
     : Decimal{std::string{string_value}} {}
 
-auto Decimal::nan() -> Decimal {
+auto Decimal::nan(const std::uint64_t payload) -> Decimal {
   Decimal result;
-  mpd_setspecial(&result.data()->value, MPD_POS, MPD_NAN);
+  if (payload == 0) {
+    mpd_setspecial(&result.data()->value, MPD_POS, MPD_NAN);
+  } else {
+    const std::string nan_string{"NaN" + std::to_string(payload)};
+    std::uint32_t status = 0;
+    mpd_qset_string(&result.data()->value, nan_string.c_str(), &max_context,
+                    &status);
+    if (status & MPD_Malloc_error) {
+      throw NumericOutOfMemoryError{};
+    }
+  }
+
+  return result;
+}
+
+auto Decimal::snan(const std::uint64_t payload) -> Decimal {
+  Decimal result;
+  if (payload == 0) {
+    mpd_setspecial(&result.data()->value, MPD_POS, MPD_SNAN);
+  } else {
+    const std::string snan_string{"sNaN" + std::to_string(payload)};
+    std::uint32_t status = 0;
+    mpd_qset_string(&result.data()->value, snan_string.c_str(), &max_context,
+                    &status);
+    if (status & MPD_Malloc_error) {
+      throw NumericOutOfMemoryError{};
+    }
+  }
+
   return result;
 }
 
@@ -446,6 +474,37 @@ auto Decimal::is_uint64() const -> bool {
 
 auto Decimal::is_nan() const -> bool { return mpd_isnan(&this->data()->value); }
 
+auto Decimal::is_snan() const -> bool {
+  return mpd_issnan(&this->data()->value);
+}
+
+auto Decimal::is_qnan() const -> bool {
+  return mpd_isqnan(&this->data()->value);
+}
+
+auto Decimal::nan_payload() const -> std::uint64_t {
+  assert(this->is_nan());
+  char *sci_string = mpd_to_sci(&this->data()->value, 0);
+  if (sci_string == nullptr) {
+    throw NumericOutOfMemoryError{};
+  }
+
+  std::uint64_t payload = 0;
+  const std::string formatted{sci_string};
+  mpd_free(sci_string);
+
+  // Find "NaN" or "sNaN" and extract digits after it
+  auto position = formatted.find("NaN");
+  if (position != std::string::npos) {
+    position += 3;
+    if (position < formatted.size()) {
+      payload = std::stoull(formatted.substr(position));
+    }
+  }
+
+  return payload;
+}
+
 auto Decimal::is_infinite() const -> bool {
   return mpd_isinfinite(&this->data()->value);
 }
@@ -532,48 +591,44 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
 }
 
 auto Decimal::operator/=(const Decimal &other) -> Decimal & {
-  if (other.is_zero()) {
-    if (this->is_zero()) {
-      throw NumericInvalidOperationError{};
-    }
-
-    throw NumericDivisionByZeroError{};
-  }
-
   std::uint32_t status = 0;
   mpd_qdiv(&this->data()->value, &this->data()->value, &other.data()->value,
            &decimal_context, &status);
 
-  if (status & MPD_Overflow) {
-    throw NumericOverflowError{};
-  }
-
   if (status & MPD_Malloc_error) {
     throw NumericOutOfMemoryError{};
+  }
+
+  if (status & MPD_IEEE_Invalid_operation) {
+    throw NumericInvalidOperationError{};
+  }
+
+  if (status & MPD_Division_by_zero) {
+    throw NumericDivisionByZeroError{};
+  }
+
+  if (status & MPD_Overflow) {
+    throw NumericOverflowError{};
   }
 
   return *this;
 }
 
 auto Decimal::operator%=(const Decimal &other) -> Decimal & {
-  if (other.is_zero()) {
-    throw NumericInvalidOperationError{};
-  }
-
   std::uint32_t status = 0;
   mpd_qrem(&this->data()->value, &this->data()->value, &other.data()->value,
            &decimal_context, &status);
 
-  if (status & MPD_Invalid_operation) {
+  if (status & MPD_Malloc_error) {
+    throw NumericOutOfMemoryError{};
+  }
+
+  if (status & MPD_IEEE_Invalid_operation) {
     throw NumericInvalidOperationError{};
   }
 
   if (status & MPD_Overflow) {
     throw NumericOverflowError{};
-  }
-
-  if (status & MPD_Malloc_error) {
-    throw NumericOutOfMemoryError{};
   }
 
   return *this;
@@ -631,50 +686,46 @@ auto Decimal::operator*(const Decimal &other) const -> Decimal {
 }
 
 auto Decimal::operator/(const Decimal &other) const -> Decimal {
-  if (other.is_zero()) {
-    if (this->is_zero()) {
-      throw NumericInvalidOperationError{};
-    }
-
-    throw NumericDivisionByZeroError{};
-  }
-
   Decimal result;
   std::uint32_t status = 0;
   mpd_qdiv(&result.data()->value, &this->data()->value, &other.data()->value,
            &decimal_context, &status);
 
-  if (status & MPD_Overflow) {
-    throw NumericOverflowError{};
-  }
-
   if (status & MPD_Malloc_error) {
     throw NumericOutOfMemoryError{};
+  }
+
+  if (status & MPD_IEEE_Invalid_operation) {
+    throw NumericInvalidOperationError{};
+  }
+
+  if (status & MPD_Division_by_zero) {
+    throw NumericDivisionByZeroError{};
+  }
+
+  if (status & MPD_Overflow) {
+    throw NumericOverflowError{};
   }
 
   return result;
 }
 
 auto Decimal::operator%(const Decimal &other) const -> Decimal {
-  if (other.is_zero()) {
-    throw NumericInvalidOperationError{};
-  }
-
   Decimal result;
   std::uint32_t status = 0;
   mpd_qrem(&result.data()->value, &this->data()->value, &other.data()->value,
            &decimal_context, &status);
 
-  if (status & MPD_Invalid_operation) {
+  if (status & MPD_Malloc_error) {
+    throw NumericOutOfMemoryError{};
+  }
+
+  if (status & MPD_IEEE_Invalid_operation) {
     throw NumericInvalidOperationError{};
   }
 
   if (status & MPD_Overflow) {
     throw NumericOverflowError{};
-  }
-
-  if (status & MPD_Malloc_error) {
-    throw NumericOutOfMemoryError{};
   }
 
   return result;
