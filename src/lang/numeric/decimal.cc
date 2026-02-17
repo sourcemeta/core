@@ -70,8 +70,6 @@ thread_local mpd_context_t decimal_context = []() {
   mpd_context_t context;
   mpd_defaultcontext(&context);
   mpd_qsetprec(&context, 16);
-  context.emax = 999999;
-  context.emin = -999999;
   context.round = MPD_ROUND_HALF_EVEN;
   context.traps =
       MPD_IEEE_Invalid_operation | MPD_Division_by_zero | MPD_Overflow;

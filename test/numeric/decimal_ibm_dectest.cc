@@ -97,30 +97,6 @@ static auto count_significant_digits(const std::string &value) -> std::size_t {
   return count;
 }
 
-// TODO: Our Decimal context uses emax/emin = +/-999999, which is smaller
-// than the extreme exponents used in some tests (e.g. 1e999999999).
-// These tests would overflow/underflow in our context.
-static auto has_extreme_exponent(const std::string &value) -> bool {
-  const auto stripped{strip_quotes(value)};
-  const auto lower{to_lower(stripped)};
-  if (lower.find("nan") != std::string::npos ||
-      lower.find("inf") != std::string::npos) {
-    return false;
-  }
-
-  auto exponent_position{lower.find('e')};
-  if (exponent_position == std::string::npos) {
-    return false;
-  }
-
-  try {
-    const auto exponent{std::stol(stripped.substr(exponent_position + 1))};
-    return exponent > 999999 || exponent < -999999;
-  } catch (...) {
-    return false;
-  }
-}
-
 static auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
   const auto value{strip_quotes(raw)};
   const auto lower{to_lower(value)};
@@ -438,12 +414,6 @@ static auto should_skip_test(const DecTestCase &test_case,
   if (test_case.operand1.find('#') != std::string::npos ||
       test_case.operand2.find('#') != std::string::npos ||
       test_case.expected.find('#') != std::string::npos) {
-    return true;
-  }
-
-  if (has_extreme_exponent(test_case.operand1) ||
-      has_extreme_exponent(test_case.operand2) ||
-      has_extreme_exponent(test_case.expected)) {
     return true;
   }
 
