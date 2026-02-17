@@ -1,15 +1,32 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/numeric.h>
 
-#include <algorithm>  // std::transform
-#include <cctype>     // std::tolower
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::ifstream
-#include <iostream>   // std::cerr
-#include <sstream>    // std::istringstream
-#include <string>     // std::string
-#include <vector>     // std::vector
+#include <algorithm>   // std::transform, std::any_of
+#include <cctype>      // std::tolower, std::isdigit, std::isalnum
+#include <filesystem>  // std::filesystem
+#include <iostream>    // std::cerr
+#include <sstream>     // std::istringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <vector>      // std::vector
+
+static constexpr std::string_view SUPPORTED_OPERATIONS[] = {
+    "compare",     "add",   "subtract", "multiply", "divide",
+    "remainder",   "minus", "plus",     "abs",      "tointegral",
+    "tointegralx", "tosci", "toeng"};
+
+static constexpr std::string_view UNARY_OPERATIONS[] = {
+    "minus", "plus", "abs", "tointegral", "tointegralx", "tosci", "toeng"};
+
+static constexpr std::string_view SKIP_CONDITIONS[] = {
+    "inexact",   "rounded", "overflow",           "underflow",
+    "subnormal", "clamped", "division_impossible"};
+
+static constexpr std::string_view KNOWN_DIRECTIVES[] = {
+    "precision", "rounding", "maxexponent", "minexponent",
+    "extended",  "clamp",    "version",     "dectest"};
 
 struct DecTestCase {
   std::string id;
@@ -42,38 +59,27 @@ static auto strip_quotes(const std::string &value) -> std::string {
 }
 
 static auto has_condition(const std::vector<std::string> &conditions,
-                          const std::string &name) -> bool {
-  const auto lower_name{to_lower(name)};
-  for (const auto &condition : conditions) {
-    if (to_lower(condition) == lower_name) {
-      return true;
-    }
-  }
-  return false;
+                          std::string_view name) -> bool {
+  return std::any_of(
+      conditions.begin(), conditions.end(),
+      [name](const auto &condition) { return to_lower(condition) == name; });
 }
 
 static auto has_skip_condition(const std::vector<std::string> &conditions)
     -> bool {
-  return has_condition(conditions, "Inexact") ||
-         has_condition(conditions, "Rounded") ||
-         has_condition(conditions, "Overflow") ||
-         has_condition(conditions, "Underflow") ||
-         has_condition(conditions, "Subnormal") ||
-         has_condition(conditions, "Clamped") ||
-         has_condition(conditions, "Division_impossible");
+  return std::any_of(
+      std::begin(SKIP_CONDITIONS), std::end(SKIP_CONDITIONS),
+      [&](const auto name) { return has_condition(conditions, name); });
 }
 
-static auto contains_hex(const std::string &value) -> bool {
-  return value.find('#') != std::string::npos;
-}
-
-static auto is_snan(const std::string &value) -> bool {
-  return to_lower(value).find("snan") != std::string::npos;
-}
-
-static auto is_nan_with_payload(const std::string &value) -> bool {
+// TODO: Our Decimal class does not support signaling NaN (sNaN) or NaN
+// diagnostic payloads (e.g. NaN9, NaN77). All NaN variants are treated
+// as quiet NaN. Revisit when reimplementing without mpdecimal.
+static auto is_unsupported_nan(const std::string &value) -> bool {
   const auto lower{to_lower(strip_quotes(value))};
-  // Match NaN followed by digits, e.g. NaN9, NaN77, -NaN3
+  if (lower.find("snan") != std::string::npos) {
+    return true;
+  }
   auto position{lower.find("nan")};
   if (position == std::string::npos) {
     return false;
@@ -83,7 +89,6 @@ static auto is_nan_with_payload(const std::string &value) -> bool {
          std::isdigit(static_cast<unsigned char>(lower[position]));
 }
 
-// Count significant digits in a decimal string
 static auto count_significant_digits(const std::string &value) -> std::size_t {
   const auto stripped{strip_quotes(value)};
   const auto lower{to_lower(stripped)};
@@ -98,29 +103,20 @@ static auto count_significant_digits(const std::string &value) -> std::size_t {
   for (const auto character : stripped) {
     if (character == 'e' || character == 'E') {
       in_exponent = true;
-      continue;
-    }
-    if (in_exponent) {
-      continue;
-    }
-    if (character == '-' || character == '+') {
-      continue;
-    }
-    if (character == '.') {
-      continue;
-    }
-    if (character == '0' && !found_nonzero) {
-      continue;
-    }
-    if (std::isdigit(static_cast<unsigned char>(character))) {
-      found_nonzero = true;
-      count++;
+    } else if (!in_exponent &&
+               std::isdigit(static_cast<unsigned char>(character))) {
+      if (character != '0' || found_nonzero) {
+        found_nonzero = true;
+        count++;
+      }
     }
   }
   return count;
 }
 
-// Check if a value has an exponent exceeding our context limits
+// TODO: Our Decimal context uses emax/emin = +/-999999, which is smaller
+// than the extreme exponents used in some tests (e.g. 1e999999999).
+// These tests would overflow/underflow in our context.
 static auto has_extreme_exponent(const std::string &value) -> bool {
   const auto stripped{strip_quotes(value)};
   const auto lower{to_lower(stripped)};
@@ -134,12 +130,39 @@ static auto has_extreme_exponent(const std::string &value) -> bool {
     return false;
   }
 
-  const auto exponent_str{stripped.substr(exponent_position + 1)};
   try {
-    const auto exponent{std::stol(exponent_str)};
+    const auto exponent{std::stol(stripped.substr(exponent_position + 1))};
     return exponent > 999999 || exponent < -999999;
   } catch (...) {
     return false;
+  }
+}
+
+static auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
+  const auto value{strip_quotes(raw)};
+  const auto lower{to_lower(value)};
+  if (lower.find("nan") != std::string::npos) {
+    return sourcemeta::core::Decimal::nan();
+  }
+  if (lower == "inf" || lower == "infinity" || lower.starts_with("+inf")) {
+    return sourcemeta::core::Decimal::infinity();
+  }
+  if (lower.starts_with("-inf")) {
+    return sourcemeta::core::Decimal::negative_infinity();
+  }
+  return sourcemeta::core::Decimal{value};
+}
+
+static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
+                              const sourcemeta::core::Decimal &expected)
+    -> void {
+  if (expected.is_nan()) {
+    EXPECT_TRUE(result.is_nan());
+  } else if (expected.is_infinite()) {
+    EXPECT_TRUE(result.is_infinite());
+    EXPECT_EQ(result.is_signed(), expected.is_signed());
+  } else {
+    EXPECT_EQ(result, expected);
   }
 }
 
@@ -153,83 +176,50 @@ public:
     if (operation == "compare") {
       this->run_compare();
     } else if (operation == "add") {
-      this->run_binary_arithmetic(
-          [](const sourcemeta::core::Decimal &left,
-             const sourcemeta::core::Decimal &right) { return left + right; });
+      this->run_binary(
+          [](const auto &left, const auto &right) { return left + right; });
     } else if (operation == "subtract") {
-      this->run_binary_arithmetic(
-          [](const sourcemeta::core::Decimal &left,
-             const sourcemeta::core::Decimal &right) { return left - right; });
+      this->run_binary(
+          [](const auto &left, const auto &right) { return left - right; });
     } else if (operation == "multiply") {
-      this->run_binary_arithmetic(
-          [](const sourcemeta::core::Decimal &left,
-             const sourcemeta::core::Decimal &right) { return left * right; });
+      this->run_binary(
+          [](const auto &left, const auto &right) { return left * right; });
     } else if (operation == "divide") {
-      this->run_binary_arithmetic(
-          [](const sourcemeta::core::Decimal &left,
-             const sourcemeta::core::Decimal &right) { return left / right; });
+      this->run_binary(
+          [](const auto &left, const auto &right) { return left / right; });
     } else if (operation == "remainder") {
-      this->run_binary_arithmetic(
-          [](const sourcemeta::core::Decimal &left,
-             const sourcemeta::core::Decimal &right) { return left % right; });
+      this->run_binary(
+          [](const auto &left, const auto &right) { return left % right; });
     } else if (operation == "minus") {
-      this->run_unary(
-          [](const sourcemeta::core::Decimal &value) { return -value; });
+      this->run_unary([](const auto &value) { return -value; });
     } else if (operation == "plus") {
-      this->run_unary(
-          [](const sourcemeta::core::Decimal &value) { return +value; });
+      this->run_unary([](const auto &value) { return +value; });
     } else if (operation == "abs") {
-      this->run_unary([](const sourcemeta::core::Decimal &value) {
-        return value.is_signed() ? -value : value;
-      });
+      this->run_unary(
+          [](const auto &value) { return value.is_signed() ? -value : value; });
     } else if (operation == "tointegral" || operation == "tointegralx") {
-      this->run_unary([](const sourcemeta::core::Decimal &value) {
-        return value.to_integral();
-      });
-    } else if (operation == "tosci") {
-      this->run_tosci();
-    } else if (operation == "toeng") {
-      this->run_toeng();
+      this->run_unary([](const auto &value) { return value.to_integral(); });
+    } else if (operation == "tosci" || operation == "toeng") {
+      this->run_conversion();
     } else {
-      FAIL() << "Unsupported operation: " << operation;
+      FAIL();
     }
   }
 
 private:
-  auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
-    const auto value{strip_quotes(raw)};
-    const auto lower{to_lower(value)};
-    // TODO: Our Decimal class does not support NaN payloads (e.g. NaN9,
-    // -NaN3) or signaling NaN (sNaN). All NaN variants are treated as
-    // quiet NaN. Revisit when reimplementing without mpdecimal.
-    if (lower.find("nan") != std::string::npos) {
-      return sourcemeta::core::Decimal::nan();
-    }
-    if (lower == "inf" || lower == "infinity" || lower == "+inf" ||
-        lower == "+infinity") {
-      return sourcemeta::core::Decimal::infinity();
-    }
-    if (lower == "-inf" || lower == "-infinity") {
-      return sourcemeta::core::Decimal::negative_infinity();
-    }
-    return sourcemeta::core::Decimal{value};
-  }
-
   auto run_compare() -> void {
     const auto expected{strip_quotes(this->test_case_.expected)};
-    const auto lower_expected{to_lower(expected)};
 
     // TODO: The decTest spec defines compare(NaN, x) = NaN, but our
     // comparison operators return bool, so we cannot represent a NaN
-    // comparison result. We skip these rather than testing that NaN
-    // comparisons return false, which is tested elsewhere.
-    if (lower_expected.find("nan") != std::string::npos) {
+    // comparison result
+    if (to_lower(expected).find("nan") != std::string::npos) {
       GTEST_SKIP() << "NaN comparison result";
       return;
     }
 
-    const auto left{this->make_decimal(this->test_case_.operand1)};
-    const auto right{this->make_decimal(this->test_case_.operand2)};
+    const auto left{make_decimal(this->test_case_.operand1)};
+    const auto right{make_decimal(this->test_case_.operand2)};
 
     if (expected == "0") {
       EXPECT_TRUE(left == right);
@@ -242,19 +232,17 @@ private:
     }
   }
 
-  template <typename Operation>
-  auto run_binary_arithmetic(Operation op) -> void {
+  template <typename Operation> auto run_binary(Operation op) -> void {
     const auto has_invalid{
-        has_condition(this->test_case_.conditions, "Invalid_operation") ||
-        has_condition(this->test_case_.conditions, "Division_undefined")};
-    const auto has_division_by_zero{
-        has_condition(this->test_case_.conditions, "Division_by_zero")};
+        has_condition(this->test_case_.conditions, "invalid_operation") ||
+        has_condition(this->test_case_.conditions, "division_undefined")};
+    const auto has_divzero{
+        has_condition(this->test_case_.conditions, "division_by_zero")};
 
     if (has_invalid) {
       try {
-        const auto left{this->make_decimal(this->test_case_.operand1)};
-        const auto right{this->make_decimal(this->test_case_.operand2)};
-        const auto result{op(left, right)};
+        const auto result{op(make_decimal(this->test_case_.operand1),
+                             make_decimal(this->test_case_.operand2))};
         EXPECT_TRUE(result.is_nan());
       } catch (const sourcemeta::core::NumericInvalidOperationError &) {
         SUCCEED();
@@ -264,13 +252,11 @@ private:
       return;
     }
 
-    if (has_division_by_zero) {
+    if (has_divzero) {
       try {
-        const auto left{this->make_decimal(this->test_case_.operand1)};
-        const auto right{this->make_decimal(this->test_case_.operand2)};
-        const auto result{op(left, right)};
-        const auto expected_value{
-            this->make_decimal(this->test_case_.expected)};
+        const auto result{op(make_decimal(this->test_case_.operand1),
+                             make_decimal(this->test_case_.operand2))};
+        const auto expected_value{make_decimal(this->test_case_.expected)};
         if (expected_value.is_infinite() && result.is_infinite()) {
           EXPECT_EQ(result.is_signed(), expected_value.is_signed());
         } else {
@@ -282,145 +268,96 @@ private:
       return;
     }
 
-    const auto expected_value{this->make_decimal(this->test_case_.expected)};
+    const auto expected_value{make_decimal(this->test_case_.expected)};
     try {
-      const auto left{this->make_decimal(this->test_case_.operand1)};
-      const auto right{this->make_decimal(this->test_case_.operand2)};
-      const auto result{op(left, right)};
-
-      if (expected_value.is_nan()) {
-        EXPECT_TRUE(result.is_nan());
-      } else if (expected_value.is_infinite()) {
-        EXPECT_TRUE(result.is_infinite());
-        EXPECT_EQ(result.is_signed(), expected_value.is_signed());
-      } else {
-        EXPECT_EQ(result, expected_value);
-      }
+      const auto result{op(make_decimal(this->test_case_.operand1),
+                           make_decimal(this->test_case_.operand2))};
+      expect_decimal_eq(result, expected_value);
     } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
       // TODO: Our Decimal traps on ALL division-by-zero cases, but the
       // General Decimal Arithmetic spec says Inf/0 = Inf and NaN/0 = NaN
       // (only finite/0 should raise Division_by_zero). Fix when
       // reimplementing without mpdecimal.
-      if (expected_value.is_infinite() || expected_value.is_nan()) {
-        SUCCEED();
-      } else {
+      if (!expected_value.is_infinite() && !expected_value.is_nan()) {
         FAIL();
       }
     } catch (const sourcemeta::core::NumericInvalidOperationError &) {
       // TODO: Some operations (e.g. NaN % 0) throw InvalidOperation
       // but the spec expects a quiet NaN result. Fix when reimplementing
       // without mpdecimal.
-      if (expected_value.is_nan()) {
-        SUCCEED();
-      } else {
+      if (!expected_value.is_nan()) {
         FAIL();
       }
     }
   }
 
   template <typename Operation> auto run_unary(Operation op) -> void {
-    const auto has_invalid{
-        has_condition(this->test_case_.conditions, "Invalid_operation")};
-
-    if (has_invalid) {
+    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
       try {
-        const auto operand{this->make_decimal(this->test_case_.operand1)};
-        const auto result{op(operand)};
-        EXPECT_TRUE(result.is_nan());
+        EXPECT_TRUE(op(make_decimal(this->test_case_.operand1)).is_nan());
       } catch (const sourcemeta::core::NumericInvalidOperationError &) {
         SUCCEED();
       }
       return;
     }
 
-    const auto operand{this->make_decimal(this->test_case_.operand1)};
-    const auto result{op(operand)};
-    const auto expected_value{this->make_decimal(this->test_case_.expected)};
-
-    if (expected_value.is_nan()) {
-      EXPECT_TRUE(result.is_nan());
-    } else if (expected_value.is_infinite()) {
-      EXPECT_TRUE(result.is_infinite());
-      EXPECT_EQ(result.is_signed(), expected_value.is_signed());
-    } else {
-      EXPECT_EQ(result, expected_value);
-    }
+    expect_decimal_eq(op(make_decimal(this->test_case_.operand1)),
+                      make_decimal(this->test_case_.expected));
   }
 
-  auto run_tosci() -> void {
+  // TODO: Our to_scientific_string() always uses exponential form
+  // (e.g. "1.0e+1" instead of "10"), which differs from the spec's
+  // to-scientific-string. Our to_string() has the same issue with
+  // to-engineering-string. We compare parsed values instead of strings.
+  auto run_conversion() -> void {
     const auto input{strip_quotes(this->test_case_.operand1)};
-    const auto expected_str{strip_quotes(this->test_case_.expected)};
 
-    // For Conversion_syntax tests, expect a parse error
-    if (has_condition(this->test_case_.conditions, "Conversion_syntax")) {
+    if (has_condition(this->test_case_.conditions, "conversion_syntax")) {
       EXPECT_THROW(sourcemeta::core::Decimal{input},
                    sourcemeta::core::DecimalParseError);
       return;
     }
 
-    // TODO: Our to_scientific_string() always uses exponential form
-    // (e.g. "1.0e+1" instead of "10"), which differs from the spec's
-    // to-scientific-string that only uses exponents when adjusted exponent
-    // < -6 or >= precision. We compare parsed values instead of strings
-    // until to_scientific_string() is fixed.
-    const sourcemeta::core::Decimal result{input};
-    const auto expected_lower{to_lower(expected_str)};
-    if (expected_lower.find("nan") != std::string::npos) {
-      EXPECT_TRUE(result.is_nan());
-    } else if (expected_lower.find("inf") != std::string::npos) {
-      EXPECT_TRUE(result.is_infinite());
-    } else {
-      const sourcemeta::core::Decimal expected_value{expected_str};
-      EXPECT_EQ(result, expected_value);
-    }
-  }
-
-  auto run_toeng() -> void {
-    const auto input{strip_quotes(this->test_case_.operand1)};
-    const auto expected_str{strip_quotes(this->test_case_.expected)};
-
-    // TODO: Same issue as run_tosci. Our to_string() uses mpd_to_eng
-    // which may differ from the spec's to-engineering-string format.
-    // Compare parsed values instead of strings.
-    const sourcemeta::core::Decimal result{input};
-    const auto expected_lower{to_lower(expected_str)};
-    if (expected_lower.find("nan") != std::string::npos) {
-      EXPECT_TRUE(result.is_nan());
-    } else if (expected_lower.find("inf") != std::string::npos) {
-      EXPECT_TRUE(result.is_infinite());
-    } else {
-      const sourcemeta::core::Decimal expected_value{expected_str};
-      EXPECT_EQ(result, expected_value);
-    }
+    expect_decimal_eq(sourcemeta::core::Decimal{input},
+                      make_decimal(this->test_case_.expected));
   }
 
   DecTestCase test_case_;
 };
 
+// ---------------------------------------------------------------------------
+// Parsing
+// ---------------------------------------------------------------------------
+
 static auto is_supported_operation(const std::string &operation) -> bool {
   const auto lower{to_lower(operation)};
-  return lower == "compare" || lower == "add" || lower == "subtract" ||
-         lower == "multiply" || lower == "divide" || lower == "remainder" ||
-         lower == "minus" || lower == "plus" || lower == "abs" ||
-         lower == "tointegral" || lower == "tointegralx" || lower == "tosci" ||
-         lower == "toeng";
+  return std::any_of(std::begin(SUPPORTED_OPERATIONS),
+                     std::end(SUPPORTED_OPERATIONS),
+                     [&lower](const auto name) { return lower == name; });
 }
 
-static auto should_skip_file(const std::string &filename) -> bool {
-  const auto lower{to_lower(filename)};
-  // Skip fixed-width format-specific files
-  if (lower.substr(0, 2) == "dd" || lower.substr(0, 2) == "dq" ||
-      lower.substr(0, 2) == "ds") {
-    return true;
+static auto is_unary_operation(std::string_view operation) -> bool {
+  return std::any_of(
+      std::begin(UNARY_OPERATIONS), std::end(UNARY_OPERATIONS),
+      [operation](const auto name) { return operation == name; });
+}
+
+static auto read_quoted_token(std::istringstream &stream, std::string &token)
+    -> bool {
+  if (!(stream >> token)) {
+    return false;
   }
-  // Skip specific files
-  if (lower.find("randoms") != std::string::npos ||
-      lower.find("randombound") != std::string::npos ||
-      lower == "testall.dectest" || lower == "inexact.dectest" ||
-      lower == "rounding.dectest" || lower == "powersqrt.dectest") {
-    return true;
+  if (!token.empty() && (token.front() == '\'' || token.front() == '"')) {
+    const char quote{token.front()};
+    while (token.back() != quote || token.size() == 1) {
+      std::string next;
+      if (!(stream >> next)) {
+        return false;
+      }
+      token += " " + next;
+    }
   }
-  return false;
+  return true;
 }
 
 static auto parse_test_line(const std::string &line, DecTestCase &test_case)
@@ -428,108 +365,40 @@ static auto parse_test_line(const std::string &line, DecTestCase &test_case)
   std::istringstream stream{line};
   std::string token;
 
-  // Parse test ID
-  if (!(stream >> test_case.id)) {
+  if (!(stream >> test_case.id) || !(stream >> test_case.operation)) {
     return false;
   }
-
-  // Parse operation
-  if (!(stream >> test_case.operation)) {
-    return false;
-  }
-
   if (!is_supported_operation(test_case.operation)) {
     return false;
   }
-
-  // Determine if operation is unary or binary
-  const auto lower_op{to_lower(test_case.operation)};
-  const bool is_unary{lower_op == "minus" || lower_op == "plus" ||
-                      lower_op == "abs" || lower_op == "tointegral" ||
-                      lower_op == "tointegralx" || lower_op == "tosci" ||
-                      lower_op == "toeng"};
-
-  // Parse operand1
-  if (!(stream >> test_case.operand1)) {
+  if (!read_quoted_token(stream, test_case.operand1)) {
     return false;
-  }
-
-  // Handle quoted operands that contain spaces
-  if (!test_case.operand1.empty() && (test_case.operand1.front() == '\'' ||
-                                      test_case.operand1.front() == '"')) {
-    const char quote{test_case.operand1.front()};
-    while (test_case.operand1.back() != quote ||
-           test_case.operand1.size() == 1) {
-      std::string next;
-      if (!(stream >> next)) {
-        return false;
-      }
-      test_case.operand1 += " " + next;
-    }
   }
 
   test_case.operand2.clear();
   test_case.conditions.clear();
 
-  if (is_unary) {
-    // Next token should be "->"
+  if (is_unary_operation(to_lower(test_case.operation))) {
     if (!(stream >> token) || token != "->") {
       return false;
     }
   } else {
-    // Parse operand2
-    if (!(stream >> test_case.operand2)) {
+    if (!read_quoted_token(stream, test_case.operand2)) {
       return false;
     }
-
-    // Handle quoted operand2
-    if (!test_case.operand2.empty() && (test_case.operand2.front() == '\'' ||
-                                        test_case.operand2.front() == '"')) {
-      const char quote{test_case.operand2.front()};
-      while (test_case.operand2.back() != quote ||
-             test_case.operand2.size() == 1) {
-        std::string next;
-        if (!(stream >> next)) {
-          return false;
-        }
-        test_case.operand2 += " " + next;
-      }
-    }
-
-    // Check if operand2 is actually the arrow (for some test formats)
     if (test_case.operand2 == "->") {
-      // Operand2 was the arrow, this is actually unary with no second operand
       test_case.operand2.clear();
-    } else {
-      // Read the arrow
-      if (!(stream >> token) || token != "->") {
-        return false;
-      }
+    } else if (!(stream >> token) || token != "->") {
+      return false;
     }
   }
 
-  // Parse expected result
-  if (!(stream >> test_case.expected)) {
+  if (!read_quoted_token(stream, test_case.expected)) {
     return false;
   }
 
-  // Handle quoted expected result
-  if (!test_case.expected.empty() && (test_case.expected.front() == '\'' ||
-                                      test_case.expected.front() == '"')) {
-    const char quote{test_case.expected.front()};
-    while (test_case.expected.back() != quote ||
-           test_case.expected.size() == 1) {
-      std::string next;
-      if (!(stream >> next)) {
-        return false;
-      }
-      test_case.expected += " " + next;
-    }
-  }
-
-  // Parse conditions (remaining tokens)
   while (stream >> token) {
-    test_case.conditions.push_back(token);
+    test_case.conditions.push_back(std::move(token));
   }
 
   return true;
@@ -537,87 +406,84 @@ static auto parse_test_line(const std::string &line, DecTestCase &test_case)
 
 static auto parse_directive(const std::string &line, DecTestContext &context)
     -> bool {
-  // Directives look like: "precision: 9" or "rounding: half_up"
-  const auto colon_pos{line.find(':')};
-  if (colon_pos == std::string::npos) {
+  const auto colon_position{line.find(':')};
+  if (colon_position == std::string::npos) {
     return false;
   }
 
-  auto key{line.substr(0, colon_pos)};
-  auto value{line.substr(colon_pos + 1)};
+  const std::string_view full_line{line};
+  auto key{full_line.substr(0, colon_position)};
+  auto value{full_line.substr(colon_position + 1)};
 
-  // Trim whitespace from key and value
   while (!key.empty() && key.back() == ' ') {
-    key.pop_back();
+    key.remove_suffix(1);
   }
   while (!value.empty() && value.front() == ' ') {
-    value.erase(value.begin());
+    value.remove_prefix(1);
   }
   while (!value.empty() && value.back() == ' ') {
-    value.pop_back();
+    value.remove_suffix(1);
   }
 
-  const auto lower_key{to_lower(key)};
-
+  const auto lower_key{to_lower(std::string{key})};
   if (lower_key == "precision") {
-    context.precision = std::stoi(value);
+    context.precision = std::stoi(std::string{value});
     return true;
   }
   if (lower_key == "rounding") {
-    context.rounding = to_lower(value);
-    return true;
-  }
-  if (lower_key == "maxexponent" || lower_key == "minexponent" ||
-      lower_key == "extended" || lower_key == "clamp" ||
-      lower_key == "version" || lower_key == "dectest") {
+    context.rounding = to_lower(std::string{value});
     return true;
   }
 
-  return false;
+  return std::any_of(
+      std::begin(KNOWN_DIRECTIVES), std::end(KNOWN_DIRECTIVES),
+      [&lower_key](const auto name) { return lower_key == name; });
+}
+
+// ---------------------------------------------------------------------------
+// Skip logic
+// ---------------------------------------------------------------------------
+
+static auto should_skip_file(const std::string &filename) -> bool {
+  const auto lower{to_lower(filename)};
+  if (lower.starts_with("dd") || lower.starts_with("dq") ||
+      lower.starts_with("ds")) {
+    return true;
+  }
+  return lower.find("randoms") != std::string::npos ||
+         lower.find("randombound") != std::string::npos ||
+         lower == "testall.dectest" || lower == "inexact.dectest" ||
+         lower == "rounding.dectest" || lower == "powersqrt.dectest";
 }
 
 static auto should_skip_test(const DecTestCase &test_case,
                              const DecTestContext &context) -> bool {
   const auto operation{to_lower(test_case.operation)};
 
-  // Skip if any operand or expected contains hex encoding
-  if (contains_hex(test_case.operand1) || contains_hex(test_case.operand2) ||
-      contains_hex(test_case.expected)) {
+  if (test_case.operand1.find('#') != std::string::npos ||
+      test_case.operand2.find('#') != std::string::npos ||
+      test_case.expected.find('#') != std::string::npos) {
     return true;
   }
 
-  // TODO: Our Decimal class does not distinguish signaling NaN from
-  // quiet NaN. Re-enable these tests if sNaN support is added.
-  if (is_snan(test_case.operand1) || is_snan(test_case.operand2)) {
+  if (is_unsupported_nan(test_case.operand1) ||
+      is_unsupported_nan(test_case.operand2)) {
     return true;
   }
 
-  // TODO: Our Decimal class does not support NaN diagnostic payloads
-  // (e.g. NaN9, NaN77). Re-enable these tests if payload support is added.
-  if (is_nan_with_payload(test_case.operand1) ||
-      is_nan_with_payload(test_case.operand2)) {
-    return true;
-  }
-
-  // TODO: Our Decimal context uses emax/emin = ±999999, which is smaller
-  // than the extreme exponents used in some tests (e.g. 1e999999999).
-  // These tests would overflow/underflow in our context. Consider
-  // widening the exponent range if needed.
   if (has_extreme_exponent(test_case.operand1) ||
       has_extreme_exponent(test_case.operand2) ||
       has_extreme_exponent(test_case.expected)) {
     return true;
   }
 
-  // For compare, allow all remaining tests
   if (operation == "compare") {
     return false;
   }
 
   // TODO: Our Decimal context is fixed at 16-digit precision. Tests
   // expecting results with more significant digits would produce
-  // different (truncated) results in our context. Re-enable if precision
-  // is made configurable.
+  // different (truncated) results in our context.
   if (count_significant_digits(test_case.expected) > 16) {
     return true;
   }
@@ -629,28 +495,24 @@ static auto should_skip_test(const DecTestCase &test_case,
     if (context.rounding != "half_even") {
       return true;
     }
-    return has_skip_condition(test_case.conditions);
   }
 
-  // For tosci and toeng, skip precision-dependent results
-  if (operation == "tosci" || operation == "toeng") {
-    return has_skip_condition(test_case.conditions);
-  }
-
-  // For arithmetic and unary operations, skip precision-dependent tests
   return has_skip_condition(test_case.conditions);
 }
 
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
 static auto sanitize_test_name(const std::string &name) -> std::string {
   std::string result;
-  for (const auto character : name) {
-    if (std::isalnum(static_cast<unsigned char>(character)) ||
-        character == '_') {
-      result += character;
-    } else {
-      result += '_';
-    }
-  }
+  result.reserve(name.size());
+  std::transform(name.begin(), name.end(), std::back_inserter(result),
+                 [](unsigned char character) -> char {
+                   return std::isalnum(character) || character == '_'
+                              ? static_cast<char>(character)
+                              : '_';
+                 });
   return result;
 }
 
@@ -667,53 +529,35 @@ auto main(int argc, char **argv) -> int {
     }
 
     const auto filepath{entry.path()};
-    const auto filename{filepath.filename().string()};
-
     if (filepath.extension() != ".decTest") {
       continue;
     }
-
-    if (should_skip_file(filename)) {
+    if (should_skip_file(filepath.filename().string())) {
       continue;
     }
 
-    // Derive suite name from filename (without extension)
-    const auto stem{filepath.stem().string()};
-    const auto suite_name{"DecTest_" + sanitize_test_name(stem)};
+    const auto suite_name{"DecTest_" +
+                          sanitize_test_name(filepath.stem().string())};
 
-    std::ifstream file{filepath};
-    if (!file.is_open()) {
-      std::cerr << "Failed to open: " << filepath << "\n";
-      continue;
-    }
-
+    auto file{sourcemeta::core::read_file(filepath)};
     DecTestContext context;
     std::string line;
 
     while (std::getline(file, line)) {
-      // Skip empty lines
-      if (line.empty()) {
+      if (line.empty() || line.starts_with("--")) {
         continue;
       }
 
-      // Skip comment lines
-      if (line.size() >= 2 && line[0] == '-' && line[1] == '-') {
-        continue;
-      }
-
-      // Trim leading whitespace
       auto start{line.find_first_not_of(" \t")};
       if (start == std::string::npos) {
         continue;
       }
       line = line.substr(start);
 
-      // Try to parse as directive
       if (parse_directive(line, context)) {
         continue;
       }
 
-      // Try to parse as test case
       DecTestCase test_case;
       if (!parse_test_line(line, test_case)) {
         continue;

@@ -11,4 +11,4 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME ibm_dectest
 target_compile_definitions(sourcemeta_core_ibm_dectest_unit
   PRIVATE DECTEST_PATH="${CMAKE_CURRENT_SOURCE_DIR}/dectest")
 target_link_libraries(sourcemeta_core_ibm_dectest_unit
-  PRIVATE sourcemeta::core::numeric)
+  PRIVATE sourcemeta::core::numeric sourcemeta::core::io)
