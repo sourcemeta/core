@@ -1483,7 +1483,7 @@ TEST(Numeric_decimal, exception_invalid_operation_zero_modulo_zero) {
 }
 
 TEST(Numeric_decimal, exception_overflow_multiplication) {
-  const sourcemeta::core::Decimal large{"9e999999"};
+  const sourcemeta::core::Decimal large{"9e999999999999999999"};
   const sourcemeta::core::Decimal multiplier{10};
   EXPECT_THROW(
       { const auto result = large * multiplier; },
@@ -1491,8 +1491,8 @@ TEST(Numeric_decimal, exception_overflow_multiplication) {
 }
 
 TEST(Numeric_decimal, exception_overflow_addition) {
-  const sourcemeta::core::Decimal large{"9e999999"};
-  const sourcemeta::core::Decimal addend{"9e999999"};
+  const sourcemeta::core::Decimal large{"9e999999999999999999"};
+  const sourcemeta::core::Decimal addend{"9e999999999999999999"};
   EXPECT_THROW(
       { const auto result = large + addend; },
       sourcemeta::core::NumericOverflowError);
