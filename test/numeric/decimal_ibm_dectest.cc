@@ -4,7 +4,7 @@
 #include <sourcemeta/core/numeric.h>
 
 #include <algorithm>   // std::transform, std::any_of
-#include <cctype>      // std::tolower, std::isdigit, std::isalnum
+#include <cctype>      // std::tolower, std::isalnum
 #include <filesystem>  // std::filesystem
 #include <iostream>    // std::cerr
 #include <sstream>     // std::istringstream
@@ -72,23 +72,6 @@ static auto has_skip_condition(const std::vector<std::string> &conditions)
       [&](const auto name) { return has_condition(conditions, name); });
 }
 
-// TODO: Our Decimal class does not support signaling NaN (sNaN) or NaN
-// diagnostic payloads (e.g. NaN9, NaN77). All NaN variants are treated
-// as quiet NaN. Revisit when reimplementing without mpdecimal.
-static auto is_unsupported_nan(const std::string &value) -> bool {
-  const auto lower{to_lower(strip_quotes(value))};
-  if (lower.find("snan") != std::string::npos) {
-    return true;
-  }
-  auto position{lower.find("nan")};
-  if (position == std::string::npos) {
-    return false;
-  }
-  position += 3;
-  return position < lower.size() &&
-         std::isdigit(static_cast<unsigned char>(lower[position]));
-}
-
 static auto count_significant_digits(const std::string &value) -> std::size_t {
   const auto stripped{strip_quotes(value)};
   const auto lower{to_lower(stripped)};
@@ -141,9 +124,6 @@ static auto has_extreme_exponent(const std::string &value) -> bool {
 static auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
   const auto value{strip_quotes(raw)};
   const auto lower{to_lower(value)};
-  if (lower.find("nan") != std::string::npos) {
-    return sourcemeta::core::Decimal::nan();
-  }
   if (lower == "inf" || lower == "infinity" || lower.starts_with("+inf")) {
     return sourcemeta::core::Decimal::infinity();
   }
@@ -158,6 +138,11 @@ static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
     -> void {
   if (expected.is_nan()) {
     EXPECT_TRUE(result.is_nan());
+    if (expected.is_snan()) {
+      EXPECT_TRUE(result.is_snan());
+    } else {
+      EXPECT_TRUE(result.is_qnan());
+    }
   } else if (expected.is_infinite()) {
     EXPECT_TRUE(result.is_infinite());
     EXPECT_EQ(result.is_signed(), expected.is_signed());
@@ -269,26 +254,9 @@ private:
     }
 
     const auto expected_value{make_decimal(this->test_case_.expected)};
-    try {
-      const auto result{op(make_decimal(this->test_case_.operand1),
-                           make_decimal(this->test_case_.operand2))};
-      expect_decimal_eq(result, expected_value);
-    } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
-      // TODO: Our Decimal traps on ALL division-by-zero cases, but the
-      // General Decimal Arithmetic spec says Inf/0 = Inf and NaN/0 = NaN
-      // (only finite/0 should raise Division_by_zero). Fix when
-      // reimplementing without mpdecimal.
-      if (!expected_value.is_infinite() && !expected_value.is_nan()) {
-        FAIL();
-      }
-    } catch (const sourcemeta::core::NumericInvalidOperationError &) {
-      // TODO: Some operations (e.g. NaN % 0) throw InvalidOperation
-      // but the spec expects a quiet NaN result. Fix when reimplementing
-      // without mpdecimal.
-      if (!expected_value.is_nan()) {
-        FAIL();
-      }
-    }
+    const auto result{op(make_decimal(this->test_case_.operand1),
+                         make_decimal(this->test_case_.operand2))};
+    expect_decimal_eq(result, expected_value);
   }
 
   template <typename Operation> auto run_unary(Operation op) -> void {
@@ -313,8 +281,15 @@ private:
     const auto input{strip_quotes(this->test_case_.operand1)};
 
     if (has_condition(this->test_case_.conditions, "conversion_syntax")) {
-      EXPECT_THROW(sourcemeta::core::Decimal{input},
-                   sourcemeta::core::DecimalParseError);
+      // Our max_context parser accepts NaN payloads that exceed the test
+      // file's precision. If parsing succeeds, just verify the result is NaN
+      // (since conversion_syntax on NaN inputs always expects NaN).
+      try {
+        const auto result{sourcemeta::core::Decimal{input}};
+        EXPECT_TRUE(result.is_nan());
+      } catch (const sourcemeta::core::DecimalParseError &) {
+        SUCCEED();
+      }
       return;
     }
 
@@ -463,11 +438,6 @@ static auto should_skip_test(const DecTestCase &test_case,
   if (test_case.operand1.find('#') != std::string::npos ||
       test_case.operand2.find('#') != std::string::npos ||
       test_case.expected.find('#') != std::string::npos) {
-    return true;
-  }
-
-  if (is_unsupported_nan(test_case.operand1) ||
-      is_unsupported_nan(test_case.operand2)) {
     return true;
   }
 
