@@ -29,8 +29,8 @@ static auto transformer_callback_trace(TestTransformTraces &traces) -> auto {
 
 TEST(JSONSchema_transformer, flat_document_no_applicators) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -68,7 +68,7 @@ TEST(JSONSchema_transformer, flat_document_no_applicators) {
 
 TEST(JSONSchema_transformer, embedded_resource_match_check) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   // Framing will register the nested schemas from the point of view of BOTH the
   // root and the embedded resources, and thus we might be linting the same
@@ -103,7 +103,7 @@ TEST(JSONSchema_transformer, embedded_resource_match_check) {
 
 TEST(JSONSchema_transformer, embedded_resource_match_check_with_default_id) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -136,8 +136,8 @@ TEST(JSONSchema_transformer, embedded_resource_match_check_with_default_id) {
 
 TEST(JSONSchema_transformer, embedded_resource_vocabularies_check) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDraftTag>();
-  bundle.add<ExampleRuleModernTag>();
+  EXPECT_EQ(bundle.add<ExampleRuleDraftTag>(), "example_rule_draft_tag");
+  EXPECT_EQ(bundle.add<ExampleRuleModernTag>(), "example_rule_modern_tag");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -177,8 +177,8 @@ TEST(JSONSchema_transformer, embedded_resource_vocabularies_check) {
 
 TEST(JSONSchema_transformer, embedded_resource_vocabularies_apply) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDraftTag>();
-  bundle.add<ExampleRuleModernTag>();
+  EXPECT_EQ(bundle.add<ExampleRuleDraftTag>(), "example_rule_draft_tag");
+  EXPECT_EQ(bundle.add<ExampleRuleModernTag>(), "example_rule_modern_tag");
 
   auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -227,8 +227,8 @@ TEST(JSONSchema_transformer, embedded_resource_vocabularies_apply) {
 
 TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "foo": "bar",
@@ -254,8 +254,8 @@ TEST(JSONSchema_transformer, throw_if_no_dialect_invalid_default) {
 
 TEST(JSONSchema_transformer, with_default_dialect) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "foo": "bar",
@@ -292,8 +292,8 @@ TEST(JSONSchema_transformer, with_default_dialect) {
 
 TEST(JSONSchema_transformer, with_explicit_default_dialect_same) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -332,8 +332,9 @@ TEST(JSONSchema_transformer, with_explicit_default_dialect_same) {
 
 TEST(JSONSchema_transformer, throw_on_rules_called_twice) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRuleConflictsWith1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRuleConflictsWith1>(),
+            "example_rule_conflicts_with_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -357,7 +358,7 @@ TEST(JSONSchema_transformer, throw_on_rules_called_twice) {
 
 TEST(JSONSchema_transformer, top_level_rule) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule3>();
+  EXPECT_EQ(bundle.add<ExampleRule3>(), "example_rule_3");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -393,7 +394,7 @@ TEST(JSONSchema_transformer, top_level_rule) {
 
 TEST(JSONSchema_transformer, walker_2020_12) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule4>();
+  EXPECT_EQ(bundle.add<ExampleRule4>(), "example_rule_4");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -446,7 +447,7 @@ TEST(JSONSchema_transformer, walker_2020_12) {
 
 TEST(JSONSchema_transformer, mismatch_default_dialect) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule4>();
+  EXPECT_EQ(bundle.add<ExampleRule4>(), "example_rule_4");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -500,7 +501,7 @@ TEST(JSONSchema_transformer, mismatch_default_dialect) {
 
 TEST(JSONSchema_transformer, rule_pointers) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule5>();
+  EXPECT_EQ(bundle.add<ExampleRule5>(), "example_rule_5");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -540,7 +541,7 @@ TEST(JSONSchema_transformer, rule_pointers) {
 
 TEST(JSONSchema_transformer, multi_dialect_rules) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule4>();
+  EXPECT_EQ(bundle.add<ExampleRule4>(), "example_rule_4");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -595,7 +596,7 @@ TEST(JSONSchema_transformer, multi_dialect_rules) {
 
 TEST(JSONSchema_transformer, dialect_specific_rules) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule6>();
+  EXPECT_EQ(bundle.add<ExampleRule6>(), "example_rule_6");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
@@ -654,7 +655,7 @@ TEST(JSONSchema_transformer, dialect_specific_rules) {
 
 TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule6>();
+  EXPECT_EQ(bundle.add<ExampleRule6>(), "example_rule_6");
 
   // Note that `$schema` is only valid on subschemas that represent
   // schema resources. Here we test that if not, `$schema` is ignored
@@ -692,8 +693,8 @@ TEST(JSONSchema_transformer, dialect_specific_rules_without_ids) {
 
 TEST(JSONSchema_transformer, check_top_level) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1WithPointer>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1WithPointer>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -736,7 +737,7 @@ TEST(JSONSchema_transformer, check_top_level) {
 
 TEST(JSONSchema_transformer, check_top_level_with_id) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -764,7 +765,7 @@ TEST(JSONSchema_transformer, check_top_level_with_id) {
 
 TEST(JSONSchema_transformer, check_top_level_with_id_and_default_id) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -793,7 +794,8 @@ TEST(JSONSchema_transformer, check_top_level_with_id_and_default_id) {
 
 TEST(JSONSchema_transformer, check_multiple_pointers) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleWithManyPointers>();
+  EXPECT_EQ(bundle.add<ExampleRuleWithManyPointers>(),
+            "example_rule_with_many_pointers");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -827,7 +829,7 @@ TEST(JSONSchema_transformer, check_multiple_pointers) {
 
 TEST(JSONSchema_transformer, check_with_description) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1WithDescription>();
+  EXPECT_EQ(bundle.add<ExampleRule1WithDescription>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -859,8 +861,8 @@ TEST(JSONSchema_transformer, check_with_description) {
 
 TEST(JSONSchema_transformer, check_no_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -884,7 +886,7 @@ TEST(JSONSchema_transformer, check_no_match) {
 
 TEST(JSONSchema_transformer, check_partial_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -941,8 +943,8 @@ TEST(JSONSchema_transformer, check_empty) {
 
 TEST(JSONSchema_transformer, check_throw_if_no_dialect_invalid_default) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "foo": "bar",
@@ -958,8 +960,8 @@ TEST(JSONSchema_transformer, check_throw_if_no_dialect_invalid_default) {
 
 TEST(JSONSchema_transformer, check_with_default_dialect) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "foo": "bar",
@@ -999,8 +1001,8 @@ TEST(JSONSchema_transformer, check_with_default_dialect) {
 
 TEST(JSONSchema_transformer, remove_rule_by_name) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1038,7 +1040,7 @@ TEST(JSONSchema_transformer, remove_rule_by_name) {
 
 TEST(JSONSchema_transformer, unfixable_apply) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleUnfixable1>();
+  EXPECT_EQ(bundle.add<ExampleRuleUnfixable1>(), "example_rule_unfixable_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1075,7 +1077,7 @@ TEST(JSONSchema_transformer, unfixable_apply) {
 
 TEST(JSONSchema_transformer, unfixable_check) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleUnfixable1>();
+  EXPECT_EQ(bundle.add<ExampleRuleUnfixable1>(), "example_rule_unfixable_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1102,7 +1104,8 @@ TEST(JSONSchema_transformer, unfixable_check) {
 
 TEST(JSONSchema_transformer, rereference_not_hit) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsNoRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsNoRereference>(),
+            "example_rule_definitions_to_defs_no_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1142,7 +1145,8 @@ TEST(JSONSchema_transformer, rereference_not_hit) {
 
 TEST(JSONSchema_transformer, rereference_not_fixed_ref) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsNoRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsNoRereference>(),
+            "example_rule_definitions_to_defs_no_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1194,7 +1198,8 @@ TEST(JSONSchema_transformer, rereference_not_fixed_ref) {
 
 TEST(JSONSchema_transformer, rereference_not_fixed_id) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleRemoveIdentifiers>();
+  EXPECT_EQ(bundle.add<ExampleRuleRemoveIdentifiers>(),
+            "example_rule_remove_identifiers");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1239,7 +1244,8 @@ TEST(JSONSchema_transformer, rereference_not_fixed_id) {
 
 TEST(JSONSchema_transformer, rereference_not_fixed_anchor) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleRemoveIdentifiers>();
+  EXPECT_EQ(bundle.add<ExampleRuleRemoveIdentifiers>(),
+            "example_rule_remove_identifiers");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1281,7 +1287,8 @@ TEST(JSONSchema_transformer, rereference_not_fixed_anchor) {
 
 TEST(JSONSchema_transformer, rereference_fixed_1) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1323,7 +1330,8 @@ TEST(JSONSchema_transformer, rereference_fixed_1) {
 
 TEST(JSONSchema_transformer, rereference_fixed_2) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1367,7 +1375,8 @@ TEST(JSONSchema_transformer, rereference_fixed_2) {
 
 TEST(JSONSchema_transformer, rereference_fixed_3) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1413,7 +1422,8 @@ TEST(JSONSchema_transformer, rereference_fixed_3) {
 
 TEST(JSONSchema_transformer, rereference_fixed_4) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1459,7 +1469,8 @@ TEST(JSONSchema_transformer, rereference_fixed_4) {
 
 TEST(JSONSchema_transformer, rereference_fixed_5) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1514,7 +1525,8 @@ TEST(JSONSchema_transformer, rereference_fixed_5) {
 
 TEST(JSONSchema_transformer, rereference_fixed_6) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1573,7 +1585,8 @@ TEST(JSONSchema_transformer, rereference_fixed_6) {
 
 TEST(JSONSchema_transformer, rereference_fixed_7) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRuleDefinitionsToDefsWithRereference>();
+  EXPECT_EQ(bundle.add<ExampleRuleDefinitionsToDefsWithRereference>(),
+            "example_rule_definitions_to_defs_with_rereference");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1649,9 +1662,9 @@ TEST(JSONSchema_transformer, rereference_fixed_7) {
 
 TEST(JSONSchema_transformer, iterators) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
-  bundle.add<ExampleRule3>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
+  EXPECT_EQ(bundle.add<ExampleRule3>(), "example_rule_3");
 
   std::set<std::string_view> rules;
   for (const auto &rule : bundle) {
@@ -1666,7 +1679,7 @@ TEST(JSONSchema_transformer, iterators) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_string_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1687,7 +1700,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_string_match) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_string_no_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1709,7 +1722,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_string_no_match) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_array_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1730,7 +1743,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_array_match) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_array_multiple_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1751,7 +1764,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_array_multiple_match) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_array_no_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1773,7 +1786,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_array_no_match) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_wrong_type) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1795,7 +1808,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_wrong_type) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_nested_only) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1823,8 +1836,8 @@ TEST(JSONSchema_transformer, check_exclude_keyword_nested_only) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_multiple_rules) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1847,7 +1860,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_multiple_rules) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_no_keyword_set) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1868,7 +1881,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_no_keyword_set) {
 
 TEST(JSONSchema_transformer, apply_exclude_keyword_string_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1890,7 +1903,7 @@ TEST(JSONSchema_transformer, apply_exclude_keyword_string_match) {
 
 TEST(JSONSchema_transformer, apply_exclude_keyword_string_no_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1918,7 +1931,7 @@ TEST(JSONSchema_transformer, apply_exclude_keyword_string_no_match) {
 
 TEST(JSONSchema_transformer, apply_exclude_keyword_array_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1940,8 +1953,8 @@ TEST(JSONSchema_transformer, apply_exclude_keyword_array_match) {
 
 TEST(JSONSchema_transformer, apply_exclude_keyword_array_multiple_match) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
-  bundle.add<ExampleRule2>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
+  EXPECT_EQ(bundle.add<ExampleRule2>(), "example_rule_2");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1965,7 +1978,7 @@ TEST(JSONSchema_transformer, apply_exclude_keyword_array_multiple_match) {
 
 TEST(JSONSchema_transformer, apply_exclude_keyword_nested_selective) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1998,7 +2011,7 @@ TEST(JSONSchema_transformer, apply_exclude_keyword_nested_selective) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_empty_string) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2020,7 +2033,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_empty_string) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_empty_array) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2042,7 +2055,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_empty_array) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_boolean) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2064,7 +2077,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_boolean) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_null) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2086,7 +2099,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_null) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_object) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2108,7 +2121,7 @@ TEST(JSONSchema_transformer, check_exclude_keyword_object) {
 
 TEST(JSONSchema_transformer, check_exclude_keyword_array_with_non_strings) {
   sourcemeta::core::SchemaTransformer bundle;
-  bundle.add<ExampleRule1>();
+  EXPECT_EQ(bundle.add<ExampleRule1>(), "example_rule_1");
 
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
