@@ -557,6 +557,30 @@ static void JSON_Object_Defines_Miss_Too_Large(benchmark::State &state) {
   }
 }
 
+static void JSON_Divisible_By_Decimal(benchmark::State &state) {
+  const auto value_1{
+      sourcemeta::core::parse_json("123456789012345678901234567890")};
+  const auto value_2{sourcemeta::core::parse_json("100.00")};
+  const auto value_3{
+      sourcemeta::core::parse_json("999999999999999999999999999999")};
+  const auto value_4{sourcemeta::core::parse_json("1e309")};
+  const auto divisor_1{sourcemeta::core::parse_json("10")};
+  const auto divisor_2{sourcemeta::core::parse_json("0.01")};
+  const auto divisor_3{sourcemeta::core::parse_json("3")};
+  const auto divisor_4{sourcemeta::core::parse_json("1e100")};
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(value_1.divisible_by(divisor_1));
+    benchmark::DoNotOptimize(value_2.divisible_by(divisor_2));
+    benchmark::DoNotOptimize(value_3.divisible_by(divisor_3));
+    benchmark::DoNotOptimize(value_4.divisible_by(divisor_4));
+    benchmark::DoNotOptimize(value_1.divisible_by(divisor_3));
+    benchmark::DoNotOptimize(value_2.divisible_by(divisor_1));
+    benchmark::DoNotOptimize(value_3.divisible_by(divisor_2));
+    benchmark::DoNotOptimize(value_4.divisible_by(divisor_1));
+  }
+}
+
 BENCHMARK(JSON_Array_Of_Objects_Unique);
 BENCHMARK(JSON_Parse_1);
 BENCHMARK(JSON_Parse_Real);
@@ -564,6 +588,7 @@ BENCHMARK(JSON_Parse_Decimal);
 BENCHMARK(JSON_Parse_Schema_ISO_Language);
 BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock);
 BENCHMARK(JSON_Equality_Helm_Chart_Lock);
+BENCHMARK(JSON_Divisible_By_Decimal);
 BENCHMARK(JSON_String_Equal)->Args({10})->Args({100});
 BENCHMARK(JSON_String_Equal_Small_By_Perfect_Hash)->Args({10});
 BENCHMARK(JSON_String_Equal_Small_By_Runtime_Perfect_Hash)->Args({10});
