@@ -233,10 +233,8 @@ public:
   [[nodiscard]] auto operator>=(const Decimal &other) const -> bool;
 
 private:
-  // Inspired by Java BigDecimal's dual-path design: for >18 digit
-  // coefficients, coefficient_ stores a pointer to a heap-allocated
-  // BigCoefficient via memcpy
   std::int64_t coefficient_{0};
+  std::uint64_t coefficient_hi_{0};
   std::int32_t exponent_{0};
   std::uint8_t flags_{0};
 };

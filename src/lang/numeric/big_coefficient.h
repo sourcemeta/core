@@ -2,6 +2,7 @@
 #define SOURCEMETA_CORE_NUMERIC_BIG_COEFFICIENT_H_
 
 #include <algorithm> // std::max, std::copy, std::fill
+#include <array>     // std::array
 #include <cstdint>   // std::int32_t, std::int64_t, std::uint32_t,
                      // std::uint64_t, std::uintptr_t, std::uint8_t
 #include <cstring>   // std::memcpy
@@ -21,11 +22,12 @@ constexpr std::uint8_t FLAG_NAN = 0x02;
 constexpr std::uint8_t FLAG_SNAN = 0x04;
 constexpr std::uint8_t FLAG_INFINITE = 0x08;
 constexpr std::uint8_t FLAG_BIG = 0x10;
+constexpr std::uint8_t FLAG_HEAP = 0x20;
 
 constexpr std::uint8_t SPECIAL_MASK =
     FLAG_NAN | FLAG_SNAN | FLAG_INFINITE | FLAG_BIG;
 
-constexpr std::uint64_t POWERS_OF_10[] = {
+constexpr std::array<std::uint64_t, 20> POWERS_OF_10 = {{
     1ULL,                    // 10^0
     10ULL,                   // 10^1
     100ULL,                  // 10^2
@@ -46,7 +48,7 @@ constexpr std::uint64_t POWERS_OF_10[] = {
     100000000000000000ULL,   // 10^17
     1000000000000000000ULL,  // 10^18
     10000000000000000000ULL, // 10^19
-};
+}};
 
 constexpr std::uint64_t BASE = 1000000000000000000ULL; // 10^18
 constexpr std::int32_t BASE_DIGITS = 18;
@@ -119,7 +121,7 @@ auto big_multiply_pow10(const BigCoefficient *source, std::uint32_t power)
   result->length = source->length + full_words;
 
   if (residual > 0) {
-    auto multiplier = POWERS_OF_10[residual];
+    auto multiplier = POWERS_OF_10[static_cast<std::uint32_t>(residual)];
     uint128_t carry = 0;
     for (std::uint32_t index = full_words; index < result->length; index++) {
       auto product =
@@ -425,34 +427,55 @@ auto digit_count(std::uint64_t value) -> std::uint32_t {
 }
 
 auto store_big_pointer(std::int64_t &coefficient, BigCoefficient *big) -> void {
-  auto as_unsigned_integer = reinterpret_cast<std::uintptr_t>(big);
-  std::memcpy(&coefficient, &as_unsigned_integer, sizeof(coefficient));
+  // NOLINTNEXTLINE(performance-no-int-to-ptr)
+  auto as_integer = reinterpret_cast<std::uintptr_t>(big);
+  std::memcpy(&coefficient, &as_integer, sizeof(coefficient));
 }
 
 auto load_big_pointer(std::int64_t coefficient) -> BigCoefficient * {
-  std::uintptr_t as_unsigned_integer;
-  std::memcpy(&as_unsigned_integer, &coefficient, sizeof(as_unsigned_integer));
-  return reinterpret_cast<BigCoefficient *>(as_unsigned_integer);
+  std::uintptr_t as_integer;
+  std::memcpy(&as_integer, &coefficient, sizeof(as_integer));
+  // NOLINTNEXTLINE(performance-no-int-to-ptr)
+  return reinterpret_cast<BigCoefficient *>(as_integer);
+}
+
+auto coefficient_to_digit_string(std::int64_t coefficient,
+                                 std::uint64_t coefficient_hi,
+                                 std::uint8_t flags) -> std::string {
+  if (flags & FLAG_HEAP) {
+    return big_to_string(load_big_pointer(coefficient));
+  }
+  if (flags & FLAG_BIG) {
+    auto high_string = std::to_string(coefficient_hi);
+    auto low_string = std::to_string(static_cast<std::uint64_t>(coefficient));
+    std::string result = high_string;
+    result.append(static_cast<std::size_t>(BASE_DIGITS) - low_string.size(),
+                  '0');
+    result += low_string;
+    return result;
+  }
+  return std::to_string(coefficient);
 }
 
 // Round-half-even (banker's rounding) to WORKING_PRECISION significant digits
 constexpr std::int32_t WORKING_PRECISION = 16;
 
-auto round_to_precision(std::int64_t &coefficient, std::int32_t &exponent,
+auto round_to_precision(std::int64_t &coefficient,
+                        std::uint64_t &coefficient_hi, std::int32_t &exponent,
                         std::uint8_t &flags) -> void {
   if (flags & (FLAG_NAN | FLAG_SNAN | FLAG_INFINITE)) {
     return;
   }
 
   if (flags & FLAG_BIG) {
-    auto *big = load_big_pointer(coefficient);
-    auto total_digits = static_cast<std::int32_t>(big_digit_count(big));
+    auto digit_string =
+        coefficient_to_digit_string(coefficient, coefficient_hi, flags);
+    auto total_digits = static_cast<std::int32_t>(digit_string.size());
     if (total_digits <= WORKING_PRECISION) {
       return;
     }
 
     auto excess = total_digits - WORKING_PRECISION;
-    auto digit_string = big_to_string(big);
 
     auto kept =
         digit_string.substr(0, static_cast<std::size_t>(WORKING_PRECISION));
@@ -479,7 +502,9 @@ auto round_to_precision(std::int64_t &coefficient, std::int32_t &exponent,
       }
     }
 
-    big_free(big);
+    if (flags & FLAG_HEAP) {
+      big_free(load_big_pointer(coefficient));
+    }
 
     std::int64_t new_coefficient = 0;
     for (auto character : kept) {
@@ -490,8 +515,9 @@ auto round_to_precision(std::int64_t &coefficient, std::int32_t &exponent,
     }
 
     coefficient = new_coefficient;
+    coefficient_hi = 0;
     exponent += excess;
-    flags = static_cast<std::uint8_t>(flags & ~FLAG_BIG);
+    flags = static_cast<std::uint8_t>(flags & ~(FLAG_BIG | FLAG_HEAP));
     return;
   }
 
@@ -515,19 +541,12 @@ auto round_to_precision(std::int64_t &coefficient, std::int32_t &exponent,
   }
 
   coefficient = quotient;
+  coefficient_hi = 0;
   exponent += excess;
 }
 
-auto coefficient_to_digit_string(std::int64_t coefficient, std::uint8_t flags)
-    -> std::string {
-  if (flags & FLAG_BIG) {
-    return big_to_string(load_big_pointer(coefficient));
-  }
-  return std::to_string(coefficient);
-}
-
 void free_big_coefficient(std::int64_t coefficient, std::uint8_t flags) {
-  if (flags & FLAG_BIG) {
+  if (flags & FLAG_HEAP) {
     big_free(load_big_pointer(coefficient));
   }
 }
@@ -545,10 +564,17 @@ auto big_to_uint128(const BigCoefficient *big, std::int32_t exponent)
   return value;
 }
 
-auto coefficient_as_big(std::int64_t coefficient, std::uint8_t flags)
-    -> BigCoefficient * {
-  if (flags & FLAG_BIG) {
+auto coefficient_as_big(std::int64_t coefficient, std::uint64_t coefficient_hi,
+                        std::uint8_t flags) -> BigCoefficient * {
+  if (flags & FLAG_HEAP) {
     return big_clone(load_big_pointer(coefficient));
+  }
+  if (flags & FLAG_BIG) {
+    auto *result = big_allocate(2);
+    result->words[0] = static_cast<std::uint64_t>(coefficient);
+    result->words[1] = coefficient_hi;
+    result->length = coefficient_hi > 0 ? 2 : 1;
+    return result;
   }
   return big_from_uint64(static_cast<std::uint64_t>(coefficient));
 }
@@ -578,26 +604,37 @@ auto big_add_signed(BigCoefficient *left, BigCoefficient *right,
                     bool left_negative, bool right_negative)
     -> BigAddSignedResult {
   if (left_negative == right_negative) {
-    return {big_add(left, right), left_negative};
+    return {.coefficient = big_add(left, right), .is_negative = left_negative};
   }
   auto comparison = big_compare(left, right);
   if (comparison >= 0) {
-    return {big_subtract(left, right), left_negative};
+    return {.coefficient = big_subtract(left, right),
+            .is_negative = left_negative};
   }
-  return {big_subtract(right, left), right_negative};
+  return {.coefficient = big_subtract(right, left),
+          .is_negative = right_negative};
 }
 
-void store_big_result(std::int64_t &coefficient, std::uint8_t &flags,
-                      BigCoefficient *result_big, bool result_negative) {
+void store_big_result(std::int64_t &coefficient, std::uint64_t &coefficient_hi,
+                      std::uint8_t &flags, BigCoefficient *result_big,
+                      bool result_negative) {
   if (result_big->length <= 1 &&
       result_big->words[0] <= static_cast<std::uint64_t>(COMPACT_MAX)) {
     coefficient = static_cast<std::int64_t>(result_big->words[0]);
+    coefficient_hi = 0;
     flags = result_negative ? FLAG_SIGN : 0;
+    big_free(result_big);
+  } else if (result_big->length <= 2) {
+    coefficient = static_cast<std::int64_t>(result_big->words[0]);
+    coefficient_hi = result_big->length > 1 ? result_big->words[1] : 0;
+    flags =
+        static_cast<std::uint8_t>(FLAG_BIG | (result_negative ? FLAG_SIGN : 0));
     big_free(result_big);
   } else {
     store_big_pointer(coefficient, result_big);
-    flags =
-        static_cast<std::uint8_t>(FLAG_BIG | (result_negative ? FLAG_SIGN : 0));
+    coefficient_hi = 0;
+    flags = static_cast<std::uint8_t>(FLAG_BIG | FLAG_HEAP |
+                                      (result_negative ? FLAG_SIGN : 0));
   }
 }
 

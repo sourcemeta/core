@@ -180,13 +180,28 @@ inline auto construct_number(const char *data, const std::uint32_t length)
     }
   }
 
-  const typename JSON::String string_value{data, length};
-  const auto int_result{sourcemeta::core::to_int64_t(string_value)};
-  if (int_result.has_value()) {
-    return JSON{int_result.value()};
+  auto digit_length = length;
+  if (digit_length > 0 && data[0] == '-') {
+    digit_length--;
   }
+
+  if (digit_length <= 19) {
+    const typename JSON::String string_value{data, length};
+    const auto int_result{sourcemeta::core::to_int64_t(string_value)};
+    if (int_result.has_value()) {
+      return JSON{int_result.value()};
+    }
+    try {
+      return JSON{Decimal{string_value}};
+    } catch (const DecimalParseError &) {
+      throw JSONParseError(1, 1);
+    } catch (const std::invalid_argument &) {
+      throw JSONParseError(1, 1);
+    }
+  }
+
   try {
-    return JSON{Decimal{string_value}};
+    return JSON{Decimal{std::string_view{data, length}}};
   } catch (const DecimalParseError &) {
     throw JSONParseError(1, 1);
   } catch (const std::invalid_argument &) {
