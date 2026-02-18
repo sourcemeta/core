@@ -73,7 +73,6 @@ if(SOURCEMETA_CORE_LANG_PARALLEL)
 endif()
 
 if(SOURCEMETA_CORE_LANG_NUMERIC)
-  find_package(mpdecimal REQUIRED)
   add_subdirectory(src/lang/numeric)
 endif()
 

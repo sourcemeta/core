@@ -274,8 +274,8 @@ inline auto construct_json(const char *buffer,
       return value;
     }
     case TapeType::Number: {
-      auto value{
-          internal::construct_number(buffer + entry.offset, entry.length)};
+      auto value =
+          internal::construct_number(buffer + entry.offset, entry.length);
       if (value.is_integer()) {
         CALLBACK_PRE(Integer, entry, JSON::ParseContext::Root, 0,
                      JSON::StringView{});
@@ -390,8 +390,8 @@ do_construct_array_item: {
       goto do_construct_array_item_separator;
     case TapeType::Number: {
       const auto current_index{frames.back().get().size()};
-      auto value{internal::construct_number(buffer + item_entry.offset,
-                                            item_entry.length)};
+      auto value = internal::construct_number(buffer + item_entry.offset,
+                                              item_entry.length);
       if (value.is_integer()) {
         CALLBACK_PRE(Integer, item_entry, JSON::ParseContext::Index,
                      current_index, JSON::StringView{});
@@ -554,8 +554,8 @@ do_construct_object_value: {
                     internal::post_column_for(value_entry));
       goto do_construct_object_property_end;
     case TapeType::Number: {
-      auto value{internal::construct_number(buffer + value_entry.offset,
-                                            value_entry.length)};
+      auto value = internal::construct_number(buffer + value_entry.offset,
+                                              value_entry.length);
       const auto value_type{value.type()};
       if (value_type == JSON::Type::Integer) {
         if (callback) {
@@ -610,7 +610,7 @@ do_construct_object_property_end:
 do_construct_container_end:
   assert(!levels.empty());
   if (levels.size() == 1) {
-    return result.value();
+    return std::move(*result);
   }
 
   frames.pop_back();
