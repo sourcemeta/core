@@ -137,29 +137,54 @@ auto parse_ipv6(const std::string_view input,
   position += 1;
 
   // RFC 3986: IP-literal = "[" ( IPv6address / IPvFuture ) "]"
-  // IPvFuture starts with "v"
-  const bool is_ipvfuture = position < input.size() &&
-                            (input[position] == 'v' || input[position] == 'V');
+  if (position < input.size() &&
+      (input[position] == 'v' || input[position] == 'V')) {
+    // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+    position += 1;
 
-  while (position < input.size() && input[position] != URI_CLOSE_BRACKET) {
-    const auto current = input[position];
-    if (is_ipvfuture) {
-      // IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+    // Require 1*HEXDIG for the version
+    if (position >= input.size() || input[position] == URI_CLOSE_BRACKET ||
+        !std::isxdigit(static_cast<unsigned char>(input[position]))) {
+      throw sourcemeta::core::URIParseError{
+          static_cast<std::uint64_t>(position + 1)};
+    }
+    while (position < input.size() && input[position] != URI_CLOSE_BRACKET &&
+           std::isxdigit(static_cast<unsigned char>(input[position]))) {
+      position += 1;
+    }
+
+    // Require "." separator
+    if (position >= input.size() || input[position] != URI_DOT) {
+      throw sourcemeta::core::URIParseError{
+          static_cast<std::uint64_t>(position + 1)};
+    }
+    position += 1;
+
+    // Require 1*( unreserved / sub-delims / ":" )
+    if (position >= input.size() || input[position] == URI_CLOSE_BRACKET) {
+      throw sourcemeta::core::URIParseError{
+          static_cast<std::uint64_t>(position + 1)};
+    }
+    while (position < input.size() && input[position] != URI_CLOSE_BRACKET) {
+      const auto current = input[position];
       if (!uri_is_unreserved(current) && !uri_is_sub_delim(current) &&
           current != URI_COLON) {
         throw sourcemeta::core::URIParseError{
             static_cast<std::uint64_t>(position + 1)};
       }
-    } else {
-      // IPv6address: only HEXDIG, ":", and "." are valid
+      position += 1;
+    }
+  } else {
+    // IPv6address: only HEXDIG, ":", and "." are valid
+    while (position < input.size() && input[position] != URI_CLOSE_BRACKET) {
+      const auto current = input[position];
       if (!std::isxdigit(static_cast<unsigned char>(current)) &&
           current != URI_COLON && current != URI_DOT) {
         throw sourcemeta::core::URIParseError{
             static_cast<std::uint64_t>(position + 1)};
       }
+      position += 1;
     }
-
-    position += 1;
   }
 
   if (position >= input.size()) {
@@ -346,14 +371,13 @@ auto parse_authority(const std::string_view input,
   uri_unescape_selective_inplace(host_raw);
   host = std::move(host_raw);
 
+  // RFC 3986: authority = [ userinfo "@" ] host [ ":" port ]
+  // port = *DIGIT (empty port after colon is valid)
   if (position < input.size() && input[position] == URI_COLON) {
-    const auto colon_position = position;
     position += 1;
     const auto port_value = parse_port(input, position);
     if (port_value.has_value()) {
       port = port_value.value();
-    } else {
-      position = colon_position;
     }
   }
 

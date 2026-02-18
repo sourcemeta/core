@@ -144,6 +144,43 @@ TEST(URI_parse, syntax_error_ipv6_invalid_hex) {
                sourcemeta::core::URIParseError);
 }
 
+// RFC 3986: IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+// Must have version hex digits and dot separator
+TEST(URI_parse, syntax_error_ipvfuture_bare_v) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[v]"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_ipvfuture_missing_dot) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[vabc]"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_ipvfuture_non_hex_version) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[vZ.foo]"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, success_ipvfuture_valid) {
+  sourcemeta::core::URI uri{"http://[vFF.a:b]"};
+  EXPECT_EQ(uri.host().value(), "vFF.a:b");
+  EXPECT_EQ(uri.recompose(), "http://[vFF.a:b]");
+}
+
+// RFC 3986: port = *DIGIT (empty port after colon is valid)
+TEST(URI_parse, rfc3986_empty_port) {
+  sourcemeta::core::URI uri{"http://example.com:"};
+  EXPECT_EQ(uri.host().value(), "example.com");
+  EXPECT_FALSE(uri.port().has_value());
+}
+
+TEST(URI_parse, rfc3986_empty_port_with_path) {
+  sourcemeta::core::URI uri{"http://example.com:/path"};
+  EXPECT_EQ(uri.host().value(), "example.com");
+  EXPECT_FALSE(uri.port().has_value());
+  EXPECT_EQ(uri.path().value(), "/path");
+}
+
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L315
 
