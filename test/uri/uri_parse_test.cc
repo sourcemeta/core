@@ -100,6 +100,50 @@ TEST(URI_parse, syntax_error_percent_in_host) {
                sourcemeta::core::URIParseError);
 }
 
+// RFC 3986: relative-ref path-noscheme means the first segment of a
+// schemeless, authorityless path must not contain a colon
+TEST(URI_parse, syntax_error_digit_prefix_scheme_like) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"2http://example.com"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_underscore_scheme_like) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"my_scheme://example.com"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_colon_slash_slash) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"://example.com"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_hyphen_prefix_scheme_like) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"-http://example.com"},
+               sourcemeta::core::URIParseError);
+}
+
+// RFC 3986: path-abempty after authority must start with "/" or be empty
+TEST(URI_parse, syntax_error_port_trailing_alpha) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com:80a"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_port_trailing_range) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com:80-90"},
+               sourcemeta::core::URIParseError);
+}
+
+TEST(URI_parse, syntax_error_bare_ipv6_no_brackets) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://2001:db8::1"},
+               sourcemeta::core::URIParseError);
+}
+
+// RFC 3986: IPv6 brackets must contain valid hex digits, colons, and dots
+TEST(URI_parse, syntax_error_ipv6_invalid_hex) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[2001:db8::gggg]"},
+               sourcemeta::core::URIParseError);
+}
+
 // Inspired from
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L315
 
