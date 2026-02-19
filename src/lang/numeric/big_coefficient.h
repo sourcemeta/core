@@ -559,6 +559,32 @@ auto coefficient_to_digit_string(std::int64_t coefficient,
   return std::to_string(coefficient);
 }
 
+auto modular_pow10(std::uint32_t exponent, std::uint64_t modulus)
+    -> std::uint64_t {
+  if (modulus == 1) {
+    return 0;
+  }
+  if (exponent == 0) {
+    return 1;
+  }
+  if (exponent <= 19) {
+    return POWERS_OF_10[exponent] % modulus;
+  }
+  std::uint64_t result = 1;
+  std::uint64_t base = 10 % modulus;
+  auto remaining = exponent;
+  while (remaining > 0) {
+    if (remaining & 1) {
+      result = static_cast<std::uint64_t>(static_cast<uint128_t>(result) *
+                                          base % modulus);
+    }
+    base = static_cast<std::uint64_t>(static_cast<uint128_t>(base) * base %
+                                      modulus);
+    remaining >>= 1;
+  }
+  return result;
+}
+
 // Round-half-even (banker's rounding) to WORKING_PRECISION significant digits
 constexpr std::int32_t WORKING_PRECISION = 16;
 

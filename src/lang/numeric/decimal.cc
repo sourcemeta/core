@@ -813,6 +813,59 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
     return false;
   }
 
+  if (!(divisor.flags_ & FLAG_BIG) && !(this->flags_ & FLAG_HEAP)) {
+    auto divisor_value = static_cast<std::uint64_t>(divisor.coefficient_);
+
+    std::uint64_t dividend_mod;
+    if (this->flags_ & FLAG_BIG) {
+      auto hi_mod = this->coefficient_hi_ % divisor_value;
+      auto base_mod = BASE % divisor_value;
+      auto lo_mod =
+          static_cast<std::uint64_t>(this->coefficient_) % divisor_value;
+      dividend_mod = static_cast<std::uint64_t>(
+          (static_cast<uint128_t>(hi_mod) * base_mod + lo_mod) % divisor_value);
+    } else {
+      dividend_mod =
+          static_cast<std::uint64_t>(this->coefficient_) % divisor_value;
+    }
+
+    if (this->exponent_ >= divisor.exponent_) {
+      auto difference =
+          static_cast<std::uint32_t>(this->exponent_ - divisor.exponent_);
+      auto pow_mod = modular_pow10(difference, divisor_value);
+      return static_cast<std::uint64_t>(static_cast<uint128_t>(dividend_mod) *
+                                        pow_mod % divisor_value) == 0;
+    }
+
+    auto difference =
+        static_cast<std::uint32_t>(divisor.exponent_ - this->exponent_);
+    if (difference > 36) {
+      return false;
+    }
+
+    uint128_t remaining;
+    if (this->flags_ & FLAG_BIG) {
+      remaining = static_cast<uint128_t>(this->coefficient_hi_) * BASE +
+                  static_cast<std::uint64_t>(this->coefficient_);
+    } else {
+      remaining = static_cast<uint128_t>(
+          static_cast<std::uint64_t>(this->coefficient_));
+    }
+
+    auto diff_left = difference;
+    while (diff_left > 0) {
+      auto chunk = std::min(diff_left, static_cast<std::uint32_t>(19));
+      auto power = POWERS_OF_10[chunk];
+      if (static_cast<std::uint64_t>(remaining % power) != 0) {
+        return false;
+      }
+      remaining = remaining / power;
+      diff_left -= chunk;
+    }
+
+    return static_cast<std::uint64_t>(remaining % divisor_value) == 0;
+  }
+
   auto *dividend_big = coefficient_as_big(this->coefficient_,
                                           this->coefficient_hi_, this->flags_);
   auto *divisor_big = coefficient_as_big(
