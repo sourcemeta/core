@@ -27,6 +27,7 @@ template <typename T> struct HashJSON {
 };
 
 /// @ingroup json
+// TODO: Use sourcemeta::core::uint128_t instead of __uint128_t
 template <typename T> struct PropertyHashJSON {
   struct hash_type {
     // For performance when the platform allows it
