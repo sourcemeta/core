@@ -21,12 +21,18 @@ struct uint128_t {
   std::uint64_t hi;
 
   uint128_t() : lo{0}, hi{0} {}
+  uint128_t(int value) : lo{static_cast<std::uint64_t>(value)}, hi{0} {}
+  uint128_t(unsigned int value)
+      : lo{static_cast<std::uint64_t>(value)}, hi{0} {}
   uint128_t(std::uint64_t value) : lo{value}, hi{0} {}
   uint128_t(std::int64_t value)
       : lo{static_cast<std::uint64_t>(value)}, hi{0} {}
   uint128_t(std::uint64_t high, std::uint64_t low) : lo{low}, hi{high} {}
 
   explicit operator std::uint64_t() const { return lo; }
+  explicit operator std::int64_t() const {
+    return static_cast<std::int64_t>(lo);
+  }
   explicit operator bool() const { return lo != 0 || hi != 0; }
 
   auto operator+=(const uint128_t &other) -> uint128_t & {
@@ -520,7 +526,13 @@ auto digit_count(std::uint64_t value) -> std::uint32_t {
   if (value == 0) {
     return 1;
   }
+#if defined(_MSC_VER)
+  unsigned long bit_index;
+  _BitScanReverse64(&bit_index, value);
+  auto const bits = static_cast<std::uint32_t>(bit_index);
+#else
   auto const bits = static_cast<std::uint32_t>(63 - __builtin_clzll(value));
+#endif
   auto approximation = 1 + ((bits * 77) >> 8);
   if (approximation <= 19 && value >= POWERS_OF_10[approximation]) {
     approximation++;
