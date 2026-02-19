@@ -3309,3 +3309,190 @@ TEST(Numeric_decimal, multithreaded_high_thread_count) {
     thread.join();
   }
 }
+
+TEST(Numeric_decimal, reduce_strips_trailing_zeros) {
+  const sourcemeta::core::Decimal value{"1.200"};
+  const sourcemeta::core::Decimal expected{"1.2"};
+  EXPECT_EQ(value.reduce(), expected);
+}
+
+TEST(Numeric_decimal, reduce_zero) {
+  const sourcemeta::core::Decimal value{"0.00"};
+  const sourcemeta::core::Decimal expected{0};
+  EXPECT_EQ(value.reduce(), expected);
+}
+
+TEST(Numeric_decimal, reduce_integer) {
+  const sourcemeta::core::Decimal value{"1200"};
+  const sourcemeta::core::Decimal expected{"12E+2"};
+  EXPECT_EQ(value.reduce(), expected);
+}
+
+TEST(Numeric_decimal, reduce_negative) {
+  const sourcemeta::core::Decimal value{"-1.200"};
+  const sourcemeta::core::Decimal expected{"-1.2"};
+  EXPECT_EQ(value.reduce(), expected);
+}
+
+TEST(Numeric_decimal, reduce_infinity) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::infinity().reduce().is_infinite());
+}
+
+TEST(Numeric_decimal, reduce_nan) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::nan().reduce().is_nan());
+}
+
+TEST(Numeric_decimal, logb_positive) {
+  const sourcemeta::core::Decimal value{"250"};
+  EXPECT_EQ(value.logb(), sourcemeta::core::Decimal{2});
+}
+
+TEST(Numeric_decimal, logb_one) {
+  const sourcemeta::core::Decimal value{1};
+  EXPECT_EQ(value.logb(), sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, logb_fraction) {
+  const sourcemeta::core::Decimal value{"0.001"};
+  EXPECT_EQ(value.logb(), sourcemeta::core::Decimal{-3});
+}
+
+TEST(Numeric_decimal, logb_infinity) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::infinity().logb().is_infinite());
+  EXPECT_FALSE(sourcemeta::core::Decimal::infinity().logb().is_signed());
+}
+
+TEST(Numeric_decimal, logb_zero_throws) {
+  EXPECT_THROW(static_cast<void>(sourcemeta::core::Decimal{0}.logb()),
+               sourcemeta::core::NumericDivisionByZeroError);
+}
+
+TEST(Numeric_decimal, logb_nan) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::nan().logb().is_nan());
+}
+
+TEST(Numeric_decimal, scale_by_positive) {
+  const sourcemeta::core::Decimal value{"1.23"};
+  const sourcemeta::core::Decimal scale{2};
+  const sourcemeta::core::Decimal expected{"123"};
+  EXPECT_EQ(value.scale_by(scale), expected);
+}
+
+TEST(Numeric_decimal, scale_by_negative) {
+  const sourcemeta::core::Decimal value{"123"};
+  const sourcemeta::core::Decimal scale{-2};
+  const sourcemeta::core::Decimal expected{"1.23"};
+  EXPECT_EQ(value.scale_by(scale), expected);
+}
+
+TEST(Numeric_decimal, scale_by_zero) {
+  const sourcemeta::core::Decimal value{"1.23"};
+  const sourcemeta::core::Decimal scale{0};
+  EXPECT_EQ(value.scale_by(scale), value);
+}
+
+TEST(Numeric_decimal, scale_by_infinity_passthrough) {
+  const sourcemeta::core::Decimal scale{0};
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal::infinity().scale_by(scale).is_infinite());
+}
+
+TEST(Numeric_decimal, scale_by_snan_throws) {
+  const sourcemeta::core::Decimal value{1};
+  EXPECT_THROW(
+      static_cast<void>(value.scale_by(sourcemeta::core::Decimal::snan())),
+      sourcemeta::core::NumericInvalidOperationError);
+}
+
+TEST(Numeric_decimal, same_quantum_same_exponent) {
+  const sourcemeta::core::Decimal left{"1.23"};
+  const sourcemeta::core::Decimal right{"4.56"};
+  EXPECT_TRUE(left.same_quantum(right));
+}
+
+TEST(Numeric_decimal, same_quantum_different_exponent) {
+  const sourcemeta::core::Decimal left{"1.2"};
+  const sourcemeta::core::Decimal right{"1.23"};
+  EXPECT_FALSE(left.same_quantum(right));
+}
+
+TEST(Numeric_decimal, same_quantum_both_nan) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::nan().same_quantum(
+      sourcemeta::core::Decimal::nan()));
+}
+
+TEST(Numeric_decimal, same_quantum_both_infinity) {
+  EXPECT_TRUE(sourcemeta::core::Decimal::infinity().same_quantum(
+      sourcemeta::core::Decimal::negative_infinity()));
+}
+
+TEST(Numeric_decimal, same_quantum_nan_and_number) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::nan().same_quantum(
+      sourcemeta::core::Decimal{1}));
+}
+
+TEST(Numeric_decimal, compare_total_positive_ordering) {
+  const sourcemeta::core::Decimal left{7};
+  const sourcemeta::core::Decimal right{10};
+  EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{-1});
+}
+
+TEST(Numeric_decimal, compare_total_equal) {
+  const sourcemeta::core::Decimal value{5};
+  EXPECT_EQ(value.compare_total(value), sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, compare_total_same_value_different_exponent) {
+  const sourcemeta::core::Decimal left{"7.0"};
+  const sourcemeta::core::Decimal right{7};
+  EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{-1});
+}
+
+TEST(Numeric_decimal, compare_total_negative_less_than_positive) {
+  const sourcemeta::core::Decimal left{-1};
+  const sourcemeta::core::Decimal right{1};
+  EXPECT_EQ(left.compare_total(right), sourcemeta::core::Decimal{-1});
+}
+
+TEST(Numeric_decimal, compare_total_nan_ordering) {
+  EXPECT_EQ(sourcemeta::core::Decimal::nan().compare_total(
+                sourcemeta::core::Decimal{1}),
+            sourcemeta::core::Decimal{1});
+}
+
+TEST(Numeric_decimal, divide_integer_exact) {
+  const sourcemeta::core::Decimal left{7};
+  const sourcemeta::core::Decimal right{2};
+  EXPECT_EQ(left.divide_integer(right), sourcemeta::core::Decimal{3});
+}
+
+TEST(Numeric_decimal, divide_integer_negative) {
+  const sourcemeta::core::Decimal left{-7};
+  const sourcemeta::core::Decimal right{2};
+  EXPECT_EQ(left.divide_integer(right), sourcemeta::core::Decimal{-3});
+}
+
+TEST(Numeric_decimal, divide_integer_by_larger) {
+  const sourcemeta::core::Decimal left{2};
+  const sourcemeta::core::Decimal right{7};
+  EXPECT_EQ(left.divide_integer(right), sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, divide_integer_by_zero_throws) {
+  EXPECT_THROW(static_cast<void>(sourcemeta::core::Decimal{1}.divide_integer(
+                   sourcemeta::core::Decimal{0})),
+               sourcemeta::core::NumericDivisionByZeroError);
+}
+
+TEST(Numeric_decimal, divide_integer_infinity_by_infinity_throws) {
+  EXPECT_THROW(
+      static_cast<void>(sourcemeta::core::Decimal::infinity().divide_integer(
+          sourcemeta::core::Decimal::infinity())),
+      sourcemeta::core::NumericInvalidOperationError);
+}
+
+TEST(Numeric_decimal, divide_integer_with_decimals) {
+  const sourcemeta::core::Decimal left{"10.5"};
+  const sourcemeta::core::Decimal right{"3.1"};
+  EXPECT_EQ(left.divide_integer(right), sourcemeta::core::Decimal{3});
+}

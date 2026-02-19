@@ -13,12 +13,17 @@
 #include <vector>      // std::vector
 
 static constexpr std::string_view SUPPORTED_OPERATIONS[] = {
-    "compare",     "add",   "subtract", "multiply", "divide",
-    "remainder",   "minus", "plus",     "abs",      "tointegral",
-    "tointegralx", "tosci", "toeng"};
+    "compare",     "add",      "subtract",   "multiply",     "divide",
+    "remainder",   "minus",    "plus",       "abs",          "tointegral",
+    "tointegralx", "tosci",    "toeng",      "copy",         "copyabs",
+    "copynegate",  "copysign", "comparesig", "comparetotal", "comparetotmag",
+    "max",         "min",      "maxmag",     "minmag",       "divideint",
+    "samequantum", "logb",     "scaleb",     "reduce",       "trim"};
 
 static constexpr std::string_view UNARY_OPERATIONS[] = {
-    "minus", "plus", "abs", "tointegral", "tointegralx", "tosci", "toeng"};
+    "minus", "plus",   "abs",  "tointegral", "tointegralx",
+    "tosci", "toeng",  "copy", "copyabs",    "copynegate",
+    "logb",  "reduce", "trim"};
 
 static constexpr std::string_view SKIP_CONDITIONS[] = {
     "inexact",   "rounded", "overflow",           "underflow",
@@ -39,6 +44,7 @@ struct DecTestCase {
 
 struct DecTestContext {
   int precision = 9;
+  int max_exponent = 999;
   std::string rounding = "half_up";
 };
 
@@ -162,6 +168,51 @@ public:
       this->run_unary([](const auto &value) { return value.to_integral(); });
     } else if (operation == "tosci" || operation == "toeng") {
       this->run_conversion();
+    } else if (operation == "copy") {
+      this->run_unary([](const auto &value) { return value; });
+    } else if (operation == "copyabs") {
+      this->run_unary(
+          [](const auto &value) { return value.is_signed() ? -value : value; });
+    } else if (operation == "copynegate") {
+      this->run_unary([](const auto &value) { return -value; });
+    } else if (operation == "copysign") {
+      this->run_copysign();
+    } else if (operation == "comparesig") {
+      this->run_comparesig();
+    } else if (operation == "comparetotal") {
+      this->run_binary([](const auto &left, const auto &right) {
+        return left.compare_total(right);
+      });
+    } else if (operation == "comparetotmag") {
+      this->run_binary([](const auto &left, const auto &right) {
+        auto abs_left = left.is_signed() ? -left : left;
+        auto abs_right = right.is_signed() ? -right : right;
+        return abs_left.compare_total(abs_right);
+      });
+    } else if (operation == "max") {
+      this->run_max_min(true, false);
+    } else if (operation == "min") {
+      this->run_max_min(false, false);
+    } else if (operation == "maxmag") {
+      this->run_max_min(true, true);
+    } else if (operation == "minmag") {
+      this->run_max_min(false, true);
+    } else if (operation == "divideint") {
+      this->run_binary([](const auto &left, const auto &right) {
+        return left.divide_integer(right);
+      });
+    } else if (operation == "samequantum") {
+      this->run_binary([](const auto &left, const auto &right) {
+        return sourcemeta::core::Decimal{left.same_quantum(right) ? 1 : 0};
+      });
+    } else if (operation == "logb") {
+      this->run_logb();
+    } else if (operation == "scaleb") {
+      this->run_binary([](const auto &left, const auto &right) {
+        return left.scale_by(right);
+      });
+    } else if (operation == "reduce" || operation == "trim") {
+      this->run_unary([](const auto &value) { return value.reduce(); });
     } else {
       FAIL();
     }
@@ -271,6 +322,147 @@ private:
 
     expect_decimal_eq(sourcemeta::core::Decimal{input},
                       make_decimal(this->test_case_.expected));
+  }
+
+  auto run_copysign() -> void {
+    auto left = make_decimal(this->test_case_.operand1);
+    const auto right = make_decimal(this->test_case_.operand2);
+    auto result = left.is_signed() ? -left : left;
+    if (right.is_signed()) {
+      result = result.is_signed() ? result : -result;
+    } else {
+      result = result.is_signed() ? -result : result;
+    }
+
+    expect_decimal_eq(result, make_decimal(this->test_case_.expected));
+  }
+
+  auto run_comparesig() -> void {
+    const auto left = make_decimal(this->test_case_.operand1);
+    const auto right = make_decimal(this->test_case_.operand2);
+
+    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
+      const auto expected_value{make_decimal(this->test_case_.expected)};
+      EXPECT_TRUE(expected_value.is_nan());
+      return;
+    }
+
+    const auto expected{strip_quotes(this->test_case_.expected)};
+    if (to_lower(expected).find("nan") != std::string::npos) {
+      GTEST_SKIP() << "NaN comparison result";
+      return;
+    }
+
+    if (expected == "0") {
+      EXPECT_TRUE(left == right);
+    } else if (expected == "1") {
+      EXPECT_TRUE(left > right);
+    } else if (expected == "-1") {
+      EXPECT_TRUE(left < right);
+    } else {
+      FAIL();
+    }
+  }
+
+  auto run_logb() -> void {
+    if (has_condition(this->test_case_.conditions, "division_by_zero")) {
+      try {
+        auto result = make_decimal(this->test_case_.operand1).logb();
+        static_cast<void>(result);
+        FAIL() << "Expected division_by_zero";
+      } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+        SUCCEED();
+      }
+      return;
+    }
+
+    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
+      try {
+        auto result = make_decimal(this->test_case_.operand1).logb();
+        EXPECT_TRUE(result.is_nan());
+      } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+        SUCCEED();
+      }
+      return;
+    }
+
+    expect_decimal_eq(make_decimal(this->test_case_.operand1).logb(),
+                      make_decimal(this->test_case_.expected));
+  }
+
+  auto run_max_min(bool is_max, bool by_magnitude) -> void {
+    auto left = make_decimal(this->test_case_.operand1);
+    auto right = make_decimal(this->test_case_.operand2);
+
+    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
+      if (left.is_snan() || right.is_snan()) {
+        expect_decimal_eq(make_decimal(this->test_case_.expected),
+                          sourcemeta::core::Decimal::nan());
+        return;
+      }
+    }
+
+    // qNaN propagation: one qNaN -> return other, both qNaN -> NaN
+    if (left.is_qnan() && right.is_qnan()) {
+      EXPECT_TRUE(make_decimal(this->test_case_.expected).is_nan());
+      return;
+    }
+
+    if (left.is_snan() || right.is_snan()) {
+      expect_decimal_eq(make_decimal(this->test_case_.expected),
+                        sourcemeta::core::Decimal::nan());
+      return;
+    }
+
+    if (left.is_qnan()) {
+      expect_decimal_eq(right, make_decimal(this->test_case_.expected));
+      return;
+    }
+
+    if (right.is_qnan()) {
+      expect_decimal_eq(left, make_decimal(this->test_case_.expected));
+      return;
+    }
+
+    int comparison;
+    if (by_magnitude) {
+      auto abs_left = left.is_signed() ? -left : left;
+      auto abs_right = right.is_signed() ? -right : right;
+      if (abs_left < abs_right) {
+        comparison = -1;
+      } else if (abs_left > abs_right) {
+        comparison = 1;
+      } else {
+        comparison = 0;
+      }
+    } else {
+      if (left < right) {
+        comparison = -1;
+      } else if (left > right) {
+        comparison = 1;
+      } else {
+        comparison = 0;
+      }
+    }
+
+    sourcemeta::core::Decimal result{0};
+    if (comparison != 0) {
+      if (is_max) {
+        result = comparison > 0 ? left : right;
+      } else {
+        result = comparison < 0 ? left : right;
+      }
+    } else {
+      // Tiebreak using compare_total
+      auto total_cmp = left.compare_total(right);
+      if (is_max) {
+        result = total_cmp > sourcemeta::core::Decimal{0} ? left : right;
+      } else {
+        result = total_cmp < sourcemeta::core::Decimal{0} ? left : right;
+      }
+    }
+
+    expect_decimal_eq(result, make_decimal(this->test_case_.expected));
   }
 
   DecTestCase test_case_;
@@ -385,6 +577,10 @@ static auto parse_directive(const std::string &line, DecTestContext &context)
     context.rounding = to_lower(std::string{value});
     return true;
   }
+  if (lower_key == "maxexponent") {
+    context.max_exponent = std::stoi(std::string{value});
+    return true;
+  }
 
   return std::any_of(
       std::begin(KNOWN_DIRECTIVES), std::end(KNOWN_DIRECTIVES),
@@ -417,7 +613,11 @@ static auto should_skip_test(const DecTestCase &test_case,
     return true;
   }
 
-  if (operation == "compare") {
+  if (operation == "compare" || operation == "comparetotal" ||
+      operation == "comparetotmag" || operation == "comparesig" ||
+      operation == "copy" || operation == "copyabs" ||
+      operation == "copynegate" || operation == "copysign" ||
+      operation == "samequantum") {
     return false;
   }
 
@@ -434,6 +634,18 @@ static auto should_skip_test(const DecTestCase &test_case,
   if (operation == "tointegral" || operation == "tointegralx") {
     if (context.rounding != "half_even") {
       return true;
+    }
+  }
+
+  if (operation == "scaleb" &&
+      has_condition(test_case.conditions, "invalid_operation")) {
+    auto scale_bound = 2 * (context.max_exponent + context.precision);
+    try {
+      auto scale_value = std::stoll(test_case.operand2);
+      if (scale_value > scale_bound || scale_value < -scale_bound) {
+        return true;
+      }
+    } catch (...) {
     }
   }
 
