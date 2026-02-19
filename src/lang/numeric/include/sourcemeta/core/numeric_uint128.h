@@ -17,10 +17,7 @@ namespace sourcemeta::core {
 /// @ingroup numeric
 /// Cross-platform 128-bit unsigned integer type.
 #if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-using uint128_t = unsigned __int128;
-#pragma GCC diagnostic pop
+using uint128_t = __uint128_t;
 #elif defined(_MSC_VER)
 // We keep the full implementation header-only to allow the compiler to better
 // inline
