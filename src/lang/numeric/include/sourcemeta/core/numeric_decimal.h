@@ -234,7 +234,7 @@ public:
 
 private:
   std::int64_t coefficient_{0};
-  std::uint64_t coefficient_hi_{0};
+  std::uint64_t coefficient_high_{0};
   std::int32_t exponent_{0};
   std::uint8_t flags_{0};
 };
