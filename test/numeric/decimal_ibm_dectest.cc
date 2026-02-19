@@ -115,6 +115,27 @@ static auto make_decimal(const std::string &raw) -> sourcemeta::core::Decimal {
   return sourcemeta::core::Decimal{value};
 }
 
+static auto decimal_abs(const sourcemeta::core::Decimal &value)
+    -> sourcemeta::core::Decimal {
+  return value.is_signed() ? -value : value;
+}
+
+static auto expect_comparison_result(const sourcemeta::core::Decimal &left,
+                                     const sourcemeta::core::Decimal &right,
+                                     const std::string &expected) -> bool {
+  if (expected == "0") {
+    EXPECT_TRUE(left == right);
+  } else if (expected == "1") {
+    EXPECT_TRUE(left > right);
+  } else if (expected == "-1") {
+    EXPECT_TRUE(left < right);
+  } else {
+    return false;
+  }
+
+  return true;
+}
+
 static auto expect_decimal_eq(const sourcemeta::core::Decimal &result,
                               const sourcemeta::core::Decimal &expected)
     -> void {
@@ -140,8 +161,8 @@ public:
   auto TestBody() -> void override {
     const auto operation{to_lower(this->test_case_.operation)};
 
-    if (operation == "compare") {
-      this->run_compare();
+    if (operation == "compare" || operation == "comparesig") {
+      this->run_comparison(operation == "comparesig");
     } else if (operation == "add") {
       this->run_binary(
           [](const auto &left, const auto &right) { return left + right; });
@@ -157,37 +178,27 @@ public:
     } else if (operation == "remainder") {
       this->run_binary(
           [](const auto &left, const auto &right) { return left % right; });
-    } else if (operation == "minus") {
+    } else if (operation == "minus" || operation == "copynegate") {
       this->run_unary([](const auto &value) { return -value; });
     } else if (operation == "plus") {
       this->run_unary([](const auto &value) { return +value; });
-    } else if (operation == "abs") {
-      this->run_unary(
-          [](const auto &value) { return value.is_signed() ? -value : value; });
+    } else if (operation == "abs" || operation == "copyabs") {
+      this->run_unary([](const auto &value) { return decimal_abs(value); });
     } else if (operation == "tointegral" || operation == "tointegralx") {
       this->run_unary([](const auto &value) { return value.to_integral(); });
     } else if (operation == "tosci" || operation == "toeng") {
       this->run_conversion();
     } else if (operation == "copy") {
       this->run_unary([](const auto &value) { return value; });
-    } else if (operation == "copyabs") {
-      this->run_unary(
-          [](const auto &value) { return value.is_signed() ? -value : value; });
-    } else if (operation == "copynegate") {
-      this->run_unary([](const auto &value) { return -value; });
     } else if (operation == "copysign") {
       this->run_copysign();
-    } else if (operation == "comparesig") {
-      this->run_comparesig();
     } else if (operation == "comparetotal") {
       this->run_binary([](const auto &left, const auto &right) {
         return left.compare_total(right);
       });
     } else if (operation == "comparetotmag") {
       this->run_binary([](const auto &left, const auto &right) {
-        auto abs_left = left.is_signed() ? -left : left;
-        auto abs_right = right.is_signed() ? -right : right;
-        return abs_left.compare_total(abs_right);
+        return decimal_abs(left).compare_total(decimal_abs(right));
       });
     } else if (operation == "max") {
       this->run_max_min(true, false);
@@ -219,9 +230,17 @@ public:
   }
 
 private:
-  auto run_compare() -> void {
-    const auto expected{strip_quotes(this->test_case_.expected)};
+  auto run_comparison(bool signal_on_nan) -> void {
+    const auto left{make_decimal(this->test_case_.operand1)};
+    const auto right{make_decimal(this->test_case_.operand2)};
 
+    if (signal_on_nan &&
+        has_condition(this->test_case_.conditions, "invalid_operation")) {
+      EXPECT_TRUE(make_decimal(this->test_case_.expected).is_nan());
+      return;
+    }
+
+    const auto expected{strip_quotes(this->test_case_.expected)};
     // TODO: The decTest spec defines compare(NaN, x) = NaN, but our
     // comparison operators return bool, so we cannot represent a NaN
     // comparison result
@@ -230,18 +249,7 @@ private:
       return;
     }
 
-    const auto left{make_decimal(this->test_case_.operand1)};
-    const auto right{make_decimal(this->test_case_.operand2)};
-
-    if (expected == "0") {
-      EXPECT_TRUE(left == right);
-    } else if (expected == "1") {
-      EXPECT_TRUE(left > right);
-    } else if (expected == "-1") {
-      EXPECT_TRUE(left < right);
-    } else {
-      FAIL();
-    }
+    EXPECT_TRUE(expect_comparison_result(left, right, expected));
   }
 
   template <typename Operation> auto run_binary(Operation op) -> void {
@@ -308,9 +316,6 @@ private:
     const auto input{strip_quotes(this->test_case_.operand1)};
 
     if (has_condition(this->test_case_.conditions, "conversion_syntax")) {
-      // Our max_context parser accepts NaN payloads that exceed the test
-      // file's precision. If parsing succeeds, just verify the result is NaN
-      // (since conversion_syntax on NaN inputs always expects NaN).
       try {
         const auto result{sourcemeta::core::Decimal{input}};
         EXPECT_TRUE(result.is_nan());
@@ -325,43 +330,14 @@ private:
   }
 
   auto run_copysign() -> void {
-    auto left = make_decimal(this->test_case_.operand1);
-    const auto right = make_decimal(this->test_case_.operand2);
-    auto result = left.is_signed() ? -left : left;
+    const auto left{make_decimal(this->test_case_.operand1)};
+    const auto right{make_decimal(this->test_case_.operand2)};
+    auto result = decimal_abs(left);
     if (right.is_signed()) {
-      result = result.is_signed() ? result : -result;
-    } else {
-      result = result.is_signed() ? -result : result;
+      result = -decimal_abs(result);
     }
 
     expect_decimal_eq(result, make_decimal(this->test_case_.expected));
-  }
-
-  auto run_comparesig() -> void {
-    const auto left = make_decimal(this->test_case_.operand1);
-    const auto right = make_decimal(this->test_case_.operand2);
-
-    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
-      const auto expected_value{make_decimal(this->test_case_.expected)};
-      EXPECT_TRUE(expected_value.is_nan());
-      return;
-    }
-
-    const auto expected{strip_quotes(this->test_case_.expected)};
-    if (to_lower(expected).find("nan") != std::string::npos) {
-      GTEST_SKIP() << "NaN comparison result";
-      return;
-    }
-
-    if (expected == "0") {
-      EXPECT_TRUE(left == right);
-    } else if (expected == "1") {
-      EXPECT_TRUE(left > right);
-    } else if (expected == "-1") {
-      EXPECT_TRUE(left < right);
-    } else {
-      FAIL();
-    }
   }
 
   auto run_logb() -> void {
@@ -376,93 +352,53 @@ private:
       return;
     }
 
-    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
-      try {
-        auto result = make_decimal(this->test_case_.operand1).logb();
-        EXPECT_TRUE(result.is_nan());
-      } catch (const sourcemeta::core::NumericInvalidOperationError &) {
-        SUCCEED();
-      }
-      return;
-    }
-
-    expect_decimal_eq(make_decimal(this->test_case_.operand1).logb(),
-                      make_decimal(this->test_case_.expected));
+    this->run_unary([](const auto &value) { return value.logb(); });
   }
 
   auto run_max_min(bool is_max, bool by_magnitude) -> void {
-    auto left = make_decimal(this->test_case_.operand1);
-    auto right = make_decimal(this->test_case_.operand2);
+    const auto left{make_decimal(this->test_case_.operand1)};
+    const auto right{make_decimal(this->test_case_.operand2)};
+    const auto expected{make_decimal(this->test_case_.expected)};
 
-    if (has_condition(this->test_case_.conditions, "invalid_operation")) {
-      if (left.is_snan() || right.is_snan()) {
-        expect_decimal_eq(make_decimal(this->test_case_.expected),
-                          sourcemeta::core::Decimal::nan());
-        return;
-      }
-    }
-
-    // qNaN propagation: one qNaN -> return other, both qNaN -> NaN
-    if (left.is_qnan() && right.is_qnan()) {
-      EXPECT_TRUE(make_decimal(this->test_case_.expected).is_nan());
+    if (left.is_snan() || right.is_snan()) {
+      EXPECT_TRUE(expected.is_nan());
       return;
     }
 
-    if (left.is_snan() || right.is_snan()) {
-      expect_decimal_eq(make_decimal(this->test_case_.expected),
-                        sourcemeta::core::Decimal::nan());
+    if (left.is_qnan() && right.is_qnan()) {
+      EXPECT_TRUE(expected.is_nan());
       return;
     }
 
     if (left.is_qnan()) {
-      expect_decimal_eq(right, make_decimal(this->test_case_.expected));
+      expect_decimal_eq(right, expected);
       return;
     }
 
     if (right.is_qnan()) {
-      expect_decimal_eq(left, make_decimal(this->test_case_.expected));
+      expect_decimal_eq(left, expected);
       return;
     }
 
     int comparison;
     if (by_magnitude) {
-      auto abs_left = left.is_signed() ? -left : left;
-      auto abs_right = right.is_signed() ? -right : right;
-      if (abs_left < abs_right) {
-        comparison = -1;
-      } else if (abs_left > abs_right) {
-        comparison = 1;
-      } else {
-        comparison = 0;
-      }
+      auto abs_left = decimal_abs(left);
+      auto abs_right = decimal_abs(right);
+      comparison = abs_left < abs_right ? -1 : (abs_left > abs_right ? 1 : 0);
     } else {
-      if (left < right) {
-        comparison = -1;
-      } else if (left > right) {
-        comparison = 1;
-      } else {
-        comparison = 0;
-      }
+      comparison = left < right ? -1 : (left > right ? 1 : 0);
     }
 
     sourcemeta::core::Decimal result{0};
     if (comparison != 0) {
-      if (is_max) {
-        result = comparison > 0 ? left : right;
-      } else {
-        result = comparison < 0 ? left : right;
-      }
+      result = (is_max == (comparison > 0)) ? left : right;
     } else {
-      // Tiebreak using compare_total
       auto total_cmp = left.compare_total(right);
-      if (is_max) {
-        result = total_cmp > sourcemeta::core::Decimal{0} ? left : right;
-      } else {
-        result = total_cmp < sourcemeta::core::Decimal{0} ? left : right;
-      }
+      result =
+          (is_max == (total_cmp > sourcemeta::core::Decimal{0})) ? left : right;
     }
 
-    expect_decimal_eq(result, make_decimal(this->test_case_.expected));
+    expect_decimal_eq(result, expected);
   }
 
   DecTestCase test_case_;
