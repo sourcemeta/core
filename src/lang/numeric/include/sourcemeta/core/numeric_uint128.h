@@ -17,7 +17,7 @@ namespace sourcemeta::core {
 
 /// @ingroup numeric
 /// Cross-platform 128-bit unsigned integer type.
-#if defined(__SIZEOF_INT128__)
+#if defined(__SIZEOF_INT128__) || defined(__clang__)
 using uint128_t = __uint128_t;
 #else
 // We keep the full implementation header-only to allow the compiler to better
@@ -72,16 +72,16 @@ struct uint128_t {
 #if defined(_MSC_VER)
     auto result_low = _umul128(left.low, right.low, &result_high);
 #else
-    const std::uint64_t left_lo{left.low & 0xFFFFFFFF};
-    const std::uint64_t left_hi{left.low >> 32};
-    const std::uint64_t right_lo{right.low & 0xFFFFFFFF};
-    const std::uint64_t right_hi{right.low >> 32};
-    const std::uint64_t cross_1{left_hi * right_lo};
-    const std::uint64_t cross_2{left_lo * right_hi};
-    const std::uint64_t mid{cross_1 + (left_lo * right_lo >> 32)};
+    const std::uint64_t left_low{left.low & 0xFFFFFFFF};
+    const std::uint64_t left_high{left.low >> 32};
+    const std::uint64_t right_low{right.low & 0xFFFFFFFF};
+    const std::uint64_t right_high{right.low >> 32};
+    const std::uint64_t cross_1{left_high * right_low};
+    const std::uint64_t cross_2{left_low * right_high};
+    const std::uint64_t mid{cross_1 + (left_low * right_low >> 32)};
     const std::uint64_t mid_2{(mid & 0xFFFFFFFF) + cross_2};
-    result_high = left_hi * right_hi + (mid >> 32) + (mid_2 >> 32);
-    auto result_low = (mid_2 << 32) | ((left_lo * right_lo) & 0xFFFFFFFF);
+    result_high = left_high * right_high + (mid >> 32) + (mid_2 >> 32);
+    auto result_low = (mid_2 << 32) | ((left_low * right_low) & 0xFFFFFFFF);
 #endif
     result_high += left.low * right.high + left.high * right.low;
     return {result_high, result_low};
