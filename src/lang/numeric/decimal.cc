@@ -20,23 +20,28 @@ auto strip_trailing_zeros(std::int64_t &coefficient, std::int32_t &exponent)
   if (coefficient == 0) {
     return;
   }
+
   constexpr std::int64_t POWER_OF_10_16 = 10000000000000000LL;
   if (coefficient % POWER_OF_10_16 == 0) {
     coefficient /= POWER_OF_10_16;
     exponent += 16;
   }
+
   if (coefficient % 100000000 == 0) {
     coefficient /= 100000000;
     exponent += 8;
   }
+
   if (coefficient % 10000 == 0) {
     coefficient /= 10000;
     exponent += 4;
   }
+
   if (coefficient % 100 == 0) {
     coefficient /= 100;
     exponent += 2;
   }
+
   if (coefficient % 10 == 0) {
     coefficient /= 10;
     exponent += 1;
@@ -55,7 +60,7 @@ auto floating_point_to_string(const FloatingPointType value) -> std::string {
 
 struct ParsedDecimal {
   std::int64_t coefficient;
-  std::uint64_t coefficient_hi;
+  std::uint64_t coefficient_high;
   std::int32_t exponent;
   std::uint8_t flags;
 };
@@ -66,6 +71,7 @@ auto parse_digit_payload(const char *cursor, std::size_t count)
   for (std::size_t index = 0; index < count; index++) {
     payload = payload * 10 + (cursor[index] - '0');
   }
+
   return payload;
 }
 
@@ -78,6 +84,7 @@ auto parse_special(const char *input, std::size_t length) -> ParsedDecimal * {
     if (*cursor == '-') {
       sign_flag = FLAG_SIGN;
     }
+
     cursor++;
   }
 
@@ -88,7 +95,7 @@ auto parse_special(const char *input, std::size_t length) -> ParsedDecimal * {
       (cursor[2] == 'N' || cursor[2] == 'n')) {
     result.flags = FLAG_NAN | sign_flag;
     result.exponent = 0;
-    result.coefficient_hi = 0;
+    result.coefficient_high = 0;
     result.coefficient = parse_digit_payload(cursor + 3, remaining - 3);
     return &result;
   }
@@ -99,7 +106,7 @@ auto parse_special(const char *input, std::size_t length) -> ParsedDecimal * {
       (cursor[3] == 'N' || cursor[3] == 'n')) {
     result.flags = FLAG_NAN | FLAG_SNAN | sign_flag;
     result.exponent = 0;
-    result.coefficient_hi = 0;
+    result.coefficient_high = 0;
     result.coefficient = parse_digit_payload(cursor + 4, remaining - 4);
     return &result;
   }
@@ -116,7 +123,7 @@ auto parse_special(const char *input, std::size_t length) -> ParsedDecimal * {
     result.flags = FLAG_INFINITE | sign_flag;
     result.coefficient = 0;
     result.exponent = 0;
-    result.coefficient_hi = 0;
+    result.coefficient_high = 0;
     return &result;
   }
 
@@ -131,7 +138,7 @@ auto parse_decimal_string(const char *input, std::size_t length)
   }
 
   ParsedDecimal result{
-      .coefficient = 0, .coefficient_hi = 0, .exponent = 0, .flags = 0};
+      .coefficient = 0, .coefficient_high = 0, .exponent = 0, .flags = 0};
   const char *cursor = input;
   const char *end = input + length;
 
@@ -156,12 +163,14 @@ auto parse_decimal_string(const char *input, std::size_t length)
       if (digit_count_total < digit_buffer.size()) {
         digit_buffer[digit_count_total] = *cursor;
       }
+
       digit_count_total++;
       has_digit = true;
     } else if (*cursor == '.') {
       if (decimal_offset >= 0) {
         throw sourcemeta::core::DecimalParseError{};
       }
+
       decimal_offset = static_cast<std::int32_t>(digit_count_total);
     } else if (*cursor == 'e' || *cursor == 'E') {
       cursor++;
@@ -169,6 +178,7 @@ auto parse_decimal_string(const char *input, std::size_t length)
     } else {
       throw sourcemeta::core::DecimalParseError{};
     }
+
     cursor++;
   }
 
@@ -187,6 +197,7 @@ auto parse_decimal_string(const char *input, std::size_t length)
     } else if (*cursor == '+') {
       cursor++;
     }
+
     bool has_exponent_digit = false;
     while (cursor < end && *cursor >= '0' && *cursor <= '9') {
       exponent_suffix_64 = exponent_suffix_64 * 10 + (*cursor - '0');
@@ -196,18 +207,23 @@ auto parse_decimal_string(const char *input, std::size_t length)
         while (cursor < end && *cursor >= '0' && *cursor <= '9') {
           cursor++;
         }
+
         break;
       }
     }
+
     if (!has_exponent_digit) {
       throw sourcemeta::core::DecimalParseError{};
     }
+
     if (cursor < end) {
       throw sourcemeta::core::DecimalParseError{};
     }
+
     if (is_exponent_negative) {
       exponent_suffix_64 = -exponent_suffix_64;
     }
+
   } else if (has_exponent_marker) {
     throw sourcemeta::core::DecimalParseError{};
   }
@@ -231,6 +247,7 @@ auto parse_decimal_string(const char *input, std::size_t length)
          digit_buffer[leading_zeros] == '0') {
     leading_zeros++;
   }
+
   auto significant_digits = digit_count_total - leading_zeros;
 
   if (significant_digits <= 18) {
@@ -239,6 +256,7 @@ auto parse_decimal_string(const char *input, std::size_t length)
          index++) {
       coefficient = coefficient * 10 + (digit_buffer[index] - '0');
     }
+
     result.coefficient = coefficient;
   } else if (significant_digits <= 36) {
     auto low_start = leading_zeros + significant_digits -
@@ -249,19 +267,21 @@ auto parse_decimal_string(const char *input, std::size_t length)
       low_word =
           low_word * 10 + static_cast<std::uint64_t>(digit_buffer[index] - '0');
     }
+
     std::uint64_t high_word = 0;
     for (std::uint32_t index = leading_zeros; index < low_start; index++) {
       high_word = high_word * 10 +
                   static_cast<std::uint64_t>(digit_buffer[index] - '0');
     }
+
     result.coefficient = static_cast<std::int64_t>(low_word);
-    result.coefficient_hi = high_word;
+    result.coefficient_high = high_word;
     result.flags |= FLAG_BIG;
   } else {
-    auto *big = big_from_digits(digit_buffer.data() + leading_zeros,
-                                significant_digits);
-    store_big_pointer(result.coefficient, big);
-    result.coefficient_hi = 0;
+    auto big = BigCoefficient::from_digits(digit_buffer.data() + leading_zeros,
+                                           significant_digits);
+    store_big_pointer(result.coefficient, std::move(big));
+    result.coefficient_high = 0;
     result.flags |= static_cast<std::uint8_t>(FLAG_BIG | FLAG_HEAP);
   }
 
@@ -287,6 +307,7 @@ auto is_representable_as_floating_point(
     } else if constexpr (std::is_same_v<FloatingPointType, double>) {
       converted_value = std::stod(decimal_string);
     }
+
   } catch (const std::out_of_range &) {
     return false;
   }
@@ -319,23 +340,29 @@ auto format_special_value(std::string &result, std::uint8_t flags,
     if (flags & FLAG_SIGN) {
       result += '-';
     }
+
     if (flags & FLAG_SNAN) {
       result += "sNaN";
     } else {
       result += "NaN";
     }
+
     if (coefficient > 0) {
       result += std::to_string(coefficient);
     }
+
     return true;
   }
+
   if (flags & FLAG_INFINITE) {
     if (flags & FLAG_SIGN) {
       result += '-';
     }
+
     result += "Infinity";
     return true;
   }
+
   return false;
 }
 
@@ -348,19 +375,21 @@ Decimal::Decimal() noexcept = default;
 Decimal::~Decimal() { free_big_coefficient(this->coefficient_, this->flags_); }
 
 Decimal::Decimal(const Decimal &other)
-    : coefficient_{other.coefficient_}, coefficient_hi_{other.coefficient_hi_},
-      exponent_{other.exponent_}, flags_{other.flags_} {
+    : coefficient_{other.coefficient_},
+      coefficient_high_{other.coefficient_high_}, exponent_{other.exponent_},
+      flags_{other.flags_} {
   if (other.flags_ & FLAG_HEAP) {
-    auto *cloned = big_clone(load_big_pointer(other.coefficient_));
-    store_big_pointer(this->coefficient_, cloned);
+    store_big_pointer(this->coefficient_,
+                      load_big_pointer(other.coefficient_)->clone());
   }
 }
 
 Decimal::Decimal(Decimal &&other) noexcept
-    : coefficient_{other.coefficient_}, coefficient_hi_{other.coefficient_hi_},
-      exponent_{other.exponent_}, flags_{other.flags_} {
+    : coefficient_{other.coefficient_},
+      coefficient_high_{other.coefficient_high_}, exponent_{other.exponent_},
+      flags_{other.flags_} {
   other.coefficient_ = 0;
-  other.coefficient_hi_ = 0;
+  other.coefficient_high_ = 0;
   other.exponent_ = 0;
   other.flags_ = 0;
 }
@@ -369,14 +398,15 @@ auto Decimal::operator=(const Decimal &other) -> Decimal & {
   if (this != &other) {
     free_big_coefficient(this->coefficient_, this->flags_);
     this->coefficient_ = other.coefficient_;
-    this->coefficient_hi_ = other.coefficient_hi_;
+    this->coefficient_high_ = other.coefficient_high_;
     this->exponent_ = other.exponent_;
     this->flags_ = other.flags_;
     if (other.flags_ & FLAG_HEAP) {
-      auto *cloned = big_clone(load_big_pointer(other.coefficient_));
-      store_big_pointer(this->coefficient_, cloned);
+      store_big_pointer(this->coefficient_,
+                        load_big_pointer(other.coefficient_)->clone());
     }
   }
+
   return *this;
 }
 
@@ -384,14 +414,15 @@ auto Decimal::operator=(Decimal &&other) noexcept -> Decimal & {
   if (this != &other) {
     free_big_coefficient(this->coefficient_, this->flags_);
     this->coefficient_ = other.coefficient_;
-    this->coefficient_hi_ = other.coefficient_hi_;
+    this->coefficient_high_ = other.coefficient_high_;
     this->exponent_ = other.exponent_;
     this->flags_ = other.flags_;
     other.coefficient_ = 0;
-    other.coefficient_hi_ = 0;
+    other.coefficient_high_ = 0;
     other.exponent_ = 0;
     other.flags_ = 0;
   }
+
   return *this;
 }
 
@@ -399,7 +430,7 @@ Decimal::Decimal(const std::int64_t value) {
   if (value == std::numeric_limits<std::int64_t>::min()) {
     auto absolute_value = static_cast<std::uint64_t>(-(value + 1)) + 1;
     this->coefficient_ = static_cast<std::int64_t>(absolute_value % BASE);
-    this->coefficient_hi_ = absolute_value / BASE;
+    this->coefficient_high_ = absolute_value / BASE;
     this->flags_ = FLAG_BIG | FLAG_SIGN;
   } else if (value < 0) {
     this->coefficient_ = -value;
@@ -412,7 +443,7 @@ Decimal::Decimal(const std::int64_t value) {
 Decimal::Decimal(const std::uint64_t value) {
   if (value > static_cast<std::uint64_t>(COMPACT_MAX)) {
     this->coefficient_ = static_cast<std::int64_t>(value % BASE);
-    this->coefficient_hi_ = value / BASE;
+    this->coefficient_high_ = value / BASE;
     this->flags_ = FLAG_BIG;
   } else {
     this->coefficient_ = static_cast<std::int64_t>(value);
@@ -428,7 +459,7 @@ Decimal::Decimal(const double value)
 Decimal::Decimal(const char *const value) {
   auto parsed = parse_decimal_string(value, std::strlen(value));
   this->coefficient_ = parsed.coefficient;
-  this->coefficient_hi_ = parsed.coefficient_hi;
+  this->coefficient_high_ = parsed.coefficient_high;
   this->exponent_ = parsed.exponent;
   this->flags_ = parsed.flags;
 }
@@ -436,7 +467,7 @@ Decimal::Decimal(const char *const value) {
 Decimal::Decimal(const std::string &value) {
   auto parsed = parse_decimal_string(value.c_str(), value.size());
   this->coefficient_ = parsed.coefficient;
-  this->coefficient_hi_ = parsed.coefficient_hi;
+  this->coefficient_high_ = parsed.coefficient_high;
   this->exponent_ = parsed.exponent;
   this->flags_ = parsed.flags;
 }
@@ -444,7 +475,7 @@ Decimal::Decimal(const std::string &value) {
 Decimal::Decimal(const std::string_view value) {
   auto parsed = parse_decimal_string(value.data(), value.size());
   this->coefficient_ = parsed.coefficient;
-  this->coefficient_hi_ = parsed.coefficient_hi;
+  this->coefficient_high_ = parsed.coefficient_high;
   this->exponent_ = parsed.exponent;
   this->flags_ = parsed.flags;
 }
@@ -483,7 +514,7 @@ auto Decimal::to_scientific_string() const -> std::string {
   }
 
   auto digit_string = coefficient_to_digit_string(
-      this->coefficient_, this->coefficient_hi_, this->flags_);
+      this->coefficient_, this->coefficient_high_, this->flags_);
   auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
   auto adjusted_exponent = this->exponent_ + number_of_digits - 1;
 
@@ -503,6 +534,7 @@ auto Decimal::to_scientific_string() const -> std::string {
   if (adjusted_exponent >= 0) {
     result += '+';
   }
+
   result += std::to_string(adjusted_exponent);
 
   return result;
@@ -517,7 +549,7 @@ auto Decimal::to_string() const -> std::string {
   }
 
   auto digit_string = coefficient_to_digit_string(
-      this->coefficient_, this->coefficient_hi_, this->flags_);
+      this->coefficient_, this->coefficient_high_, this->flags_);
   auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
   auto integer_digit_count = number_of_digits + this->exponent_;
 
@@ -544,6 +576,7 @@ auto Decimal::to_string() const -> std::string {
     for (std::int32_t index = 0; index < -decimal_place; index++) {
       result += '0';
     }
+
     result += digit_string;
   } else if (decimal_place >= number_of_digits) {
     result += digit_string;
@@ -551,6 +584,7 @@ auto Decimal::to_string() const -> std::string {
          index++) {
       result += '0';
     }
+
   } else {
     result += digit_string.substr(0, static_cast<std::size_t>(decimal_place));
     result += '.';
@@ -563,6 +597,7 @@ auto Decimal::to_string() const -> std::string {
     if (engineering_exponent >= 0) {
       result += '+';
     }
+
     result += std::to_string(engineering_exponent);
   }
 
@@ -573,13 +608,13 @@ auto Decimal::to_int64() const -> std::int64_t {
   assert(this->is_int64());
 
   if (this->flags_ & FLAG_BIG) {
-    auto *big = coefficient_as_big(this->coefficient_, this->coefficient_hi_,
-                                   this->flags_);
-    auto value = big_to_uint128(big, this->exponent_);
-    big_free(big);
+    auto big = coefficient_as_big(this->coefficient_, this->coefficient_high_,
+                                  this->flags_);
+    auto value = big.to_uint128(this->exponent_);
     if (this->flags_ & FLAG_SIGN) {
       return -static_cast<std::int64_t>(value);
     }
+
     return static_cast<std::int64_t>(value);
   }
 
@@ -602,11 +637,9 @@ auto Decimal::to_uint64() const -> std::uint64_t {
   assert(this->is_uint64());
 
   if (this->flags_ & FLAG_BIG) {
-    auto *big = coefficient_as_big(this->coefficient_, this->coefficient_hi_,
-                                   this->flags_);
-    auto value =
-        static_cast<std::uint64_t>(big_to_uint128(big, this->exponent_));
-    big_free(big);
+    auto big = coefficient_as_big(this->coefficient_, this->coefficient_high_,
+                                  this->flags_);
+    auto value = static_cast<std::uint64_t>(big.to_uint128(this->exponent_));
     return value;
   }
 
@@ -618,6 +651,7 @@ auto Decimal::to_uint64() const -> std::uint64_t {
     result *= 10;
     exponent--;
   }
+
   return result;
 }
 
@@ -637,13 +671,16 @@ auto Decimal::to_double() const -> double {
 auto Decimal::is_zero() const -> bool {
   if (this->flags_ & SPECIAL_MASK) {
     if (this->flags_ & FLAG_HEAP) {
-      return big_is_zero(load_big_pointer(this->coefficient_));
+      return load_big_pointer(this->coefficient_)->is_zero();
     }
+
     if (this->flags_ & FLAG_BIG) {
-      return this->coefficient_ == 0 && this->coefficient_hi_ == 0;
+      return this->coefficient_ == 0 && this->coefficient_high_ == 0;
     }
+
     return false;
   }
+
   return this->coefficient_ == 0;
 }
 
@@ -661,12 +698,10 @@ auto Decimal::is_integral() const -> bool {
   }
 
   if (this->flags_ & FLAG_BIG) {
-    auto *big = coefficient_as_big(this->coefficient_, this->coefficient_hi_,
-                                   this->flags_);
-    auto stripped = big_strip_trailing_zeros(big);
-    auto result = stripped >= -this->exponent_;
-    big_free(big);
-    return result;
+    auto big = coefficient_as_big(this->coefficient_, this->coefficient_high_,
+                                  this->flags_);
+    auto stripped = big.strip_trailing_zeros();
+    return stripped >= -this->exponent_;
   }
 
   auto coefficient = this->coefficient_;
@@ -675,6 +710,7 @@ auto Decimal::is_integral() const -> bool {
     coefficient /= 10;
     exponent++;
   }
+
   return exponent >= 0;
 }
 
@@ -749,13 +785,14 @@ auto Decimal::to_integral() const -> Decimal {
   if (!this->is_finite()) {
     return *this;
   }
+
   if (this->exponent_ >= 0) {
     return *this;
   }
 
   if (this->flags_ & FLAG_BIG) {
     auto digit_string = coefficient_to_digit_string(
-        this->coefficient_, this->coefficient_hi_, this->flags_);
+        this->coefficient_, this->coefficient_high_, this->flags_);
     auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
     auto digits_to_remove = -this->exponent_;
 
@@ -770,6 +807,7 @@ auto Decimal::to_integral() const -> Decimal {
     if (this->flags_ & FLAG_SIGN) {
       result.flags_ |= FLAG_SIGN;
     }
+
     return result;
   }
 
@@ -785,6 +823,7 @@ auto Decimal::to_integral() const -> Decimal {
   for (std::int32_t index = 0; index < digits_to_remove; index++) {
     divisor *= 10;
   }
+
   auto quotient = coefficient / divisor;
   auto remainder = coefficient % divisor;
   auto half = divisor / 2;
@@ -799,6 +838,7 @@ auto Decimal::to_integral() const -> Decimal {
   if (this->flags_ & FLAG_SIGN) {
     result.flags_ = FLAG_SIGN;
   }
+
   return result;
 }
 
@@ -806,9 +846,11 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
   if (divisor.is_zero()) {
     return false;
   }
+
   if (this->is_zero()) {
     return true;
   }
+
   if (!this->is_finite() || !divisor.is_finite()) {
     return false;
   }
@@ -818,12 +860,14 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
 
     std::uint64_t dividend_mod;
     if (this->flags_ & FLAG_BIG) {
-      auto hi_mod = this->coefficient_hi_ % divisor_value;
+      auto hi_mod = this->coefficient_high_ % divisor_value;
       auto base_mod = BASE % divisor_value;
       auto lo_mod =
           static_cast<std::uint64_t>(this->coefficient_) % divisor_value;
       dividend_mod = static_cast<std::uint64_t>(
-          (static_cast<uint128_t>(hi_mod) * base_mod + lo_mod) % divisor_value);
+          (static_cast<sourcemeta::core::uint128_t>(hi_mod) * base_mod +
+           lo_mod) %
+          divisor_value);
     } else {
       dividend_mod =
           static_cast<std::uint64_t>(this->coefficient_) % divisor_value;
@@ -833,8 +877,9 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
       auto difference =
           static_cast<std::uint32_t>(this->exponent_ - divisor.exponent_);
       auto pow_mod = modular_pow10(difference, divisor_value);
-      return static_cast<std::uint64_t>(static_cast<uint128_t>(dividend_mod) *
-                                        pow_mod % divisor_value) == 0;
+      return static_cast<std::uint64_t>(
+                 static_cast<sourcemeta::core::uint128_t>(dividend_mod) *
+                 pow_mod % divisor_value) == 0;
     }
 
     auto difference =
@@ -843,12 +888,14 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
       return false;
     }
 
-    uint128_t remaining;
+    sourcemeta::core::uint128_t remaining;
     if (this->flags_ & FLAG_BIG) {
-      remaining = static_cast<uint128_t>(this->coefficient_hi_) * BASE +
-                  static_cast<std::uint64_t>(this->coefficient_);
+      remaining =
+          static_cast<sourcemeta::core::uint128_t>(this->coefficient_high_) *
+              BASE +
+          static_cast<std::uint64_t>(this->coefficient_);
     } else {
-      remaining = static_cast<uint128_t>(
+      remaining = static_cast<sourcemeta::core::uint128_t>(
           static_cast<std::uint64_t>(this->coefficient_));
     }
 
@@ -859,6 +906,7 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
       if (static_cast<std::uint64_t>(remaining % power) != 0) {
         return false;
       }
+
       remaining = remaining / power;
       diff_left -= chunk;
     }
@@ -866,26 +914,17 @@ auto Decimal::divisible_by(const Decimal &divisor) const -> bool {
     return static_cast<std::uint64_t>(remaining % divisor_value) == 0;
   }
 
-  auto *dividend_big = coefficient_as_big(this->coefficient_,
-                                          this->coefficient_hi_, this->flags_);
-  auto *divisor_big = coefficient_as_big(
-      divisor.coefficient_, divisor.coefficient_hi_, divisor.flags_);
+  auto dividend_big = coefficient_as_big(this->coefficient_,
+                                         this->coefficient_high_, this->flags_);
+  auto divisor_big = coefficient_as_big(
+      divisor.coefficient_, divisor.coefficient_high_, divisor.flags_);
 
-  align_big_exponents(dividend_big, divisor_big, this->exponent_,
-                      divisor.exponent_);
+  BigCoefficient::align_exponents(dividend_big, divisor_big, this->exponent_,
+                                  divisor.exponent_);
 
-  BigCoefficient *quotient;
-  BigCoefficient *remainder;
-  big_divide_modulo(dividend_big, divisor_big, &quotient, &remainder);
+  auto [quotient, remainder] = dividend_big.divide_modulo(divisor_big);
 
-  auto is_divisible = big_is_zero(remainder);
-
-  big_free(quotient);
-  big_free(remainder);
-  big_free(dividend_big);
-  big_free(divisor_big);
-
-  return is_divisible;
+  return remainder.is_zero();
 }
 
 auto Decimal::operator==(const Decimal &other) const -> bool {
@@ -896,6 +935,7 @@ auto Decimal::operator==(const Decimal &other) const -> bool {
   if (this->is_infinite() && other.is_infinite()) {
     return (this->flags_ & FLAG_SIGN) == (other.flags_ & FLAG_SIGN);
   }
+
   if (this->is_infinite() || other.is_infinite()) {
     return false;
   }
@@ -914,15 +954,13 @@ auto Decimal::operator==(const Decimal &other) const -> bool {
   auto right_exponent = other.exponent_;
 
   if ((this->flags_ & FLAG_BIG) || (other.flags_ & FLAG_BIG)) {
-    auto *left_big = coefficient_as_big(this->coefficient_,
-                                        this->coefficient_hi_, this->flags_);
-    auto *right_big = coefficient_as_big(other.coefficient_,
-                                         other.coefficient_hi_, other.flags_);
-    align_big_exponents(left_big, right_big, left_exponent, right_exponent);
-    auto equal = big_compare(left_big, right_big) == 0;
-    big_free(left_big);
-    big_free(right_big);
-    return equal;
+    auto left_big = coefficient_as_big(this->coefficient_,
+                                       this->coefficient_high_, this->flags_);
+    auto right_big = coefficient_as_big(other.coefficient_,
+                                        other.coefficient_high_, other.flags_);
+    BigCoefficient::align_exponents(left_big, right_big, left_exponent,
+                                    right_exponent);
+    return left_big.compare(right_big) == 0;
   }
 
   strip_trailing_zeros(left_coefficient, left_exponent);
@@ -944,12 +982,15 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
     if (this->flags_ & FLAG_SIGN) {
       return !other.is_infinite() || !(other.flags_ & FLAG_SIGN);
     }
+
     return false;
   }
+
   if (other.is_infinite()) {
     if (other.flags_ & FLAG_SIGN) {
       return false;
     }
+
     return true;
   }
 
@@ -961,15 +1002,19 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
   if (left_zero && right_zero) {
     return false;
   }
+
   if (left_zero) {
     return !right_negative;
   }
+
   if (right_zero) {
     return left_negative;
   }
+
   if (left_negative && !right_negative) {
     return true;
   }
+
   if (!left_negative && right_negative) {
     return false;
   }
@@ -977,28 +1022,24 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
   int magnitude_compare;
 
   if ((this->flags_ & FLAG_BIG) || (other.flags_ & FLAG_BIG)) {
-    auto *left_big = coefficient_as_big(this->coefficient_,
-                                        this->coefficient_hi_, this->flags_);
-    auto *right_big = coefficient_as_big(other.coefficient_,
-                                         other.coefficient_hi_, other.flags_);
+    auto left_big = coefficient_as_big(this->coefficient_,
+                                       this->coefficient_high_, this->flags_);
+    auto right_big = coefficient_as_big(other.coefficient_,
+                                        other.coefficient_high_, other.flags_);
 
-    auto left_digit_count =
-        static_cast<std::int64_t>(big_digit_count(left_big));
-    auto right_digit_count =
-        static_cast<std::int64_t>(big_digit_count(right_big));
+    auto left_digit_count = static_cast<std::int64_t>(left_big.digit_count());
+    auto right_digit_count = static_cast<std::int64_t>(right_big.digit_count());
     auto left_adjusted = this->exponent_ + left_digit_count - 1;
     auto right_adjusted = other.exponent_ + right_digit_count - 1;
 
     if (left_adjusted != right_adjusted) {
       magnitude_compare = left_adjusted < right_adjusted ? -1 : 1;
     } else {
-      align_big_exponents(left_big, right_big, this->exponent_,
-                          other.exponent_);
-      magnitude_compare = big_compare(left_big, right_big);
+      BigCoefficient::align_exponents(left_big, right_big, this->exponent_,
+                                      other.exponent_);
+      magnitude_compare = left_big.compare(right_big);
     }
 
-    big_free(left_big);
-    big_free(right_big);
   } else {
     if (this->exponent_ == other.exponent_) {
       if (this->coefficient_ < other.coefficient_) {
@@ -1008,6 +1049,7 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
       } else {
         magnitude_compare = 0;
       }
+
     } else {
       auto left_digits =
           digit_count(static_cast<std::uint64_t>(this->coefficient_));
@@ -1027,8 +1069,10 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
             auto multiplier =
                 POWERS_OF_10[static_cast<std::uint32_t>(exponent_difference)];
             auto product =
-                static_cast<uint128_t>(this->coefficient_) * multiplier;
-            auto right_128 = static_cast<uint128_t>(other.coefficient_);
+                static_cast<sourcemeta::core::uint128_t>(this->coefficient_) *
+                multiplier;
+            auto right_128 =
+                static_cast<sourcemeta::core::uint128_t>(other.coefficient_);
             if (product < right_128) {
               magnitude_compare = -1;
             } else if (product > right_128) {
@@ -1036,16 +1080,20 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
             } else {
               magnitude_compare = 0;
             }
+
           } else {
             magnitude_compare = 1;
           }
+
         } else {
           auto difference = static_cast<std::uint32_t>(-exponent_difference);
           if (difference <= 18) {
             auto multiplier = POWERS_OF_10[difference];
             auto product =
-                static_cast<uint128_t>(other.coefficient_) * multiplier;
-            auto left_128 = static_cast<uint128_t>(this->coefficient_);
+                static_cast<sourcemeta::core::uint128_t>(other.coefficient_) *
+                multiplier;
+            auto left_128 =
+                static_cast<sourcemeta::core::uint128_t>(this->coefficient_);
             if (left_128 < product) {
               magnitude_compare = -1;
             } else if (left_128 > product) {
@@ -1053,6 +1101,7 @@ auto Decimal::operator<(const Decimal &other) const -> bool {
             } else {
               magnitude_compare = 0;
             }
+
           } else {
             magnitude_compare = -1;
           }
@@ -1068,6 +1117,7 @@ auto Decimal::operator<=(const Decimal &other) const -> bool {
   if (this->is_nan() || other.is_nan()) {
     return false;
   }
+
   return !(other < *this);
 }
 
@@ -1079,6 +1129,7 @@ auto Decimal::operator>=(const Decimal &other) const -> bool {
   if (this->is_nan() || other.is_nan()) {
     return false;
   }
+
   return !(*this < other);
 }
 
@@ -1088,15 +1139,19 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
       *this = Decimal::nan();
       return *this;
     }
+
     if (this->is_infinite() && other.is_infinite()) {
       if ((this->flags_ & FLAG_SIGN) != (other.flags_ & FLAG_SIGN)) {
         *this = Decimal::nan();
       }
+
       return *this;
     }
+
     if (other.is_infinite()) {
       *this = other;
     }
+
     return *this;
   }
 
@@ -1105,6 +1160,7 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
   if (other.is_zero()) {
     return *this;
   }
+
   if (this->is_zero()) {
     *this = other;
     return *this;
@@ -1123,27 +1179,32 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
       auto difference =
           static_cast<std::uint32_t>(other.exponent_ - this->exponent_);
       if (difference <= 18) {
-        auto scaled = static_cast<uint128_t>(right_coefficient) *
-                      POWERS_OF_10[difference];
-        if (scaled <= static_cast<uint128_t>(COMPACT_MAX)) {
+        auto scaled =
+            static_cast<sourcemeta::core::uint128_t>(right_coefficient) *
+            POWERS_OF_10[difference];
+        if (scaled <= static_cast<sourcemeta::core::uint128_t>(COMPACT_MAX)) {
           right_coefficient = static_cast<std::int64_t>(scaled);
         } else {
           needs_big = true;
         }
+
       } else {
         needs_big = true;
       }
+
     } else if (other.exponent_ < this->exponent_) {
       auto difference =
           static_cast<std::uint32_t>(this->exponent_ - other.exponent_);
       if (difference <= 18) {
         auto scaled =
-            static_cast<uint128_t>(left_coefficient) * POWERS_OF_10[difference];
-        if (scaled <= static_cast<uint128_t>(COMPACT_MAX)) {
+            static_cast<sourcemeta::core::uint128_t>(left_coefficient) *
+            POWERS_OF_10[difference];
+        if (scaled <= static_cast<sourcemeta::core::uint128_t>(COMPACT_MAX)) {
           left_coefficient = static_cast<std::int64_t>(scaled);
         } else {
           needs_big = true;
         }
+
       } else {
         needs_big = true;
       }
@@ -1151,23 +1212,23 @@ auto Decimal::operator+=(const Decimal &other) -> Decimal & {
   }
 
   if (needs_big) {
-    auto *left_big = coefficient_as_big(this->coefficient_,
-                                        this->coefficient_hi_, this->flags_);
-    auto *right_big = coefficient_as_big(other.coefficient_,
-                                         other.coefficient_hi_, other.flags_);
-    align_big_exponents(left_big, right_big, this->exponent_, other.exponent_);
-    auto [result_big, result_negative] =
-        big_add_signed(left_big, right_big, left_negative, right_negative);
-    big_free(left_big);
-    big_free(right_big);
-    if (big_is_zero(result_big)) {
+    auto left_big = coefficient_as_big(this->coefficient_,
+                                       this->coefficient_high_, this->flags_);
+    auto right_big = coefficient_as_big(other.coefficient_,
+                                        other.coefficient_high_, other.flags_);
+    BigCoefficient::align_exponents(left_big, right_big, this->exponent_,
+                                    other.exponent_);
+    auto [result_big, result_negative] = BigCoefficient::add_signed(
+        left_big, right_big, left_negative, right_negative);
+    if (result_big.is_zero()) {
       result_negative = false;
     }
+
     free_big_coefficient(this->coefficient_, this->flags_);
-    store_big_result(this->coefficient_, this->coefficient_hi_, this->flags_,
-                     result_big, result_negative);
+    store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+                     std::move(result_big), result_negative);
     this->exponent_ = result_exponent;
-    round_to_precision(this->coefficient_, this->coefficient_hi_,
+    round_to_precision(this->coefficient_, this->coefficient_high_,
                        this->exponent_, this->flags_);
     return *this;
   }
@@ -1207,27 +1268,33 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
       *this = Decimal::nan();
       return *this;
     }
+
     if (this->is_infinite()) {
       if (other.is_zero()) {
         *this = Decimal::nan();
         return *this;
       }
+
       if ((other.flags_ & FLAG_SIGN) != 0) {
         this->flags_ ^= FLAG_SIGN;
       }
+
       return *this;
     }
+
     if (other.is_infinite()) {
       if (this->is_zero()) {
         *this = Decimal::nan();
         return *this;
       }
+
       auto sign = ((this->flags_ ^ other.flags_) & FLAG_SIGN);
       *this = other;
       this->flags_ =
           static_cast<std::uint8_t>((this->flags_ & ~FLAG_SIGN) | sign);
       return *this;
     }
+
     return *this;
   }
 
@@ -1240,50 +1307,48 @@ auto Decimal::operator*=(const Decimal &other) -> Decimal & {
       result_exponent_64 < std::numeric_limits<std::int32_t>::min()) {
     throw NumericOverflowError{};
   }
+
   auto result_exponent = static_cast<std::int32_t>(result_exponent_64);
 
   if ((this->flags_ & FLAG_BIG) || (other.flags_ & FLAG_BIG)) {
-    auto *left_big = coefficient_as_big(this->coefficient_,
-                                        this->coefficient_hi_, this->flags_);
-    auto *right_big = coefficient_as_big(other.coefficient_,
-                                         other.coefficient_hi_, other.flags_);
-    auto *product = big_multiply(left_big, right_big);
-    big_free(left_big);
-    big_free(right_big);
+    auto left_big = coefficient_as_big(this->coefficient_,
+                                       this->coefficient_high_, this->flags_);
+    auto right_big = coefficient_as_big(other.coefficient_,
+                                        other.coefficient_high_, other.flags_);
+    auto product = left_big.multiply(right_big);
     free_big_coefficient(this->coefficient_, this->flags_);
-    store_big_result(this->coefficient_, this->coefficient_hi_, this->flags_,
-                     product, result_negative);
+    store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+                     std::move(product), result_negative);
     this->exponent_ = result_exponent;
-    round_to_precision(this->coefficient_, this->coefficient_hi_,
+    round_to_precision(this->coefficient_, this->coefficient_high_,
                        this->exponent_, this->flags_);
     return *this;
   }
 
-  auto product = static_cast<uint128_t>(this->coefficient_) *
-                 static_cast<uint128_t>(other.coefficient_);
+  auto product = static_cast<sourcemeta::core::uint128_t>(this->coefficient_) *
+                 static_cast<sourcemeta::core::uint128_t>(other.coefficient_);
 
-  if (product <= static_cast<uint128_t>(COMPACT_MAX)) {
+  if (product <= static_cast<sourcemeta::core::uint128_t>(COMPACT_MAX)) {
     this->coefficient_ = static_cast<std::int64_t>(product);
     this->exponent_ = result_exponent;
     this->flags_ = result_negative ? FLAG_SIGN : 0;
     if (this->coefficient_ == 0) {
       this->flags_ = 0;
     }
+
   } else {
-    auto *left_big = coefficient_as_big(this->coefficient_,
-                                        this->coefficient_hi_, this->flags_);
-    auto *right_big = coefficient_as_big(other.coefficient_,
-                                         other.coefficient_hi_, other.flags_);
-    auto *result = big_multiply(left_big, right_big);
-    big_free(left_big);
-    big_free(right_big);
-    store_big_result(this->coefficient_, this->coefficient_hi_, this->flags_,
-                     result, result_negative);
+    auto left_big = coefficient_as_big(this->coefficient_,
+                                       this->coefficient_high_, this->flags_);
+    auto right_big = coefficient_as_big(other.coefficient_,
+                                        other.coefficient_high_, other.flags_);
+    auto result = left_big.multiply(right_big);
+    store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+                     std::move(result), result_negative);
     this->exponent_ = result_exponent;
   }
 
-  round_to_precision(this->coefficient_, this->coefficient_hi_, this->exponent_,
-                     this->flags_);
+  round_to_precision(this->coefficient_, this->coefficient_high_,
+                     this->exponent_, this->flags_);
   return *this;
 }
 
@@ -1301,6 +1366,7 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
     if ((other.flags_ & FLAG_SIGN) != 0) {
       this->flags_ ^= FLAG_SIGN;
     }
+
     return *this;
   }
 
@@ -1308,6 +1374,7 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
     if (this->is_zero()) {
       throw NumericInvalidOperationError{};
     }
+
     throw NumericDivisionByZeroError{};
   }
 
@@ -1322,31 +1389,25 @@ auto Decimal::operator/=(const Decimal &other) -> Decimal & {
 
   bool result_negative = ((this->flags_ ^ other.flags_) & FLAG_SIGN) != 0;
 
-  auto *dividend_big = coefficient_as_big(this->coefficient_,
-                                          this->coefficient_hi_, this->flags_);
-  auto *divisor_big = coefficient_as_big(other.coefficient_,
-                                         other.coefficient_hi_, other.flags_);
+  auto dividend_big = coefficient_as_big(this->coefficient_,
+                                         this->coefficient_high_, this->flags_);
+  auto divisor_big = coefficient_as_big(other.coefficient_,
+                                        other.coefficient_high_, other.flags_);
 
-  auto *scaled = big_multiply_pow10(dividend_big, WORKING_PRECISION);
-  big_free(dividend_big);
-
-  BigCoefficient *quotient;
-  BigCoefficient *remainder;
-  big_divide_modulo(scaled, divisor_big, &quotient, &remainder);
-  big_free(scaled);
-  big_free(remainder);
-  big_free(divisor_big);
+  auto scaled = dividend_big.multiply_pow10(WORKING_PRECISION);
+  auto [quotient, remainder] = scaled.divide_modulo(divisor_big);
 
   free_big_coefficient(this->coefficient_, this->flags_);
-  store_big_result(this->coefficient_, this->coefficient_hi_, this->flags_,
-                   quotient, result_negative);
+  store_big_result(this->coefficient_, this->coefficient_high_, this->flags_,
+                   std::move(quotient), result_negative);
   if (this->coefficient_ == 0 && !(this->flags_ & FLAG_BIG)) {
     this->flags_ = 0;
   }
+
   this->exponent_ = this->exponent_ - other.exponent_ - WORKING_PRECISION;
 
-  round_to_precision(this->coefficient_, this->coefficient_hi_, this->exponent_,
-                     this->flags_);
+  round_to_precision(this->coefficient_, this->coefficient_high_,
+                     this->exponent_, this->flags_);
   return *this;
 }
 
@@ -1355,13 +1416,16 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
     *this = Decimal::nan();
     return *this;
   }
+
   if (other.is_zero()) {
     throw NumericInvalidOperationError{};
   }
+
   if (this->is_infinite()) {
     *this = Decimal::nan();
     return *this;
   }
+
   if (other.is_infinite()) {
     return *this;
   }
@@ -1373,7 +1437,7 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
     if (quotient.exponent_ < 0) {
       if (quotient.flags_ & FLAG_BIG) {
         auto digit_string = coefficient_to_digit_string(
-            quotient.coefficient_, quotient.coefficient_hi_, quotient.flags_);
+            quotient.coefficient_, quotient.coefficient_high_, quotient.flags_);
         auto number_of_digits = static_cast<std::int32_t>(digit_string.size());
         auto digits_to_remove = -quotient.exponent_;
         if (digits_to_remove >= number_of_digits) {
@@ -1388,6 +1452,7 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
           quotient.flags_ =
               static_cast<std::uint8_t>(quotient.flags_ | old_sign);
         }
+
       } else {
         auto coefficient = quotient.coefficient_;
         auto exponent = quotient.exponent_;
@@ -1395,6 +1460,7 @@ auto Decimal::operator%=(const Decimal &other) -> Decimal & {
           coefficient /= 10;
           exponent++;
         }
+
         if (exponent < 0) {
           quotient = Decimal{};
         } else {
