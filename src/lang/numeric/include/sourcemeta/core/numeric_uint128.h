@@ -29,12 +29,15 @@ struct uint128_t {
   std::uint64_t high;
 
   uint128_t() : low{0}, high{0} {}
-  uint128_t(int value) : low{static_cast<std::uint64_t>(value)}, high{0} {}
+  uint128_t(int value)
+      : low{static_cast<std::uint64_t>(value)},
+        high{value < 0 ? UINT64_MAX : 0} {}
   uint128_t(unsigned int value)
       : low{static_cast<std::uint64_t>(value)}, high{0} {}
   uint128_t(std::uint64_t value) : low{value}, high{0} {}
   uint128_t(std::int64_t value)
-      : low{static_cast<std::uint64_t>(value)}, high{0} {}
+      : low{static_cast<std::uint64_t>(value)},
+        high{value < 0 ? UINT64_MAX : 0} {}
   uint128_t(std::uint64_t high_part, std::uint64_t low_part)
       : low{low_part}, high{high_part} {}
 
