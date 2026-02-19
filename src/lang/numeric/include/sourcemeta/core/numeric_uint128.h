@@ -7,7 +7,6 @@
 
 #include <cassert> // assert
 #include <climits> // UINT64_MAX
-#include <cstddef> // std::size_t
 #include <cstdint> // std::uint64_t, std::int64_t
 
 #if defined(_MSC_VER)
@@ -41,9 +40,6 @@ struct uint128_t {
       : low{low_part}, high{high_part} {}
 
   explicit operator std::uint64_t() const noexcept { return this->low; }
-  explicit operator std::size_t() const noexcept {
-    return static_cast<std::size_t>(this->low);
-  }
   explicit operator std::int64_t() const noexcept {
     return static_cast<std::int64_t>(this->low);
   }
@@ -76,7 +72,6 @@ struct uint128_t {
 #if defined(_MSC_VER)
     auto result_low = _umul128(left.low, right.low, &result_high);
 #else
-    // Portable 64x64->128 multiply using 32-bit parts
     const std::uint64_t left_lo{left.low & 0xFFFFFFFF};
     const std::uint64_t left_hi{left.low >> 32};
     const std::uint64_t right_lo{right.low & 0xFFFFFFFF};
@@ -105,19 +100,16 @@ struct uint128_t {
 #if defined(_MSC_VER)
     quotient_low = _udiv128(remainder_high, dividend.low, divisor, &remainder);
 #else
-    // Portable 128/64 division: (remainder_high:dividend.low) / divisor
-    // remainder_high < divisor is guaranteed since it's dividend.high % divisor
-    if (remainder_high == 0) {
-      quotient_low = dividend.low / divisor;
-    } else {
-      // Long division by splitting into 32-bit halves
-      const std::uint64_t lower_hi{dividend.low >> 32};
-      const std::uint64_t lower_lo{dividend.low & 0xFFFFFFFF};
-      const auto combined_hi = (remainder_high << 32) | lower_hi;
-      const auto quotient_hi = combined_hi / divisor;
-      const auto remainder_1 = combined_hi % divisor;
-      const auto combined_lo = (remainder_1 << 32) | lower_lo;
-      quotient_low = (quotient_hi << 32) | (combined_lo / divisor);
+    quotient_low = 0;
+    auto current_remainder = remainder_high;
+    for (int bit = 63; bit >= 0; --bit) {
+      const auto carry = current_remainder >> 63;
+      current_remainder =
+          (current_remainder << 1) | ((dividend.low >> bit) & 1);
+      if (carry || current_remainder >= divisor) {
+        current_remainder -= divisor;
+        quotient_low |= static_cast<std::uint64_t>(1) << bit;
+      }
     }
 #endif
     return {quotient_high, quotient_low};
@@ -140,14 +132,14 @@ struct uint128_t {
 #if defined(_MSC_VER)
     _udiv128(remainder_high, dividend.low, divisor, &remainder);
 #else
-    const std::uint64_t half_shift{32};
-    const std::uint64_t half_mask{0xFFFFFFFF};
-    const std::uint64_t lower_hi{dividend.low >> half_shift};
-    const std::uint64_t lower_lo{dividend.low & half_mask};
-    const auto combined_hi = (remainder_high << half_shift) | lower_hi;
-    auto remainder_1 = combined_hi % divisor;
-    const auto combined_lo = (remainder_1 << half_shift) | lower_lo;
-    remainder = combined_lo % divisor;
+    remainder = remainder_high;
+    for (int bit = 63; bit >= 0; --bit) {
+      const auto carry = remainder >> 63;
+      remainder = (remainder << 1) | ((dividend.low >> bit) & 1);
+      if (carry || remainder >= divisor) {
+        remainder -= divisor;
+      }
+    }
 #endif
     return {0, remainder};
   }

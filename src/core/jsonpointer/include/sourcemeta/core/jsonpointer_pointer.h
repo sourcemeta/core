@@ -759,6 +759,8 @@ public:
     }
 
   private:
+    // Intentionally only fold hash.a for performance, as the first
+    // 16 bytes already provide sufficient entropy for bucketing
     static auto property_hash(const typename Hash::hash_type &hash) noexcept
         -> std::size_t {
       return static_cast<std::size_t>(hash.a) ^
