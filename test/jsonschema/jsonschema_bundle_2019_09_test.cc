@@ -408,9 +408,9 @@ TEST(JSONSchema_bundle_2019_09, recursive_empty_fragment) {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#",
     "$defs": {
-      "https://www.sourcemeta.com/recursive-empty-fragment": {
+      "https://www.sourcemeta.com/recursive-empty-fragment#": {
         "$schema": "https://json-schema.org/draft/2019-09/schema",
-        "$id": "https://www.sourcemeta.com/recursive-empty-fragment",
+        "$id": "https://www.sourcemeta.com/recursive-empty-fragment#",
         "properties": {
           "foo": { "$ref": "#" }
         }
