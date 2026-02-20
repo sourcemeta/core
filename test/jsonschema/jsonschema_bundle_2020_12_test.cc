@@ -102,6 +102,32 @@ static auto test_resolver(std::string_view identifier)
         }
       }
     })JSON");
+  } else if (identifier == "https://example.com/dedup-a") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/dedup-a",
+      "$ref": "dedup-common",
+      "$defs": {
+        "https://example.com/dedup-common": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/dedup-common",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/dedup-b") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/dedup-b",
+      "$ref": "dedup-common",
+      "$defs": {
+        "https://example.com/dedup-common": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/dedup-common",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else if (identifier == "https://www.example.com/schemas/bundled") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -110,6 +136,64 @@ static auto test_resolver(std::string_view identifier)
       "$defs": {
         "https://example.com/schemas/child": {
           "$id": "https://example.com/schemas/child",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/dedup-conflict-a") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/dedup-conflict-a",
+      "$ref": "dedup-conflict-common",
+      "$defs": {
+        "https://example.com/dedup-conflict-common": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/dedup-conflict-common",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/dedup-conflict-b") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/dedup-conflict-b",
+      "$ref": "dedup-conflict-common",
+      "$defs": {
+        "https://example.com/dedup-conflict-common": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/dedup-conflict-common",
+          "type": "integer"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/elevate-single") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/elevate-single",
+      "$ref": "elevate-single-nested",
+      "$defs": {
+        "https://example.com/elevate-single-nested": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/elevate-single-nested",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/shared-direct") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/shared-direct",
+      "type": "string"
+    })JSON");
+  } else if (identifier == "https://example.com/prebundled-with-shared") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/prebundled-with-shared",
+      "$ref": "shared-direct",
+      "$defs": {
+        "https://example.com/shared-direct": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/shared-direct",
           "type": "string"
         }
       }
@@ -799,16 +883,14 @@ TEST(JSONSchema_bundle_2020_12, default_id_with_different_ref_target_id) {
     "title": "Entry",
     "$ref": "https://example.com/schemas/parent",
     "$defs": {
+      "https://example.com/schemas/child": {
+        "$id": "https://example.com/schemas/child",
+        "type": "string"
+      },
       "https://example.com/schemas/parent": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://example.com/schemas/parent",
-        "$ref": "./child",
-        "$defs": {
-          "https://example.com/schemas/child": {
-            "$id": "https://example.com/schemas/child",
-            "type": "string"
-          }
-        }
+        "$ref": "./child"
       }
     }
   })JSON");
@@ -879,6 +961,131 @@ TEST(JSONSchema_bundle_2020_12,
             "type": "string"
           }
         }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, deduplicate_embedded_from_prebundled) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/dedup-entry",
+    "allOf": [
+      { "$ref": "dedup-a" },
+      { "$ref": "dedup-b" }
+    ]
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/dedup-entry",
+    "allOf": [
+      { "$ref": "dedup-a" },
+      { "$ref": "dedup-b" }
+    ],
+    "$defs": {
+      "https://example.com/dedup-a": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/dedup-a",
+        "$ref": "dedup-common"
+      },
+      "https://example.com/dedup-b": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/dedup-b",
+        "$ref": "dedup-common"
+      },
+      "https://example.com/dedup-common": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/dedup-common",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, conflicting_embedded_from_prebundled) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/dedup-conflict-entry",
+    "allOf": [
+      { "$ref": "dedup-conflict-a" },
+      { "$ref": "dedup-conflict-b" }
+    ]
+  })JSON");
+
+  EXPECT_THROW(sourcemeta::core::bundle(
+                   document, sourcemeta::core::schema_walker, test_resolver),
+               sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_bundle_2020_12, elevate_embedded_from_single_prebundled) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/elevate-entry",
+    "$ref": "elevate-single"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/elevate-entry",
+    "$ref": "elevate-single",
+    "$defs": {
+      "https://example.com/elevate-single": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/elevate-single",
+        "$ref": "elevate-single-nested"
+      },
+      "https://example.com/elevate-single-nested": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/elevate-single-nested",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, direct_and_embedded_reference_no_duplicate) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/direct-and-embedded-entry",
+    "allOf": [
+      { "$ref": "prebundled-with-shared" },
+      { "$ref": "shared-direct" }
+    ]
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/direct-and-embedded-entry",
+    "allOf": [
+      { "$ref": "prebundled-with-shared" },
+      { "$ref": "shared-direct" }
+    ],
+    "$defs": {
+      "https://example.com/prebundled-with-shared": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/prebundled-with-shared",
+        "$ref": "shared-direct"
+      },
+      "https://example.com/shared-direct": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/shared-direct",
+        "type": "string"
       }
     }
   })JSON");

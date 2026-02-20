@@ -63,6 +63,32 @@ static auto test_resolver(std::string_view identifier)
       "$schema": "http://json-schema.org/draft-04/schema#",
       "id": "https://example.com/meta/2.json"
     })JSON");
+  } else if (identifier == "https://example.com/draft4-dedup-a") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://example.com/draft4-dedup-a",
+      "allOf": [ { "$ref": "draft4-dedup-common" } ],
+      "definitions": {
+        "https://example.com/draft4-dedup-common": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://example.com/draft4-dedup-common",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/draft4-dedup-b") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "id": "https://example.com/draft4-dedup-b",
+      "allOf": [ { "$ref": "draft4-dedup-common" } ],
+      "definitions": {
+        "https://example.com/draft4-dedup-common": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://example.com/draft4-dedup-common",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else {
     return sourcemeta::core::schema_resolver(identifier);
   }
@@ -584,6 +610,48 @@ TEST(JSONSchema_bundle_draft4, standalone_ref_with_default_dialect) {
       "https://www.sourcemeta.com/test-1": {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "id": "https://www.sourcemeta.com/test-1",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_draft4, deduplicate_embedded_from_prebundled) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://example.com/draft4-dedup-entry",
+    "allOf": [
+      { "$ref": "draft4-dedup-a" },
+      { "$ref": "draft4-dedup-b" }
+    ]
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "https://example.com/draft4-dedup-entry",
+    "allOf": [
+      { "$ref": "draft4-dedup-a" },
+      { "$ref": "draft4-dedup-b" }
+    ],
+    "definitions": {
+      "https://example.com/draft4-dedup-a": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://example.com/draft4-dedup-a",
+        "allOf": [ { "$ref": "draft4-dedup-common" } ]
+      },
+      "https://example.com/draft4-dedup-b": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://example.com/draft4-dedup-b",
+        "allOf": [ { "$ref": "draft4-dedup-common" } ]
+      },
+      "https://example.com/draft4-dedup-common": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://example.com/draft4-dedup-common",
         "type": "string"
       }
     }
