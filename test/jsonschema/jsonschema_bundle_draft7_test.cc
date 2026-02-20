@@ -53,6 +53,14 @@ static auto test_resolver(std::string_view identifier)
     return sourcemeta::core::parse_json(R"JSON({
       "type": "integer"
     })JSON");
+  } else if (identifier == "https://www.sourcemeta.com/trailing-hash") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://www.sourcemeta.com/trailing-hash#",
+      "definitions": {
+        "string": { "type": "string" }
+      }
+    })JSON");
   } else if (identifier == "https://example.com/meta/1.json") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "https://example.com/meta/2.json",
@@ -574,6 +582,42 @@ TEST(JSONSchema_bundle_draft7, standalone_ref_with_default_dialect) {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "$id": "https://www.sourcemeta.com/test-1",
         "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_draft7, ref_with_fragment_to_id_with_trailing_hash) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/trailing-hash#/definitions/string"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://example.com",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "properties": {
+      "foo": {
+        "$ref": "https://www.sourcemeta.com/trailing-hash#/definitions/string"
+      }
+    },
+    "definitions": {
+      "https://www.sourcemeta.com/trailing-hash#": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://www.sourcemeta.com/trailing-hash#",
+        "definitions": {
+          "string": { "type": "string" }
+        }
       }
     }
   })JSON");
