@@ -92,6 +92,18 @@ static auto test_resolver(std::string_view identifier)
       "$id": "https://example.com/meta/2.json",
       "$vocabulary": { "https://json-schema.org/draft/2020-12/vocab/core": true }
     })JSON");
+  } else if (identifier == "https://www.example.com/schemas/bundled") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/schemas/parent",
+      "$ref": "./child",
+      "$defs": {
+        "https://example.com/schemas/child": {
+          "$id": "https://example.com/schemas/child",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else {
     return sourcemeta::core::schema_resolver(identifier);
   }
@@ -446,9 +458,9 @@ TEST(JSONSchema_bundle_2020_12, recursive_empty_fragment) {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#",
     "$defs": {
-      "https://www.sourcemeta.com/recursive-empty-fragment": {
+      "https://www.sourcemeta.com/recursive-empty-fragment#": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://www.sourcemeta.com/recursive-empty-fragment",
+        "$id": "https://www.sourcemeta.com/recursive-empty-fragment#",
         "properties": {
           "foo": { "$ref": "#" }
         }
@@ -759,4 +771,37 @@ TEST(JSONSchema_bundle_2020_12, custom_nested_object_path_not_object) {
                    "",
                    sourcemeta::core::Pointer{"x-definitions", "foo", "bar"}),
                sourcemeta::core::SchemaError);
+}
+
+TEST(JSONSchema_bundle_2020_12, default_id_with_different_ref_target_id) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Entry",
+    "$ref": "schemas/bundled"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver, "", "https://www.example.com/entry");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.example.com/entry",
+    "title": "Entry",
+    "$ref": "https://example.com/schemas/parent",
+    "$defs": {
+      "https://example.com/schemas/parent": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/schemas/parent",
+        "$ref": "./child",
+        "$defs": {
+          "https://example.com/schemas/child": {
+            "$id": "https://example.com/schemas/child",
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }

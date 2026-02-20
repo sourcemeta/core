@@ -406,9 +406,9 @@ TEST(JSONSchema_bundle_draft4, recursive_empty_fragment) {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "allOf": [ { "$ref": "https://www.sourcemeta.com/recursive-empty-fragment#" } ],
     "definitions": {
-      "https://www.sourcemeta.com/recursive-empty-fragment": {
+      "https://www.sourcemeta.com/recursive-empty-fragment#": {
         "$schema": "http://json-schema.org/draft-04/schema#",
-        "id": "https://www.sourcemeta.com/recursive-empty-fragment",
+        "id": "https://www.sourcemeta.com/recursive-empty-fragment#",
         "properties": {
           "foo": { "$ref": "#" }
         }
@@ -545,9 +545,9 @@ TEST(JSONSchema_bundle_draft4, hyperschema_1) {
   EXPECT_EQ(document.at("definitions").size(), 2);
 
   EXPECT_TRUE(document.at("definitions")
-                  .defines("http://json-schema.org/draft-04/schema"));
+                  .defines("http://json-schema.org/draft-04/schema#"));
   EXPECT_TRUE(document.at("definitions")
-                  .defines("http://json-schema.org/draft-04/hyper-schema"));
+                  .defines("http://json-schema.org/draft-04/hyper-schema#"));
 }
 
 TEST(JSONSchema_bundle_draft4, hyperschema_ref_metaschema) {
@@ -566,7 +566,7 @@ TEST(JSONSchema_bundle_draft4, hyperschema_ref_metaschema) {
   EXPECT_EQ(document.at("definitions").size(), 1);
 
   EXPECT_TRUE(document.at("definitions")
-                  .defines("http://json-schema.org/draft-04/schema"));
+                  .defines("http://json-schema.org/draft-04/schema#"));
 }
 
 TEST(JSONSchema_bundle_draft4, standalone_ref_with_default_dialect) {

@@ -132,7 +132,7 @@ auto embed_schema(sourcemeta::core::JSON &root,
 
 auto bundle_schema(sourcemeta::core::JSON &root,
                    const sourcemeta::core::Pointer &container,
-                   const sourcemeta::core::JSON &subschema,
+                   sourcemeta::core::JSON &subschema,
                    const sourcemeta::core::SchemaWalker &walker,
                    const sourcemeta::core::SchemaResolver &resolver,
                    std::string_view default_dialect,
@@ -152,6 +152,17 @@ auto bundle_schema(sourcemeta::core::JSON &root,
   } else {
     frame.analyse(subschema, walker, resolver, default_dialect, default_id);
   }
+
+  struct DeferredWork {
+    sourcemeta::core::JSON remote;
+    sourcemeta::core::JSON::String identifier;
+    sourcemeta::core::JSON::String effective_id;
+  };
+  std::vector<DeferredWork> deferred;
+
+  std::vector<
+      std::pair<sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
+      ref_rewrites;
 
   frame.for_each_unresolved_reference([&](const auto &pointer,
                                           const auto &reference) {
@@ -210,6 +221,9 @@ auto bundle_schema(sourcemeta::core::JSON &root,
           "The JSON document is not a valid JSON Schema");
     }
 
+    const auto remote_id =
+        sourcemeta::core::identify(remote.value(), resolver, default_dialect);
+
     // If the reference has a fragment, verify it exists in the remote
     // schema
     if (reference.fragment.has_value()) {
@@ -226,19 +240,36 @@ auto bundle_schema(sourcemeta::core::JSON &root,
       }
     }
 
+    const sourcemeta::core::JSON::String effective_id{
+        remote_id.empty() ? identifier
+                          : sourcemeta::core::JSON::String{remote_id}};
+
     if (remote.value().is_object()) {
-      // Always insert an identifier, as a schema might refer to another
-      // schema using another URI (i.e. due to relying on HTTP
-      // re-directions, etc)
-      sourcemeta::core::reidentify(remote.value(), identifier,
+      sourcemeta::core::reidentify(remote.value(), effective_id,
                                    remote_base_dialect.value());
     }
 
+    if (effective_id != identifier) {
+      ref_rewrites.emplace_back(sourcemeta::core::to_pointer(pointer),
+                                effective_id);
+    }
+
     bundled.emplace(identifier);
-    bundle_schema(root, container, remote.value(), walker, resolver,
-                  default_dialect, identifier, paths, bundled, depth + 1);
-    embed_schema(root, container, identifier, std::move(remote).value());
+    bundled.emplace(effective_id);
+    deferred.push_back({std::move(remote).value(), identifier, effective_id});
   });
+
+  for (const auto &[rewrite_pointer, rewrite_value] : ref_rewrites) {
+    sourcemeta::core::set(subschema, rewrite_pointer,
+                          sourcemeta::core::JSON{rewrite_value});
+  }
+
+  for (auto &work : deferred) {
+    bundle_schema(root, container, work.remote, walker, resolver,
+                  default_dialect, work.effective_id, paths, bundled,
+                  depth + 1);
+    embed_schema(root, container, work.effective_id, std::move(work.remote));
+  }
 }
 
 } // namespace
