@@ -210,6 +210,32 @@ static auto test_resolver(std::string_view identifier)
         }
       }
     })JSON");
+  } else if (identifier == "https://example.com/collision-a") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/collision-a",
+      "$ref": "collision-common",
+      "$defs": {
+        "https://example.com/collision-common": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/collision-common",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/collision-b") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/collision-b",
+      "$ref": "collision-common",
+      "$defs": {
+        "https://example.com/collision-common": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$id": "https://example.com/collision-common",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else if (identifier == "https://example.com/prebundled-with-shared") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1174,6 +1200,57 @@ TEST(JSONSchema_bundle_2020_12, no_elevate_relative_id) {
             "type": "string"
           }
         }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12,
+     deduplicate_embedded_with_preexisting_key_collision) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/collision-entry",
+    "$defs": {
+      "https://example.com/collision-common": {
+        "type": "boolean"
+      }
+    },
+    "allOf": [
+      { "$ref": "collision-a" },
+      { "$ref": "collision-b" }
+    ]
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/collision-entry",
+    "allOf": [
+      { "$ref": "collision-a" },
+      { "$ref": "collision-b" }
+    ],
+    "$defs": {
+      "https://example.com/collision-common": {
+        "type": "boolean"
+      },
+      "https://example.com/collision-a": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/collision-a",
+        "$ref": "collision-common"
+      },
+      "https://example.com/collision-b": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/collision-b",
+        "$ref": "collision-common"
+      },
+      "https://example.com/collision-common/x": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/collision-common",
+        "type": "string"
       }
     }
   })JSON");
