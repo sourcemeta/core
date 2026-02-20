@@ -166,7 +166,8 @@ auto elevate_embedded_resources(
     }
 
     const sourcemeta::core::JSON::String identifier_string{identifier};
-    if (identifier_string != key) {
+    if (identifier_string != key ||
+        !sourcemeta::core::URI{identifier_string}.is_absolute()) {
       continue;
     }
 

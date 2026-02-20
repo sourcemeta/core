@@ -198,6 +198,18 @@ static auto test_resolver(std::string_view identifier)
         }
       }
     })JSON");
+  } else if (identifier == "https://example.com/host-with-relative-nested") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/host-with-relative-nested",
+      "$ref": "relative-nested",
+      "$defs": {
+        "relative-nested": {
+          "$id": "relative-nested",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else if (identifier == "https://example.com/prebundled-with-shared") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1130,6 +1142,38 @@ TEST(JSONSchema_bundle_2020_12, elevate_embedded_cross_dialect) {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "id": "https://example.com/cross-dialect-nested",
         "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, no_elevate_relative_id) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/relative-entry",
+    "$ref": "host-with-relative-nested"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/relative-entry",
+    "$ref": "host-with-relative-nested",
+    "$defs": {
+      "https://example.com/host-with-relative-nested": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/host-with-relative-nested",
+        "$ref": "relative-nested",
+        "$defs": {
+          "relative-nested": {
+            "$id": "relative-nested",
+            "type": "string"
+          }
+        }
       }
     }
   })JSON");
