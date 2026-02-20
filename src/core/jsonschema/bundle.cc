@@ -137,6 +137,8 @@ auto elevate_embedded_resources(
     sourcemeta::core::JSON &remote, sourcemeta::core::JSON &root,
     const sourcemeta::core::Pointer &container,
     const sourcemeta::core::SchemaBaseDialect remote_dialect,
+    const sourcemeta::core::SchemaResolver &resolver,
+    std::string_view default_dialect,
     std::unordered_map<sourcemeta::core::JSON::String,
                        sourcemeta::core::JSON::String> &bundled) -> void {
   const auto keyword{sourcemeta::core::definitions_keyword(remote_dialect)};
@@ -153,7 +155,12 @@ auto elevate_embedded_resources(
   for (const auto &entry : defs.as_object()) {
     const auto &key{entry.first};
     const auto &value{entry.second};
-    const auto identifier{sourcemeta::core::identify(value, remote_dialect)};
+    const auto entry_dialect{
+        sourcemeta::core::base_dialect(value, resolver, default_dialect)};
+    const auto effective_entry_dialect{
+        entry_dialect.has_value() ? entry_dialect.value() : remote_dialect};
+    const auto identifier{
+        sourcemeta::core::identify(value, effective_entry_dialect)};
     if (identifier.empty()) {
       continue;
     }
@@ -357,7 +364,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     bundle_schema(root, container, remote, walker, resolver, default_dialect,
                   effective_id, paths, bundled, depth + 1);
     elevate_embedded_resources(remote, root, container, remote_dialect,
-                               bundled);
+                               resolver, default_dialect, bundled);
     embed_schema(root, container, effective_id, std::move(remote));
   }
 }

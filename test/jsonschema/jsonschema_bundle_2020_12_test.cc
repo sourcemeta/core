@@ -185,6 +185,19 @@ static auto test_resolver(std::string_view identifier)
       "$id": "https://example.com/shared-direct",
       "type": "string"
     })JSON");
+  } else if (identifier == "https://example.com/cross-dialect-host") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/cross-dialect-host",
+      "$ref": "cross-dialect-nested",
+      "$defs": {
+        "https://example.com/cross-dialect-nested": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "id": "https://example.com/cross-dialect-nested",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else if (identifier == "https://example.com/prebundled-with-shared") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1085,6 +1098,37 @@ TEST(JSONSchema_bundle_2020_12, direct_and_embedded_reference_no_duplicate) {
       "https://example.com/shared-direct": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://example.com/shared-direct",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12, elevate_embedded_cross_dialect) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/cross-dialect-entry",
+    "$ref": "cross-dialect-host"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/cross-dialect-entry",
+    "$ref": "cross-dialect-host",
+    "$defs": {
+      "https://example.com/cross-dialect-host": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/cross-dialect-host",
+        "$ref": "cross-dialect-nested"
+      },
+      "https://example.com/cross-dialect-nested": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "https://example.com/cross-dialect-nested",
         "type": "string"
       }
     }
