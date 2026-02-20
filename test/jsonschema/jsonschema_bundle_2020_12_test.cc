@@ -92,6 +92,16 @@ static auto test_resolver(std::string_view identifier)
       "$id": "https://example.com/meta/2.json",
       "$vocabulary": { "https://json-schema.org/draft/2020-12/vocab/core": true }
     })JSON");
+  } else if (identifier == "https://cdn.example.com/schemas/foo") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://example.com/foo",
+      "$defs": {
+        "bar": {
+          "type": "string"
+        }
+      }
+    })JSON");
   } else if (identifier == "https://www.example.com/schemas/bundled") {
     return sourcemeta::core::parse_json(R"JSON({
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -796,6 +806,76 @@ TEST(JSONSchema_bundle_2020_12, default_id_with_different_ref_target_id) {
         "$defs": {
           "https://example.com/schemas/child": {
             "$id": "https://example.com/schemas/child",
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12,
+     default_id_with_different_ref_target_id_duplicate_refs) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "first": { "$ref": "https://cdn.example.com/schemas/foo" },
+      "second": { "$ref": "https://cdn.example.com/schemas/foo" }
+    }
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver, "", "https://www.example.com/entry");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.example.com/entry",
+    "properties": {
+      "first": { "$ref": "https://example.com/foo" },
+      "second": { "$ref": "https://example.com/foo" }
+    },
+    "$defs": {
+      "https://example.com/foo": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/foo",
+        "$defs": {
+          "bar": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_2020_12,
+     default_id_with_different_ref_target_id_with_fragment) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "properties": {
+      "foo": { "$ref": "https://cdn.example.com/schemas/foo#/$defs/bar" }
+    }
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver, "", "https://www.example.com/entry");
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://www.example.com/entry",
+    "properties": {
+      "foo": { "$ref": "https://example.com/foo#/$defs/bar" }
+    },
+    "$defs": {
+      "https://example.com/foo": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://example.com/foo",
+        "$defs": {
+          "bar": {
             "type": "string"
           }
         }

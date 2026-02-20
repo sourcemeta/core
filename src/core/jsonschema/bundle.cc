@@ -4,6 +4,7 @@
 #include <functional>    // std::reference_wrapper
 #include <sstream>       // std::ostringstream
 #include <tuple>         // std::tuple
+#include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move
 #include <vector>        // std::vector
@@ -138,7 +139,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    std::string_view default_dialect,
                    std::string_view default_id,
                    const sourcemeta::core::SchemaFrame::Paths &paths,
-                   std::unordered_set<sourcemeta::core::JSON::String> &bundled,
+                   std::unordered_map<sourcemeta::core::JSON::String,
+                                      sourcemeta::core::JSON::String> &bundled,
                    const std::size_t depth = 0) -> void {
   // Create a fresh frame for each schema we analyze to avoid key collisions
   // between different schemas that have references at the same pointer paths
@@ -184,9 +186,19 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     assert(!reference.base.empty());
     const sourcemeta::core::JSON::String identifier{reference.base};
 
-    // Skip if already bundled to avoid infinite loops on circular
-    // references
     if (bundled.contains(identifier)) {
+      const auto &mapped_id{bundled.at(identifier)};
+      if (mapped_id != identifier) {
+        sourcemeta::core::JSON::String rewrite_value{mapped_id};
+        if (reference.fragment.has_value()) {
+          rewrite_value += '#';
+          rewrite_value += reference.fragment.value();
+        }
+
+        ref_rewrites.emplace_back(sourcemeta::core::to_pointer(pointer),
+                                  std::move(rewrite_value));
+      }
+
       return;
     }
 
@@ -245,12 +257,18 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     }
 
     if (effective_id != identifier) {
+      sourcemeta::core::JSON::String rewrite_value{effective_id};
+      if (reference.fragment.has_value()) {
+        rewrite_value += '#';
+        rewrite_value += reference.fragment.value();
+      }
+
       ref_rewrites.emplace_back(sourcemeta::core::to_pointer(pointer),
-                                effective_id);
+                                std::move(rewrite_value));
     }
 
-    bundled.emplace(identifier);
-    bundled.emplace(effective_id);
+    bundled.emplace(identifier, effective_id);
+    bundled.emplace(effective_id, effective_id);
     deferred.emplace_back(std::move(remote).value(), std::move(effective_id));
   });
 
@@ -290,12 +308,13 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
   // Pre-scan the schema to find any already-embedded schemas and mark them
   // as bundled to avoid re-embedding them. This includes the root schema itself
   // and any schemas already embedded within it
-  std::unordered_set<JSON::String> bundled;
+  std::unordered_map<JSON::String, JSON::String> bundled;
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations};
   initial_frame.analyse(schema, walker, resolver, default_dialect, default_id,
                         paths);
-  initial_frame.for_each_resource_uri(
-      [&bundled](const auto uri) { bundled.emplace(uri); });
+  initial_frame.for_each_resource_uri([&bundled](const auto uri) {
+    bundled.emplace(JSON::String{uri}, JSON::String{uri});
+  });
   if (default_container.has_value()) {
     // This is undefined behavior
     assert(!default_container.value().empty());
