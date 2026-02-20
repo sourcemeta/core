@@ -153,13 +153,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
     frame.analyse(subschema, walker, resolver, default_dialect, default_id);
   }
 
-  struct DeferredWork {
-    sourcemeta::core::JSON remote;
-    sourcemeta::core::JSON::String identifier;
-    sourcemeta::core::JSON::String effective_id;
-  };
-  std::vector<DeferredWork> deferred;
-
+  std::vector<std::pair<sourcemeta::core::JSON, sourcemeta::core::JSON::String>>
+      deferred;
   std::vector<
       std::pair<sourcemeta::core::Pointer, sourcemeta::core::JSON::String>>
       ref_rewrites;
@@ -221,7 +216,7 @@ auto bundle_schema(sourcemeta::core::JSON &root,
           "The JSON document is not a valid JSON Schema");
     }
 
-    const auto remote_id =
+    auto remote_id =
         sourcemeta::core::identify(remote.value(), resolver, default_dialect);
 
     // If the reference has a fragment, verify it exists in the remote
@@ -240,8 +235,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
       }
     }
 
-    const sourcemeta::core::JSON::String effective_id{
-        remote_id.empty() ? identifier
+    sourcemeta::core::JSON::String effective_id{
+        remote_id.empty() ? sourcemeta::core::JSON::String{identifier}
                           : sourcemeta::core::JSON::String{remote_id}};
 
     if (remote.value().is_object()) {
@@ -256,19 +251,18 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
     bundled.emplace(identifier);
     bundled.emplace(effective_id);
-    deferred.push_back({std::move(remote).value(), identifier, effective_id});
+    deferred.emplace_back(std::move(remote).value(), std::move(effective_id));
   });
 
-  for (const auto &[rewrite_pointer, rewrite_value] : ref_rewrites) {
+  for (auto &[rewrite_pointer, rewrite_value] : ref_rewrites) {
     sourcemeta::core::set(subschema, rewrite_pointer,
                           sourcemeta::core::JSON{rewrite_value});
   }
 
-  for (auto &work : deferred) {
-    bundle_schema(root, container, work.remote, walker, resolver,
-                  default_dialect, work.effective_id, paths, bundled,
-                  depth + 1);
-    embed_schema(root, container, work.effective_id, std::move(work.remote));
+  for (auto &[remote, effective_id] : deferred) {
+    bundle_schema(root, container, remote, walker, resolver, default_dialect,
+                  effective_id, paths, bundled, depth + 1);
+    embed_schema(root, container, effective_id, std::move(remote));
   }
 }
 
