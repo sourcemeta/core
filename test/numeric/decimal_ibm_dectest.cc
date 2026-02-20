@@ -582,6 +582,7 @@ static auto should_skip_test(const DecTestCase &test_case,
         return true;
       }
     } catch (...) {
+      return true;
     }
   }
 

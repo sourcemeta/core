@@ -3404,6 +3404,13 @@ TEST(Numeric_decimal, scale_by_snan_throws) {
       sourcemeta::core::NumericInvalidOperationError);
 }
 
+TEST(Numeric_decimal, scale_by_huge_scale_throws) {
+  const sourcemeta::core::Decimal value{"1.23"};
+  const sourcemeta::core::Decimal scale{"99999999999999999999"};
+  EXPECT_THROW(static_cast<void>(value.scale_by(scale)),
+               sourcemeta::core::NumericOverflowError);
+}
+
 TEST(Numeric_decimal, same_quantum_same_exponent) {
   const sourcemeta::core::Decimal left{"1.23"};
   const sourcemeta::core::Decimal right{"4.56"};

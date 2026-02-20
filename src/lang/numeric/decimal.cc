@@ -1043,6 +1043,10 @@ auto Decimal::scale_by(const Decimal &scale) const -> Decimal {
     return *this;
   }
 
+  if (!scale.is_int64()) {
+    throw NumericOverflowError{};
+  }
+
   auto scale_value = scale.to_int64();
   auto new_exponent = static_cast<std::int64_t>(this->exponent_) + scale_value;
   if (new_exponent > std::numeric_limits<std::int32_t>::max() ||
