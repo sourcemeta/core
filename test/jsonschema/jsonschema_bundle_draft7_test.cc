@@ -71,6 +71,45 @@ static auto test_resolver(std::string_view identifier)
       "$schema": "http://json-schema.org/draft-07/schema#",
       "$id": "https://example.com/meta/2.json"
     })JSON");
+  } else if (identifier == "https://example.com/draft7-dedup-a") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/draft7-dedup-a",
+      "allOf": [ { "$ref": "draft7-dedup-common" } ],
+      "definitions": {
+        "https://example.com/draft7-dedup-common": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://example.com/draft7-dedup-common",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/draft7-dedup-b") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/draft7-dedup-b",
+      "allOf": [ { "$ref": "draft7-dedup-common" } ],
+      "definitions": {
+        "https://example.com/draft7-dedup-common": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://example.com/draft7-dedup-common",
+          "type": "string"
+        }
+      }
+    })JSON");
+  } else if (identifier == "https://example.com/draft7-elevate-single") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "$id": "https://example.com/draft7-elevate-single",
+      "allOf": [ { "$ref": "draft7-elevate-nested" } ],
+      "definitions": {
+        "https://example.com/draft7-elevate-nested": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "https://example.com/draft7-elevate-nested",
+          "type": "string"
+        }
+      }
+    })JSON");
   } else {
     return sourcemeta::core::schema_resolver(identifier);
   }
@@ -618,6 +657,79 @@ TEST(JSONSchema_bundle_draft7, ref_with_fragment_to_id_with_trailing_hash) {
         "definitions": {
           "string": { "type": "string" }
         }
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_draft7, deduplicate_embedded_from_prebundled) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/draft7-dedup-entry",
+    "allOf": [
+      { "$ref": "draft7-dedup-a" },
+      { "$ref": "draft7-dedup-b" }
+    ]
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/draft7-dedup-entry",
+    "allOf": [
+      { "$ref": "draft7-dedup-a" },
+      { "$ref": "draft7-dedup-b" }
+    ],
+    "definitions": {
+      "https://example.com/draft7-dedup-a": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://example.com/draft7-dedup-a",
+        "allOf": [ { "$ref": "draft7-dedup-common" } ]
+      },
+      "https://example.com/draft7-dedup-b": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://example.com/draft7-dedup-b",
+        "allOf": [ { "$ref": "draft7-dedup-common" } ]
+      },
+      "https://example.com/draft7-dedup-common": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://example.com/draft7-dedup-common",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(JSONSchema_bundle_draft7, elevate_embedded_from_single_prebundled) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/draft7-elevate-entry",
+    "allOf": [ { "$ref": "draft7-elevate-single" } ]
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://example.com/draft7-elevate-entry",
+    "allOf": [ { "$ref": "draft7-elevate-single" } ],
+    "definitions": {
+      "https://example.com/draft7-elevate-single": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://example.com/draft7-elevate-single",
+        "allOf": [ { "$ref": "draft7-elevate-nested" } ]
+      },
+      "https://example.com/draft7-elevate-nested": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "https://example.com/draft7-elevate-nested",
+        "type": "string"
       }
     }
   })JSON");
