@@ -3453,3 +3453,57 @@ TEST(AlterSchema_lint_draft7, empty_object_as_true_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft7,
+     pattern_properties_ref_with_slashes_in_key_and_defs) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$defs": {
+      "foo": { "description": "ignored" }
+    },
+    "type": "object",
+    "patternProperties": {
+      "^//.*": { "$ref": "#/$defs/foo" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-$defs": {
+      "foo": { "description": "ignored" }
+    },
+    "type": "object",
+    "patternProperties": {
+      "^//.*": { "$ref": "#/x-$defs/foo" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+
+  EXPECT_EQ(traces.size(), 4);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "unknown_keywords_prefix",
+      "Future versions of JSON Schema will refuse to evaluate unknown "
+      "keywords or custom keywords from optional vocabularies that don't "
+      "have an x- prefix",
+      true);
+  EXPECT_LINT_TRACE(
+      traces, 1, "", "top_level_title",
+      "Set a concise non-empty title at the top level of the schema to "
+      "explain what the definition is about",
+      false);
+  EXPECT_LINT_TRACE(
+      traces, 2, "", "top_level_description",
+      "Set a non-empty description at the top level of the schema to "
+      "explain what the definition is about in detail",
+      false);
+  EXPECT_LINT_TRACE(
+      traces, 3, "", "top_level_examples",
+      "Set a non-empty examples array at the top level of the schema to "
+      "illustrate the expected data",
+      false);
+}
