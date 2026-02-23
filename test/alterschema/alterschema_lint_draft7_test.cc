@@ -3483,4 +3483,27 @@ TEST(AlterSchema_lint_draft7,
   })JSON");
 
   EXPECT_EQ(document, expected);
+
+  EXPECT_EQ(traces.size(), 4);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "unknown_keywords_prefix",
+      "Future versions of JSON Schema will refuse to evaluate unknown "
+      "keywords or custom keywords from optional vocabularies that don't "
+      "have an x- prefix",
+      true);
+  EXPECT_LINT_TRACE(
+      traces, 1, "", "top_level_title",
+      "Set a concise non-empty title at the top level of the schema to "
+      "explain what the definition is about",
+      false);
+  EXPECT_LINT_TRACE(
+      traces, 2, "", "top_level_description",
+      "Set a non-empty description at the top level of the schema to "
+      "explain what the definition is about in detail",
+      false);
+  EXPECT_LINT_TRACE(
+      traces, 3, "", "top_level_examples",
+      "Set a non-empty examples array at the top level of the schema to "
+      "illustrate the expected data",
+      false);
 }
