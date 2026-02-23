@@ -3453,3 +3453,34 @@ TEST(AlterSchema_lint_draft7, empty_object_as_true_1) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft7,
+     pattern_properties_ref_with_slashes_in_key_and_defs) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$defs": {
+      "foo": { "description": "ignored" }
+    },
+    "type": "object",
+    "patternProperties": {
+      "^//.*": { "$ref": "#/$defs/foo" }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "x-$defs": {
+      "foo": { "description": "ignored" }
+    },
+    "type": "object",
+    "patternProperties": {
+      "^//.*": { "$ref": "#/x-$defs/foo" }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
