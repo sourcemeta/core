@@ -41,7 +41,7 @@ if(BENCHMARK_SOURCES)
 
   if(SOURCEMETA_CORE_JSON)
     target_link_libraries(sourcemeta_core_benchmark
-      PRIVATE sourcemeta::core::json)
+      PRIVATE sourcemeta::core::json sourcemeta::core::io)
   endif()
 
   if(SOURCEMETA_CORE_JSONPOINTER)
