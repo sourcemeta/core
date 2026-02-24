@@ -2,7 +2,7 @@
 
 #include <cassert>       // assert
 #include <cstring>       // std::memcmp
-#include <fstream>       // std::ofstream
+#include <fstream>       // std::ofstream, std::ifstream
 #include <limits>        // std::numeric_limits
 #include <queue>         // std::queue
 #include <string>        // std::string
@@ -170,20 +170,42 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
   }
 }
 
-URITemplateRouterView::URITemplateRouterView(const std::filesystem::path &path)
-    : file_view_{path} {}
+URITemplateRouterView::URITemplateRouterView(
+    const std::filesystem::path &path) {
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
+  if (!file) {
+    throw URITemplateRouterReadError{path};
+  }
+
+  const auto position = file.tellg();
+  if (position < 0) {
+    throw URITemplateRouterReadError{path};
+  }
+
+  const auto size = static_cast<std::size_t>(position);
+  file.seekg(0, std::ios::beg);
+  this->data_.resize(size);
+  file.read(reinterpret_cast<char *>(this->data_.data()),
+            static_cast<std::streamsize>(size));
+  if (!file) {
+    throw URITemplateRouterReadError{path};
+  }
+}
 
 auto URITemplateRouterView::match(const std::string_view path,
                                   const URITemplateRouter::Callback &callback)
     const -> URITemplateRouter::Identifier {
-  const auto *header = this->file_view_.as<RouterHeader>();
+  const auto *header =
+      reinterpret_cast<const RouterHeader *>(this->data_.data());
   assert(header->magic == ROUTER_MAGIC);
   assert(header->version == ROUTER_VERSION);
 
-  const auto *nodes = this->file_view_.as<Node>(sizeof(RouterHeader));
+  const auto *nodes =
+      reinterpret_cast<const Node *>(this->data_.data() + sizeof(RouterHeader));
   const auto *string_table =
-      header->string_table_offset < this->file_view_.size()
-          ? this->file_view_.as<char>(header->string_table_offset)
+      header->string_table_offset <= this->data_.size()
+          ? reinterpret_cast<const char *>(this->data_.data() +
+                                           header->string_table_offset)
           : nullptr;
 
   // Empty path matches empty template
