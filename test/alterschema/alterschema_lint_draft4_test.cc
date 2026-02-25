@@ -2566,3 +2566,41 @@ TEST(AlterSchema_lint_draft4, empty_object_as_true_not_applicable) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft4,
+     unnecessary_allof_wrapper_ref_with_type_object_branch) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "allOf": [
+      { "$ref": "../codeType_v01.json" },
+      {
+        "type": "object",
+        "properties": {
+          "identificationMethodCode": {
+            "$ref": "../codeType_v01.json"
+          }
+        }
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+      "identificationMethodCode": {
+        "$ref": "../codeType_v01.json"
+      }
+    },
+    "allOf": [
+      { "$ref": "../codeType_v01.json" }
+    ]
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
