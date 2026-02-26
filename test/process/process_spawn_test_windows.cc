@@ -43,13 +43,12 @@ TEST(Process_spawn, nonexistent_program_throws_exception) {
       {
         try {
           sourcemeta::core::spawn(program, {});
-        } catch (
-            const sourcemeta::core::ProcessProgramNotNotFoundError &error) {
+        } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
           EXPECT_EQ(error.program(), program);
           throw;
         }
       },
-      sourcemeta::core::ProcessProgramNotNotFoundError);
+      sourcemeta::core::ProcessProgramNotFoundError);
 }
 
 TEST(Process_spawn, cmd_echo_with_arguments) {
