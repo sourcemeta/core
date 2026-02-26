@@ -47,6 +47,25 @@ auto starts_with(const std::filesystem::path &path,
   return true;
 }
 
+auto hardlink_directory(const std::filesystem::path &source,
+                        const std::filesystem::path &destination) -> void {
+  assert(std::filesystem::is_directory(source));
+  assert(!std::filesystem::exists(destination) ||
+         std::filesystem::is_directory(destination));
+  assert(!starts_with(destination, source));
+  std::filesystem::create_directories(destination);
+  for (const auto &entry :
+       std::filesystem::recursive_directory_iterator{source}) {
+    const auto target{destination /
+                      std::filesystem::relative(entry.path(), source)};
+    if (entry.is_directory()) {
+      std::filesystem::create_directories(target);
+    } else if (entry.is_regular_file()) {
+      std::filesystem::create_hard_link(entry.path(), target);
+    }
+  }
+}
+
 auto flush(const std::filesystem::path &path) -> void {
 #if defined(_WIN32)
   HANDLE hFile =
