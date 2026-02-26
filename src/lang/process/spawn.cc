@@ -70,7 +70,7 @@ auto spawn(const std::string &program,
       );
 
   if (!success) {
-    throw ProcessProgramNotNotFoundError{program};
+    throw ProcessProgramNotFoundError{program};
   }
 
   WaitForSingleObject(process_info.hProcess, INFINITE);
@@ -126,7 +126,7 @@ auto spawn(const std::string &program,
 #endif
 
   if (spawn_result != 0) {
-    throw ProcessProgramNotNotFoundError{program};
+    throw ProcessProgramNotFoundError{program};
   }
 
   int status;
