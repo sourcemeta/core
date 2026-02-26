@@ -118,13 +118,11 @@ auto hardlink_directory(const std::filesystem::path &source,
 
 /// @ingroup io
 ///
-/// Replace one directory with another using rename-swap with rollback.
-/// Both directories must reside on the same filesystem and the original
-/// path must not be a bare filename (it must have a parent component).
-/// If the original does not exist, the replacement is simply renamed into
-/// place. On failure, the original is restored from a temporary backup.
-/// Note that there is a brief window between the two renames where the
-/// original path does not exist.
+/// Replace one directory with another, guaranteeing an atomic swap when
+/// possible. Both directories must reside on the same filesystem and the
+/// original path must not be a bare filename (it must have a parent
+/// component). If the original does not exist, the replacement is simply
+/// renamed into place.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
