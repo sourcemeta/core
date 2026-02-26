@@ -102,6 +102,22 @@ auto read_file(const std::filesystem::path &path)
 
 /// @ingroup io
 ///
+/// Recursively mirror a directory tree using hard links for regular files.
+/// Directories are created, regular files are hard-linked. Both paths must
+/// reside on the same filesystem. The destination must not be inside the
+/// source tree, as that would cause infinite recursion.
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+///
+/// sourcemeta::core::hardlink_directory("/source", "/destination");
+/// ```
+SOURCEMETA_CORE_IO_EXPORT
+auto hardlink_directory(const std::filesystem::path &source,
+                        const std::filesystem::path &destination) -> void;
+
+/// @ingroup io
+///
 /// Flush an existing file to disk, beyond just to the operating system. For
 /// example:
 ///

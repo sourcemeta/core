@@ -6,9 +6,11 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
     io_starts_with_test.cc
     io_read_file_test.cc
     io_fileview_test.cc
-    io_temporary_test.cc)
+    io_temporary_test.cc
+    io_hardlink_directory_test.cc)
 
 target_link_libraries(sourcemeta_core_io_unit
   PRIVATE sourcemeta::core::io)
 target_compile_definitions(sourcemeta_core_io_unit
-  PRIVATE STUBS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/stubs")
+  PRIVATE STUBS_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/stubs"
+  PRIVATE BUILD_DIRECTORY="${CMAKE_CURRENT_BINARY_DIR}")
