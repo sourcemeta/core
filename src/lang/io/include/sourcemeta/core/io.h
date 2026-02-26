@@ -8,6 +8,7 @@
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/io_error.h>
 #include <sourcemeta/core/io_fileview.h>
+#include <sourcemeta/core/io_temporary.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <cassert>    // assert
