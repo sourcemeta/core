@@ -408,7 +408,7 @@ auto wrap(std::string_view identifier) -> JSON;
 /// @ingroup jsonschema
 ///
 /// Wrap a schema to only access one of its subschemas. This is useful if you
-/// want to perform validation only a specific part of the schema without
+/// want to perform validation on only a specific part of the schema without
 /// having to reinvent the wheel. For example:
 ///
 /// ```cpp
