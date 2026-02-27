@@ -58,6 +58,27 @@ TEST(URI_relative_to, absolute_absolute_base_false_4) {
   EXPECT_EQ(uri.recompose(), "https://bar.com");
 }
 
+TEST(URI_relative_to, absolute_absolute_base_false_different_ports) {
+  const sourcemeta::core::URI base{"http://localhost:8000"};
+  sourcemeta::core::URI uri{"http://localhost:9000/schemas/test.json"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "http://localhost:9000/schemas/test.json");
+}
+
+TEST(URI_relative_to, absolute_absolute_base_false_different_userinfo) {
+  const sourcemeta::core::URI base{"https://alice@example.com/foo"};
+  sourcemeta::core::URI uri{"https://bob@example.com/foo/bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "https://bob@example.com/foo/bar");
+}
+
+TEST(URI_relative_to, absolute_absolute_base_false_userinfo_vs_none) {
+  const sourcemeta::core::URI base{"https://example.com/foo"};
+  sourcemeta::core::URI uri{"https://alice@example.com/foo/bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "https://alice@example.com/foo/bar");
+}
+
 TEST(URI_relative_to, absolute_relative_1) {
   const sourcemeta::core::URI base{"https://www.example.com"};
   sourcemeta::core::URI uri{"foo"};
