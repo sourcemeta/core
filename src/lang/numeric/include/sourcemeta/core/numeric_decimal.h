@@ -5,6 +5,8 @@
 #include <sourcemeta/core/numeric_export.h>
 #endif
 
+#include <sourcemeta/core/preprocessor.h>
+
 #include <concepts> // std::integral
 #include <cstdint>  // std::int32_t, std::int64_t, std::uint32_t, std::uint64_t
 #include <string>   // std::string
@@ -105,21 +107,21 @@ public:
   [[nodiscard]] auto to_double() const -> double;
 
   /// Check if the decimal number is zero
-  [[nodiscard]] auto is_zero() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_zero() const -> bool;
 
   /// Check if the decimal number represents an integer value, which includes a
   /// number like `3.0`
-  [[nodiscard]] auto is_integral() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_integral() const -> bool;
 
   /// Check if the decimal number represents an integer value _without_ a
   /// decimal component in its original representation.
-  [[nodiscard]] auto is_integer() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_integer() const -> bool;
 
   /// Check if the decimal number is finite
-  [[nodiscard]] auto is_finite() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_finite() const -> bool;
 
   /// Check if the decimal number is a real number (finite and not NaN)
-  [[nodiscard]] auto is_real() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_real() const -> bool;
 
   /// Check if the decimal number can be represented as a 32-bit float without
   /// precision loss
@@ -143,22 +145,23 @@ public:
 
   /// Check if the decimal number is NaN (Not a Number), either quiet or
   /// signaling
-  [[nodiscard]] auto is_nan() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_nan() const -> bool;
 
   /// Check if the decimal number is a signaling NaN
-  [[nodiscard]] auto is_snan() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_snan() const -> bool;
 
   /// Check if the decimal number is a quiet NaN
-  [[nodiscard]] auto is_qnan() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_qnan() const -> bool;
 
   /// Get the payload of a NaN value (0 if no payload)
-  [[nodiscard]] auto nan_payload() const -> std::uint64_t;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto nan_payload() const
+      -> std::uint64_t;
 
   /// Check if the decimal number is infinite
-  [[nodiscard]] auto is_infinite() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_infinite() const -> bool;
 
   /// Check if the decimal number is signed (negative, including -0)
-  [[nodiscard]] auto is_signed() const -> bool;
+  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_signed() const -> bool;
 
   /// Round the decimal number to an integral value
   [[nodiscard]] auto to_integral() const -> Decimal;
