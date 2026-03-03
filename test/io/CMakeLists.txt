@@ -8,7 +8,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
     io_fileview_test.cc
     io_temporary_test.cc
     io_hardlink_directory_test.cc
-    io_atomic_directory_replace_test.cc)
+    io_atomic_directory_swap_test.cc)
 
 target_link_libraries(sourcemeta_core_io_unit
   PRIVATE sourcemeta::core::io)
