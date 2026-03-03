@@ -160,3 +160,122 @@ TEST(JSONSchema_resolver, invalid) {
       sourcemeta::core::schema_resolver("https://example.com/foobar")};
   EXPECT_FALSE(result.has_value());
 }
+
+TEST(JSONSchema_resolver, is_known_schema_2020_12) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2020-12/schema"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2020-12/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2020-12/schema#"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2020-12/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2020-12/hyper-schema"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2020-12/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2020-12/meta/applicator"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2020-12/meta/applicator")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2020-12/meta/core"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2020-12/meta/core")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_2019_09) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2019-09/schema"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2019-09/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft/2019-09/schema#"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft/2019-09/schema#")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_draft7) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-07/schema#"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft-07/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-07/schema"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft-07/schema")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_draft4) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-04/schema#"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft-04/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-04/schema"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft-04/schema")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_draft0) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-00/schema#"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft-00/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-00/schema"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft-00/schema")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_openapi_3_1) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://spec.openapis.org/oas/3.1/dialect/base"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.1/dialect/base")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://spec.openapis.org/oas/3.1/meta/base"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.1/meta/base")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_openapi_3_2) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.2/dialect/2025-09-17")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://spec.openapis.org/oas/3.2/meta/2025-09-17"));
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://spec.openapis.org/oas/3.2/meta/2025-09-17")
+                  .has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_unknown) {
+  EXPECT_FALSE(sourcemeta::core::is_known_schema("https://example.com/foobar"));
+  EXPECT_FALSE(sourcemeta::core::schema_resolver("https://example.com/foobar")
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::is_known_schema(""));
+  EXPECT_FALSE(sourcemeta::core::schema_resolver("").has_value());
+  EXPECT_FALSE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft-99/schema"));
+  EXPECT_FALSE(sourcemeta::core::schema_resolver(
+                   "http://json-schema.org/draft-99/schema")
+                   .has_value());
+}
