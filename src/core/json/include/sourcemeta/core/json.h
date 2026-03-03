@@ -230,8 +230,14 @@ auto operator<<(std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
 ///     {sourcemeta::core::JSON::Type::Object,
 ///      sourcemeta::core::JSON::Type::Array});
 /// ```
-SOURCEMETA_CORE_JSON_EXPORT SOURCEMETA_FORCEINLINE auto
-make_set(std::initializer_list<JSON::Type> types) -> JSON::TypeSet;
+SOURCEMETA_FORCEINLINE inline auto
+make_set(std::initializer_list<JSON::Type> types) -> JSON::TypeSet {
+  JSON::TypeSet result;
+  for (const auto type : types) {
+    result.set(static_cast<std::size_t>(type));
+  }
+  return result;
+}
 
 } // namespace sourcemeta::core
 
