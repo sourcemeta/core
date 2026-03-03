@@ -426,6 +426,8 @@ auto sourcemeta::core::schema_resolver(const std::string_view identifier)
     case KnownSchema::UNKNOWN:
       return std::nullopt;
   }
+
+  return std::nullopt;
 }
 
 auto sourcemeta::core::is_known_schema(
