@@ -374,7 +374,7 @@ public:
   /// const sourcemeta::core::JSON document{true};
   /// assert(document.is_boolean());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_boolean() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_boolean() const noexcept
       -> bool {
     return this->current_type == Type::Boolean;
   }
@@ -388,7 +388,8 @@ public:
   /// const sourcemeta::core::JSON document{nullptr};
   /// assert(document.is_null());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_null() const noexcept -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_null() const noexcept
+      -> bool {
     return this->current_type == Type::Null;
   }
 
@@ -401,7 +402,7 @@ public:
   /// const sourcemeta::core::JSON document{5};
   /// assert(document.is_integer());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_integer() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_integer() const noexcept
       -> bool {
     return this->current_type == Type::Integer;
   }
@@ -415,7 +416,8 @@ public:
   /// const sourcemeta::core::JSON document{3.14};
   /// assert(document.is_real());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_real() const noexcept -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_real() const noexcept
+      -> bool {
     return this->current_type == Type::Real;
   }
 
@@ -429,7 +431,7 @@ public:
   /// const sourcemeta::core::JSON document{5.0};
   /// assert(document.is_integral());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_integral() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_integral() const noexcept
       -> bool {
     switch (this->type()) {
       case Type::Integer:
@@ -457,7 +459,8 @@ public:
   /// assert(real.is_number());
   /// assert(integer.is_number());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_number() const noexcept -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_number() const noexcept
+      -> bool {
     return this->is_integer() || this->is_real() || this->is_decimal();
   }
 
@@ -484,7 +487,8 @@ public:
   /// const sourcemeta::core::JSON document{"foo"};
   /// assert(document.is_string());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_string() const noexcept -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_string() const noexcept
+      -> bool {
     return this->current_type == Type::String;
   }
 
@@ -498,7 +502,8 @@ public:
   /// document=sourcemeta::core::parse_json("[ 1, 2, 3 ]");
   /// assert(document.is_array());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_array() const noexcept -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_array() const noexcept
+      -> bool {
     return this->current_type == Type::Array;
   }
 
@@ -512,7 +517,8 @@ public:
   /// document=sourcemeta::core::parse_json("{ \"foo\": 1 }");
   /// assert(document.is_object());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_object() const noexcept -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_object() const noexcept
+      -> bool {
     return this->current_type == Type::Object;
   }
 
@@ -527,7 +533,7 @@ public:
   /// const sourcemeta::core::JSON document{value};
   /// assert(document.is_decimal());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto is_decimal() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_decimal() const noexcept
       -> bool {
     return this->current_type == Type::Decimal;
   }
@@ -541,7 +547,8 @@ public:
   /// const sourcemeta::core::JSON document{true};
   /// assert(document.type() == sourcemeta::core::JSON::Type::Boolean);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto type() const noexcept -> Type {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto type() const noexcept
+      -> Type {
     return this->current_type;
   }
 
@@ -560,7 +567,7 @@ public:
   /// assert(document.is_boolean());
   /// assert(document.to_boolean());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto to_boolean() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_boolean() const noexcept
       -> bool {
     assert(this->is_boolean());
     return this->data_boolean;
@@ -578,7 +585,7 @@ public:
   /// assert(document.is_integer());
   /// assert(document.to_integer() == 5);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto to_integer() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_integer() const noexcept
       -> Integer {
     assert(this->is_integer());
     return this->data_integer;
@@ -596,7 +603,8 @@ public:
   /// assert(document.is_real());
   /// assert(document.to_real() == 3.14);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto to_real() const noexcept -> Real {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_real() const noexcept
+      -> Real {
     assert(this->is_real());
     assert(!std::isinf(this->data_real));
     assert(!std::isnan(this->data_real));
@@ -615,7 +623,7 @@ public:
   /// assert(document.is_decimal());
   /// assert(document.to_decimal().to_int64() == 1234567890);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto to_decimal() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_decimal() const noexcept
       -> const Decimal & {
     assert(this->is_decimal());
     assert(this->data_decimal->is_finite());
@@ -635,7 +643,7 @@ public:
   /// assert(document.is_string());
   /// assert(document.to_string() == "foo");
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto to_string() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_string() const noexcept
       -> const String & {
     assert(this->is_string());
     return this->data_string;
@@ -675,7 +683,7 @@ public:
   ///                           << "\n";
   ///               });
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto as_array() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_array() const noexcept
       -> const Array & {
     assert(this->is_array());
     return this->data_array;
@@ -693,7 +701,8 @@ public:
   ///   sourcemeta::core::parse_json("[ 1, 2, 3 ]");
   /// std::sort(document.as_array().begin(), document.as_array().end());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto as_array() noexcept -> Array & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_array() noexcept
+      -> Array & {
     assert(this->is_array());
     return this->data_array;
   }
@@ -720,7 +729,8 @@ public:
   ///                           << "\n";
   ///               });
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto as_object() noexcept -> Object & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_object() noexcept
+      -> Object & {
     assert(this->is_object());
     return this->data_object;
   }
@@ -743,7 +753,7 @@ public:
   ///   value += sourcemeta::core::JSON{1};
   /// }
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto as_object() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_object() const noexcept
       -> const Object & {
     assert(this->is_object());
     return this->data_object;
@@ -759,7 +769,8 @@ public:
   /// const sourcemeta::core::JSON document{5};
   /// assert(document.as_real() == 5.0);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto as_real() const noexcept -> Real {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_real() const noexcept
+      -> Real {
     assert(this->is_number());
     return this->is_real() ? this->to_real()
                            : static_cast<Real>(this->to_integer());
@@ -776,7 +787,7 @@ public:
   /// const sourcemeta::core::JSON document{5.3};
   /// assert(document.as_integer() == 5);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto as_integer() const noexcept
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_integer() const noexcept
       -> Integer {
     assert(this->is_number());
     if (this->is_integer()) {
@@ -808,7 +819,7 @@ public:
   ///   sourcemeta::core::parse_json("{ \"1\": "foo" }");
   /// assert(my_array.at(1).to_string() == "foo");
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   at(const typename Array::size_type index) const -> const JSON & {
     assert(this->is_array());
     assert(index < this->size());
@@ -833,7 +844,7 @@ public:
   ///   sourcemeta::core::parse_json("{ \"1\": "foo" }");
   /// assert(my_array.at(1).to_string() == "foo");
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   at(const typename Array::size_type index) -> JSON & {
     assert(this->is_array());
     assert(index < this->size());
@@ -852,7 +863,7 @@ public:
   ///   sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
   /// assert(my_object.at("bar").to_integer() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto at(const String &key) const
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto at(const String &key) const
       -> const JSON & {
     assert(this->is_object());
     assert(this->defines(key));
@@ -874,7 +885,7 @@ public:
   /// assert(my_object.at("bar",
   ///  my_object.as_object().hash("bar")).to_integer() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   at(const String &key, const typename Object::hash_type hash) const
       -> const JSON & {
     assert(this->is_object());
@@ -894,7 +905,8 @@ public:
   ///   sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2 }");
   /// assert(my_object.at("bar").to_integer() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto at(const String &key) -> JSON & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto at(const String &key)
+      -> JSON & {
     assert(this->is_object());
     assert(this->defines(key));
     auto &object{this->data_object};
@@ -915,7 +927,7 @@ public:
   /// assert(my_object.at("bar",
   ///   my_object.as_object().hash("bar")).to_integer() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   at(const String &key, const typename Object::hash_type hash) -> JSON & {
     assert(this->is_object());
     assert(this->defines(key));
@@ -982,7 +994,7 @@ public:
   ///   sourcemeta::core::parse_json("[ 1, 2, 3 ]");
   /// assert(document.front().to_integer() == 1);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto front() -> JSON & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto front() -> JSON & {
     assert(this->is_array());
     assert(!this->empty());
     return this->data_array.data.front();
@@ -1000,7 +1012,8 @@ public:
   ///   sourcemeta::core::parse_json("[ 1, 2, 3 ]");
   /// assert(document.front().to_integer() == 1);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto front() const -> const JSON & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto front() const
+      -> const JSON & {
     assert(this->is_array());
     assert(!this->empty());
     return this->data_array.data.front();
@@ -1018,7 +1031,7 @@ public:
   ///   sourcemeta::core::parse_json("[ 1, 2, 3 ]");
   /// assert(document.back().to_integer() == 3);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto back() -> JSON & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto back() -> JSON & {
     assert(this->is_array());
     assert(!this->empty());
     return this->data_array.data.back();
@@ -1036,7 +1049,8 @@ public:
   ///   sourcemeta::core::parse_json("[ 1, 2, 3 ]");
   /// assert(document.back().to_integer() == 3);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto back() const -> const JSON & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto back() const
+      -> const JSON & {
     assert(this->is_array());
     assert(!this->empty());
     return this->data_array.data.back();
@@ -1066,7 +1080,7 @@ public:
   /// assert(my_array.size() == 2);
   /// assert(my_string.size() == 3);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto size() const -> std::size_t {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto size() const -> std::size_t {
     if (this->is_object()) {
       return this->object_size();
     } else if (this->is_array()) {
@@ -1087,7 +1101,8 @@ public:
   /// const sourcemeta::core::JSON my_string{"foo"};
   /// assert(my_string.string_size() == 3);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto string_size() const -> std::size_t {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto string_size() const
+      -> std::size_t {
     assert(this->is_string());
     return JSON::size(this->data_string);
   }
@@ -1104,7 +1119,8 @@ public:
   ///   sourcemeta::core::parse_json("[ 1, 2 ]");
   /// assert(my_array.array_size() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto array_size() const -> std::size_t {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto array_size() const
+      -> std::size_t {
     assert(this->is_array());
     return this->data_array.data.size();
   }
@@ -1121,7 +1137,8 @@ public:
   ///   sourcemeta::core::parse_json("{ \"foo\": 1 }");
   /// assert(my_object.object_size() == 1);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto object_size() const -> std::size_t {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto object_size() const
+      -> std::size_t {
     assert(this->is_object());
     return this->data_object.size();
   }
@@ -1137,7 +1154,8 @@ public:
   ///   sourcemeta::core::parse_json("\"\\uD83D\\uDCA9\"")};
   /// assert(my_string.size() == 2);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto byte_size() const -> std::size_t {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto byte_size() const
+      -> std::size_t {
     assert(this->is_string());
     return this->data_string.size();
   }
@@ -1208,7 +1226,7 @@ public:
   /// assert(my_array.empty());
   /// assert(my_string.empty());
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto empty() const -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto empty() const -> bool {
     if (this->is_object()) {
       return this->data_object.empty();
     } else if (this->is_array()) {
@@ -1231,8 +1249,8 @@ public:
   /// const auto result = document.try_at("foo");
   /// EXPECT_TRUE(result);
   /// EXPECT_EQ(result->to_integer(), 1);
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto try_at(const String &key) const
-      -> const JSON * {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
+  try_at(const String &key) const -> const JSON * {
     assert(this->is_object());
     const auto &object{this->data_object};
     return object.try_at(key, object.hash(key));
@@ -1253,7 +1271,7 @@ public:
   ///   document.as_object().hash("foo"));
   /// EXPECT_TRUE(result);
   /// EXPECT_EQ(result->to_integer(), 1);
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   try_at(const String &key, const typename Object::hash_type hash) const
       -> const JSON * {
     assert(this->is_object());
@@ -1273,8 +1291,8 @@ public:
   /// assert(document.defines("foo"));
   /// assert(!document.defines("bar"));
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto defines(const String &key) const
-      -> bool {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
+  defines(const String &key) const -> bool {
     assert(this->is_object());
     const auto &object{this->data_object};
     return object.defines(key, object.hash(key));
@@ -1294,7 +1312,7 @@ public:
   /// assert(document.defines("bar",
   ///   document.as_object().hash("bar")));
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   defines(const String &key, const typename Object::hash_type hash) const
       -> bool {
     assert(this->is_object());
@@ -1313,7 +1331,7 @@ public:
   /// assert(document.defines(0));
   /// assert(!document.defines(1));
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE auto
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   defines(const typename Array::size_type index) const -> bool {
     return this->defines(std::to_string(index));
   }
