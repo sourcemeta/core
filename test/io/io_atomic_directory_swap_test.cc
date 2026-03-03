@@ -111,3 +111,25 @@ TEST(IO_atomic_directory_swap, preserves_nested_structure) {
   EXPECT_TRUE(std::filesystem::exists(replacement / "orig.txt"));
   EXPECT_FALSE(std::filesystem::exists(replacement / "root.txt"));
 }
+
+TEST(IO_atomic_directory_swap, no_leftover_temporary) {
+  const sourcemeta::core::TemporaryDirectory workspace{
+      std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-"};
+  const auto original{workspace.path() / "original"};
+  const auto replacement{workspace.path() / "replacement"};
+
+  std::filesystem::create_directory(original);
+  std::ofstream{original / "old.txt"} << "old";
+
+  std::filesystem::create_directory(replacement);
+  std::ofstream{replacement / "new.txt"} << "new";
+
+  sourcemeta::core::atomic_directory_swap(original, replacement);
+
+  for (const auto &entry :
+       std::filesystem::directory_iterator{workspace.path()}) {
+    const auto filename{entry.path().filename().string()};
+    EXPECT_FALSE(filename.starts_with(".swap-"))
+        << "leftover temporary directory found: " << filename;
+  }
+}

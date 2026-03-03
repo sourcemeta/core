@@ -107,17 +107,17 @@ auto atomic_directory_swap(const std::filesystem::path &original,
   //
   // Note we cannot safely use the temporary directory of the system as it
   // might be in another volume
-  const auto temporary{original.parent_path() / ".swap-temporary"};
-  std::filesystem::remove_all(temporary);
-  std::filesystem::rename(original, temporary);
+  TemporaryDirectory temporary{original.parent_path(), ".swap-"};
+  std::filesystem::remove(temporary.path());
+  std::filesystem::rename(original, temporary.path());
   try {
     std::filesystem::rename(replacement, original);
   } catch (...) {
-    std::filesystem::rename(temporary, original);
+    std::filesystem::rename(temporary.path(), original);
     throw;
   }
 
-  std::filesystem::rename(temporary, replacement);
+  std::filesystem::rename(temporary.path(), replacement);
 #endif
 }
 

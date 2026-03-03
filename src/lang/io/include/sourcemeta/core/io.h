@@ -121,9 +121,9 @@ auto hardlink_directory(const std::filesystem::path &source,
 /// Atomically swap two directories. Both directories must reside on the same
 /// filesystem and the original path must not be a bare filename (it must have
 /// a parent component). After the call, the original path holds the contents
-/// of the replacement and the replacement path holds the former contents of the
-/// original. If the original does not exist, the replacement is simply renamed
-/// into place.
+/// of the replacement and the replacement path holds the former contents of
+/// the original. If the original does not exist, the replacement is simply
+/// renamed into place and the replacement path will no longer exist.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
