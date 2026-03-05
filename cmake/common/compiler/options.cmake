@@ -7,7 +7,9 @@ function(sourcemeta_add_default_options visibility target)
       $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/W4>
       $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/WL>
       $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/MP>
-      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/sdl>)
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/sdl>
+      # See https://learn.microsoft.com/en-us/cpp/build/reference/guard-enable-control-flow-guard
+      $<$<OR:$<COMPILE_LANGUAGE:C>,$<COMPILE_LANGUAGE:CXX>>:/guard:cf>)
   elseif(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     target_compile_options("${target}" ${visibility}
       -Wall
@@ -41,17 +43,43 @@ function(sourcemeta_add_default_options visibility target)
       $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Woverloaded-virtual>
       $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Winvalid-offsetof>
       -funroll-loops
-      -fstrict-aliasing
       -ftree-vectorize
 
       # To improve how much GCC/Clang will vectorize
       -fno-math-errno
+      -fno-trapping-math
 
       # Assume that signed arithmetic overflow of addition, subtraction and
       # multiplication wraps around using twos-complement representation
       # See https://users.cs.utah.edu/~regehr/papers/overflow12.pdf
       # See https://www.postgresql.org/message-id/1689.1134422394@sss.pgh.pa.us
-      -fwrapv)
+      -fwrapv
+
+      # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+      -Wformat
+      -Wformat=2
+      -Werror=format-security
+      -fstack-protector-strong
+      -fstrict-flex-arrays=3)
+
+    # Control-flow protection: requires hardware and OS support
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+      # -fcf-protection uses Intel CET (Control-flow Enforcement Technology)
+      # Requires OS kernel support, primarily available on Linux
+      if(SOURCEMETA_OS_LINUX)
+        target_compile_options("${target}" ${visibility} -fcf-protection=full)
+      endif()
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+      # -mbranch-protection uses ARM BTI/PAC, requires Linux kernel 5.8+
+      if(SOURCEMETA_OS_LINUX)
+        target_compile_options("${target}" ${visibility} -mbranch-protection=standard)
+      endif()
+    endif()
+
+    # _GLIBCXX_ASSERTIONS is libstdc++ (GNU) specific, not applicable to libc++ (LLVM/macOS)
+    if(NOT APPLE AND SOURCEMETA_COMPILER_GCC)
+      target_compile_definitions("${target}" ${visibility} $<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
+    endif()
   endif()
 
   if(SOURCEMETA_COMPILER_LLVM)
@@ -80,30 +108,34 @@ function(sourcemeta_add_default_options visibility target)
       -fvectorize
       # Enable vectorization of straight-line code for performance
       -fslp-vectorize)
+
+    # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+    target_compile_options("${target}" ${visibility}
+      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks;-ftrivial-auto-var-init=zero>
+      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks;-ftrivial-auto-var-init=zero>)
   elseif(SOURCEMETA_COMPILER_GCC)
     target_compile_options("${target}" ${visibility}
-      -fno-trapping-math
       # Newer versions of GCC (i.e. 14) seem to print a lot of false-positives here
       $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-Wno-dangling-reference>
       # GCC seems to print a lot of false-positives here
       -Wno-free-nonheap-object
       # Disables runtime type information
-      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-fno-rtti>)
-  endif()
-endfunction()
+      $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-fno-rtti>
 
-# For studying failed vectorization results
-# - On Clang , seems to only take effect on release shared builds
-# - On GCC, seems to only take effect on release shared builds
-function(sourcemeta_add_vectorization_diagnostics target)
-  if(SOURCEMETA_COMPILER_LLVM)
-    # See https://llvm.org/docs/Vectorizers.html#id6
-    target_compile_options("${target}" PRIVATE
-      -Rpass-analysis=loop-vectorize
-      -Rpass-missed=loop-vectorize)
-  elseif(SOURCEMETA_COMPILER_GCC)
-    target_compile_options("${target}" PRIVATE
-      -fopt-info-vec-missed
-      -fopt-info-loop-missed)
+      # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+      -Wtrampolines
+      -Wbidi-chars=any
+      -fstack-clash-protection)
+
+    # Prevent the compiler from assuming shared library symbols could be
+    # interposed at runtime, enabling more inlining and devirtualization
+    if(BUILD_SHARED_LIBS)
+      target_compile_options("${target}" ${visibility} -fno-semantic-interposition)
+    endif()
+
+    # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+    target_compile_options("${target}" ${visibility}
+      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks -ftrivial-auto-var-init=zero>
+      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks -ftrivial-auto-var-init=zero>)
   endif()
 endfunction()
