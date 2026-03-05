@@ -44,6 +44,13 @@ function(sourcemeta_executable)
       $<$<CONFIG:MinSizeRel>:-pie>)
   endif()
 
+  # See https://learn.microsoft.com/en-us/cpp/build/reference/guard-enable-control-flow-guard
+  # See https://learn.microsoft.com/en-us/cpp/build/reference/cetcompat
+  if(SOURCEMETA_COMPILER_MSVC)
+    target_compile_options(${TARGET_NAME} PRIVATE /guard:cf)
+    target_link_options(${TARGET_NAME} PRIVATE /guard:cf /CETCOMPAT)
+  endif()
+
   # Linux-specific ELF linker hardening options
   if(SOURCEMETA_OS_LINUX AND (SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC))
     target_link_options(${TARGET_NAME} PRIVATE
