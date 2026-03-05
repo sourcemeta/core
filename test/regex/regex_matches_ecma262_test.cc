@@ -2933,3 +2933,53 @@ TEST(Regex_matches, ecma262_lookahead_with_negated_class) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "!invalid"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "no,comma"));
 }
+
+TEST(Regex_matches, ecma262_literal_open_bracket_in_class) {
+  const auto regex{sourcemeta::core::to_regex("[[(]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "["));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "("));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_literal_close_bracket_in_class) {
+  const auto regex{sourcemeta::core::to_regex(R"([)\]])")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ")"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(Regex_matches, ecma262_bracket_classes_in_complex_pattern) {
+  const auto regex{sourcemeta::core::to_regex(R"(^[[(]\d+,\d+[)\]]$)")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "[1,2]"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "(1,2)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "[1,2)"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "(1,2]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "1,2"));
+}
+
+TEST(Regex_matches, ecma262_datetime_range_pattern) {
+  const auto regex{sourcemeta::core::to_regex(
+      R"(^((\d{4}-\d{2}-\d{2})|([[(](((\d{4}-\d{2}-\d{2}([Tt]\d{2}:\d{2}:\d{2}(.\d{1,6})?[Zz])?),(\d{4}-\d{2}-\d{2}([Tt]\d{2}:\d{2}:\d{2}(.\d{1,6})?[Zz])?)?)|(,(\d{4}-\d{2}-\d{2}([Tt]\d{2}:\d{2}:\d{2}(.\d{1,6})?[Zz])?)))[)\]]))$)")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(
+      sourcemeta::core::matches(regex.value(), "[2023-04-28T00:00:00Z,]"));
+  EXPECT_TRUE(
+      sourcemeta::core::matches(regex.value(), "[2023-04-28,2023-04-30]"));
+  EXPECT_TRUE(sourcemeta::core::matches(
+      regex.value(), "[2023-04-28T10:10:10.10Z,2023-04-28T10:10:10.10Z]"));
+  EXPECT_TRUE(
+      sourcemeta::core::matches(regex.value(), "[,2023-04-28T10:10:10.10Z]"));
+  EXPECT_TRUE(sourcemeta::core::matches(
+      regex.value(), "(2023-04-28T10:10:10.10Z,2023-04-28T20:20:10.10Z)"));
+  EXPECT_TRUE(sourcemeta::core::matches(
+      regex.value(), "(2023-04-28T10:10:10.10Z,2023-04-28)"));
+  EXPECT_TRUE(sourcemeta::core::matches(
+      regex.value(), "[2023-04-28,2023-04-28T20:20:10.10Z)"));
+  EXPECT_TRUE(sourcemeta::core::matches(
+      regex.value(), "(2023-04-28T10:10:10.10Z,2023-04-28T20:20:10.10Z]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "hello"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "2023"));
+}
