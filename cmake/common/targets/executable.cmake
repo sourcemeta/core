@@ -36,21 +36,31 @@ function(sourcemeta_executable)
   if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     target_compile_options(${TARGET_NAME} PRIVATE
       $<$<CONFIG:Release>:-fPIE>
-      $<$<CONFIG:RelWithDebInfo>:-fPIE>)
+      $<$<CONFIG:RelWithDebInfo>:-fPIE>
+      $<$<CONFIG:MinSizeRel>:-fPIE>)
     target_link_options(${TARGET_NAME} PRIVATE
       $<$<CONFIG:Release>:-pie>
-      $<$<CONFIG:RelWithDebInfo>:-pie>)
+      $<$<CONFIG:RelWithDebInfo>:-pie>
+      $<$<CONFIG:MinSizeRel>:-pie>)
   endif()
 
   # Linux-specific ELF linker hardening options
-  if(LINUX AND (SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC))
+  if(SOURCEMETA_OS_LINUX AND (SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC))
     target_link_options(${TARGET_NAME} PRIVATE
       "LINKER:-z,nodlopen"
       "LINKER:-z,noexecstack"
       "LINKER:-z,relro"
       "LINKER:-z,now"
-      "LINKER:--as-needed"
-      "LINKER:--no-copy-dt-needed-entries")
+      "LINKER:--as-needed")
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.18")
+      include(CheckLinkerFlag)
+      check_linker_flag(CXX "LINKER:--no-copy-dt-needed-entries"
+        SOURCEMETA_LINKER_NO_COPY_DT_NEEDED)
+      if(SOURCEMETA_LINKER_NO_COPY_DT_NEEDED)
+        target_link_options(${TARGET_NAME} PRIVATE
+          "LINKER:--no-copy-dt-needed-entries")
+      endif()
+    endif()
   endif()
 
   set_target_properties("${TARGET_NAME}" PROPERTIES FOLDER "${FOLDER_NAME}")
