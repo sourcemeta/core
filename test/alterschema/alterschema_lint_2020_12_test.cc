@@ -9560,3 +9560,107 @@ TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_2) {
       "defined using the `properties` keyword",
       true);
 }
+
+TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_3) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test",
+    "examples": [ {} ],
+    "properties": {
+      "foo": true,
+      "bar": true
+    },
+    "if": { "type": "object" },
+    "then": {
+      "oneOf": [
+        { "not": { "required": [ "foo" ] } },
+        { "not": { "required": [ "bar" ] } }
+      ]
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_4) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test",
+    "examples": [ {} ],
+    "properties": {
+      "foo": true
+    },
+    "if": { "required": [ "foo" ] },
+    "then": { "not": { "required": [ "foo" ] } }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_5) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test",
+    "examples": [ [] ],
+    "properties": {
+      "foo": true
+    },
+    "oneOf": [
+      {
+        "items": {
+          "not": { "required": [ "foo" ] }
+        }
+      }
+    ]
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "/oneOf/0/items/not", "required_properties_in_properties",
+      "Every property listed in the `required` keyword must be explicitly "
+      "defined using the `properties` keyword",
+      true);
+}
+
+TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_6) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test",
+    "examples": [ {} ],
+    "properties": {
+      "foo": true,
+      "bar": true
+    },
+    "allOf": [
+      {
+        "oneOf": [
+          { "not": { "required": [ "foo" ] } },
+          { "not": { "required": [ "bar" ] } }
+        ]
+      }
+    ]
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(
+      traces, 0, "", "unnecessary_allof_wrapper",
+      "Keywords inside `allOf` that do not conflict with the parent schema "
+      "can be elevated",
+      true);
+}
