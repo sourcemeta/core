@@ -100,6 +100,18 @@ TEST(URI_parse, syntax_error_percent_in_host) {
                sourcemeta::core::URIParseError);
 }
 
+// RFC 3986: fragment = *( pchar / "/" / "?" )
+TEST(URI_parse, syntax_error_double_fragment_delimiter) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com/#frag#ment"},
+               sourcemeta::core::URIParseError);
+}
+
+// RFC 3986: "[" and "]" are gen-delims only allowed in IP-literal within host.
+TEST(URI_parse, syntax_error_brackets_in_query) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com/?q=[value]"},
+               sourcemeta::core::URIParseError);
+}
+
 // RFC 3986: relative-ref path-noscheme means the first segment of a
 // schemeless, authorityless path must not contain a colon
 TEST(URI_parse, syntax_error_digit_prefix_scheme_like) {
