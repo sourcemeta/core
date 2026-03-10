@@ -9664,3 +9664,77 @@ TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_6) {
       "can be elevated",
       true);
 }
+
+TEST(AlterSchema_lint_2020_12, const_and_enum_conflict_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [ 1 ],
+    "const": 1,
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "const_and_enum_conflict",
+                    "The `const` and `enum` keywords are mutually exclusive; "
+                    "use one or the other, not both",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, const_and_enum_conflict_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [ 1 ],
+    "const": "foo"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, const_and_enum_conflict_3) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [ 1 ],
+    "enum": [ 1, 2, 3 ]
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, const_and_enum_conflict_4) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [ {} ],
+    "properties": {
+      "foo": {
+        "const": 1,
+        "enum": [ 1, 2, 3 ]
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "const_and_enum_conflict",
+                    "The `const` and `enum` keywords are mutually exclusive; "
+                    "use one or the other, not both",
+                    false);
+}

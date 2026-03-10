@@ -99,6 +99,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 
 // Linter
 #include "linter/comment_trim.h"
+#include "linter/const_and_enum_conflict.h"
 #include "linter/content_schema_default.h"
 #include "linter/definitions_to_defs.h"
 #include "linter/dependencies_default.h"
@@ -207,6 +208,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
 
   if (mode == AlterSchemaMode::Linter) {
     bundle.add<EqualNumericBoundsToConst>();
+    bundle.add<ConstAndEnumConflict>();
     bundle.add<ContentSchemaDefault>();
     bundle.add<DependenciesDefault>();
     bundle.add<DependentRequiredDefault>();

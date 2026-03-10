@@ -71,6 +71,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME alterschema
 
     # Linter
     linter/comment_trim.h
+    linter/const_and_enum_conflict.h
     linter/content_schema_default.h
     linter/definitions_to_defs.h
     linter/dependencies_default.h
