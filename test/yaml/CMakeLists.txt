@@ -1,7 +1,9 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME yaml
   SOURCES
     yaml_parse_test.cc
-    yaml_parse_callback_test.cc)
+    yaml_parse_callback_test.cc
+    yaml_stringify_test.cc
+    yaml_roundtrip_test.cc)
 
 target_link_libraries(sourcemeta_core_yaml_unit
   PRIVATE sourcemeta::core::json)
