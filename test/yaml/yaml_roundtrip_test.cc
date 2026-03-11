@@ -6,9 +6,10 @@
 #include <sstream> // std::ostringstream
 
 static auto roundtrip(const std::string &input) -> std::string {
-  const auto document{sourcemeta::core::parse_yaml(input)};
+  sourcemeta::core::YAMLRoundTrip metadata;
+  const auto document{sourcemeta::core::parse_yaml(input, metadata)};
   std::ostringstream stream;
-  sourcemeta::core::stringify_yaml(document, stream);
+  sourcemeta::core::stringify_yaml(document, stream, metadata);
   return stream.str();
 }
 
