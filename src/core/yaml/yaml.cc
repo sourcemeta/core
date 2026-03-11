@@ -71,9 +71,11 @@ auto read_yaml_or_json(const std::filesystem::path &path,
   }
 }
 
-auto parse_yaml(const JSON::String &input, YAMLRoundTrip &,
+auto parse_yaml(const JSON::String &input, YAMLRoundTrip &roundtrip,
                 const JSON::ParseCallback &callback) -> JSON {
-  return parse_yaml(input, callback);
+  yaml::Lexer lexer{input, true};
+  yaml::Parser parser{&lexer, &callback, &roundtrip};
+  return parser.parse();
 }
 
 auto stringify_yaml(const JSON &document,
@@ -84,8 +86,8 @@ auto stringify_yaml(const JSON &document,
 
 auto stringify_yaml(const JSON &document,
                     std::basic_ostream<JSON::Char, JSON::CharTraits> &stream,
-                    const YAMLRoundTrip &) -> void {
-  yaml::stringify_yaml<JSON::Allocator>(document, stream);
+                    const YAMLRoundTrip &roundtrip) -> void {
+  yaml::stringify_yaml<JSON::Allocator>(document, stream, &roundtrip);
 }
 
 } // namespace sourcemeta::core
