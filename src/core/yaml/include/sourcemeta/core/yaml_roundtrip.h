@@ -8,50 +8,52 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-#include <cstdint>  // std::uint8_t, std::size_t
-#include <map>      // std::map
-#include <optional> // std::optional
-#include <string>   // std::string
-#include <vector>   // std::vector
+#include <cstdint>       // std::uint8_t, std::size_t
+#include <optional>      // std::optional
+#include <string>        // std::string
+#include <unordered_map> // std::unordered_map
+#include <vector>        // std::vector
 
 namespace sourcemeta::core {
 
-/// @ingroup yaml
-enum class YAMLScalarStyle : std::uint8_t {
-  Plain,
-  SingleQuoted,
-  DoubleQuoted,
-  Literal,
-  Folded
-};
-
-/// @ingroup yaml
-enum class YAMLCollectionStyle : std::uint8_t { Block, Flow };
-
-/// @ingroup yaml
-enum class YAMLChomping : std::uint8_t { Clip, Strip, Keep };
-
-/// @ingroup yaml
-struct SOURCEMETA_CORE_YAML_EXPORT YAMLNodeStyle {
-  std::optional<YAMLScalarStyle> scalar;
-  std::optional<YAMLCollectionStyle> collection;
-  std::optional<YAMLChomping> chomping;
-  std::optional<std::string> block_content;
-  std::optional<std::string> anchor;
-  std::vector<std::string> comments_before;
-  std::optional<std::string> comment_inline;
-  std::optional<std::string> comment_on_indicator;
-};
+// Exporting symbols that depends on the standard C++ library is considered
+// safe
+// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251 4275)
+#endif
 
 /// @ingroup yaml
 /// Holds per-node metadata collected during YAML parsing to reproduce the
 /// original formatting
 class SOURCEMETA_CORE_YAML_EXPORT YAMLRoundTrip {
 public:
-  auto clear() -> void;
-  std::map<Pointer, YAMLNodeStyle> styles;
-  std::map<Pointer, std::string> aliases;
-  std::map<Pointer, YAMLScalarStyle> key_styles;
+  enum class ScalarStyle : std::uint8_t {
+    Plain,
+    SingleQuoted,
+    DoubleQuoted,
+    Literal,
+    Folded
+  };
+
+  enum class CollectionStyle : std::uint8_t { Block, Flow };
+
+  enum class Chomping : std::uint8_t { Clip, Strip, Keep };
+
+  struct NodeStyle {
+    std::optional<ScalarStyle> scalar;
+    std::optional<CollectionStyle> collection;
+    std::optional<Chomping> chomping;
+    std::optional<std::string> block_content;
+    std::optional<std::string> anchor;
+    std::vector<std::string> comments_before;
+    std::optional<std::string> comment_inline;
+    std::optional<std::string> comment_on_indicator;
+  };
+
+  std::unordered_map<Pointer, NodeStyle, Pointer::Hasher> styles;
+  std::unordered_map<Pointer, std::string, Pointer::Hasher> aliases;
+  std::unordered_map<Pointer, ScalarStyle, Pointer::Hasher> key_styles;
   bool explicit_document_start{false};
   bool explicit_document_end{false};
   std::optional<std::string> document_start_comment;
@@ -62,6 +64,10 @@ public:
   std::vector<std::string> trailing_comments;
   std::size_t indent_width{2};
 };
+
+#if defined(_MSC_VER)
+#pragma warning(default : 4251 4275)
+#endif
 
 } // namespace sourcemeta::core
 

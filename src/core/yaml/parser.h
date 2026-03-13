@@ -585,12 +585,12 @@ private:
       case TokenType::MappingStart:
         result = this->parse_flow_mapping(current_token, context, index,
                                           property, key_line, key_column);
-        this->record_collection_style(YAMLCollectionStyle::Flow);
+        this->record_collection_style(YAMLRoundTrip::CollectionStyle::Flow);
         break;
       case TokenType::SequenceStart:
         result = this->parse_flow_sequence(current_token, context, index,
                                            property, key_line, key_column);
-        this->record_collection_style(YAMLCollectionStyle::Flow);
+        this->record_collection_style(YAMLRoundTrip::CollectionStyle::Flow);
         break;
       case TokenType::BlockSequenceEntry:
         result = this->parse_block_sequence(current_token, context, index,
@@ -1775,7 +1775,8 @@ private:
     this->roundtrip_->styles[pointer].comment_inline = std::move(comment);
   }
 
-  auto record_collection_style(const YAMLCollectionStyle style) -> void {
+  auto record_collection_style(const YAMLRoundTrip::CollectionStyle style)
+      -> void {
     if (!this->roundtrip_) {
       return;
     }
@@ -1792,19 +1793,19 @@ private:
 
     switch (token.scalar_style) {
       case ScalarStyle::Plain:
-        node_style.scalar = YAMLScalarStyle::Plain;
+        node_style.scalar = YAMLRoundTrip::ScalarStyle::Plain;
         break;
       case ScalarStyle::SingleQuoted:
-        node_style.scalar = YAMLScalarStyle::SingleQuoted;
+        node_style.scalar = YAMLRoundTrip::ScalarStyle::SingleQuoted;
         break;
       case ScalarStyle::DoubleQuoted:
-        node_style.scalar = YAMLScalarStyle::DoubleQuoted;
+        node_style.scalar = YAMLRoundTrip::ScalarStyle::DoubleQuoted;
         break;
       case ScalarStyle::Literal:
-        node_style.scalar = YAMLScalarStyle::Literal;
+        node_style.scalar = YAMLRoundTrip::ScalarStyle::Literal;
         break;
       case ScalarStyle::Folded:
-        node_style.scalar = YAMLScalarStyle::Folded;
+        node_style.scalar = YAMLRoundTrip::ScalarStyle::Folded;
         break;
     }
 
@@ -1812,13 +1813,13 @@ private:
         token.scalar_style == ScalarStyle::Folded) {
       switch (token.chomping) {
         case BlockChomping::Clip:
-          node_style.chomping = YAMLChomping::Clip;
+          node_style.chomping = YAMLRoundTrip::Chomping::Clip;
           break;
         case BlockChomping::Strip:
-          node_style.chomping = YAMLChomping::Strip;
+          node_style.chomping = YAMLRoundTrip::Chomping::Strip;
           break;
         case BlockChomping::Keep:
-          node_style.chomping = YAMLChomping::Keep;
+          node_style.chomping = YAMLRoundTrip::Chomping::Keep;
           break;
       }
 
@@ -1845,10 +1846,12 @@ private:
     pointer.push_back(key);
     switch (style) {
       case ScalarStyle::SingleQuoted:
-        this->roundtrip_->key_styles[pointer] = YAMLScalarStyle::SingleQuoted;
+        this->roundtrip_->key_styles[pointer] =
+            YAMLRoundTrip::ScalarStyle::SingleQuoted;
         break;
       case ScalarStyle::DoubleQuoted:
-        this->roundtrip_->key_styles[pointer] = YAMLScalarStyle::DoubleQuoted;
+        this->roundtrip_->key_styles[pointer] =
+            YAMLRoundTrip::ScalarStyle::DoubleQuoted;
         break;
       default:
         break;

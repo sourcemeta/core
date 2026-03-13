@@ -212,13 +212,14 @@ inline auto write_string(OutputStream &stream, const std::string &value)
 
 inline auto write_block_scalar(
     OutputStream &stream, const std::string &value, const std::size_t indent,
-    const YAMLScalarStyle style, const YAMLChomping chomping,
+    const YAMLRoundTrip::ScalarStyle style,
+    const YAMLRoundTrip::Chomping chomping,
     const std::optional<std::string> &header_comment = std::nullopt,
     const std::size_t indent_width = INDENT_WIDTH) -> void {
-  stream.put(style == YAMLScalarStyle::Literal ? '|' : '>');
-  if (chomping == YAMLChomping::Strip) {
+  stream.put(style == YAMLRoundTrip::ScalarStyle::Literal ? '|' : '>');
+  if (chomping == YAMLRoundTrip::Chomping::Strip) {
     stream.put('-');
-  } else if (chomping == YAMLChomping::Keep) {
+  } else if (chomping == YAMLRoundTrip::Chomping::Keep) {
     stream.put('+');
   }
   if (header_comment.has_value()) {
@@ -257,13 +258,13 @@ inline auto write_string_with_style(OutputStream &stream,
     const auto match{roundtrip->styles.find(pointer)};
     if (match != roundtrip->styles.end() && match->second.scalar.has_value()) {
       switch (match->second.scalar.value()) {
-        case YAMLScalarStyle::SingleQuoted:
+        case YAMLRoundTrip::ScalarStyle::SingleQuoted:
           if (can_single_quote(value)) {
             write_single_quoted(stream, value);
             return;
           }
           break;
-        case YAMLScalarStyle::DoubleQuoted:
+        case YAMLRoundTrip::ScalarStyle::DoubleQuoted:
           write_double_quoted(stream, value);
           return;
         default:
@@ -282,13 +283,13 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
     const auto match{roundtrip->key_styles.find(pointer)};
     if (match != roundtrip->key_styles.end()) {
       switch (match->second) {
-        case YAMLScalarStyle::SingleQuoted:
+        case YAMLRoundTrip::ScalarStyle::SingleQuoted:
           if (can_single_quote(key)) {
             write_single_quoted(stream, key);
             return;
           }
           break;
-        case YAMLScalarStyle::DoubleQuoted:
+        case YAMLRoundTrip::ScalarStyle::DoubleQuoted:
           write_double_quoted(stream, key);
           return;
         default:
@@ -398,7 +399,8 @@ inline auto is_flow_style(const YAMLRoundTrip *roundtrip,
   const auto match{roundtrip->styles.find(pointer)};
   return match != roundtrip->styles.end() &&
          match->second.collection.has_value() &&
-         match->second.collection.value() == YAMLCollectionStyle::Flow;
+         match->second.collection.value() ==
+             YAMLRoundTrip::CollectionStyle::Flow;
 }
 
 inline auto has_node_prefix(const YAMLRoundTrip *roundtrip,
@@ -567,12 +569,13 @@ inline auto write_node(OutputStream &stream, const JSON &value,
   } else if (roundtrip && value.is_string()) {
     const auto match{roundtrip->styles.find(pointer)};
     if (match != roundtrip->styles.end() && match->second.scalar.has_value() &&
-        (match->second.scalar.value() == YAMLScalarStyle::Literal ||
-         match->second.scalar.value() == YAMLScalarStyle::Folded)) {
+        (match->second.scalar.value() == YAMLRoundTrip::ScalarStyle::Literal ||
+         match->second.scalar.value() == YAMLRoundTrip::ScalarStyle::Folded)) {
       if (has_anchor) {
         stream.put(' ');
       }
-      const auto chomping{match->second.chomping.value_or(YAMLChomping::Clip)};
+      const auto chomping{
+          match->second.chomping.value_or(YAMLRoundTrip::Chomping::Clip)};
       const auto &content{match->second.block_content.has_value()
                               ? match->second.block_content.value()
                               : value.to_string()};
