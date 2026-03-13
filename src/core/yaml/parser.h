@@ -442,29 +442,9 @@ private:
           this->pending_tokens_.push_back(current_token);
           this->pending_tokens_.push_back(after.value());
           if (anchor_name.has_value()) {
-            this->recording_anchor_ = true;
-            this->current_anchor_callbacks_.clear();
-            JSON null_value{nullptr};
-            this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Null,
-                                  token.line, token.column, context, index,
-                                  property);
-            this->invoke_callback(
-                JSON::ParsePhase::Post, JSON::Type::Null, token.line,
-                token.column, JSON::ParseContext::Root, 0, std::string_view{});
-            this->recording_anchor_ = false;
-            this->anchors_.insert_or_assign(
-                std::string{anchor_name.value()},
-                AnchoredValue{.value = null_value,
-                              .callbacks =
-                                  std::move(this->current_anchor_callbacks_)});
-            this->current_anchor_callbacks_.clear();
-            if (this->roundtrip_) {
-              auto &style{this->roundtrip_->styles[this->pointer_stack_]};
-              style.anchor = std::string{anchor_name.value()};
-              if (anchor_inline_comment.has_value()) {
-                style.comment_inline = std::move(anchor_inline_comment);
-              }
-            }
+            this->register_anchored_null(anchor_name.value(), token, context,
+                                         index, property,
+                                         anchor_inline_comment);
           }
           if (this->roundtrip_ && context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
@@ -485,29 +465,8 @@ private:
                 : static_cast<std::size_t>(0)};
         if (block_indent != SIZE_MAX && entry_indent <= block_indent) {
           this->pending_tokens_.push_back(current_token);
-          this->recording_anchor_ = true;
-          this->current_anchor_callbacks_.clear();
-          JSON null_value{nullptr};
-          this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Null,
-                                token.line, token.column, context, index,
-                                property);
-          this->invoke_callback(
-              JSON::ParsePhase::Post, JSON::Type::Null, token.line,
-              token.column, JSON::ParseContext::Root, 0, std::string_view{});
-          this->recording_anchor_ = false;
-          this->anchors_.insert_or_assign(
-              std::string{anchor_name.value()},
-              AnchoredValue{.value = null_value,
-                            .callbacks =
-                                std::move(this->current_anchor_callbacks_)});
-          this->current_anchor_callbacks_.clear();
-          if (this->roundtrip_) {
-            auto &style{this->roundtrip_->styles[this->pointer_stack_]};
-            style.anchor = std::string{anchor_name.value()};
-            if (anchor_inline_comment.has_value()) {
-              style.comment_inline = std::move(anchor_inline_comment);
-            }
-          }
+          this->register_anchored_null(anchor_name.value(), token, context,
+                                       index, property, anchor_inline_comment);
           if (this->roundtrip_ && context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
           }
@@ -1188,12 +1147,12 @@ private:
     auto token{this->next_token()};
     if (this->roundtrip_ && token.has_value() &&
         token->line != start_token.line) {
-      auto pointer{this->pointer_stack_};
-      pointer.push_back(element_index);
+      this->pointer_stack_.push_back(element_index);
       auto indicator_comment{this->lexer_->take_inline_comment()};
-      this->roundtrip_->styles[pointer].comment_on_indicator =
+      this->roundtrip_->styles[this->pointer_stack_].comment_on_indicator =
           indicator_comment.has_value() ? std::move(indicator_comment.value())
                                         : std::string{};
+      this->pointer_stack_.pop_back();
     }
 
     if (token.has_value() && token->type != TokenType::BlockSequenceEntry &&
@@ -1236,12 +1195,12 @@ private:
       const auto dash_line{token->line};
       token = this->next_token();
       if (this->roundtrip_ && token.has_value() && token->line != dash_line) {
-        auto pointer{this->pointer_stack_};
-        pointer.push_back(element_index);
+        this->pointer_stack_.push_back(element_index);
         auto indicator_comment{this->lexer_->take_inline_comment()};
-        this->roundtrip_->styles[pointer].comment_on_indicator =
+        this->roundtrip_->styles[this->pointer_stack_].comment_on_indicator =
             indicator_comment.has_value() ? std::move(indicator_comment.value())
                                           : std::string{};
+        this->pointer_stack_.pop_back();
       }
 
       if (!token.has_value() ||
@@ -1787,9 +1746,10 @@ private:
     if (comments.empty()) {
       return;
     }
-    auto pointer{this->pointer_stack_};
-    pointer.push_back(key);
-    this->roundtrip_->styles[pointer].comments_before = std::move(comments);
+    this->pointer_stack_.push_back(key);
+    this->roundtrip_->styles[this->pointer_stack_].comments_before =
+        std::move(comments);
+    this->pointer_stack_.pop_back();
   }
 
   auto record_inline_comment_for_key(const std::string &key,
@@ -1801,14 +1761,15 @@ private:
     if (!comment.has_value()) {
       return;
     }
-    auto pointer{this->pointer_stack_};
-    pointer.push_back(key);
+    this->pointer_stack_.push_back(key);
     if (on_indicator) {
-      this->roundtrip_->styles[pointer].comment_on_indicator =
+      this->roundtrip_->styles[this->pointer_stack_].comment_on_indicator =
           std::move(comment);
     } else {
-      this->roundtrip_->styles[pointer].comment_inline = std::move(comment);
+      this->roundtrip_->styles[this->pointer_stack_].comment_inline =
+          std::move(comment);
     }
+    this->pointer_stack_.pop_back();
   }
 
   auto record_preceding_comments_for_index(const std::size_t index) -> void {
@@ -1819,9 +1780,10 @@ private:
     if (comments.empty()) {
       return;
     }
-    auto pointer{this->pointer_stack_};
-    pointer.push_back(index);
-    this->roundtrip_->styles[pointer].comments_before = std::move(comments);
+    this->pointer_stack_.push_back(index);
+    this->roundtrip_->styles[this->pointer_stack_].comments_before =
+        std::move(comments);
+    this->pointer_stack_.pop_back();
   }
 
   auto record_inline_comment_for_index(const std::size_t index) -> void {
@@ -1832,9 +1794,40 @@ private:
     if (!comment.has_value()) {
       return;
     }
-    auto pointer{this->pointer_stack_};
-    pointer.push_back(index);
-    this->roundtrip_->styles[pointer].comment_inline = std::move(comment);
+    this->pointer_stack_.push_back(index);
+    this->roundtrip_->styles[this->pointer_stack_].comment_inline =
+        std::move(comment);
+    this->pointer_stack_.pop_back();
+  }
+
+  auto register_anchored_null(const std::string_view anchor_name,
+                              const Token &token,
+                              const JSON::ParseContext context,
+                              const std::size_t index,
+                              const std::string_view property,
+                              std::optional<std::string> &inline_comment)
+      -> void {
+    this->recording_anchor_ = true;
+    this->current_anchor_callbacks_.clear();
+    JSON null_value{nullptr};
+    this->invoke_callback(JSON::ParsePhase::Pre, JSON::Type::Null, token.line,
+                          token.column, context, index, property);
+    this->invoke_callback(JSON::ParsePhase::Post, JSON::Type::Null, token.line,
+                          token.column, JSON::ParseContext::Root, 0,
+                          std::string_view{});
+    this->recording_anchor_ = false;
+    this->anchors_.insert_or_assign(
+        std::string{anchor_name},
+        AnchoredValue{.value = null_value,
+                      .callbacks = std::move(this->current_anchor_callbacks_)});
+    this->current_anchor_callbacks_.clear();
+    if (this->roundtrip_) {
+      auto &style{this->roundtrip_->styles[this->pointer_stack_]};
+      style.anchor = std::string{anchor_name};
+      if (inline_comment.has_value()) {
+        style.comment_inline = std::move(inline_comment);
+      }
+    }
   }
 
   auto record_collection_style(const YAMLRoundTrip::CollectionStyle style)
@@ -1916,28 +1909,28 @@ private:
     if (!this->roundtrip_) {
       return;
     }
-    auto pointer{this->pointer_stack_};
-    pointer.push_back(key);
+    this->pointer_stack_.push_back(key);
     switch (style) {
       case ScalarStyle::Plain:
-        this->roundtrip_->key_styles[pointer] =
+        this->roundtrip_->key_styles[this->pointer_stack_] =
             YAMLRoundTrip::ScalarStyle::Plain;
         break;
       case ScalarStyle::SingleQuoted:
-        this->roundtrip_->key_styles[pointer] =
+        this->roundtrip_->key_styles[this->pointer_stack_] =
             YAMLRoundTrip::ScalarStyle::SingleQuoted;
         break;
       case ScalarStyle::DoubleQuoted:
-        this->roundtrip_->key_styles[pointer] =
+        this->roundtrip_->key_styles[this->pointer_stack_] =
             YAMLRoundTrip::ScalarStyle::DoubleQuoted;
         break;
       default:
         break;
     }
     if (!quoted_original.empty()) {
-      this->roundtrip_->key_quoted_contents[pointer] =
+      this->roundtrip_->key_quoted_contents[this->pointer_stack_] =
           std::string{quoted_original};
     }
+    this->pointer_stack_.pop_back();
   }
 
   auto detect_indent_width(const std::uint64_t parent_column,

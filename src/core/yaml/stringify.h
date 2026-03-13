@@ -438,19 +438,6 @@ inline auto is_implicit_null(const JSON &value, const YAMLRoundTrip *roundtrip,
   return !match->second.scalar.has_value();
 }
 
-inline auto is_flow_style(const YAMLRoundTrip *roundtrip,
-                          const Pointer &pointer) -> bool {
-  if (!roundtrip) {
-    return false;
-  }
-
-  const auto match{roundtrip->styles.find(pointer)};
-  return match != roundtrip->styles.end() &&
-         match->second.collection.has_value() &&
-         match->second.collection.value() ==
-             YAMLRoundTrip::CollectionStyle::Flow;
-}
-
 inline auto write_flow_anchor(OutputStream &stream,
                               const YAMLRoundTrip *roundtrip,
                               const Pointer &pointer) -> void {
@@ -465,20 +452,6 @@ inline auto write_flow_anchor(OutputStream &stream,
                  static_cast<std::streamsize>(anchor_name.size()));
     stream.put(' ');
   }
-}
-
-inline auto has_node_prefix(const YAMLRoundTrip *roundtrip,
-                            const Pointer &pointer) -> bool {
-  if (!roundtrip) {
-    return false;
-  }
-
-  if (roundtrip->aliases.contains(pointer)) {
-    return true;
-  }
-
-  const auto match{roundtrip->styles.find(pointer)};
-  return match != roundtrip->styles.end() && match->second.anchor.has_value();
 }
 
 inline auto write_flow_mapping(OutputStream &stream, const JSON &value,
@@ -545,46 +518,6 @@ inline auto write_flow_sequence(OutputStream &stream, const JSON &value,
   stream.put(']');
 }
 
-inline auto
-write_comments_before(OutputStream &stream, const YAMLRoundTrip *roundtrip,
-                      const Pointer &pointer, const std::size_t indent,
-                      const std::size_t width = INDENT_WIDTH) -> void {
-  if (!roundtrip) {
-    return;
-  }
-  const auto match{roundtrip->styles.find(pointer)};
-  if (match == roundtrip->styles.end()) {
-    return;
-  }
-  for (const auto &comment : match->second.comments_before) {
-    if (comment.empty()) {
-      stream.put('\n');
-    } else {
-      write_indent(stream, indent, width);
-      stream.write(comment.data(),
-                   static_cast<std::streamsize>(comment.size()));
-      stream.put('\n');
-    }
-  }
-}
-
-inline auto write_comment_inline(OutputStream &stream,
-                                 const YAMLRoundTrip *roundtrip,
-                                 const Pointer &pointer) -> bool {
-  if (!roundtrip) {
-    return false;
-  }
-  const auto match{roundtrip->styles.find(pointer)};
-  if (match == roundtrip->styles.end() ||
-      !match->second.comment_inline.has_value()) {
-    return false;
-  }
-  stream.put(' ');
-  const auto &comment{match->second.comment_inline.value()};
-  stream.write(comment.data(), static_cast<std::streamsize>(comment.size()));
-  return true;
-}
-
 inline auto write_block_mapping(OutputStream &stream, const JSON &value,
                                 std::size_t indent, bool skip_first_indent,
                                 const YAMLRoundTrip *roundtrip,
@@ -594,47 +527,59 @@ inline auto write_block_sequence(OutputStream &stream, const JSON &value,
                                  const YAMLRoundTrip *roundtrip,
                                  Pointer &pointer) -> void;
 
+inline auto emit_inline_comment(OutputStream &stream,
+                                const YAMLRoundTrip::NodeStyle *style) -> void {
+  if (style && style->comment_inline.has_value()) {
+    stream.put(' ');
+    const auto &comment{style->comment_inline.value()};
+    stream.write(comment.data(), static_cast<std::streamsize>(comment.size()));
+  }
+}
+
 inline auto write_node(OutputStream &stream, const JSON &value,
                        const std::size_t indent, const bool skip_first_indent,
                        const YAMLRoundTrip *roundtrip, Pointer &pointer)
     -> void {
-  // Handle alias references
+  const YAMLRoundTrip::NodeStyle *node_style{nullptr};
   if (roundtrip) {
+    const auto style_match{roundtrip->styles.find(pointer)};
+    if (style_match != roundtrip->styles.end()) {
+      node_style = &style_match->second;
+    }
     const auto alias_match{roundtrip->aliases.find(pointer)};
     if (alias_match != roundtrip->aliases.end()) {
       stream.put('*');
       const auto &name{alias_match->second};
       stream.write(name.data(), static_cast<std::streamsize>(name.size()));
-      write_comment_inline(stream, roundtrip, pointer);
+      emit_inline_comment(stream, node_style);
       stream.put('\n');
       return;
     }
   }
 
-  // Handle anchor definitions
   bool has_anchor{false};
-  if (roundtrip) {
-    const auto style_match{roundtrip->styles.find(pointer)};
-    if (style_match != roundtrip->styles.end() &&
-        style_match->second.anchor.has_value()) {
-      stream.put('&');
-      const auto &name{style_match->second.anchor.value()};
-      stream.write(name.data(), static_cast<std::streamsize>(name.size()));
-      has_anchor = true;
-    }
+  if (node_style && node_style->anchor.has_value()) {
+    stream.put('&');
+    const auto &name{node_style->anchor.value()};
+    stream.write(name.data(), static_cast<std::streamsize>(name.size()));
+    has_anchor = true;
   }
 
+  const bool flow{node_style && node_style->collection.has_value() &&
+                  node_style->collection.value() ==
+                      YAMLRoundTrip::CollectionStyle::Flow};
+
   if (value.is_object() && !value.empty()) {
-    if (is_flow_style(roundtrip, pointer)) {
+    if (flow) {
       if (has_anchor) {
         stream.put(' ');
       }
       write_flow_mapping(stream, value, roundtrip, pointer);
-      write_comment_inline(stream, roundtrip, pointer);
+      emit_inline_comment(stream, node_style);
       stream.put('\n');
     } else {
       if (has_anchor) {
-        write_comment_inline(stream, roundtrip, pointer);
+        emit_inline_comment(stream, node_style);
         stream.put('\n');
       }
       write_block_mapping(stream, value, indent,
@@ -642,53 +587,46 @@ inline auto write_node(OutputStream &stream, const JSON &value,
                           pointer);
     }
   } else if (value.is_array() && !value.empty()) {
-    if (is_flow_style(roundtrip, pointer)) {
+    if (flow) {
       if (has_anchor) {
         stream.put(' ');
       }
       write_flow_sequence(stream, value, roundtrip, pointer);
-      write_comment_inline(stream, roundtrip, pointer);
+      emit_inline_comment(stream, node_style);
       stream.put('\n');
     } else {
       if (has_anchor) {
-        write_comment_inline(stream, roundtrip, pointer);
+        emit_inline_comment(stream, node_style);
         stream.put('\n');
       }
       write_block_sequence(stream, value, indent,
                            has_anchor ? false : skip_first_indent, roundtrip,
                            pointer);
     }
-  } else if (roundtrip && value.is_string()) {
-    const auto match{roundtrip->styles.find(pointer)};
-    if (match != roundtrip->styles.end() && match->second.scalar.has_value() &&
-        (match->second.scalar.value() == YAMLRoundTrip::ScalarStyle::Literal ||
-         match->second.scalar.value() == YAMLRoundTrip::ScalarStyle::Folded)) {
-      if (has_anchor) {
-        stream.put(' ');
-      }
-      const auto chomping{
-          match->second.chomping.value_or(YAMLRoundTrip::Chomping::Clip)};
-      const auto &content{match->second.block_content.has_value()
-                              ? match->second.block_content.value()
-                              : value.to_string()};
-      write_block_scalar(stream, content, indent, match->second.scalar.value(),
-                         chomping, match->second.comment_inline,
-                         roundtrip->indent_width, match->second.explicit_indent,
-                         match->second.indent_before_chomping);
-    } else {
-      if (has_anchor) {
-        stream.put(' ');
-      }
-      write_inline_value(stream, value, roundtrip, pointer);
-      write_comment_inline(stream, roundtrip, pointer);
-      stream.put('\n');
+  } else if (node_style && value.is_string() &&
+             node_style->scalar.has_value() &&
+             (node_style->scalar.value() ==
+                  YAMLRoundTrip::ScalarStyle::Literal ||
+              node_style->scalar.value() ==
+                  YAMLRoundTrip::ScalarStyle::Folded)) {
+    if (has_anchor) {
+      stream.put(' ');
     }
+    const auto chomping{
+        node_style->chomping.value_or(YAMLRoundTrip::Chomping::Clip)};
+    const auto &content{node_style->block_content.has_value()
+                            ? node_style->block_content.value()
+                            : value.to_string()};
+    write_block_scalar(stream, content, indent, node_style->scalar.value(),
+                       chomping, node_style->comment_inline,
+                       roundtrip->indent_width, node_style->explicit_indent,
+                       node_style->indent_before_chomping);
   } else {
     if (has_anchor) {
       stream.put(' ');
     }
     write_inline_value(stream, value, roundtrip, pointer);
-    write_comment_inline(stream, roundtrip, pointer);
+    emit_inline_comment(stream, node_style);
     stream.put('\n');
   }
 }
@@ -703,8 +641,30 @@ inline auto write_block_mapping(OutputStream &stream, const JSON &value,
   bool first{true};
   for (const auto &entry : value.as_object()) {
     pointer.push_back(entry.first);
+
+    const YAMLRoundTrip::NodeStyle *entry_style{nullptr};
+    bool entry_is_alias{false};
+    if (roundtrip) {
+      entry_is_alias = roundtrip->aliases.contains(pointer);
+      const auto style_match{roundtrip->styles.find(pointer)};
+      if (style_match != roundtrip->styles.end()) {
+        entry_style = &style_match->second;
+      }
+    }
+
     if (!first || !skip_first_indent) {
-      write_comments_before(stream, roundtrip, pointer, indent, width);
+      if (entry_style && !entry_style->comments_before.empty()) {
+        for (const auto &comment : entry_style->comments_before) {
+          if (comment.empty()) {
+            stream.put('\n');
+          } else {
+            write_indent(stream, indent, width);
+            stream.write(comment.data(),
+                         static_cast<std::streamsize>(comment.size()));
+            stream.put('\n');
+          }
+        }
+      }
       write_indent(stream, indent, width);
     }
     first = false;
@@ -712,41 +672,41 @@ inline auto write_block_mapping(OutputStream &stream, const JSON &value,
     write_key_string(stream, entry.first, roundtrip, pointer);
     stream.put(':');
 
-    if (is_implicit_null(entry.second, roundtrip, pointer)) {
-      if (roundtrip) {
-        const auto style_match{roundtrip->styles.find(pointer)};
-        if (style_match != roundtrip->styles.end() &&
-            style_match->second.anchor.has_value()) {
-          stream.put(' ');
-          stream.put('&');
-          const auto &name{style_match->second.anchor.value()};
-          stream.write(name.data(), static_cast<std::streamsize>(name.size()));
-        }
+    const bool implicit_null{
+        roundtrip && entry.second.is_null() && !entry_is_alias &&
+        (!entry_style || !entry_style->scalar.has_value())};
+    if (implicit_null) {
+      if (entry_style && entry_style->anchor.has_value()) {
+        stream.put(' ');
+        stream.put('&');
+        const auto &name{entry_style->anchor.value()};
+        stream.write(name.data(), static_cast<std::streamsize>(name.size()));
       }
-      write_comment_inline(stream, roundtrip, pointer);
+      emit_inline_comment(stream, entry_style);
       stream.put('\n');
     } else {
       bool has_indicator_comment{false};
-      if (roundtrip) {
-        const auto style_match{roundtrip->styles.find(pointer)};
-        if (style_match != roundtrip->styles.end() &&
-            style_match->second.comment_on_indicator.has_value()) {
-          has_indicator_comment = true;
-          stream.put(' ');
-          const auto &comment{style_match->second.comment_on_indicator.value()};
-          stream.write(comment.data(),
-                       static_cast<std::streamsize>(comment.size()));
-          stream.put('\n');
-          write_indent(stream, indent + 1, width);
-        }
+      if (entry_style && entry_style->comment_on_indicator.has_value()) {
+        has_indicator_comment = true;
+        stream.put(' ');
+        const auto &comment{entry_style->comment_on_indicator.value()};
+        stream.write(comment.data(),
+                     static_cast<std::streamsize>(comment.size()));
+        stream.put('\n');
+        write_indent(stream, indent + 1, width);
       }
       if (!has_indicator_comment) {
+        const bool has_prefix{entry_is_alias ||
+                              (entry_style && entry_style->anchor.has_value())};
+        const bool entry_flow{entry_style &&
+                              entry_style->collection.has_value() &&
+                              entry_style->collection.value() ==
+                                  YAMLRoundTrip::CollectionStyle::Flow};
         const bool nested{
             (entry.second.is_object() || entry.second.is_array()) &&
-            !entry.second.empty() && !is_flow_style(roundtrip, pointer) &&
-            !has_node_prefix(roundtrip, pointer)};
+            !entry.second.empty() && !entry_flow && !has_prefix};
         if (nested) {
-          write_comment_inline(stream, roundtrip, pointer);
+          emit_inline_comment(stream, entry_style);
           stream.put('\n');
         } else {
           stream.put(' ');
@@ -771,54 +731,70 @@ inline auto write_block_sequence(OutputStream &stream, const JSON &value,
   std::size_t item_index{0};
   for (const auto &item : value.as_array()) {
     pointer.push_back(item_index);
+
+    // Single lookup for alias and style per item
+    const YAMLRoundTrip::NodeStyle *item_style{nullptr};
+    bool item_is_alias{false};
+    if (roundtrip) {
+      item_is_alias = roundtrip->aliases.contains(pointer);
+      const auto style_match{roundtrip->styles.find(pointer)};
+      if (style_match != roundtrip->styles.end()) {
+        item_style = &style_match->second;
+      }
+    }
+
     if (!first || !skip_first_indent) {
-      write_comments_before(stream, roundtrip, pointer, indent, width);
+      if (item_style && !item_style->comments_before.empty()) {
+        for (const auto &comment : item_style->comments_before) {
+          if (comment.empty()) {
+            stream.put('\n');
+          } else {
+            write_indent(stream, indent, width);
+            stream.write(comment.data(),
+                         static_cast<std::streamsize>(comment.size()));
+            stream.put('\n');
+          }
+        }
+      }
       write_indent(stream, indent, width);
     }
     first = false;
 
-    if (is_implicit_null(item, roundtrip, pointer)) {
+    const bool implicit_null{roundtrip && item.is_null() && !item_is_alias &&
+                             (!item_style || !item_style->scalar.has_value())};
+    if (implicit_null) {
       stream.put('-');
-      if (roundtrip) {
-        const auto style_match{roundtrip->styles.find(pointer)};
-        if (style_match != roundtrip->styles.end()) {
-          if (style_match->second.anchor.has_value()) {
-            stream.put(' ');
-            stream.put('&');
-            const auto &name{style_match->second.anchor.value()};
-            stream.write(name.data(),
-                         static_cast<std::streamsize>(name.size()));
-          }
-          if (style_match->second.comment_on_indicator.has_value() &&
-              !style_match->second.comment_on_indicator.value().empty()) {
-            stream.put(' ');
-            const auto &comment{
-                style_match->second.comment_on_indicator.value()};
-            stream.write(comment.data(),
-                         static_cast<std::streamsize>(comment.size()));
-          }
+      if (item_style) {
+        if (item_style->anchor.has_value()) {
+          stream.put(' ');
+          stream.put('&');
+          const auto &name{item_style->anchor.value()};
+          stream.write(name.data(), static_cast<std::streamsize>(name.size()));
+        }
+        if (item_style->comment_on_indicator.has_value() &&
+            !item_style->comment_on_indicator.value().empty()) {
+          stream.put(' ');
+          const auto &comment{item_style->comment_on_indicator.value()};
+          stream.write(comment.data(),
+                       static_cast<std::streamsize>(comment.size()));
         }
       }
-      write_comment_inline(stream, roundtrip, pointer);
+      emit_inline_comment(stream, item_style);
       stream.put('\n');
     } else {
       bool has_indicator{false};
-      if (roundtrip) {
-        const auto style_match{roundtrip->styles.find(pointer)};
-        if (style_match != roundtrip->styles.end() &&
-            style_match->second.comment_on_indicator.has_value()) {
-          has_indicator = true;
-          const auto &comment{style_match->second.comment_on_indicator.value()};
-          if (comment.empty()) {
-            stream.put('-');
-          } else {
-            stream.write("- ", 2);
-            stream.write(comment.data(),
-                         static_cast<std::streamsize>(comment.size()));
-          }
-          stream.put('\n');
-          write_indent(stream, indent + 1, width);
+      if (item_style && item_style->comment_on_indicator.has_value()) {
+        has_indicator = true;
+        const auto &comment{item_style->comment_on_indicator.value()};
+        if (comment.empty()) {
+          stream.put('-');
+        } else {
+          stream.write("- ", 2);
+          stream.write(comment.data(),
+                       static_cast<std::streamsize>(comment.size()));
         }
+        stream.put('\n');
+        write_indent(stream, indent + 1, width);
       }
       if (!has_indicator) {
         stream.write("- ", 2);

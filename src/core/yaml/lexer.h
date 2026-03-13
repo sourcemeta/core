@@ -1024,19 +1024,13 @@ private:
         seen_header_whitespace = true;
         this->advance(1);
       } else if (current == '#' && seen_header_whitespace) {
+        const auto comment_start{this->position_};
+        while (this->position_ < this->input_.size() && this->peek() != '\n') {
+          this->advance(1);
+        }
         if (this->roundtrip_) {
-          const auto comment_start{this->position_};
-          while (this->position_ < this->input_.size() &&
-                 this->peek() != '\n') {
-            this->advance(1);
-          }
           this->block_scalar_comment_ = std::string{this->input_.substr(
               comment_start, this->position_ - comment_start)};
-        } else {
-          while (this->position_ < this->input_.size() &&
-                 this->peek() != '\n') {
-            this->advance(1);
-          }
         }
       } else if (current == '\n' || current == '\r') {
         break;
