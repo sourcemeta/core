@@ -388,13 +388,12 @@ private:
 
       if (current == '#' && preceded_by_whitespace) {
         blank_line = false;
+        const auto comment_line{this->line_};
+        const auto comment_start{this->position_};
+        while (this->position_ < this->input_.size() && this->peek() != '\n') {
+          this->advance(1);
+        }
         if (this->roundtrip_) {
-          const auto comment_line{this->line_};
-          const auto comment_start{this->position_};
-          while (this->position_ < this->input_.size() &&
-                 this->peek() != '\n') {
-            this->advance(1);
-          }
           std::string text{this->input_.substr(
               comment_start, this->position_ - comment_start)};
           if (comment_line == this->comment_reference_line_ &&
@@ -403,11 +402,6 @@ private:
             this->inline_comment_buffer_ = std::move(text);
           } else {
             this->preceding_comments_buffer_.push_back(std::move(text));
-          }
-        } else {
-          while (this->position_ < this->input_.size() &&
-                 this->peek() != '\n') {
-            this->advance(1);
           }
         }
         continue;

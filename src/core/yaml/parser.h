@@ -1145,14 +1145,8 @@ private:
     this->record_preceding_comments_for_index(0);
 
     auto token{this->next_token()};
-    if (this->roundtrip_ && token.has_value() &&
-        token->line != start_token.line) {
-      this->pointer_stack_.push_back(element_index);
-      auto indicator_comment{this->lexer_->take_inline_comment()};
-      this->roundtrip_->styles[this->pointer_stack_].comment_on_indicator =
-          indicator_comment.has_value() ? std::move(indicator_comment.value())
-                                        : std::string{};
-      this->pointer_stack_.pop_back();
+    if (token.has_value() && token->line != start_token.line) {
+      this->record_indicator_comment_for_index(element_index);
     }
 
     if (token.has_value() && token->type != TokenType::BlockSequenceEntry &&
@@ -1194,13 +1188,8 @@ private:
 
       const auto dash_line{token->line};
       token = this->next_token();
-      if (this->roundtrip_ && token.has_value() && token->line != dash_line) {
-        this->pointer_stack_.push_back(element_index);
-        auto indicator_comment{this->lexer_->take_inline_comment()};
-        this->roundtrip_->styles[this->pointer_stack_].comment_on_indicator =
-            indicator_comment.has_value() ? std::move(indicator_comment.value())
-                                          : std::string{};
-        this->pointer_stack_.pop_back();
+      if (token.has_value() && token->line != dash_line) {
+        this->record_indicator_comment_for_index(element_index);
       }
 
       if (!token.has_value() ||
@@ -1797,6 +1786,18 @@ private:
     this->pointer_stack_.push_back(index);
     this->roundtrip_->styles[this->pointer_stack_].comment_inline =
         std::move(comment);
+    this->pointer_stack_.pop_back();
+  }
+
+  auto record_indicator_comment_for_index(const std::size_t index) -> void {
+    if (!this->roundtrip_) {
+      return;
+    }
+    this->pointer_stack_.push_back(index);
+    auto indicator_comment{this->lexer_->take_inline_comment()};
+    this->roundtrip_->styles[this->pointer_stack_].comment_on_indicator =
+        indicator_comment.has_value() ? std::move(indicator_comment.value())
+                                      : std::string{};
     this->pointer_stack_.pop_back();
   }
 
