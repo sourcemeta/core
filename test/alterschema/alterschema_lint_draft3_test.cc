@@ -81,6 +81,37 @@ TEST(AlterSchema_lint_draft3, enum_with_type_4) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_draft3, forbid_empty_enum_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "title": "Example",
+    "description": "Example schema",
+    "properties": {
+      "foo": {
+        "enum": []
+      }
+    }
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "title": "Example",
+    "description": "Example schema",
+    "properties": {
+      "foo": false
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "forbid_empty_enum",
+                    "An empty `enum` validates nothing and is equivalent to "
+                    "`false`",
+                    true);
+  EXPECT_EQ(document, expected);
+}
+
 TEST(AlterSchema_lint_draft3, non_applicable_enum_validation_keywords_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-03/schema#",
