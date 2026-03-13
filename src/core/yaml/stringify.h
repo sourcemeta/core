@@ -634,6 +634,7 @@ inline auto write_node(OutputStream &stream, const JSON &value,
       stream.put('\n');
     } else {
       if (has_anchor) {
+        write_comment_inline(stream, roundtrip, pointer);
         stream.put('\n');
       }
       write_block_mapping(stream, value, indent,
@@ -650,6 +651,7 @@ inline auto write_node(OutputStream &stream, const JSON &value,
       stream.put('\n');
     } else {
       if (has_anchor) {
+        write_comment_inline(stream, roundtrip, pointer);
         stream.put('\n');
       }
       write_block_sequence(stream, value, indent,

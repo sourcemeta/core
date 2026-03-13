@@ -122,6 +122,13 @@ public:
 
     auto pos_before_token{this->lexer_->position()};
     token = this->next_token();
+    if (this->roundtrip_) {
+      auto root_inline{this->lexer_->take_inline_comment()};
+      if (root_inline.has_value()) {
+        this->roundtrip_->styles[this->pointer_stack_].comment_inline =
+            std::move(root_inline);
+      }
+    }
     while (token.has_value() && token->type == TokenType::DocumentEnd) {
       if (this->roundtrip_) {
         this->roundtrip_->pre_end_comments =
@@ -370,6 +377,7 @@ private:
     std::uint64_t anchor_line{0};
     std::optional<std::string> tag;
     std::size_t anchor_count{0};
+    std::optional<std::string> anchor_inline_comment;
     Token current_token{token};
     std::uint64_t node_start_column{token.column};
     std::uint64_t prefix_line{token.line};
@@ -398,6 +406,9 @@ private:
       }
 
       auto next{this->lexer_->next()};
+      if (this->roundtrip_ && anchor_name.has_value()) {
+        anchor_inline_comment = this->lexer_->take_inline_comment();
+      }
       if (!next.has_value() || next->type == TokenType::StreamEnd ||
           next->type == TokenType::DocumentEnd ||
           next->type == TokenType::DocumentStart) {
@@ -650,8 +661,11 @@ private:
       this->current_anchor_callbacks_.clear();
 
       if (this->roundtrip_) {
-        this->roundtrip_->styles[this->pointer_stack_].anchor =
-            std::string{anchor_name.value()};
+        auto &style{this->roundtrip_->styles[this->pointer_stack_]};
+        style.anchor = std::string{anchor_name.value()};
+        if (anchor_inline_comment.has_value()) {
+          style.comment_inline = std::move(anchor_inline_comment);
+        }
       }
     }
 
