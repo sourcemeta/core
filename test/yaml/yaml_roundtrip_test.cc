@@ -4914,3 +4914,17 @@ ref: *defaults
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
 }
+
+TEST(YAML_roundtrip, implicit_null_anchor_with_inline_comment) {
+  const std::string input{R"YAML(key: &anchor # comment
+next: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, implicit_null_anchor_with_inline_comment_sequence) {
+  const std::string input{R"YAML(- &anchor # comment
+- value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}

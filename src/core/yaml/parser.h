@@ -421,6 +421,13 @@ private:
         if (next.has_value()) {
           this->pending_tokens_.push_back(next.value());
         }
+        if (this->roundtrip_ && anchor_name.has_value()) {
+          auto &style{this->roundtrip_->styles[this->pointer_stack_]};
+          style.anchor = std::string{anchor_name.value()};
+          if (anchor_inline_comment.has_value()) {
+            style.comment_inline = std::move(anchor_inline_comment);
+          }
+        }
         if (this->roundtrip_ && context != JSON::ParseContext::Root) {
           this->pointer_stack_.pop_back();
         }
@@ -452,8 +459,11 @@ private:
                                   std::move(this->current_anchor_callbacks_)});
             this->current_anchor_callbacks_.clear();
             if (this->roundtrip_) {
-              this->roundtrip_->styles[this->pointer_stack_].anchor =
-                  std::string{anchor_name.value()};
+              auto &style{this->roundtrip_->styles[this->pointer_stack_]};
+              style.anchor = std::string{anchor_name.value()};
+              if (anchor_inline_comment.has_value()) {
+                style.comment_inline = std::move(anchor_inline_comment);
+              }
             }
           }
           if (this->roundtrip_ && context != JSON::ParseContext::Root) {
@@ -492,8 +502,11 @@ private:
                                 std::move(this->current_anchor_callbacks_)});
           this->current_anchor_callbacks_.clear();
           if (this->roundtrip_) {
-            this->roundtrip_->styles[this->pointer_stack_].anchor =
-                std::string{anchor_name.value()};
+            auto &style{this->roundtrip_->styles[this->pointer_stack_]};
+            style.anchor = std::string{anchor_name.value()};
+            if (anchor_inline_comment.has_value()) {
+              style.comment_inline = std::move(anchor_inline_comment);
+            }
           }
           if (this->roundtrip_ && context != JSON::ParseContext::Root) {
             this->pointer_stack_.pop_back();
