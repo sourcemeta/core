@@ -9679,7 +9679,9 @@ TEST(AlterSchema_lint_2020_12, forbid_empty_enum_1) {
   EXPECT_FALSE(result.first);
   EXPECT_EQ(traces.size(), 1);
   EXPECT_LINT_TRACE(traces, 0, "", "forbid_empty_enum",
-                    "enum must contain at least one value", false);
+                    "An empty `enum` validates nothing and is equivalent to "
+                    "`false`",
+                    true);
 }
 
 TEST(AlterSchema_lint_2020_12, forbid_empty_enum_2) {
@@ -9713,7 +9715,7 @@ TEST(AlterSchema_lint_2020_12, forbid_empty_enum_3) {
 }
 
 TEST(AlterSchema_lint_2020_12, forbid_empty_enum_4) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "Example",
     "description": "Example schema",
@@ -9724,11 +9726,195 @@ TEST(AlterSchema_lint_2020_12, forbid_empty_enum_4) {
       }
     }
   })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": false
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "forbid_empty_enum",
+                    "An empty `enum` validates nothing and is equivalent to "
+                    "`false`",
+                    true);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "enum": []
+      },
+      "bar": {
+        "enum": []
+      },
+      "baz": {
+        "enum": [1, 2]
+      }
+    }
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": false,
+      "bar": false,
+      "baz": {
+        "enum": [1, 2]
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 2);
+  bool has_foo{false};
+  bool has_bar{false};
+  for (const auto &trace : traces) {
+    const auto pointer{sourcemeta::core::to_string(std::get<0>(trace))};
+    const auto &name{std::get<1>(trace)};
+    if (pointer == "/properties/foo" && name == "forbid_empty_enum") {
+      has_foo = true;
+    }
+    if (pointer == "/properties/bar" && name == "forbid_empty_enum") {
+      has_bar = true;
+    }
+  }
+  EXPECT_TRUE(has_foo);
+  EXPECT_TRUE(has_bar);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "prefixItems": [
+      {
+        "enum": []
+      },
+      {
+        "type": "string"
+      }
+    ]
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "prefixItems": [
+      false,
+      {
+        "type": "string"
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/prefixItems/0", "forbid_empty_enum",
+                    "An empty `enum` validates nothing and is equivalent to "
+                    "`false`",
+                    true);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "properties": {
+      "arr": {
+        "type": "array",
+        "items": {
+          "x-note": "placeholder",
+          "enum": []
+        }
+      }
+    }
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "properties": {
+      "arr": {
+        "type": "array",
+        "items": false
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/arr/items", "forbid_empty_enum",
+                    "An empty `enum` validates nothing and is equivalent to "
+                    "`false`",
+                    true);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_8) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [1],
+    "enum": {}
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_9) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "not": {
+          "enum": []
+        }
+      }
+    }
+  })JSON");
 
   LINT_WITHOUT_FIX(document, result, traces);
 
   EXPECT_FALSE(result.first);
   EXPECT_EQ(traces.size(), 1);
-  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "forbid_empty_enum",
-                    "enum must contain at least one value", false);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo/not", "forbid_empty_enum",
+                    "An empty `enum` validates nothing and is equivalent to "
+                    "`false`",
+                    true);
 }
