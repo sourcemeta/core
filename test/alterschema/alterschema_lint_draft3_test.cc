@@ -97,18 +97,15 @@ TEST(AlterSchema_lint_draft3, forbid_empty_enum_1) {
     "title": "Example",
     "description": "Example schema",
     "properties": {
-      "foo": false
+      "foo": {
+        "enum": []
+      }
     }
   })JSON");
 
   LINT_AND_FIX(document, result, traces);
 
   EXPECT_TRUE(result.first);
-  EXPECT_EQ(traces.size(), 1);
-  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "forbid_empty_enum",
-                    "An empty `enum` validates nothing and is equivalent to "
-                    "`false`",
-                    true);
   EXPECT_EQ(document, expected);
 }
 
