@@ -1841,12 +1841,13 @@ private:
     if (!this->roundtrip_) {
       return;
     }
-    if (style == ScalarStyle::Plain) {
-      return;
-    }
     auto pointer{this->pointer_stack_};
     pointer.push_back(key);
     switch (style) {
+      case ScalarStyle::Plain:
+        this->roundtrip_->key_styles[pointer] =
+            YAMLRoundTrip::ScalarStyle::Plain;
+        break;
       case ScalarStyle::SingleQuoted:
         this->roundtrip_->key_styles[pointer] =
             YAMLRoundTrip::ScalarStyle::SingleQuoted;

@@ -3013,3 +3013,215 @@ TEST(YAML_roundtrip, negative_integer_doc) {
   const std::string input{"-42\n"};
   EXPECT_EQ(roundtrip(input), input);
 }
+
+TEST(YAML_roundtrip, boolean_true_capitalized) {
+  const std::string input{"key: True\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_true_uppercase) {
+  const std::string input{"key: TRUE\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_false_capitalized) {
+  const std::string input{"key: False\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_false_uppercase) {
+  const std::string input{"key: FALSE\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_capitalized) {
+  const std::string input{"key: Null\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_uppercase) {
+  const std::string input{"key: NULL\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_inf_capitalized) {
+  const std::string input{"key: .Inf\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_inf_uppercase) {
+  const std::string input{"key: .INF\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_pos_inf) {
+  const std::string input{"key: +.inf\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_neg_inf_capitalized) {
+  const std::string input{"key: -.Inf\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_neg_inf_uppercase) {
+  const std::string input{"key: -.INF\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_nan_capitalized) {
+  const std::string input{"key: .NaN\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_nan_uppercase) {
+  const std::string input{"key: .NAN\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, octal_number) {
+  const std::string input{"key: 0o77\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, hex_number) {
+  const std::string input{"key: 0x3A\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_one_point_zero) {
+  const std::string input{"key: 1.0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_two_point_zero) {
+  const std::string input{"key: 2.0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_hundred_point_zero) {
+  const std::string input{"key: 100.0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, scientific_notation) {
+  const std::string input{"key: 1e3\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, scientific_notation_negative_exponent) {
+  const std::string input{"key: 1.5e-2\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_key_true) {
+  const std::string input{"true: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_key_false) {
+  const std::string input{"false: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_key_capitalized) {
+  const std::string input{"True: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_key) {
+  const std::string input{"null: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, tilde_key) {
+  const std::string input{"~: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, number_key) {
+  const std::string input{"123: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_key) {
+  const std::string input{"3.14: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_tilde_null) {
+  const std::string input{"{a: ~, b: null}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_special_floats) {
+  const std::string input{"{a: .inf, b: .nan}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_boolean_variants) {
+  const std::string input{"{a: True, b: FALSE}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_tilde_null) {
+  const std::string input{"[~, null]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_special_floats) {
+  const std::string input{"[.inf, -.inf, .nan]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_boolean_variants) {
+  const std::string input{"[True, FALSE, true, false]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_number_key) {
+  const std::string input{"{123: value}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_boolean_key) {
+  const std::string input{"{true: value}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_null_key) {
+  const std::string input{"{null: value}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_block_with_special_values) {
+  const std::string input{R"YAML(config:
+  nullable: ~
+  enabled: True
+  pi: 3.14
+  precision: 1.0
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_of_special_values) {
+  const std::string input{R"YAML(- ~
+- null
+- True
+- FALSE
+- .inf
+- .nan
+- 0o77
+- 0x3A
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mixed_special_keys_and_values) {
+  const std::string input{R"YAML(true: false
+null: ~
+123: 456
+.inf: .nan
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}

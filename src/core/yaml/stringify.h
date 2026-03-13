@@ -283,6 +283,9 @@ inline auto write_key_string(OutputStream &stream, const std::string &key,
     const auto match{roundtrip->key_styles.find(pointer)};
     if (match != roundtrip->key_styles.end()) {
       switch (match->second) {
+        case YAMLRoundTrip::ScalarStyle::Plain:
+          stream.write(key.data(), static_cast<std::streamsize>(key.size()));
+          return;
         case YAMLRoundTrip::ScalarStyle::SingleQuoted:
           if (can_single_quote(key)) {
             write_single_quoted(stream, key);
