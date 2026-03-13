@@ -445,7 +445,9 @@ inline auto write_flow_mapping(OutputStream &stream, const JSON &value,
     pointer.push_back(entry.first);
     write_key_string(stream, entry.first, roundtrip, pointer);
     stream.write(": ", 2);
-    write_inline_value(stream, entry.second, roundtrip, pointer);
+    if (!is_implicit_null(entry.second, roundtrip, pointer)) {
+      write_inline_value(stream, entry.second, roundtrip, pointer);
+    }
     pointer.pop_back();
   }
   stream.put('}');

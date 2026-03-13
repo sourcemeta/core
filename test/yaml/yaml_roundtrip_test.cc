@@ -3225,3 +3225,349 @@ null: ~
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
 }
+
+TEST(YAML_roundtrip, implicit_null_block_mapping) {
+  const std::string input{R"YAML(key:
+next: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiple_implicit_nulls) {
+  const std::string input{R"YAML(a:
+b:
+c: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, implicit_null_with_explicit_null) {
+  const std::string input{R"YAML(implicit:
+explicit: null
+tilde: ~
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_in_block_mapping) {
+  const std::string input{R"YAML(key: [1, 2, 3]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_in_block_mapping) {
+  const std::string input{R"YAML(key: {a: 1, b: 2}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mixed_flow_and_block) {
+  const std::string input{R"YAML(config:
+  name: test
+  ports: [80, 443]
+  labels: {app: web, env: prod}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_of_flow_mappings_multiple) {
+  const std::string input{R"YAML(- {a: 1}
+- {b: 2}
+- {c: 3}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_of_flow_sequences_pairs) {
+  const std::string input{R"YAML(- [1, 2]
+- [3, 4]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_newline_escape) {
+  const std::string input{"key: \"hello\\nworld\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_tab_escape) {
+  const std::string input{"key: \"col1\\tcol2\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_carriage_return) {
+  const std::string input{"key: \"line1\\rline2\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_null_char) {
+  const std::string input{"key: \"before\\0after\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_quote_escape) {
+  const std::string input{"key: \"she said \\\"hello\\\"\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_multiple_escapes) {
+  const std::string input{"key: \"line1\\nline2\\ttab\\\\backslash\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_special_value_true) {
+  const std::string input{"key: 'true'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_special_value_null) {
+  const std::string input{"key: 'null'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_number) {
+  const std::string input{"key: \"123\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_number) {
+  const std::string input{"key: '456'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_single_quoted_value) {
+  const std::string input{"key: ''\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_double_quoted_value) {
+  const std::string input{"key: \"\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_float) {
+  const std::string input{"key: -3.14\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, small_float) {
+  const std::string input{"key: 0.001\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, large_integer_as_value) {
+  const std::string input{"key: 99999999999999999999\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_large_integer_as_value) {
+  const std::string input{"key: -99999999999999999999\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, zero_float) {
+  const std::string input{"key: 0.0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_zero) {
+  const std::string input{"key: -0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_mixed_key_quoting) {
+  const std::string input{"{\"a b\": 1, plain: 2, 'quoted': 3}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_special_value_keys) {
+  const std::string input{"{true: 1, null: 2, 123: 3}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_literal_strip) {
+  const std::string input{R"YAML(key: |-
+  text without trailing newline)YAML"};
+  EXPECT_EQ(roundtrip(input), input + "\n");
+}
+
+TEST(YAML_roundtrip, block_scalar_literal_keep) {
+  const std::string input{R"YAML(key: |+
+  text with trailing newlines
+
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_folded_strip) {
+  const std::string input{R"YAML(key: >-
+  folded without trailing newline)YAML"};
+  EXPECT_EQ(roundtrip(input), input + "\n");
+}
+
+TEST(YAML_roundtrip, block_scalar_folded_keep) {
+  const std::string input{R"YAML(key: >+
+  folded with trailing newlines
+
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_with_special_values_in_block) {
+  const std::string input{R"YAML(values: [~, null, True, .inf, 0x3A]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, deeply_nested_flow_in_block) {
+  const std::string input{R"YAML(a:
+  b:
+    c: {x: [1, 2], y: {z: 3}}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_flow_sequence_roundtrip) {
+  const std::string input{"a: &tag [1, 2, 3]\nb: *tag\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_flow_mapping_roundtrip) {
+  const std::string input{"a: &tag {x: 1}\nb: *tag\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_key_inf) {
+  const std::string input{".inf: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_key_nan) {
+  const std::string input{".nan: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_key_tilde_with_special_value) {
+  const std::string input{"~: ~\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, all_null_variants_in_sequence) {
+  const std::string input{R"YAML(- null
+- Null
+- NULL
+- ~
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, all_boolean_variants_in_sequence) {
+  const std::string input{R"YAML(- true
+- True
+- TRUE
+- false
+- False
+- FALSE
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, all_inf_variants_in_sequence) {
+  const std::string input{R"YAML(- .inf
+- .Inf
+- .INF
+- +.inf
+- +.Inf
+- +.INF
+- -.inf
+- -.Inf
+- -.INF
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, all_nan_variants_in_sequence) {
+  const std::string input{R"YAML(- .nan
+- .NaN
+- .NAN
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, hex_variants) {
+  const std::string input{R"YAML(- 0x0
+- 0xFF
+- 0x1A2B
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, octal_variants) {
+  const std::string input{R"YAML(- 0o0
+- 0o77
+- 0o777
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, scientific_notation_variants) {
+  const std::string input{R"YAML(- 1e3
+- 1E3
+- 1.5e-2
+- 1.5E+2
+- 3e0
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_implicit_null) {
+  const std::string input{"{a: , b: 1}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, real_world_docker_compose) {
+  const std::string input{R"YAML(version: '3.8'
+services:
+  web:
+    image: nginx:latest
+    ports: [80, 443]
+    environment:
+      DEBUG: False
+      LOG_LEVEL: info
+    labels:
+      app: web
+      managed: True
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, real_world_github_actions) {
+  const std::string input{R"YAML(name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16, 18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        run: npm install
+      - name: Test
+        run: npm test
+        env:
+          CI: True
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
