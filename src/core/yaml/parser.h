@@ -930,6 +930,7 @@ private:
         }
       } else if (key_token.type == TokenType::Scalar) {
         key = std::string{key_token.value};
+        this->record_key_scalar_style(key, key_token.scalar_style);
       } else {
         throw YAMLParseError{key_token.line, key_token.column,
                              "Expected scalar key in mapping"};
@@ -1794,6 +1795,7 @@ private:
     switch (token.scalar_style) {
       case ScalarStyle::Plain:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Plain;
+        node_style.plain_content = std::string{token.value};
         break;
       case ScalarStyle::SingleQuoted:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::SingleQuoted;

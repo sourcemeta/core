@@ -45,6 +45,7 @@ public:
     std::optional<CollectionStyle> collection;
     std::optional<Chomping> chomping;
     std::optional<std::string> block_content;
+    std::optional<std::string> plain_content;
     std::optional<std::string> anchor;
     std::vector<std::string> comments_before;
     std::optional<std::string> comment_inline;

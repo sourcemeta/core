@@ -319,6 +319,18 @@ inline auto write_inline_value(OutputStream &stream, const JSON &value,
       stream.write(name.data(), static_cast<std::streamsize>(name.size()));
       return;
     }
+
+    const auto style_match{roundtrip->styles.find(pointer)};
+    if (style_match != roundtrip->styles.end() &&
+        style_match->second.scalar.has_value() &&
+        style_match->second.scalar.value() ==
+            YAMLRoundTrip::ScalarStyle::Plain &&
+        style_match->second.plain_content.has_value()) {
+      const auto &content{style_match->second.plain_content.value()};
+      stream.write(content.data(),
+                   static_cast<std::streamsize>(content.size()));
+      return;
+    }
   }
   switch (value.type()) {
     case JSON::Type::Null:

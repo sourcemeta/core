@@ -2862,3 +2862,154 @@ TEST(YAML_roundtrip, quoted_key_with_nested_value) {
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
 }
+
+TEST(YAML_roundtrip, block_scalar_with_extra_indent) {
+  const std::string input{R"YAML(key: |
+  normal
+    indented
+  back
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, folded_block_with_extra_indent) {
+  const std::string input{R"YAML(key: >
+  normal
+    indented
+  back
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_quoted_keys) {
+  const std::string input{"{\"a b\": 1, 'c d': 2}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_quoted_values) {
+  const std::string input{"{a: 'one', b: \"two\"}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_quoted_values) {
+  const std::string input{"['one', \"two\", three]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, tilde_null) {
+  const std::string input{"key: ~\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_inf) {
+  const std::string input{"key: .inf\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_neg_inf) {
+  const std::string input{"key: -.inf\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, special_float_nan) {
+  const std::string input{"key: .nan\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_key_with_apostrophe) {
+  const std::string input{"'it''s': value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_single_quoted_key) {
+  const std::string input{"'': value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_double_quoted_key) {
+  const std::string input{"\"\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, value_with_hash_quoted) {
+  const std::string input{"key: '#not-a-comment'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_false) {
+  const std::string input{"a: &tag false\nb: *tag\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_float) {
+  const std::string input{"a: &tag 3.14\nb: *tag\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_flow_sequences) {
+  const std::string input{"[[1, 2], [3, [4, 5]]]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_null_and_bool) {
+  const std::string input{"{a: null, b: true, c: false}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, zero_in_sequence) {
+  const std::string input{"- 0\n- 0.0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_backslash) {
+  const std::string input{"key: \"path\\\\to\\\\file\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, false_key) {
+  const std::string input{"\"false\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, blank_line_between_sequence_mappings) {
+  const std::string input{R"YAML(- name: alice
+
+- name: bob
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_root_with_doc_markers) {
+  const std::string input{"---\n{a: 1}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_root_with_doc_markers) {
+  const std::string input{"---\n[1, 2]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, scalar_doc_with_markers) {
+  const std::string input{"---\nhello\n...\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_doc) {
+  const std::string input{"true\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_doc) {
+  const std::string input{"null\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_doc) {
+  const std::string input{"3.14\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_integer_doc) {
+  const std::string input{"-42\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
