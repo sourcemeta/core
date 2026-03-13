@@ -55,6 +55,10 @@ struct Token {
   BlockChomping chomping{BlockChomping::Clip};
   bool multiline{false};
   std::string_view block_original{};
+  std::string_view quoted_original{};
+  std::size_t explicit_indent{0};
+  bool indent_before_chomping{false};
+  bool compact_separator{false};
 };
 
 class Lexer {
@@ -176,10 +180,15 @@ public:
       }
       if (current == ',') {
         this->advance(1);
+        const bool compact{this->roundtrip_ &&
+                           this->position_ < this->input_.size() &&
+                           this->peek() != ' ' && this->peek() != '\n' &&
+                           this->peek() != '\r'};
         return Token{.type = TokenType::FlowEntry,
                      .value = ",",
                      .line = current_line,
-                     .column = current_column};
+                     .column = current_column,
+                     .compact_separator = compact};
       }
     } else if (current == '-' && this->is_followed_by_whitespace()) {
       this->advance(1);
@@ -558,6 +567,7 @@ private:
   auto scan_single_quoted_scalar() -> Token {
     const auto start_line{this->line_};
     const auto start_column{this->column_};
+    const auto quote_start{this->position_};
 
     this->advance(1);
 
@@ -599,12 +609,18 @@ private:
 
     this->validate_trailing_content();
 
+    const auto quoted_raw{
+        this->roundtrip_
+            ? this->input_.substr(quote_start + 1,
+                                  this->position_ - quote_start - 2)
+            : std::string_view{}};
     return Token{.type = TokenType::Scalar,
                  .value = buffer,
                  .line = start_line,
                  .column = start_column,
                  .scalar_style = ScalarStyle::SingleQuoted,
-                 .multiline = !first_line};
+                 .multiline = !first_line,
+                 .quoted_original = quoted_raw};
   }
 
   auto flush_flow_line(std::string &buffer, std::string &line_content,
@@ -713,6 +729,7 @@ private:
   auto scan_double_quoted_scalar() -> Token {
     const auto start_line{this->line_};
     const auto start_column{this->column_};
+    const auto quote_start{this->position_};
 
     this->advance(1);
 
@@ -838,12 +855,18 @@ private:
 
     this->validate_trailing_content();
 
+    const auto quoted_raw{
+        this->roundtrip_
+            ? this->input_.substr(quote_start + 1,
+                                  this->position_ - quote_start - 2)
+            : std::string_view{}};
     return Token{.type = TokenType::Scalar,
                  .value = buffer,
                  .line = start_line,
                  .column = start_column,
                  .scalar_style = ScalarStyle::DoubleQuoted,
-                 .multiline = !first_line};
+                 .multiline = !first_line,
+                 .quoted_original = quoted_raw};
   }
 
   auto parse_hex_escape(const std::size_t digits) -> std::string {
@@ -980,6 +1003,7 @@ private:
 
     char chomping{'c'};
     std::size_t explicit_indent{0};
+    bool indent_first{false};
 
     bool seen_header_whitespace{false};
     while (this->position_ < this->input_.size()) {
@@ -992,6 +1016,9 @@ private:
         this->advance(1);
       } else if (current >= '1' && current <= '9') {
         explicit_indent = static_cast<std::size_t>(current - '0');
+        if (chomping == 'c') {
+          indent_first = true;
+        }
         this->advance(1);
       } else if (current == ' ' || current == '\t') {
         seen_header_whitespace = true;
@@ -1214,7 +1241,9 @@ private:
                  .scalar_style = style,
                  .chomping = block_chomping,
                  .block_original = original ? std::string_view{*original}
-                                            : std::string_view{}};
+                                            : std::string_view{},
+                 .explicit_indent = explicit_indent,
+                 .indent_before_chomping = indent_first};
   }
 
   auto scan_plain_scalar() -> Token {
@@ -1419,12 +1448,22 @@ private:
     }
 
     if (used_multiline && buffer != nullptr) {
+      auto raw_end{this->position_};
+      while (raw_end > start_position && (this->input_[raw_end - 1] == ' ' ||
+                                          this->input_[raw_end - 1] == '\t')) {
+        raw_end--;
+      }
       return Token{.type = TokenType::Scalar,
                    .value = *buffer,
                    .line = start_line,
                    .column = start_column,
                    .scalar_style = ScalarStyle::Plain,
-                   .multiline = true};
+                   .multiline = true,
+                   .block_original =
+                       this->roundtrip_
+                           ? this->input_.substr(start_position,
+                                                 raw_end - start_position)
+                           : std::string_view{}};
     }
 
     auto length{this->position_ - start_position};

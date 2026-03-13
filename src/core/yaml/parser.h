@@ -898,11 +898,15 @@ private:
 
     JSON result{JSON::make_object()};
     std::unordered_set<std::string> seen_keys;
+    bool found_compact_separator{false};
 
     auto token{this->next_token()};
 
     while (token.has_value() && token->type != TokenType::MappingEnd) {
       if (token->type == TokenType::FlowEntry) {
+        if (token->compact_separator) {
+          found_compact_separator = true;
+        }
         token = this->next_token();
         continue;
       }
@@ -930,7 +934,8 @@ private:
         }
       } else if (key_token.type == TokenType::Scalar) {
         key = std::string{key_token.value};
-        this->record_key_scalar_style(key, key_token.scalar_style);
+        this->record_key_scalar_style(key, key_token.scalar_style,
+                                      key_token.quoted_original);
       } else {
         throw YAMLParseError{key_token.line, key_token.column,
                              "Expected scalar key in mapping"};
@@ -951,6 +956,9 @@ private:
 
         if (token->type == TokenType::FlowEntry ||
             token->type == TokenType::MappingEnd) {
+          if (token->type == TokenType::FlowEntry && token->compact_separator) {
+            found_compact_separator = true;
+          }
           result.assign(key, JSON{nullptr});
           continue;
         }
@@ -971,6 +979,9 @@ private:
 
       if (token->type == TokenType::FlowEntry ||
           token->type == TokenType::MappingEnd) {
+        if (token->type == TokenType::FlowEntry && token->compact_separator) {
+          found_compact_separator = true;
+        }
         result.assign(key, JSON{nullptr});
       } else {
         auto value{this->parse_value(token.value(),
@@ -982,6 +993,10 @@ private:
       if (token->type != TokenType::FlowEntry &&
           token->type != TokenType::MappingEnd) {
         token = this->next_token();
+        if (token.has_value() && token->type == TokenType::FlowEntry &&
+            token->compact_separator) {
+          found_compact_separator = true;
+        }
         if (token.has_value() && token->type != TokenType::FlowEntry &&
             token->type != TokenType::MappingEnd) {
           throw YAMLParseError{token->line, token->column,
@@ -996,6 +1011,10 @@ private:
     this->invoke_callback(JSON::ParsePhase::Post, JSON::Type::Object, end_line,
                           end_column, JSON::ParseContext::Root, 0,
                           std::string_view{});
+
+    if (this->roundtrip_ && found_compact_separator) {
+      this->roundtrip_->styles[this->pointer_stack_].compact_flow = true;
+    }
 
     return result;
   }
@@ -1014,6 +1033,7 @@ private:
 
     JSON result{JSON::make_array()};
     const auto parent_block_indent{this->lexer_->block_indent()};
+    bool found_compact_separator{false};
 
     auto token{this->next_token()};
     std::size_t element_index{0};
@@ -1033,6 +1053,9 @@ private:
         if (element_index == 0) {
           throw YAMLParseError{token->line, token->column,
                                "Leading comma in flow sequence"};
+        }
+        if (token->compact_separator) {
+          found_compact_separator = true;
         }
         token = this->next_token();
         if (token.has_value() && token->type == TokenType::FlowEntry) {
@@ -1088,6 +1111,10 @@ private:
       element_index++;
 
       token = this->next_token();
+      if (token.has_value() && token->type == TokenType::FlowEntry &&
+          token->compact_separator) {
+        found_compact_separator = true;
+      }
       if (token.has_value() && token->type != TokenType::FlowEntry &&
           token->type != TokenType::SequenceEnd) {
         throw YAMLParseError{token->line, token->column,
@@ -1101,6 +1128,10 @@ private:
     this->invoke_callback(JSON::ParsePhase::Post, JSON::Type::Array, end_line,
                           end_column, JSON::ParseContext::Root, 0,
                           std::string_view{});
+
+    if (this->roundtrip_ && found_compact_separator) {
+      this->roundtrip_->styles[this->pointer_stack_].compact_flow = true;
+    }
 
     return result;
   }
@@ -1445,7 +1476,8 @@ private:
     std::uint64_t key_column{key_token.column};
     const auto first_key_line{key_token.line};
     seen_keys.insert(key);
-    this->record_key_scalar_style(key, key_token.scalar_style);
+    this->record_key_scalar_style(key, key_token.scalar_style,
+                                  key_token.quoted_original);
     this->record_preceding_comments_for_key(key);
 
     this->lexer_->set_block_indent(static_cast<std::size_t>(base_column - 1));
@@ -1524,7 +1556,8 @@ private:
         key = next->value;
         key_line = next->line;
         key_column = next->column;
-        this->record_key_scalar_style(key, next->scalar_style);
+        this->record_key_scalar_style(key, next->scalar_style,
+                                      next->quoted_original);
 
         if (seen_keys.contains(key)) {
           throw YAMLDuplicateKeyError{key, next->line, next->column};
@@ -1646,7 +1679,8 @@ private:
       key = next->value;
       key_line = next->line;
       key_column = next->column;
-      this->record_key_scalar_style(key, next->scalar_style);
+      this->record_key_scalar_style(key, next->scalar_style,
+                                    next->quoted_original);
       this->record_preceding_comments_for_key(key);
 
       if (next->multiline) {
@@ -1795,13 +1829,23 @@ private:
     switch (token.scalar_style) {
       case ScalarStyle::Plain:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Plain;
-        node_style.plain_content = std::string{token.value};
+        if (token.multiline && !token.block_original.empty()) {
+          node_style.plain_content = std::string{token.block_original};
+        } else {
+          node_style.plain_content = std::string{token.value};
+        }
         break;
       case ScalarStyle::SingleQuoted:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::SingleQuoted;
+        if (!token.quoted_original.empty()) {
+          node_style.quoted_content = std::string{token.quoted_original};
+        }
         break;
       case ScalarStyle::DoubleQuoted:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::DoubleQuoted;
+        if (!token.quoted_original.empty()) {
+          node_style.quoted_content = std::string{token.quoted_original};
+        }
         break;
       case ScalarStyle::Literal:
         node_style.scalar = YAMLRoundTrip::ScalarStyle::Literal;
@@ -1825,6 +1869,9 @@ private:
           break;
       }
 
+      node_style.explicit_indent = token.explicit_indent;
+      node_style.indent_before_chomping = token.indent_before_chomping;
+
       if (!token.block_original.empty()) {
         node_style.block_content = std::string{token.block_original};
       }
@@ -1836,7 +1883,8 @@ private:
     }
   }
 
-  auto record_key_scalar_style(const std::string &key, const ScalarStyle style)
+  auto record_key_scalar_style(const std::string &key, const ScalarStyle style,
+                               const std::string_view quoted_original = {})
       -> void {
     if (!this->roundtrip_) {
       return;
@@ -1858,6 +1906,10 @@ private:
         break;
       default:
         break;
+    }
+    if (!quoted_original.empty()) {
+      this->roundtrip_->key_quoted_contents[pointer] =
+          std::string{quoted_original};
     }
   }
 

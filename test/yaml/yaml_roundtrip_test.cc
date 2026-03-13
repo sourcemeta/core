@@ -3571,3 +3571,1484 @@ jobs:
 )YAML"};
   EXPECT_EQ(roundtrip(input), input);
 }
+
+TEST(YAML_roundtrip, double_quoted_hex_escape) {
+  const std::string input{"key: \"\\x41\\x42\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_unicode_escape_u) {
+  const std::string input{"key: \"\\u0041\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_escaped_slash) {
+  const std::string input{"key: \"path\\/to\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_bell_escape) {
+  const std::string input{"key: \"\\a\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_escape_char) {
+  const std::string input{"key: \"\\e\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_backspace_escape) {
+  const std::string input{"key: \"\\b\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_next_line_escape) {
+  const std::string input{"key: \"\\N\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_nbsp_escape) {
+  const std::string input{"key: \"\\_\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_line_continuation) {
+  const std::string input{"key: \"hello \\\n  world\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_multiline) {
+  const std::string input{"key: 'hello\n  world'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_literal_newline_multiline) {
+  const std::string input{"key: \"line1\n  line2\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, document_start_only) {
+  const std::string input{"---\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_explicit_indent_indicator) {
+  const std::string input{R"YAML(key: |2
+   leading space
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_all_implicit_nulls) {
+  const std::string input{"{a: , b: , c: }\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_scalar_with_bare_hash) {
+  const std::string input{"key: foo#bar\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_scalar_with_bare_colon) {
+  const std::string input{"key: http://example.com\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_no_space_after_hash) {
+  const std::string input{"#comment\nkey: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_double_hash) {
+  const std::string input{"key: value ## double hash\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_leading_space) {
+  const std::string input{"key: \" leading space\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_trailing_space) {
+  const std::string input{"key: \"trailing space \"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, large_float_many_decimals) {
+  const std::string input{"key: 3.141592653589793\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, positive_zero) {
+  const std::string input{"key: +0\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_with_dots_and_hyphens) {
+  const std::string input{"a: &my-anchor.1 value\nb: *my-anchor.1\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_with_newline) {
+  const std::string input{"\"multi\\nline\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, root_flow_sequence_with_quoted_keys) {
+  const std::string input{"[{\"a b\": 1}, {'c d': 2}]\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, unicode_plain_scalar) {
+  const std::string input{R"YAML(key: café résumé
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, unicode_emoji_value) {
+  const std::string input{R"YAML(mood: happy 😀
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_indent_before_strip) {
+  const std::string input{"key: |2-\n   leading space"};
+  EXPECT_EQ(roundtrip(input), input + "\n");
+}
+
+TEST(YAML_roundtrip, block_scalar_indent_before_keep) {
+  const std::string input{R"YAML(key: |2+
+   leading space
+
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, folded_scalar_indent_before_strip) {
+  const std::string input{"key: >2-\n   leading space"};
+  EXPECT_EQ(roundtrip(input), input + "\n");
+}
+
+TEST(YAML_roundtrip, block_scalar_standard_order_strip_indent) {
+  const std::string input{"key: |-2\n   leading space"};
+  EXPECT_EQ(roundtrip(input), input + "\n");
+}
+
+TEST(YAML_roundtrip, double_quoted_key_escaped_slash) {
+  const std::string input{"\"path\\/to\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_bell_escape) {
+  const std::string input{"\"\\a\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_backspace_escape) {
+  const std::string input{"\"\\b\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_escape_char) {
+  const std::string input{"\"\\e\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_next_line_escape) {
+  const std::string input{"\"\\N\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_nbsp_escape) {
+  const std::string input{"\"\\_\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_hex_escape) {
+  const std::string input{"\"\\x41\\x42\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_key_unicode_escape) {
+  const std::string input{"\"\\u0041\": value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_double_quoted_key_bell) {
+  const std::string input{"{\"\\a\": value}\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_scalar) {
+  const std::string input{R"YAML(key: this is a long
+  plain scalar value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_scalar_three_lines) {
+  const std::string input{R"YAML(key: line one
+  line two
+  line three
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_scalar_with_blank_line) {
+  const std::string input{R"YAML(key: line one
+
+  line three
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_scalar_in_sequence) {
+  const std::string input{R"YAML(- this is a long
+  plain scalar value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_with_escaped_quote) {
+  const std::string input{R"YAML(key: 'it''s working'
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_key_with_escaped_quote) {
+  const std::string input{R"YAML('it''s': value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_scalar_with_hash_no_space) {
+  const std::string input{R"YAML(key: value#not_a_comment
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_with_urls) {
+  const std::string input{R"YAML(urls: [http://example.com, https://test.org]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_flow_sequences_matrix) {
+  const std::string input{R"YAML(matrix: [[1, 2], [3, 4]]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_flow_mappings) {
+  const std::string input{R"YAML(data: {a: {x: 1}, b: {y: 2}}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_flow_mapping) {
+  const std::string input{R"YAML(empty: {}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_flow_sequence) {
+  const std::string input{R"YAML(empty: []
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_literal_with_empty_lines) {
+  const std::string input{R"YAML(content: |
+  line one
+
+  line three
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_folded_basic) {
+  const std::string input{R"YAML(content: >
+  this is a long text
+  that spans multiple lines
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_literal_keep_trailing_blanks) {
+  const std::string input{"content: |+\n  text\n\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, implicit_null_in_sequence) {
+  const std::string input{R"YAML(-
+- value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_value_is_flow_sequence) {
+  const std::string input{R"YAML(key: [1, 2, 3]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_value_is_flow_mapping) {
+  const std::string input{R"YAML(key: {a: 1, b: 2}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_implicit_null_value) {
+  const std::string input{R"YAML({a: , b: 2}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_implicit_null_mapping) {
+  const std::string input{R"YAML(key: &anchor
+next: *anchor
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, large_integer_roundtrip) {
+  const std::string input{R"YAML(big: 99999999999999999
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_precision) {
+  const std::string input{R"YAML(pi: 3.14159265358979
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, explicit_document_start_only) {
+  const std::string input{R"YAML(---
+key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, explicit_document_start_and_end) {
+  const std::string input{R"YAML(---
+key: value
+...
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, root_level_scalar_plain) {
+  const std::string input{R"YAML(hello world
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, root_level_scalar_quoted) {
+  const std::string input{R"YAML("hello world"
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, root_level_flow_sequence) {
+  const std::string input{R"YAML([1, 2, 3]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, root_level_flow_mapping) {
+  const std::string input{R"YAML({a: 1, b: 2}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mixed_block_and_flow) {
+  const std::string input{R"YAML(block:
+  key1: [1, 2]
+  key2: {a: b}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_of_mappings_multikey) {
+  const std::string input{R"YAML(- name: Alice
+  age: 30
+- name: Bob
+  age: 25
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, deeply_nested_block) {
+  const std::string input{R"YAML(a:
+  b:
+    c:
+      d: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_empty_value) {
+  const std::string input{R"YAML(key: ''
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_empty_value) {
+  const std::string input{R"YAML(key: ""
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, colon_in_plain_scalar) {
+  const std::string input{R"YAML(key: http://example.com
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, integer_key) {
+  const std::string input{R"YAML(123: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, float_key_plain) {
+  const std::string input{R"YAML(1.5: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_value_true_lowercase) {
+  const std::string input{R"YAML(key: true
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, boolean_value_false_lowercase) {
+  const std::string input{R"YAML(key: false
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_value_lowercase) {
+  const std::string input{R"YAML(key: null
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_with_mixed_types) {
+  const std::string input{R"YAML(- 1
+- two
+- true
+- null
+- 3.14
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_with_strings) {
+  const std::string input{R"YAML(items: [hello, world]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_double_quoted_value) {
+  const std::string input{"key: \"line one\\nline two\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_strip_no_trailing_newline) {
+  const std::string input{R"YAML(content: |-
+  no trailing newline
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiple_anchors_and_aliases_four_keys) {
+  const std::string input{R"YAML(first: &a hello
+second: &b world
+ref_a: *a
+ref_b: *b
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_sequence) {
+  const std::string input{R"YAML(items: &list
+  - one
+  - two
+ref: *list
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_mapping) {
+  const std::string input{R"YAML(defaults: &defaults
+  color: red
+  size: large
+custom:
+  <<: *defaults
+  color: blue
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_scalar_with_colon_no_space) {
+  const std::string input{R"YAML(key: value:stuff
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_nested_in_flow_sequence_two_items) {
+  const std::string input{R"YAML(items: [{a: 1}, {b: 2}]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_nested_in_flow_mapping_three_items) {
+  const std::string input{R"YAML(data: {list: [1, 2, 3]}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_with_newline) {
+  const std::string input{"key: 'line one\\nline two'\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_with_tab) {
+  const std::string input{"key: \"value\\twith\\ttabs\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_with_null_escape) {
+  const std::string input{"key: \"null\\0char\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_with_unicode_escape_4digit) {
+  const std::string input{"key: \"\\u0048ello\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_with_backslash_escape) {
+  const std::string input{"key: \"back\\\\slash\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_of_sequences_two_groups) {
+  const std::string input{R"YAML(-
+  - a
+  - b
+-
+  - c
+  - d
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_with_sequence_value) {
+  const std::string input{R"YAML(fruits:
+  - apple
+  - banana
+vegetables:
+  - carrot
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, three_indent_width) {
+  const std::string input{R"YAML(outer:
+   inner: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, four_indent_width) {
+  const std::string input{R"YAML(outer:
+    inner: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_single_quoted_value) {
+  const std::string input{R"YAML({key: 'value'}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_double_quoted_value) {
+  const std::string input{R"YAML({key: "value"}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_single_quoted) {
+  const std::string input{R"YAML(['hello', 'world']
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_double_quoted) {
+  const std::string input{R"YAML(["hello", "world"]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_mapping_with_explicit_document_and_comment) {
+  const std::string input{R"YAML(---
+# top comment
+key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_before_sequence_item) {
+  const std::string input{R"YAML(# comment
+- item
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, inline_comment_after_mapping_value) {
+  const std::string input{R"YAML(key: value # comment
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_on_colon_indicator) {
+  const std::string input{R"YAML(parent: # comment
+  child: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, unicode_value) {
+  const std::string input{"key: \xC3\xA9\xC3\xA0\xC3\xBC\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, unicode_key) {
+  const std::string input{"\xC3\xA9\xC3\xA0\xC3\xBC: value\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_mapping_value_block) {
+  const std::string input{R"YAML(key:
+next: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiple_empty_mapping_values) {
+  const std::string input{R"YAML(a:
+b:
+c: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_with_integer_values) {
+  const std::string input{R"YAML({x: 1, y: 2, z: 3}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_boolean_values) {
+  const std::string input{R"YAML({enabled: true, disabled: false}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_integer_value) {
+  const std::string input{R"YAML(value: -42
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_float_value) {
+  const std::string input{R"YAML(value: -3.14
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, positive_float_with_exponent) {
+  const std::string input{R"YAML(value: 1.5e10
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, string_that_looks_like_number) {
+  const std::string input{R"YAML(zip: "01onal"
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_empty_string_value) {
+  const std::string input{R"YAML({key: ""}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_mapping_special_chars_in_value) {
+  const std::string input{R"YAML(key: "hello: world"
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_scalar_value) {
+  const std::string input{R"YAML(key: &ref value
+other: *ref
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_on_block_sequence) {
+  const std::string input{R"YAML(list: &items
+  - one
+  - two
+copy: *items
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_scalar_starting_with_special) {
+  const std::string input{R"YAML(key: ---not-a-document
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_item_flow_sequence) {
+  const std::string input{R"YAML(items: [only]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_item_flow_mapping) {
+  const std::string input{R"YAML(data: {only: one}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_literal_single_line) {
+  const std::string input{R"YAML(content: |
+  single line
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, folded_scalar_with_empty_line) {
+  const std::string input{R"YAML(content: >
+  first paragraph
+
+  second paragraph
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, folded_scalar_strip) {
+  const std::string input{R"YAML(content: >-
+  no trailing newline
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, folded_scalar_keep) {
+  const std::string input{"content: >+\n  keep trailing\n\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_literal_multiple_paragraphs) {
+  const std::string input{R"YAML(content: |
+  paragraph one
+  continues here
+
+  paragraph two
+  continues here
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mixed_scalar_styles_all_five) {
+  const std::string input{R"YAML(plain: hello
+single: 'world'
+double: "foo"
+literal: |
+  bar
+folded: >
+  baz
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_mapping_with_flow_value) {
+  const std::string input{R"YAML(config:
+  ports: [80, 443]
+  hosts:
+    - example.com
+    - test.org
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_between_mapping_entries_two_keys) {
+  const std::string input{R"YAML(first: 1
+# comment between
+second: 2
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_between_sequence_items_two) {
+  const std::string input{R"YAML(- first
+# comment between
+- second
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_no_spaces) {
+  const std::string input{R"YAML({a: 1,b: 2}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_no_spaces) {
+  const std::string input{R"YAML([1,2,3]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_pair_mapping) {
+  const std::string input{R"YAML(key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_item_sequence) {
+  const std::string input{R"YAML(- item
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, document_end_marker) {
+  const std::string input{R"YAML(key: value
+...
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, scientific_notation_uppercase) {
+  const std::string input{R"YAML(value: 1.5E10
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, scientific_notation_negative_exponent_value) {
+  const std::string input{R"YAML(value: 1.5e-3
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, compact_flow_mapping_three_entries) {
+  const std::string input{R"YAML({a: 1,b: 2,c: 3}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, compact_flow_sequence_strings) {
+  const std::string input{R"YAML([a,b,c]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, compact_nested_flow) {
+  const std::string input{R"YAML({a: [1,2],b: [3,4]}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_key_tilde) {
+  const std::string input{R"YAML(~: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, null_key_word) {
+  const std::string input{R"YAML(null: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_key_quoted) {
+  const std::string input{R"YAML("": value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_sequence_same_line) {
+  const std::string input{R"YAML(- - a
+  - b
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_literal_with_trailing_spaces_in_content) {
+  const std::string input{"content: |\n  line one\n  line two\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_clip_multiple_trailing) {
+  const std::string input{"content: |\n  text\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_scalar_as_sequence_item) {
+  const std::string input{R"YAML(- first line
+  second line
+- other
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_with_all_implicit_null_values) {
+  const std::string input{R"YAML(a:
+b:
+c:
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_single_null) {
+  const std::string input{R"YAML([null]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_with_null) {
+  const std::string input{R"YAML([1, null, 3]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_with_null_value) {
+  const std::string input{R"YAML({key: null}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_with_space_escape) {
+  const std::string input{"key: \"hello\\x20world\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_with_double_quoted_value) {
+  const std::string input{R"YAML(key: &ref "quoted value"
+other: *ref
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_with_single_quoted_value) {
+  const std::string input{R"YAML(key: &ref 'quoted value'
+other: *ref
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_mapping_four_indent) {
+  const std::string input{R"YAML(outer:
+    nested:
+        deep: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_in_mapping_four_indent) {
+  const std::string input{R"YAML(list:
+    - one
+    - two
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, two_comments_before_key) {
+  const std::string input{R"YAML(# first comment
+# second comment
+key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, empty_line_between_comments) {
+  const std::string input{R"YAML(# comment one
+
+# comment two
+key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_after_document_end) {
+  const std::string input{R"YAML(key: value
+... # end comment
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, comment_on_document_start_marker) {
+  const std::string input{R"YAML(--- # start comment
+key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_with_anchor_value) {
+  const std::string input{R"YAML({key: &ref value, other: *ref}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_value_in_nested_mapping) {
+  const std::string input{R"YAML(outer:
+  key: line one
+    line two
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_multiline_literal) {
+  const std::string input{"key: \"line one\\nline two\\nline three\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_with_double_quote_inside) {
+  const std::string input{R"YAML(key: 'say "hello"'
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, double_quoted_with_single_quote_inside) {
+  const std::string input{"key: \"it's fine\"\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, sequence_with_inline_comments) {
+  const std::string input{R"YAML(- one # first
+- two # second
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_with_inline_comments_multiple) {
+  const std::string input{R"YAML(a: 1 # first
+b: 2 # second
+c: 3 # third
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_after_comment_on_indicator) {
+  const std::string input{R"YAML(content: | # block comment
+  the content
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, folded_scalar_after_comment_on_indicator) {
+  const std::string input{R"YAML(content: > # folded comment
+  the content
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, anchor_in_flow_sequence) {
+  const std::string input{R"YAML([&ref hello, *ref]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_with_flow_mapping_items) {
+  const std::string input{R"YAML([{a: 1, b: 2}, {c: 3}]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, compact_flow_mapping_with_quoted_values) {
+  const std::string input{R"YAML({a: "x",b: "y"}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, compact_flow_sequence_with_quoted_values) {
+  const std::string input{R"YAML(["a","b","c"]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_mapping_single_quoted_key) {
+  const std::string input{R"YAML('quoted key': value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_mapping_double_quoted_key) {
+  const std::string input{R"YAML("quoted key": value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiple_block_scalars) {
+  const std::string input{R"YAML(first: |
+  content one
+second: |
+  content two
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_scalar_in_sequence_two_items) {
+  const std::string input{R"YAML(- |
+  literal text
+- |
+  more text
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, nested_mapping_with_block_scalar) {
+  const std::string input{R"YAML(outer:
+  inner: |
+    block content
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiline_plain_scalar_with_continuation_indent) {
+  const std::string input{R"YAML(key: first line
+  continuation
+  more continuation
+next: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_null_key_value) {
+  const std::string input{R"YAML({null: value}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_integer_key_value) {
+  const std::string input{R"YAML({42: value}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_mapping_boolean_key_value) {
+  const std::string input{R"YAML({true: value}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_sequence_with_empty_items) {
+  const std::string input{R"YAML(-
+-
+- value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, deeply_nested_flow_in_block_sequence) {
+  const std::string input{R"YAML(- key: [1, 2]
+- other: {a: b}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, quoted_value_with_colon_space) {
+  const std::string input{R"YAML(key: "has: colon"
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, quoted_value_with_hash) {
+  const std::string input{R"YAML(key: "has # hash"
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, single_quoted_value_with_colon) {
+  const std::string input{R"YAML(key: 'has: colon'
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_value_with_bracket) {
+  const std::string input{R"YAML(key: value [not flow]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_value_with_brace) {
+  const std::string input{R"YAML(key: value {not flow}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, leading_comment_before_mapping) {
+  const std::string input{R"YAML(# leading comment
+key: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, trailing_comment_after_document) {
+  const std::string input{"key: value\n# trailing comment\n"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_sequence_with_comments_per_item) {
+  const std::string input{R"YAML(# item one
+- one
+# item two
+- two
+# item three
+- three
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, flow_sequence_empty_string_items) {
+  const std::string input{R"YAML(["", "", ""]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_with_very_long_key) {
+  const std::string input{R"YAML(this_is_a_very_long_key_name: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mixed_indent_mapping_and_sequence) {
+  const std::string input{R"YAML(mapping:
+  list:
+    - item1
+    - item2
+  other: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, real_world_github_actions_ci) {
+  const std::string input{R"YAML(name: CI
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: make build
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, real_world_docker_compose_nginx) {
+  const std::string input{R"YAML(services:
+  web:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./html:/usr/share/nginx/html
+    environment:
+      - NGINX_HOST=example.com
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, real_world_kubernetes_config) {
+  const std::string input{R"YAML(apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config
+  labels:
+    app: myapp
+data:
+  config.json: |
+    {"key": "value"}
+  message: hello world
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, plain_value_ending_with_colon) {
+  const std::string input{R"YAML(key: 10:30
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, multiple_colons_in_plain_value) {
+  const std::string input{R"YAML(time: 10:30:45
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_sequence_of_flow_mappings) {
+  const std::string input{R"YAML(- {name: Alice, age: 30}
+- {name: Bob, age: 25}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, block_sequence_of_flow_sequences) {
+  const std::string input{R"YAML(- [1, 2, 3]
+- [4, 5, 6]
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, mapping_with_empty_flow_collections) {
+  const std::string input{R"YAML(empty_list: []
+empty_map: {}
+normal: value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, tilde_null_in_sequence) {
+  const std::string input{R"YAML(- ~
+- value
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, Null_capitalized) {
+  const std::string input{R"YAML(key: Null
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, NULL_uppercase) {
+  const std::string input{R"YAML(key: NULL
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, True_capitalized) {
+  const std::string input{R"YAML(key: True
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, FALSE_uppercase) {
+  const std::string input{R"YAML(key: FALSE
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, yes_as_string_value) {
+  const std::string input{R"YAML(key: yes
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, no_as_string_value) {
+  const std::string input{R"YAML(key: no
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, on_as_string_value) {
+  const std::string input{R"YAML(key: on
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, off_as_string_value) {
+  const std::string input{R"YAML(key: off
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, octal_number_mode) {
+  const std::string input{R"YAML(mode: 0o755
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, hex_number_color) {
+  const std::string input{R"YAML(color: 0xFF00FF
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, positive_infinity) {
+  const std::string input{R"YAML(value: .inf
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_infinity) {
+  const std::string input{R"YAML(value: -.inf
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, not_a_number) {
+  const std::string input{R"YAML(value: .nan
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, Inf_capitalized) {
+  const std::string input{R"YAML(value: .Inf
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, NaN_capitalized) {
+  const std::string input{R"YAML(value: .NaN
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, zero_float_variations) {
+  const std::string input{R"YAML(a: 0.0
+b: 0
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, negative_zero_float) {
+  const std::string input{R"YAML(key: -0.0
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, document_start_with_block_sequence) {
+  const std::string input{R"YAML(---
+- one
+- two
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, document_start_with_flow_mapping) {
+  const std::string input{R"YAML(---
+{key: value}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}
+
+TEST(YAML_roundtrip, compact_flow_with_special_values) {
+  const std::string input{R"YAML({a: true,b: null,c: 42}
+)YAML"};
+  EXPECT_EQ(roundtrip(input), input);
+}

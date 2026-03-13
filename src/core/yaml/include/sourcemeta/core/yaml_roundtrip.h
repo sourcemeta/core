@@ -44,17 +44,22 @@ public:
     std::optional<ScalarStyle> scalar;
     std::optional<CollectionStyle> collection;
     std::optional<Chomping> chomping;
+    std::size_t explicit_indent{0};
+    bool indent_before_chomping{false};
     std::optional<std::string> block_content;
     std::optional<std::string> plain_content;
+    std::optional<std::string> quoted_content;
     std::optional<std::string> anchor;
     std::vector<std::string> comments_before;
     std::optional<std::string> comment_inline;
     std::optional<std::string> comment_on_indicator;
+    bool compact_flow{false};
   };
 
   std::unordered_map<Pointer, NodeStyle, Pointer::Hasher> styles;
   std::unordered_map<Pointer, std::string, Pointer::Hasher> aliases;
   std::unordered_map<Pointer, ScalarStyle, Pointer::Hasher> key_styles;
+  std::unordered_map<Pointer, std::string, Pointer::Hasher> key_quoted_contents;
   bool explicit_document_start{false};
   bool explicit_document_end{false};
   std::optional<std::string> document_start_comment;
