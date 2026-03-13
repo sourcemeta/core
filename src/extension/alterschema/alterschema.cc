@@ -110,6 +110,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/duplicate_examples.h"
 #include "linter/enum_to_const.h"
 #include "linter/equal_numeric_bounds_to_const.h"
+#include "linter/forbid_empty_enum.h"
 #include "linter/items_array_default.h"
 #include "linter/items_schema_default.h"
 #include "linter/multiple_of_default.h"
@@ -226,6 +227,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<UnsatisfiableMaxContains>();
     bundle.add<UnsatisfiableMinProperties>();
     bundle.add<EnumToConst>();
+    bundle.add<ForbidEmptyEnum>();
     bundle.add<TopLevelTitle>();
     bundle.add<TopLevelDescription>();
     bundle.add<TopLevelExamples>();
