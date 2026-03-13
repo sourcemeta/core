@@ -62,6 +62,28 @@ TEST(Parallel_for_each, processes_all_elements_once_concurrency_1) {
   EXPECT_EQ(cursors, items);
 }
 
+TEST(Parallel_for_each, single_element) {
+  std::vector<std::size_t> items{42};
+
+  std::vector<std::size_t> processed;
+  std::size_t reported_parallelism{0};
+  std::size_t reported_cursor{0};
+
+  sourcemeta::core::parallel_for_each(
+      items.cbegin(), items.cend(),
+      [&processed, &reported_parallelism, &reported_cursor](
+          const auto value, const auto concurrency, const auto cursor) {
+        processed.push_back(value);
+        reported_parallelism = concurrency;
+        reported_cursor = cursor;
+      });
+
+  EXPECT_EQ(processed.size(), 1);
+  EXPECT_EQ(processed[0], 42);
+  EXPECT_EQ(reported_cursor, 1);
+  EXPECT_EQ(reported_parallelism, std::thread::hardware_concurrency());
+}
+
 TEST(Parallel_for_each, empty_range) {
   std::vector<std::size_t> items;
   std::atomic<std::size_t> touched{0};

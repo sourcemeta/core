@@ -86,7 +86,7 @@ auto parallel_for_each(
 
   // If it is a single element or there is no parallelism,
   // just do a normal loop without dealing with threads
-  if (std::next(first) == last || effective_parallelism == 1) {
+  if (effective_parallelism == 1 || std::next(first) == last) {
     std::size_t cursor{1};
     for (auto iterator = first; iterator != last; ++iterator, ++cursor) {
       callback(*iterator, effective_parallelism, cursor);
