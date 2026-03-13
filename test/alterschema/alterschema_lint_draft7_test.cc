@@ -3507,3 +3507,71 @@ TEST(AlterSchema_lint_draft7,
       "illustrate the expected data",
       false);
 }
+
+TEST(AlterSchema_lint_draft7, forbid_empty_enum_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [1],
+    "enum": []
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "forbid_empty_enum",
+                    "enum must contain at least one value", false);
+}
+
+TEST(AlterSchema_lint_draft7, forbid_empty_enum_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [1],
+    "enum": [1, 2]
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_draft7, forbid_empty_enum_3) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [1],
+    "type": "string"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_draft7, forbid_empty_enum_4) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "enum": []
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "forbid_empty_enum",
+                    "enum must contain at least one value", false);
+}
