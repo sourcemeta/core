@@ -81,7 +81,8 @@ TEST(Parallel_for_each, single_element) {
   EXPECT_EQ(processed.size(), 1);
   EXPECT_EQ(processed[0], 42);
   EXPECT_EQ(reported_cursor, 1);
-  EXPECT_EQ(reported_parallelism, std::thread::hardware_concurrency());
+  EXPECT_EQ(reported_parallelism,
+            std::max<std::size_t>(std::thread::hardware_concurrency(), 1));
 }
 
 TEST(Parallel_for_each, empty_range) {
