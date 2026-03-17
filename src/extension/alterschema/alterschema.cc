@@ -52,6 +52,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "common/anyof_false_simplify.h"
 #include "common/anyof_remove_false_schemas.h"
 #include "common/anyof_true_simplify.h"
+#include "common/const_in_enum.h"
 #include "common/const_with_type.h"
 #include "common/content_media_type_without_encoding.h"
 #include "common/content_schema_without_media_type.h"
@@ -99,7 +100,6 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 
 // Linter
 #include "linter/comment_trim.h"
-#include "linter/const_in_enum.h"
 #include "linter/const_not_in_enum.h"
 #include "linter/content_schema_default.h"
 #include "linter/definitions_to_defs.h"
@@ -178,6 +178,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
   bundle.add<DuplicateEnumValues>();
   bundle.add<DuplicateRequiredValues>();
   bundle.add<ConstWithType>();
+  bundle.add<ConstInEnum>();
   bundle.add<NonApplicableAdditionalItems>();
   bundle.add<ModernOfficialDialectWithEmptyFragment>();
   bundle.add<ExclusiveMaximumNumberAndMaximum>();
@@ -209,7 +210,6 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
 
   if (mode == AlterSchemaMode::Linter) {
     bundle.add<EqualNumericBoundsToConst>();
-    bundle.add<ConstInEnum>();
     bundle.add<ConstNotInEnum>();
     bundle.add<ContentSchemaDefault>();
     bundle.add<DependenciesDefault>();
