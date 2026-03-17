@@ -211,6 +211,35 @@ TEST(URI_parse, syntax_error_port_trailing_range) {
       sourcemeta::core::URI::is_uri_reference("http://example.com:80-90"));
 }
 
+TEST(URI_parse, syntax_error_port_exceeds_uint32) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com:4294967296"},
+               sourcemeta::core::URIParseError);
+  // RFC 3986: port = *DIGIT, so any digit sequence is syntactically valid
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri("http://example.com:4294967296"));
+  EXPECT_TRUE(
+      sourcemeta::core::URI::is_uri_reference("http://example.com:4294967296"));
+}
+
+TEST(URI_parse, syntax_error_port_overflow_unsigned_long) {
+  EXPECT_THROW(
+      sourcemeta::core::URI uri{
+          "http://example.com:999999999999999999999999999999"},
+      sourcemeta::core::URIParseError);
+  // RFC 3986: port = *DIGIT, so any digit sequence is syntactically valid
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(
+      "http://example.com:999999999999999999999999999999"));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
+      "http://example.com:999999999999999999999999999999"));
+}
+
+TEST(URI_parse, rfc3986_port_max_uint32) {
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri("http://example.com:4294967295"));
+  EXPECT_TRUE(
+      sourcemeta::core::URI::is_uri_reference("http://example.com:4294967295"));
+  sourcemeta::core::URI uri{"http://example.com:4294967295"};
+  EXPECT_EQ(uri.port().value(), 4294967295U);
+}
+
 TEST(URI_parse, syntax_error_bare_ipv6_no_brackets) {
   EXPECT_THROW(sourcemeta::core::URI uri{"http://2001:db8::1"},
                sourcemeta::core::URIParseError);

@@ -3,11 +3,13 @@
 #include "escaping.h"
 #include "grammar.h"
 
-#include <cassert>  // assert
-#include <cctype>   // std::isalnum, std::isxdigit, std::isalpha, std::isdigit
-#include <cstdint>  // std::uint64_t
-#include <optional> // std::optional
-#include <string>   // std::string, std::stoul
+#include <cassert>   // assert
+#include <cctype>    // std::isalnum, std::isxdigit, std::isalpha, std::isdigit
+#include <cstdint>   // std::uint64_t
+#include <limits>    // std::numeric_limits
+#include <optional>  // std::optional
+#include <stdexcept> // std::out_of_range
+#include <string>    // std::string, std::stoul
 #include <string_view> // std::string_view
 #include <type_traits> // std::conditional_t
 
@@ -148,8 +150,13 @@ auto parse_port(const std::string_view input,
   if constexpr (CheckOnly) {
     return true;
   } else {
-    const std::string port_string{input.substr(start, position - start)};
-    return std::stoul(port_string);
+    try {
+      const std::string port_string{input.substr(start, position - start)};
+      return std::stoul(port_string);
+    } catch (const std::out_of_range &) {
+      throw sourcemeta::core::URIParseError{
+          static_cast<std::uint64_t>(start + 1)};
+    }
   }
 }
 
@@ -465,9 +472,15 @@ auto parse_authority(const std::string_view input,
     if constexpr (CheckOnly) {
       parse_port<true>(input, position);
     } else {
+      const auto port_start = position;
       const auto port_value = parse_port<false>(input, position);
       if (port_value.has_value()) {
-        port = port_value.value();
+        if (port_value.value() > std::numeric_limits<std::uint32_t>::max()) {
+          throw sourcemeta::core::URIParseError{
+              static_cast<std::uint64_t>(port_start + 1)};
+        }
+
+        port = static_cast<std::uint32_t>(port_value.value());
       }
     }
   }
