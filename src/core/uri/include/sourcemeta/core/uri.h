@@ -469,6 +469,18 @@ public:
   /// ```
   static auto canonicalize(std::string_view input) -> std::string;
 
+  /// Check if the given string is a valid URI per RFC 3986 without
+  /// constructing a full URI object. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::check("https://example.com/path"));
+  /// assert(!sourcemeta::core::URI::check("://bad"));
+  /// ```
+  [[nodiscard]] static auto check(std::string_view input) noexcept -> bool;
+
 private:
   auto parse(std::string_view input) -> void;
 
