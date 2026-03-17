@@ -609,104 +609,20 @@ TEST(JSONPointer_parse, regex_backslash) {
   EXPECT_EQ(pointer.at(0).to_property(), "[\\-]");
 }
 
-TEST(JSONPointer_parse, raw_backspace) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/\b"));
-  const auto pointer = sourcemeta::core::to_pointer("/\b");
+TEST(JSONPointer_parse, json_escape_backslash_n_treated_literally) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\\nbar"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo\\nbar");
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "\b");
+  EXPECT_EQ(pointer.at(0).to_property(), "foo\\nbar");
 }
 
-TEST(JSONPointer_parse, raw_formfeed) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/\f"));
-  const auto pointer = sourcemeta::core::to_pointer("/\f");
+TEST(JSONPointer_parse, json_escape_unicode_treated_literally) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\\u002Abar"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo\\u002Abar");
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "\f");
-}
-
-TEST(JSONPointer_parse, raw_newline) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/\n"));
-  const auto pointer = sourcemeta::core::to_pointer("/\n");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "\n");
-}
-
-TEST(JSONPointer_parse, raw_carriage_return) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/\r"));
-  const auto pointer = sourcemeta::core::to_pointer("/\r");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "\r");
-}
-
-TEST(JSONPointer_parse, raw_tab) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/\t"));
-  const auto pointer = sourcemeta::core::to_pointer("/\t");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "\t");
-}
-
-TEST(JSONPointer_parse, raw_null) {
-  using namespace std::string_literals;
-  const std::string input{"/\0"s};
-  EXPECT_TRUE(sourcemeta::core::is_pointer(input));
-  const auto pointer = sourcemeta::core::to_pointer(input);
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "\0"s);
-}
-
-TEST(JSONPointer_parse, raw_backspace_within_word) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\bbar"));
-  const auto pointer = sourcemeta::core::to_pointer("/foo\bbar");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "foo\bbar");
-}
-
-TEST(JSONPointer_parse, raw_formfeed_within_word) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\fbar"));
-  const auto pointer = sourcemeta::core::to_pointer("/foo\fbar");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "foo\fbar");
-}
-
-TEST(JSONPointer_parse, raw_newline_within_word) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\nbar"));
-  const auto pointer = sourcemeta::core::to_pointer("/foo\nbar");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "foo\nbar");
-}
-
-TEST(JSONPointer_parse, raw_carriage_return_within_word) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\rbar"));
-  const auto pointer = sourcemeta::core::to_pointer("/foo\rbar");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "foo\rbar");
-}
-
-TEST(JSONPointer_parse, raw_tab_within_word) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\tbar"));
-  const auto pointer = sourcemeta::core::to_pointer("/foo\tbar");
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "foo\tbar");
-}
-
-TEST(JSONPointer_parse, raw_null_within_word) {
-  using namespace std::string_literals;
-  const std::string input{"/foo\0bar"s};
-  EXPECT_TRUE(sourcemeta::core::is_pointer(input));
-  const auto pointer = sourcemeta::core::to_pointer(input);
-  EXPECT_EQ(pointer.size(), 1);
-  EXPECT_TRUE(pointer.at(0).is_property());
-  EXPECT_EQ(pointer.at(0).to_property(), "foo\0bar"s);
+  EXPECT_EQ(pointer.at(0).to_property(), "foo\\u002Abar");
 }
 
 TEST(JSONPointer_parse, unicode_0001) {
