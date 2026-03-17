@@ -486,9 +486,9 @@ auto do_parse(const std::string_view input,
               [[maybe_unused]] std::optional<std::uint32_t> &port,
               [[maybe_unused]] std::optional<std::string> &path,
               [[maybe_unused]] std::optional<std::string> &query,
-              [[maybe_unused]] std::optional<std::string> &fragment) -> void {
+              [[maybe_unused]] std::optional<std::string> &fragment) -> bool {
   if (input.empty()) {
-    return;
+    return false;
   }
 
   std::string_view::size_type position{0};
@@ -589,6 +589,8 @@ auto do_parse(const std::string_view input,
     throw sourcemeta::core::URIParseError{
         static_cast<std::uint64_t>(position + 1)};
   }
+
+  return has_scheme;
 }
 
 } // namespace
@@ -608,6 +610,17 @@ auto URI::parse(const std::string_view input) -> void {
 }
 
 auto URI::check(const std::string_view input) noexcept -> bool {
+  try {
+    std::optional<std::string> scheme, userinfo, host, path, query, fragment;
+    std::optional<std::uint32_t> port;
+    return do_parse<true>(input, scheme, userinfo, host, port, path, query,
+                          fragment);
+  } catch (...) {
+    return false;
+  }
+}
+
+auto URI::check_reference(const std::string_view input) noexcept -> bool {
   try {
     std::optional<std::string> scheme, userinfo, host, path, query, fragment;
     std::optional<std::uint32_t> port;

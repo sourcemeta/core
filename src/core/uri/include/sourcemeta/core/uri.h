@@ -469,8 +469,8 @@ public:
   /// ```
   static auto canonicalize(std::string_view input) -> std::string;
 
-  /// Check if the given string is a valid URI per RFC 3986 without
-  /// constructing a full URI object. For example:
+  /// Check if the given string is a valid absolute URI (has a scheme) per
+  /// RFC 3986 without constructing a full URI object. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -478,8 +478,24 @@ public:
   ///
   /// assert(sourcemeta::core::URI::check("https://example.com/path"));
   /// assert(!sourcemeta::core::URI::check("://bad"));
+  /// assert(!sourcemeta::core::URI::check("relative/path"));
   /// ```
   [[nodiscard]] static auto check(std::string_view input) noexcept -> bool;
+
+  /// Check if the given string is a valid URI reference per RFC 3986
+  /// (absolute or relative) without constructing a full URI object.
+  /// For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::check_reference("https://example.com"));
+  /// assert(sourcemeta::core::URI::check_reference("relative/path"));
+  /// assert(!sourcemeta::core::URI::check_reference("://bad"));
+  /// ```
+  [[nodiscard]] static auto check_reference(std::string_view input) noexcept
+      -> bool;
 
 private:
   auto parse(std::string_view input) -> void;
