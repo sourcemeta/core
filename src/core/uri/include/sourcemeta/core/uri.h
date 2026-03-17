@@ -476,11 +476,11 @@ public:
   /// #include <sourcemeta/core/uri.h>
   /// #include <cassert>
   ///
-  /// assert(sourcemeta::core::URI::check("https://example.com/path"));
-  /// assert(!sourcemeta::core::URI::check("://bad"));
-  /// assert(!sourcemeta::core::URI::check("relative/path"));
+  /// assert(sourcemeta::core::URI::is_uri("https://example.com/path"));
+  /// assert(!sourcemeta::core::URI::is_uri("://bad"));
+  /// assert(!sourcemeta::core::URI::is_uri("relative/path"));
   /// ```
-  [[nodiscard]] static auto check(std::string_view input) noexcept -> bool;
+  [[nodiscard]] static auto is_uri(std::string_view input) noexcept -> bool;
 
   /// Check if the given string is a valid URI reference per RFC 3986
   /// (absolute or relative) without constructing a full URI object.
@@ -490,11 +490,11 @@ public:
   /// #include <sourcemeta/core/uri.h>
   /// #include <cassert>
   ///
-  /// assert(sourcemeta::core::URI::check_reference("https://example.com"));
-  /// assert(sourcemeta::core::URI::check_reference("relative/path"));
-  /// assert(!sourcemeta::core::URI::check_reference("://bad"));
+  /// assert(sourcemeta::core::URI::is_uri_reference("https://example.com"));
+  /// assert(sourcemeta::core::URI::is_uri_reference("relative/path"));
+  /// assert(!sourcemeta::core::URI::is_uri_reference("://bad"));
   /// ```
-  [[nodiscard]] static auto check_reference(std::string_view input) noexcept
+  [[nodiscard]] static auto is_uri_reference(std::string_view input) noexcept
       -> bool;
 
 private:

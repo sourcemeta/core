@@ -609,7 +609,7 @@ auto URI::parse(const std::string_view input) -> void {
                   this->port_, this->path_, this->query_, this->fragment_);
 }
 
-auto URI::check(const std::string_view input) noexcept -> bool {
+auto URI::is_uri(const std::string_view input) noexcept -> bool {
   try {
     std::optional<std::string> scheme, userinfo, host, path, query, fragment;
     std::optional<std::uint32_t> port;
@@ -620,7 +620,7 @@ auto URI::check(const std::string_view input) noexcept -> bool {
   }
 }
 
-auto URI::check_reference(const std::string_view input) noexcept -> bool {
+auto URI::is_uri_reference(const std::string_view input) noexcept -> bool {
   try {
     std::optional<std::string> scheme, userinfo, host, path, query, fragment;
     std::optional<std::uint32_t> port;
