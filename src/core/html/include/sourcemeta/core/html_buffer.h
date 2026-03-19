@@ -18,6 +18,12 @@ namespace sourcemeta::core {
 /// A fast append-only string buffer
 class SOURCEMETA_CORE_HTML_EXPORT HTMLBuffer {
 public:
+  HTMLBuffer() = default;
+  HTMLBuffer(const HTMLBuffer &) = delete;
+  auto operator=(const HTMLBuffer &) -> HTMLBuffer & = delete;
+  HTMLBuffer(HTMLBuffer &&) = delete;
+  auto operator=(HTMLBuffer &&) -> HTMLBuffer & = delete;
+
   SOURCEMETA_FORCEINLINE inline auto reserve(const std::size_t bytes) -> void {
     this->buffer_.resize(bytes);
     this->cursor_ = this->buffer_.data();
@@ -25,7 +31,7 @@ public:
   }
 
   SOURCEMETA_FORCEINLINE inline auto append(const char character) -> void {
-    if (this->cursor_ >= this->end_) [[unlikely]] {
+    if (!this->cursor_ || this->cursor_ >= this->end_) [[unlikely]] {
       this->grow(1);
     }
 
@@ -40,7 +46,9 @@ public:
       return;
     }
 
-    const auto remaining{static_cast<std::size_t>(this->end_ - this->cursor_)};
+    const auto remaining{
+        this->cursor_ ? static_cast<std::size_t>(this->end_ - this->cursor_)
+                      : std::size_t{0}};
     if (remaining < length) [[unlikely]] {
       this->grow(length);
     }
