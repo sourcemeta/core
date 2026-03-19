@@ -265,14 +265,16 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
     return false;
   }
 
-  if (position >= input.size() || input[position] != '.') {
-    if constexpr (loose) {
-      if (position >= input.size() || input[position] == '-' ||
-          input[position] == '+') {
-        goto parse_prerelease;
-      }
+  auto can_end_core = [&]() -> bool {
+    if (position >= input.size() || input[position] == '-' ||
+        input[position] == '+') {
+      return loose;
     }
 
+    return input[position] == '.';
+  };
+
+  if (!can_end_core()) {
     if constexpr (should_throw) {
       throw sourcemeta::core::SemVerParseError(position + 1);
     }
@@ -280,9 +282,9 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
     return false;
   }
 
-  ++position;
+  if (position < input.size() && input[position] == '.') {
+    ++position;
 
-  {
     const auto minor_result = parse_numeric_identifier(input, position, minor);
     if (minor_result == NumericParseResult::overflow) {
       if constexpr (should_throw) {
@@ -299,45 +301,38 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
 
       return false;
     }
-  }
 
-  if (position >= input.size() || input[position] != '.') {
-    if constexpr (loose) {
-      if (position >= input.size() || input[position] == '-' ||
-          input[position] == '+') {
-        goto parse_prerelease;
-      }
-    }
-
-    if constexpr (should_throw) {
-      throw sourcemeta::core::SemVerParseError(position + 1);
-    }
-
-    return false;
-  }
-
-  ++position;
-
-  {
-    const auto patch_result = parse_numeric_identifier(input, position, patch);
-    if (patch_result == NumericParseResult::overflow) {
-      if constexpr (should_throw) {
-        throw sourcemeta::core::SemVerOverflowError(position + 1);
-      }
-
-      return false;
-    }
-
-    if (patch_result == NumericParseResult::invalid) {
+    if (!can_end_core()) {
       if constexpr (should_throw) {
         throw sourcemeta::core::SemVerParseError(position + 1);
       }
 
       return false;
     }
+
+    if (position < input.size() && input[position] == '.') {
+      ++position;
+
+      const auto patch_result =
+          parse_numeric_identifier(input, position, patch);
+      if (patch_result == NumericParseResult::overflow) {
+        if constexpr (should_throw) {
+          throw sourcemeta::core::SemVerOverflowError(position + 1);
+        }
+
+        return false;
+      }
+
+      if (patch_result == NumericParseResult::invalid) {
+        if constexpr (should_throw) {
+          throw sourcemeta::core::SemVerParseError(position + 1);
+        }
+
+        return false;
+      }
+    }
   }
 
-parse_prerelease:
   if (position < input.size() && input[position] == '-') {
     ++position;
     const auto start = position;
