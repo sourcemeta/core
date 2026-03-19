@@ -9,12 +9,83 @@
 #include <sourcemeta/core/preprocessor.h>
 
 #include <cassert>     // assert
+#include <cstring>     // std::memcpy
 #include <iostream>    // std::ostream
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
+
+#ifndef DOXYGEN
+// A fast append-only string buffer. Pre-allocates via resize() and writes
+// through a raw pointer cursor, avoiding per-append bounds checks.
+// Grows by doubling when capacity is exhausted.
+class SOURCEMETA_CORE_HTML_EXPORT FastStringBuffer {
+public:
+  SOURCEMETA_FORCEINLINE inline auto reserve(const std::size_t bytes) -> void {
+    this->buffer_.resize(bytes);
+    this->cursor_ = this->buffer_.data();
+    this->end_ = this->cursor_ + bytes;
+  }
+
+  SOURCEMETA_FORCEINLINE inline auto append(const char character) -> void {
+    if (this->cursor_ >= this->end_) [[unlikely]] {
+      this->grow(1);
+    }
+
+    *this->cursor_ = character;
+    ++this->cursor_;
+  }
+
+  SOURCEMETA_FORCEINLINE inline auto append(const std::string_view data)
+      -> void {
+    const auto length{data.size()};
+    if (length == 0) {
+      return;
+    }
+
+    const auto remaining{
+        static_cast<std::size_t>(this->end_ - this->cursor_)};
+    if (remaining < length) [[unlikely]] {
+      this->grow(length);
+    }
+
+    std::memcpy(this->cursor_, data.data(), length);
+    this->cursor_ += length;
+  }
+
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str() -> const
+      std::string & {
+    if (this->cursor_) {
+      this->buffer_.resize(
+          static_cast<std::size_t>(this->cursor_ - this->buffer_.data()));
+      this->cursor_ = nullptr;
+      this->end_ = nullptr;
+    }
+
+    return this->buffer_;
+  }
+
+  auto write(std::ostream &stream) -> void;
+
+private:
+  auto grow(std::size_t needed) -> void;
+
+// Exporting symbols that depends on the standard C++ library is considered
+// safe.
+// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251)
+#endif
+  std::string buffer_;
+#if defined(_MSC_VER)
+#pragma warning(default : 4251)
+#endif
+  char *cursor_{nullptr};
+  char *end_{nullptr};
+};
+#endif
 
 /// @ingroup html
 /// A streaming HTML writer that renders directly to a string buffer.
@@ -35,16 +106,16 @@ class SOURCEMETA_CORE_HTML_EXPORT HTMLWriter {
 public:
   /// Pre-allocate the output buffer
   SOURCEMETA_FORCEINLINE inline auto reserve(std::size_t bytes) -> void {
-    this->output_.reserve(bytes);
+    this->buffer_.reserve(bytes);
   }
 
   /// Close the most recently opened element
   SOURCEMETA_FORCEINLINE inline auto close() -> HTMLWriter & {
     this->flush_open_tag();
     assert(!this->tag_stack_.empty());
-    this->output_ += "</";
-    this->output_ += this->tag_stack_.back();
-    this->output_ += ">";
+    this->buffer_.append("</");
+    this->buffer_.append(this->tag_stack_.back());
+    this->buffer_.append(">");
     this->tag_stack_.pop_back();
     return *this;
   }
@@ -54,11 +125,11 @@ public:
   SOURCEMETA_FORCEINLINE inline auto
   attribute(std::string_view name, std::string_view value) -> HTMLWriter & {
     assert(this->tag_open_);
-    this->output_ += " ";
-    this->output_ += name;
-    this->output_ += "=\"";
-    html_escape_append(this->output_, value);
-    this->output_ += "\"";
+    this->buffer_.append(" ");
+    this->buffer_.append(name);
+    this->buffer_.append("=\"");
+    html_escape_append(this->buffer_, value);
+    this->buffer_.append("\"");
     return *this;
   }
 
@@ -66,7 +137,7 @@ public:
   SOURCEMETA_FORCEINLINE inline auto text(std::string_view content)
       -> HTMLWriter & {
     this->flush_open_tag();
-    html_escape_append(this->output_, content);
+    html_escape_append(this->buffer_, content);
     return *this;
   }
 
@@ -74,7 +145,7 @@ public:
   SOURCEMETA_FORCEINLINE inline auto raw(std::string_view content)
       -> HTMLWriter & {
     this->flush_open_tag();
-    this->output_ += content;
+    this->buffer_.append(content);
     return *this;
   }
 
@@ -82,7 +153,7 @@ public:
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str() -> const
       std::string & {
     this->flush_open_tag();
-    return this->output_;
+    return this->buffer_.str();
   }
 
   /// Write the rendered HTML to an output stream
@@ -435,8 +506,8 @@ public:
 private:
   SOURCEMETA_FORCEINLINE inline auto open_tag(std::string_view tag) -> void {
     this->flush_open_tag();
-    this->output_ += "<";
-    this->output_ += tag;
+    this->buffer_.append("<");
+    this->buffer_.append(tag);
     this->tag_stack_.push_back(tag);
     this->tag_open_ = true;
     this->tag_open_is_void_ = false;
@@ -444,15 +515,15 @@ private:
 
   SOURCEMETA_FORCEINLINE inline auto void_tag(std::string_view tag) -> void {
     this->flush_open_tag();
-    this->output_ += "<";
-    this->output_ += tag;
+    this->buffer_.append("<");
+    this->buffer_.append(tag);
     this->tag_open_ = true;
     this->tag_open_is_void_ = true;
   }
 
   auto flush_open_tag() -> void;
 
-  std::string output_;
+  FastStringBuffer buffer_;
   std::vector<std::string_view> tag_stack_;
   bool tag_open_{false};
   bool tag_open_is_void_{false};

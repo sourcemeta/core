@@ -1,4 +1,5 @@
 #include <sourcemeta/core/html_escape.h>
+#include <sourcemeta/core/html_writer.h>
 
 #include <string> // std::string
 
@@ -136,6 +137,36 @@ auto html_escape_append(std::string &output, const std::string_view input)
         break;
       default:
         output += character;
+    }
+  }
+}
+
+auto html_escape_append(FastStringBuffer &output, const std::string_view input)
+    -> void {
+  if (!needs_escape(input)) {
+    output.append(input);
+    return;
+  }
+
+  for (const char character : input) {
+    switch (character) {
+      case '&':
+        output.append("&amp;");
+        break;
+      case '<':
+        output.append("&lt;");
+        break;
+      case '>':
+        output.append("&gt;");
+        break;
+      case '"':
+        output.append("&quot;");
+        break;
+      case '\'':
+        output.append("&#39;");
+        break;
+      default:
+        output.append(character);
     }
   }
 }
