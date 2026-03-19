@@ -1,5 +1,6 @@
 #include <sourcemeta/core/semver.h>
 
+#include <limits>   // std::numeric_limits
 #include <optional> // std::optional, std::nullopt
 #include <string>   // std::string, std::to_string
 
@@ -18,26 +19,38 @@ auto is_identifier_character(const char character) -> bool {
   return is_digit(character) || is_letter(character) || character == '-';
 }
 
+constexpr auto UINT64_MAX_VALUE = std::numeric_limits<std::uint64_t>::max();
+constexpr auto UINT64_MAX_DIV_10 = UINT64_MAX_VALUE / 10;
+constexpr auto UINT64_MAX_MOD_10 = UINT64_MAX_VALUE % 10;
+
+enum class NumericParseResult : std::uint8_t { success, invalid, overflow };
+
 auto parse_numeric_identifier(const std::string_view input,
                               std::size_t &position, std::uint64_t &result)
-    -> bool {
+    -> NumericParseResult {
   if (position >= input.size() || !is_digit(input[position])) {
-    return false;
+    return NumericParseResult::invalid;
   }
 
   const auto start = position;
   std::uint64_t value = 0;
   while (position < input.size() && is_digit(input[position])) {
-    value = value * 10 + static_cast<std::uint64_t>(input[position] - '0');
+    const auto digit = static_cast<std::uint64_t>(input[position] - '0');
+    if (value > UINT64_MAX_DIV_10 ||
+        (value == UINT64_MAX_DIV_10 && digit > UINT64_MAX_MOD_10)) {
+      return NumericParseResult::overflow;
+    }
+
+    value = value * 10 + digit;
     ++position;
   }
 
   if (position - start > 1 && input[start] == '0') {
-    return false;
+    return NumericParseResult::invalid;
   }
 
   result = value;
-  return true;
+  return NumericParseResult::success;
 }
 
 auto validate_pre_release_identifier(const std::string_view identifier)
@@ -106,6 +119,7 @@ auto validate_dot_separated(const std::string_view input) -> bool {
 
 struct IdentifierInfo {
   bool is_numeric;
+  bool overflowed;
   std::uint64_t numeric_value;
 };
 
@@ -114,13 +128,19 @@ auto classify_identifier(const std::string_view identifier) noexcept
   std::uint64_t value = 0;
   for (const auto character : identifier) {
     if (!is_digit(character)) {
-      return {.is_numeric = false, .numeric_value = 0};
+      return {.is_numeric = false, .overflowed = false, .numeric_value = 0};
     }
 
-    value = value * 10 + static_cast<std::uint64_t>(character - '0');
+    const auto digit = static_cast<std::uint64_t>(character - '0');
+    if (value > UINT64_MAX_DIV_10 ||
+        (value == UINT64_MAX_DIV_10 && digit > UINT64_MAX_MOD_10)) {
+      return {.is_numeric = true, .overflowed = true, .numeric_value = 0};
+    }
+
+    value = value * 10 + digit;
   }
 
-  return {.is_numeric = true, .numeric_value = value};
+  return {.is_numeric = true, .overflowed = false, .numeric_value = value};
 }
 
 auto compare_pre_release(const std::string_view left,
@@ -160,12 +180,26 @@ auto compare_pre_release(const std::string_view left,
     const auto right_info = classify_identifier(right_identifier);
 
     if (left_info.is_numeric && right_info.is_numeric) {
-      if (left_info.numeric_value < right_info.numeric_value) {
-        return -1;
-      }
+      if (left_info.overflowed || right_info.overflowed) {
+        if (left_identifier.size() != right_identifier.size()) {
+          return left_identifier.size() < right_identifier.size() ? -1 : 1;
+        }
 
-      if (left_info.numeric_value > right_info.numeric_value) {
-        return 1;
+        if (left_identifier < right_identifier) {
+          return -1;
+        }
+
+        if (left_identifier > right_identifier) {
+          return 1;
+        }
+      } else {
+        if (left_info.numeric_value < right_info.numeric_value) {
+          return -1;
+        }
+
+        if (left_info.numeric_value > right_info.numeric_value) {
+          return 1;
+        }
       }
     } else if (left_info.is_numeric && !right_info.is_numeric) {
       return -1;
@@ -207,7 +241,16 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
     -> bool {
   std::size_t position = 0;
 
-  if (!parse_numeric_identifier(input, position, major)) {
+  const auto major_result = parse_numeric_identifier(input, position, major);
+  if (major_result == NumericParseResult::overflow) {
+    if constexpr (should_throw) {
+      throw sourcemeta::core::SemVerOverflowError(position + 1);
+    }
+
+    return false;
+  }
+
+  if (major_result == NumericParseResult::invalid) {
     if constexpr (should_throw) {
       throw sourcemeta::core::SemVerParseError(position + 1);
     }
@@ -225,7 +268,16 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
 
   ++position;
 
-  if (!parse_numeric_identifier(input, position, minor)) {
+  const auto minor_result = parse_numeric_identifier(input, position, minor);
+  if (minor_result == NumericParseResult::overflow) {
+    if constexpr (should_throw) {
+      throw sourcemeta::core::SemVerOverflowError(position + 1);
+    }
+
+    return false;
+  }
+
+  if (minor_result == NumericParseResult::invalid) {
     if constexpr (should_throw) {
       throw sourcemeta::core::SemVerParseError(position + 1);
     }
@@ -243,7 +295,16 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
 
   ++position;
 
-  if (!parse_numeric_identifier(input, position, patch)) {
+  const auto patch_result = parse_numeric_identifier(input, position, patch);
+  if (patch_result == NumericParseResult::overflow) {
+    if constexpr (should_throw) {
+      throw sourcemeta::core::SemVerOverflowError(position + 1);
+    }
+
+    return false;
+  }
+
+  if (patch_result == NumericParseResult::invalid) {
     if constexpr (should_throw) {
       throw sourcemeta::core::SemVerParseError(position + 1);
     }

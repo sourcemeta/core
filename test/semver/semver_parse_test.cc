@@ -256,11 +256,6 @@ TEST(SemVer_parse, double_hyphen_valid_pre_release) {
   EXPECT_EQ(version.pre_release(), "-");
 }
 
-TEST(SemVer_parse, pre_release_alphanumeric_leading_zero_ok) {
-  const sourcemeta::core::SemVer version{"1.0.0-0alpha"};
-  EXPECT_EQ(version.pre_release(), "0alpha");
-}
-
 TEST(SemVer_parse, pre_release_alphanumeric_0a1) {
   const sourcemeta::core::SemVer version{"1.0.0-0a1"};
   EXPECT_EQ(version.pre_release(), "0a1");

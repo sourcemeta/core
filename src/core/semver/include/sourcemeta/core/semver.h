@@ -41,10 +41,12 @@ public:
       -> std::uint64_t {
     return this->major_;
   }
+
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto minor() const noexcept
       -> std::uint64_t {
     return this->minor_;
   }
+
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto patch() const noexcept
       -> std::uint64_t {
     return this->patch_;

@@ -30,6 +30,23 @@ private:
   std::uint64_t column_;
 };
 
+class SOURCEMETA_CORE_SEMVER_EXPORT SemVerOverflowError
+    : public std::exception {
+public:
+  SemVerOverflowError(const std::uint64_t column) : column_{column} {}
+
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return "The numeric component of the Semantic Version overflows";
+  }
+
+  [[nodiscard]] auto column() const noexcept -> std::uint64_t {
+    return this->column_;
+  }
+
+private:
+  std::uint64_t column_;
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif

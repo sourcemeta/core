@@ -15,6 +15,16 @@
     FAIL() << "The constructor was expected to throw SemVerParseError";        \
   }
 
+#define EXPECT_SEMVER_OVERFLOW(input)                                          \
+  try {                                                                        \
+    sourcemeta::core::SemVer{(input)};                                         \
+    FAIL() << "The constructor was expected to throw";                         \
+  } catch (const sourcemeta::core::SemVerOverflowError &) {                    \
+    SUCCEED();                                                                 \
+  } catch (const std::exception &) {                                           \
+    FAIL() << "The constructor was expected to throw SemVerOverflowError";     \
+  }
+
 TEST(SemVer_parse_error, empty) { EXPECT_SEMVER_ERROR("", 1); }
 
 TEST(SemVer_parse_error, leading_space) { EXPECT_SEMVER_ERROR(" 1.2.3", 1); }
@@ -211,4 +221,25 @@ TEST(SemVer_parse_error, pre_release_leading_zero_007) {
 
 TEST(SemVer_parse_error, pre_release_leading_zero_01) {
   EXPECT_SEMVER_ERROR("1.0.0-01", 7);
+}
+
+TEST(SemVer_parse_error, overflow_major) {
+  EXPECT_SEMVER_OVERFLOW("99999999999999999999.0.0");
+}
+
+TEST(SemVer_parse_error, overflow_minor) {
+  EXPECT_SEMVER_OVERFLOW("0.99999999999999999999.0");
+}
+
+TEST(SemVer_parse_error, overflow_patch) {
+  EXPECT_SEMVER_OVERFLOW("0.0.99999999999999999999");
+}
+
+TEST(SemVer_parse_error, overflow_major_boundary) {
+  EXPECT_SEMVER_OVERFLOW("18446744073709551616.0.0");
+}
+
+TEST(SemVer_parse_error, overflow_from_returns_nullopt) {
+  EXPECT_FALSE(
+      sourcemeta::core::SemVer::from("99999999999999999999.0.0").has_value());
 }

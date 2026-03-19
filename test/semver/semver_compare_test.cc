@@ -343,3 +343,13 @@ TEST(SemVer_compare, node_semver_lexical_r100_gt_R2) {
   EXPECT_GT(sourcemeta::core::SemVer{"1.2.3-r100"},
             sourcemeta::core::SemVer{"1.2.3-R2"});
 }
+
+TEST(SemVer_compare, overflow_pre_release_longer_digits_wins) {
+  EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-99999999999999999999"},
+            sourcemeta::core::SemVer{"1.0.0-9999999999999999999"});
+}
+
+TEST(SemVer_compare, overflow_pre_release_same_length_lexical) {
+  EXPECT_GT(sourcemeta::core::SemVer{"1.0.0-99999999999999999999"},
+            sourcemeta::core::SemVer{"1.0.0-99999999999999999998"});
+}
