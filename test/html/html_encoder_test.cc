@@ -2,182 +2,249 @@
 
 #include <sourcemeta/core/html.h>
 
-TEST(HTML_encoder, example_1) {
-  using namespace sourcemeta::core;
-  using namespace sourcemeta::core::html;
-
-  std::vector<HTML> items;
+TEST(HTML_writer, example_1) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.h1("Title");
+  document.ul().attribute("class", "my-list");
   for (const auto &item : {"foo", "bar", "baz"}) {
-    items.push_back(li(item));
+    document.li(item);
   }
+  document.close();
+  document.p("Footer");
+  document.close();
 
-  std::ostringstream result;
-  result << div(h1("Title"), ul({{"class", "my-list"}}, items), p("Footer"));
-
-  EXPECT_EQ(result.str(), "<div><h1>Title</h1><ul "
-                          "class=\"my-list\"><li>foo</li><li>bar</li><li>baz</"
-                          "li></ul><p>Footer</p></div>");
+  EXPECT_EQ(document.str(), "<div><h1>Title</h1><ul "
+                             "class=\"my-list\"><li>foo</li><li>bar</li>"
+                             "<li>baz</li></ul><p>Footer</p></div>");
 }
 
-TEST(HTML_encoder, escaped_text_content) {
-  using namespace sourcemeta::core::html;
-
-  std::ostringstream result;
-  result << p(
+TEST(HTML_writer, escaped_text_content) {
+  sourcemeta::core::HTMLWriter document;
+  document.p(
       "This contains <dangerous> & \"potentially\" 'harmful' characters");
 
-  EXPECT_EQ(result.str(),
-            "<p>This contains &lt;dangerous&gt; &amp; &quot;potentially&quot; "
-            "&#39;harmful&#39; characters</p>");
+  EXPECT_EQ(
+      document.str(),
+      "<p>This contains &lt;dangerous&gt; &amp; &quot;potentially&quot; "
+      "&#39;harmful&#39; characters</p>");
 }
 
-TEST(HTML_encoder, raw_html_basic) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, raw_html_basic) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.raw("<strong>Bold text</strong>");
+  document.close();
 
-  std::ostringstream result;
-  result << div(raw("<strong>Bold text</strong>"));
-
-  EXPECT_EQ(result.str(), "<div><strong>Bold text</strong></div>");
+  EXPECT_EQ(document.str(), "<div><strong>Bold text</strong></div>");
 }
 
-TEST(HTML_encoder, raw_html_with_dangerous_content) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, raw_html_with_dangerous_content) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.raw("<script>alert('xss')</script>");
+  document.close();
 
-  std::ostringstream result;
-  result << div(raw("<script>alert('xss')</script>"));
-
-  EXPECT_EQ(result.str(), "<div><script>alert('xss')</script></div>");
+  EXPECT_EQ(document.str(), "<div><script>alert('xss')</script></div>");
 }
 
-TEST(HTML_encoder, raw_html_mixed_with_escaped) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, raw_html_mixed_with_escaped) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.text("Safe text: <script>");
+  document.raw("<em>raw italic</em>");
+  document.text(" & more safe text");
+  document.close();
 
-  std::ostringstream result;
-  result << div("Safe text: <script>", raw("<em>raw italic</em>"),
-                " & more safe text");
-
-  EXPECT_EQ(result.str(), "<div>Safe text: &lt;script&gt;<em>raw italic</em> "
-                          "&amp; more safe text</div>");
+  EXPECT_EQ(document.str(),
+            "<div>Safe text: &lt;script&gt;<em>raw italic</em> "
+            "&amp; more safe text</div>");
 }
 
-TEST(HTML_encoder, raw_html_in_list) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, raw_html_in_list) {
+  sourcemeta::core::HTMLWriter document;
+  document.ul();
+  document.li("Regular item");
+  document.li();
+  document.raw("<strong>Bold</strong> item");
+  document.close();
+  document.li("Another & escaped item");
+  document.close();
 
-  std::ostringstream result;
-  result << ul(li("Regular item"), li(raw("<strong>Bold</strong> item")),
-               li("Another & escaped item"));
-
-  EXPECT_EQ(result.str(), "<ul><li>Regular item</li><li><strong>Bold</strong> "
-                          "item</li><li>Another &amp; escaped item</li></ul>");
+  EXPECT_EQ(document.str(),
+            "<ul><li>Regular item</li><li><strong>Bold</strong> "
+            "item</li><li>Another &amp; escaped item</li></ul>");
 }
 
-TEST(HTML_encoder, raw_html_empty_content) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, raw_html_empty_content) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.raw("");
+  document.close();
 
-  std::ostringstream result;
-  result << div(raw(""));
-
-  EXPECT_EQ(result.str(), "<div></div>");
+  EXPECT_EQ(document.str(), "<div></div>");
 }
 
-TEST(HTML_encoder, raw_html_with_entities) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, raw_html_with_entities) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.raw("&lt;already&gt; &amp; &quot;escaped&quot;");
+  document.close();
 
-  std::ostringstream result;
-  result << div(raw("&lt;already&gt; &amp; &quot;escaped&quot;"));
-
-  EXPECT_EQ(result.str(),
+  EXPECT_EQ(document.str(),
             "<div>&lt;already&gt; &amp; &quot;escaped&quot;</div>");
 }
 
-TEST(HTML_encoder, empty_elements) {
-  using namespace sourcemeta::core::html;
-
-  EXPECT_EQ(div().render(), "<div></div>");
-  EXPECT_EQ(p({}).render(), "<p></p>");
-  EXPECT_EQ(span({{"class", "empty"}}).render(),
-            "<span class=\"empty\"></span>");
+TEST(HTML_writer, empty_elements) {
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.div();
+    document.close();
+    EXPECT_EQ(document.str(), "<div></div>");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.p();
+    document.close();
+    EXPECT_EQ(document.str(), "<p></p>");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.span().attribute("class", "empty");
+    document.close();
+    EXPECT_EQ(document.str(), "<span class=\"empty\"></span>");
+  }
 }
 
-TEST(HTML_encoder, void_elements_self_closing) {
-  using namespace sourcemeta::core::html;
-
-  EXPECT_EQ(br().render(), "<br />");
-  EXPECT_EQ(hr().render(), "<hr />");
-  EXPECT_EQ(img({{"src", "test.png"}, {"alt", "Test"}}).render(),
-            "<img src=\"test.png\" alt=\"Test\" />");
-  EXPECT_EQ(input({{"type", "text"}, {"name", "test"}}).render(),
-            "<input type=\"text\" name=\"test\" />");
-  EXPECT_EQ(meta({{"charset", "utf-8"}}).render(),
-            "<meta charset=\"utf-8\" />");
+TEST(HTML_writer, void_elements_self_closing) {
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.br();
+    EXPECT_EQ(document.str(), "<br />");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.hr();
+    EXPECT_EQ(document.str(), "<hr />");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.img().attribute("src", "test.png").attribute("alt", "Test");
+    EXPECT_EQ(document.str(), "<img src=\"test.png\" alt=\"Test\" />");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.input().attribute("type", "text").attribute("name", "test");
+    EXPECT_EQ(document.str(), "<input type=\"text\" name=\"test\" />");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.meta().attribute("charset", "utf-8");
+    EXPECT_EQ(document.str(), "<meta charset=\"utf-8\" />");
+  }
 }
 
-TEST(HTML_encoder, single_text_node_inline_rendering) {
-  using namespace sourcemeta::core::html;
-
-  EXPECT_EQ(p("Hello").render(), "<p>Hello</p>");
-  EXPECT_EQ(h1("Title").render(), "<h1>Title</h1>");
-  EXPECT_EQ(span("Text").render(), "<span>Text</span>");
+TEST(HTML_writer, single_text_node_inline_rendering) {
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.p("Hello");
+    EXPECT_EQ(document.str(), "<p>Hello</p>");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.h1("Title");
+    EXPECT_EQ(document.str(), "<h1>Title</h1>");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.span("Text");
+    EXPECT_EQ(document.str(), "<span>Text</span>");
+  }
 }
 
-TEST(HTML_encoder, multiple_children_block_rendering) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, multiple_children_block_rendering) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.text("Text 1");
+  document.span("Text 2");
+  document.close();
 
-  std::ostringstream result;
-  result << div("Text 1", span("Text 2"));
-
-  EXPECT_EQ(result.str(), "<div>Text 1<span>Text 2</span></div>");
+  EXPECT_EQ(document.str(), "<div>Text 1<span>Text 2</span></div>");
 }
 
-TEST(HTML_encoder, attribute_value_escaping) {
-  using namespace sourcemeta::core::html;
-
-  std::ostringstream result;
-  result << div({{"title", "Alert: \"Click here\" & 'submit'"},
-                 {"data-value", "<script>alert('xss')</script>"}},
-                "Content");
+TEST(HTML_writer, attribute_value_escaping) {
+  sourcemeta::core::HTMLWriter document;
+  document.div()
+      .attribute("title", "Alert: \"Click here\" & 'submit'")
+      .attribute("data-value", "<script>alert('xss')</script>");
+  document.text("Content");
+  document.close();
 
   EXPECT_EQ(
-      result.str(),
+      document.str(),
       "<div title=\"Alert: &quot;Click here&quot; &amp; &#39;submit&#39;\" "
       "data-value=\"&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;\">"
       "Content</div>");
 }
 
-TEST(HTML_encoder, empty_attribute_values) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, empty_attribute_values) {
+  sourcemeta::core::HTMLWriter document;
+  document.input()
+      .attribute("type", "text")
+      .attribute("value", "")
+      .attribute("placeholder", "Enter text");
 
-  std::ostringstream result;
-  result << input(
-      {{"type", "text"}, {"value", ""}, {"placeholder", "Enter text"}});
-
-  EXPECT_EQ(result.str(),
+  EXPECT_EQ(document.str(),
             "<input type=\"text\" value=\"\" placeholder=\"Enter text\" />");
 }
 
-TEST(HTML_encoder, nested_html_elements) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, nested_html_elements) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.p("First paragraph");
+  document.div().attribute("class", "nested");
+  document.span("Nested content");
+  document.strong("Important");
+  document.close();
+  document.p("Last paragraph");
+  document.close();
 
-  std::ostringstream result;
-  result << div(
-      p("First paragraph"),
-      div({{"class", "nested"}}, span("Nested content"), strong("Important")),
-      p("Last paragraph"));
-
-  EXPECT_EQ(result.str(),
+  EXPECT_EQ(document.str(),
             "<div><p>First paragraph</p><div class=\"nested\">"
             "<span>Nested content</span><strong>Important</strong></div>"
             "<p>Last paragraph</p></div>");
 }
 
-TEST(HTML_encoder, complex_table_structure) {
-  using namespace sourcemeta::core::html;
-
-  std::ostringstream result;
-  result << table(thead(tr(th("Name"), th("Age"), th("City"))),
-                  tbody(tr(td("John"), td("25"), td("NYC")),
-                        tr(td("Jane"), td("30"), td("LA"))),
-                  tfoot(tr(td({{"colspan", "3"}}, "2 rows total"))));
+TEST(HTML_writer, complex_table_structure) {
+  sourcemeta::core::HTMLWriter document;
+  document.table();
+  document.thead();
+  document.tr();
+  document.th("Name");
+  document.th("Age");
+  document.th("City");
+  document.close();
+  document.close();
+  document.tbody();
+  document.tr();
+  document.td("John");
+  document.td("25");
+  document.td("NYC");
+  document.close();
+  document.tr();
+  document.td("Jane");
+  document.td("30");
+  document.td("LA");
+  document.close();
+  document.close();
+  document.tfoot();
+  document.tr();
+  document.td().attribute("colspan", "3");
+  document.text("2 rows total");
+  document.close();
+  document.close();
+  document.close();
+  document.close();
 
   std::string expected =
       "<table><thead><tr><th>Name</th><th>Age</th><th>City</th></tr></thead>"
@@ -186,23 +253,40 @@ TEST(HTML_encoder, complex_table_structure) {
       "<tfoot><tr><td colspan=\"3\">2 rows "
       "total</td></tr></tfoot></table>";
 
-  EXPECT_EQ(result.str(), expected);
+  EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_encoder, form_elements_combination) {
-  using namespace sourcemeta::core::html;
-
-  std::ostringstream result;
-  result << form(
-      {{"action", "/submit"}, {"method", "post"}},
-      fieldset(legend("Personal Info"), label({{"for", "name"}}, "Name:"),
-               input({{"type", "text"}, {"id", "name"}, {"name", "name"}}),
-               label({{"for", "age"}}, "Age:"),
-               select({{"id", "age"}, {"name", "age"}},
-                      option({{"value", ""}}, "Select age"),
-                      option({{"value", "18-25"}}, "18-25"),
-                      option({{"value", "26-35"}}, "26-35"))),
-      button({{"type", "submit"}}, "Submit"));
+TEST(HTML_writer, form_elements_combination) {
+  sourcemeta::core::HTMLWriter document;
+  document.form().attribute("action", "/submit").attribute("method", "post");
+  document.fieldset();
+  document.legend("Personal Info");
+  document.label().attribute("for", "name");
+  document.text("Name:");
+  document.close();
+  document.input()
+      .attribute("type", "text")
+      .attribute("id", "name")
+      .attribute("name", "name");
+  document.label().attribute("for", "age");
+  document.text("Age:");
+  document.close();
+  document.select().attribute("id", "age").attribute("name", "age");
+  document.option().attribute("value", "");
+  document.text("Select age");
+  document.close();
+  document.option().attribute("value", "18-25");
+  document.text("18-25");
+  document.close();
+  document.option().attribute("value", "26-35");
+  document.text("26-35");
+  document.close();
+  document.close();
+  document.close();
+  document.button().attribute("type", "submit");
+  document.text("Submit");
+  document.close();
+  document.close();
 
   std::string expected = "<form action=\"/submit\" method=\"post\">"
                          "<fieldset><legend>Personal Info</legend>"
@@ -216,37 +300,38 @@ TEST(HTML_encoder, form_elements_combination) {
                          "</select></fieldset>"
                          "<button type=\"submit\">Submit</button></form>";
 
-  EXPECT_EQ(result.str(), expected);
+  EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_encoder, unicode_and_special_characters) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, unicode_and_special_characters) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Unicode: 你好世界 🌍 ñáéíóú");
 
-  std::ostringstream result;
-  result << p("Unicode: 你好世界 🌍 ñáéíóú");
-
-  EXPECT_EQ(result.str(), "<p>Unicode: 你好世界 🌍 ñáéíóú</p>");
+  EXPECT_EQ(document.str(), "<p>Unicode: 你好世界 🌍 ñáéíóú</p>");
 }
 
-TEST(HTML_encoder, whitespace_handling) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, whitespace_handling) {
+  sourcemeta::core::HTMLWriter document;
+  document.pre("  Whitespace\n  should be\n    preserved  ");
 
-  std::ostringstream result;
-  result << pre("  Whitespace\n  should be\n    preserved  ");
-
-  EXPECT_EQ(result.str(),
+  EXPECT_EQ(document.str(),
             "<pre>  Whitespace\n  should be\n    preserved  </pre>");
 }
 
-TEST(HTML_encoder, mixed_raw_and_escaped_complex) {
-  using namespace sourcemeta::core::html;
-
-  std::ostringstream result;
-  result << article(h2("Article Title & <subtitle>"),
-                    p("Normal text with ", em("emphasis"), " and ",
-                      raw("<mark>highlighted</mark>"), " parts."),
-                    raw("<!-- Raw HTML comment -->"),
-                    p("More content & special chars"));
+TEST(HTML_writer, mixed_raw_and_escaped_complex) {
+  sourcemeta::core::HTMLWriter document;
+  document.article();
+  document.h2("Article Title & <subtitle>");
+  document.p();
+  document.text("Normal text with ");
+  document.em("emphasis");
+  document.text(" and ");
+  document.raw("<mark>highlighted</mark>");
+  document.text(" parts.");
+  document.close();
+  document.raw("<!-- Raw HTML comment -->");
+  document.p("More content & special chars");
+  document.close();
 
   std::string expected = "<article>"
                          "<h2>Article Title &amp; &lt;subtitle&gt;</h2>"
@@ -256,19 +341,37 @@ TEST(HTML_encoder, mixed_raw_and_escaped_complex) {
                          "<p>More content &amp; special chars</p>"
                          "</article>";
 
-  EXPECT_EQ(result.str(), expected);
+  EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_encoder, semantic_html5_elements) {
-  using namespace sourcemeta::core::html;
-
-  std::ostringstream result;
-  result << main({{"role", "main"}},
-                 header(nav(ul(li(a({{"href", "/"}}, "Home")),
-                               li(a({{"href", "/about"}}, "About"))))),
-                 section(article(h1("Article Title"), p("Article content")),
-                         aside("Sidebar content")),
-                 footer("Copyright 2024"));
+TEST(HTML_writer, semantic_html5_elements) {
+  sourcemeta::core::HTMLWriter document;
+  document.main().attribute("role", "main");
+  document.header();
+  document.nav();
+  document.ul();
+  document.li();
+  document.a().attribute("href", "/");
+  document.text("Home");
+  document.close();
+  document.close();
+  document.li();
+  document.a().attribute("href", "/about");
+  document.text("About");
+  document.close();
+  document.close();
+  document.close();
+  document.close();
+  document.close();
+  document.section();
+  document.article();
+  document.h1("Article Title");
+  document.p("Article content");
+  document.close();
+  document.aside("Sidebar content");
+  document.close();
+  document.footer("Copyright 2024");
+  document.close();
 
   std::string expected = "<main role=\"main\">"
                          "<header><nav><ul>"
@@ -283,163 +386,107 @@ TEST(HTML_encoder, semantic_html5_elements) {
                          "<footer>Copyright 2024</footer>"
                          "</main>";
 
-  EXPECT_EQ(result.str(), expected);
+  EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_encoder, attribute_order_consistency) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, attribute_order_consistency) {
+  sourcemeta::core::HTMLWriter document;
+  document.div()
+      .attribute("z-index", "1")
+      .attribute("class", "test")
+      .attribute("id", "main");
+  document.text("Content");
+  document.close();
 
-  std::ostringstream result;
-  result << div({{"z-index", "1"}, {"class", "test"}, {"id", "main"}},
-                "Content");
-
-  EXPECT_EQ(result.str(),
+  EXPECT_EQ(document.str(),
             "<div z-index=\"1\" class=\"test\" id=\"main\">Content</div>");
 }
 
-TEST(HTML_encoder, zero_length_strings) {
-  using namespace sourcemeta::core::html;
-
-  EXPECT_EQ(p("").render(), "<p></p>");
-  EXPECT_EQ(span({{"class", ""}}, "").render(), "<span class=\"\"></span>");
+TEST(HTML_writer, zero_length_strings) {
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.p("");
+    EXPECT_EQ(document.str(), "<p></p>");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.span().attribute("class", "");
+    document.text("");
+    document.close();
+    EXPECT_EQ(document.str(), "<span class=\"\"></span>");
+  }
 }
 
-TEST(HTML_encoder, push_back_string) {
-  using namespace sourcemeta::core;
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, escaped_text_in_container) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.text("Safe: <script>alert('xss')</script>");
+  document.close();
 
-  auto element = div();
-  element.push_back(std::string("Hello World"));
-
-  EXPECT_EQ(element.render(), "<div>Hello World</div>");
+  EXPECT_EQ(document.str(),
+            "<div>Safe: &lt;script&gt;alert(&#39;xss&#39;)"
+            "&lt;/script&gt;</div>");
 }
 
-TEST(HTML_encoder, push_back_string_chaining) {
-  using namespace sourcemeta::core::html;
-
-  auto element = div()
-                     .push_back(std::string("First"))
-                     .push_back(std::string(" "))
-                     .push_back(std::string("Second"));
-
-  EXPECT_EQ(element.render(), "<div>First Second</div>");
+TEST(HTML_writer, template_element_tag_name) {
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.template_("Content");
+    EXPECT_EQ(document.str(), "<template>Content</template>");
+  }
+  {
+    sourcemeta::core::HTMLWriter document;
+    document.template_().attribute("id", "my-template");
+    document.text("Content");
+    document.close();
+    EXPECT_EQ(document.str(),
+              "<template id=\"my-template\">Content</template>");
+  }
 }
 
-TEST(HTML_encoder, push_back_html_element) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, chaining) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.span().text("hello").close();
+  document.close();
 
-  auto element = div();
-  element.push_back(span("Nested span"));
-
-  EXPECT_EQ(element.render(), "<div><span>Nested span</span></div>");
+  EXPECT_EQ(document.str(), "<div><span>hello</span></div>");
 }
 
-TEST(HTML_encoder, push_back_html_element_chaining) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, write_to_stream) {
+  sourcemeta::core::HTMLWriter document;
+  document.p("Hello");
 
-  auto element = div()
-                     .push_back(h1("Title"))
-                     .push_back(p("Paragraph"))
-                     .push_back(span("Footer"));
+  std::ostringstream output;
+  document.write(output);
 
-  EXPECT_EQ(element.render(),
-            "<div><h1>Title</h1><p>Paragraph</p><span>Footer</span></div>");
+  EXPECT_EQ(output.str(), "<p>Hello</p>");
 }
 
-TEST(HTML_encoder, push_back_raw_html) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, reserve_does_not_change_output) {
+  sourcemeta::core::HTMLWriter document;
+  document.reserve(1024);
+  document.div("Content");
 
-  auto element = div();
-  element.push_back(raw("<strong>Bold text</strong>"));
-
-  EXPECT_EQ(element.render(), "<div><strong>Bold text</strong></div>");
+  EXPECT_EQ(document.str(), "<div>Content</div>");
 }
 
-TEST(HTML_encoder, push_back_raw_html_chaining) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, void_element_with_attributes) {
+  sourcemeta::core::HTMLWriter document;
+  document.div();
+  document.img().attribute("src", "photo.png").attribute("alt", "A photo");
+  document.close();
 
-  auto element = div()
-                     .push_back(raw("<em>Italic</em>"))
-                     .push_back(std::string(" and "))
-                     .push_back(raw("<strong>Bold</strong>"));
-
-  EXPECT_EQ(element.render(),
-            "<div><em>Italic</em> and <strong>Bold</strong></div>");
+  EXPECT_EQ(document.str(),
+            "<div><img src=\"photo.png\" alt=\"A photo\" /></div>");
 }
 
-TEST(HTML_encoder, push_back_mixed_content) {
-  using namespace sourcemeta::core::html;
+TEST(HTML_writer, attribute_chaining) {
+  sourcemeta::core::HTMLWriter document;
+  document.a().attribute("href", "/test").attribute("class", "link");
+  document.text("Click");
+  document.close();
 
-  auto element = div();
-  element.push_back(std::string("Text: "))
-      .push_back(span("Nested"))
-      .push_back(std::string(" & "))
-      .push_back(raw("<em>Raw HTML</em>"));
-
-  EXPECT_EQ(element.render(),
-            "<div>Text: <span>Nested</span> &amp; <em>Raw HTML</em></div>");
-}
-
-TEST(HTML_encoder, push_back_with_attributes) {
-  using namespace sourcemeta::core::html;
-
-  auto element = div({{"class", "container"}, {"id", "main"}});
-  element.push_back(std::string("Content")).push_back(p("Paragraph"));
-
-  EXPECT_EQ(
-      element.render(),
-      "<div class=\"container\" id=\"main\">Content<p>Paragraph</p></div>");
-}
-
-TEST(HTML_encoder, push_back_to_existing_children) {
-  using namespace sourcemeta::core::html;
-
-  auto element = div("Initial content");
-  element.push_back(std::string(" ")).push_back(span("Added span"));
-
-  EXPECT_EQ(element.render(),
-            "<div>Initial content <span>Added span</span></div>");
-}
-
-TEST(HTML_encoder, push_back_complex_nesting) {
-  using namespace sourcemeta::core::html;
-
-  auto list = ul();
-  list.push_back(li("Item 1"))
-      .push_back(li().push_back(std::string("Item 2 with "))
-                     .push_back(strong("emphasis")))
-      .push_back(li().push_back(raw("<em>Item 3</em>")));
-
-  EXPECT_EQ(list.render(),
-            "<ul><li>Item 1</li><li>Item 2 with <strong>emphasis</strong></li>"
-            "<li><em>Item 3</em></li></ul>");
-}
-
-TEST(HTML_encoder, push_back_escaped_content) {
-  using namespace sourcemeta::core::html;
-
-  auto element = div();
-  element.push_back(std::string("Safe: <script>alert('xss')</script>"));
-
-  EXPECT_EQ(
-      element.render(),
-      "<div>Safe: &lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;</div>");
-}
-
-TEST(HTML_encoder, push_back_return_reference) {
-  using namespace sourcemeta::core;
-  using namespace sourcemeta::core::html;
-
-  auto element = div();
-  auto &ref = element.push_back(std::string("test"));
-
-  EXPECT_EQ(&ref, &element);
-}
-
-TEST(HTML_encoder, template_element_tag_name) {
-  using namespace sourcemeta::core::html;
-
-  EXPECT_EQ(template_("Content").render(), "<template>Content</template>");
-  EXPECT_EQ(template_({{"id", "my-template"}}, "Content").render(),
-            "<template id=\"my-template\">Content</template>");
+  EXPECT_EQ(document.str(),
+            "<a href=\"/test\" class=\"link\">Click</a>");
 }
