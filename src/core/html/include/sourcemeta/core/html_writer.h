@@ -5,87 +5,15 @@
 #include <sourcemeta/core/html_export.h>
 #endif
 
+#include <sourcemeta/core/html_buffer.h>
 #include <sourcemeta/core/html_escape.h>
 #include <sourcemeta/core/preprocessor.h>
 
 #include <cassert>     // assert
-#include <cstring>     // std::memcpy
-#include <iostream>    // std::ostream
-#include <string>      // std::string
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
-
-#ifndef DOXYGEN
-// A fast append-only string buffer. Pre-allocates via resize() and writes
-// through a raw pointer cursor, avoiding per-append bounds checks.
-// Grows by doubling when capacity is exhausted.
-class SOURCEMETA_CORE_HTML_EXPORT FastStringBuffer {
-public:
-  SOURCEMETA_FORCEINLINE inline auto reserve(const std::size_t bytes) -> void {
-    this->buffer_.resize(bytes);
-    this->cursor_ = this->buffer_.data();
-    this->end_ = this->cursor_ + bytes;
-  }
-
-  SOURCEMETA_FORCEINLINE inline auto append(const char character) -> void {
-    if (this->cursor_ >= this->end_) [[unlikely]] {
-      this->grow(1);
-    }
-
-    *this->cursor_ = character;
-    ++this->cursor_;
-  }
-
-  SOURCEMETA_FORCEINLINE inline auto append(const std::string_view data)
-      -> void {
-    const auto length{data.size()};
-    if (length == 0) {
-      return;
-    }
-
-    const auto remaining{
-        static_cast<std::size_t>(this->end_ - this->cursor_)};
-    if (remaining < length) [[unlikely]] {
-      this->grow(length);
-    }
-
-    std::memcpy(this->cursor_, data.data(), length);
-    this->cursor_ += length;
-  }
-
-  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str() -> const
-      std::string & {
-    if (this->cursor_) {
-      this->buffer_.resize(
-          static_cast<std::size_t>(this->cursor_ - this->buffer_.data()));
-      this->cursor_ = nullptr;
-      this->end_ = nullptr;
-    }
-
-    return this->buffer_;
-  }
-
-  auto write(std::ostream &stream) -> void;
-
-private:
-  auto grow(std::size_t needed) -> void;
-
-// Exporting symbols that depends on the standard C++ library is considered
-// safe.
-// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
-#if defined(_MSC_VER)
-#pragma warning(disable : 4251)
-#endif
-  std::string buffer_;
-#if defined(_MSC_VER)
-#pragma warning(default : 4251)
-#endif
-  char *cursor_{nullptr};
-  char *end_{nullptr};
-};
-#endif
 
 /// @ingroup html
 /// A streaming HTML writer that renders directly to a string buffer.
@@ -523,7 +451,7 @@ private:
 
   auto flush_open_tag() -> void;
 
-  FastStringBuffer buffer_;
+  HTMLBuffer buffer_;
   std::vector<std::string_view> tag_stack_;
   bool tag_open_{false};
   bool tag_open_is_void_{false};

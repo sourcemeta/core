@@ -1,5 +1,5 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME html
-  PRIVATE_HEADERS escape.h writer.h
+  PRIVATE_HEADERS buffer.h escape.h writer.h
   SOURCES escape.cc writer.cc)
 
 if(SOURCEMETA_CORE_INSTALL)

@@ -4,7 +4,7 @@
 
 namespace sourcemeta::core {
 
-auto FastStringBuffer::grow(const std::size_t needed) -> void {
+auto HTMLBuffer::grow(const std::size_t needed) -> void {
   const auto current_size{
       this->cursor_ ? static_cast<std::size_t>(this->cursor_ -
                                                 this->buffer_.data())
@@ -20,7 +20,7 @@ auto FastStringBuffer::grow(const std::size_t needed) -> void {
   this->end_ = this->buffer_.data() + new_capacity;
 }
 
-auto FastStringBuffer::write(std::ostream &stream) -> void {
+auto HTMLBuffer::write(std::ostream &stream) -> void {
   if (this->cursor_) {
     const auto size{
         static_cast<std::size_t>(this->cursor_ - this->buffer_.data())};

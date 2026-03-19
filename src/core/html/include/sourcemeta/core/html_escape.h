@@ -5,6 +5,8 @@
 #include <sourcemeta/core/html_export.h>
 #endif
 
+#include <sourcemeta/core/html_buffer.h>
+
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -40,16 +42,10 @@ auto html_escape(std::string &text) -> void;
 SOURCEMETA_CORE_HTML_EXPORT
 auto html_escape_append(std::string &output, std::string_view input) -> void;
 
-#ifndef DOXYGEN
-// Forward declaration
-class FastStringBuffer;
-
 /// @ingroup html
-/// Append the HTML-escaped form of `input` directly to a FastStringBuffer.
+/// Append the HTML-escaped form of `input` directly to a buffer.
 SOURCEMETA_CORE_HTML_EXPORT
-auto html_escape_append(FastStringBuffer &output, std::string_view input)
-    -> void;
-#endif
+auto html_escape_append(HTMLBuffer &output, std::string_view input) -> void;
 
 } // namespace sourcemeta::core
 

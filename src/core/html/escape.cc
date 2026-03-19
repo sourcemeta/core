@@ -1,5 +1,4 @@
 #include <sourcemeta/core/html_escape.h>
-#include <sourcemeta/core/html_writer.h>
 
 #include <string> // std::string
 
@@ -141,7 +140,7 @@ auto html_escape_append(std::string &output, const std::string_view input)
   }
 }
 
-auto html_escape_append(FastStringBuffer &output, const std::string_view input)
+auto html_escape_append(HTMLBuffer &output, const std::string_view input)
     -> void {
   if (!needs_escape(input)) {
     output.append(input);
