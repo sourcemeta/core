@@ -28,6 +28,10 @@ if(SOURCEMETA_CORE_URITEMPLATE)
   list(APPEND BENCHMARK_SOURCES uritemplate.cc)
 endif()
 
+if(SOURCEMETA_CORE_HTML)
+  list(APPEND BENCHMARK_SOURCES html.cc)
+endif()
+
 if(BENCHMARK_SOURCES)
   sourcemeta_googlebenchmark(NAMESPACE sourcemeta PROJECT core
     SOURCES ${BENCHMARK_SOURCES})
@@ -67,6 +71,11 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_URITEMPLATE)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::uritemplate)
+  endif()
+
+  if(SOURCEMETA_CORE_HTML)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::html)
   endif()
 
   add_custom_target(benchmark_all
