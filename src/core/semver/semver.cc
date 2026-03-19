@@ -32,7 +32,11 @@ auto parse_numeric_identifier(const std::string_view input,
     return NumericParseResult::invalid;
   }
 
-  const auto start = position;
+  if (input[position] == '0' && position + 1 < input.size() &&
+      is_digit(input[position + 1])) {
+    return NumericParseResult::invalid;
+  }
+
   std::uint64_t value = 0;
   while (position < input.size() && is_digit(input[position])) {
     const auto digit = static_cast<std::uint64_t>(input[position] - '0');
@@ -43,10 +47,6 @@ auto parse_numeric_identifier(const std::string_view input,
 
     value = value * 10 + digit;
     ++position;
-  }
-
-  if (position - start > 1 && input[start] == '0') {
-    return NumericParseResult::invalid;
   }
 
   result = value;

@@ -56,23 +56,23 @@ TEST(SemVer_parse_error, empty_minor) { EXPECT_SEMVER_ERROR("1..3", 3); }
 TEST(SemVer_parse_error, empty_patch) { EXPECT_SEMVER_ERROR("1.2.", 5); }
 
 TEST(SemVer_parse_error, leading_zero_major) {
-  EXPECT_SEMVER_ERROR("01.2.3", 3);
+  EXPECT_SEMVER_ERROR("01.2.3", 1);
 }
 
 TEST(SemVer_parse_error, leading_zero_minor) {
-  EXPECT_SEMVER_ERROR("1.02.3", 5);
+  EXPECT_SEMVER_ERROR("1.02.3", 3);
 }
 
 TEST(SemVer_parse_error, leading_zero_patch) {
-  EXPECT_SEMVER_ERROR("1.2.03", 7);
+  EXPECT_SEMVER_ERROR("1.2.03", 5);
 }
 
 TEST(SemVer_parse_error, leading_zeros_all) {
-  EXPECT_SEMVER_ERROR("01.02.03", 3);
+  EXPECT_SEMVER_ERROR("01.02.03", 1);
 }
 
 TEST(SemVer_parse_error, leading_zero_major_large) {
-  EXPECT_SEMVER_ERROR("012.2.3", 4);
+  EXPECT_SEMVER_ERROR("012.2.3", 1);
 }
 
 TEST(SemVer_parse_error, v_prefix) { EXPECT_SEMVER_ERROR("v1.2.3", 1); }
@@ -242,4 +242,8 @@ TEST(SemVer_parse_error, overflow_major_boundary) {
 TEST(SemVer_parse_error, overflow_from_returns_nullopt) {
   EXPECT_FALSE(
       sourcemeta::core::SemVer::from("99999999999999999999.0.0").has_value());
+}
+
+TEST(SemVer_parse_error, leading_zero_long_is_parse_error_not_overflow) {
+  EXPECT_SEMVER_ERROR("09999999999999999999999.0.0", 1);
 }
