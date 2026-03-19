@@ -137,7 +137,12 @@ private:
 #endif
   bool self_closing;
 
-  [[nodiscard]] auto render(const HTMLNode &child_element) const -> std::string;
+  auto render_to(std::ostream &output_stream) const -> void;
+  auto render_to(std::ostream &output_stream,
+                 const HTMLNode &child_element) const -> void;
+  auto render_to(std::string &output) const -> void;
+  auto render_to(std::string &output, const HTMLNode &child_element) const
+      -> void;
 };
 
 } // namespace sourcemeta::core
