@@ -40,8 +40,7 @@ public:
       return;
     }
 
-    const auto remaining{
-        static_cast<std::size_t>(this->end_ - this->cursor_)};
+    const auto remaining{static_cast<std::size_t>(this->end_ - this->cursor_)};
     if (remaining < length) [[unlikely]] {
       this->grow(length);
     }
@@ -50,8 +49,8 @@ public:
     this->cursor_ += length;
   }
 
-  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str() -> const
-      std::string & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str()
+      -> const std::string & {
     if (this->cursor_) {
       this->buffer_.resize(
           static_cast<std::size_t>(this->cursor_ - this->buffer_.data()));

@@ -50,8 +50,9 @@ public:
 
   /// Add an attribute to the currently open tag. Must be called
   /// immediately after an element method and before any content.
-  SOURCEMETA_FORCEINLINE inline auto
-  attribute(std::string_view name, std::string_view value) -> HTMLWriter & {
+  SOURCEMETA_FORCEINLINE inline auto attribute(std::string_view name,
+                                               std::string_view value)
+      -> HTMLWriter & {
     assert(this->tag_open_);
     this->buffer_.append(" ");
     this->buffer_.append(name);
@@ -78,8 +79,8 @@ public:
   }
 
   /// Get the rendered HTML string
-  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str() -> const
-      std::string & {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto str()
+      -> const std::string & {
     this->flush_open_tag();
     return this->buffer_.str();
   }

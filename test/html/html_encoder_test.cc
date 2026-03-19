@@ -15,8 +15,8 @@ TEST(HTML_writer, example_1) {
   document.close();
 
   EXPECT_EQ(document.str(), "<div><h1>Title</h1><ul "
-                             "class=\"my-list\"><li>foo</li><li>bar</li>"
-                             "<li>baz</li></ul><p>Footer</p></div>");
+                            "class=\"my-list\"><li>foo</li><li>bar</li>"
+                            "<li>baz</li></ul><p>Footer</p></div>");
 }
 
 TEST(HTML_writer, escaped_text_content) {
@@ -24,10 +24,9 @@ TEST(HTML_writer, escaped_text_content) {
   document.p(
       "This contains <dangerous> & \"potentially\" 'harmful' characters");
 
-  EXPECT_EQ(
-      document.str(),
-      "<p>This contains &lt;dangerous&gt; &amp; &quot;potentially&quot; "
-      "&#39;harmful&#39; characters</p>");
+  EXPECT_EQ(document.str(),
+            "<p>This contains &lt;dangerous&gt; &amp; &quot;potentially&quot; "
+            "&#39;harmful&#39; characters</p>");
 }
 
 TEST(HTML_writer, raw_html_basic) {
@@ -56,9 +55,8 @@ TEST(HTML_writer, raw_html_mixed_with_escaped) {
   document.text(" & more safe text");
   document.close();
 
-  EXPECT_EQ(document.str(),
-            "<div>Safe text: &lt;script&gt;<em>raw italic</em> "
-            "&amp; more safe text</div>");
+  EXPECT_EQ(document.str(), "<div>Safe text: &lt;script&gt;<em>raw italic</em> "
+                            "&amp; more safe text</div>");
 }
 
 TEST(HTML_writer, raw_html_in_list) {
@@ -423,9 +421,8 @@ TEST(HTML_writer, escaped_text_in_container) {
   document.text("Safe: <script>alert('xss')</script>");
   document.close();
 
-  EXPECT_EQ(document.str(),
-            "<div>Safe: &lt;script&gt;alert(&#39;xss&#39;)"
-            "&lt;/script&gt;</div>");
+  EXPECT_EQ(document.str(), "<div>Safe: &lt;script&gt;alert(&#39;xss&#39;)"
+                            "&lt;/script&gt;</div>");
 }
 
 TEST(HTML_writer, template_element_tag_name) {
@@ -487,6 +484,5 @@ TEST(HTML_writer, attribute_chaining) {
   document.text("Click");
   document.close();
 
-  EXPECT_EQ(document.str(),
-            "<a href=\"/test\" class=\"link\">Click</a>");
+  EXPECT_EQ(document.str(), "<a href=\"/test\" class=\"link\">Click</a>");
 }
