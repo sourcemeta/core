@@ -32,9 +32,21 @@ namespace sourcemeta::core {
 /// The input string must outlive this object.
 class SOURCEMETA_CORE_SEMVER_EXPORT SemVer {
 public:
-  SemVer(std::string_view input);
+  enum class Mode : std::uint8_t {
+    Strict,
 
-  [[nodiscard]] static auto from(std::string_view input) noexcept
+    // Permits the following deviations on the version core only:
+    // - Optional "v" or "V" prefix (e.g. "v1.2.3")
+    // - Missing patch, defaulting to 0 (e.g. "1.2")
+    // - Missing minor and patch, defaulting to 0 (e.g. "1")
+    // - Combinations of the above (e.g. "v1", "v1.2")
+    Loose
+  };
+
+  SemVer(std::string_view input, Mode mode = Mode::Strict);
+
+  [[nodiscard]] static auto from(std::string_view input,
+                                 Mode mode = Mode::Strict) noexcept
       -> std::optional<SemVer>;
 
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto major() const noexcept

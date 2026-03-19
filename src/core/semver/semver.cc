@@ -234,12 +234,19 @@ auto compare_pre_release(const std::string_view left,
   return 0;
 }
 
-template <bool should_throw>
+template <bool should_throw, bool loose>
 auto parse_semver(const std::string_view input, std::uint64_t &major,
                   std::uint64_t &minor, std::uint64_t &patch,
                   std::string_view &pre_release, std::string_view &build)
     -> bool {
   std::size_t position = 0;
+
+  if constexpr (loose) {
+    if (position < input.size() &&
+        (input[position] == 'v' || input[position] == 'V')) {
+      ++position;
+    }
+  }
 
   const auto major_result = parse_numeric_identifier(input, position, major);
   if (major_result == NumericParseResult::overflow) {
@@ -258,7 +265,16 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
     return false;
   }
 
-  if (position >= input.size() || input[position] != '.') {
+  auto can_end_core = [&]() -> bool {
+    if (position >= input.size() || input[position] == '-' ||
+        input[position] == '+') {
+      return loose;
+    }
+
+    return input[position] == '.';
+  };
+
+  if (!can_end_core()) {
     if constexpr (should_throw) {
       throw sourcemeta::core::SemVerParseError(position + 1);
     }
@@ -266,50 +282,55 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
     return false;
   }
 
-  ++position;
+  if (position < input.size() && input[position] == '.') {
+    ++position;
 
-  const auto minor_result = parse_numeric_identifier(input, position, minor);
-  if (minor_result == NumericParseResult::overflow) {
-    if constexpr (should_throw) {
-      throw sourcemeta::core::SemVerOverflowError(position + 1);
+    const auto minor_result = parse_numeric_identifier(input, position, minor);
+    if (minor_result == NumericParseResult::overflow) {
+      if constexpr (should_throw) {
+        throw sourcemeta::core::SemVerOverflowError(position + 1);
+      }
+
+      return false;
     }
 
-    return false;
-  }
+    if (minor_result == NumericParseResult::invalid) {
+      if constexpr (should_throw) {
+        throw sourcemeta::core::SemVerParseError(position + 1);
+      }
 
-  if (minor_result == NumericParseResult::invalid) {
-    if constexpr (should_throw) {
-      throw sourcemeta::core::SemVerParseError(position + 1);
+      return false;
     }
 
-    return false;
-  }
+    if (!can_end_core()) {
+      if constexpr (should_throw) {
+        throw sourcemeta::core::SemVerParseError(position + 1);
+      }
 
-  if (position >= input.size() || input[position] != '.') {
-    if constexpr (should_throw) {
-      throw sourcemeta::core::SemVerParseError(position + 1);
+      return false;
     }
 
-    return false;
-  }
+    if (position < input.size() && input[position] == '.') {
+      ++position;
 
-  ++position;
+      const auto patch_result =
+          parse_numeric_identifier(input, position, patch);
+      if (patch_result == NumericParseResult::overflow) {
+        if constexpr (should_throw) {
+          throw sourcemeta::core::SemVerOverflowError(position + 1);
+        }
 
-  const auto patch_result = parse_numeric_identifier(input, position, patch);
-  if (patch_result == NumericParseResult::overflow) {
-    if constexpr (should_throw) {
-      throw sourcemeta::core::SemVerOverflowError(position + 1);
+        return false;
+      }
+
+      if (patch_result == NumericParseResult::invalid) {
+        if constexpr (should_throw) {
+          throw sourcemeta::core::SemVerParseError(position + 1);
+        }
+
+        return false;
+      }
     }
-
-    return false;
-  }
-
-  if (patch_result == NumericParseResult::invalid) {
-    if constexpr (should_throw) {
-      throw sourcemeta::core::SemVerParseError(position + 1);
-    }
-
-    return false;
   }
 
   if (position < input.size() && input[position] == '-') {
@@ -359,16 +380,32 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
 
 namespace sourcemeta::core {
 
-SemVer::SemVer(const std::string_view input) {
-  parse_semver<true>(input, this->major_, this->minor_, this->patch_,
-                     this->pre_release_, this->build_);
+SemVer::SemVer(const std::string_view input, const Mode mode) {
+  if (mode == Mode::Loose) {
+    parse_semver<true, true>(input, this->major_, this->minor_, this->patch_,
+                             this->pre_release_, this->build_);
+  } else {
+    parse_semver<true, false>(input, this->major_, this->minor_, this->patch_,
+                              this->pre_release_, this->build_);
+  }
 }
 
-auto SemVer::from(const std::string_view input) noexcept
+auto SemVer::from(const std::string_view input, const Mode mode) noexcept
     -> std::optional<SemVer> {
   SemVer result;
-  if (parse_semver<false>(input, result.major_, result.minor_, result.patch_,
-                          result.pre_release_, result.build_)) {
+  bool success = false;
+
+  if (mode == Mode::Loose) {
+    success = parse_semver<false, true>(input, result.major_, result.minor_,
+                                        result.patch_, result.pre_release_,
+                                        result.build_);
+  } else {
+    success = parse_semver<false, false>(input, result.major_, result.minor_,
+                                         result.patch_, result.pre_release_,
+                                         result.build_);
+  }
+
+  if (success) {
     return result;
   }
 
