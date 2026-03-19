@@ -3,45 +3,80 @@
 #include <sourcemeta/core/html.h>
 
 #include <string> // std::string, std::to_string
-#include <vector> // std::vector
 
-using namespace sourcemeta::core::html;
-
-static auto make_table() -> sourcemeta::core::HTML {
-  std::vector<sourcemeta::core::HTMLNode> row_nodes;
-  row_nodes.reserve(100000);
+static void write_table(sourcemeta::core::HTMLWriter &document) {
+  document.table().attribute("class", "file-table");
+  document.thead();
+  document.tr();
+  document.th("Name");
+  document.th("Size");
+  document.th("Date");
+  document.th("Owner");
+  document.th("Type");
+  document.th("Status");
+  document.close();
+  document.close();
+  document.tbody().attribute("class", "file-list");
   for (std::size_t index = 0; index < 100000; ++index) {
     auto row_str{std::to_string(index)};
-    row_nodes.emplace_back(
-        tr(td(a({{"href", "/file/" + row_str}},
-                i({{"class", "icon icon-file"}}, std::string("")),
-                span("file_" + row_str + ".json"))),
-           td(span({{"class", "size"}}, small("1.2 KB"))),
-           td(span({{"class", "date"}}, small("2025-01-15"))),
-           td(a({{"href", "/user/owner"}}, span("owner"))),
-           td(span({{"class", "type"}}, small("application/json"))),
-           td(div({{"class", "progress"}},
-                  div({{"class", "progress-bar"}, {"style", "width: 75%"}},
-                      std::string(""))))));
+    document.tr();
+    document.td();
+    document.a().attribute("href", "/file/" + row_str);
+    document.i().attribute("class", "icon icon-file");
+    document.close();
+    document.span("file_" + row_str + ".json");
+    document.close();
+    document.close();
+    document.td();
+    document.span().attribute("class", "size");
+    document.small("1.2 KB");
+    document.close();
+    document.close();
+    document.td();
+    document.span().attribute("class", "date");
+    document.small("2025-01-15");
+    document.close();
+    document.close();
+    document.td();
+    document.a().attribute("href", "/user/owner");
+    document.span("owner");
+    document.close();
+    document.close();
+    document.td();
+    document.span().attribute("class", "type");
+    document.small("application/json");
+    document.close();
+    document.close();
+    document.td();
+    document.div().attribute("class", "progress");
+    document.div()
+        .attribute("class", "progress-bar")
+        .attribute("style", "width: 75%");
+    document.close();
+    document.close();
+    document.close();
+    document.close();
   }
-
-  return table({{"class", "file-table"}},
-               thead(tr(th("Name"), th("Size"), th("Date"), th("Owner"),
-                        th("Type"), th("Status"))),
-               tbody({{"class", "file-list"}}, std::move(row_nodes)));
+  document.close();
+  document.close();
 }
 
 static void HTML_Build_Table_100000(benchmark::State &state) {
   for (auto _ : state) {
-    auto result{make_table()};
+    sourcemeta::core::HTMLWriter document;
+    document.reserve(100000 * 300);
+    write_table(document);
+    auto result{std::string(document.str())};
     benchmark::DoNotOptimize(result);
   }
 }
 
 static void HTML_Render_Table_100000(benchmark::State &state) {
-  const auto tree{make_table()};
+  sourcemeta::core::HTMLWriter document;
+  document.reserve(100000 * 300);
+  write_table(document);
   for (auto _ : state) {
-    auto result{tree.render()};
+    auto result{std::string(document.str())};
     benchmark::DoNotOptimize(result);
   }
 }

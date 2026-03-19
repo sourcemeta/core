@@ -427,3 +427,112 @@ TEST(HTML_escape, possessive_with_quotes_and_entities) {
   EXPECT_EQ(text,
             "Tom&#39;s &quot;Café&quot; &amp; Jerry&#39;s &lt;adventures&gt;");
 }
+
+TEST(HTML_escape_append_string, empty) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "");
+  EXPECT_EQ(output, "");
+}
+
+TEST(HTML_escape_append_string, no_escaping_needed) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "hello world");
+  EXPECT_EQ(output, "hello world");
+}
+
+TEST(HTML_escape_append_string, ampersand) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "a & b");
+  EXPECT_EQ(output, "a &amp; b");
+}
+
+TEST(HTML_escape_append_string, less_than) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "a < b");
+  EXPECT_EQ(output, "a &lt; b");
+}
+
+TEST(HTML_escape_append_string, greater_than) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "a > b");
+  EXPECT_EQ(output, "a &gt; b");
+}
+
+TEST(HTML_escape_append_string, double_quote) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "say \"hello\"");
+  EXPECT_EQ(output, "say &quot;hello&quot;");
+}
+
+TEST(HTML_escape_append_string, single_quote) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "it's");
+  EXPECT_EQ(output, "it&#39;s");
+}
+
+TEST(HTML_escape_append_string, all_special_characters) {
+  std::string output;
+  sourcemeta::core::html_escape_append(output, "&<>\"'");
+  EXPECT_EQ(output, "&amp;&lt;&gt;&quot;&#39;");
+}
+
+TEST(HTML_escape_append_string, appends_to_existing) {
+  std::string output = "prefix:";
+  sourcemeta::core::html_escape_append(output, "<tag>");
+  EXPECT_EQ(output, "prefix:&lt;tag&gt;");
+}
+
+TEST(HTML_escape_append_buffer, empty) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "");
+  EXPECT_EQ(buffer.str(), "");
+}
+
+TEST(HTML_escape_append_buffer, no_escaping_needed) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "hello world");
+  EXPECT_EQ(buffer.str(), "hello world");
+}
+
+TEST(HTML_escape_append_buffer, ampersand) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "a & b");
+  EXPECT_EQ(buffer.str(), "a &amp; b");
+}
+
+TEST(HTML_escape_append_buffer, less_than) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "a < b");
+  EXPECT_EQ(buffer.str(), "a &lt; b");
+}
+
+TEST(HTML_escape_append_buffer, greater_than) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "a > b");
+  EXPECT_EQ(buffer.str(), "a &gt; b");
+}
+
+TEST(HTML_escape_append_buffer, double_quote) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "say \"hello\"");
+  EXPECT_EQ(buffer.str(), "say &quot;hello&quot;");
+}
+
+TEST(HTML_escape_append_buffer, single_quote) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "it's");
+  EXPECT_EQ(buffer.str(), "it&#39;s");
+}
+
+TEST(HTML_escape_append_buffer, all_special_characters) {
+  sourcemeta::core::HTMLBuffer buffer;
+  sourcemeta::core::html_escape_append(buffer, "&<>\"'");
+  EXPECT_EQ(buffer.str(), "&amp;&lt;&gt;&quot;&#39;");
+}
+
+TEST(HTML_escape_append_buffer, with_reserve) {
+  sourcemeta::core::HTMLBuffer buffer;
+  buffer.reserve(1024);
+  sourcemeta::core::html_escape_append(buffer, "<script>alert('xss')</script>");
+  EXPECT_EQ(buffer.str(), "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;");
+}
