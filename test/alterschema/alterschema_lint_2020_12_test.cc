@@ -9665,14 +9665,13 @@ TEST(AlterSchema_lint_2020_12, object_oneof_required_not_required_6) {
       true);
 }
 
-TEST(AlterSchema_lint_2020_12, const_in_enum_1) {
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [1],
-    "const": 1,
-    "enum": [1, 2, 3]
+    "enum": []
   })JSON");
 
   LINT_AND_FIX(document, result, traces);
@@ -9681,22 +9680,22 @@ TEST(AlterSchema_lint_2020_12, const_in_enum_1) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [1],
-    "const": 1
+    "not": true
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, const_without_enum) {
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_2) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [1],
-    "const": "foo"
+    "enum": [1, 2]
   })JSON");
 
   LINT_AND_FIX(document, result, traces);
@@ -9705,22 +9704,22 @@ TEST(AlterSchema_lint_2020_12, const_without_enum) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [1],
-    "const": "foo"
+    "enum": [1, 2]
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, enum_without_const) {
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_3) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [1],
-    "enum": [1, 2, 3]
+    "type": "string"
   })JSON");
 
   LINT_AND_FIX(document, result, traces);
@@ -9729,25 +9728,196 @@ TEST(AlterSchema_lint_2020_12, enum_without_const) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [1],
-    "enum": [1, 2, 3]
+    "type": "string"
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, const_in_enum_4) {
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_4) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [{}],
     "properties": {
       "foo": {
-        "const": 1,
-        "enum": [1, 2, 3]
+        "enum": []
+      }
+    }
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "not": true
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_5) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "enum": []
+      },
+      "bar": {
+        "enum": []
+      },
+      "baz": {
+        "enum": [1, 2]
+      }
+    }
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "not": true
+      },
+      "bar": {
+        "not": true
+      },
+      "baz": {
+        "enum": [1, 2]
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_6) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "prefixItems": [
+      {
+        "enum": []
+      },
+      {
+        "type": "string"
+      }
+    ]
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "prefixItems": [
+      {
+        "not": true
+      },
+      {
+        "type": "string"
+      }
+    ]
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_7) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "properties": {
+      "arr": {
+        "type": "array",
+        "items": {
+          "x-note": "placeholder",
+          "enum": []
+        }
+      }
+    }
+  })JSON");
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [[]],
+    "properties": {
+      "arr": {
+        "type": "array",
+        "items": {
+          "x-note": "placeholder",
+          "not": true
+        }
+      }
+    }
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_8) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [1],
+    "enum": {}
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [1],
+    "enum": {}
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_9) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "not": {
+          "enum": []
+        }
       }
     }
   })JSON");
@@ -9758,12 +9928,14 @@ TEST(AlterSchema_lint_2020_12, const_in_enum_4) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [{}],
     "properties": {
       "foo": {
-        "const": 1
+        "not": {
+          "not": true
+        }
       }
     }
   })JSON");
@@ -9771,16 +9943,18 @@ TEST(AlterSchema_lint_2020_12, const_in_enum_4) {
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, const_in_enum_edge_case_preserves_siblings) {
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_10) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://example.com/schemas/my-schema",
-    "description": "Edge case schema",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [{}],
-    "title": "Edge Case Schema",
-    "x-custom-annotation": "should not be deleted",
-    "const": 1,
-    "enum": [1, 2, 3]
+    "$defs": {
+      "A": {
+        "enum": []
+      }
+    },
+    "$ref": "#/$defs/A"
   })JSON");
 
   LINT_AND_FIX(document, result, traces);
@@ -9789,57 +9963,151 @@ TEST(AlterSchema_lint_2020_12, const_in_enum_edge_case_preserves_siblings) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://example.com/schemas/my-schema",
-    "description": "Edge case schema",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [{}],
-    "title": "Edge Case Schema",
-    "x-custom-annotation": "should not be deleted",
-    "const": 1
+    "$defs": {
+      "A": {
+        "not": true
+      }
+    },
+    "$ref": "#/$defs/A"
   })JSON");
 
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, const_not_in_enum_1) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_11) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
-    "examples": [1],
-    "const": 1,
-    "enum": [2, 3]
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "$defs": {
+      "A": {
+        "enum": [],
+        "$defs": {
+          "inner": { "type": "string" }
+        }
+      }
+    },
+    "$ref": "#/$defs/A/$defs/inner"
   })JSON");
 
-  LINT_WITHOUT_FIX(document, result, traces);
+  LINT_AND_FIX(document, result, traces);
 
-  EXPECT_FALSE(result.first);
-  EXPECT_EQ(traces.size(), 1);
-  EXPECT_LINT_TRACE(traces, 0, "", "const_not_in_enum",
-                    "Do not set the `const` and `enum` keyword at the same "
-                    "time, mainly when their values diverge",
-                    false);
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "$defs": {
+      "A": {
+        "$defs": {
+          "inner": { "type": "string" }
+        },
+        "not": true
+      }
+    },
+    "$ref": "#/$defs/A/$defs/inner"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_lint_2020_12, const_not_in_enum_2) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_12) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Test",
-    "description": "Test description",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "$defs": {
+      "A": {
+        "$id": "https://example.com/schemas/A",
+        "enum": []
+      }
+    },
+    "$ref": "https://example.com/schemas/A"
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "$defs": {
+      "A": {
+        "$id": "https://example.com/schemas/A",
+        "not": true
+      }
+    },
+    "$ref": "https://example.com/schemas/A"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_13) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
     "examples": [{}],
     "properties": {
       "foo": {
-        "const": 1,
-        "enum": [2, 3]
+        "x-note": "placeholder",
+        "enum": []
       }
     }
   })JSON");
 
-  LINT_WITHOUT_FIX(document, result, traces);
+  LINT_AND_FIX(document, result, traces);
 
-  EXPECT_FALSE(result.first);
-  EXPECT_EQ(traces.size(), 1);
-  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "const_not_in_enum",
-                    "Do not set the `const` and `enum` keyword at the same "
-                    "time, mainly when their values diverge",
-                    false);
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "x-note": "placeholder",
+        "not": true
+      }
+    }
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, forbid_empty_enum_14) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "not": { "type": "string" },
+    "enum": []
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Example",
+    "description": "Example schema",
+    "examples": [{}],
+    "not": true
+  })JSON");
+
+  EXPECT_EQ(document, expected);
 }
