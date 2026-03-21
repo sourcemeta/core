@@ -10106,8 +10106,7 @@ TEST(AlterSchema_lint_2020_12, forbid_empty_enum_14) {
     "title": "Example",
     "description": "Example schema",
     "examples": [{}],
-    "not": { "type": "string" },
-    "enum": []
+    "not": true
   })JSON");
 
   EXPECT_EQ(document, expected);
