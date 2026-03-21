@@ -23,8 +23,7 @@ public:
                           Vocabularies::Known::JSON_Schema_Draft_6,
                           Vocabularies::Known::JSON_Schema_Draft_4}) &&
                      schema.is_object() && schema.defines("enum") &&
-                     !schema.defines("not") && schema.at("enum").is_array() &&
-                     schema.at("enum").empty());
+                     schema.at("enum").is_array() && schema.at("enum").empty());
     return APPLIES_TO_KEYWORDS("enum");
   }
 
