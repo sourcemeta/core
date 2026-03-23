@@ -9,13 +9,13 @@
 
 #include <sourcemeta/core/jsonpointer_pointer.h>
 
-#include <cstddef>  // std::size_t
-#include <cstdint>  // std::uint64_t
-#include <map>      // std::map
-#include <optional> // std::optional
-#include <stack>    // std::stack
-#include <tuple>    // std::tuple
-#include <utility>  // std::pair
+#include <cstddef>       // std::size_t
+#include <cstdint>       // std::uint64_t
+#include <optional>      // std::optional
+#include <stack>         // std::stack
+#include <tuple>         // std::tuple
+#include <unordered_map> // std::unordered_map
+#include <utility>       // std::pair
 
 namespace sourcemeta::core {
 
@@ -66,7 +66,9 @@ private:
 #endif
   Pointer current;
   std::stack<std::pair<std::uint64_t, std::uint64_t>> stack;
-  std::map<Pointer, Position> data;
+  std::unordered_map<Pointer, Position, typename Pointer::Hasher,
+                     typename Pointer::Comparator>
+      data;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif
