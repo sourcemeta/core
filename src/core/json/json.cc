@@ -20,7 +20,6 @@
 
 namespace sourcemeta::core {
 
-// The core implementation: constructs JSON into the provided output reference
 static auto internal_parse_json(const char *&cursor, const char *end,
                                 std::uint64_t &line, std::uint64_t &column,
                                 const JSON::ParseCallback &callback,
@@ -45,7 +44,6 @@ static auto internal_parse_json(const char *&cursor, const char *end,
   construct_json(buffer_start, tape, callback, output);
 }
 
-// By-value wrapper for callers without a callback
 static auto internal_parse_json(const char *&cursor, const char *end,
                                 std::uint64_t &line, std::uint64_t &column,
                                 const bool track_positions) -> JSON {
@@ -54,10 +52,6 @@ static auto internal_parse_json(const char *&cursor, const char *end,
                       output);
   return output;
 }
-
-/*
- * Overloads without callback (return by value)
- */
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
@@ -123,10 +117,6 @@ auto read_json(const std::filesystem::path &path) -> JSON {
     throw JSONFileParseError(path, error);
   }
 }
-
-/*
- * Overloads with callback (void + JSON& out-param)
- */
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
