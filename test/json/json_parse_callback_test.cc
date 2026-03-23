@@ -18,7 +18,7 @@
                        const std::uint64_t line, const std::uint64_t column,   \
                        const sourcemeta::core::JSON::ParseContext context,     \
                        const std::size_t index,                                \
-                       const sourcemeta::core::JSON::StringView property) {    \
+                       const sourcemeta::core::JSON::String &property) {       \
         traces.emplace_back(phase, type, line, column, context, index,         \
                             std::string{property});                            \
       })};                                                                     \
@@ -36,7 +36,7 @@
                        const std::uint64_t line, const std::uint64_t column,   \
                        const sourcemeta::core::JSON::ParseContext context,     \
                        const std::size_t index,                                \
-                       const sourcemeta::core::JSON::StringView property) {    \
+                       const sourcemeta::core::JSON::String &property) {       \
         traces.emplace_back(phase, type, line, column, context, index,         \
                             std::string{property});                            \
       })};                                                                     \
