@@ -176,7 +176,8 @@ static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
   for (auto _ : state) {
     if (enable_tracker) {
       sourcemeta::core::PointerPositionTracker tracker;
-      auto result{sourcemeta::core::parse_json(content, std::ref(tracker))};
+      sourcemeta::core::JSON result{nullptr};
+      sourcemeta::core::parse_json(content, result, std::ref(tracker));
       assert(result.is_object());
       benchmark::DoNotOptimize(result);
       benchmark::DoNotOptimize(tracker);
@@ -198,7 +199,8 @@ Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
   const auto content{buffer.str()};
 
   sourcemeta::core::PointerPositionTracker tracker;
-  sourcemeta::core::parse_json(content, std::ref(tracker));
+  sourcemeta::core::JSON result{nullptr};
+  sourcemeta::core::parse_json(content, result, std::ref(tracker));
 
   const sourcemeta::core::Pointer pointer{
       "next", "next", "next", "next", "next", "next", "next", "next",
@@ -207,9 +209,9 @@ Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
       "next", "next", "next", "next", "next", "next", "p0"};
 
   for (auto _ : state) {
-    auto result{tracker.get(pointer)};
-    assert(result.has_value());
-    benchmark::DoNotOptimize(result);
+    auto position{tracker.get(pointer)};
+    assert(position.has_value());
+    benchmark::DoNotOptimize(position);
   }
 }
 

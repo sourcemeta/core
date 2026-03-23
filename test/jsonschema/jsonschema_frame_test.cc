@@ -2327,8 +2327,8 @@ TEST(JSONSchema_frame, to_json_mode_locations) {
 
 TEST(JSONSchema_frame, to_json_mode_references_with_tracking) {
   sourcemeta::core::PointerPositionTracker tracker;
-  const sourcemeta::core::JSON document =
-      sourcemeta::core::parse_json(R"JSON({
+  sourcemeta::core::JSON document{nullptr};
+  sourcemeta::core::parse_json(R"JSON({
     "$id": "https://www.sourcemeta.com/test",
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "properties": {
@@ -2342,7 +2342,7 @@ TEST(JSONSchema_frame, to_json_mode_references_with_tracking) {
       }
     }
   })JSON",
-                                   std::ref(tracker));
+                               document, std::ref(tracker));
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};

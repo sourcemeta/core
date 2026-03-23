@@ -30,7 +30,8 @@ namespace sourcemeta::core {
 ///
 /// const auto input{"{\n  \"foo\": \"bar\"\n}"};;
 /// sourcemeta::core::PointerPositionTracker tracker;
-/// sourcemeta::core::parse_json(stream, std::ref(tracker));
+/// sourcemeta::core::JSON document{nullptr};
+/// sourcemeta::core::parse_json(input, document, std::ref(tracker));
 /// assert(tracker.size() == 2);
 /// const auto foo{tracker.get(sourcemeta::core::Pointer{"foo"})};
 /// assert(foo.has_value());

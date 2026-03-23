@@ -132,10 +132,11 @@ static void Schema_Iterator_ISO_Language(benchmark::State &state) {
 static void
 Schema_Frame_ISO_Language_Locations_To_JSON(benchmark::State &state) {
   sourcemeta::core::PointerPositionTracker tracker;
-  const auto schema{sourcemeta::core::read_json(
-      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
-          "2020_12_iso_language_2023_set_3.json",
-      std::ref(tracker))};
+  sourcemeta::core::JSON schema{nullptr};
+  sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                  "files" /
+                                  "2020_12_iso_language_2023_set_3.json",
+                              schema, std::ref(tracker));
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::Locations};
@@ -152,10 +153,11 @@ Schema_Frame_ISO_Language_Locations_To_JSON(benchmark::State &state) {
 static void Schema_Tracker_ISO_Language(benchmark::State &state) {
   for (auto _ : state) {
     sourcemeta::core::PointerPositionTracker tracker;
-    auto schema{sourcemeta::core::read_json(
-        std::filesystem::path{CURRENT_DIRECTORY} / "files" /
-            "2020_12_iso_language_2023_set_3.json",
-        std::ref(tracker))};
+    sourcemeta::core::JSON schema{nullptr};
+    sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
+                                    "files" /
+                                    "2020_12_iso_language_2023_set_3.json",
+                                schema, std::ref(tracker));
     assert(schema.is_object());
     benchmark::DoNotOptimize(schema);
   }
@@ -163,10 +165,11 @@ static void Schema_Tracker_ISO_Language(benchmark::State &state) {
 
 static void Schema_Tracker_ISO_Language_To_JSON(benchmark::State &state) {
   sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::JSON schema{nullptr};
   sourcemeta::core::read_json(std::filesystem::path{CURRENT_DIRECTORY} /
                                   "files" /
                                   "2020_12_iso_language_2023_set_3.json",
-                              std::ref(tracker));
+                              schema, std::ref(tracker));
 
   for (auto _ : state) {
     auto result{sourcemeta::core::to_json(tracker)};
