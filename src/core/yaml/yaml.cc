@@ -55,19 +55,36 @@ auto read_yaml(const std::filesystem::path &path,
   return result;
 }
 
-auto read_yaml_or_json(const std::filesystem::path &path,
-                       const JSON::ParseCallback &callback) -> JSON {
+auto read_yaml_or_json(const std::filesystem::path &path) -> JSON {
   const auto extension{path.extension()};
   if (extension == ".yaml" || extension == ".yml") {
-    return read_yaml(path, callback);
+    return read_yaml(path);
   } else if (extension == ".json") {
-    return read_json(path, callback);
+    return read_json(path);
   }
 
   try {
-    return read_json(path, callback);
+    return read_json(path);
   } catch (const JSONParseError &) {
-    return read_yaml(path, callback);
+    return read_yaml(path);
+  }
+}
+
+auto read_yaml_or_json(const std::filesystem::path &path, JSON &output,
+                       const JSON::ParseCallback &callback) -> void {
+  const auto extension{path.extension()};
+  if (extension == ".yaml" || extension == ".yml") {
+    output = read_yaml(path, callback);
+    return;
+  } else if (extension == ".json") {
+    read_json(path, output, callback);
+    return;
+  }
+
+  try {
+    read_json(path, output, callback);
+  } catch (const JSONParseError &) {
+    output = read_yaml(path, callback);
   }
 }
 

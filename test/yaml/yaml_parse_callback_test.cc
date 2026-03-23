@@ -30,16 +30,18 @@
                          std::uint64_t, sourcemeta::core::JSON::ParseContext,  \
                          std::size_t, std::string>>                            \
       traces;                                                                  \
-  const auto result{sourcemeta::core::read_yaml_or_json(                       \
-      input, [&traces](const sourcemeta::core::JSON::ParsePhase phase,         \
-                       const sourcemeta::core::JSON::Type type,                \
-                       const std::uint64_t line, const std::uint64_t column,   \
-                       const sourcemeta::core::JSON::ParseContext context,     \
-                       const std::size_t index,                                \
-                       const sourcemeta::core::JSON::StringView property) {    \
+  sourcemeta::core::JSON result{nullptr};                                      \
+  sourcemeta::core::read_yaml_or_json(                                         \
+      input, result,                                                           \
+      [&traces](const sourcemeta::core::JSON::ParsePhase phase,                \
+                const sourcemeta::core::JSON::Type type,                       \
+                const std::uint64_t line, const std::uint64_t column,          \
+                const sourcemeta::core::JSON::ParseContext context,            \
+                const std::size_t index,                                       \
+                const sourcemeta::core::JSON::StringView property) {           \
         traces.emplace_back(phase, type, line, column, context, index,         \
                             std::string{property});                            \
-      })};                                                                     \
+      });                                                                      \
   EXPECT_EQ(traces.size(), expected_size)
 
 #define EXPECT_TRACE(index, expected_phase, expected_type, expected_line,      \

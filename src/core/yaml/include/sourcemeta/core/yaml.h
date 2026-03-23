@@ -108,8 +108,18 @@ auto read_yaml(const std::filesystem::path &path,
 /// std::cerr << "\n";
 /// ```
 SOURCEMETA_CORE_YAML_EXPORT
-auto read_yaml_or_json(const std::filesystem::path &path,
-                       const JSON::ParseCallback &callback = nullptr) -> JSON;
+auto read_yaml_or_json(const std::filesystem::path &path) -> JSON;
+
+/// @ingroup yaml
+///
+/// Read a JSON document from a file that represents YAML or JSON, constructing
+/// into the given reference and invoking the callback during parsing. The
+/// result is constructed directly into the given reference rather than returned
+/// by value to ensure that references passed through the parse callback (such
+/// as object property names) remain valid after parsing completes.
+SOURCEMETA_CORE_YAML_EXPORT
+auto read_yaml_or_json(const std::filesystem::path &path, JSON &output,
+                       const JSON::ParseCallback &callback) -> void;
 
 /// @ingroup yaml
 ///
