@@ -321,7 +321,9 @@ private:
                        const std::size_t index, const std::string_view property)
       -> void {
     if (this->callback_ && *this->callback_) {
-      (*this->callback_)(phase, type, line, column, context, index, property);
+      const JSON::String property_string{property};
+      (*this->callback_)(phase, type, line, column, context, index,
+                         property_string);
     }
 
     if (this->recording_anchor_) {
