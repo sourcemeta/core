@@ -164,7 +164,7 @@ static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
   }
 }
 
-static void Pointer_Parse_Deeply_Nested_Maybe_Tracked(benchmark::State &state) {
+static void Pointer_Maybe_Tracked_Deeply_Nested(benchmark::State &state) {
   const auto enable_tracker{static_cast<bool>(state.range(0))};
   const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
                                    "files" / "deeply_nested.json"};
@@ -217,5 +217,5 @@ BENCHMARK(Pointer_Object_Traverse);
 BENCHMARK(Pointer_Object_Try_Traverse);
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
 BENCHMARK(Pointer_Walker_Schema_ISO_Language);
-BENCHMARK(Pointer_Parse_Deeply_Nested_Maybe_Tracked)->Arg(false)->Arg(true);
+BENCHMARK(Pointer_Maybe_Tracked_Deeply_Nested)->Arg(false)->Arg(true);
 BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested);
