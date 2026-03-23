@@ -328,7 +328,7 @@ static void JSON_Parse_Decimal(benchmark::State &state) {
 
 static void JSON_Parse_Schema_ISO_Language(benchmark::State &state) {
   auto stream{sourcemeta::core::read_file(
-      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
   std::ostringstream buffer;
   buffer << stream.rdbuf();

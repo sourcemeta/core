@@ -10,7 +10,7 @@ static void EditorSchema_ForEditor_EmbeddedResources(benchmark::State &state) {
   for (auto _ : state) {
     state.PauseTiming();
     auto schema{sourcemeta::core::read_json(
-        std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+        std::filesystem::path{CURRENT_DIRECTORY} / "files" /
         "2020_12_embedded_resources.json")};
     state.ResumeTiming();
     sourcemeta::core::for_editor(schema, sourcemeta::core::schema_walker,
