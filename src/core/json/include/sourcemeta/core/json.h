@@ -128,7 +128,7 @@ auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
 /// std::cout << std::endl;
 /// ```
 ///
-/// If parsing fails, sourcemeta::core::JSONParseError will be thrown.
+/// If parsing fails, sourcemeta::core::JSONFileParseError will be thrown.
 SOURCEMETA_CORE_JSON_EXPORT
 auto read_json(const std::filesystem::path &path) -> JSON;
 
@@ -192,7 +192,7 @@ auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
 /// to ensure that references passed through the parse callback (such as object
 /// property names) remain valid after parsing completes.
 ///
-/// If parsing fails, sourcemeta::core::JSONParseError will be thrown.
+/// If parsing fails, sourcemeta::core::JSONFileParseError will be thrown.
 SOURCEMETA_CORE_JSON_EXPORT
 auto read_json(const std::filesystem::path &path, JSON &output,
                const JSON::ParseCallback &callback) -> void;
