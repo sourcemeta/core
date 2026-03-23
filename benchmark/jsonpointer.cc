@@ -2,6 +2,9 @@
 
 #include <cassert>    // assert
 #include <filesystem> // std::filesystem
+#include <fstream>    // std::ifstream
+#include <functional> // std::ref
+#include <sstream>    // std::ostringstream
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
@@ -150,7 +153,7 @@ static void Pointer_Push_Back_Pointer_To_Weak_Pointer(benchmark::State &state) {
 
 static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
   const auto schema{sourcemeta::core::read_json(
-      std::filesystem::path{CURRENT_DIRECTORY} / "schemas" /
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
 
   for (auto _ : state) {
@@ -161,7 +164,58 @@ static void Pointer_Walker_Schema_ISO_Language(benchmark::State &state) {
   }
 }
 
+static void Pointer_Parse_Deeply_Nested_Maybe_Tracked(benchmark::State &state) {
+  const auto enable_tracker{static_cast<bool>(state.range(0))};
+  const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
+                                   "files" / "deeply_nested.json"};
+  std::ifstream file{path};
+  std::ostringstream buffer;
+  buffer << file.rdbuf();
+  const auto content{buffer.str()};
+
+  for (auto _ : state) {
+    if (enable_tracker) {
+      sourcemeta::core::PointerPositionTracker tracker;
+      auto result{sourcemeta::core::parse_json(content, std::ref(tracker))};
+      assert(result.is_object());
+      benchmark::DoNotOptimize(result);
+      benchmark::DoNotOptimize(tracker);
+    } else {
+      auto result{sourcemeta::core::parse_json(content)};
+      assert(result.is_object());
+      benchmark::DoNotOptimize(result);
+    }
+  }
+}
+
+static void
+Pointer_Position_Tracker_Get_Deeply_Nested(benchmark::State &state) {
+  const std::filesystem::path path{std::filesystem::path{CURRENT_DIRECTORY} /
+                                   "files" / "deeply_nested.json"};
+  std::ifstream file{path};
+  std::ostringstream buffer;
+  buffer << file.rdbuf();
+  const auto content{buffer.str()};
+
+  sourcemeta::core::PointerPositionTracker tracker;
+  sourcemeta::core::parse_json(content, std::ref(tracker));
+
+  const sourcemeta::core::Pointer pointer{
+      "next", "next", "next", "next", "next", "next", "next", "next",
+      "next", "next", "next", "next", "next", "next", "next", "next",
+      "next", "next", "next", "next", "next", "next", "next", "next",
+      "next", "next", "next", "next", "next", "next", "p0"};
+
+  for (auto _ : state) {
+    auto result{tracker.get(pointer)};
+    assert(result.has_value());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
 BENCHMARK(Pointer_Object_Traverse);
 BENCHMARK(Pointer_Object_Try_Traverse);
 BENCHMARK(Pointer_Push_Back_Pointer_To_Weak_Pointer);
 BENCHMARK(Pointer_Walker_Schema_ISO_Language);
+BENCHMARK(Pointer_Parse_Deeply_Nested_Maybe_Tracked)->Arg(false)->Arg(true);
+BENCHMARK(Pointer_Position_Tracker_Get_Deeply_Nested);
