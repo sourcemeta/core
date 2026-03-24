@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-TEST(Error_FileError, stores_path) {
+TEST(Error_file_error, stores_path) {
   const std::filesystem::path path{std::filesystem::temp_directory_path()};
   try {
     throw sourcemeta::core::FileError<std::runtime_error>(path, "test message");
@@ -15,7 +15,7 @@ TEST(Error_FileError, stores_path) {
   }
 }
 
-TEST(Error_FileError, inherits_what) {
+TEST(Error_file_error, inherits_what) {
   const std::filesystem::path path{std::filesystem::temp_directory_path()};
   try {
     throw sourcemeta::core::FileError<std::runtime_error>(path, "test message");
@@ -24,7 +24,7 @@ TEST(Error_FileError, inherits_what) {
   }
 }
 
-TEST(Error_FileError, catchable_as_base) {
+TEST(Error_file_error, catchable_as_base) {
   const std::filesystem::path path{std::filesystem::temp_directory_path()};
   try {
     throw sourcemeta::core::FileError<std::runtime_error>(path, "test message");
@@ -33,7 +33,7 @@ TEST(Error_FileError, catchable_as_base) {
   }
 }
 
-TEST(Error_FileError, catchable_as_exception) {
+TEST(Error_file_error, catchable_as_exception) {
   const std::filesystem::path path{std::filesystem::temp_directory_path()};
   try {
     throw sourcemeta::core::FileError<std::runtime_error>(path, "test message");
@@ -42,7 +42,7 @@ TEST(Error_FileError, catchable_as_exception) {
   }
 }
 
-TEST(Error_FileError, works_with_logic_error) {
+TEST(Error_file_error, works_with_logic_error) {
   const std::filesystem::path path{std::filesystem::temp_directory_path()};
   try {
     throw sourcemeta::core::FileError<std::logic_error>(path, "logic failure");
