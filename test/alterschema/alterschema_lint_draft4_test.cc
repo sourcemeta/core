@@ -2682,6 +2682,11 @@ TEST(AlterSchema_lint_draft4, forbid_empty_enum_4) {
       }
     }
   })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Example",
@@ -2693,8 +2698,5 @@ TEST(AlterSchema_lint_draft4, forbid_empty_enum_4) {
     }
   })JSON");
 
-  LINT_AND_FIX(document, result, traces);
-
-  EXPECT_TRUE(result.first);
   EXPECT_EQ(document, expected);
 }
