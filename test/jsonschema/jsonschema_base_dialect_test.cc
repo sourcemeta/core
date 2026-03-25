@@ -409,6 +409,52 @@ TEST(JSONSchema_base_dialect, to_base_dialect_draft0_hyper) {
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_0_Hyper);
 }
 
+TEST(JSONSchema_base_dialect, self_referencing_metaschema) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/self",
+    "$id": "https://example.com/self"
+  })JSON")};
+
+  const sourcemeta::core::SchemaResolver resolver{
+      [&schema](std::string_view identifier)
+          -> std::optional<sourcemeta::core::JSON> {
+        if (identifier == "https://example.com/self") {
+          return schema;
+        }
+        return sourcemeta::core::schema_resolver(identifier);
+      }};
+
+  EXPECT_THROW(sourcemeta::core::base_dialect(schema, resolver),
+               sourcemeta::core::SchemaUnknownBaseDialectError);
+}
+
+TEST(JSONSchema_base_dialect, indirect_metaschema_cycle) {
+  const auto schema_a{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/b",
+    "$id": "https://example.com/a"
+  })JSON")};
+
+  const auto schema_b{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://example.com/a",
+    "$id": "https://example.com/b"
+  })JSON")};
+
+  const sourcemeta::core::SchemaResolver resolver{
+      [&](std::string_view identifier)
+          -> std::optional<sourcemeta::core::JSON> {
+        if (identifier == "https://example.com/a") {
+          return schema_a;
+        } else if (identifier == "https://example.com/b") {
+          return schema_b;
+        } else {
+          return sourcemeta::core::schema_resolver(identifier);
+        }
+      }};
+
+  EXPECT_THROW(sourcemeta::core::base_dialect(schema_a, resolver),
+               sourcemeta::core::SchemaUnknownBaseDialectError);
+}
+
 TEST(JSONSchema_base_dialect, to_base_dialect_unknown) {
   const auto result{
       sourcemeta::core::to_base_dialect("https://example.com/unknown-dialect")};
