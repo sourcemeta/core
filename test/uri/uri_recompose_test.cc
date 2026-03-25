@@ -130,3 +130,8 @@ TEST(URI_recompose, mixed_encoded_and_literal_reserved_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/a/b%2Fc/d"};
   EXPECT_EQ(uri.recompose(), "http://example.com/a/b%2Fc/d");
 }
+
+TEST(URI_recompose, encoded_low_byte_zero_padded) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%0Abar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo%0Abar");
+}

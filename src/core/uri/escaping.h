@@ -96,13 +96,13 @@ inline auto uri_escape(std::istream &input, std::ostream &output,
       }
     }
 
-    // Percent encode this character
-    output << URI_PERCENT << std::hex << std::uppercase
-           << +(static_cast<unsigned char>(character));
+    const auto byte{static_cast<unsigned char>(character)};
+    const auto high{(byte >> 4) & 0x0F};
+    const auto low{byte & 0x0F};
+    output << URI_PERCENT;
+    output << static_cast<char>(high < 10 ? '0' + high : 'A' + high - 10);
+    output << static_cast<char>(low < 10 ? '0' + low : 'A' + low - 10);
   }
-
-  // Reset stream format flags
-  output << std::dec << std::nouppercase;
 }
 
 inline auto uri_unescape(std::istream &input, std::ostream &output) -> void {
@@ -149,7 +149,8 @@ inline auto uri_hex_to_int(char character) -> unsigned char {
 
 inline auto uri_is_percent_encoded(const std::string &input,
                                    std::string::size_type position) -> bool {
-  return input[position] == URI_PERCENT && position + 2 < input.size() &&
+  return position < input.size() && input[position] == URI_PERCENT &&
+         position + 2 < input.size() &&
          std::isxdigit(static_cast<unsigned char>(input[position + 1])) &&
          std::isxdigit(static_cast<unsigned char>(input[position + 2]));
 }
