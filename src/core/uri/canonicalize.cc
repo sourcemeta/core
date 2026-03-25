@@ -57,9 +57,7 @@ auto URI::canonicalize() -> URI & {
 
   if (this->path_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->path_.value());
-    uri_unescape_if_inplace(this->path_.value(), [&](char character) {
-      return is_pchar(character) || character == URI_SLASH;
-    });
+    uri_unescape_if_inplace(this->path_.value(), is_pchar);
   }
 
   if (this->query_.has_value()) {
