@@ -384,7 +384,8 @@ TEST(URI_parse, success_with_percent_25_stays_encoded) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com#/foo%25bar"));
   sourcemeta::core::URI uri{"https://www.example.com#/foo%25bar"};
-  EXPECT_EQ(uri.fragment(), "/foo%bar");
+  // %25 encodes %, which is not unreserved, so must not be decoded
+  EXPECT_EQ(uri.fragment(), "/foo%25bar");
   EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo%25bar");
 }
 
@@ -394,7 +395,8 @@ TEST(URI_parse, success_with_space_percent_20_stays_encoded) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com/foo%20bar"));
   sourcemeta::core::URI uri{"https://www.example.com/foo%20bar"};
-  EXPECT_EQ(uri.path(), "/foo bar");
+  // Space is not unreserved, so %20 should not be decoded internally
+  EXPECT_EQ(uri.path(), "/foo%20bar");
   EXPECT_EQ(uri.recompose(), "https://www.example.com/foo%20bar");
 }
 
@@ -404,8 +406,10 @@ TEST(URI_parse, success_with_equals_percent_3D_stays_encoded) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com?foo%3Dbar"));
   sourcemeta::core::URI uri{"https://www.example.com?foo%3Dbar"};
-  EXPECT_EQ(uri.query(), "foo=bar");
-  EXPECT_EQ(uri.recompose(), "https://www.example.com?foo=bar");
+  // Per RFC 3986 Section 2.2, %3D (=) is a reserved sub-delim
+  // and must not be decoded
+  EXPECT_EQ(uri.query(), "foo%3Dbar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com?foo%3Dbar");
 }
 
 TEST(URI_parse, success_with_slash_percent_2F_stays_encoded) {
@@ -414,8 +418,10 @@ TEST(URI_parse, success_with_slash_percent_2F_stays_encoded) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com#/foo%2Fbar"));
   sourcemeta::core::URI uri{"https://www.example.com#/foo%2Fbar"};
-  EXPECT_EQ(uri.fragment(), "/foo/bar");
-  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo/bar");
+  // Per RFC 3986 Section 2.2, %2F (/) is a reserved gen-delim
+  // and must not be decoded
+  EXPECT_EQ(uri.fragment(), "/foo%2Fbar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo%2Fbar");
 }
 
 TEST(URI_parse, success_with_lowercase_normalized_to_uppercase) {
@@ -424,8 +430,10 @@ TEST(URI_parse, success_with_lowercase_normalized_to_uppercase) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com#/foo%2fbar"));
   sourcemeta::core::URI uri{"https://www.example.com#/foo%2fbar"};
-  EXPECT_EQ(uri.fragment(), "/foo/bar");
-  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo/bar");
+  // Per RFC 3986 Section 2.2, reserved chars must not be decoded.
+  // Hex case is preserved by recompose; canonicalize uppercases it.
+  EXPECT_EQ(uri.fragment(), "/foo%2fbar");
+  EXPECT_EQ(uri.recompose(), "https://www.example.com#/foo%2fbar");
 }
 
 TEST(URI_parse, success_unreserved_char_decoded_hyphen) {
@@ -665,7 +673,9 @@ TEST(URI_parse, rfc3986_percent_encoded_reserved) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "http://example.com/path%2Fwith%2Fslashes"));
   sourcemeta::core::URI uri{"http://example.com/path%2Fwith%2Fslashes"};
-  EXPECT_EQ(uri.recompose(), "http://example.com/path/with/slashes");
+  // Per RFC 3986 Section 2.2, percent-encoded reserved characters like %2F
+  // must be preserved as they are semantically distinct from literal '/'
+  EXPECT_EQ(uri.recompose(), "http://example.com/path%2Fwith%2Fslashes");
 }
 
 TEST(URI_parse, rfc3986_mixed_case_percent_encoding) {
@@ -673,7 +683,9 @@ TEST(URI_parse, rfc3986_mixed_case_percent_encoding) {
   EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(
       "http://example.com/%3a%3A%3b%3B"));
   sourcemeta::core::URI uri{"http://example.com/%3a%3A%3b%3B"};
-  EXPECT_EQ(uri.recompose(), "http://example.com/::;;");
+  // Per RFC 3986 Section 2.2, : and ; are reserved characters
+  // and must not be decoded. Hex case preserved by recompose.
+  EXPECT_EQ(uri.recompose(), "http://example.com/%3a%3A%3b%3B");
 }
 
 TEST(URI_parse, rfc3986_authority_only) {

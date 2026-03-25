@@ -49,7 +49,8 @@ TEST(URI_query, rfc3986_query_percent_encoded) {
   const sourcemeta::core::URI uri{
       "http://example.com/path?query%20with%20spaces"};
   EXPECT_TRUE(uri.query().has_value());
-  EXPECT_EQ(uri.query().value(), "query with spaces");
+  // Space is not unreserved, so %20 must not be decoded
+  EXPECT_EQ(uri.query().value(), "query%20with%20spaces");
 }
 
 TEST(URI_query, rfc3986_query_with_fragment) {
@@ -81,7 +82,8 @@ TEST(URI_query, rfc3986_query_percent_encoded_brackets) {
   const sourcemeta::core::URI uri{
       "http://example.com/path?items%5B0%5D=a&items%5B1%5D=b"};
   EXPECT_TRUE(uri.query().has_value());
-  EXPECT_TRUE(uri.query().value().find("items") != std::string::npos);
+  // [ and ] are gen-delims (reserved), must not be decoded
+  EXPECT_EQ(uri.query().value(), "items%5B0%5D=a&items%5B1%5D=b");
 }
 
 TEST(URI_query, rfc3986_query_no_value) {
@@ -94,4 +96,23 @@ TEST(URI_query, rfc3986_query_multiple_equals) {
   const sourcemeta::core::URI uri{"http://example.com/path?key=value=extra"};
   EXPECT_TRUE(uri.query().has_value());
   EXPECT_EQ(uri.query().value(), "key=value=extra");
+}
+
+TEST(URI_query, encoded_ampersand_preserved) {
+  const sourcemeta::core::URI uri{"http://example.com/path?foo%26bar=baz"};
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "foo%26bar=baz");
+}
+
+TEST(URI_query, encoded_hash_not_fragment_delimiter) {
+  const sourcemeta::core::URI uri{"http://example.com/path?foo%23bar"};
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "foo%23bar");
+  EXPECT_FALSE(uri.fragment().has_value());
+}
+
+TEST(URI_query, encoded_equals_preserved) {
+  const sourcemeta::core::URI uri{"http://example.com/path?key%3Dvalue"};
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "key%3Dvalue");
 }

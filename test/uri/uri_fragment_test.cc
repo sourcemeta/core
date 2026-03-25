@@ -22,7 +22,26 @@ TEST(URI_fragment, https_with_empty_fragment) {
 TEST(URI_fragment, https_with_escaped_jsonpointer) {
   const sourcemeta::core::URI uri{"https://example.com/#/c%25d"};
   EXPECT_TRUE(uri.fragment().has_value());
-  EXPECT_EQ(uri.fragment().value(), "/c%d");
+  // %25 encodes %, which is not unreserved, so must not be decoded
+  EXPECT_EQ(uri.fragment().value(), "/c%25d");
+}
+
+TEST(URI_fragment, encoded_slash_preserved) {
+  const sourcemeta::core::URI uri{"https://example.com#/foo%2Fbar"};
+  EXPECT_TRUE(uri.fragment().has_value());
+  EXPECT_EQ(uri.fragment().value(), "/foo%2Fbar");
+}
+
+TEST(URI_fragment, encoded_hash_preserved) {
+  const sourcemeta::core::URI uri{"https://example.com#/foo%23bar"};
+  EXPECT_TRUE(uri.fragment().has_value());
+  EXPECT_EQ(uri.fragment().value(), "/foo%23bar");
+}
+
+TEST(URI_fragment, encoded_question_mark_preserved) {
+  const sourcemeta::core::URI uri{"https://example.com#/foo%3Fbar"};
+  EXPECT_TRUE(uri.fragment().has_value());
+  EXPECT_EQ(uri.fragment().value(), "/foo%3Fbar");
 }
 
 TEST(URI_fragment, invalid_fragment_with_pointer) {
@@ -172,7 +191,8 @@ TEST(URI_fragment, set_pointer_percentage) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
   uri.fragment("/foo%bar");
   EXPECT_EQ(uri.fragment(), "/foo%bar");
-  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25bar");
+  // %ba is a valid percent-encoded sequence, so it is preserved
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%bar");
 }
 
 TEST(URI_fragment, set_percentage_at_end) {
@@ -193,14 +213,17 @@ TEST(URI_fragment, set_multiple_percentages) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
   uri.fragment("/foo%%bar");
   EXPECT_EQ(uri.fragment(), "/foo%%bar");
-  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25%25bar");
+  // First % is not followed by two hex digits, so it is encoded.
+  // Second %ba is a valid percent-encoded sequence, so it is preserved.
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%25%bar");
 }
 
 TEST(URI_fragment, set_percentage_followed_by_valid_hex_sequence) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
   uri.fragment("/foo%2Fbar");
   EXPECT_EQ(uri.fragment(), "/foo%2Fbar");
-  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%252Fbar");
+  // %2F is a valid percent-encoded sequence, so it is preserved
+  EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com#/foo%2Fbar");
 }
 
 TEST(URI_fragment, set_space_character) {
