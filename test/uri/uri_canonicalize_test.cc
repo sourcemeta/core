@@ -263,13 +263,19 @@ TEST(URI_canonicalize, complex_case) {
   EXPECT_EQ(uri.recompose(), "http://a:b@host:123/1/A?abc#def");
 }
 
-TEST(URI_canonicalize, reserved_chars_hex_case_normalized) {
+TEST(URI_canonicalize, component_aware_decode) {
   sourcemeta::core::URI uri{"http://example.com/%3a%3b%2f?foo%3dbar#baz%2fqux"};
   uri.canonicalize();
-  // Per RFC 3986 Section 6.2.2.1, hex digits normalized to uppercase.
-  // Per RFC 3986 Section 2.2, reserved chars must not be decoded.
-  EXPECT_EQ(uri.recompose(),
-            "http://example.com/%3A%3B%2F?foo%3Dbar#baz%2Fqux");
+  EXPECT_EQ(uri.recompose(), "http://example.com/:;/?foo=bar#baz/qux");
+}
+
+TEST(URI_canonicalize, fragment_encoded_colon) {
+  sourcemeta::core::URI uri{
+      "https://www.example.com#/$defs/https%3A~1~1example.com~1schema/type"};
+  uri.canonicalize();
+  EXPECT_EQ(
+      uri.recompose(),
+      "https://www.example.com#/$defs/https:~1~1example.com~1schema/type");
 }
 
 TEST(URI_canonicalize, relative_path_no_canonicalize) {
