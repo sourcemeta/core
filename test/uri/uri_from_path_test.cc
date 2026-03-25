@@ -11,7 +11,8 @@ TEST(URI_from_path, unix_absolute) {
 TEST(URI_from_path, unix_with_space_and_reserved) {
   const std::filesystem::path example{"/foo/My Folder/has#hash?value%"};
   const auto uri{sourcemeta::core::URI::from_path(example)};
-  EXPECT_EQ(uri.recompose(), "file:///foo/My%20Folder/has%23hash?value%25");
+  // ? must be encoded as %3F in the path, not treated as a query delimiter
+  EXPECT_EQ(uri.recompose(), "file:///foo/My%20Folder/has%23hash%3Fvalue%25");
 }
 
 TEST(URI_from_path, unix_trailing_slash) {

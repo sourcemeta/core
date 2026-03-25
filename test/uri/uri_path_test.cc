@@ -394,7 +394,34 @@ TEST(URI_path_getter, rfc3986_percent_encoded_slash) {
   const sourcemeta::core::URI uri{
       "http://example.com/path%2Fwith%2Fencoded%2Fslashes"};
   EXPECT_TRUE(uri.path().has_value());
-  EXPECT_EQ(uri.path().value(), "/path/with/encoded/slashes");
+  // Per RFC 3986 Section 2.2, %2F is semantically distinct from literal '/'
+  EXPECT_EQ(uri.path().value(), "/path%2Fwith%2Fencoded%2Fslashes");
+}
+
+TEST(URI_path_getter, encoded_question_mark_not_query_delimiter) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%3Fbar"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/foo%3Fbar");
+  EXPECT_FALSE(uri.query().has_value());
+}
+
+TEST(URI_path_getter, encoded_hash_not_fragment_delimiter) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%23bar"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/foo%23bar");
+  EXPECT_FALSE(uri.fragment().has_value());
+}
+
+TEST(URI_path_getter, mixed_encoded_and_literal_slashes) {
+  const sourcemeta::core::URI uri{"http://example.com/a/b%2Fc/d"};
+  EXPECT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/a/b%2Fc/d");
+}
+
+TEST(URI_path_getter, encoded_slash_vs_literal_slash_are_distinct) {
+  const sourcemeta::core::URI encoded{"http://example.com/v1%2F2.json"};
+  const sourcemeta::core::URI literal{"http://example.com/v1/2.json"};
+  EXPECT_NE(encoded.path().value(), literal.path().value());
 }
 
 TEST(URI_path_getter, rfc3986_path_with_unreserved) {

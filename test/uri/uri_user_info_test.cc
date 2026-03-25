@@ -65,5 +65,7 @@ TEST(URI_user_info, rfc3986_no_authority) {
 TEST(URI_user_info, rfc3986_userinfo_with_at_sign) {
   sourcemeta::core::URI uri{"http://user%40domain:pass@host/path"};
   EXPECT_TRUE(uri.userinfo().has_value());
-  EXPECT_EQ(uri.userinfo().value(), "user@domain:pass");
+  // Per RFC 3986 Section 2.2, %40 (@) is a reserved gen-delim
+  // and must not be decoded
+  EXPECT_EQ(uri.userinfo().value(), "user%40domain:pass");
 }

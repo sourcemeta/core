@@ -67,3 +67,66 @@ TEST(URI_recompose, preserves_scheme_and_host_case) {
   const sourcemeta::core::URI uri{"HtTp://ExAmPlE.CoM/foo"};
   EXPECT_EQ(uri.recompose(), "HtTp://ExAmPlE.CoM/foo");
 }
+
+// Per RFC 3986 Section 2.2, percent-encoded reserved characters must be
+// preserved during recomposition. They are semantically distinct from
+// their literal counterparts.
+
+TEST(URI_recompose, encoded_slash_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/v1%2F2.json"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/v1%2F2.json");
+}
+
+TEST(URI_recompose, encoded_slash_vs_literal_slash_in_path) {
+  const sourcemeta::core::URI encoded{"http://example.com/v1%2F2.json"};
+  const sourcemeta::core::URI literal{"http://example.com/v1/2.json"};
+  EXPECT_NE(encoded.recompose(), literal.recompose());
+}
+
+TEST(URI_recompose, encoded_question_mark_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%3Fbar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo%3Fbar");
+  EXPECT_FALSE(uri.query().has_value());
+}
+
+TEST(URI_recompose, encoded_hash_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%23bar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo%23bar");
+  EXPECT_FALSE(uri.fragment().has_value());
+}
+
+TEST(URI_recompose, encoded_ampersand_in_query) {
+  const sourcemeta::core::URI uri{"http://example.com/path?foo%26bar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/path?foo%26bar");
+}
+
+TEST(URI_recompose, encoded_hash_in_query) {
+  const sourcemeta::core::URI uri{"http://example.com/path?foo%23bar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/path?foo%23bar");
+  EXPECT_FALSE(uri.fragment().has_value());
+}
+
+TEST(URI_recompose, encoded_slash_in_fragment) {
+  const sourcemeta::core::URI uri{"http://example.com/path#/foo%2Fbar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/path#/foo%2Fbar");
+}
+
+TEST(URI_recompose, encoded_colon_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%3Abar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo%3Abar");
+}
+
+TEST(URI_recompose, encoded_at_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/foo%40bar"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/foo%40bar");
+}
+
+TEST(URI_recompose, multiple_encoded_reserved_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/a%2Fb%3Fc%23d%40e"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/a%2Fb%3Fc%23d%40e");
+}
+
+TEST(URI_recompose, mixed_encoded_and_literal_reserved_in_path) {
+  const sourcemeta::core::URI uri{"http://example.com/a/b%2Fc/d"};
+  EXPECT_EQ(uri.recompose(), "http://example.com/a/b%2Fc/d");
+}
