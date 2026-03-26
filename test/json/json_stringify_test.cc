@@ -253,7 +253,7 @@ TEST(JSON_stringify, stringify_scientific_real) {
   const sourcemeta::core::JSON document{4.321768E3};
   std::ostringstream stream;
   sourcemeta::core::stringify(document, stream);
-  EXPECT_EQ(stream.str(), "4321.77");
+  EXPECT_EQ(stream.str(), "4321.768");
 }
 
 TEST(JSON_stringify, escape_00) {

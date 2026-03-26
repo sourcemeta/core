@@ -375,7 +375,7 @@ TEST(JSON_prettify, prettify_scientific_real) {
   const sourcemeta::core::JSON document{4.321768E3};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
-  EXPECT_EQ(stream.str(), "4321.77");
+  EXPECT_EQ(stream.str(), "4321.768");
 }
 
 TEST(JSON_prettify, object_nested_with_0_spaces) {
