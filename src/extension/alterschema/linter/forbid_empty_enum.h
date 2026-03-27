@@ -5,7 +5,7 @@ public:
   ForbidEmptyEnum()
       : SchemaTransformRule{"forbid_empty_enum",
                             "An empty `enum` validates nothing and is "
-                            "equivalent to `not: {}`"} {};
+                            unsatisfiable"} {};
 
   [[nodiscard]] auto
   condition(const sourcemeta::core::JSON &schema,
