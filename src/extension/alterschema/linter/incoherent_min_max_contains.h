@@ -21,7 +21,8 @@ public:
         vocabularies.contains_any(
             {Vocabularies::Known::JSON_Schema_2020_12_Validation,
              Vocabularies::Known::JSON_Schema_2019_09_Validation}) &&
-        schema.is_object() && schema.defines("minContains") &&
+        schema.is_object() && schema.defines("contains") &&
+        schema.defines("minContains") &&
         schema.at("minContains").is_integer() &&
         schema.defines("maxContains") &&
         schema.at("maxContains").is_integer() &&

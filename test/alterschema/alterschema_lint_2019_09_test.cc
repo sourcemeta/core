@@ -2368,6 +2368,25 @@ TEST(AlterSchema_lint_2019_09, incoherent_min_max_contains_8) {
                     false);
 }
 
+TEST(AlterSchema_lint_2019_09, incoherent_min_max_contains_9) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "type": "array",
+    "minContains": 5,
+    "maxContains": 3
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  for (const auto &trace : traces) {
+    EXPECT_NE(std::get<1>(trace), "incoherent_min_max_contains");
+  }
+}
+
 TEST(AlterSchema_lint_2019_09, equal_numeric_bounds_to_const_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
