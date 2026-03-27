@@ -3033,3 +3033,117 @@ TEST(AlterSchema_lint_draft6, forbid_empty_enum_4) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft6, const_in_enum_edge_case_preserves_siblings) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com/schemas/my-schema",
+    "description": "Edge case schema",
+    "examples": [{}],
+    "title": "Edge Case Schema",
+    "x-custom-annotation": "should not be deleted",
+    "const": 1,
+    "enum": [1, 2, 3]
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "https://example.com/schemas/my-schema",
+    "description": "Edge case schema",
+    "examples": [{}],
+    "title": "Edge Case Schema",
+    "x-custom-annotation": "should not be deleted",
+    "const": 1
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_draft6, const_not_in_enum_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [1],
+    "const": 1,
+    "enum": [2, 3]
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "const_not_in_enum",
+                    "Do not set the `const` and `enum` keyword at the same "
+                    "time, mainly when their values diverge",
+                    false);
+}
+
+TEST(AlterSchema_lint_draft6, const_not_in_enum_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "const": 1,
+        "enum": [2, 3]
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "const_not_in_enum",
+                    "Do not set the `const` and `enum` keyword at the same "
+                    "time, mainly when their values diverge",
+                    false);
+}
+
+TEST(AlterSchema_lint_draft6, invalid_external_ref_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://unknown.example.com/nonexistent"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}
+
+TEST(AlterSchema_lint_draft6, invalid_external_ref_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "bar": {
+        "$ref": "#/definitions/foo"
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}

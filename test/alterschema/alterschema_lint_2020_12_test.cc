@@ -10126,3 +10126,231 @@ TEST(AlterSchema_lint_2020_12, forbid_empty_enum_15) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://unknown.example.com/nonexistent"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://example.com/external"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_3) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "type": "object"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_4) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$defs": {
+      "foo": { "type": "string" }
+    },
+    "$ref": "#/$defs/foo"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_5) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://example.com/external-with-defs#/$defs/foo"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_6) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://example.com/external-with-defs#/$defs/nonexistent"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_7) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$defs": {
+      "foo": {
+        "$id": "https://example.com/embedded",
+        "type": "string"
+      }
+    },
+    "$ref": "https://example.com/embedded"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_8) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$defs": {
+      "foo": {
+        "$id": "https://example.com/embedded",
+        "type": "string"
+      }
+    },
+    "$ref": "https://example.com/embedded#/nonexistent"
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 2);
+  EXPECT_LINT_TRACE(traces, 0, "", "unknown_local_ref",
+                    "Local references that point to unknown locations are "
+                    "invalid and will result in evaluation failures",
+                    true);
+  EXPECT_LINT_TRACE(traces, 1, "", "orphan_definitions",
+                    "Schema definitions in `$defs` or `definitions` that are "
+                    "never internally referenced can be removed",
+                    true);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_9) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "properties": {
+      "foo": {
+        "$ref": "https://unknown.example.com/nonexistent"
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_10) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://unknown.example.com/nonexistent"
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "$ref": "https://unknown.example.com/nonexistent"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
+
+TEST(AlterSchema_lint_2020_12, invalid_external_ref_11) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "Test description",
+    "examples": [{}],
+    "properties": {
+      "bar": {
+        "$ref": "https://unknown.example.com/first"
+      },
+      "foo": {
+        "$ref": "https://unknown.example.com/second"
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 2);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/bar", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+  EXPECT_LINT_TRACE(traces, 1, "/properties/foo", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}

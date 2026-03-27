@@ -19,6 +19,26 @@ static auto alterschema_test_resolver(std::string_view identifier)
         "https://sourcemeta.com/2020-12-custom-vocabulary-optional": false
       }
     })JSON");
+  } else if (identifier == "https://example.com") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://example.com",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    })JSON");
+  } else if (identifier == "https://example.com/external") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://example.com/external",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string"
+    })JSON");
+  } else if (identifier == "https://example.com/external-with-defs") {
+    return sourcemeta::core::parse_json(R"JSON({
+      "$id": "https://example.com/external-with-defs",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$defs": {
+        "foo": { "type": "string" }
+      }
+    })JSON");
   } else {
     return sourcemeta::core::schema_resolver(identifier);
   }
