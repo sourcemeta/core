@@ -77,14 +77,14 @@ static void Alterschema_Check_Invalid_External_Refs(benchmark::State &state) {
 
   for (auto _ : state) {
     std::size_t trace_count{0};
-    auto result =
-        bundle.check(schema, sourcemeta::core::schema_walker,
-                     sourcemeta::core::schema_resolver,
-                     [&trace_count](const auto &, const auto &name,
-                                    const auto &, const auto &, const auto &) {
-                       assert(name == "invalid_external_ref");
-                       trace_count++;
-                     });
+    auto result = bundle.check(
+        schema, sourcemeta::core::schema_walker,
+        sourcemeta::core::schema_resolver,
+        [&trace_count](const auto &, [[maybe_unused]] const auto &name,
+                       const auto &, const auto &, const auto &) {
+          assert(name == "invalid_external_ref");
+          trace_count++;
+        });
     assert(!result.first);
     assert(trace_count == 1024);
     benchmark::DoNotOptimize(result);

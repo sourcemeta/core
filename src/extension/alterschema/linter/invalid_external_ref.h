@@ -48,9 +48,10 @@ public:
     ONLY_CONTINUE_IF(!frame.traverse(reference_base).has_value());
 
     const auto &has_fragment{reference_entry->get().fragment.has_value()};
+    const JSON::String base_key{reference_base};
 
     // Check the resolver cache to avoid redundant lookups
-    const auto cached{this->resolver_cache_.find(JSON::String{reference_base})};
+    const auto cached{this->resolver_cache_.find(base_key)};
     if (cached != this->resolver_cache_.end()) {
       if (!cached->second.has_value()) {
         return APPLIES_TO_KEYWORDS(KEYWORD);
@@ -58,7 +59,7 @@ public:
 
       if (has_fragment) {
         return this->is_fragment_invalid(reference_entry->get(), cached->second,
-                                         walker, resolver, location)
+                                         base_key, walker, resolver, location)
                    ? APPLIES_TO_KEYWORDS(KEYWORD)
                    : false;
       }
@@ -67,15 +68,15 @@ public:
     }
 
     auto remote{resolver(reference_base)};
-    const auto &[entry, _]{this->resolver_cache_.emplace(
-        JSON::String{reference_base}, std::move(remote))};
+    const auto &[entry,
+                 _]{this->resolver_cache_.emplace(base_key, std::move(remote))};
     if (!entry->second.has_value()) {
       return APPLIES_TO_KEYWORDS(KEYWORD);
     }
 
     if (has_fragment) {
       return this->is_fragment_invalid(reference_entry->get(), entry->second,
-                                       walker, resolver, location)
+                                       base_key, walker, resolver, location)
                  ? APPLIES_TO_KEYWORDS(KEYWORD)
                  : false;
     }
@@ -92,10 +93,9 @@ private:
   [[nodiscard]] auto
   is_fragment_invalid(const SchemaFrame::ReferencesEntry &reference_entry,
                       const std::optional<JSON> &remote,
-                      const SchemaWalker &walker,
+                      const JSON::String &base_key, const SchemaWalker &walker,
                       const SchemaResolver &resolver,
                       const SchemaFrame::Location &location) const -> bool {
-    const JSON::String base_key{reference_entry.base};
     auto frame_iterator{this->frame_cache_.find(base_key)};
     if (frame_iterator == this->frame_cache_.end()) {
       auto remote_frame{
