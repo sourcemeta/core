@@ -29,6 +29,30 @@ static auto test_resolver(std::string_view identifier)
   }
 }
 
+TEST(JSONSchema_vocabulary_draft6, parse_vocabularies_without_vocabulary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object"
+  })JSON");
+
+  const auto result{
+      sourcemeta::core::parse_vocabularies(document, test_resolver)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONSchema_vocabulary_draft6, parse_vocabularies_with_vocabulary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true
+    }
+  })JSON");
+
+  const auto result{
+      sourcemeta::core::parse_vocabularies(document, test_resolver)};
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST(JSONSchema_vocabulary_draft6, schema) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",

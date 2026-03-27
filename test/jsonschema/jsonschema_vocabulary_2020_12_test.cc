@@ -53,6 +53,87 @@ static auto test_resolver(std::string_view identifier)
   }
 }
 
+TEST(JSONSchema_vocabulary_2020_12, parse_vocabularies_with_vocabulary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true,
+      "https://json-schema.org/draft/2020-12/vocab/applicator": true,
+      "https://json-schema.org/draft/2020-12/vocab/validation": false
+    }
+  })JSON");
+
+  const auto result{
+      sourcemeta::core::parse_vocabularies(document, test_resolver)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->size(), 3);
+  EXPECT_VOCABULARY_REQUIRED(*result, JSON_Schema_2020_12_Core);
+  EXPECT_VOCABULARY_REQUIRED(*result, JSON_Schema_2020_12_Applicator);
+  EXPECT_VOCABULARY_OPTIONAL(*result, JSON_Schema_2020_12_Validation);
+}
+
+TEST(JSONSchema_vocabulary_2020_12, parse_vocabularies_without_vocabulary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object"
+  })JSON");
+
+  const auto result{
+      sourcemeta::core::parse_vocabularies(document, test_resolver)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONSchema_vocabulary_2020_12, parse_vocabularies_boolean_schema) {
+  const sourcemeta::core::JSON document{true};
+  const auto result{sourcemeta::core::parse_vocabularies(
+      document, test_resolver, "https://json-schema.org/draft/2020-12/schema")};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONSchema_vocabulary_2020_12,
+     parse_vocabularies_with_base_dialect_with_vocabulary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true,
+      "https://json-schema.org/draft/2020-12/vocab/applicator": true
+    }
+  })JSON");
+
+  const auto result{sourcemeta::core::parse_vocabularies(
+      document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->size(), 2);
+  EXPECT_VOCABULARY_REQUIRED(*result, JSON_Schema_2020_12_Core);
+  EXPECT_VOCABULARY_REQUIRED(*result, JSON_Schema_2020_12_Applicator);
+}
+
+TEST(JSONSchema_vocabulary_2020_12,
+     parse_vocabularies_with_base_dialect_without_vocabulary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "type": "object"
+  })JSON");
+
+  const auto result{sourcemeta::core::parse_vocabularies(
+      document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONSchema_vocabulary_2020_12,
+     parse_vocabularies_with_base_dialect_hyper) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$vocabulary": {
+      "https://json-schema.org/draft/2020-12/vocab/core": true
+    }
+  })JSON");
+
+  const auto result{sourcemeta::core::parse_vocabularies(
+      document,
+      sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12_Hyper)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result->size(), 1);
+  EXPECT_VOCABULARY_REQUIRED(*result, JSON_Schema_2020_12_Core);
+}
+
 TEST(JSONSchema_vocabulary_2020_12, core_vocabularies_boolean_with_default) {
   const sourcemeta::core::JSON document{true};
   const sourcemeta::core::Vocabularies vocabularies{
