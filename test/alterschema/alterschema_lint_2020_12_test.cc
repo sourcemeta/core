@@ -2089,6 +2089,189 @@ TEST(AlterSchema_lint_2020_12, unsatisfiable_max_contains_3) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "type": "array",
+    "contains": { "type": "string" },
+    "minContains": 5,
+    "maxContains": 3
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "", "incoherent_min_max_contains",
+                    "`minContains` greater than `maxContains` makes the "
+                    "schema unsatisfiable",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "type": "array",
+    "contains": { "type": "string" },
+    "minContains": 3,
+    "maxContains": 3
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_3) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "type": "array",
+    "contains": { "type": "string" },
+    "minContains": 1,
+    "maxContains": 5
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_4) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "properties": {
+      "foo": {
+        "type": "array",
+        "contains": { "type": "string" },
+        "minContains": 5,
+        "maxContains": 3
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "incoherent_min_max_contains",
+                    "`minContains` greater than `maxContains` makes the "
+                    "schema unsatisfiable",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_5) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "type": "array",
+    "contains": { "type": "string" },
+    "minContains": 5
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_6) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "type": "array",
+    "items": {
+      "type": "array",
+      "contains": { "type": "string" },
+      "minContains": 5,
+      "maxContains": 3
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/items", "incoherent_min_max_contains",
+                    "`minContains` greater than `maxContains` makes the "
+                    "schema unsatisfiable",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_7) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ [] ],
+    "$ref": "#/$defs/foo",
+    "$defs": {
+      "foo": {
+        "type": "array",
+        "contains": { "type": "string" },
+        "minContains": 5,
+        "maxContains": 3
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/$defs/foo", "incoherent_min_max_contains",
+                    "`minContains` greater than `maxContains` makes the "
+                    "schema unsatisfiable",
+                    false);
+}
+
+TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_8) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Test",
+    "description": "A test schema",
+    "examples": [ {} ],
+    "$ref": "#/$defs/A/properties/bar",
+    "$defs": {
+      "A": {
+        "type": "array",
+        "contains": { "type": "string" },
+        "minContains": 5,
+        "maxContains": 3,
+        "properties": {
+          "bar": { "type": "string" }
+        }
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/$defs/A", "incoherent_min_max_contains",
+                    "`minContains` greater than `maxContains` makes the "
+                    "schema unsatisfiable",
+                    false);
+}
+
 TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_1) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
