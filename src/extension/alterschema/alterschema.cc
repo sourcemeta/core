@@ -5,6 +5,7 @@
 #include <algorithm>     // std::sort, std::unique
 #include <cmath>         // std::floor
 #include <iterator>      // std::back_inserter
+#include <memory>        // std::unique_ptr, std::make_unique
 #include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move
@@ -111,6 +112,7 @@ inline auto APPLIES_TO_POINTERS(std::vector<Pointer> &&keywords)
 #include "linter/enum_to_const.h"
 #include "linter/equal_numeric_bounds_to_const.h"
 #include "linter/forbid_empty_enum.h"
+#include "linter/invalid_external_ref.h"
 #include "linter/items_array_default.h"
 #include "linter/items_schema_default.h"
 #include "linter/multiple_of_default.h"
@@ -239,6 +241,7 @@ auto add(SchemaTransformer &bundle, const AlterSchemaMode mode) -> void {
     bundle.add<CommentTrim>();
     bundle.add<DuplicateExamples>();
     bundle.add<SimplePropertiesIdentifiers>();
+    bundle.add<InvalidExternalRef>();
   }
 
   bundle.add<UnnecessaryAllOfRefWrapperModern>();

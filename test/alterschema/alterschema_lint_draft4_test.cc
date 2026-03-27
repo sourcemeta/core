@@ -2700,3 +2700,73 @@ TEST(AlterSchema_lint_draft4, forbid_empty_enum_4) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft4, invalid_external_ref_1) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "properties": {
+      "foo": {
+        "$ref": "https://unknown.example.com/nonexistent"
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 1);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}
+
+TEST(AlterSchema_lint_draft4, invalid_external_ref_1_with_siblings) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "properties": {
+      "foo": {
+        "$ref": "https://unknown.example.com/nonexistent",
+        "type": "string"
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_FALSE(result.first);
+  EXPECT_EQ(traces.size(), 2);
+  EXPECT_LINT_TRACE(traces, 0, "/properties/foo", "draft_ref_siblings",
+                    "In Draft 7 and older dialects, keywords sibling to "
+                    "`$ref` are never evaluated",
+                    true);
+  EXPECT_LINT_TRACE(traces, 1, "/properties/foo", "invalid_external_ref",
+                    "External references must point to schemas that can be "
+                    "resolved",
+                    false);
+}
+
+TEST(AlterSchema_lint_draft4, invalid_external_ref_2) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Test",
+    "description": "Test description",
+    "definitions": {
+      "foo": { "type": "string" }
+    },
+    "properties": {
+      "bar": {
+        "$ref": "#/definitions/foo"
+      }
+    }
+  })JSON");
+
+  LINT_WITHOUT_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+  EXPECT_EQ(traces.size(), 0);
+}
