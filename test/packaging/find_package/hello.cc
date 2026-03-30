@@ -3,6 +3,7 @@
 #include <sourcemeta/core/editorschema.h>
 #include <sourcemeta/core/html.h>
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/ip.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonl.h>
 #include <sourcemeta/core/jsonpointer.h>
