@@ -6,10 +6,7 @@
 
 namespace sourcemeta::core {
 
-auto URI::is_relative() const -> bool {
-  return !this->scheme().has_value() ||
-         (this->path_.has_value() && this->path_.value().starts_with("."));
-}
+auto URI::is_relative() const -> bool { return !this->scheme().has_value(); }
 
 auto URI::is_absolute() const noexcept -> bool {
   return this->scheme_.has_value();
