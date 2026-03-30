@@ -4,12 +4,13 @@
 
 #include "preprocess.h"
 
-#include <cassert>  // assert
-#include <charconv> // std::from_chars
-#include <cstdint>  // std::uint64_t
-#include <regex>    // std::regex, std::smatch, std::regex_match
-#include <string>   // std::string
-#include <utility>  // std::unreachable
+#include <cassert>      // assert
+#include <charconv>     // std::from_chars
+#include <cstdint>      // std::uint64_t
+#include <regex>        // std::regex, std::smatch, std::regex_match
+#include <string>       // std::string
+#include <system_error> // std::errc
+#include <utility>      // std::unreachable
 
 namespace sourcemeta::core {
 
@@ -39,10 +40,16 @@ auto to_regex(const std::string &pattern) -> std::optional<Regex> {
     const auto maximum_string = matches_range[2].str();
     std::uint64_t minimum{};
     std::uint64_t maximum{};
-    std::from_chars(minimum_string.data(),
-                    minimum_string.data() + minimum_string.size(), minimum);
-    std::from_chars(maximum_string.data(),
-                    maximum_string.data() + maximum_string.size(), maximum);
+    const auto minimum_result =
+        std::from_chars(minimum_string.data(),
+                        minimum_string.data() + minimum_string.size(), minimum);
+    const auto maximum_result =
+        std::from_chars(maximum_string.data(),
+                        maximum_string.data() + maximum_string.size(), maximum);
+    if (minimum_result.ec != std::errc{} || maximum_result.ec != std::errc{}) {
+      return std::nullopt;
+    }
+
     assert(minimum <= maximum);
     return RegexTypeRange{minimum, maximum};
   }
