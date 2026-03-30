@@ -2,8 +2,9 @@
 
 #include <sourcemeta/core/uritemplate.h>
 
+#include <array>       // std::array
 #include <cassert>     // assert
-#include <cstdint>     // std::uint16_t
+#include <cstdint>     // std::uint16_t, std::int64_t
 #include <filesystem>  // std::filesystem
 #include <string_view> // std::string_view
 
@@ -198,7 +199,156 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+static void URITemplateRouterView_Arguments(benchmark::State &state) {
+  const auto path{std::filesystem::temp_directory_path() /
+                  "uritemplate_benchmark_arguments.bin"};
+
+  // clang-format off
+  constexpr std::string_view long_value =
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+      "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh";
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 100>
+      many_arguments{{
+          {"argument_00", std::string_view{"short_value_0"}},
+          {"argument_01", std::int64_t{1}},
+          {"argument_02", true},
+          {"argument_03", long_value},
+          {"argument_04", std::int64_t{-100}},
+          {"argument_05", false},
+          {"argument_06", std::string_view{"response/schema/path"}},
+          {"argument_07", std::int64_t{999999}},
+          {"argument_08", true},
+          {"argument_09", std::string_view{"another_short"}},
+          {"argument_10", std::int64_t{0}},
+          {"argument_11", false},
+          {"argument_12", long_value},
+          {"argument_13", std::int64_t{42}},
+          {"argument_14", true},
+          {"argument_15", std::string_view{"path/to/resource"}},
+          {"argument_16", std::int64_t{-1}},
+          {"argument_17", false},
+          {"argument_18", std::string_view{"value_18"}},
+          {"argument_19", std::int64_t{12345}},
+          {"argument_20", true},
+          {"argument_21", long_value},
+          {"argument_22", std::int64_t{67890}},
+          {"argument_23", false},
+          {"argument_24", std::string_view{"config/key"}},
+          {"argument_25", std::int64_t{-999}},
+          {"argument_26", true},
+          {"argument_27", std::string_view{"value_27"}},
+          {"argument_28", std::int64_t{100}},
+          {"argument_29", false},
+          {"argument_30", long_value},
+          {"argument_31", std::int64_t{200}},
+          {"argument_32", true},
+          {"argument_33", std::string_view{"schemas/api/list"}},
+          {"argument_34", std::int64_t{300}},
+          {"argument_35", false},
+          {"argument_36", std::string_view{"value_36"}},
+          {"argument_37", std::int64_t{400}},
+          {"argument_38", true},
+          {"argument_39", long_value},
+          {"argument_40", std::int64_t{500}},
+          {"argument_41", false},
+          {"argument_42", std::string_view{"target/url/path"}},
+          {"argument_43", std::int64_t{600}},
+          {"argument_44", true},
+          {"argument_45", std::string_view{"value_45"}},
+          {"argument_46", std::int64_t{700}},
+          {"argument_47", false},
+          {"argument_48", long_value},
+          {"argument_49", std::int64_t{800}},
+          {"argument_50", true},
+          {"argument_51", std::string_view{"redirect/path"}},
+          {"argument_52", std::int64_t{900}},
+          {"argument_53", false},
+          {"argument_54", std::string_view{"value_54"}},
+          {"argument_55", std::int64_t{1000}},
+          {"argument_56", true},
+          {"argument_57", long_value},
+          {"argument_58", std::int64_t{1100}},
+          {"argument_59", false},
+          {"argument_60", std::string_view{"webhook/endpoint"}},
+          {"argument_61", std::int64_t{1200}},
+          {"argument_62", true},
+          {"argument_63", std::string_view{"value_63"}},
+          {"argument_64", std::int64_t{1300}},
+          {"argument_65", false},
+          {"argument_66", long_value},
+          {"argument_67", std::int64_t{1400}},
+          {"argument_68", true},
+          {"argument_69", std::string_view{"proxy/upstream"}},
+          {"argument_70", std::int64_t{1500}},
+          {"argument_71", false},
+          {"argument_72", std::string_view{"value_72"}},
+          {"argument_73", std::int64_t{1600}},
+          {"argument_74", true},
+          {"argument_75", long_value},
+          {"argument_76", std::int64_t{1700}},
+          {"argument_77", false},
+          {"argument_78", std::string_view{"static/directory"}},
+          {"argument_79", std::int64_t{1800}},
+          {"argument_80", true},
+          {"argument_81", std::string_view{"value_81"}},
+          {"argument_82", std::int64_t{1900}},
+          {"argument_83", false},
+          {"argument_84", long_value},
+          {"argument_85", std::int64_t{2000}},
+          {"argument_86", true},
+          {"argument_87", std::string_view{"cache/control"}},
+          {"argument_88", std::int64_t{2100}},
+          {"argument_89", false},
+          {"argument_90", std::string_view{"value_90"}},
+          {"argument_91", std::int64_t{2200}},
+          {"argument_92", true},
+          {"argument_93", long_value},
+          {"argument_94", std::int64_t{2300}},
+          {"argument_95", false},
+          {"argument_96", std::string_view{"auth/token/path"}},
+          {"argument_97", std::int64_t{2400}},
+          {"argument_98", true},
+          {"argument_99", std::string_view{"final_value"}},
+      }};
+  // clang-format on
+
+  {
+    sourcemeta::core::URITemplateRouter router;
+    const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+        small_args{{{"schema", std::string_view{"schemas/health"}}}};
+    router.add("/api/v1/health", 1, small_args);
+    router.add("/api/v1/users/{id}", 2, small_args);
+    router.add("/api/v1/many", 3, many_arguments);
+    sourcemeta::core::URITemplateRouterView::save(router, path);
+  }
+
+  {
+    sourcemeta::core::URITemplateRouterView view{path};
+
+    for (auto _ : state) {
+      auto result = view.match("/api/v1/many", [](auto, auto, auto) {});
+      assert(result == 3);
+      benchmark::DoNotOptimize(result);
+
+      std::size_t argument_count = 0;
+      view.arguments(
+          3, [&argument_count](auto, const auto &) { ++argument_count; });
+      assert(argument_count == 100);
+      benchmark::DoNotOptimize(argument_count);
+    }
+  }
+
+  std::filesystem::remove(path);
+}
+
 BENCHMARK(URITemplateRouter_Create);
 BENCHMARK(URITemplateRouter_Match);
 BENCHMARK(URITemplateRouterView_Restore);
 BENCHMARK(URITemplateRouterView_Match);
+BENCHMARK(URITemplateRouterView_Arguments);
