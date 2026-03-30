@@ -17,6 +17,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_is_tag_test.cc
     uri_is_mailto_test.cc
     uri_is_file_test.cc
+    uri_is_ipv4_test.cc
     uri_is_ipv6_test.cc
     uri_rebase_test.cc
     uri_recompose_test.cc

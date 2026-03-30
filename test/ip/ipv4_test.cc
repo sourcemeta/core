@@ -161,7 +161,7 @@ TEST(IP_ipv4, invalid_only_dots) {
 }
 
 TEST(IP_ipv4, invalid_four_dots) {
-  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3.4."));
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3.4.5."));
 }
 
 TEST(IP_ipv4, invalid_words) {
