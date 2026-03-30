@@ -107,3 +107,17 @@ TEST(URI_is_ipv6, ipv4_multiple_subdomains) {
   EXPECT_EQ(uri.host().value(), "api.v1.198.51.100.5.example.com");
   EXPECT_EQ(uri.recompose(), "http://api.v1.198.51.100.5.example.com/endpoint");
 }
+
+TEST(URI_is_ipv6, ipvfuture_no_colon) {
+  const sourcemeta::core::URI uri{"http://[v1.test]/"};
+  EXPECT_FALSE(uri.is_ipv6());
+  EXPECT_FALSE(uri.is_ipv4());
+  EXPECT_EQ(uri.host().value(), "v1.test");
+}
+
+TEST(URI_is_ipv6, ipvfuture_with_colon) {
+  const sourcemeta::core::URI uri{"http://[vFF.a:b]/"};
+  EXPECT_FALSE(uri.is_ipv6());
+  EXPECT_FALSE(uri.is_ipv4());
+  EXPECT_EQ(uri.host().value(), "vFF.a:b");
+}

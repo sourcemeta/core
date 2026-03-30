@@ -158,3 +158,15 @@ TEST(URI_recompose, path_absolute_without_authority_roundtrip) {
   const sourcemeta::core::URI roundtrip{original.recompose()};
   EXPECT_EQ(roundtrip.recompose(), "file:/path");
 }
+
+TEST(URI_recompose, ipvfuture_no_colon_in_content) {
+  const sourcemeta::core::URI uri{"http://[v1.test]/"};
+  EXPECT_EQ(uri.host().value(), "v1.test");
+  EXPECT_EQ(uri.recompose(), "http://[v1.test]/");
+}
+
+TEST(URI_recompose, ipvfuture_with_colon_in_content) {
+  const sourcemeta::core::URI uri{"http://[vFF.a:b]/"};
+  EXPECT_EQ(uri.host().value(), "vFF.a:b");
+  EXPECT_EQ(uri.recompose(), "http://[vFF.a:b]/");
+}
