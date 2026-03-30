@@ -19,7 +19,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME json
     json_stringify_test.cc
     json_value_test.cc
     json_type_test.cc
-    json_auto_test.cc)
+    json_auto_test.cc
+    json_format_test.cc)
 
 target_link_libraries(sourcemeta_core_json_unit
   PRIVATE sourcemeta::core::json)

@@ -4,10 +4,12 @@
 
 #include "preprocess.h"
 
-#include <cassert> // assert
-#include <cstdint> // std::uint64_t
-#include <regex>   // std::regex, std::smatch, std::regex_match
-#include <string>  // std::string, std::stoull
+#include <cassert>  // assert
+#include <charconv> // std::from_chars
+#include <cstdint>  // std::uint64_t
+#include <regex>    // std::regex, std::smatch, std::regex_match
+#include <string>   // std::string
+#include <utility>  // std::unreachable
 
 namespace sourcemeta::core {
 
@@ -33,8 +35,14 @@ auto to_regex(const std::string &pattern) -> std::optional<Regex> {
   const std::regex RANGE_REGEX{R"(^\^\.\{(\d+),(\d+)\}\$$)"};
   std::smatch matches_range;
   if (std::regex_match(pattern, matches_range, RANGE_REGEX)) {
-    const std::uint64_t minimum{std::stoull(matches_range[1].str())};
-    const std::uint64_t maximum{std::stoull(matches_range[2].str())};
+    const auto minimum_string = matches_range[1].str();
+    const auto maximum_string = matches_range[2].str();
+    std::uint64_t minimum{};
+    std::uint64_t maximum{};
+    std::from_chars(minimum_string.data(),
+                    minimum_string.data() + minimum_string.size(), minimum);
+    std::from_chars(maximum_string.data(),
+                    maximum_string.data() + maximum_string.size(), maximum);
     assert(minimum <= maximum);
     return RegexTypeRange{minimum, maximum};
   }
@@ -86,11 +94,7 @@ auto matches(const Regex &regex, const std::string &value) -> bool {
       return true;
   }
 
-#if defined(_MSC_VER) && !defined(__clang__)
-  __assume(false);
-#else
-  __builtin_unreachable();
-#endif
+  std::unreachable();
 }
 
 auto matches_if_valid(const std::string &pattern, const std::string &value)
