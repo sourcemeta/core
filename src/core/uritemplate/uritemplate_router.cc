@@ -99,17 +99,18 @@ auto URITemplateRouter::add(const std::string_view uri_template,
                             const std::span<const Argument> arguments) -> void {
   assert(identifier > 0);
 
-  if (!arguments.empty()) {
-    assert(std::ranges::none_of(this->arguments_,
-                                [&identifier](const auto &entry) {
-                                  return entry.first == identifier;
-                                }));
-    this->arguments_.emplace_back(
-        identifier, std::vector<Argument>{arguments.begin(), arguments.end()});
-  }
-
   if (uri_template.empty()) {
     this->root_.identifier = identifier;
+    if (!arguments.empty()) {
+      assert(std::ranges::none_of(this->arguments_,
+                                  [&identifier](const auto &entry) {
+                                    return entry.first == identifier;
+                                  }));
+      this->arguments_.emplace_back(
+          identifier,
+          std::vector<Argument>{arguments.begin(), arguments.end()});
+    }
+
     return;
   }
 
@@ -267,6 +268,15 @@ auto URITemplateRouter::add(const std::string_view uri_template,
 
   if (!absorbed && current != nullptr) {
     current->identifier = identifier;
+    if (!arguments.empty()) {
+      assert(std::ranges::none_of(this->arguments_,
+                                  [&identifier](const auto &entry) {
+                                    return entry.first == identifier;
+                                  }));
+      this->arguments_.emplace_back(
+          identifier,
+          std::vector<Argument>{arguments.begin(), arguments.end()});
+    }
   }
 }
 
@@ -282,6 +292,7 @@ auto URITemplateRouter::arguments(const Identifier identifier,
       for (const auto &argument : entry.second) {
         callback(argument.first, argument.second);
       }
+
       return;
     }
   }

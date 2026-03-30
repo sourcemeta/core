@@ -254,6 +254,7 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
     file.write(reinterpret_cast<const char *>(&entry.blob_length),
                sizeof(entry.blob_length));
   }
+
   if (!argument_blob.empty()) {
     file.write(reinterpret_cast<const char *>(argument_blob.data()),
                static_cast<std::streamsize>(argument_blob.size()));
@@ -531,12 +532,14 @@ auto URITemplateRouterView::arguments(
       if (cursor + sizeof(std::uint16_t) > blob_end) {
         return;
       }
+
       std::uint16_t key_length = 0;
       std::memcpy(&key_length, this->data_.data() + cursor, sizeof(key_length));
       cursor += sizeof(key_length);
       if (key_length > blob_end - cursor) {
         return;
       }
+
       const std::string_view name{
           reinterpret_cast<const char *>(this->data_.data() + cursor),
           key_length};
@@ -545,6 +548,7 @@ auto URITemplateRouterView::arguments(
       if (cursor + sizeof(std::uint8_t) + sizeof(std::uint16_t) > blob_end) {
         return;
       }
+
       const auto type_tag = this->data_[cursor];
       cursor += sizeof(std::uint8_t);
       std::uint16_t value_length = 0;
@@ -563,22 +567,27 @@ auto URITemplateRouterView::arguments(
           callback(name, string_value);
           break;
         }
+
         case ARGUMENT_TYPE_INTEGER: {
           if (value_length != 8) {
             return;
           }
+
           std::int64_t integer_value = 0;
           std::memcpy(&integer_value, this->data_.data() + cursor, 8);
           callback(name, integer_value);
           break;
         }
+
         case ARGUMENT_TYPE_BOOLEAN: {
           if (value_length != 1) {
             return;
           }
+
           callback(name, this->data_[cursor] != 0);
           break;
         }
+
         default:
           return;
       }
