@@ -4,10 +4,15 @@
 
 #include "uritemplate_helpers.h"
 
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#include <array>       // std::array
+#include <climits>     // INT64_MIN, INT64_MAX
+#include <cstdint>     // std::int64_t
+#include <span>        // std::span
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::pair
+#include <variant>     // std::holds_alternative, std::get
+#include <vector>      // std::vector
 
 #define EXPECT_ROUTER_SEGMENT_ERROR(router, input, identifier, expected)       \
   try {                                                                        \
@@ -666,4 +671,289 @@ TEST(URITemplateRouter, expansion_matches_double_slashes) {
   EXPECT_ROUTER_MATCH(router, "/files/foo//bar", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo//bar");
+}
+
+TEST(URITemplateRouter, add_with_single_string_argument) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"responseSchema", std::string_view{"some/path"}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "responseSchema");
+  EXPECT_EQ(std::get<std::string_view>(collected[0].second), "some/path");
+}
+
+TEST(URITemplateRouter, add_with_single_integer_argument) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"maxItems", std::int64_t{42}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "maxItems");
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), 42);
+}
+
+TEST(URITemplateRouter, add_with_single_boolean_argument_true) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"verbose", true}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "verbose");
+  EXPECT_TRUE(std::get<bool>(collected[0].second));
+}
+
+TEST(URITemplateRouter, add_with_single_boolean_argument_false) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"verbose", false}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "verbose");
+  EXPECT_FALSE(std::get<bool>(collected[0].second));
+}
+
+TEST(URITemplateRouter, add_with_multiple_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 3> arguments{
+      {{"responseSchema", std::string_view{"some/path"}},
+       {"maxItems", std::int64_t{100}},
+       {"verbose", true}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 3);
+  EXPECT_EQ(collected[0].first, "responseSchema");
+  EXPECT_EQ(std::get<std::string_view>(collected[0].second), "some/path");
+  EXPECT_EQ(collected[1].first, "maxItems");
+  EXPECT_EQ(std::get<std::int64_t>(collected[1].second), 100);
+  EXPECT_EQ(collected[2].first, "verbose");
+  EXPECT_TRUE(std::get<bool>(collected[2].second));
+}
+
+TEST(URITemplateRouter, add_with_empty_arguments_span) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/test", 1,
+             std::span<const sourcemeta::core::URITemplateRouter::Argument>{});
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_TRUE(collected.empty());
+}
+
+TEST(URITemplateRouter, add_without_arguments_parameter) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/test", 1);
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_TRUE(collected.empty());
+}
+
+TEST(URITemplateRouter, add_multiple_routes_with_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+      arguments_one{{{"schema", std::string_view{"path/one"}}}};
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+      arguments_two{{{"limit", std::int64_t{50}}}};
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+      arguments_three{{{"active", false}}};
+
+  router.add("/alpha", 1, arguments_one);
+  router.add("/beta", 2, arguments_two);
+  router.add("/gamma", 3, arguments_three);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected_one;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected_one.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected_one.size(), 1);
+  EXPECT_EQ(collected_one[0].first, "schema");
+  EXPECT_EQ(std::get<std::string_view>(collected_one[0].second), "path/one");
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected_two;
+  router.arguments(
+      2, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected_two.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected_two.size(), 1);
+  EXPECT_EQ(collected_two[0].first, "limit");
+  EXPECT_EQ(std::get<std::int64_t>(collected_two[0].second), 50);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected_three;
+  router.arguments(
+      3, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected_three.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected_three.size(), 1);
+  EXPECT_EQ(collected_three[0].first, "active");
+  EXPECT_FALSE(std::get<bool>(collected_three[0].second));
+}
+
+TEST(URITemplateRouter, add_arguments_negative_integer) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"offset", std::int64_t{INT64_MIN}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "offset");
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), INT64_MIN);
+}
+
+TEST(URITemplateRouter, add_arguments_zero_integer) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"count", std::int64_t{0}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "count");
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), 0);
+}
+
+TEST(URITemplateRouter, add_arguments_max_integer) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"limit", std::int64_t{INT64_MAX}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "limit");
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), INT64_MAX);
+}
+
+TEST(URITemplateRouter, add_arguments_empty_string_value) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"description", std::string_view{""}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "description");
+  EXPECT_EQ(std::get<std::string_view>(collected[0].second), "");
+}
+
+TEST(URITemplateRouter, add_arguments_empty_string_name) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"", std::string_view{"some_value"}}}};
+  router.add("/test", 1, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "");
+  EXPECT_EQ(std::get<std::string_view>(collected[0].second), "some_value");
+}
+
+TEST(URITemplateRouter, match_still_works_with_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"responseSchema", std::string_view{"schemas/user"}}}};
+  router.add("/users/{id}", 1, arguments);
+  EXPECT_ROUTER_MATCH(router, "/users/42", 1, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
 }

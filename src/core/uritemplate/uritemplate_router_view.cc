@@ -1,6 +1,6 @@
 #include <sourcemeta/core/uritemplate.h>
 
-#include <cstring>       // std::memcmp
+#include <cstring>       // std::memcmp, std::memcpy
 #include <fstream>       // std::ofstream, std::ifstream
 #include <limits>        // std::numeric_limits
 #include <queue>         // std::queue
@@ -13,14 +13,26 @@ namespace sourcemeta::core {
 namespace {
 
 constexpr std::uint32_t ROUTER_MAGIC = 0x52544552; // "RTER"
-constexpr std::uint32_t ROUTER_VERSION = 1;
+constexpr std::uint32_t ROUTER_VERSION = 2;
 constexpr std::uint32_t NO_CHILD = std::numeric_limits<std::uint32_t>::max();
+
+// Type tags for argument value serialization
+constexpr std::uint8_t ARGUMENT_TYPE_STRING = 0x00;
+constexpr std::uint8_t ARGUMENT_TYPE_INTEGER = 0x01;
+constexpr std::uint8_t ARGUMENT_TYPE_BOOLEAN = 0x02;
 
 struct RouterHeader {
   std::uint32_t magic;
   std::uint32_t version;
   std::uint32_t node_count;
   std::uint32_t string_table_offset;
+  std::uint32_t arguments_offset;
+};
+
+struct ArgumentEntryHeader {
+  std::uint16_t identifier;
+  std::uint32_t blob_offset;
+  std::uint32_t blob_length;
 };
 
 // Binary search for a literal child matching the given segment
@@ -150,12 +162,72 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
     nodes.push_back(serialized);
   }
 
+  // Build the arguments section
+  const auto &route_arguments = router.arguments();
+  const auto entry_count = static_cast<std::uint16_t>(route_arguments.size());
+
+  // Build per-entry blobs
+  std::vector<ArgumentEntryHeader> argument_entries;
+  std::vector<std::uint8_t> argument_blob;
+  argument_entries.reserve(entry_count);
+
+  for (const auto &[identifier, arguments] : route_arguments) {
+    ArgumentEntryHeader entry{};
+    entry.identifier = identifier;
+    entry.blob_offset = static_cast<std::uint32_t>(argument_blob.size());
+
+    const auto arg_count = static_cast<std::uint16_t>(arguments.size());
+    // Write arg_count
+    argument_blob.push_back(static_cast<std::uint8_t>(arg_count & 0xFF));
+    argument_blob.push_back(static_cast<std::uint8_t>(arg_count >> 8));
+
+    for (const auto &[name, value] : arguments) {
+      // Write key_length + key_bytes
+      const auto key_length = static_cast<std::uint16_t>(name.size());
+      argument_blob.push_back(static_cast<std::uint8_t>(key_length & 0xFF));
+      argument_blob.push_back(static_cast<std::uint8_t>(key_length >> 8));
+      argument_blob.insert(argument_blob.end(), name.begin(), name.end());
+
+      // Write type_tag + value_length + value_bytes
+      if (std::holds_alternative<std::string_view>(value)) {
+        const auto string_value = std::get<std::string_view>(value);
+        const auto value_length =
+            static_cast<std::uint16_t>(string_value.size());
+        argument_blob.push_back(ARGUMENT_TYPE_STRING);
+        argument_blob.push_back(static_cast<std::uint8_t>(value_length & 0xFF));
+        argument_blob.push_back(static_cast<std::uint8_t>(value_length >> 8));
+        argument_blob.insert(argument_blob.end(), string_value.begin(),
+                             string_value.end());
+      } else if (std::holds_alternative<std::int64_t>(value)) {
+        const auto integer_value = std::get<std::int64_t>(value);
+        argument_blob.push_back(ARGUMENT_TYPE_INTEGER);
+        argument_blob.push_back(8);
+        argument_blob.push_back(0);
+        const auto old_size = argument_blob.size();
+        argument_blob.resize(old_size + 8);
+        std::memcpy(argument_blob.data() + old_size, &integer_value, 8);
+      } else {
+        const auto boolean_value = std::get<bool>(value);
+        argument_blob.push_back(ARGUMENT_TYPE_BOOLEAN);
+        argument_blob.push_back(1);
+        argument_blob.push_back(0);
+        argument_blob.push_back(boolean_value ? 1 : 0);
+      }
+    }
+
+    entry.blob_length =
+        static_cast<std::uint32_t>(argument_blob.size()) - entry.blob_offset;
+    argument_entries.push_back(entry);
+  }
+
   RouterHeader header{};
   header.magic = ROUTER_MAGIC;
   header.version = ROUTER_VERSION;
   header.node_count = static_cast<std::uint32_t>(nodes.size());
   header.string_table_offset = static_cast<std::uint32_t>(
       sizeof(RouterHeader) + nodes.size() * sizeof(Node));
+  header.arguments_offset = static_cast<std::uint32_t>(
+      header.string_table_offset + string_table.size());
 
   std::ofstream file(path, std::ios::binary);
   if (!file) {
@@ -167,6 +239,21 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
              static_cast<std::streamsize>(nodes.size() * sizeof(Node)));
   file.write(string_table.data(),
              static_cast<std::streamsize>(string_table.size()));
+
+  // Write arguments section
+  file.write(reinterpret_cast<const char *>(&entry_count), sizeof(entry_count));
+  for (const auto &entry : argument_entries) {
+    file.write(reinterpret_cast<const char *>(&entry.identifier),
+               sizeof(entry.identifier));
+    file.write(reinterpret_cast<const char *>(&entry.blob_offset),
+               sizeof(entry.blob_offset));
+    file.write(reinterpret_cast<const char *>(&entry.blob_length),
+               sizeof(entry.blob_length));
+  }
+  if (!argument_blob.empty()) {
+    file.write(reinterpret_cast<const char *>(argument_blob.data()),
+               static_cast<std::streamsize>(argument_blob.size()));
+  }
 
   if (!file) {
     throw URITemplateRouterSaveError{path,
@@ -354,6 +441,143 @@ auto URITemplateRouterView::match(const std::string_view path,
   }
 
   return nodes[current_node].identifier;
+}
+
+auto URITemplateRouterView::arguments(
+    const URITemplateRouter::Identifier identifier,
+    const URITemplateRouter::ArgumentCallback &callback) const -> void {
+  if (this->data_.size() < sizeof(RouterHeader)) {
+    return;
+  }
+
+  const auto *header =
+      reinterpret_cast<const RouterHeader *>(this->data_.data());
+  if (header->magic != ROUTER_MAGIC || header->version != ROUTER_VERSION) {
+    return;
+  }
+
+  if (header->arguments_offset >= this->data_.size()) {
+    return;
+  }
+
+  const auto *arguments_section = this->data_.data() + header->arguments_offset;
+  const auto arguments_section_size =
+      this->data_.size() - header->arguments_offset;
+
+  if (arguments_section_size < sizeof(std::uint16_t)) {
+    return;
+  }
+
+  std::uint16_t entry_count = 0;
+  std::memcpy(&entry_count, arguments_section, sizeof(entry_count));
+  if (entry_count == 0) {
+    return;
+  }
+
+  const auto *cursor = arguments_section + sizeof(entry_count);
+  const auto *const section_end = arguments_section + arguments_section_size;
+
+  // Each entry is: uint16 identifier + uint32 blob_offset + uint32 blob_length
+  constexpr std::size_t ENTRY_SIZE =
+      sizeof(std::uint16_t) + sizeof(std::uint32_t) + sizeof(std::uint32_t);
+
+  const auto entries_size = static_cast<std::size_t>(entry_count) * ENTRY_SIZE;
+  if (cursor + entries_size > section_end) {
+    return;
+  }
+
+  const auto *const blob_start = cursor + entries_size;
+
+  // Linear scan for matching identifier
+  for (std::uint16_t index = 0; index < entry_count; ++index) {
+    const auto *entry_ptr = cursor + index * ENTRY_SIZE;
+
+    std::uint16_t entry_identifier = 0;
+    std::memcpy(&entry_identifier, entry_ptr, sizeof(entry_identifier));
+    if (entry_identifier != identifier) {
+      continue;
+    }
+
+    std::uint32_t blob_offset = 0;
+    std::uint32_t blob_length = 0;
+    std::memcpy(&blob_offset, entry_ptr + sizeof(std::uint16_t),
+                sizeof(blob_offset));
+    std::memcpy(&blob_length,
+                entry_ptr + sizeof(std::uint16_t) + sizeof(std::uint32_t),
+                sizeof(blob_length));
+
+    const auto *blob = blob_start + blob_offset;
+    if (blob + blob_length > section_end ||
+        blob_length < sizeof(std::uint16_t)) {
+      return;
+    }
+
+    std::uint16_t arg_count = 0;
+    std::memcpy(&arg_count, blob, sizeof(arg_count));
+    const auto *arg_cursor = blob + sizeof(arg_count);
+    const auto *const blob_end = blob + blob_length;
+
+    for (std::uint16_t arg_index = 0; arg_index < arg_count; ++arg_index) {
+      // key_length (uint16) + key_bytes
+      if (arg_cursor + sizeof(std::uint16_t) > blob_end) {
+        return;
+      }
+      std::uint16_t key_length = 0;
+      std::memcpy(&key_length, arg_cursor, sizeof(key_length));
+      arg_cursor += sizeof(key_length);
+      if (arg_cursor + key_length > blob_end) {
+        return;
+      }
+      const std::string_view name{reinterpret_cast<const char *>(arg_cursor),
+                                  key_length};
+      arg_cursor += key_length;
+
+      // type_tag (uint8) + value_length (uint16) + value_bytes
+      if (arg_cursor + sizeof(std::uint8_t) + sizeof(std::uint16_t) >
+          blob_end) {
+        return;
+      }
+      const auto type_tag = *arg_cursor;
+      arg_cursor += sizeof(std::uint8_t);
+      std::uint16_t value_length = 0;
+      std::memcpy(&value_length, arg_cursor, sizeof(value_length));
+      arg_cursor += sizeof(value_length);
+      if (arg_cursor + value_length > blob_end) {
+        return;
+      }
+
+      switch (type_tag) {
+        case ARGUMENT_TYPE_STRING: {
+          const std::string_view string_value{
+              reinterpret_cast<const char *>(arg_cursor), value_length};
+          callback(name, string_value);
+          break;
+        }
+        case ARGUMENT_TYPE_INTEGER: {
+          if (value_length != 8) {
+            return;
+          }
+          std::int64_t integer_value = 0;
+          std::memcpy(&integer_value, arg_cursor, 8);
+          callback(name, integer_value);
+          break;
+        }
+        case ARGUMENT_TYPE_BOOLEAN: {
+          if (value_length != 1) {
+            return;
+          }
+          callback(name, *arg_cursor != 0);
+          break;
+        }
+        default:
+          return;
+      }
+
+      arg_cursor += value_length;
+    }
+
+    return;
+  }
 }
 
 } // namespace sourcemeta::core
