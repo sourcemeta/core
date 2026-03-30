@@ -33,8 +33,7 @@ auto URI::is_file() const -> bool {
 }
 
 auto URI::is_ipv6() const -> bool {
-  return this->host_.has_value() &&
-         this->host_.value().find(':') != std::string::npos;
+  return this->host_.has_value() && this->host_.value().contains(':');
 }
 
 auto URI::is_fragment_only() const -> bool {

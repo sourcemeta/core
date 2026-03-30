@@ -2,7 +2,9 @@
 
 #include "escaping.h"
 
+#include <array>    // std::array
 #include <cctype>   // std::isxdigit
+#include <charconv> // std::to_chars
 #include <cstdint>  // std::uint32_t
 #include <iomanip>  // std::hex, std::uppercase
 #include <optional> // std::optional
@@ -142,7 +144,11 @@ auto URI::recompose_without_fragment() const -> std::optional<std::string> {
   // Port
   if (result_port.has_value()) {
     result += ':';
-    result += std::to_string(result_port.value());
+    std::array<char, 20> port_buffer{};
+    const auto [end_pointer, error_code] = std::to_chars(
+        port_buffer.data(), port_buffer.data() + port_buffer.size(),
+        result_port.value());
+    result.append(port_buffer.data(), end_pointer);
   }
 
   // Path
