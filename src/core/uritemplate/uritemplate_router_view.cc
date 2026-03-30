@@ -1,5 +1,6 @@
 #include <sourcemeta/core/uritemplate.h>
 
+#include <cassert>       // assert
 #include <cstring>       // std::memcmp, std::memcpy
 #include <fstream>       // std::ofstream, std::ifstream
 #include <limits>        // std::numeric_limits
@@ -176,13 +177,14 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
     entry.identifier = identifier;
     entry.blob_offset = static_cast<std::uint32_t>(argument_blob.size());
 
+    assert(arguments.size() <= std::numeric_limits<std::uint16_t>::max());
     const auto arg_count = static_cast<std::uint16_t>(arguments.size());
-    // Write arg_count
     argument_blob.push_back(static_cast<std::uint8_t>(arg_count & 0xFF));
     argument_blob.push_back(static_cast<std::uint8_t>(arg_count >> 8));
 
     for (const auto &[name, value] : arguments) {
       // Write key_length + key_bytes
+      assert(name.size() <= std::numeric_limits<std::uint16_t>::max());
       const auto key_length = static_cast<std::uint16_t>(name.size());
       argument_blob.push_back(static_cast<std::uint8_t>(key_length & 0xFF));
       argument_blob.push_back(static_cast<std::uint8_t>(key_length >> 8));
@@ -191,6 +193,8 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
       // Write type_tag + value_length + value_bytes
       if (std::holds_alternative<std::string_view>(value)) {
         const auto string_value = std::get<std::string_view>(value);
+        assert(string_value.size() <=
+               std::numeric_limits<std::uint16_t>::max());
         const auto value_length =
             static_cast<std::uint16_t>(string_value.size());
         argument_blob.push_back(ARGUMENT_TYPE_STRING);
@@ -316,10 +320,15 @@ auto URITemplateRouterView::match(const std::string_view path,
     return 0;
   }
 
+  if (header->arguments_offset < header->string_table_offset ||
+      header->arguments_offset > this->data_.size()) {
+    return 0;
+  }
+
   const auto *string_table = reinterpret_cast<const char *>(
       this->data_.data() + header->string_table_offset);
   const auto string_table_size =
-      this->data_.size() - header->string_table_offset;
+      header->arguments_offset - header->string_table_offset;
 
   // Empty path matches empty template
   if (path.empty()) {
@@ -456,100 +465,101 @@ auto URITemplateRouterView::arguments(
     return;
   }
 
-  if (header->arguments_offset >= this->data_.size()) {
+  const auto arguments_start =
+      static_cast<std::size_t>(header->arguments_offset);
+  const auto data_size = this->data_.size();
+  if (arguments_start >= data_size) {
     return;
   }
 
-  const auto *arguments_section = this->data_.data() + header->arguments_offset;
-  const auto arguments_section_size =
-      this->data_.size() - header->arguments_offset;
-
-  if (arguments_section_size < sizeof(std::uint16_t)) {
+  const auto section_size = data_size - arguments_start;
+  if (section_size < sizeof(std::uint16_t)) {
     return;
   }
 
   std::uint16_t entry_count = 0;
-  std::memcpy(&entry_count, arguments_section, sizeof(entry_count));
+  std::memcpy(&entry_count, this->data_.data() + arguments_start,
+              sizeof(entry_count));
   if (entry_count == 0) {
     return;
   }
 
-  const auto *cursor = arguments_section + sizeof(entry_count);
-  const auto *const section_end = arguments_section + arguments_section_size;
-
-  // Each entry is: uint16 identifier + uint32 blob_offset + uint32 blob_length
   constexpr std::size_t ENTRY_SIZE =
       sizeof(std::uint16_t) + sizeof(std::uint32_t) + sizeof(std::uint32_t);
-
+  const auto entries_offset = arguments_start + sizeof(entry_count);
   const auto entries_size = static_cast<std::size_t>(entry_count) * ENTRY_SIZE;
-  if (cursor + entries_size > section_end) {
+  if (entries_size > data_size - entries_offset) {
     return;
   }
 
-  const auto *const blob_start = cursor + entries_size;
+  const auto blob_area_offset = entries_offset + entries_size;
 
-  // Linear scan for matching identifier
   for (std::uint16_t index = 0; index < entry_count; ++index) {
-    const auto *entry_ptr = cursor + index * ENTRY_SIZE;
+    const auto entry_offset = entries_offset + index * ENTRY_SIZE;
 
     std::uint16_t entry_identifier = 0;
-    std::memcpy(&entry_identifier, entry_ptr, sizeof(entry_identifier));
+    std::memcpy(&entry_identifier, this->data_.data() + entry_offset,
+                sizeof(entry_identifier));
     if (entry_identifier != identifier) {
       continue;
     }
 
     std::uint32_t blob_offset = 0;
     std::uint32_t blob_length = 0;
-    std::memcpy(&blob_offset, entry_ptr + sizeof(std::uint16_t),
+    std::memcpy(&blob_offset,
+                this->data_.data() + entry_offset + sizeof(std::uint16_t),
                 sizeof(blob_offset));
     std::memcpy(&blob_length,
-                entry_ptr + sizeof(std::uint16_t) + sizeof(std::uint32_t),
+                this->data_.data() + entry_offset + sizeof(std::uint16_t) +
+                    sizeof(std::uint32_t),
                 sizeof(blob_length));
 
-    const auto *blob = blob_start + blob_offset;
-    if (blob + blob_length > section_end ||
+    const auto blob_abs_offset = blob_area_offset + blob_offset;
+    if (blob_offset > data_size - blob_area_offset ||
+        blob_length > data_size - blob_abs_offset ||
         blob_length < sizeof(std::uint16_t)) {
       return;
     }
 
     std::uint16_t arg_count = 0;
-    std::memcpy(&arg_count, blob, sizeof(arg_count));
-    const auto *arg_cursor = blob + sizeof(arg_count);
-    const auto *const blob_end = blob + blob_length;
+    std::memcpy(&arg_count, this->data_.data() + blob_abs_offset,
+                sizeof(arg_count));
+    auto cursor = blob_abs_offset + sizeof(arg_count);
+    const auto blob_end = blob_abs_offset + blob_length;
 
     for (std::uint16_t arg_index = 0; arg_index < arg_count; ++arg_index) {
-      // key_length (uint16) + key_bytes
-      if (arg_cursor + sizeof(std::uint16_t) > blob_end) {
+      if (cursor + sizeof(std::uint16_t) > blob_end) {
         return;
       }
       std::uint16_t key_length = 0;
-      std::memcpy(&key_length, arg_cursor, sizeof(key_length));
-      arg_cursor += sizeof(key_length);
-      if (arg_cursor + key_length > blob_end) {
+      std::memcpy(&key_length, this->data_.data() + cursor, sizeof(key_length));
+      cursor += sizeof(key_length);
+      if (key_length > blob_end - cursor) {
         return;
       }
-      const std::string_view name{reinterpret_cast<const char *>(arg_cursor),
-                                  key_length};
-      arg_cursor += key_length;
+      const std::string_view name{
+          reinterpret_cast<const char *>(this->data_.data() + cursor),
+          key_length};
+      cursor += key_length;
 
-      // type_tag (uint8) + value_length (uint16) + value_bytes
-      if (arg_cursor + sizeof(std::uint8_t) + sizeof(std::uint16_t) >
-          blob_end) {
+      if (cursor + sizeof(std::uint8_t) + sizeof(std::uint16_t) > blob_end) {
         return;
       }
-      const auto type_tag = *arg_cursor;
-      arg_cursor += sizeof(std::uint8_t);
+      const auto type_tag = this->data_[cursor];
+      cursor += sizeof(std::uint8_t);
       std::uint16_t value_length = 0;
-      std::memcpy(&value_length, arg_cursor, sizeof(value_length));
-      arg_cursor += sizeof(value_length);
-      if (arg_cursor + value_length > blob_end) {
+      std::memcpy(&value_length, this->data_.data() + cursor,
+                  sizeof(value_length));
+      cursor += sizeof(value_length);
+      if (value_length > blob_end - cursor) {
         return;
       }
 
       switch (type_tag) {
         case ARGUMENT_TYPE_STRING: {
           const std::string_view string_value{
-              reinterpret_cast<const char *>(arg_cursor), value_length};
+              reinterpret_cast<const char *>(this->data_.data() + cursor),
+              value_length};
           callback(name, string_value);
           break;
         }
@@ -558,7 +568,7 @@ auto URITemplateRouterView::arguments(
             return;
           }
           std::int64_t integer_value = 0;
-          std::memcpy(&integer_value, arg_cursor, 8);
+          std::memcpy(&integer_value, this->data_.data() + cursor, 8);
           callback(name, integer_value);
           break;
         }
@@ -566,14 +576,14 @@ auto URITemplateRouterView::arguments(
           if (value_length != 1) {
             return;
           }
-          callback(name, *arg_cursor != 0);
+          callback(name, this->data_[cursor] != 0);
           break;
         }
         default:
           return;
       }
 
-      arg_cursor += value_length;
+      cursor += value_length;
     }
 
     return;
