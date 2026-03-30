@@ -135,3 +135,26 @@ TEST(URI_recompose, encoded_low_byte_zero_padded) {
   const sourcemeta::core::URI uri{"http://example.com/foo%0Abar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/foo%0Abar");
 }
+
+// RFC 3986 Section 5.3: path-absolute without authority must preserve
+// the leading slash verbatim during recomposition
+TEST(URI_recompose, path_absolute_without_authority_file) {
+  const sourcemeta::core::URI uri{"file:/path"};
+  EXPECT_EQ(uri.recompose(), "file:/path");
+}
+
+TEST(URI_recompose, path_absolute_without_authority_multi_segment) {
+  const sourcemeta::core::URI uri{"x:/a/b/c"};
+  EXPECT_EQ(uri.recompose(), "x:/a/b/c");
+}
+
+TEST(URI_recompose, path_empty_with_scheme) {
+  const sourcemeta::core::URI uri{"a:"};
+  EXPECT_EQ(uri.recompose(), "a:");
+}
+
+TEST(URI_recompose, path_absolute_without_authority_roundtrip) {
+  const sourcemeta::core::URI original{"file:/path"};
+  const sourcemeta::core::URI roundtrip{original.recompose()};
+  EXPECT_EQ(roundtrip.recompose(), "file:/path");
+}

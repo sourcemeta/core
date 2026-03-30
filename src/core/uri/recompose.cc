@@ -150,13 +150,7 @@ auto URI::recompose_without_fragment() const -> std::optional<std::string> {
   if (result_path.has_value()) {
     const auto &path_value = result_path.value();
 
-    if (result_scheme.has_value() && !has_authority &&
-        path_value.starts_with("/") && !path_value.starts_with("//")) {
-      escape_component_to_string(result, path_value.substr(1),
-                                 URIEscapeMode::Path);
-    } else {
-      escape_component_to_string(result, path_value, URIEscapeMode::Path);
-    }
+    escape_component_to_string(result, path_value, URIEscapeMode::Path);
   }
 
   // Query
