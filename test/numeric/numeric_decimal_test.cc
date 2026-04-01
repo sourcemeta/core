@@ -3503,3 +3503,68 @@ TEST(Numeric_decimal, divide_integer_with_decimals) {
   const sourcemeta::core::Decimal right{"3.1"};
   EXPECT_EQ(left.divide_integer(right), sourcemeta::core::Decimal{3});
 }
+
+TEST(Numeric_decimal, strict_from_positive_integer) {
+  const auto result{sourcemeta::core::Decimal::strict_from(5.0)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{5});
+}
+
+TEST(Numeric_decimal, strict_from_negative_integer) {
+  const auto result{sourcemeta::core::Decimal::strict_from(-3.0)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{-3});
+}
+
+TEST(Numeric_decimal, strict_from_zero) {
+  const auto result{sourcemeta::core::Decimal::strict_from(0.0)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{0});
+}
+
+TEST(Numeric_decimal, strict_from_positive_fractional) {
+  const auto result{sourcemeta::core::Decimal::strict_from(1.5)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"1.5"});
+}
+
+TEST(Numeric_decimal, strict_from_negative_fractional) {
+  const auto result{sourcemeta::core::Decimal::strict_from(-2.75)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-2.75"});
+}
+
+TEST(Numeric_decimal, strict_from_0_1) {
+  const auto result{sourcemeta::core::Decimal::strict_from(0.1)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"0.1"});
+}
+
+TEST(Numeric_decimal, strict_from_0_01) {
+  const auto result{sourcemeta::core::Decimal::strict_from(0.01)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"0.01"});
+}
+
+TEST(Numeric_decimal, strict_from_0_001) {
+  const auto result{sourcemeta::core::Decimal::strict_from(0.001)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"0.001"});
+}
+
+TEST(Numeric_decimal, strict_from_0_0001) {
+  const auto result{sourcemeta::core::Decimal::strict_from(0.0001)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"0.0001"});
+}
+
+TEST(Numeric_decimal, strict_from_1280_32) {
+  const auto result{sourcemeta::core::Decimal::strict_from(1280.32)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"1280.32"});
+}
+
+TEST(Numeric_decimal, strict_from_99_99) {
+  const auto result{sourcemeta::core::Decimal::strict_from(99.99)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"99.99"});
+}
+
+TEST(Numeric_decimal, strict_from_large_value) {
+  const auto result{sourcemeta::core::Decimal::strict_from(999999.99)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"999999.99"});
+}
+
+TEST(Numeric_decimal, strict_from_negative_1280_32) {
+  const auto result{sourcemeta::core::Decimal::strict_from(-1280.32)};
+  EXPECT_EQ(result, sourcemeta::core::Decimal{"-1280.32"});
+}

@@ -354,6 +354,228 @@ TEST(JSON_number, divisible_by_float_overflow_integer_1_0) {
   EXPECT_TRUE(document.divisible_by(divisor));
 }
 
+TEST(JSON_number, divisible_by_real_0_1_true_1) {
+  const sourcemeta::core::JSON dividend{3.5};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_1_true_2) {
+  const sourcemeta::core::JSON dividend{10.0};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_1_true_3) {
+  const sourcemeta::core::JSON dividend{100.3};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_1_true_4) {
+  const sourcemeta::core::JSON dividend{0.5};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_1_false) {
+  const sourcemeta::core::JSON dividend{3.55};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_01_true_1) {
+  const sourcemeta::core::JSON dividend{1280.32};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_01_true_2) {
+  const sourcemeta::core::JSON dividend{99.99};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_01_true_3) {
+  const sourcemeta::core::JSON dividend{0.01};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_01_true_4) {
+  const sourcemeta::core::JSON dividend{0.5};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_01_true_5) {
+  const sourcemeta::core::JSON dividend{1.0};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_01_false) {
+  const sourcemeta::core::JSON dividend{1.005};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_001_true_1) {
+  const sourcemeta::core::JSON dividend{1.001};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_001_true_2) {
+  const sourcemeta::core::JSON dividend{0.5};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_001_true_3) {
+  const sourcemeta::core::JSON dividend{25.123};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_001_false) {
+  const sourcemeta::core::JSON dividend{1.0005};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_0001_true_1) {
+  const sourcemeta::core::JSON dividend{1.0001};
+  const sourcemeta::core::JSON divisor{0.0001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_0001_true_2) {
+  const sourcemeta::core::JSON dividend{99.9999};
+  const sourcemeta::core::JSON divisor{0.0001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_0001_false) {
+  const sourcemeta::core::JSON dividend{1.00005};
+  const sourcemeta::core::JSON divisor{0.0001};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_integer_real_0_1_true) {
+  const sourcemeta::core::JSON dividend{10};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_integer_real_0_1_true_2) {
+  const sourcemeta::core::JSON dividend{1};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_integer_real_0_01_true) {
+  const sourcemeta::core::JSON dividend{1};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_integer_real_0_01_true_2) {
+  const sourcemeta::core::JSON dividend{100};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_integer_real_0_001_true) {
+  const sourcemeta::core::JSON dividend{1};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_integer_real_0_0001_true) {
+  const sourcemeta::core::JSON dividend{1};
+  const sourcemeta::core::JSON divisor{0.0001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_3_true) {
+  const sourcemeta::core::JSON dividend{0.9};
+  const sourcemeta::core::JSON divisor{0.3};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_3_false) {
+  const sourcemeta::core::JSON dividend{1.0};
+  const sourcemeta::core::JSON divisor{0.3};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_7_true) {
+  const sourcemeta::core::JSON dividend{2.1};
+  const sourcemeta::core::JSON divisor{0.7};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_real_0_7_false) {
+  const sourcemeta::core::JSON dividend{2.0};
+  const sourcemeta::core::JSON divisor{0.7};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_negative_real_0_01_true) {
+  const sourcemeta::core::JSON dividend{-1280.32};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_negative_real_0_1_true) {
+  const sourcemeta::core::JSON dividend{-5.5};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_negative_real_0_001_true) {
+  const sourcemeta::core::JSON dividend{-3.141};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_negative_real_0_01_false) {
+  const sourcemeta::core::JSON dividend{-1.005};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_FALSE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_large_real_0_01_true) {
+  const sourcemeta::core::JSON dividend{999999.99};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_large_real_0_001_true) {
+  const sourcemeta::core::JSON dividend{12345.678};
+  const sourcemeta::core::JSON divisor{0.001};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_large_real_0_1_true) {
+  const sourcemeta::core::JSON dividend{99999.9};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_negative_integer_real_0_1_true) {
+  const sourcemeta::core::JSON dividend{-10};
+  const sourcemeta::core::JSON divisor{0.1};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
+TEST(JSON_number, divisible_by_negative_integer_real_0_01_true) {
+  const sourcemeta::core::JSON dividend{-5};
+  const sourcemeta::core::JSON divisor{0.01};
+  EXPECT_TRUE(dividend.divisible_by(divisor));
+}
+
 TEST(JSON_number, as_real_real) {
   const sourcemeta::core::JSON document{4.7};
   EXPECT_DOUBLE_EQ(document.as_real(), 4.7);
