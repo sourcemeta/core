@@ -95,32 +95,34 @@ inline auto extract_segment(const char *start, const char *end)
 } // namespace
 
 URITemplateRouter::URITemplateRouter(const std::string_view base_path)
-    : base_path_{base_path} {}
+    : base_path_{base_path} {
+  assert(this->base_path_.empty() || this->base_path_.front() == '/');
+}
 
 auto URITemplateRouter::add(const std::string_view uri_template,
                             const Identifier identifier,
                             const std::span<const Argument> arguments) -> void {
   assert(identifier > 0);
 
-  // Walk base path segments to establish the trie prefix.
-  // Segment views point into base_path_ which lives on the router
+  // Walk base path segments to establish the trie prefix
   Node *current = nullptr;
   if (!this->base_path_.empty()) {
-    const char *bp_position = this->base_path_.data();
-    const char *const bp_end = bp_position + this->base_path_.size();
-    while (bp_position < bp_end) {
-      while (bp_position < bp_end && *bp_position == '/') {
-        ++bp_position;
+    const char *base_position = this->base_path_.data();
+    const char *const base_end = base_position + this->base_path_.size();
+    while (base_position < base_end) {
+      while (base_position < base_end && *base_position == '/') {
+        ++base_position;
       }
-      if (bp_position >= bp_end) {
+      if (base_position >= base_end) {
         break;
       }
-      const char *segment_start = bp_position;
-      while (bp_position < bp_end && *bp_position != '/') {
-        ++bp_position;
+      const char *segment_start = base_position;
+      while (base_position < base_end && *base_position != '/') {
+        ++base_position;
       }
       const std::string_view segment{
-          segment_start, static_cast<std::size_t>(bp_position - segment_start)};
+          segment_start,
+          static_cast<std::size_t>(base_position - segment_start)};
       auto &literals = current ? current->literals : this->root_.literals;
       current = &find_or_create_literal_child(literals, segment);
     }
