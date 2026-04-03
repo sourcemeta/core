@@ -114,8 +114,33 @@ auto URITemplateRouter::add(const std::string_view uri_template,
                             const std::span<const Argument> arguments) -> void {
   assert(identifier > 0);
 
+  // Walk base path segments to establish the trie prefix.
+  // Segment views point into base_path_ which lives on the router
+  Node *current = nullptr;
+  if (!this->base_path_.empty()) {
+    const char *bp_position = this->base_path_.data();
+    const char *const bp_end = bp_position + this->base_path_.size();
+    while (bp_position < bp_end) {
+      while (bp_position < bp_end && *bp_position == '/') {
+        ++bp_position;
+      }
+      if (bp_position >= bp_end) {
+        break;
+      }
+      const char *segment_start = bp_position;
+      while (bp_position < bp_end && *bp_position != '/') {
+        ++bp_position;
+      }
+      const std::string_view segment{
+          segment_start, static_cast<std::size_t>(bp_position - segment_start)};
+      auto &literals = current ? current->literals : this->root_.literals;
+      current = &find_or_create_literal_child(literals, segment);
+    }
+  }
+
   if (uri_template.empty()) {
-    this->root_.identifier = identifier;
+    auto &target = current ? *current : this->root_;
+    target.identifier = identifier;
     if (!arguments.empty()) {
       assert(std::ranges::none_of(this->arguments_,
                                   [&identifier](const auto &entry) {
@@ -129,7 +154,7 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     return;
   }
 
-  Node *current = nullptr;
+  Node *base_path_end = current;
   bool absorbed = false;
   const char *position = uri_template.data();
   const char *const end = position + uri_template.size();
@@ -276,9 +301,10 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     }
   }
 
-  if (current == nullptr && uri_template.size() == 1 &&
+  if (current == base_path_end && uri_template.size() == 1 &&
       uri_template[0] == '/') {
-    current = &find_or_create_literal_child(this->root_.literals, "");
+    auto &literals = current ? current->literals : this->root_.literals;
+    current = &find_or_create_literal_child(literals, "");
   }
 
   if (!absorbed && current != nullptr) {
@@ -320,26 +346,11 @@ auto URITemplateRouter::arguments() const noexcept
 
 auto URITemplateRouter::match(const std::string_view path,
                               const Callback &callback) const -> Identifier {
-  // Strip base path prefix if configured
-  auto effective_path = path;
-  if (!this->base_path_.empty()) {
-    if (!path.starts_with(this->base_path_)) {
-      return 0;
-    }
-
-    effective_path = path.substr(this->base_path_.size());
-    // After stripping, the remaining path must either be empty or start with /
-    // This prevents "/prefixfoo" from matching base path "/prefix"
-    if (!effective_path.empty() && effective_path[0] != '/') {
-      return 0;
-    }
-  }
-
-  if (effective_path.empty()) {
+  if (path.empty()) {
     return this->root_.identifier;
   }
 
-  if (effective_path.size() == 1 && effective_path[0] == '/') {
+  if (path.size() == 1 && path[0] == '/') {
     if (auto *child = find_literal_child(this->root_.literals, "")) {
       return child->identifier;
     }
@@ -347,8 +358,8 @@ auto URITemplateRouter::match(const std::string_view path,
   }
 
   const Node *current = nullptr;
-  const char *position = effective_path.data();
-  const char *const path_end = position + effective_path.size();
+  const char *position = path.data();
+  const char *const path_end = position + path.size();
 
   const std::vector<std::unique_ptr<Node>> *literal_children =
       &this->root_.literals;

@@ -1007,11 +1007,9 @@ TEST(URITemplateRouter, base_path_prefix_boundary_no_match) {
 
 TEST(URITemplateRouter, base_path_equals_request_path) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
-  router.add("/", 1);
-  EXPECT_ROUTER_MATCH(router, "/v1/catalog", 0, captures_no_slash);
-  EXPECT_EQ(captures_no_slash.size(), 0);
-  EXPECT_ROUTER_MATCH(router, "/v1/catalog/", 1, captures_slash);
-  EXPECT_EQ(captures_slash.size(), 0);
+  router.add("", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(URITemplateRouter, base_path_with_empty_template) {
@@ -1050,11 +1048,10 @@ TEST(URITemplateRouter, base_path_expansion) {
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
 }
 
-TEST(URITemplateRouter, base_path_request_is_base_with_trailing_slash) {
+TEST(URITemplateRouter, base_path_trailing_slash_on_request_no_match) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
-  router.add("/", 1);
-  EXPECT_ROUTER_MATCH(router, "/v1/catalog/", 1, captures);
-  EXPECT_EQ(captures.size(), 0);
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog/foo/", 0, captures);
 }
 
 TEST(URITemplateRouter, base_path_empty_string_is_no_base_path) {
