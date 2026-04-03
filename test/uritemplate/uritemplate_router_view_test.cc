@@ -33,6 +33,7 @@ TEST_F(URITemplateRouterViewTest, single_literal_route) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -45,6 +46,7 @@ TEST_F(URITemplateRouterViewTest, single_literal_route_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/posts", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -57,6 +59,7 @@ TEST_F(URITemplateRouterViewTest, multi_segment_literal) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/list", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -69,6 +72,7 @@ TEST_F(URITemplateRouterViewTest, single_variable) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/123", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -82,6 +86,7 @@ TEST_F(URITemplateRouterViewTest, multiple_variables) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/42/posts/99", 1, captures);
   EXPECT_EQ(captures.size(), 2);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -97,6 +102,7 @@ TEST_F(URITemplateRouterViewTest, literal_before_variable_precedence) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/me", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -110,6 +116,7 @@ TEST_F(URITemplateRouterViewTest, variable_fallback) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/123", 2, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -126,6 +133,7 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_users) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -141,6 +149,7 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_users_id) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/42", 2, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -157,6 +166,7 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_posts) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/posts", 3, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -172,6 +182,7 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_posts_id) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/posts/99", 4, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "99");
@@ -189,6 +200,7 @@ TEST_F(URITemplateRouterViewTest, binary_search_literals_gamma) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/gamma", 3, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -205,6 +217,7 @@ TEST_F(URITemplateRouterViewTest, binary_search_literals_alpha) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/alpha", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -221,6 +234,7 @@ TEST_F(URITemplateRouterViewTest, binary_search_literals_epsilon) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/epsilon", 5, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -233,6 +247,7 @@ TEST_F(URITemplateRouterViewTest, root_template_matches_root) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -245,6 +260,7 @@ TEST_F(URITemplateRouterViewTest, root_template_no_match_empty) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -257,6 +273,7 @@ TEST_F(URITemplateRouterViewTest, root_template_no_match_path) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/foo", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -269,6 +286,7 @@ TEST_F(URITemplateRouterViewTest, empty_template_matches_empty) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -281,6 +299,7 @@ TEST_F(URITemplateRouterViewTest, empty_template_no_match_root) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -293,6 +312,7 @@ TEST_F(URITemplateRouterViewTest, empty_template_no_match_path) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/foo", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -307,6 +327,7 @@ TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_root) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -321,6 +342,7 @@ TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_users) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users", 2, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -335,6 +357,7 @@ TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_users_id) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/123", 3, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -349,6 +372,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_together_match_empty) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -362,6 +386,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_together_match_root) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/", 2, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -375,6 +400,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_together_no_match_path) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/foo", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -390,6 +416,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_empty) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -405,6 +432,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_root) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/", 2, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -420,6 +448,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_users) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users", 3, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -435,6 +464,7 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_users_id) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/42", 4, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -449,6 +479,7 @@ TEST_F(URITemplateRouterViewTest, same_variable_names_allowed) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/123/comments", 2, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -462,6 +493,7 @@ TEST_F(URITemplateRouterViewTest, reserved_expansion_catch_all) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/foo/bar/baz.txt", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/baz.txt");
@@ -475,6 +507,7 @@ TEST_F(URITemplateRouterViewTest, reserved_expansion_with_literal_prefix) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/api/v1/proxy/https://example.com/path", 1,
                       captures);
   EXPECT_EQ(captures.size(), 1);
@@ -489,6 +522,7 @@ TEST_F(URITemplateRouterViewTest, reserved_expansion_matches_multi_segment) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/foo/bar", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar");
@@ -503,6 +537,7 @@ TEST_F(URITemplateRouterViewTest, expansion_takes_priority_over_variable) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/readme.md", 2, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "readme.md");
@@ -517,6 +552,7 @@ TEST_F(URITemplateRouterViewTest, expansion_takes_priority_multi_segment) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/foo/bar/baz", 2, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/baz");
@@ -531,6 +567,7 @@ TEST_F(URITemplateRouterViewTest, expansion_first_then_variable) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/readme.md", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "readme.md");
@@ -545,6 +582,7 @@ TEST_F(URITemplateRouterViewTest, literal_takes_priority_over_expansion) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/special", 2, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -558,6 +596,7 @@ TEST_F(URITemplateRouterViewTest, expansion_fallback_from_literal) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/other", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "other");
@@ -571,6 +610,7 @@ TEST_F(URITemplateRouterViewTest, trailing_slash_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -583,6 +623,7 @@ TEST_F(URITemplateRouterViewTest, multiple_trailing_slashes_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users///", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -595,6 +636,7 @@ TEST_F(URITemplateRouterViewTest, leading_double_slash_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "//users", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -607,6 +649,7 @@ TEST_F(URITemplateRouterViewTest, internal_double_slashes_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users//posts", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -619,6 +662,7 @@ TEST_F(URITemplateRouterViewTest, trailing_slash_with_variable_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/123/", 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -633,6 +677,7 @@ TEST_F(URITemplateRouterViewTest,
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users//123//posts", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -645,6 +690,7 @@ TEST_F(URITemplateRouterViewTest, expansion_matches_trailing_slash) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/foo/bar/", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/");
@@ -658,6 +704,7 @@ TEST_F(URITemplateRouterViewTest, expansion_matches_double_slashes) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/foo//bar", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo//bar");
@@ -915,6 +962,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_string) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -945,6 +993,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_integer) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -974,6 +1023,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_boolean_true) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1002,6 +1052,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_boolean_false) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1030,6 +1081,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_zero) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1059,6 +1111,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_negative) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1088,6 +1141,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_min) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1117,6 +1171,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_max) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1147,6 +1202,7 @@ TEST_F(URITemplateRouterViewTest, arguments_empty_string_value) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1177,6 +1233,7 @@ TEST_F(URITemplateRouterViewTest, arguments_string_with_slashes) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1208,6 +1265,7 @@ TEST_F(URITemplateRouterViewTest, arguments_string_with_utf8) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1239,6 +1297,7 @@ TEST_F(URITemplateRouterViewTest, arguments_string_with_nulls) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1272,6 +1331,7 @@ TEST_F(URITemplateRouterViewTest, arguments_long_string_value) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1307,6 +1367,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_mixed_types) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1351,6 +1412,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_strings) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1393,6 +1455,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_integers) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1439,6 +1502,7 @@ TEST_F(URITemplateRouterViewTest, arguments_five_arguments) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1493,6 +1557,7 @@ TEST_F(URITemplateRouterViewTest, arguments_two_routes_different_args) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   EXPECT_ROUTER_MATCH(restored, "/first", 1, captures_first);
   std::vector<std::pair<std::string_view,
@@ -1541,6 +1606,7 @@ TEST_F(URITemplateRouterViewTest, arguments_three_routes_one_without_args) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   EXPECT_ROUTER_MATCH(restored, "/alpha", 1, captures_alpha);
   std::vector<std::pair<std::string_view,
@@ -1590,6 +1656,7 @@ TEST_F(URITemplateRouterViewTest, arguments_empty_router) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -1611,6 +1678,7 @@ TEST_F(URITemplateRouterViewTest, arguments_route_without_arguments) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/test", 1, captures);
 
   std::vector<std::pair<std::string_view,
@@ -1636,6 +1704,7 @@ TEST_F(URITemplateRouterViewTest, arguments_identifier_not_found) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -1660,6 +1729,7 @@ TEST_F(URITemplateRouterViewTest, arguments_identifier_zero) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -1684,6 +1754,7 @@ TEST_F(URITemplateRouterViewTest, arguments_with_variable_capture) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/users/42", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -1717,6 +1788,7 @@ TEST_F(URITemplateRouterViewTest, arguments_with_expansion) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/files/a/b/c", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
@@ -1758,6 +1830,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_routes_match_and_args) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   EXPECT_ROUTER_MATCH(restored, "/users/1", 1, captures_users);
   EXPECT_EQ(captures_users.size(), 1);
@@ -1818,6 +1891,7 @@ TEST_F(URITemplateRouterViewTest, arguments_do_not_affect_match_precedence) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   EXPECT_ROUTER_MATCH(restored, "/users/me", 1, captures_me);
   EXPECT_EQ(captures_me.size(), 0);
@@ -1875,6 +1949,7 @@ TEST_F(URITemplateRouterViewTest, arguments_survive_large_trie) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
 
   EXPECT_ROUTER_MATCH(restored, "/api/v1/alpha", 1, captures_alpha);
   EXPECT_ROUTER_MATCH(restored, "/api/v1/beta", 2, captures_beta);
@@ -1938,6 +2013,7 @@ TEST_F(URITemplateRouterViewTest, base_path_single_segment) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
   EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1950,6 +2026,7 @@ TEST_F(URITemplateRouterViewTest, base_path_without_prefix_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
   EXPECT_ROUTER_MATCH(restored, "/foo", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1963,6 +2040,7 @@ TEST_F(URITemplateRouterViewTest, base_path_multi_segment) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/v1/catalog");
   EXPECT_ROUTER_MATCH(restored, "/v1/catalog/api/list", 1, captures_list);
   EXPECT_EQ(captures_list.size(), 0);
   EXPECT_ROUTER_MATCH(restored, "/v1/catalog/foo/bar", 2, captures_expansion);
@@ -1978,6 +2056,7 @@ TEST_F(URITemplateRouterViewTest, base_path_with_variable) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
   EXPECT_ROUTER_MATCH(restored, "/prefix/users/42", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -1991,6 +2070,7 @@ TEST_F(URITemplateRouterViewTest, base_path_prefix_boundary_no_match) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
   EXPECT_ROUTER_MATCH(restored, "/prefixfoo", 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -2003,6 +2083,7 @@ TEST_F(URITemplateRouterViewTest, base_path_with_empty_template) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/v1/catalog");
   EXPECT_ROUTER_MATCH(restored, "/v1/catalog", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -2015,6 +2096,7 @@ TEST_F(URITemplateRouterViewTest, base_path_no_base_path_unchanged) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
   EXPECT_ROUTER_MATCH(restored, "/foo", 1, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -2027,7 +2109,35 @@ TEST_F(URITemplateRouterViewTest, base_path_expansion) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/api");
   EXPECT_ROUTER_MATCH(restored, "/api/files/a/b/c", 1, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_trailing_slash_normalized) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix/"};
+    router.add("/foo", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
+  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_path_multiple_trailing_slashes_normalized) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix///"};
+    router.add("/foo", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
+  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
 }
