@@ -1929,3 +1929,105 @@ TEST_F(URITemplateRouterViewTest, arguments_survive_large_trie) {
       });
   EXPECT_TRUE(collected_kappa.empty());
 }
+
+TEST_F(URITemplateRouterViewTest, base_path_single_segment) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/foo", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_without_prefix_no_match) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/foo", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/foo", 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_multi_segment) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+    router.add("/api/list", 1);
+    router.add("/{+path}", 2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/v1/catalog/api/list", 1, captures_list);
+  EXPECT_EQ(captures_list.size(), 0);
+  EXPECT_ROUTER_MATCH(restored, "/v1/catalog/foo/bar", 2, captures_expansion);
+  EXPECT_EQ(captures_expansion.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_expansion, 0, "path", "foo/bar");
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_with_variable) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/users/{id}", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/prefix/users/42", 1, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_prefix_boundary_no_match) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/foo", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/prefixfoo", 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_with_empty_template) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+    router.add("", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/v1/catalog", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_no_base_path_unchanged) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/foo", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_path_expansion) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api"};
+    router.add("/files/{+path}", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/api/files/a/b/c", 1, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
+}

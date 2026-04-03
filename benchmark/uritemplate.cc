@@ -347,8 +347,58 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
   std::filesystem::remove(path);
 }
 
+static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
+    router.add(ROUTES[index],
+               static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
+                   index + 1));
+  }
+
+  for (auto _ : state) {
+    auto result = router.match(
+        "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
+        "issues/999/comments/42/reactions/1",
+        [](auto, auto, auto) {});
+    assert(result == ROUTE_COUNT - 1);
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
+  const auto path{std::filesystem::temp_directory_path() /
+                  "uritemplate_benchmark_basepath.bin"};
+
+  {
+    sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+    for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
+      router.add(ROUTES[index],
+                 static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
+                     index + 1));
+    }
+
+    sourcemeta::core::URITemplateRouterView::save(router, path);
+  }
+
+  {
+    sourcemeta::core::URITemplateRouterView view{path};
+    for (auto _ : state) {
+      auto result = view.match(
+          "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
+          "issues/999/comments/42/reactions/1",
+          [](auto, auto, auto) {});
+      assert(result == ROUTE_COUNT - 1);
+      benchmark::DoNotOptimize(result);
+    }
+  }
+
+  std::filesystem::remove(path);
+}
+
 BENCHMARK(URITemplateRouter_Create);
 BENCHMARK(URITemplateRouter_Match);
+BENCHMARK(URITemplateRouter_Match_BasePath);
 BENCHMARK(URITemplateRouterView_Restore);
 BENCHMARK(URITemplateRouterView_Match);
+BENCHMARK(URITemplateRouterView_Match_BasePath);
 BENCHMARK(URITemplateRouterView_Arguments);
