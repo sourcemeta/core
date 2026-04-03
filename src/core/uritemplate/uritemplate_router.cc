@@ -94,6 +94,22 @@ inline auto extract_segment(const char *start, const char *end)
 
 } // namespace
 
+URITemplateRouter::URITemplateRouter(const std::string_view base_path)
+    : base_path_{base_path} {
+  // Strip trailing slashes
+  while (this->base_path_.size() > 1 && this->base_path_.back() == '/') {
+    this->base_path_.pop_back();
+  }
+
+  if (this->base_path_ == "/") {
+    this->base_path_.clear();
+  }
+}
+
+auto URITemplateRouter::base_path() const noexcept -> std::string_view {
+  return this->base_path_;
+}
+
 auto URITemplateRouter::add(const std::string_view uri_template,
                             const Identifier identifier,
                             const std::span<const Argument> arguments) -> void {
@@ -305,11 +321,26 @@ auto URITemplateRouter::arguments() const noexcept
 
 auto URITemplateRouter::match(const std::string_view path,
                               const Callback &callback) const -> Identifier {
-  if (path.empty()) {
+  // Strip base path prefix if configured
+  auto effective_path = path;
+  if (!this->base_path_.empty()) {
+    if (!path.starts_with(this->base_path_)) {
+      return 0;
+    }
+
+    effective_path = path.substr(this->base_path_.size());
+    // After stripping, the remaining path must either be empty or start with /
+    // This prevents "/prefixfoo" from matching base path "/prefix"
+    if (!effective_path.empty() && effective_path[0] != '/') {
+      return 0;
+    }
+  }
+
+  if (effective_path.empty()) {
     return this->root_.identifier;
   }
 
-  if (path.size() == 1 && path[0] == '/') {
+  if (effective_path.size() == 1 && effective_path[0] == '/') {
     if (auto *child = find_literal_child(this->root_.literals, "")) {
       return child->identifier;
     }
@@ -317,8 +348,8 @@ auto URITemplateRouter::match(const std::string_view path,
   }
 
   const Node *current = nullptr;
-  const char *position = path.data();
-  const char *const path_end = position + path.size();
+  const char *position = effective_path.data();
+  const char *const path_end = position + effective_path.size();
 
   const std::vector<std::unique_ptr<Node>> *literal_children =
       &this->root_.literals;

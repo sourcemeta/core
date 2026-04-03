@@ -11,6 +11,7 @@
 #include <functional>  // std::function
 #include <memory>      // std::unique_ptr
 #include <span>        // std::span
+#include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::pair
 #include <variant>     // std::variant
@@ -68,6 +69,10 @@ public:
   /// Construct an empty router
   URITemplateRouter() = default;
 
+  /// Construct a router with a base path prefix. During matching, the base
+  /// path is stripped from incoming request paths before matching
+  explicit URITemplateRouter(std::string_view base_path);
+
   // To avoid mistakes
   URITemplateRouter(const URITemplateRouter &) = delete;
   URITemplateRouter(URITemplateRouter &&) = delete;
@@ -95,8 +100,12 @@ public:
   [[nodiscard]] auto arguments() const noexcept
       -> const std::vector<std::pair<Identifier, std::vector<Argument>>> &;
 
+  /// Access the base path prefix
+  [[nodiscard]] auto base_path() const noexcept -> std::string_view;
+
 private:
   Node root_;
+  std::string base_path_;
   std::vector<std::pair<Identifier, std::vector<Argument>>> arguments_;
 };
 

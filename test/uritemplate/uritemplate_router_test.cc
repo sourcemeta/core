@@ -957,3 +957,95 @@ TEST(URITemplateRouter, match_still_works_with_arguments) {
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
 }
+
+TEST(URITemplateRouter, base_path_default_empty) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_TRUE(router.base_path().empty());
+}
+
+TEST(URITemplateRouter, base_path_single_segment) {
+  sourcemeta::core::URITemplateRouter router{"/prefix"};
+  EXPECT_EQ(router.base_path(), "/prefix");
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_without_prefix_no_match) {
+  sourcemeta::core::URITemplateRouter router{"/prefix"};
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_multi_segment) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  EXPECT_EQ(router.base_path(), "/v1/catalog");
+  router.add("/api/list", 1);
+  router.add("/{+path}", 2);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog/api/list", 1, captures_list);
+  EXPECT_EQ(captures_list.size(), 0);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog/foo/bar", 2, captures_expansion);
+  EXPECT_EQ(captures_expansion.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_expansion, 0, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter, base_path_with_variable) {
+  sourcemeta::core::URITemplateRouter router{"/prefix"};
+  router.add("/users/{id}", 1);
+  EXPECT_ROUTER_MATCH(router, "/prefix/users/42", 1, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
+}
+
+TEST(URITemplateRouter, base_path_prefix_boundary_no_match) {
+  sourcemeta::core::URITemplateRouter router{"/prefix"};
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/prefixfoo", 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_equals_request_path) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  router.add("/", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog", 0, captures_no_slash);
+  EXPECT_EQ(captures_no_slash.size(), 0);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog/", 1, captures_slash);
+  EXPECT_EQ(captures_slash.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_with_empty_template) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  router.add("", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_slash_only_is_no_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/"};
+  EXPECT_TRUE(router.base_path().empty());
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_trailing_slash_normalized) {
+  sourcemeta::core::URITemplateRouter router{"/prefix/"};
+  EXPECT_EQ(router.base_path(), "/prefix");
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_multiple_trailing_slashes_normalized) {
+  sourcemeta::core::URITemplateRouter router{"/prefix///"};
+  EXPECT_EQ(router.base_path(), "/prefix");
+}
+
+TEST(URITemplateRouter, base_path_expansion) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("/files/{+path}", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/files/a/b/c", 1, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
+}

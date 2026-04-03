@@ -14,7 +14,7 @@ namespace sourcemeta::core {
 namespace {
 
 constexpr std::uint32_t ROUTER_MAGIC = 0x52544552; // "RTER"
-constexpr std::uint32_t ROUTER_VERSION = 2;
+constexpr std::uint32_t ROUTER_VERSION = 3;
 constexpr std::uint32_t NO_CHILD = std::numeric_limits<std::uint32_t>::max();
 
 // Type tags for argument value serialization
@@ -28,6 +28,8 @@ struct RouterHeader {
   std::uint32_t node_count;
   std::uint32_t string_table_offset;
   std::uint32_t arguments_offset;
+  std::uint32_t base_path_offset;
+  std::uint32_t base_path_length;
 };
 
 struct ArgumentEntryHeader {
@@ -224,6 +226,12 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
     argument_entries.push_back(entry);
   }
 
+  // Append the base path to the string table
+  const auto base_path_string_offset =
+      static_cast<std::uint32_t>(string_table.size());
+  const auto base_path_view = router.base_path();
+  string_table.append(base_path_view.data(), base_path_view.size());
+
   RouterHeader header{};
   header.magic = ROUTER_MAGIC;
   header.version = ROUTER_VERSION;
@@ -232,6 +240,8 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
       sizeof(RouterHeader) + nodes.size() * sizeof(Node));
   header.arguments_offset = static_cast<std::uint32_t>(
       header.string_table_offset + string_table.size());
+  header.base_path_offset = base_path_string_offset;
+  header.base_path_length = static_cast<std::uint32_t>(base_path_view.size());
 
   std::ofstream file(path, std::ios::binary);
   if (!file) {
@@ -331,13 +341,34 @@ auto URITemplateRouterView::match(const std::string_view path,
   const auto string_table_size =
       header->arguments_offset - header->string_table_offset;
 
+  // Strip base path prefix if present in the binary
+  auto effective_path = path;
+  if (header->base_path_length > 0) {
+    if (header->base_path_offset > string_table_size ||
+        header->base_path_length >
+            string_table_size - header->base_path_offset) {
+      return 0;
+    }
+
+    const std::string_view base_path{string_table + header->base_path_offset,
+                                     header->base_path_length};
+    if (!path.starts_with(base_path)) {
+      return 0;
+    }
+
+    effective_path = path.substr(base_path.size());
+    if (!effective_path.empty() && effective_path[0] != '/') {
+      return 0;
+    }
+  }
+
   // Empty path matches empty template
-  if (path.empty()) {
+  if (effective_path.empty()) {
     return nodes[0].identifier;
   }
 
   // Root path "/" is stored as an empty literal segment
-  if (path.size() == 1 && path[0] == '/') {
+  if (effective_path.size() == 1 && effective_path[0] == '/') {
     const auto &root = nodes[0];
     if (root.first_literal_child == NO_CHILD) {
       return 0;
@@ -357,8 +388,8 @@ auto URITemplateRouterView::match(const std::string_view path,
 
   // Walk the trie, matching each path segment
   std::uint32_t current_node = 0;
-  const char *position = path.data();
-  const char *const path_end = position + path.size();
+  const char *position = effective_path.data();
+  const char *const path_end = position + effective_path.size();
 
   std::size_t variable_index = 0;
 
