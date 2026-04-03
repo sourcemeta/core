@@ -533,8 +533,10 @@ auto sourcemeta::core::vocabularies(const SchemaResolver &resolver,
                                     const SchemaBaseDialect base_dialect,
                                     std::string_view dialect)
     -> sourcemeta::core::Vocabularies {
+  const auto base_dialect_string{to_string(base_dialect)};
   // As a performance optimization shortcut
-  if (to_base_dialect(dialect) == base_dialect) {
+  if (base_dialect_string == dialect ||
+      to_base_dialect(dialect) == base_dialect) {
     if (base_dialect == SchemaBaseDialect::JSON_Schema_2020_12) {
       return Vocabularies{
           {Vocabularies::Known::JSON_Schema_2020_12_Core, true},
