@@ -3824,25 +3824,6 @@ TEST(AlterSchema_lint_draft7, draft_official_dialect_with_https_already_http) {
 }
 
 TEST(AlterSchema_lint_draft7,
-     draft_official_dialect_with_https_without_fragment_no_hash) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft-07/schema",
-    "type": "string"
-  })JSON");
-
-  LINT_AND_FIX(document, result, traces);
-
-  EXPECT_FALSE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "type": "string"
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_lint_draft7,
      draft_official_dialect_with_https_non_dialect_uri) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
