@@ -34,6 +34,53 @@ TEST(JSONSchema_resolver, jsonschema_2020_12) {
 
   // Just because a lot of people get this wrong
   EXPECT_SCHEMA("https://json-schema.org/draft/2020-12/schema#");
+
+  // Take HTTP versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/applicator")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/content")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/core")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/format-annotation")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/format-assertion")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/meta-data")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/unevaluated")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/meta/validation")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2020-12/output/schema")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_2019_09) {
@@ -51,6 +98,50 @@ TEST(JSONSchema_resolver, jsonschema_2019_09) {
 
   // Just because a lot of people get this wrong
   EXPECT_SCHEMA("https://json-schema.org/draft/2019-09/schema#");
+
+  // Take HTTP versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/applicator")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/content")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/core")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/format")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/meta-data")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/meta/validation")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/output/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "http://json-schema.org/draft/2019-09/output/hyper-schema")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft7) {
@@ -63,6 +154,29 @@ TEST(JSONSchema_resolver, jsonschema_draft7) {
   EXPECT_SCHEMA("http://json-schema.org/draft-07/schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-07/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-07/links");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-07/hyper-schema-output")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft6) {
@@ -74,6 +188,26 @@ TEST(JSONSchema_resolver, jsonschema_draft6) {
   EXPECT_SCHEMA("http://json-schema.org/draft-06/schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-06/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-06/links");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-06/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-06/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-06/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-06/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-06/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-06/links")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft4) {
@@ -85,6 +219,26 @@ TEST(JSONSchema_resolver, jsonschema_draft4) {
   EXPECT_SCHEMA("http://json-schema.org/draft-04/schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-04/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-04/links");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-04/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-04/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-04/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-04/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-04/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-04/links")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft3) {
@@ -98,6 +252,32 @@ TEST(JSONSchema_resolver, jsonschema_draft3) {
   EXPECT_SCHEMA("http://json-schema.org/draft-03/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-03/links");
   EXPECT_SCHEMA("http://json-schema.org/draft-03/json-ref");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/json-ref#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-03/json-ref")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft2) {
@@ -111,6 +291,32 @@ TEST(JSONSchema_resolver, jsonschema_draft2) {
   EXPECT_SCHEMA("http://json-schema.org/draft-02/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-02/links");
   EXPECT_SCHEMA("http://json-schema.org/draft-02/json-ref");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/json-ref#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-02/json-ref")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft1) {
@@ -124,6 +330,32 @@ TEST(JSONSchema_resolver, jsonschema_draft1) {
   EXPECT_SCHEMA("http://json-schema.org/draft-01/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-01/links");
   EXPECT_SCHEMA("http://json-schema.org/draft-01/json-ref");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/json-ref#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-01/json-ref")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, jsonschema_draft0) {
@@ -137,6 +369,32 @@ TEST(JSONSchema_resolver, jsonschema_draft0) {
   EXPECT_SCHEMA("http://json-schema.org/draft-00/hyper-schema");
   EXPECT_SCHEMA("http://json-schema.org/draft-00/links");
   EXPECT_SCHEMA("http://json-schema.org/draft-00/json-ref");
+
+  // Take HTTPS versions too
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/hyper-schema#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/hyper-schema")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/links#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/links")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/json-ref#")
+                  .has_value());
+  EXPECT_TRUE(sourcemeta::core::schema_resolver(
+                  "https://json-schema.org/draft-00/json-ref")
+                  .has_value());
 }
 
 TEST(JSONSchema_resolver, openapi_3_1) {
@@ -159,6 +417,47 @@ TEST(JSONSchema_resolver, invalid) {
   const std::optional<sourcemeta::core::JSON> result{
       sourcemeta::core::schema_resolver("https://example.com/foobar")};
   EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONSchema_resolver, is_known_schema_2020_12_http) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2020-12/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2020-12/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2020-12/hyper-schema"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2020-12/meta/applicator"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2020-12/meta/core"));
+}
+
+TEST(JSONSchema_resolver, is_known_schema_2019_09_http) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2019-09/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "http://json-schema.org/draft/2019-09/schema#"));
+}
+
+TEST(JSONSchema_resolver, is_known_schema_draft7_https) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft-07/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft-07/schema"));
+}
+
+TEST(JSONSchema_resolver, is_known_schema_draft4_https) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft-04/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft-04/schema"));
+}
+
+TEST(JSONSchema_resolver, is_known_schema_draft0_https) {
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft-00/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_known_schema(
+      "https://json-schema.org/draft-00/schema"));
 }
 
 TEST(JSONSchema_resolver, is_known_schema_2020_12) {
