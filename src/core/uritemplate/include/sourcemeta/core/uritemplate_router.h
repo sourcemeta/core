@@ -11,7 +11,6 @@
 #include <functional>  // std::function
 #include <memory>      // std::unique_ptr
 #include <span>        // std::span
-#include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::pair
 #include <variant>     // std::variant
@@ -102,7 +101,7 @@ public:
 
 private:
   Node root_;
-  std::string base_path_;
+  std::string_view base_path_;
   std::vector<std::pair<Identifier, std::vector<Argument>>> arguments_;
 };
 
