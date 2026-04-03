@@ -636,6 +636,12 @@ auto URITemplateRouterView::base_path() const noexcept -> std::string_view {
     return {};
   }
 
+  if (header->string_table_offset > this->data_.size() ||
+      header->arguments_offset < header->string_table_offset ||
+      header->arguments_offset > this->data_.size()) {
+    return {};
+  }
+
   const auto *string_table = reinterpret_cast<const char *>(
       this->data_.data() + header->string_table_offset);
   const auto string_table_size =
