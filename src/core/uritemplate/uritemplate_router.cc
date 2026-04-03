@@ -96,13 +96,12 @@ inline auto extract_segment(const char *start, const char *end)
 
 URITemplateRouter::URITemplateRouter(const std::string_view base_path)
     : base_path_{base_path} {
-  // Strip trailing slashes
-  while (this->base_path_.size() > 1 && this->base_path_.back() == '/') {
-    this->base_path_.pop_back();
-  }
-
-  if (this->base_path_ == "/") {
+  // Strip trailing slashes, then treat "/" as empty
+  const auto last = this->base_path_.find_last_not_of('/');
+  if (last == std::string::npos) {
     this->base_path_.clear();
+  } else {
+    this->base_path_.erase(last + 1);
   }
 }
 

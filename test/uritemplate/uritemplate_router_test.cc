@@ -1049,3 +1049,32 @@ TEST(URITemplateRouter, base_path_expansion) {
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
 }
+
+TEST(URITemplateRouter, base_path_request_is_base_with_trailing_slash) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  router.add("/", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/catalog/", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_empty_string_is_no_base_path) {
+  sourcemeta::core::URITemplateRouter router{""};
+  EXPECT_TRUE(router.base_path().empty());
+  router.add("/foo", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 1, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_wrong_prefix_no_match) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  router.add("/api/list", 1);
+  EXPECT_ROUTER_MATCH(router, "/v2/catalog/api/list", 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_partial_prefix_no_match) {
+  sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
+  router.add("/api/list", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/api/list", 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
