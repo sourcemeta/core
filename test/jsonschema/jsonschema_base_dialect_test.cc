@@ -455,6 +455,102 @@ TEST(JSONSchema_base_dialect, indirect_metaschema_cycle) {
                sourcemeta::core::SchemaUnknownBaseDialectError);
 }
 
+TEST(JSONSchema_base_dialect, to_base_dialect_2020_12_http) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "http://json-schema.org/draft/2020-12/schema")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_2020_12_hyper_http) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "http://json-schema.org/draft/2020-12/hyper-schema")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12_Hyper);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_2019_09_http) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "http://json-schema.org/draft/2019-09/schema")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_2019_09_hyper_http) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "http://json-schema.org/draft/2019-09/hyper-schema")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09_Hyper);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft7_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-07/schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft7_hyper_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-07/hyper-schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7_Hyper);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft6_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-06/schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_6);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft4_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-04/schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft3_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-03/schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_3);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft2_hyper_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-02/hyper-schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_2_Hyper);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft1_hyper_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-01/hyper-schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_1_Hyper);
+}
+
+TEST(JSONSchema_base_dialect, to_base_dialect_draft0_hyper_https) {
+  const auto result{sourcemeta::core::to_base_dialect(
+      "https://json-schema.org/draft-00/hyper-schema#")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_0_Hyper);
+}
+
 TEST(JSONSchema_base_dialect, to_base_dialect_unknown) {
   const auto result{
       sourcemeta::core::to_base_dialect("https://example.com/unknown-dialect")};
