@@ -105,10 +105,6 @@ URITemplateRouter::URITemplateRouter(const std::string_view base_path)
   }
 }
 
-auto URITemplateRouter::base_path() const noexcept -> std::string_view {
-  return this->base_path_;
-}
-
 auto URITemplateRouter::add(const std::string_view uri_template,
                             const Identifier identifier,
                             const std::span<const Argument> arguments) -> void {

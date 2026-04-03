@@ -100,9 +100,6 @@ public:
   [[nodiscard]] auto arguments() const noexcept
       -> const std::vector<std::pair<Identifier, std::vector<Argument>>> &;
 
-  /// Access the base path prefix
-  [[nodiscard]] auto base_path() const noexcept -> std::string_view;
-
 private:
   Node root_;
   std::string base_path_;
