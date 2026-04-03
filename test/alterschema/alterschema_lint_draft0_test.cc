@@ -522,3 +522,21 @@ TEST(AlterSchema_lint_draft0, unknown_keywords_prefix_10) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(AlterSchema_lint_draft0, draft_official_dialect_with_https_1) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft-00/schema#",
+    "type": "string"
+  })JSON");
+
+  LINT_AND_FIX(document, result, traces);
+
+  EXPECT_TRUE(result.first);
+
+  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-00/schema#",
+    "type": "string"
+  })JSON");
+
+  EXPECT_EQ(document, expected);
+}
