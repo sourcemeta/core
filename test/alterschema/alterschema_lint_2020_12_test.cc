@@ -2286,9 +2286,15 @@ TEST(AlterSchema_lint_2020_12, incoherent_min_max_contains_9) {
   LINT_WITHOUT_FIX(document, result, traces);
 
   EXPECT_FALSE(result.first);
-  for (const auto &trace : traces) {
-    EXPECT_NE(std::get<1>(trace), "incoherent_min_max_contains");
-  }
+  EXPECT_EQ(traces.size(), 2);
+  EXPECT_LINT_TRACE(traces, 0, "", "max_contains_without_contains",
+                    "The `maxContains` keyword is meaningless "
+                    "without the presence of the `contains` keyword",
+                    true);
+  EXPECT_LINT_TRACE(traces, 1, "", "min_contains_without_contains",
+                    "The `minContains` keyword is meaningless "
+                    "without the presence of the `contains` keyword",
+                    true);
 }
 
 TEST(AlterSchema_lint_2020_12, equal_numeric_bounds_to_const_1) {
