@@ -358,7 +358,7 @@ auto URITemplateRouter::match(const std::string_view path,
     if (auto *child = find_literal_child(this->root_.literals, "")) {
       return {child->identifier, child->context};
     }
-    return {0, 0};
+    return {};
   }
 
   const Node *current = nullptr;
@@ -386,7 +386,7 @@ auto URITemplateRouter::match(const std::string_view path,
 
     // Empty segment (from double slash or trailing slash) doesn't match
     if (segment.empty()) {
-      return {0, 0};
+      return {};
     }
 
     if (auto *literal_match = find_literal_child(*literal_children, segment)) {
@@ -406,7 +406,7 @@ auto URITemplateRouter::match(const std::string_view path,
       ++variable_index;
       current = variable_child->get();
     } else {
-      return {0, 0};
+      return {};
     }
 
     literal_children = &current->literals;
