@@ -33,16 +33,20 @@
                 .explode,                                                      \
             expected_explode)
 
-#define EXPECT_ROUTER_MATCH(router, path, expected_handler, captures_name)     \
+#define EXPECT_ROUTER_MATCH(router, path, expected_handler, expected_context,  \
+                            captures_name)                                     \
   std::vector<std::tuple<std::uint8_t, std::string, std::string>>              \
       captures_name;                                                           \
-  EXPECT_EQ((router).match((path),                                             \
-                           [&captures_name](const std::uint8_t index,          \
-                                            const std::string_view name,       \
-                                            const std::string_view value) {    \
-                             captures_name.emplace_back(index, name, value);   \
-                           }),                                                 \
-            expected_handler)
+  {                                                                            \
+    const auto sourcemeta_router_match_result = (router).match(                \
+        (path), [&captures_name](const std::uint8_t index,                     \
+                                 const std::string_view name,                  \
+                                 const std::string_view value) {               \
+          captures_name.emplace_back(index, name, value);                      \
+        });                                                                    \
+    EXPECT_EQ(sourcemeta_router_match_result.first, (expected_handler));       \
+    EXPECT_EQ(sourcemeta_router_match_result.second, (expected_context));      \
+  }
 
 #define EXPECT_ROUTER_CAPTURE(captures, index, expected_name, expected_value)  \
   EXPECT_EQ(std::get<0>((captures).at(index)), (index));                       \
