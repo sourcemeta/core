@@ -139,7 +139,7 @@ static void URITemplateRouter_Match(benchmark::State &state) {
         "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
         "comments/42/reactions/1",
         [](auto, auto, auto) {});
-    assert(result == ROUTE_COUNT - 1);
+    assert(result.first == ROUTE_COUNT - 1);
     benchmark::DoNotOptimize(result);
   }
 }
@@ -191,7 +191,7 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
           "/api/v1/organizations/12345/teams/67890/projects/abc/issues/999/"
           "comments/42/reactions/1",
           [](auto, auto, auto) {});
-      assert(result == ROUTE_COUNT - 1);
+      assert(result.first == ROUTE_COUNT - 1);
       benchmark::DoNotOptimize(result);
     }
   }
@@ -322,9 +322,9 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         small_args{{{"schema", std::string_view{"schemas/health"}}}};
-    router.add("/api/v1/health", 1, small_args);
-    router.add("/api/v1/users/{id}", 2, small_args);
-    router.add("/api/v1/many", 3, many_arguments);
+    router.add("/api/v1/health", 1, 0, small_args);
+    router.add("/api/v1/users/{id}", 2, 0, small_args);
+    router.add("/api/v1/many", 3, 0, many_arguments);
     sourcemeta::core::URITemplateRouterView::save(router, path);
   }
 
@@ -333,7 +333,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
 
     for (auto _ : state) {
       auto result = view.match("/api/v1/many", [](auto, auto, auto) {});
-      assert(result == 3);
+      assert(result.first == 3);
       benchmark::DoNotOptimize(result);
 
       std::size_t argument_count = 0;
@@ -360,7 +360,7 @@ static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
         "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
         "issues/999/comments/42/reactions/1",
         [](auto, auto, auto) {});
-    assert(result == ROUTE_COUNT - 1);
+    assert(result.first == ROUTE_COUNT - 1);
     benchmark::DoNotOptimize(result);
   }
 }
@@ -387,7 +387,7 @@ static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
           "/v1/catalog/api/v1/organizations/12345/teams/67890/projects/abc/"
           "issues/999/comments/42/reactions/1",
           [](auto, auto, auto) {});
-      assert(result == ROUTE_COUNT - 1);
+      assert(result.first == ROUTE_COUNT - 1);
       benchmark::DoNotOptimize(result);
     }
   }
