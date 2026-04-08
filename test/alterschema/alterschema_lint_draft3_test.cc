@@ -1470,8 +1470,7 @@ TEST(AlterSchema_lint_draft3, format_type_mismatch_7) {
                     "Avoid keywords that don't apply to the type or "
                     "types that the current subschema expects",
                     true);
-  EXPECT_LINT_TRACE(traces, 1, "/additionalProperties",
-                    "format_type_mismatch",
+  EXPECT_LINT_TRACE(traces, 1, "/additionalProperties", "format_type_mismatch",
                     "The `format` keyword validates string instances but "
                     "`type` is not `string`",
                     false);
@@ -1500,8 +1499,7 @@ TEST(AlterSchema_lint_draft3, format_type_mismatch_8) {
                     "Avoid keywords that don't apply to the type or "
                     "types that the current subschema expects",
                     true);
-  EXPECT_LINT_TRACE(traces, 1, "/additionalProperties",
-                    "format_type_mismatch",
+  EXPECT_LINT_TRACE(traces, 1, "/additionalProperties", "format_type_mismatch",
                     "The `format` keyword validates string instances but "
                     "`type` is not `string`",
                     false);
