@@ -2318,3 +2318,62 @@ TEST_F(URITemplateRouterViewTest,
   EXPECT_ROUTER_MATCH(restored, "/users", 1, 20, captures);
   EXPECT_EQ(captures.size(), 0);
 }
+
+TEST_F(URITemplateRouterViewTest, size_empty_router) {
+  {
+    const sourcemeta::core::URITemplateRouter router;
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, size_single_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 1);
+}
+
+TEST_F(URITemplateRouterViewTest, size_multiple_routes) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", 1);
+    router.add("/users/{id}", 2);
+    router.add("/posts", 3);
+    router.add("/posts/{id}", 4);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 4);
+}
+
+TEST_F(URITemplateRouterViewTest, size_duplicate_route_does_not_increase) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", 1);
+    router.add("/users", 2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 1);
+}
+
+TEST_F(URITemplateRouterViewTest, size_with_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/v1"};
+    router.add("/users", 1);
+    router.add("/posts", 2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 2);
+}

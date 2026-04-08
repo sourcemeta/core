@@ -1292,3 +1292,50 @@ TEST(URITemplateRouter, add_with_context_overwrites_previous_context) {
   EXPECT_ROUTER_MATCH(router, "/users", 1, 20, captures);
   EXPECT_EQ(captures.size(), 0);
 }
+
+TEST(URITemplateRouter, size_empty_router) {
+  const sourcemeta::core::URITemplateRouter router;
+  EXPECT_EQ(router.size(), 0);
+}
+
+TEST(URITemplateRouter, size_single_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, size_multiple_routes) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.add("/users/{id}", 2);
+  router.add("/posts", 3);
+  router.add("/posts/{id}", 4);
+  EXPECT_EQ(router.size(), 4);
+}
+
+TEST(URITemplateRouter, size_duplicate_route_does_not_increase) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.add("/users", 2);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, size_with_context_overwrite_does_not_increase) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1, 10);
+  router.add("/users", 1, 20);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, size_root_template) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, size_with_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/v1"};
+  router.add("/users", 1);
+  router.add("/posts", 2);
+  EXPECT_EQ(router.size(), 2);
+}
