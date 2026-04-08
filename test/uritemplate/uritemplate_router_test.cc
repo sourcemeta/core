@@ -1339,3 +1339,206 @@ TEST(URITemplateRouter, size_with_base_path) {
   router.add("/posts", 2);
   EXPECT_EQ(router.size(), 2);
 }
+
+TEST(URITemplateRouter, otherwise_default_context_is_zero) {
+  const sourcemeta::core::URITemplateRouter router;
+  EXPECT_EQ(router.otherwise_context(), 0);
+}
+
+TEST(URITemplateRouter, otherwise_sets_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.otherwise(42);
+  EXPECT_EQ(router.otherwise_context(), 42);
+}
+
+TEST(URITemplateRouter, otherwise_returned_from_match_on_unknown_path) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1, 5);
+  router.otherwise(99);
+  EXPECT_ROUTER_MATCH(router, "/unknown", 0, 99, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, otherwise_not_returned_from_matching_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1, 5);
+  router.otherwise(99);
+  EXPECT_ROUTER_MATCH(router, "/users", 1, 5, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, otherwise_returned_for_empty_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.otherwise(77);
+  EXPECT_ROUTER_MATCH(router, "/users//", 0, 77, captures);
+}
+
+TEST(URITemplateRouter, otherwise_returned_for_root_slash_no_match) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.otherwise(88);
+  EXPECT_ROUTER_MATCH(router, "/", 0, 88, captures);
+}
+
+TEST(URITemplateRouter, otherwise_without_registration_returns_zero_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  EXPECT_ROUTER_MATCH(router, "/unknown", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, otherwise_arguments_lookup) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 2> arguments{
+      {{"status", std::int64_t{404}},
+       {"message", std::string_view{"Not Found"}}}};
+  router.otherwise(55, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      0, [&collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+
+  EXPECT_EQ(collected.size(), 2);
+  EXPECT_EQ(collected[0].first, "status");
+  EXPECT_TRUE(std::holds_alternative<std::int64_t>(collected[0].second));
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), 404);
+  EXPECT_EQ(collected[1].first, "message");
+  EXPECT_TRUE(std::holds_alternative<std::string_view>(collected[1].second));
+  EXPECT_EQ(std::get<std::string_view>(collected[1].second), "Not Found");
+}
+
+TEST(URITemplateRouter, otherwise_overwrite_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.otherwise(10);
+  router.otherwise(20);
+  EXPECT_EQ(router.otherwise_context(), 20);
+  EXPECT_ROUTER_MATCH(router, "/nope", 0, 20, captures);
+}
+
+TEST(URITemplateRouter, otherwise_overwrite_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> first{
+      {{"version", std::int64_t{1}}}};
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> second{
+      {{"version", std::int64_t{2}}}};
+  router.otherwise(10, first);
+  router.otherwise(20, second);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      0, [&collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_EQ(collected[0].first, "version");
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), 2);
+}
+
+TEST(URITemplateRouter, otherwise_overwrite_with_empty_clears_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"key", std::string_view{"value"}}}};
+  router.otherwise(1, arguments);
+  router.otherwise(2);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      0, [&collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+
+  EXPECT_TRUE(collected.empty());
+  EXPECT_EQ(router.otherwise_context(), 2);
+}
+
+TEST(URITemplateRouter, otherwise_boolean_argument) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
+      {{"cached", true}}};
+  router.otherwise(3, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      0, [&collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+
+  EXPECT_EQ(collected.size(), 1);
+  EXPECT_TRUE(std::holds_alternative<bool>(collected[0].second));
+  EXPECT_EQ(std::get<bool>(collected[0].second), true);
+}
+
+TEST(URITemplateRouter, otherwise_does_not_affect_other_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> route_args{
+      {{"schema", std::string_view{"user.json"}}}};
+  router.add("/users", 1, 0, route_args);
+
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+      default_args{{{"message", std::string_view{"not found"}}}};
+  router.otherwise(99, default_args);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      route_collected;
+  router.arguments(
+      1, [&route_collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        route_collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(route_collected.size(), 1);
+  EXPECT_EQ(route_collected[0].first, "schema");
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      default_collected;
+  router.arguments(
+      0, [&default_collected](
+             const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        default_collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(default_collected.size(), 1);
+  EXPECT_EQ(default_collected[0].first, "message");
+}
+
+TEST(URITemplateRouter, otherwise_does_not_count_as_route_in_size) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.otherwise(99);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, otherwise_with_base_path_and_unmatched) {
+  sourcemeta::core::URITemplateRouter router{"/v1"};
+  router.add("/users", 1);
+  router.otherwise(42);
+  EXPECT_ROUTER_MATCH(router, "/v1/other", 0, 42, captures);
+}
+
+TEST(URITemplateRouter, otherwise_with_partial_trie_walk) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}/posts", 1);
+  router.otherwise(42);
+  EXPECT_ROUTER_MATCH(router, "/users/123", 0, 42, captures);
+}

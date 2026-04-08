@@ -86,6 +86,11 @@ public:
            const Identifier context = 0,
            const std::span<const Argument> arguments = {}) -> void;
 
+  /// Register a fallback context and arguments to be returned when matching
+  /// a path that does not correspond to any registered route
+  auto otherwise(const Identifier context,
+                 const std::span<const Argument> arguments = {}) -> void;
+
   /// Match a path against the router. Note the callback might fire for
   /// initial matches even though the entire match might still fail
   [[nodiscard]] auto match(const std::string_view path,
@@ -109,11 +114,15 @@ public:
   /// Get the number of registered routes
   [[nodiscard]] auto size() const noexcept -> std::size_t;
 
+  /// Access the fallback context registered through `otherwise`
+  [[nodiscard]] auto otherwise_context() const noexcept -> Identifier;
+
 private:
   Node root_;
   std::string base_path_;
   std::vector<std::pair<Identifier, std::vector<Argument>>> arguments_;
   std::size_t size_{0};
+  Identifier otherwise_context_{0};
 };
 
 /// @ingroup uritemplate
