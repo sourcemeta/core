@@ -8,6 +8,7 @@
 #include <queue>         // std::queue
 #include <string>        // std::string
 #include <unordered_map> // std::unordered_map
+#include <utility>       // std::pair
 #include <vector>        // std::vector
 
 namespace sourcemeta::core {
@@ -52,6 +53,18 @@ struct alignas(8) SerializedNode {
   URITemplateRouter::Identifier context;
   std::array<std::uint8_t, 6> padding2;
 };
+
+inline auto
+finalize_match(const URITemplateRouter::Identifier otherwise_context,
+               const URITemplateRouter::Identifier identifier,
+               const URITemplateRouter::Identifier context)
+    -> std::pair<URITemplateRouter::Identifier, URITemplateRouter::Identifier> {
+  if (identifier == 0) {
+    return {URITemplateRouter::Identifier{0}, otherwise_context};
+  }
+
+  return {identifier, context};
+}
 
 // Binary search for a literal child matching the given segment
 inline auto binary_search_literal_children(
@@ -259,7 +272,7 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
       header.string_table_offset + string_table.size());
   header.base_path_offset = base_path_string_offset;
   header.base_path_length = static_cast<std::uint32_t>(base_path_value.size());
-  header.otherwise_context = router.otherwise_context();
+  header.otherwise_context = router.otherwise_.context;
 
   std::ofstream file(path, std::ios::binary);
   if (!file) {
@@ -337,21 +350,11 @@ auto URITemplateRouterView::match(
 
   const auto otherwise_context =
       static_cast<URITemplateRouter::Identifier>(header->otherwise_context);
-  const auto finalize =
-      [otherwise_context](const URITemplateRouter::Identifier identifier,
-                          const URITemplateRouter::Identifier context)
-      -> std::pair<URITemplateRouter::Identifier,
-                   URITemplateRouter::Identifier> {
-    if (identifier == 0) {
-      return {URITemplateRouter::Identifier{0}, otherwise_context};
-    }
-    return {identifier, context};
-  };
 
   if (header->node_count == 0 ||
       header->node_count > (this->data_.size() - sizeof(RouterHeader)) /
                                sizeof(SerializedNode)) {
-    return finalize(0, 0);
+    return finalize_match(otherwise_context, 0, 0);
   }
 
   const auto *nodes = reinterpret_cast<const SerializedNode *>(
@@ -361,12 +364,12 @@ auto URITemplateRouterView::match(
   const auto expected_string_table_offset = sizeof(RouterHeader) + nodes_size;
   if (header->string_table_offset < expected_string_table_offset ||
       header->string_table_offset > this->data_.size()) {
-    return finalize(0, 0);
+    return finalize_match(otherwise_context, 0, 0);
   }
 
   if (header->arguments_offset < header->string_table_offset ||
       header->arguments_offset > this->data_.size()) {
-    return finalize(0, 0);
+    return finalize_match(otherwise_context, 0, 0);
   }
 
   const auto *string_table = reinterpret_cast<const char *>(
@@ -376,29 +379,31 @@ auto URITemplateRouterView::match(
 
   // Empty path matches empty template
   if (path.empty()) {
-    return finalize(nodes[0].identifier, nodes[0].context);
+    return finalize_match(otherwise_context, nodes[0].identifier,
+                          nodes[0].context);
   }
 
   // Root path "/" is stored as an empty literal segment
   if (path.size() == 1 && path[0] == '/') {
     const auto &root = nodes[0];
     if (root.first_literal_child == NO_CHILD) {
-      return finalize(0, 0);
+      return finalize_match(otherwise_context, 0, 0);
     }
 
     if (root.first_literal_child >= header->node_count ||
         root.literal_child_count >
             header->node_count - root.first_literal_child) {
-      return finalize(0, 0);
+      return finalize_match(otherwise_context, 0, 0);
     }
 
     const auto match = binary_search_literal_children(
         nodes, string_table, string_table_size, root.first_literal_child,
         root.literal_child_count, "", 0);
     if (match == NO_CHILD) {
-      return finalize(0, 0);
+      return finalize_match(otherwise_context, 0, 0);
     }
-    return finalize(nodes[match].identifier, nodes[match].context);
+    return finalize_match(otherwise_context, nodes[match].identifier,
+                          nodes[match].context);
   }
 
   // Walk the trie, matching each path segment
@@ -425,7 +430,7 @@ auto URITemplateRouterView::match(
 
     // Empty segment (from double slash or trailing slash) doesn't match
     if (segment_length == 0) {
-      return finalize(0, 0);
+      return finalize_match(otherwise_context, 0, 0);
     }
 
     const auto &node = nodes[current_node];
@@ -435,7 +440,7 @@ auto URITemplateRouterView::match(
     if (node.first_literal_child != NO_CHILD) {
       if (node.first_literal_child >= node_count ||
           node.literal_child_count > node_count - node.first_literal_child) {
-        return finalize(0, 0);
+        return finalize_match(otherwise_context, 0, 0);
       }
 
       const auto literal_match = binary_search_literal_children(
@@ -456,7 +461,7 @@ auto URITemplateRouterView::match(
       if (node.variable_child >= node_count ||
           variable_index >
               std::numeric_limits<URITemplateRouter::Index>::max()) {
-        return finalize(0, 0);
+        return finalize_match(otherwise_context, 0, 0);
       }
 
       const auto &variable_node = nodes[node.variable_child];
@@ -464,7 +469,7 @@ auto URITemplateRouterView::match(
       if (variable_node.string_offset > string_table_size ||
           variable_node.string_length >
               string_table_size - variable_node.string_offset) {
-        return finalize(0, 0);
+        return finalize_match(otherwise_context, 0, 0);
       }
 
       // Check if this is an expansion (catch-all)
@@ -475,7 +480,8 @@ auto URITemplateRouterView::match(
                  {string_table + variable_node.string_offset,
                   variable_node.string_length},
                  {segment_start, remaining_length});
-        return finalize(variable_node.identifier, variable_node.context);
+        return finalize_match(otherwise_context, variable_node.identifier,
+                              variable_node.context);
       }
 
       // Regular variable - match single segment
@@ -493,10 +499,11 @@ auto URITemplateRouterView::match(
     }
 
     // No match
-    return finalize(0, 0);
+    return finalize_match(otherwise_context, 0, 0);
   }
 
-  return finalize(nodes[current_node].identifier, nodes[current_node].context);
+  return finalize_match(otherwise_context, nodes[current_node].identifier,
+                        nodes[current_node].context);
 }
 
 auto URITemplateRouterView::arguments(

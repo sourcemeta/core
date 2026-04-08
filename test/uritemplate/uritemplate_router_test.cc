@@ -1340,15 +1340,16 @@ TEST(URITemplateRouter, size_with_base_path) {
   EXPECT_EQ(router.size(), 2);
 }
 
-TEST(URITemplateRouter, otherwise_default_context_is_zero) {
-  const sourcemeta::core::URITemplateRouter router;
-  EXPECT_EQ(router.otherwise_context(), 0);
+TEST(URITemplateRouter, otherwise_default_is_zero_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  EXPECT_ROUTER_MATCH(router, "/unknown", 0, 0, captures);
 }
 
 TEST(URITemplateRouter, otherwise_sets_context) {
   sourcemeta::core::URITemplateRouter router;
   router.otherwise(42);
-  EXPECT_EQ(router.otherwise_context(), 42);
+  EXPECT_ROUTER_MATCH(router, "/anything", 0, 42, captures);
 }
 
 TEST(URITemplateRouter, otherwise_returned_from_match_on_unknown_path) {
@@ -1417,7 +1418,6 @@ TEST(URITemplateRouter, otherwise_overwrite_context) {
   sourcemeta::core::URITemplateRouter router;
   router.otherwise(10);
   router.otherwise(20);
-  EXPECT_EQ(router.otherwise_context(), 20);
   EXPECT_ROUTER_MATCH(router, "/nope", 0, 20, captures);
 }
 
@@ -1463,7 +1463,7 @@ TEST(URITemplateRouter, otherwise_overwrite_with_empty_clears_arguments) {
       });
 
   EXPECT_TRUE(collected.empty());
-  EXPECT_EQ(router.otherwise_context(), 2);
+  EXPECT_ROUTER_MATCH(router, "/nope", 0, 2, captures);
 }
 
 TEST(URITemplateRouter, otherwise_boolean_argument) {
