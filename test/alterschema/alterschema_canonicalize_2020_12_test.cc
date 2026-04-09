@@ -663,6 +663,7 @@ TEST(AlterSchema_canonicalize_2020_12, type_array_to_any_of_5) {
 
   const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "My schema",
     "anyOf": [
       { "type": "string", "minLength": 0 },
       { "type": "number" }
@@ -893,244 +894,6 @@ TEST(AlterSchema_canonicalize_2020_12,
   EXPECT_EQ(document, expected);
 }
 
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_comment_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$comment": "This is a comment",
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_title_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "My Schema",
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_description_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "description": "A description of the schema",
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_unknown_keyword_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "foobar": "unknown keyword",
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_x_prefix_keyword_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "x-custom": "custom extension",
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_multiple_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$comment": "A comment",
-    "title": "My Schema",
-    "description": "A description",
-    "x-custom": "extension",
-    "unknown": true,
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_nested_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Root schema",
-    "type": "object",
-    "properties": {
-      "foo": {
-        "title": "Foo property",
-        "$comment": "This is foo",
-        "type": "string"
-      }
-    }
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "properties": {
-      "foo": {
-        "type": "string",
-        "minLength": 0
-      }
-    },
-    "type": "object",
-    "minProperties": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_examples_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "examples": [ "foo", "bar" ],
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_default_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "default": "hello",
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_deprecated_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "deprecated": true,
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
-TEST(AlterSchema_canonicalize_2020_12, no_metadata_readonly_writeonly_1) {
-  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "readOnly": true,
-    "writeOnly": false,
-    "type": "string"
-  })JSON");
-
-  CANONICALIZE(document, result, traces);
-
-  EXPECT_TRUE(result.first);
-
-  const sourcemeta::core::JSON expected = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
-    "minLength": 0
-  })JSON");
-
-  EXPECT_EQ(document, expected);
-}
-
 TEST(AlterSchema_canonicalize_2020_12, circular_ref_through_defs_1) {
   auto document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1349,7 +1112,17 @@ TEST(AlterSchema_canonicalize_2020_12,
       { "enum": [ false, true ] },
       { "type": "object", "minProperties": 0, "properties": {} },
       { "type": "array", "minItems": 0, "items": true },
-      { "type": "string", "minLength": 0 },
+      {
+        "type": "string",
+        "contentSchema": {
+          "type": "object",
+          "minProperties": 0,
+          "properties": {}
+        },
+        "contentEncoding": "base64",
+        "contentMediaType": "application/json",
+        "minLength": 0
+      },
       { "type": "number" }
     ]
   })JSON");
