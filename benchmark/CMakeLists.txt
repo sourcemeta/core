@@ -16,10 +16,6 @@ if(SOURCEMETA_CORE_JSONSCHEMA)
   list(APPEND BENCHMARK_SOURCES jsonschema.cc)
 endif()
 
-if(SOURCEMETA_CORE_EXTENSION_ALTERSCHEMA)
-  list(APPEND BENCHMARK_SOURCES alterschema.cc)
-endif()
-
 if(SOURCEMETA_CORE_EXTENSION_EDITORSCHEMA)
   list(APPEND BENCHMARK_SOURCES editorschema.cc)
 endif()
@@ -56,11 +52,6 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_JSONSCHEMA)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::jsonschema)
-  endif()
-
-  if(SOURCEMETA_CORE_EXTENSION_ALTERSCHEMA)
-    target_link_libraries(sourcemeta_core_benchmark
-      PRIVATE sourcemeta::core::alterschema)
   endif()
 
   if(SOURCEMETA_CORE_EXTENSION_EDITORSCHEMA)
