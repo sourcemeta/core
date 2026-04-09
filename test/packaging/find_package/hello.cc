@@ -1,4 +1,3 @@
-#include <sourcemeta/core/alterschema.h>
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/editorschema.h>
 #include <sourcemeta/core/html.h>
