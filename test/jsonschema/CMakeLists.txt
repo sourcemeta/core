@@ -35,9 +35,6 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonschema
     jsonschema_bundle_test.cc
     jsonschema_dependencies_test.cc
     jsonschema_metaschema_test.cc
-    jsonschema_transform_rules.h
-    jsonschema_transform_rule_test.cc
-    jsonschema_transformer_test.cc
     jsonschema_dialect_test.cc
     jsonschema_dialect_2020_12_test.cc
     jsonschema_dialect_2019_09_test.cc
