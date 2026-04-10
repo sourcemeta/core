@@ -508,6 +508,19 @@ auto wrap(const JSON &schema, const SchemaFrame &frame,
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto parse_schema_type(const JSON &type) -> JSON::TypeSet;
 
+/// @ingroup jsonschema
+/// Check if a given keyword type is an in-place applicator
+inline auto is_in_place_applicator(const SchemaKeywordType type) -> bool {
+  return type == SchemaKeywordType::ApplicatorValueOrElementsInPlace ||
+         type == SchemaKeywordType::ApplicatorMembersInPlaceSome ||
+         type == SchemaKeywordType::ApplicatorElementsInPlace ||
+         type == SchemaKeywordType::ApplicatorElementsInPlaceSome ||
+         type == SchemaKeywordType::ApplicatorElementsInPlaceSomeNegate ||
+         type == SchemaKeywordType::ApplicatorValueInPlaceMaybe ||
+         type == SchemaKeywordType::ApplicatorValueInPlaceOther ||
+         type == SchemaKeywordType::ApplicatorValueInPlaceNegate;
+}
+
 } // namespace sourcemeta::core
 
 #endif
