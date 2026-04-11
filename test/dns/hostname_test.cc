@@ -63,8 +63,7 @@ TEST(DNS_hostname, valid_mixed_case) {
 
 // RFC 1123 §2.1 MUST: label of exactly 63 chars (TS d4 #17, TS d7+ #23)
 TEST(DNS_hostname, valid_label_exactly_63) {
-  EXPECT_TRUE(sourcemeta::core::is_hostname(
-      std::string(63, 'a') + ".com"));
+  EXPECT_TRUE(sourcemeta::core::is_hostname(std::string(63, 'a') + ".com"));
 }
 
 // RFC 1123 §2.1 MUST: single label of exactly 63 chars
@@ -124,7 +123,7 @@ TEST(DNS_hostname, valid_many_labels) {
 
 // INVALID - non-compliant inputs
 
-// RFC 952 §B: <name> requires at least one <let> (TS d7+ #12)
+// RFC 952 §B: <hname> requires at least one <name> / label (TS d7+ #12)
 TEST(DNS_hostname, invalid_empty) {
   EXPECT_FALSE(sourcemeta::core::is_hostname(""));
 }
@@ -202,8 +201,7 @@ TEST(DNS_hostname, invalid_space) {
 
 // RFC 1123 §2.1 MUST: label exceeds 63-character limit (TS d4 #18, d7+ #24)
 TEST(DNS_hostname, invalid_label_64) {
-  EXPECT_FALSE(sourcemeta::core::is_hostname(
-      std::string(64, 'a') + ".com"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(std::string(64, 'a') + ".com"));
 }
 
 // RFC 1123 §2.1 MUST: single label of 64 chars exceeds per-label limit
@@ -234,19 +232,22 @@ TEST(DNS_hostname, invalid_ts_256_string) {
 // RFC 952 ASSUMPTIONS: U+FF0E (fullwidth full stop) is not in the ASCII
 // alphabet; UTF-8 bytes 0xEF 0xBC 0x8E (TS d4 #27, d7+ #16)
 TEST(DNS_hostname, invalid_fullwidth_dot) {
-  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xef\xbc\x8e" "com"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xef\xbc\x8e"
+                                             "com"));
 }
 
 // RFC 952 ASSUMPTIONS: any byte >= 0x80 is outside the ASCII alphabet
 TEST(DNS_hostname, invalid_high_bit_byte) {
-  EXPECT_FALSE(
-      sourcemeta::core::is_hostname(std::string_view{"a\x80" "b", 3}));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(std::string_view{"a\x80"
+                                                              "b",
+                                                              3}));
 }
 
 // RFC 952 ASSUMPTIONS: NUL byte (0x00) is not in the ASCII alphabet
 TEST(DNS_hostname, invalid_nul_byte) {
-  EXPECT_FALSE(
-      sourcemeta::core::is_hostname(std::string_view{"a\x00" "b", 3}));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(std::string_view{"a\x00"
+                                                              "b",
+                                                              3}));
 }
 
 // RFC 952 ASSUMPTIONS: '@' is not in the alphabet (A-Z 0-9 '-' '.')
