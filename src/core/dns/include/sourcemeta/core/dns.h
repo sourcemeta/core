@@ -36,10 +36,10 @@ namespace sourcemeta::core {
 /// ```
 ///
 /// This function implements RFC 1123 §2.1 (ASCII only). It does not
-/// perform A-label or Punycode decoding — those belong to the separate
+/// perform A-label or Punycode decoding. Those belong to the separate
 /// `idn-hostname` format.
 SOURCEMETA_CORE_DNS_EXPORT
-auto is_hostname(std::string_view value) -> bool;
+auto is_hostname(const std::string_view value) -> bool;
 
 } // namespace sourcemeta::core
 

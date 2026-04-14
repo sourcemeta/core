@@ -4,8 +4,6 @@
 
 #include <string>
 
-// VALID - RFC 1123 §2.1 / RFC 952 compliant inputs
-
 // RFC 952 §B: <hname> ::= <name>*["."<name>]  (three labels, TS d7+ #7)
 TEST(DNS_hostname, valid_simple_dotted) {
   EXPECT_TRUE(sourcemeta::core::is_hostname("www.example.com"));
@@ -120,8 +118,6 @@ TEST(DNS_hostname, valid_numeric_tld) {
 TEST(DNS_hostname, valid_many_labels) {
   EXPECT_TRUE(sourcemeta::core::is_hostname("a.b.c.d.e.f"));
 }
-
-// INVALID - non-compliant inputs
 
 // RFC 952 §B: <hname> requires at least one <name> / label (TS d7+ #12)
 TEST(DNS_hostname, invalid_empty) {

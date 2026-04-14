@@ -29,7 +29,6 @@ auto is_hostname(const std::string_view value) -> bool {
   std::string_view::size_type position{0};
 
   while (position < value.size()) {
-    // Start of a new label
     const auto label_start{position};
 
     // RFC 1123 §2.1: first character is letter or digit
@@ -38,7 +37,6 @@ auto is_hostname(const std::string_view value) -> bool {
     }
     position += 1;
 
-    // Walk interior characters and the last character of the label
     while (position < value.size() && value[position] != '.') {
       // RFC 952 §B: interior characters are let-dig-hyp
       if (!is_let_dig_hyp(value[position])) {
