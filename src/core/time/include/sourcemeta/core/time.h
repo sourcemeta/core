@@ -96,14 +96,14 @@ auto from_gmt(const std::string &time) -> std::chrono::system_clock::time_point;
 ///
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::is_datetime("1985-04-12T23:20:50.52Z"));
-/// assert(sourcemeta::core::is_datetime("1996-12-19T16:39:57-08:00"));
-/// assert(sourcemeta::core::is_datetime("1990-12-31T23:59:60Z"));
-/// assert(!sourcemeta::core::is_datetime("2024-01-15T14:30:00"));
-/// assert(!sourcemeta::core::is_datetime("2024-01-15 14:30:00Z"));
+/// assert(sourcemeta::core::is_rfc3339_datetime("1985-04-12T23:20:50.52Z"));
+/// assert(sourcemeta::core::is_rfc3339_datetime("1996-12-19T16:39:57-08:00"));
+/// assert(sourcemeta::core::is_rfc3339_datetime("1990-12-31T23:59:60Z"));
+/// assert(!sourcemeta::core::is_rfc3339_datetime("2024-01-15T14:30:00"));
+/// assert(!sourcemeta::core::is_rfc3339_datetime("2024-01-15 14:30:00Z"));
 /// ```
 SOURCEMETA_CORE_TIME_EXPORT
-auto is_datetime(std::string_view value) -> bool;
+auto is_rfc3339_datetime(std::string_view value) -> bool;
 
 } // namespace sourcemeta::core
 

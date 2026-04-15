@@ -1,5 +1,5 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME time
-  SOURCES gmt_test.cc datetime_test.cc)
+  SOURCES gmt_test.cc rfc3339_datetime_test.cc)
 
 target_link_libraries(sourcemeta_core_time_unit
   PRIVATE sourcemeta::core::time)

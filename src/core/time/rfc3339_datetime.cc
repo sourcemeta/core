@@ -23,7 +23,7 @@ static constexpr auto max_day_in_month(const unsigned int month,
   return days[month];
 }
 
-auto is_datetime(const std::string_view value) -> bool {
+auto is_rfc3339_datetime(const std::string_view value) -> bool {
   const auto size{value.size()};
 
   // Minimum valid date-time: "YYYY-MM-DDTHH:MM:SSZ" = 20 characters
