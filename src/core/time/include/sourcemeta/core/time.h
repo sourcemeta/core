@@ -103,7 +103,7 @@ auto from_gmt(const std::string &time) -> std::chrono::system_clock::time_point;
 /// assert(!sourcemeta::core::is_rfc3339_datetime("2024-01-15 14:30:00Z"));
 /// ```
 SOURCEMETA_CORE_TIME_EXPORT
-auto is_rfc3339_datetime(std::string_view value) -> bool;
+auto is_rfc3339_datetime(const std::string_view value) -> bool;
 
 } // namespace sourcemeta::core
 
