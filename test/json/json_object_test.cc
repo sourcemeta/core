@@ -1093,3 +1093,120 @@ TEST(JSON_object, reorder_already_ordered) {
   EXPECT_EQ(iterator->first, "cherry");
   EXPECT_EQ(iterator->second.to_integer(), 3);
 }
+
+TEST(JSON_object, try_at_start_hit) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const auto hash_foo{object.hash("foo")};
+  const auto *result_foo{object.try_at("foo", hash_foo, start)};
+  EXPECT_TRUE(result_foo);
+  EXPECT_EQ(result_foo->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+
+  const auto hash_bar{object.hash("bar")};
+  const auto *result_bar{object.try_at("bar", hash_bar, start)};
+  EXPECT_TRUE(result_bar);
+  EXPECT_EQ(result_bar->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+
+  const auto hash_baz{object.hash("baz")};
+  const auto *result_baz{object.try_at("baz", hash_baz, start)};
+  EXPECT_TRUE(result_baz);
+  EXPECT_EQ(result_baz->to_integer(), 3);
+  EXPECT_EQ(start, 3);
+}
+
+TEST(JSON_object, try_at_start_miss) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const auto hash_missing{object.hash("missing")};
+  const auto *result{object.try_at("missing", hash_missing, start)};
+  EXPECT_FALSE(result);
+  EXPECT_EQ(start, 0);
+}
+
+TEST(JSON_object, try_at_start_reverse_order) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const auto hash_baz{object.hash("baz")};
+  const auto *result_baz{object.try_at("baz", hash_baz, start)};
+  EXPECT_TRUE(result_baz);
+  EXPECT_EQ(result_baz->to_integer(), 3);
+  EXPECT_EQ(start, 3);
+
+  const auto hash_bar{object.hash("bar")};
+  const auto *result_bar{object.try_at("bar", hash_bar, start)};
+  EXPECT_TRUE(result_bar);
+  EXPECT_EQ(result_bar->to_integer(), 2);
+  EXPECT_EQ(start, 2);
+
+  const auto hash_foo{object.hash("foo")};
+  const auto *result_foo{object.try_at("foo", hash_foo, start)};
+  EXPECT_TRUE(result_foo);
+  EXPECT_EQ(result_foo->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+}
+
+TEST(JSON_object, try_at_start_single_property) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"only\":42}");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const auto hash_only{object.hash("only")};
+  const auto *result{object.try_at("only", hash_only, start)};
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 42);
+  EXPECT_EQ(start, 1);
+}
+
+TEST(JSON_object, try_at_start_wraparound) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{10};
+
+  const auto hash_foo{object.hash("foo")};
+  const auto *result{object.try_at("foo", hash_foo, start)};
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 1);
+  EXPECT_EQ(start, 1);
+}
+
+TEST(JSON_object, try_at_start_sequential_advances) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"a\":1,\"b\":2,\"c\":3,\"d\":4}");
+  const auto &object{document.as_object()};
+  sourcemeta::core::JSON::Object::size_type start{0};
+
+  const auto hash_a{object.hash("a")};
+  const auto *result_a{object.try_at("a", hash_a, start)};
+  EXPECT_TRUE(result_a);
+  EXPECT_EQ(result_a->to_integer(), 1);
+
+  const auto hash_b{object.hash("b")};
+  const auto *result_b{object.try_at("b", hash_b, start)};
+  EXPECT_TRUE(result_b);
+  EXPECT_EQ(result_b->to_integer(), 2);
+
+  const auto hash_c{object.hash("c")};
+  const auto *result_c{object.try_at("c", hash_c, start)};
+  EXPECT_TRUE(result_c);
+  EXPECT_EQ(result_c->to_integer(), 3);
+
+  const auto hash_d{object.hash("d")};
+  const auto *result_d{object.try_at("d", hash_d, start)};
+  EXPECT_TRUE(result_d);
+  EXPECT_EQ(result_d->to_integer(), 4);
+
+  EXPECT_EQ(start, object.size());
+}
