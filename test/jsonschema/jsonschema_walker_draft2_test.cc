@@ -249,6 +249,18 @@ TEST(JSONSchema_walker_draft2, requires) {
             sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
 }
 
+TEST(JSONSchema_walker_draft2, optional) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("optional", VOCABULARIES_DRAFT2)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_2);
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
+}
+
 TEST(JSONSchema_walker_draft2, format) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("format", VOCABULARIES_DRAFT2)};
@@ -705,6 +717,19 @@ TEST(JSONSchema_walker_draft2, hyperschema_requires) {
   const auto &result{
       schema_walker("requires", VOCABULARIES_DRAFT2_HYPERSCHEMA)};
   EXPECT_EQ(result.type, SchemaKeywordType::ApplicatorValueTraverseParent);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_2_Hyper);
+  EXPECT_TRUE(result.dependencies.empty());
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_EQ(result.instances,
+            sourcemeta::core::make_set({sourcemeta::core::JSON::Type::Object}));
+}
+
+TEST(JSONSchema_walker_draft2, hyperschema_optional) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("optional", VOCABULARIES_DRAFT2_HYPERSCHEMA)};
+  EXPECT_EQ(result.type, SchemaKeywordType::Assertion);
   EXPECT_TRUE(result.vocabulary.has_value());
   EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_2_Hyper);
   EXPECT_TRUE(result.dependencies.empty());
