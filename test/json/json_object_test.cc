@@ -1173,7 +1173,7 @@ TEST(JSON_object, try_at_start_wraparound) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2,\"baz\":3}");
   const auto &object{document.as_object()};
-  sourcemeta::core::JSON::Object::size_type start{10};
+  sourcemeta::core::JSON::Object::size_type start{object.size()};
 
   const auto hash_foo{object.hash("foo")};
   const auto *result{object.try_at("foo", hash_foo, start)};

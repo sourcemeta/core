@@ -277,6 +277,7 @@ public:
       -> const mapped_type * {
     assert(this->hash(key) == key_hash);
     const auto object_size{this->size()};
+    assert(start <= object_size);
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type count = 0; count < object_size; count++) {
         const auto index{(start + count) % object_size};
