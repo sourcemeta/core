@@ -359,12 +359,12 @@ TEST(Markdown_to_html, escape_backtick) {
 
 TEST(Markdown_to_html, html_entity_named) {
   const auto result{sourcemeta::core::markdown_to_html("&copy; 2025")};
-  EXPECT_EQ(result, "<p>\u00A9 2025</p>\n");
+  EXPECT_EQ(result, "<p>\xC2\xA9 2025</p>\n");
 }
 
 TEST(Markdown_to_html, html_entity_numeric) {
   const auto result{sourcemeta::core::markdown_to_html("&#169; 2025")};
-  EXPECT_EQ(result, "<p>\u00A9 2025</p>\n");
+  EXPECT_EQ(result, "<p>\xC2\xA9 2025</p>\n");
 }
 
 TEST(Markdown_to_html, ampersand_in_text) {
