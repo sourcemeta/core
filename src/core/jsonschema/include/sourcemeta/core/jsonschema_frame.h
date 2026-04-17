@@ -154,6 +154,8 @@ public:
                std::string_view default_id = "",
                const Paths &paths = {empty_weak_pointer}) -> void;
 
+  auto add_tracker(const PointerPositionTracker &tracker) -> void;
+
   /// Access the analysed schema locations
   [[nodiscard]] auto locations() const noexcept -> const Locations &;
 
@@ -272,6 +274,7 @@ private:
   JSON::String root_;
   Locations locations_;
   References references_;
+  std::optional<PointerPositionTracker> position_tracker_;
   mutable std::unordered_map<std::reference_wrapper<const WeakPointer>,
                              std::vector<const Location *>, WeakPointer::Hasher,
                              WeakPointer::Comparator>
