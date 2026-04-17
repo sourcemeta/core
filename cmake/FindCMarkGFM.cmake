@@ -79,6 +79,11 @@ if(NOT CMarkGFM_FOUND)
     target_compile_options(cmark_gfm PRIVATE -Wno-unused-parameter)
   endif()
 
+  if(SOURCEMETA_COMPILER_MSVC)
+    target_compile_options(cmark_gfm PRIVATE /wd4100)
+    target_compile_definitions(cmark_gfm PRIVATE _CRT_SECURE_NO_WARNINGS)
+  endif()
+
   target_include_directories(cmark_gfm PRIVATE
     "${CMARK_GFM_BINARY_DIR}/include"
     "${CMARK_GFM_SOURCE_DIR}"
