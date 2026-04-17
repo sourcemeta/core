@@ -237,6 +237,40 @@ private:
   const char *message_;
 };
 
+/// @ingroup jsonschema
+/// An error that represents a schema Uri Collision error
+class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaUriCollisionError
+    : public std::exception {
+public:
+  SchemaUriCollisionError(const std::string_view identifier,
+                          const std::uint64_t line, const std::uint64_t column,
+                          const char *message)
+      : identifier_{identifier}, message_{message}, line_{line},
+        column_{column} {}
+
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return this->message_;
+  }
+
+  [[nodiscard]] auto identifier() const noexcept -> std::string_view {
+    return this->identifier_;
+  }
+
+  [[nodiscard]] auto line() const noexcept -> std::uint64_t {
+    return this->line_;
+  }
+
+  [[nodiscard]] auto column() const noexcept -> std::uint64_t {
+    return this->column_;
+  }
+
+private:
+  std::string identifier_;
+  const char *message_;
+  std::uint64_t line_;
+  std::uint64_t column_;
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif

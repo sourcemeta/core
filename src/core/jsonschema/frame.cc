@@ -266,18 +266,27 @@ auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
                                            "Schema identifier already exists");
 }
 
-auto store(sourcemeta::core::SchemaFrame::Locations &frame,
-           const sourcemeta::core::SchemaReferenceType type,
-           const sourcemeta::core::SchemaFrame::LocationType entry_type,
-           sourcemeta::core::JSON::String uri, const std::string_view base,
-           const sourcemeta::core::WeakPointer &pointer_from_root,
-           const std::size_t relative_pointer_offset,
-           const std::string_view dialect,
-           const sourcemeta::core::SchemaBaseDialect base_dialect,
-           const std::optional<sourcemeta::core::WeakPointer> &parent,
-           const bool property_name, const bool orphan,
-           const bool ignore_if_present = false,
-           const bool already_canonical = false) -> void {
+[[noreturn]]
+auto throw_already_exists(const sourcemeta::core::JSON::String &uri,
+                          const std::uint64_t line, const std::uint64_t column)
+    -> void {
+  throw sourcemeta::core::SchemaUriCollisionError(
+      uri, line, column, "Schema identifier already exists");
+}
+
+auto store(
+    sourcemeta::core::SchemaFrame::Locations &frame,
+    const sourcemeta::core::SchemaReferenceType type,
+    const sourcemeta::core::SchemaFrame::LocationType entry_type,
+    sourcemeta::core::JSON::String uri, const std::string_view base,
+    const sourcemeta::core::WeakPointer &pointer_from_root,
+    const std::size_t relative_pointer_offset, const std::string_view dialect,
+    const sourcemeta::core::SchemaBaseDialect base_dialect,
+    const std::optional<sourcemeta::core::WeakPointer> &parent,
+    const bool property_name, const bool orphan,
+    const std::optional<sourcemeta::core::PointerPositionTracker> &tracker,
+    const bool ignore_if_present = false, const bool already_canonical = false)
+    -> void {
   auto canonical{already_canonical ? std::move(uri)
                                    : sourcemeta::core::URI::canonicalize(uri)};
   auto [iterator, inserted] =
@@ -292,6 +301,14 @@ auto store(sourcemeta::core::SchemaFrame::Locations &frame,
                      .property_name = property_name,
                      .orphan = orphan}});
   if (!ignore_if_present && !inserted) {
+    if (tracker) {
+      const auto position =
+          tracker->get(sourcemeta::core::to_pointer(pointer_from_root));
+      throw_already_exists(iterator->first.second,
+                           std::get<0>(position.value()),
+                           std::get<1>(position.value()));
+    }
+
     throw_already_exists(iterator->first.second);
   }
 
@@ -430,6 +447,10 @@ auto SchemaFrame::to_json(
   return root;
 }
 
+auto SchemaFrame::add_tracker(const PointerPositionTracker &tracker) -> void {
+  this->position_tracker_ = tracker;
+}
+
 auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                           const SchemaResolver &resolver,
                           std::string_view default_dialect,
@@ -499,7 +520,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       store(this->locations_, SchemaReferenceType::Static,
             SchemaFrame::LocationType::Resource, default_id_canonical,
             this->root_, path, path.size(), root_dialect,
-            root_base_dialect.value(), std::nullopt, false, false);
+            root_base_dialect.value(), std::nullopt, false, false,
+            this->position_tracker_);
 
       base_uris.insert({path, {root_id.value(), default_id_canonical}});
     }
@@ -606,6 +628,12 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                 this->locations_.find({SchemaReferenceType::Static, new_id})};
             if (maybe_match != this->locations_.cend() &&
                 maybe_match->second.pointer != common_pointer_weak) {
+              if (this->position_tracker_) {
+                const auto position =
+                    position_tracker_->get(to_pointer(common_pointer_weak));
+                throw_already_exists(new_id, std::get<0>(position.value()),
+                                     std::get<1>(position.value()));
+              }
               throw_already_exists(new_id);
             }
 
@@ -618,7 +646,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     common_pointer_weak, common_pointer_weak.size(),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent, entry.common.property_name,
-                    entry.common.orphan);
+                    entry.common.orphan, this->position_tracker_);
             }
 
             auto base_uri_match{base_uris.find(common_pointer_weak)};
@@ -687,7 +715,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   common_pointer_weak, bases.second.size(),
                   entry.common.dialect, entry.common.base_dialect.value(),
                   common_parent, entry.common.property_name,
-                  entry.common.orphan);
+                  entry.common.orphan, this->position_tracker_);
           }
 
           if (type == AnchorType::Dynamic || type == AnchorType::All) {
@@ -696,7 +724,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   common_pointer_weak, bases.second.size(),
                   entry.common.dialect, entry.common.base_dialect.value(),
                   common_parent, entry.common.property_name,
-                  entry.common.orphan);
+                  entry.common.orphan, this->position_tracker_);
 
             // Register a dynamic anchor as a static anchor if possible too
             if (entry.common.vocabularies.contains(
@@ -706,7 +734,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     common_pointer_weak, bases.second.size(),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent, entry.common.property_name,
-                    entry.common.orphan, true);
+                    entry.common.orphan, this->position_tracker_, true);
             }
           }
         } else {
@@ -737,7 +765,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     common_pointer_weak, bases.second.size(),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent, entry.common.property_name,
-                    entry.common.orphan);
+                    entry.common.orphan, this->position_tracker_);
             }
 
             if (type == AnchorType::Dynamic || type == AnchorType::All) {
@@ -747,7 +775,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                     common_pointer_weak, bases.second.size(),
                     entry.common.dialect, entry.common.base_dialect.value(),
                     common_parent, entry.common.property_name,
-                    entry.common.orphan);
+                    entry.common.orphan, this->position_tracker_);
 
               if (entry.common.vocabularies.contains(
                       Vocabularies::Known::JSON_Schema_2020_12_Core)) {
@@ -757,7 +785,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                       common_pointer_weak, bases.second.size(),
                       entry.common.dialect, entry.common.base_dialect.value(),
                       common_parent, entry.common.property_name,
-                      entry.common.orphan, true);
+                      entry.common.orphan, this->position_tracker_, true);
               }
             }
 
@@ -861,7 +889,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   dialect_for_pointer, current_base_dialect,
                   subschema_it->second.parent,
                   subschema_it->second.property_name,
-                  subschema_it->second.orphan, false, true);
+                  subschema_it->second.orphan, this->position_tracker_, false,
+                  true);
           } else {
             const auto &parent_pointer{combined.dialect_match.has_value()
                                            ? combined.dialect_match->second
@@ -877,7 +906,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
                   SchemaFrame::LocationType::Pointer, std::move(result),
                   base_view, pointer_weak, nearest_base_depth,
                   dialect_for_pointer, current_base_dialect, parent_pointer,
-                  parent_property_name, parent_orphan, false, true);
+                  parent_property_name, parent_orphan, this->position_tracker_,
+                  false, true);
           }
         }
       }
