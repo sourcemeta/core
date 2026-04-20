@@ -49,6 +49,7 @@ jobs:
           -DSOURCEMETA_CORE_YAML:BOOL=OFF
           -DSOURCEMETA_CORE_SEMVER:BOOL=OFF
           -DSOURCEMETA_CORE_HTML:BOOL=OFF
+          -DSOURCEMETA_CORE_MARKDOWN:BOOL=OFF
           -DSOURCEMETA_CORE_EXTENSION_EDITORSCHEMA:BOOL=OFF
           -DSOURCEMETA_CORE_DOCS:BOOL=ON
       - run: cmake --build ./build --config Release --target doxygen
