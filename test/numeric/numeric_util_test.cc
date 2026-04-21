@@ -127,10 +127,9 @@ TEST(Numeric_util, abs_int64_min_plus_one) {
 }
 
 TEST(Numeric_util, abs_int64_min) {
-  EXPECT_EQ(sourcemeta::core::abs(std::numeric_limits<std::int64_t>::min()),
-            static_cast<std::uint64_t>(
-                std::numeric_limits<std::int64_t>::max()) +
-                1);
+  EXPECT_EQ(
+      sourcemeta::core::abs(std::numeric_limits<std::int64_t>::min()),
+      static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + 1);
 }
 
 TEST(Numeric_util, abs_decimal_positive) {

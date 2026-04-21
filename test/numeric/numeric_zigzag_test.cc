@@ -52,9 +52,9 @@ TEST(Numeric_zigzag, encode_int64_min_plus_one) {
 }
 
 TEST(Numeric_zigzag, encode_int64_min) {
-  EXPECT_EQ(sourcemeta::core::zigzag_encode(
-                std::numeric_limits<std::int64_t>::min()),
-            std::numeric_limits<std::uint64_t>::max());
+  EXPECT_EQ(
+      sourcemeta::core::zigzag_encode(std::numeric_limits<std::int64_t>::min()),
+      std::numeric_limits<std::uint64_t>::max());
 }
 
 TEST(Numeric_zigzag, decode_int_0_to_0) {

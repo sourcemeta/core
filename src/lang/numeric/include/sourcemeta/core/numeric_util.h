@@ -223,8 +223,7 @@ template <typename T> auto abs(const T &value) {
   } else {
     if (value < 0) {
       // Negate in unsigned to avoid UB for INT64_MIN
-      return static_cast<std::uint64_t>(0) -
-             static_cast<std::uint64_t>(value);
+      return static_cast<std::uint64_t>(0) - static_cast<std::uint64_t>(value);
     } else {
       return static_cast<std::uint64_t>(value);
     }
