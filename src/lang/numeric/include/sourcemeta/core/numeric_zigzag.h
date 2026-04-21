@@ -4,7 +4,6 @@
 #include <sourcemeta/core/numeric_decimal.h>
 
 #include <cassert>  // assert
-#include <cmath>    // std::abs
 #include <concepts> // std::same_as
 #include <cstdint>  // std::uint64_t, std::int64_t
 
@@ -24,9 +23,13 @@ template <typename T> auto zigzag_encode(const T &value) {
   } else {
     const auto signed_value{static_cast<std::int64_t>(value)};
     if (signed_value >= 0) {
-      return static_cast<std::uint64_t>(signed_value * 2);
+      return static_cast<std::uint64_t>(signed_value) * 2;
     }
-    return (static_cast<std::uint64_t>(std::abs(signed_value)) * 2) - 1;
+    // Negate in unsigned to avoid UB for INT64_MIN
+    return (static_cast<std::uint64_t>(0) -
+            static_cast<std::uint64_t>(signed_value)) *
+               2 -
+           1;
   }
 }
 
@@ -45,7 +48,9 @@ template <typename T> auto zigzag_decode(const T &value) {
     if (unsigned_value % 2 == 0) {
       return static_cast<std::int64_t>(unsigned_value / 2);
     }
-    return -(static_cast<std::int64_t>((unsigned_value + 1) / 2));
+    // Use bitwise complement to avoid overflow for UINT64_MAX
+    // `~(x / 2)` == `-(x / 2 + 1)` in two's complement
+    return static_cast<std::int64_t>(~(unsigned_value / 2));
   }
 }
 

@@ -4,7 +4,7 @@
 #include <sourcemeta/core/numeric_decimal.h>
 
 #include <cassert>  // assert
-#include <cmath>    // std::abs, std::modf, std::floor, std::isfinite
+#include <cmath>    // std::modf, std::floor, std::isfinite
 #include <concepts> // std::floating_point, std::integral, std::same_as
 #include <cstdint>  // std::uint8_t, std::int64_t, std::uint64_t
 #include <limits>   // std::numeric_limits
@@ -78,8 +78,10 @@ auto divide_floor(const Dividend &dividend, const Divisor &divisor) {
       return static_cast<std::int64_t>(
           static_cast<std::uint64_t>(signed_dividend) / unsigned_divisor);
     } else {
+      // Negate in unsigned to avoid UB for INT64_MIN
       const std::uint64_t absolute_dividend{
-          static_cast<std::uint64_t>(std::abs(signed_dividend))};
+          static_cast<std::uint64_t>(0) -
+          static_cast<std::uint64_t>(signed_dividend)};
       return -(static_cast<std::int64_t>(
           1 + ((absolute_dividend - 1) / unsigned_divisor)));
     }
@@ -131,8 +133,10 @@ auto divide_ceil(const Dividend &dividend, const Divisor &divisor) {
             unsigned_divisor);
       }
     } else {
+      // Negate in unsigned to avoid UB for INT64_MIN
       return -(static_cast<std::int64_t>(
-          static_cast<std::uint64_t>(std::abs(signed_dividend)) /
+          (static_cast<std::uint64_t>(0) -
+           static_cast<std::uint64_t>(signed_dividend)) /
           unsigned_divisor));
     }
   }
@@ -174,7 +178,11 @@ auto count_multiples(const Minimum &minimum, const Maximum &maximum,
 
 /// @ingroup numeric
 /// The maximum value representable by an unsigned integer of T bits
-template <unsigned int T> constexpr auto uint_max = (std::uint64_t{1} << T) - 1;
+template <unsigned int T>
+constexpr auto uint_max = [] {
+  static_assert(T > 0 && T < 64, "uint_max<T> requires 0 < T < 64");
+  return (std::uint64_t{1} << T) - 1;
+}();
 
 /// @ingroup numeric
 /// Check whether a value falls within the closed range [lower, higher]
@@ -214,7 +222,9 @@ template <typename T> auto abs(const T &value) {
     return value.is_signed() ? -value : value;
   } else {
     if (value < 0) {
-      return static_cast<std::uint64_t>(value * -1);
+      // Negate in unsigned to avoid UB for INT64_MIN
+      return static_cast<std::uint64_t>(0) -
+             static_cast<std::uint64_t>(value);
     } else {
       return static_cast<std::uint64_t>(value);
     }
@@ -223,7 +233,8 @@ template <typename T> auto abs(const T &value) {
 
 /// @ingroup numeric
 /// Find the smallest exponent in [exponent_start, exponent_end] such that
-/// base raised to that exponent exceeds the given value
+/// base raised to the next power exceeds the given value, i.e.
+/// `(base ^ exponent) <= value < (base ^ (exponent + 1))`
 constexpr auto closest_smallest_exponent(const std::uint64_t value,
                                          const std::uint8_t base,
                                          const std::uint8_t exponent_start,

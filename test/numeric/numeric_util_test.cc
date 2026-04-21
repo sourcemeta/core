@@ -126,6 +126,13 @@ TEST(Numeric_util, abs_int64_min_plus_one) {
       static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
 }
 
+TEST(Numeric_util, abs_int64_min) {
+  EXPECT_EQ(sourcemeta::core::abs(std::numeric_limits<std::int64_t>::min()),
+            static_cast<std::uint64_t>(
+                std::numeric_limits<std::int64_t>::max()) +
+                1);
+}
+
 TEST(Numeric_util, abs_decimal_positive) {
   EXPECT_EQ(sourcemeta::core::abs(sourcemeta::core::Decimal{42}),
             sourcemeta::core::Decimal{42});
@@ -181,6 +188,12 @@ TEST(Numeric_util, divide_ceil_min_dividend_min_divisor) {
   EXPECT_EQ(sourcemeta::core::divide_ceil(
                 std::numeric_limits<std::int64_t>::min(), std::uint64_t{1}),
             std::numeric_limits<std::int64_t>::min());
+}
+
+TEST(Numeric_util, divide_ceil_int64_min_by_2) {
+  EXPECT_EQ(sourcemeta::core::divide_ceil(
+                std::numeric_limits<std::int64_t>::min(), std::uint64_t{2}),
+            std::int64_t{-4611686018427387904});
 }
 
 TEST(Numeric_util, divide_ceil_max_dividend_max_divisor) {
@@ -274,6 +287,12 @@ TEST(Numeric_util, divide_floor_min_dividend_min_divisor) {
   EXPECT_EQ(sourcemeta::core::divide_floor(
                 std::numeric_limits<std::int64_t>::min(), std::uint64_t{1}),
             std::numeric_limits<std::int64_t>::min());
+}
+
+TEST(Numeric_util, divide_floor_int64_min_by_2) {
+  EXPECT_EQ(sourcemeta::core::divide_floor(
+                std::numeric_limits<std::int64_t>::min(), std::uint64_t{2}),
+            std::int64_t{-4611686018427387904});
 }
 
 TEST(Numeric_util, divide_floor_max_dividend_max_divisor) {

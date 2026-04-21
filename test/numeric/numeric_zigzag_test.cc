@@ -51,6 +51,12 @@ TEST(Numeric_zigzag, encode_int64_min_plus_one) {
             std::uint64_t{18446744073709551613U});
 }
 
+TEST(Numeric_zigzag, encode_int64_min) {
+  EXPECT_EQ(sourcemeta::core::zigzag_encode(
+                std::numeric_limits<std::int64_t>::min()),
+            std::numeric_limits<std::uint64_t>::max());
+}
+
 TEST(Numeric_zigzag, decode_int_0_to_0) {
   EXPECT_EQ(sourcemeta::core::zigzag_decode(0U), std::int64_t{0});
 }
@@ -96,6 +102,12 @@ TEST(Numeric_zigzag, decode_int64_min_plus_one_encoded) {
   EXPECT_EQ(
       sourcemeta::core::zigzag_decode(std::uint64_t{18446744073709551613U}),
       expected);
+}
+
+TEST(Numeric_zigzag, decode_uint64_max_to_int64_min) {
+  EXPECT_EQ(sourcemeta::core::zigzag_decode(
+                std::numeric_limits<std::uint64_t>::max()),
+            std::numeric_limits<std::int64_t>::min());
 }
 
 TEST(Numeric_zigzag, encode_decimal_0_to_0) {
