@@ -304,7 +304,7 @@ auto store(sourcemeta::core::SchemaFrame::Locations &frame,
                      .orphan = orphan}});
   if (!ignore_if_present && !inserted) {
     if (entry_type == sourcemeta::core::SchemaFrame::LocationType::Anchor) {
-      throw_already_exists_anchor(uri, pointer_from_root,
+      throw_already_exists_anchor(iterator->first.second, pointer_from_root,
                                   iterator->second.pointer);
     }
     throw_already_exists(iterator->first.second);
