@@ -239,14 +239,15 @@ private:
 
 /// @ingroup jsonschema
 /// An error that represents a schema Uri Collision error
-class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaUriCollisionError
+class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaAnchorCollisionError
     : public std::exception {
 public:
-  SchemaUriCollisionError(const std::string_view identifier,
-                          const std::uint64_t line, const std::uint64_t column,
-                          const char *message)
-      : identifier_{identifier}, message_{message}, line_{line},
-        column_{column} {}
+  SchemaAnchorCollisionError(const std::string_view identifier,
+                             const char *message, Pointer collision_location,
+                             Pointer other)
+      : identifier_{identifier}, message_{message},
+        collision_location_(std::move(collision_location)),
+        other_(std::move(other)) {}
 
   [[nodiscard]] auto what() const noexcept -> const char * override {
     return this->message_;
@@ -256,19 +257,19 @@ public:
     return this->identifier_;
   }
 
-  [[nodiscard]] auto line() const noexcept -> std::uint64_t {
-    return this->line_;
+  [[nodiscard]] auto location() const noexcept -> const Pointer & {
+    return collision_location_;
   }
 
-  [[nodiscard]] auto column() const noexcept -> std::uint64_t {
-    return this->column_;
+  [[nodiscard]] auto other() const noexcept -> const Pointer & {
+    return other_;
   }
 
 private:
   std::string identifier_;
   const char *message_;
-  std::uint64_t line_;
-  std::uint64_t column_;
+  Pointer collision_location_;
+  Pointer other_; // where the first anchor appeared
 };
 
 #if defined(_MSC_VER)

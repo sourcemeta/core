@@ -851,7 +851,7 @@ TEST(JSONSchema_frame_2020_12, static_anchor_override) {
       sourcemeta::core::SchemaFrame::Mode::References};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
                              sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaFrameError);
+               sourcemeta::core::SchemaAnchorCollisionError);
 }
 
 TEST(JSONSchema_frame_2020_12, explicit_argument_id_same) {
@@ -2707,7 +2707,7 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_same_on_schema_resource) {
       sourcemeta::core::SchemaFrame::Mode::References};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
                              sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaFrameError);
+               sourcemeta::core::SchemaAnchorCollisionError);
 }
 
 TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
@@ -4826,7 +4826,7 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_anonymous_anchors) {
                              "https://json-schema.org/draft/2020-12/schema", "",
                              {sourcemeta::core::to_weak_pointer(path1),
                               sourcemeta::core::to_weak_pointer(path2)}),
-               sourcemeta::core::SchemaFrameError);
+               sourcemeta::core::SchemaAnchorCollisionError);
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {

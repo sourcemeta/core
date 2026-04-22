@@ -815,7 +815,7 @@ TEST(JSONSchema_frame_2019_09, static_anchor_override) {
       sourcemeta::core::SchemaFrame::Mode::References};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
                              sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaFrameError);
+               sourcemeta::core::SchemaAnchorCollisionError);
 }
 
 TEST(JSONSchema_frame_2019_09, explicit_argument_id_same) {
@@ -2233,7 +2233,7 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_conflict) {
       sourcemeta::core::SchemaFrame::Mode::References};
   EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
                              sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaFrameError);
+               sourcemeta::core::SchemaAnchorCollisionError);
 }
 
 TEST(JSONSchema_frame_2019_09, invalid_recursive_ref) {
