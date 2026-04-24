@@ -31,7 +31,8 @@ if(NOT LibDeflate_FOUND)
   # pair GCC 14 with older binutils that lack udot support
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
     include(CheckCSourceCompiles)
-    set(CMAKE_REQUIRED_FLAGS "-march=armv8.2-a+dotprod")
+    set(LIBDEFLATE_SAVED_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -march=armv8.2-a+dotprod")
     check_c_source_compiles("
       #include <arm_neon.h>
       int main(void) {
@@ -42,7 +43,7 @@ if(NOT LibDeflate_FOUND)
         return 0;
       }
     " LIBDEFLATE_HAS_DOTPROD_ASSEMBLER)
-    unset(CMAKE_REQUIRED_FLAGS)
+    set(CMAKE_REQUIRED_FLAGS "${LIBDEFLATE_SAVED_CMAKE_REQUIRED_FLAGS}")
     if(NOT LIBDEFLATE_HAS_DOTPROD_ASSEMBLER)
       target_compile_definitions(libdeflate PRIVATE
         LIBDEFLATE_ASSEMBLER_DOES_NOT_SUPPORT_DOTPROD)
