@@ -16,8 +16,7 @@ static void JSONL_Parse_Large(benchmark::State &state) {
     std::ifstream stream{filepath};
     assert(stream.is_open());
     std::size_t count{0};
-    for (const auto &document : sourcemeta::core::JSONL{stream}) {
-      assert(document.is_object());
+    for ([[maybe_unused]] const auto &entry : sourcemeta::core::JSONL{stream}) {
       count += 1;
     }
 
