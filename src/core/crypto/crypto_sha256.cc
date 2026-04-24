@@ -52,7 +52,8 @@ auto sha256(const std::string_view input) -> std::string {
 }
 
 auto sha256(const std::string_view input, std::ostream &output) -> void {
-  output << sha256(input);
+  const auto result = sha256(input);
+  output.write(result.data(), static_cast<std::streamsize>(result.size()));
 }
 
 } // namespace sourcemeta::core
@@ -238,7 +239,8 @@ auto sha256(const std::string_view input) -> std::string {
 }
 
 auto sha256(const std::string_view input, std::ostream &output) -> void {
-  output << sha256(input);
+  const auto result = sha256(input);
+  output.write(result.data(), static_cast<std::streamsize>(result.size()));
 }
 
 } // namespace sourcemeta::core
