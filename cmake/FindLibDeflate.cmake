@@ -53,7 +53,7 @@ if(NOT LibDeflate_FOUND)
       PUBLIC_HEADER "${LIBDEFLATE_PUBLIC_HEADER}"
       C_VISIBILITY_PRESET "default"
       C_VISIBILITY_INLINES_HIDDEN FALSE
-      EXPORT_NAME libdeflate)
+      EXPORT_NAME LibDeflate)
 
   add_library(LibDeflate::LibDeflate ALIAS libdeflate)
 
