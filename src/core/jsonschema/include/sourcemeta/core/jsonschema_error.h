@@ -248,7 +248,7 @@ public:
         other_(std::move(other)) {}
 
   [[nodiscard]] auto what() const noexcept -> const char * override {
-    return "Schema identifier already exists";
+    return "Schema anchor already exists";
   }
 
   [[nodiscard]] auto identifier() const noexcept -> std::string_view {
