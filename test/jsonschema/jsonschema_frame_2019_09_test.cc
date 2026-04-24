@@ -813,9 +813,17 @@ TEST(JSONSchema_frame_2019_09, static_anchor_override) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaFrameError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (sourcemeta::core::SchemaAnchorCollisionError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema#foo");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/items");
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()), "");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2019_09, explicit_argument_id_same) {
@@ -2231,9 +2239,17 @@ TEST(JSONSchema_frame_2019_09, recursive_anchor_conflict) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaFrameError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (sourcemeta::core::SchemaAnchorCollisionError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/items");
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()), "");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2019_09, invalid_recursive_ref) {
