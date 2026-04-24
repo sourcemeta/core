@@ -42,12 +42,12 @@ TEST(URI_parse, syntax_error_4) {
 }
 
 TEST(URI_parse, syntax_error_5) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%bar"},
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%6G"},
                sourcemeta::core::URIParseError);
   EXPECT_FALSE(
-      sourcemeta::core::URI::is_uri("https://www.example.com#/foo%bar"));
+      sourcemeta::core::URI::is_uri("https://www.example.com#/foo%6G"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
-      "https://www.example.com#/foo%bar"));
+      "https://www.example.com#/foo%6G"));
 }
 
 TEST(URI_parse, urn_with_slash) {
@@ -120,21 +120,19 @@ TEST(URI_parse, syntax_error_percent_non_hex) {
 }
 
 TEST(URI_parse, syntax_error_percent_in_path) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com/foo%bar"},
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com/foo%6G"},
                sourcemeta::core::URIParseError);
-  EXPECT_FALSE(
-      sourcemeta::core::URI::is_uri("https://www.example.com/foo%bar"));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.example.com/foo%6G"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
-      "https://www.example.com/foo%bar"));
+      "https://www.example.com/foo%6G"));
 }
 
 TEST(URI_parse, syntax_error_percent_in_query) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com?foo%bar"},
+  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com?foo%6G"},
                sourcemeta::core::URIParseError);
-  EXPECT_FALSE(
-      sourcemeta::core::URI::is_uri("https://www.example.com?foo%bar"));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.example.com?foo%6G"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
-      "https://www.example.com?foo%bar"));
+      "https://www.example.com?foo%6G"));
 }
 
 TEST(URI_parse, syntax_error_percent_in_host) {
@@ -143,6 +141,13 @@ TEST(URI_parse, syntax_error_percent_in_host) {
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.exam%ple.com"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("https://www.exam%ple.com"));
+}
+
+TEST(URI_parse, rfc3986_mixed_case_percent_encoding_lower_upper) {
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri("http://a.com/%aF"));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference("http://a.com/%aF"));
+  sourcemeta::core::URI uri{"http://a.com/%aF"};
+  EXPECT_EQ(uri.recompose(), "http://a.com/%aF");
 }
 
 // RFC 3986: fragment = *( pchar / "/" / "?" )
@@ -277,6 +282,53 @@ TEST(URI_parse, syntax_error_ipvfuture_non_hex_version) {
                sourcemeta::core::URIParseError);
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[vZ.foo]"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[vZ.foo]"));
+}
+
+TEST(URI_parse, syntax_error_ipv6_empty_brackets) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[]"},
+               sourcemeta::core::URIParseError);
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[]"));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[]"));
+}
+
+TEST(URI_parse, syntax_error_ipv6_h16_too_long) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[2001:db8::00000]"},
+               sourcemeta::core::URIParseError);
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[2001:db8::00000]"));
+  EXPECT_FALSE(
+      sourcemeta::core::URI::is_uri_reference("http://[2001:db8::00000]"));
+}
+
+TEST(URI_parse, syntax_error_ipv6_double_compression) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[2001::db8::1]"},
+               sourcemeta::core::URIParseError);
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[2001::db8::1]"));
+  EXPECT_FALSE(
+      sourcemeta::core::URI::is_uri_reference("http://[2001::db8::1]"));
+}
+
+TEST(URI_parse, syntax_error_ipv6_too_few_groups_without_compression) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[1:2:3:4:5:6:7]"},
+               sourcemeta::core::URIParseError);
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[1:2:3:4:5:6:7]"));
+  EXPECT_FALSE(
+      sourcemeta::core::URI::is_uri_reference("http://[1:2:3:4:5:6:7]"));
+}
+
+TEST(URI_parse, syntax_error_ipv6_too_many_groups) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[1:2:3:4:5:6:7:8:9]"},
+               sourcemeta::core::URIParseError);
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[1:2:3:4:5:6:7:8:9]"));
+  EXPECT_FALSE(
+      sourcemeta::core::URI::is_uri_reference("http://[1:2:3:4:5:6:7:8:9]"));
+}
+
+TEST(URI_parse, syntax_error_ipv6_embedded_ipv4_out_of_range) {
+  EXPECT_THROW(sourcemeta::core::URI uri{"http://[::ffff:1.2.3.256]"},
+               sourcemeta::core::URIParseError);
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[::ffff:1.2.3.256]"));
+  EXPECT_FALSE(
+      sourcemeta::core::URI::is_uri_reference("http://[::ffff:1.2.3.256]"));
 }
 
 TEST(URI_parse, success_ipvfuture_valid) {
