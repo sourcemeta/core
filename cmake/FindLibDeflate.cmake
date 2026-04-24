@@ -43,6 +43,7 @@ if(NOT LibDeflate_FOUND)
   endif()
 
   if(SOURCEMETA_COMPILER_MSVC)
+    target_compile_options(libdeflate PRIVATE /wd4113)
     target_compile_options(libdeflate PRIVATE /wd4244)
     target_compile_options(libdeflate PRIVATE /wd4267)
   endif()
