@@ -267,13 +267,12 @@ auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
 }
 
 [[noreturn]]
-auto throw_already_exists_anchor(
+inline auto throw_already_exists_anchor(
     const sourcemeta::core::JSON::String &uri,
     const sourcemeta::core::WeakPointer &collided_anchor,
     const sourcemeta::core::WeakPointer &other_anchor) -> void {
   throw sourcemeta::core::SchemaAnchorCollisionError(
-      uri, "Schema identifier already exists",
-      sourcemeta::core::to_pointer(collided_anchor),
+      uri, sourcemeta::core::to_pointer(collided_anchor),
       sourcemeta::core::to_pointer(other_anchor));
 }
 

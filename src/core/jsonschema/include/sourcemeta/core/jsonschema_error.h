@@ -238,19 +238,17 @@ private:
 };
 
 /// @ingroup jsonschema
-/// An error that represents a schema Uri Collision error
+/// An error that represents a schema anchor collision error
 class SOURCEMETA_CORE_JSONSCHEMA_EXPORT SchemaAnchorCollisionError
     : public std::exception {
 public:
   SchemaAnchorCollisionError(const std::string_view identifier,
-                             const char *message, Pointer collision_location,
-                             Pointer other)
-      : identifier_{identifier}, message_{message},
-        collision_location_(std::move(collision_location)),
+                             Pointer location, Pointer other)
+      : identifier_{identifier}, location_(std::move(location)),
         other_(std::move(other)) {}
 
   [[nodiscard]] auto what() const noexcept -> const char * override {
-    return this->message_;
+    return "Schema identifier already exists";
   }
 
   [[nodiscard]] auto identifier() const noexcept -> std::string_view {
@@ -258,18 +256,17 @@ public:
   }
 
   [[nodiscard]] auto location() const noexcept -> const Pointer & {
-    return collision_location_;
+    return this->location_;
   }
 
   [[nodiscard]] auto other() const noexcept -> const Pointer & {
-    return other_;
+    return this->other_;
   }
 
 private:
   std::string identifier_;
-  const char *message_;
-  Pointer collision_location_;
-  Pointer other_; // where the first anchor appeared
+  Pointer location_;
+  Pointer other_;
 };
 
 #if defined(_MSC_VER)

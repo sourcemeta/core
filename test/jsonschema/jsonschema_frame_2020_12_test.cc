@@ -849,9 +849,17 @@ TEST(JSONSchema_frame_2020_12, static_anchor_override) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaAnchorCollisionError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (sourcemeta::core::SchemaAnchorCollisionError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema#foo");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/items");
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()), "");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2020_12, explicit_argument_id_same) {
@@ -2705,9 +2713,17 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_same_on_schema_resource) {
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver),
-               sourcemeta::core::SchemaAnchorCollisionError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (sourcemeta::core::SchemaAnchorCollisionError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema#foo");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/items");
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()), "");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2020_12, no_id_recursive_empty_pointer) {
@@ -4821,12 +4837,20 @@ TEST(JSONSchema_frame_2020_12, multiple_nested_same_anonymous_anchors) {
   const sourcemeta::core::Pointer path1{"common", "foo"};
   const sourcemeta::core::Pointer path2{"common", "bar"};
 
-  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                             sourcemeta::core::schema_resolver,
-                             "https://json-schema.org/draft/2020-12/schema", "",
-                             {sourcemeta::core::to_weak_pointer(path1),
-                              sourcemeta::core::to_weak_pointer(path2)}),
-               sourcemeta::core::SchemaAnchorCollisionError);
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver,
+                  "https://json-schema.org/draft/2020-12/schema", "",
+                  {sourcemeta::core::to_weak_pointer(path1),
+                   sourcemeta::core::to_weak_pointer(path2)});
+    FAIL();
+  } catch (sourcemeta::core::SchemaAnchorCollisionError &error) {
+    EXPECT_EQ(error.identifier(), "#test");
+    EXPECT_EQ(sourcemeta::core::to_string(error.location()), "/common/bar");
+    EXPECT_EQ(sourcemeta::core::to_string(error.other()), "/common/foo");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(JSONSchema_frame_2020_12, multiple_nested_with_default_id) {
