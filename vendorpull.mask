@@ -35,3 +35,6 @@ vendor/uritemplate-test
 vendor/uritemplate-test.mask
 vendor/pyca-cryptography
 vendor/pyca-cryptography.mask
+vendor/cmark-gfm.mask
+vendor/libdeflate.mask
+vendor/openapi.mask
