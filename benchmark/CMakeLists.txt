@@ -24,6 +24,10 @@ if(SOURCEMETA_CORE_URITEMPLATE)
   list(APPEND BENCHMARK_SOURCES uritemplate.cc)
 endif()
 
+if(SOURCEMETA_CORE_JSONL)
+  list(APPEND BENCHMARK_SOURCES jsonl.cc)
+endif()
+
 if(SOURCEMETA_CORE_HTML)
   list(APPEND BENCHMARK_SOURCES html.cc)
 endif()
@@ -62,6 +66,11 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_URITEMPLATE)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::uritemplate)
+  endif()
+
+  if(SOURCEMETA_CORE_JSONL)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonl)
   endif()
 
   if(SOURCEMETA_CORE_HTML)
