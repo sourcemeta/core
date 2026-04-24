@@ -6,7 +6,7 @@
 #include <cstring> // std::memcmp
 #include <string>  // std::string
 
-TEST(GZIP_Compress, empty_input) {
+TEST(GZIP, compress_empty_input) {
   const std::string input;
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -18,7 +18,7 @@ TEST(GZIP_Compress, empty_input) {
   EXPECT_EQ(decompressed, input);
 }
 
-TEST(GZIP_Compress, hello_world) {
+TEST(GZIP, compress_hello_world) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -31,7 +31,7 @@ TEST(GZIP_Compress, hello_world) {
   EXPECT_EQ(decompressed, input);
 }
 
-TEST(GZIP_Compress, round_trip_binary_data) {
+TEST(GZIP, compress_round_trip_binary_data) {
   std::string input;
   input.resize(256);
   for (unsigned int index = 0; index < 256; ++index) {
@@ -49,7 +49,7 @@ TEST(GZIP_Compress, round_trip_binary_data) {
   EXPECT_EQ(std::memcmp(decompressed.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_Compress, round_trip_large_input) {
+TEST(GZIP, compress_round_trip_large_input) {
   const std::string pattern{"The quick brown fox jumps over the lazy dog. "};
   std::string input;
   for (int index = 0; index < 1000; ++index) {
@@ -67,7 +67,7 @@ TEST(GZIP_Compress, round_trip_large_input) {
   EXPECT_EQ(decompressed, input);
 }
 
-TEST(GZIP_Decompress, with_output_hint) {
+TEST(GZIP, decompress_with_output_hint) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -78,7 +78,7 @@ TEST(GZIP_Decompress, with_output_hint) {
   EXPECT_EQ(decompressed, input);
 }
 
-TEST(GZIP_Decompress, invalid_input_throws) {
+TEST(GZIP, decompress_invalid_input_throws) {
   const std::string garbage{"this is not gzip data"};
   EXPECT_THROW(sourcemeta::core::gunzip(
                    reinterpret_cast<const std::uint8_t *>(garbage.data()),

@@ -1,5 +1,5 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME gzip
-  PRIVATE_HEADERS error.h compress.h
+  PRIVATE_HEADERS error.h
   SOURCES gzip.cc)
 
 target_link_libraries(sourcemeta_core_gzip PRIVATE LibDeflate::LibDeflate)
