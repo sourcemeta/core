@@ -266,7 +266,6 @@ auto throw_already_exists(const sourcemeta::core::JSON::String &uri) -> void {
                                            "Schema identifier already exists");
 }
 
-
 auto store(sourcemeta::core::SchemaFrame::Locations &frame,
            const sourcemeta::core::SchemaReferenceType type,
            const sourcemeta::core::SchemaFrame::LocationType entry_type,
@@ -294,8 +293,10 @@ auto store(sourcemeta::core::SchemaFrame::Locations &frame,
                      .orphan = orphan}});
   if (!ignore_if_present && !inserted) {
     if (entry_type == sourcemeta::core::SchemaFrame::LocationType::Anchor) {
-       throw sourcemeta::core::SchemaAnchorCollisionError(iterator->first.second, sourcemeta::core::to_pointer(pointer_from_root),
-      sourcemeta::core::to_pointer(iterator->second.pointer));
+      throw sourcemeta::core::SchemaAnchorCollisionError(
+          iterator->first.second,
+          sourcemeta::core::to_pointer(pointer_from_root),
+          sourcemeta::core::to_pointer(iterator->second.pointer));
     }
     throw_already_exists(iterator->first.second);
   }
