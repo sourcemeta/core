@@ -14,7 +14,10 @@
 #include <istream> // std::basic_istream
 
 /// @defgroup jsonl JSONL
-/// @brief A JSON Lines implementation with iterators support.
+/// @brief A JSON Lines (https://jsonlines.org) implementation with iterator
+/// support. Each line in a JSONL stream must be a complete, valid JSON value.
+/// Lines are separated by newline characters (U+000A). Multi-line JSON values
+/// are not supported, as per the JSONL specification.
 ///
 /// This functionality is included as follows:
 ///
