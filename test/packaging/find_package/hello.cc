@@ -1,5 +1,6 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/editorschema.h>
+#include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/html.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/ip.h>
