@@ -4,6 +4,7 @@
 
 #include <exception>
 #include <sstream>
+#include <vector>
 
 #define EXPECT_PARSE_ERROR(stream, expected_line, expected_column)             \
   try {                                                                        \
@@ -32,7 +33,12 @@ TEST(JSONL_parse_error, invalid_second_row) {
 
 TEST(JSONL_parse_error, blank_with_whitespace_characters) {
   std::istringstream input{"\r\r\n\n\t\t"};
-  EXPECT_PARSE_ERROR(input, 3, 3);
+  std::vector<sourcemeta::core::JSON> result;
+  for (const auto &document : sourcemeta::core::JSONL{input}) {
+    result.push_back(document);
+  }
+
+  EXPECT_TRUE(result.empty());
 }
 
 TEST(JSONL_parse_error, invalid_delimiter_space) {
@@ -56,9 +62,12 @@ TEST(JSONL_parse_error, invalid_delimiter_x) {
 }
 
 TEST(JSONL_parse_error, invalid_multi_line_row) {
+  // Multi-line JSON values are not valid JSONL.
+  // Each line must be a complete JSON value.
+  // See https://jsonlines.org
   std::istringstream input{
       "{\n \"foo\": 1\n }\n{\n \"bar\" 2\n }\n{\n \"baz\": 3\n }"};
-  EXPECT_PARSE_ERROR(input, 5, 8);
+  EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
 TEST(JSONL_parse_error, backspace_prefix) {
