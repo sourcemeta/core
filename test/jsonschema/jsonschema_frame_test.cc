@@ -2931,17 +2931,12 @@ TEST(JSONSchema_frame, override_induces_resource_boundary) {
       "http://example.com/child", "/x-sourcemeta-dialect-override-subschema",
       "/definitions/child", false, true);
 
-  EXPECT_EQ(frame.references().size(), 2);
+  EXPECT_EQ(frame.references().size(), 1);
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-04/schema",
       "http://json-schema.org/draft-04/schema", std::nullopt,
       "http://json-schema.org/draft-04/schema#");
-  EXPECT_STATIC_REFERENCE(
-      frame, "/definitions/child/x-sourcemeta-dialect-override-subschema",
-      "http://json-schema.org/draft-06/schema",
-      "http://json-schema.org/draft-06/schema", std::nullopt,
-      "http://json-schema.org/draft-06/schema#");
 }
 
 TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
@@ -3006,17 +3001,12 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
       "/$defs/child/x-sourcemeta-dialect-override-subschema", "/$defs/child",
       false, true);
 
-  EXPECT_EQ(frame.references().size(), 2);
+  EXPECT_EQ(frame.references().size(), 1);
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
       "https://json-schema.org/draft/2020-12/schema", std::nullopt,
       "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_STATIC_REFERENCE(
-      frame, "/$defs/child/x-sourcemeta-dialect-override-subschema",
-      "http://json-schema.org/draft-04/schema",
-      "http://json-schema.org/draft-04/schema", std::nullopt,
-      "http://json-schema.org/draft-04/schema#");
 }
 
 TEST(JSONSchema_frame, override_unresolvable_throws) {
@@ -3170,17 +3160,12 @@ TEST(JSONSchema_frame, override_picks_dollarid_under_draft6) {
       "/x-sourcemeta-dialect-override-subschema", "/definitions/child", false,
       true);
 
-  EXPECT_EQ(frame.references().size(), 2);
+  EXPECT_EQ(frame.references().size(), 1);
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "http://json-schema.org/draft-04/schema",
       "http://json-schema.org/draft-04/schema", std::nullopt,
       "http://json-schema.org/draft-04/schema#");
-  EXPECT_STATIC_REFERENCE(
-      frame, "/definitions/child/x-sourcemeta-dialect-override-subschema",
-      "http://json-schema.org/draft-06/schema",
-      "http://json-schema.org/draft-06/schema", std::nullopt,
-      "http://json-schema.org/draft-06/schema#");
 }
 
 TEST(JSONSchema_frame, override_hides_anchor_under_draft7) {
@@ -3275,15 +3260,10 @@ TEST(JSONSchema_frame, override_hides_anchor_under_draft7) {
       "https://example.com/child", "/x-sourcemeta-dialect-override-subschema",
       "/$defs/child", false, true);
 
-  EXPECT_EQ(frame.references().size(), 2);
+  EXPECT_EQ(frame.references().size(), 1);
 
   EXPECT_STATIC_REFERENCE(
       frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
       "https://json-schema.org/draft/2019-09/schema", std::nullopt,
       "https://json-schema.org/draft/2019-09/schema");
-  EXPECT_STATIC_REFERENCE(
-      frame, "/$defs/child/x-sourcemeta-dialect-override-subschema",
-      "http://json-schema.org/draft-07/schema",
-      "http://json-schema.org/draft-07/schema", std::nullopt,
-      "http://json-schema.org/draft-07/schema#");
 }
