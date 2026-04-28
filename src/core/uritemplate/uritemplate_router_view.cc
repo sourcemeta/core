@@ -842,6 +842,7 @@ auto URITemplateRouterView::at(const std::size_t index) const
 auto URITemplateRouterView::context(
     const URITemplateRouter::Identifier identifier) const
     -> URITemplateRouter::Identifier {
+  assert(identifier > 0);
   assert(this->data_.size() >= sizeof(RouterHeader));
   const auto *header =
       reinterpret_cast<const RouterHeader *>(this->data_.data());
@@ -866,6 +867,7 @@ auto URITemplateRouterView::context(
 
 auto URITemplateRouterView::path(
     const URITemplateRouter::Identifier identifier) const -> std::string {
+  assert(identifier > 0);
   assert(this->data_.size() >= sizeof(RouterHeader));
   const auto *header =
       reinterpret_cast<const RouterHeader *>(this->data_.data());
@@ -890,7 +892,7 @@ auto URITemplateRouterView::path(
   const auto base_path_depth = count_base_path_segments(this->base_path());
 
   std::string accumulator;
-  const auto found = reconstruct_path_recursive(
+  [[maybe_unused]] const auto found = reconstruct_path_recursive(
       nodes, header->node_count, string_table, string_table_size, 0, 0,
       base_path_depth, identifier, accumulator);
 

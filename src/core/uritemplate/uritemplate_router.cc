@@ -132,6 +132,7 @@ auto URITemplateRouter::at(const std::size_t index) const -> Identifier {
 
 auto URITemplateRouter::context(const Identifier identifier) const
     -> Identifier {
+  assert(identifier > 0);
   const auto entry = std::ranges::find_if(
       this->entries_, [&identifier](const auto &candidate) {
         return std::get<0>(candidate) == identifier;
@@ -141,6 +142,7 @@ auto URITemplateRouter::context(const Identifier identifier) const
 }
 
 auto URITemplateRouter::path(const Identifier identifier) const -> std::string {
+  assert(identifier > 0);
   const auto entry = std::ranges::find_if(
       this->entries_, [&identifier](const auto &candidate) {
         return std::get<0>(candidate) == identifier;
