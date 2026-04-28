@@ -3058,9 +3058,63 @@ TEST(JSONSchema_frame, override_inert_under_draft7_ref_siblings) {
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
-      sourcemeta::core::SchemaFrame::Mode::Locations};
-  EXPECT_NO_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                                sourcemeta::core::schema_resolver));
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 9);
+
+  // JSON Pointers
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, "", false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions", "/definitions",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "", false,
+      false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions/bar/type", "/definitions/bar/type",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/definitions/bar", false, true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties", "/properties",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "", false,
+      false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/foo/$ref", "/properties/foo/$ref",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo", false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/properties/foo/x-sourcemeta-dialect-override-subschema",
+      "/properties/foo/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "/properties/foo", false, false);
+
+  // Subschemas
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, std::nullopt, false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/definitions/bar", "/definitions/bar",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "", false,
+      true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/properties/foo", "/properties/foo",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7, "", false,
+      false);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-07/schema",
+      "http://json-schema.org/draft-07/schema", std::nullopt,
+      "http://json-schema.org/draft-07/schema#");
+  EXPECT_STATIC_REFERENCE(frame, "/properties/foo/$ref", "#/definitions/bar",
+                          "", "/definitions/bar", "#/definitions/bar");
 }
 
 TEST(JSONSchema_frame, override_surfaces_after_2019_09_upgrade) {

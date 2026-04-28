@@ -644,9 +644,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
       }
 
       if (this->mode_ != SchemaFrame::Mode::Locations) {
-        // Handle metaschema references. The internal dialect override keyword
-        // is intentionally invisible to the references map: only `$schema`
-        // produces a recorded metaschema reference.
+        // Handle metaschema references
         const auto maybe_metaschema{
             sourcemeta::core::dialect(entry.common.subschema.get(), {}, false)};
         if (!maybe_metaschema.empty()) {
@@ -798,10 +796,6 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           combined.dialect_match.has_value()
               ? combined.dialect_match->first.get().front()
               : root_dialect};
-      // The base dialect must follow the dialect: if a subschema's dialect is
-      // overridden, the base dialect at that location is overridden by the
-      // same definition. We pull both from the iterator entry, not from the
-      // URI-base resource's `base_dialect`.
       const auto base_dialect_for_pointer{
           combined.dialect_match.has_value()
               ? base_dialects_resolved.at(combined.dialect_match->second)
