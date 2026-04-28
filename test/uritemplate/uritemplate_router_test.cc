@@ -1542,3 +1542,138 @@ TEST(URITemplateRouter, otherwise_with_partial_trie_walk) {
   router.otherwise(42);
   EXPECT_ROUTER_MATCH(router, "/users/123", 0, 42, captures);
 }
+
+TEST(URITemplateRouter, listing_at_returns_identifiers_in_add_order) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 7);
+  router.add("/posts/{id}", 3);
+  router.add("/{+rest}", 9);
+  EXPECT_EQ(router.size(), 3);
+  EXPECT_EQ(router.at(0), 7);
+  EXPECT_EQ(router.at(1), 3);
+  EXPECT_EQ(router.at(2), 9);
+}
+
+TEST(URITemplateRouter, listing_context_returns_associated_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1, 100);
+  router.add("/posts/{id}", 2, 200);
+  router.add("/comments", 3, 300);
+  EXPECT_EQ(router.context(1), 100);
+  EXPECT_EQ(router.context(2), 200);
+  EXPECT_EQ(router.context(3), 300);
+}
+
+TEST(URITemplateRouter, listing_context_default_zero) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.add("/posts", 2);
+  EXPECT_EQ(router.context(1), 0);
+  EXPECT_EQ(router.context(2), 0);
+}
+
+TEST(URITemplateRouter, listing_path_for_literal_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  EXPECT_EQ(router.path(1), "/users");
+}
+
+TEST(URITemplateRouter, listing_path_for_variable_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}", 1);
+  EXPECT_EQ(router.path(1), "/users/{id}");
+}
+
+TEST(URITemplateRouter, listing_path_for_multi_variable_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}/posts/{post_id}", 1);
+  EXPECT_EQ(router.path(1), "/users/{id}/posts/{post_id}");
+}
+
+TEST(URITemplateRouter, listing_path_for_expansion_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/files/{+rest}", 1);
+  EXPECT_EQ(router.path(1), "/files/{+rest}");
+}
+
+TEST(URITemplateRouter, listing_path_for_root_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/", 1);
+  EXPECT_EQ(router.path(1), "/");
+}
+
+TEST(URITemplateRouter, listing_path_excludes_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/api/v1"};
+  router.add("/users/{id}", 1);
+  EXPECT_EQ(router.path(1), "/users/{id}");
+}
+
+TEST(URITemplateRouter, listing_path_excludes_base_path_for_root_template) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("/", 1);
+  EXPECT_EQ(router.path(1), "/");
+}
+
+TEST(URITemplateRouter, listing_path_excludes_base_path_for_empty_template) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("", 1);
+  EXPECT_EQ(router.path(1), "");
+}
+
+TEST(URITemplateRouter, listing_path_for_multiple_routes_each_correct) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.add("/users/{id}", 2);
+  router.add("/posts/{id}/comments/{comment_id}", 3);
+  router.add("/files/{+rest}", 4);
+  EXPECT_EQ(router.path(1), "/users");
+  EXPECT_EQ(router.path(2), "/users/{id}");
+  EXPECT_EQ(router.path(3), "/posts/{id}/comments/{comment_id}");
+  EXPECT_EQ(router.path(4), "/files/{+rest}");
+}
+
+TEST(URITemplateRouter, listing_size_does_not_count_otherwise) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  router.add("/posts", 2);
+  router.otherwise(99);
+  EXPECT_EQ(router.size(), 2);
+  EXPECT_EQ(router.at(0), 1);
+  EXPECT_EQ(router.at(1), 2);
+}
+
+TEST(URITemplateRouter, listing_path_returns_freshly_allocated_string) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}", 1);
+  const auto first = router.path(1);
+  const auto second = router.path(1);
+  EXPECT_EQ(first, second);
+  EXPECT_NE(first.data(), second.data());
+}
+
+TEST(URITemplateRouter, listing_iterate_via_size_and_at) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", 10);
+  router.add("/b/{id}", 20);
+  router.add("/c/{+rest}", 30);
+
+  std::vector<sourcemeta::core::URITemplateRouter::Identifier> seen;
+  for (std::size_t index = 0; index < router.size(); ++index) {
+    seen.push_back(router.at(index));
+  }
+
+  ASSERT_EQ(seen.size(), 3);
+  EXPECT_EQ(seen[0], 10);
+  EXPECT_EQ(seen[1], 20);
+  EXPECT_EQ(seen[2], 30);
+}
+
+TEST(URITemplateRouter, listing_size_overwrite_does_not_grow) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", 1);
+  EXPECT_EQ(router.size(), 1);
+  router.add("/users", 2);
+  EXPECT_EQ(router.size(), 1);
+  EXPECT_EQ(router.at(0), 2);
+  EXPECT_EQ(router.path(2), "/users");
+}

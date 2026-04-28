@@ -5,6 +5,7 @@
 #include <algorithm> // std::ranges::lower_bound
 #include <cassert>   // assert
 #include <limits>    // std::numeric_limits
+#include <tuple>     // std::get, std::make_tuple
 
 namespace sourcemeta::core {
 
@@ -121,7 +122,35 @@ auto URITemplateRouter::base_path() const noexcept -> std::string_view {
 }
 
 auto URITemplateRouter::size() const noexcept -> std::size_t {
-  return this->size_;
+  return this->entries_.size();
+}
+
+auto URITemplateRouter::at(const std::size_t index) const -> Identifier {
+  assert(index < this->entries_.size());
+  return std::get<0>(this->entries_[index]);
+}
+
+auto URITemplateRouter::context(const Identifier identifier) const
+    -> Identifier {
+  for (const auto &entry : this->entries_) {
+    if (std::get<0>(entry) == identifier) {
+      return std::get<1>(entry);
+    }
+  }
+
+  assert(false);
+  return 0;
+}
+
+auto URITemplateRouter::path(const Identifier identifier) const -> std::string {
+  for (const auto &entry : this->entries_) {
+    if (std::get<0>(entry) == identifier) {
+      return std::string{std::get<2>(entry)};
+    }
+  }
+
+  assert(false);
+  return {};
 }
 
 auto URITemplateRouter::otherwise(const Identifier context,
@@ -178,8 +207,16 @@ auto URITemplateRouter::add(const std::string_view uri_template,
 
   if (uri_template.empty()) {
     auto &target = current ? *current : this->root_;
-    if (target.identifier == 0) {
-      this->size_ += 1;
+    const auto previous_identifier = target.identifier;
+    if (previous_identifier == 0) {
+      this->entries_.emplace_back(identifier, context, uri_template);
+    } else {
+      for (auto &entry : this->entries_) {
+        if (std::get<0>(entry) == previous_identifier) {
+          entry = std::make_tuple(identifier, context, uri_template);
+          break;
+        }
+      }
     }
     target.identifier = identifier;
     target.context = context;
@@ -350,8 +387,16 @@ auto URITemplateRouter::add(const std::string_view uri_template,
   }
 
   if (!absorbed && current != nullptr) {
-    if (current->identifier == 0) {
-      this->size_ += 1;
+    const auto previous_identifier = current->identifier;
+    if (previous_identifier == 0) {
+      this->entries_.emplace_back(identifier, context, uri_template);
+    } else {
+      for (auto &entry : this->entries_) {
+        if (std::get<0>(entry) == previous_identifier) {
+          entry = std::make_tuple(identifier, context, uri_template);
+          break;
+        }
+      }
     }
     current->identifier = identifier;
     current->context = context;
