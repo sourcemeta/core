@@ -2997,7 +2997,7 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
                               "https://example.com/parent#/$defs/child/$id",
                               "https://example.com/parent", "/$defs/child/$id",
                               "http://json-schema.org/draft-04/schema#",
-                              JSON_Schema_2020_12, "https://example.com/parent",
+                              JSON_Schema_Draft_4, "https://example.com/parent",
                               "/$defs/child/$id", "/$defs/child", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame,
@@ -3005,7 +3005,7 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
       "x-sourcemeta-dialect-override-subschema",
       "https://example.com/parent",
       "/$defs/child/x-sourcemeta-dialect-override-subschema",
-      "http://json-schema.org/draft-04/schema#", JSON_Schema_2020_12,
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://example.com/parent",
       "/$defs/child/x-sourcemeta-dialect-override-subschema", "/$defs/child",
       false, true);
@@ -3015,7 +3015,7 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
   EXPECT_FRAME_STATIC_SUBSCHEMA(
       frame, "https://example.com/parent#/$defs/child",
       "https://example.com/parent", "/$defs/child",
-      "http://json-schema.org/draft-04/schema#", JSON_Schema_2020_12,
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "https://example.com/parent", "/$defs/child", "", false, true);
 
   // References

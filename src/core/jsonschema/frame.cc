@@ -454,6 +454,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   std::unordered_map<WeakPointer, std::vector<std::string_view>,
                      WeakPointer::Hasher>
       base_dialects;
+  std::unordered_map<WeakPointer, SchemaBaseDialect, WeakPointer::Hasher>
+      base_dialects_resolved;
 
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
@@ -526,6 +528,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
       // Base dialect
       assert(entry.base_dialect.has_value());
+      base_dialects_resolved.insert(
+          {entry.pointer, entry.base_dialect.value()});
 
       // Schema identifier
       // We need to store the default_id in a local variable to ensure
@@ -794,6 +798,14 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           combined.dialect_match.has_value()
               ? combined.dialect_match->first.get().front()
               : root_dialect};
+      // The base dialect must follow the dialect: if a subschema's dialect is
+      // overridden, the base dialect at that location is overridden by the
+      // same definition. We pull both from the iterator entry, not from the
+      // URI-base resource's `base_dialect`.
+      const auto base_dialect_for_pointer{
+          combined.dialect_match.has_value()
+              ? base_dialects_resolved.at(combined.dialect_match->second)
+              : root_base_dialect.value()};
       const auto &every_base_result{combined.every_base};
 
       std::optional<std::pair<std::string_view, WeakPointer>> nearest_base_info;
@@ -810,17 +822,14 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           nearest_base_info.has_value() ? nearest_base_info->second.size() : 0;
 
       std::string_view hoisted_base_view{};
-      sourcemeta::core::SchemaBaseDialect hoisted_base_dialect{};
       if (nearest_base_info.has_value()) {
         const JSON::String nearest_base_str{nearest_base_info->first};
         const auto base_entry{this->locations_.find(
             {SchemaReferenceType::Static, nearest_base_str})};
         if (base_entry != this->locations_.cend()) {
           hoisted_base_view = base_entry->first.second;
-          hoisted_base_dialect = base_entry->second.base_dialect;
         } else {
           hoisted_base_view = nearest_base_info->first;
-          hoisted_base_dialect = root_base_dialect.value();
         }
       }
 
@@ -844,21 +853,17 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
         if (!contains) {
           std::string_view base_view;
-          sourcemeta::core::SchemaBaseDialect current_base_dialect;
 
           if (nearest_base_info.has_value()) {
             base_view = hoisted_base_view;
-            current_base_dialect = hoisted_base_dialect;
           } else {
             const JSON::String current_base{base.first};
             const auto base_entry{this->locations_.find(
                 {SchemaReferenceType::Static, current_base})};
             if (base_entry != this->locations_.cend()) {
               base_view = base_entry->first.second;
-              current_base_dialect = base_entry->second.base_dialect;
             } else {
               base_view = base.first;
-              current_base_dialect = root_base_dialect.value();
             }
           }
 
@@ -866,7 +871,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Subschema, std::move(result),
                   base_view, pointer_weak, nearest_base_depth,
-                  dialect_for_pointer, current_base_dialect,
+                  dialect_for_pointer, base_dialect_for_pointer,
                   subschema_it->second.parent,
                   subschema_it->second.property_name,
                   subschema_it->second.orphan, false, true);
@@ -884,7 +889,7 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
             store(this->locations_, SchemaReferenceType::Static,
                   SchemaFrame::LocationType::Pointer, std::move(result),
                   base_view, pointer_weak, nearest_base_depth,
-                  dialect_for_pointer, current_base_dialect, parent_pointer,
+                  dialect_for_pointer, base_dialect_for_pointer, parent_pointer,
                   parent_property_name, parent_orphan, false, true);
           }
         }
