@@ -67,7 +67,6 @@ finalize_match(const URITemplateRouter::Identifier otherwise_context,
   return {identifier, context};
 }
 
-// Count slash-delimited non-empty segments in a normalized base_path
 inline auto count_base_path_segments(const std::string_view base_path) noexcept
     -> std::uint32_t {
   std::uint32_t count = 0;
@@ -87,9 +86,6 @@ inline auto count_base_path_segments(const std::string_view base_path) noexcept
   return count;
 }
 
-// Iteratively descend the trie to reconstruct the URI Template path string of
-// the node whose identifier equals target. Skips emission for nodes that fall
-// within the configured base_path prefix. Returns true if found
 inline auto reconstruct_path_recursive(
     const SerializedNode *nodes, const std::uint32_t node_count,
     const char *string_table, const std::size_t string_table_size,

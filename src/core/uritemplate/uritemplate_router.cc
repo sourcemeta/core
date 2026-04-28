@@ -132,25 +132,21 @@ auto URITemplateRouter::at(const std::size_t index) const -> Identifier {
 
 auto URITemplateRouter::context(const Identifier identifier) const
     -> Identifier {
-  for (const auto &entry : this->entries_) {
-    if (std::get<0>(entry) == identifier) {
-      return std::get<1>(entry);
-    }
-  }
-
-  assert(false);
-  return 0;
+  const auto entry = std::ranges::find_if(
+      this->entries_, [&identifier](const auto &candidate) {
+        return std::get<0>(candidate) == identifier;
+      });
+  assert(entry != this->entries_.end());
+  return std::get<1>(*entry);
 }
 
 auto URITemplateRouter::path(const Identifier identifier) const -> std::string {
-  for (const auto &entry : this->entries_) {
-    if (std::get<0>(entry) == identifier) {
-      return std::string{std::get<2>(entry)};
-    }
-  }
-
-  assert(false);
-  return {};
+  const auto entry = std::ranges::find_if(
+      this->entries_, [&identifier](const auto &candidate) {
+        return std::get<0>(candidate) == identifier;
+      });
+  assert(entry != this->entries_.end());
+  return std::string{std::get<2>(*entry)};
 }
 
 auto URITemplateRouter::otherwise(const Identifier context,
@@ -211,11 +207,12 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     if (previous_identifier == 0) {
       this->entries_.emplace_back(identifier, context, uri_template);
     } else {
-      for (auto &entry : this->entries_) {
-        if (std::get<0>(entry) == previous_identifier) {
-          entry = std::make_tuple(identifier, context, uri_template);
-          break;
-        }
+      const auto existing = std::ranges::find_if(
+          this->entries_, [&previous_identifier](const auto &candidate) {
+            return std::get<0>(candidate) == previous_identifier;
+          });
+      if (existing != this->entries_.end()) {
+        *existing = std::make_tuple(identifier, context, uri_template);
       }
     }
     target.identifier = identifier;
@@ -391,11 +388,12 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     if (previous_identifier == 0) {
       this->entries_.emplace_back(identifier, context, uri_template);
     } else {
-      for (auto &entry : this->entries_) {
-        if (std::get<0>(entry) == previous_identifier) {
-          entry = std::make_tuple(identifier, context, uri_template);
-          break;
-        }
+      const auto existing = std::ranges::find_if(
+          this->entries_, [&previous_identifier](const auto &candidate) {
+            return std::get<0>(candidate) == previous_identifier;
+          });
+      if (existing != this->entries_.end()) {
+        *existing = std::make_tuple(identifier, context, uri_template);
       }
     }
     current->identifier = identifier;
