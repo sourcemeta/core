@@ -918,12 +918,18 @@ TEST(JSONSchema_walker, override_at_root) {
   }
 
   EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_FALSE(entries.at(0).parent.has_value());
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect,
             "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_EQ(entries.at(0).vocabularies.size(), 7);
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+  EXPECT_EQ(entries.at(0).subschema.get(), document);
+  EXPECT_FALSE(entries.at(0).orphan);
+  EXPECT_FALSE(entries.at(0).property_name);
 }
 
 TEST(JSONSchema_walker, override_does_not_inherit_to_children) {
@@ -945,19 +951,31 @@ TEST(JSONSchema_walker, override_does_not_inherit_to_children) {
 
   EXPECT_EQ(entries.size(), 2);
 
+  EXPECT_FALSE(entries.at(0).parent.has_value());
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect,
             "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_EQ(entries.at(0).vocabularies.size(), 7);
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+  EXPECT_EQ(entries.at(0).subschema.get(), document);
+  EXPECT_FALSE(entries.at(0).orphan);
+  EXPECT_FALSE(entries.at(0).property_name);
 
+  EXPECT_TRUE(entries.at(1).parent.has_value());
+  EXPECT_TRUE(entries.at(1).parent.value().empty());
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
             "/properties/foo");
   EXPECT_EQ(entries.at(1).dialect, "http://json-schema.org/draft-04/schema#");
+  EXPECT_EQ(entries.at(1).vocabularies.size(), 1);
   EXPECT_TRUE(entries.at(1).base_dialect.has_value());
   EXPECT_EQ(entries.at(1).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
+  EXPECT_EQ(entries.at(1).subschema.get(),
+            sourcemeta::core::parse_json(R"JSON({"type": "string"})JSON"));
+  EXPECT_FALSE(entries.at(1).orphan);
+  EXPECT_FALSE(entries.at(1).property_name);
 }
 
 TEST(JSONSchema_walker, override_changes_child_discovery) {
@@ -979,31 +997,18 @@ TEST(JSONSchema_walker, override_changes_child_discovery) {
   }
 
   EXPECT_EQ(entries.size(), 1);
+
+  EXPECT_FALSE(entries.at(0).parent.has_value());
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect,
             "https://json-schema.org/draft/2020-12/schema");
-}
-
-TEST(JSONSchema_walker, override_changes_child_discovery_baseline) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "items": [
-      { "type": "string" },
-      { "type": "number" }
-    ]
-  })JSON");
-
-  std::vector<sourcemeta::core::SchemaIteratorEntry> entries;
-  for (const auto &entry : sourcemeta::core::SchemaIterator(
-           document, sourcemeta::core::schema_walker,
-           sourcemeta::core::schema_resolver)) {
-    entries.push_back(entry);
-  }
-
-  EXPECT_EQ(entries.size(), 3);
-  EXPECT_TRUE(entries.at(0).pointer.empty());
-  EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/items/0");
-  EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer), "/items/1");
+  EXPECT_EQ(entries.at(0).vocabularies.size(), 7);
+  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
+  EXPECT_EQ(entries.at(0).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+  EXPECT_EQ(entries.at(0).subschema.get(), document);
+  EXPECT_FALSE(entries.at(0).orphan);
+  EXPECT_FALSE(entries.at(0).property_name);
 }
 
 TEST(JSONSchema_walker, override_ignored_sibling_to_ref_in_draft7) {
@@ -1031,25 +1036,48 @@ TEST(JSONSchema_walker, override_ignored_sibling_to_ref_in_draft7) {
 
   EXPECT_EQ(entries.size(), 3);
 
+  EXPECT_FALSE(entries.at(0).parent.has_value());
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect, "http://json-schema.org/draft-07/schema#");
+  EXPECT_EQ(entries.at(0).vocabularies.size(), 1);
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
+  EXPECT_EQ(entries.at(0).subschema.get(), document);
+  EXPECT_FALSE(entries.at(0).orphan);
+  EXPECT_FALSE(entries.at(0).property_name);
 
+  EXPECT_TRUE(entries.at(1).parent.has_value());
+  EXPECT_TRUE(entries.at(1).parent.value().empty());
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer),
             "/definitions/bar");
   EXPECT_EQ(entries.at(1).dialect, "http://json-schema.org/draft-07/schema#");
+  EXPECT_EQ(entries.at(1).vocabularies.size(), 1);
   EXPECT_TRUE(entries.at(1).base_dialect.has_value());
   EXPECT_EQ(entries.at(1).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
+  EXPECT_EQ(entries.at(1).subschema.get(),
+            sourcemeta::core::parse_json(R"JSON({"type": "string"})JSON"));
+  EXPECT_TRUE(entries.at(1).orphan);
+  EXPECT_FALSE(entries.at(1).property_name);
 
+  EXPECT_TRUE(entries.at(2).parent.has_value());
+  EXPECT_TRUE(entries.at(2).parent.value().empty());
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/properties/foo");
   EXPECT_EQ(entries.at(2).dialect, "http://json-schema.org/draft-07/schema#");
+  EXPECT_EQ(entries.at(2).vocabularies.size(), 1);
   EXPECT_TRUE(entries.at(2).base_dialect.has_value());
   EXPECT_EQ(entries.at(2).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
+  EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json(R"JSON({
+              "$ref": "#/definitions/bar",
+              "$id": "https://example.com/foo",
+              "x-sourcemeta-dialect-override-subschema":
+                "https://json-schema.org/draft/2020-12/schema"
+            })JSON"));
+  EXPECT_FALSE(entries.at(2).orphan);
+  EXPECT_FALSE(entries.at(2).property_name);
 }
 
 TEST(JSONSchema_walker, override_honored_sibling_to_ref_in_2019_09) {
@@ -1077,64 +1105,48 @@ TEST(JSONSchema_walker, override_honored_sibling_to_ref_in_2019_09) {
 
   EXPECT_EQ(entries.size(), 3);
 
+  EXPECT_FALSE(entries.at(0).parent.has_value());
   EXPECT_TRUE(entries.at(0).pointer.empty());
   EXPECT_EQ(entries.at(0).dialect,
             "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_EQ(entries.at(0).vocabularies.size(), 6);
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
+  EXPECT_EQ(entries.at(0).subschema.get(), document);
+  EXPECT_FALSE(entries.at(0).orphan);
+  EXPECT_FALSE(entries.at(0).property_name);
 
+  EXPECT_TRUE(entries.at(1).parent.has_value());
+  EXPECT_TRUE(entries.at(1).parent.value().empty());
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(1).pointer), "/$defs/bar");
   EXPECT_EQ(entries.at(1).dialect,
             "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_EQ(entries.at(1).vocabularies.size(), 6);
   EXPECT_TRUE(entries.at(1).base_dialect.has_value());
   EXPECT_EQ(entries.at(1).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
+  EXPECT_EQ(entries.at(1).subschema.get(),
+            sourcemeta::core::parse_json(R"JSON({"type": "string"})JSON"));
+  EXPECT_TRUE(entries.at(1).orphan);
+  EXPECT_FALSE(entries.at(1).property_name);
 
+  EXPECT_TRUE(entries.at(2).parent.has_value());
+  EXPECT_TRUE(entries.at(2).parent.value().empty());
   EXPECT_EQ(sourcemeta::core::to_string(entries.at(2).pointer),
             "/properties/foo");
   EXPECT_EQ(entries.at(2).dialect,
             "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
-  EXPECT_EQ(entries.at(2).base_dialect.value(),
-            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-}
-
-TEST(JSONSchema_keyword_iterator, override_at_root) {
-  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "x-sourcemeta-dialect-override-subschema":
-      "https://json-schema.org/draft/2020-12/schema",
-    "type": "string"
-  })JSON");
-
-  std::vector<sourcemeta::core::SchemaIteratorEntry> entries;
-  for (const auto &entry : sourcemeta::core::SchemaKeywordIterator(
-           document, sourcemeta::core::schema_walker,
-           sourcemeta::core::schema_resolver)) {
-    entries.push_back(entry);
-  }
-
-  EXPECT_EQ(entries.size(), 3);
-
-  EXPECT_EQ(entries.at(0).dialect,
-            "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_TRUE(entries.at(0).base_dialect.has_value());
-  EXPECT_EQ(entries.at(0).base_dialect.value(),
-            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-  EXPECT_EQ(entries.at(0).vocabularies.size(), 7);
-
-  EXPECT_EQ(entries.at(1).dialect,
-            "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_TRUE(entries.at(1).base_dialect.has_value());
-  EXPECT_EQ(entries.at(1).base_dialect.value(),
-            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-  EXPECT_EQ(entries.at(1).vocabularies.size(), 7);
-
-  EXPECT_EQ(entries.at(2).dialect,
-            "https://json-schema.org/draft/2020-12/schema");
-  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
-  EXPECT_EQ(entries.at(2).base_dialect.value(),
-            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
   EXPECT_EQ(entries.at(2).vocabularies.size(), 7);
+  EXPECT_TRUE(entries.at(2).base_dialect.has_value());
+  EXPECT_EQ(entries.at(2).base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+  EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json(R"JSON({
+              "$ref": "#/$defs/bar",
+              "$id": "https://example.com/foo",
+              "x-sourcemeta-dialect-override-subschema":
+                "https://json-schema.org/draft/2020-12/schema"
+            })JSON"));
+  EXPECT_FALSE(entries.at(2).orphan);
+  EXPECT_FALSE(entries.at(2).property_name);
 }
