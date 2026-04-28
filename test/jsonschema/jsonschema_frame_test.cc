@@ -2875,14 +2875,19 @@ TEST(JSONSchema_frame, override_induces_resource_boundary) {
 
   EXPECT_EQ(frame.locations().size(), 10);
 
+  // Resources
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "http://example.com/parent", "http://example.com/parent", "",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "http://example.com/parent", "", std::nullopt, false, false);
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "http://example.com/child", "http://example.com/parent",
       "/definitions/child", "http://json-schema.org/draft-06/schema#",
       JSON_Schema_Draft_6, "http://example.com/child", "", "", false, true);
+
+  // JSON Pointers
 
   EXPECT_FRAME_STATIC_POINTER(
       frame, "http://example.com/parent#/id", "http://example.com/parent",
@@ -2898,11 +2903,6 @@ TEST(JSONSchema_frame, override_induces_resource_boundary) {
                               "http://json-schema.org/draft-04/schema#",
                               JSON_Schema_Draft_4, "http://example.com/parent",
                               "/definitions", "", false, false);
-  EXPECT_FRAME_STATIC_SUBSCHEMA(
-      frame, "http://example.com/parent#/definitions/child",
-      "http://example.com/parent", "/definitions/child",
-      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
-      "http://example.com/child", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "http://example.com/parent#/definitions/child/$id",
       "http://example.com/parent", "/definitions/child/$id",
@@ -2930,6 +2930,16 @@ TEST(JSONSchema_frame, override_induces_resource_boundary) {
       "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
       "http://example.com/child", "/x-sourcemeta-dialect-override-subschema",
       "/definitions/child", false, true);
+
+  // Subschemas
+
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "http://example.com/parent#/definitions/child",
+      "http://example.com/parent", "/definitions/child",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/child", "", "", false, true);
+
+  // References
 
   EXPECT_EQ(frame.references().size(), 1);
 
@@ -2959,10 +2969,14 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
 
   EXPECT_EQ(frame.locations().size(), 7);
 
+  // Resources
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://example.com/parent", "https://example.com/parent", "",
       "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
       "https://example.com/parent", "", std::nullopt, false, false);
+
+  // JSON Pointers
 
   EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$id",
                               "https://example.com/parent", "/$id",
@@ -2979,11 +2993,6 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
                               "https://json-schema.org/draft/2020-12/schema",
                               JSON_Schema_2020_12, "https://example.com/parent",
                               "/$defs", "", false, false);
-  EXPECT_FRAME_STATIC_SUBSCHEMA(
-      frame, "https://example.com/parent#/$defs/child",
-      "https://example.com/parent", "/$defs/child",
-      "http://json-schema.org/draft-04/schema#", JSON_Schema_2020_12,
-      "https://example.com/parent", "/$defs/child", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(frame,
                               "https://example.com/parent#/$defs/child/$id",
                               "https://example.com/parent", "/$defs/child/$id",
@@ -3000,6 +3009,16 @@ TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
       "https://example.com/parent",
       "/$defs/child/x-sourcemeta-dialect-override-subschema", "/$defs/child",
       false, true);
+
+  // Subschemas
+
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/parent#/$defs/child",
+      "https://example.com/parent", "/$defs/child",
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_2020_12,
+      "https://example.com/parent", "/$defs/child", "", false, true);
+
+  // References
 
   EXPECT_EQ(frame.references().size(), 1);
 
@@ -3087,15 +3106,20 @@ TEST(JSONSchema_frame, override_picks_dollarid_under_draft6) {
 
   EXPECT_EQ(frame.locations().size(), 12);
 
+  // Resources
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "http://example.com/parent", "http://example.com/parent", "",
       "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
       "http://example.com/parent", "", std::nullopt, false, false);
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "http://example.com/via-dollarid", "http://example.com/parent",
       "/definitions/child", "http://json-schema.org/draft-06/schema#",
       JSON_Schema_Draft_6, "http://example.com/via-dollarid", "", "", false,
       true);
+
+  // JSON Pointers
 
   EXPECT_FRAME_STATIC_POINTER(
       frame, "http://example.com/parent#/id", "http://example.com/parent",
@@ -3111,11 +3135,6 @@ TEST(JSONSchema_frame, override_picks_dollarid_under_draft6) {
                               "http://json-schema.org/draft-04/schema#",
                               JSON_Schema_Draft_4, "http://example.com/parent",
                               "/definitions", "", false, false);
-  EXPECT_FRAME_STATIC_SUBSCHEMA(
-      frame, "http://example.com/parent#/definitions/child",
-      "http://example.com/parent", "/definitions/child",
-      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
-      "http://example.com/via-dollarid", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "http://example.com/parent#/definitions/child/id",
       "http://example.com/parent", "/definitions/child/id",
@@ -3160,6 +3179,16 @@ TEST(JSONSchema_frame, override_picks_dollarid_under_draft6) {
       "/x-sourcemeta-dialect-override-subschema", "/definitions/child", false,
       true);
 
+  // Subschemas
+
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "http://example.com/parent#/definitions/child",
+      "http://example.com/parent", "/definitions/child",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid", "", "", false, true);
+
+  // References
+
   EXPECT_EQ(frame.references().size(), 1);
 
   EXPECT_STATIC_REFERENCE(
@@ -3193,14 +3222,19 @@ TEST(JSONSchema_frame, override_hides_anchor_under_draft7) {
       frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
                                   "https://example.com/child#x"}));
 
+  // Resources
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://example.com/parent", "https://example.com/parent", "",
       "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
       "https://example.com/parent", "", std::nullopt, false, false);
+
   EXPECT_FRAME_STATIC_RESOURCE(
       frame, "https://example.com/child", "https://example.com/parent",
       "/$defs/child", "http://json-schema.org/draft-07/schema#",
       JSON_Schema_Draft_7, "https://example.com/child", "", "", false, true);
+
+  // JSON Pointers
 
   EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$schema",
                               "https://example.com/parent", "/$schema",
@@ -3217,11 +3251,6 @@ TEST(JSONSchema_frame, override_hides_anchor_under_draft7) {
                               "https://json-schema.org/draft/2019-09/schema",
                               JSON_Schema_2019_09, "https://example.com/parent",
                               "/$defs", "", false, false);
-  EXPECT_FRAME_STATIC_SUBSCHEMA(
-      frame, "https://example.com/parent#/$defs/child",
-      "https://example.com/parent", "/$defs/child",
-      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
-      "https://example.com/child", "", "", false, true);
   EXPECT_FRAME_STATIC_POINTER(
       frame, "https://example.com/parent#/$defs/child/$id",
       "https://example.com/parent", "/$defs/child/$id",
@@ -3259,6 +3288,16 @@ TEST(JSONSchema_frame, override_hides_anchor_under_draft7) {
       "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
       "https://example.com/child", "/x-sourcemeta-dialect-override-subschema",
       "/$defs/child", false, true);
+
+  // Subschemas
+
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/parent#/$defs/child",
+      "https://example.com/parent", "/$defs/child",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "https://example.com/child", "", "", false, true);
+
+  // References
 
   EXPECT_EQ(frame.references().size(), 1);
 
