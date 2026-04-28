@@ -218,9 +218,20 @@ auto sourcemeta::core::reidentify(JSON &schema, std::string_view new_identifier,
 }
 
 auto sourcemeta::core::dialect(const sourcemeta::core::JSON &schema,
-                               std::string_view default_dialect)
+                               std::string_view default_dialect,
+                               const bool allow_internal_override)
     -> std::string_view {
   assert(sourcemeta::core::is_schema(schema));
+
+  if (allow_internal_override && schema.is_object()) {
+    const auto *override_value{
+        schema.try_at("x-sourcemeta-dialect-override-subschema")};
+    if (override_value && override_value->is_string() &&
+        !override_value->to_string().empty()) {
+      return override_value->to_string();
+    }
+  }
+
   if (schema.is_boolean() || !schema.defines("$schema")) {
     return default_dialect;
   }

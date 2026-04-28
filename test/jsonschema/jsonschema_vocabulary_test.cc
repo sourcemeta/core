@@ -3,6 +3,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonschema.h>
 
+#include "jsonschema_test_utils.h"
+
 #include <sstream>       // std::ostringstream
 #include <unordered_set> // std::unordered_set
 #include <variant>       // std::variant
@@ -17,6 +19,49 @@ TEST(JSONSchema_vocabulary, core_vocabularies_boolean_without_default) {
 TEST(JSONSchema_vocabulary, unresolvable_dialect) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://non-existent.com/dialect"
+  })JSON");
+  EXPECT_THROW(sourcemeta::core::vocabularies(
+                   document, sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaResolutionError);
+}
+
+TEST(JSONSchema_vocabulary, override_returns_override_vocabularies) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+  const sourcemeta::core::Vocabularies vocabularies{
+      sourcemeta::core::vocabularies(document,
+                                     sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(vocabularies.size(), 7);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Core);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Applicator);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Unevaluated);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Validation);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Meta_Data);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies,
+                             JSON_Schema_2020_12_Format_Annotation);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_2020_12_Content);
+}
+
+TEST(JSONSchema_vocabulary, override_only_returns_override_vocabularies) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-sourcemeta-dialect-override-subschema":
+      "http://json-schema.org/draft-07/schema#"
+  })JSON");
+  const sourcemeta::core::Vocabularies vocabularies{
+      sourcemeta::core::vocabularies(document,
+                                     sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(vocabularies.size(), 1);
+  EXPECT_VOCABULARY_REQUIRED(vocabularies, JSON_Schema_Draft_7);
+}
+
+TEST(JSONSchema_vocabulary, override_unresolvable) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://non-existent.com/dialect"
   })JSON");
   EXPECT_THROW(sourcemeta::core::vocabularies(
                    document, sourcemeta::core::schema_resolver),

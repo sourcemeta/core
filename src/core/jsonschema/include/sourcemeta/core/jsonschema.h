@@ -255,8 +255,8 @@ auto reidentify(JSON &schema, std::string_view new_identifier,
 /// assert(dialect == "https://json-schema.org/draft/2020-12/schema");
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
-auto dialect(const JSON &schema, std::string_view default_dialect = "")
-    -> std::string_view;
+auto dialect(const JSON &schema, std::string_view default_dialect = "",
+             bool allow_internal_override = true) -> std::string_view;
 
 /// @ingroup jsonschema
 ///

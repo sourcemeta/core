@@ -35,15 +35,43 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   // / base dialect and ignore the invalid standalone `$schema`. The caller has
   // enough information to detect those cases and throw an error if they desire
   // to be more strict.
-  auto maybe_current_dialect{sourcemeta::core::dialect(subschema, dialect)};
+
+  // The `$ref`-shadows-siblings rule (Draft 7 and earlier) is decided using
+  // the ENCLOSING base dialect. When it fires, the dialect override keyword
+  // is one of those siblings and is ignored at this location too.
+  const auto enclosing_ref_overrides{
+      subschema.is_object() && subschema.defines("$ref") &&
+      sourcemeta::core::ref_overrides_adjacent_keywords(base_dialect)};
+  const auto *override_value{
+      (!enclosing_ref_overrides && subschema.is_object())
+          ? subschema.try_at("x-sourcemeta-dialect-override-subschema")
+          : nullptr};
+  const auto override_active{override_value != nullptr &&
+                             override_value->is_string() &&
+                             !override_value->to_string().empty()};
+
+  auto maybe_current_dialect{
+      sourcemeta::core::dialect(subschema, dialect, !enclosing_ref_overrides)};
   assert(!maybe_current_dialect.empty());
 
   // TODO: Note that we determine the identifier here, but the framing does it
   // all over again. Maybe we should be storing this instead?
-  auto id{
-      sourcemeta::core::identify(subschema, resolver, maybe_current_dialect)};
+  // Identify under the base dialect that corresponds to the current dialect
+  // URI without re-routing through `dialect()` internally. The 3-argument
+  // `identify()` would call `base_dialect()` which calls `dialect()`, picking
+  // up the internal override even when this walker has already decided to
+  // bypass it (e.g. under the `$ref` shadow rule).
+  const auto identify_base_dialect{
+      maybe_current_dialect == dialect
+          ? base_dialect
+          : sourcemeta::core::to_base_dialect(maybe_current_dialect)
+                .value_or(base_dialect)};
+  auto id{sourcemeta::core::identify(subschema, identify_base_dialect)};
   const auto different_parent_dialect{maybe_current_dialect != dialect};
-  if (id.empty() && different_parent_dialect) {
+  // The embedded-resource recovery branch is disabled when the override is
+  // active. Otherwise an override that intentionally points at a dialect not
+  // recognising the present identifier keyword would be silently undone.
+  if (id.empty() && different_parent_dialect && !override_active) {
     id = sourcemeta::core::identify(subschema, base_dialect);
     if (!id.empty()) {
       maybe_current_dialect = dialect;
@@ -51,10 +79,16 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   }
 
   const auto is_schema_resource{level == 0 || !id.empty()};
-  const std::string_view current_dialect{
-      is_schema_resource ? maybe_current_dialect : dialect};
+  // The override applies at this location regardless of resource-ness: it
+  // sets vocabulary classification, identifier-keyword choice, and anchor
+  // discovery here even when the location is not a resource boundary.
+  // `$schema` retains the existing rule (only honored at resource
+  // boundaries).
+  const std::string_view current_dialect{(override_active || is_schema_resource)
+                                             ? maybe_current_dialect
+                                             : dialect};
   const auto maybe_resolved_base_dialect{
-      is_schema_resource && current_dialect != dialect
+      current_dialect != dialect
           ? sourcemeta::core::base_dialect(subschema, resolver, current_dialect)
           : std::nullopt};
   const auto current_base_dialect{maybe_resolved_base_dialect.has_value()
@@ -83,6 +117,33 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
     return;
   }
 
+  // The override applies only at this location. Children inherit the
+  // dialect that would have applied without the override, so we re-run the
+  // resolution using `dialect()` with the internal override disabled.
+  std::string_view child_dialect{current_dialect};
+  sourcemeta::core::SchemaBaseDialect child_base_dialect{current_base_dialect};
+  if (override_active) {
+    const auto seed_dialect{
+        sourcemeta::core::dialect(subschema, dialect, false)};
+    auto seed_id{sourcemeta::core::identify(subschema, resolver, seed_dialect)};
+    if (seed_id.empty() && seed_dialect != dialect) {
+      seed_id = sourcemeta::core::identify(subschema, base_dialect);
+    }
+    const auto seed_is_resource{level == 0 || !seed_id.empty()};
+    if (seed_is_resource) {
+      child_dialect = seed_dialect;
+      if (child_dialect != dialect) {
+        const auto known{sourcemeta::core::to_base_dialect(child_dialect)};
+        child_base_dialect = known.value_or(base_dialect);
+      } else {
+        child_base_dialect = base_dialect;
+      }
+    } else {
+      child_dialect = dialect;
+      child_base_dialect = base_dialect;
+    }
+  }
+
   const auto has_overriding_ref{
       subschema.defines("$ref") &&
       sourcemeta::core::ref_overrides_adjacent_keywords(current_base_dialect)};
@@ -104,8 +165,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
-             false);
+             child_dialect, child_base_dialect, type, level + 1, orphan, false);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::
@@ -113,8 +173,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
-             true);
+             child_dialect, child_base_dialect, type, level + 1, orphan, true);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::
@@ -122,8 +181,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
-             false);
+             child_dialect, child_base_dialect, type, level + 1, orphan, false);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::
@@ -131,23 +189,21 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
-             false);
+             child_dialect, child_base_dialect, type, level + 1, orphan, false);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorValueTraverseParent: {
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
-             false);
+             child_dialect, child_base_dialect, type, level + 1, orphan, false);
       } break;
 
       case sourcemeta::core::SchemaKeywordType::ApplicatorValueInPlaceOther: {
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
+             child_dialect, child_base_dialect, type, level + 1, orphan,
              property_name);
       } break;
 
@@ -155,7 +211,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
+             child_dialect, child_base_dialect, type, level + 1, orphan,
              property_name);
       } break;
 
@@ -163,7 +219,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
         sourcemeta::core::WeakPointer new_pointer{pointer};
         new_pointer.push_back(std::cref(pair.first));
         walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-             current_dialect, current_base_dialect, type, level + 1, orphan,
+             child_dialect, child_base_dialect, type, level + 1, orphan,
              property_name);
       } break;
 
@@ -174,7 +230,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
-                 walker, resolver, current_dialect, current_base_dialect, type,
+                 walker, resolver, child_dialect, child_base_dialect, type,
                  level + 1, orphan, false);
           }
         }
@@ -188,7 +244,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
-                 walker, resolver, current_dialect, current_base_dialect, type,
+                 walker, resolver, child_dialect, child_base_dialect, type,
                  level + 1, orphan, property_name);
           }
         }
@@ -202,7 +258,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
-                 walker, resolver, current_dialect, current_base_dialect, type,
+                 walker, resolver, child_dialect, child_base_dialect, type,
                  level + 1, orphan, property_name);
           }
         }
@@ -217,7 +273,7 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
-                 walker, resolver, current_dialect, current_base_dialect, type,
+                 walker, resolver, child_dialect, child_base_dialect, type,
                  level + 1, orphan, property_name);
           }
         }
@@ -232,8 +288,8 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
-                 resolver, current_dialect, current_base_dialect, type,
-                 level + 1, orphan, false);
+                 resolver, child_dialect, child_base_dialect, type, level + 1,
+                 orphan, false);
           }
         }
 
@@ -247,8 +303,8 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
-                 resolver, current_dialect, current_base_dialect, type,
-                 level + 1, orphan, false);
+                 resolver, child_dialect, child_base_dialect, type, level + 1,
+                 orphan, false);
           }
         }
 
@@ -261,8 +317,8 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
-                 resolver, current_dialect, current_base_dialect, type,
-                 level + 1, orphan, property_name);
+                 resolver, child_dialect, child_base_dialect, type, level + 1,
+                 orphan, property_name);
           }
         }
 
@@ -275,8 +331,8 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.push_back(std::cref(subpair.first));
             walk(pointer, new_pointer, subschemas, subpair.second, walker,
-                 resolver, current_dialect, current_base_dialect, type,
-                 level + 1, true, false);
+                 resolver, child_dialect, child_base_dialect, type, level + 1,
+                 true, false);
           }
         }
 
@@ -290,14 +346,14 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
-                 walker, resolver, current_dialect, current_base_dialect, type,
+                 walker, resolver, child_dialect, child_base_dialect, type,
                  level + 1, orphan, false);
           }
         } else {
           sourcemeta::core::WeakPointer new_pointer{pointer};
           new_pointer.push_back(std::cref(pair.first));
           walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-               current_dialect, current_base_dialect, type, level + 1, orphan,
+               child_dialect, child_base_dialect, type, level + 1, orphan,
                false);
         }
 
@@ -311,14 +367,14 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
             new_pointer.push_back(std::cref(pair.first));
             new_pointer.emplace_back(index);
             walk(pointer, new_pointer, subschemas, pair.second.at(index),
-                 walker, resolver, current_dialect, current_base_dialect, type,
+                 walker, resolver, child_dialect, child_base_dialect, type,
                  level + 1, orphan, property_name);
           }
         } else {
           sourcemeta::core::WeakPointer new_pointer{pointer};
           new_pointer.push_back(std::cref(pair.first));
           walk(pointer, new_pointer, subschemas, pair.second, walker, resolver,
-               current_dialect, current_base_dialect, type, level + 1, orphan,
+               child_dialect, child_base_dialect, type, level + 1, orphan,
                property_name);
         }
 

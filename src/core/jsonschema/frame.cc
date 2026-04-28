@@ -17,6 +17,8 @@ enum class AnchorType : std::uint8_t { Static, Dynamic, All };
 
 // Static keyword strings for reference pointers
 static const std::string KEYWORD_SCHEMA{"$schema"};
+static const std::string KEYWORD_DIALECT_OVERRIDE{
+    "x-sourcemeta-dialect-override-subschema"};
 static const std::string KEYWORD_REF{"$ref"};
 static const std::string KEYWORD_RECURSIVE_REF{"$recursiveRef"};
 static const std::string KEYWORD_DYNAMIC_REF{"$dynamicRef"};
@@ -661,9 +663,19 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
           }
 
           metaschema.canonicalize();
-          assert(entry.common.subschema.get().defines("$schema"));
+          // The dialect at this location may have been declared either via
+          // `$schema` or via the internal dialect override keyword. The
+          // pointer recorded for the metaschema reference must point at the
+          // keyword that actually carried the value.
+          const auto *override_value{
+              entry.common.subschema.get().try_at(KEYWORD_DIALECT_OVERRIDE)};
+          const bool from_override{override_value != nullptr &&
+                                   override_value->is_string()};
+          assert(from_override ||
+                 entry.common.subschema.get().defines("$schema"));
           auto schema_pointer{common_pointer_weak};
-          schema_pointer.push_back(std::cref(KEYWORD_SCHEMA));
+          schema_pointer.push_back(std::cref(
+              from_override ? KEYWORD_DIALECT_OVERRIDE : KEYWORD_SCHEMA));
           const auto [it, inserted] = this->references_.insert_or_assign(
               {SchemaReferenceType::Static, std::move(schema_pointer)},
               SchemaFrame::ReferencesEntry{.original = maybe_metaschema,

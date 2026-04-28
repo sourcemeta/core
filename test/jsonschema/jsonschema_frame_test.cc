@@ -2854,3 +2854,436 @@ TEST(JSONSchema_frame, invalid_schema_not_uri) {
     FAIL();
   }
 }
+
+TEST(JSONSchema_frame, override_induces_resource_boundary) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/parent",
+    "definitions": {
+      "child": {
+        "$id": "http://example.com/child",
+        "x-sourcemeta-dialect-override-subschema":
+          "http://json-schema.org/draft-06/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 10);
+
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "http://example.com/parent", "http://example.com/parent", "",
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
+      "http://example.com/parent", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "http://example.com/child", "http://example.com/parent",
+      "/definitions/child", "http://json-schema.org/draft-06/schema#",
+      JSON_Schema_Draft_6, "http://example.com/child", "", "", false, true);
+
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/parent#/id", "http://example.com/parent",
+      "/id", "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
+      "http://example.com/parent", "/id", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "http://example.com/parent#/$schema",
+                              "http://example.com/parent", "/$schema",
+                              "http://json-schema.org/draft-04/schema#",
+                              JSON_Schema_Draft_4, "http://example.com/parent",
+                              "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "http://example.com/parent#/definitions",
+                              "http://example.com/parent", "/definitions",
+                              "http://json-schema.org/draft-04/schema#",
+                              JSON_Schema_Draft_4, "http://example.com/parent",
+                              "/definitions", "", false, false);
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "http://example.com/parent#/definitions/child",
+      "http://example.com/parent", "/definitions/child",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/child", "", "", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/parent#/definitions/child/$id",
+      "http://example.com/parent", "/definitions/child/$id",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/child", "/$id", "/definitions/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "http://example.com/parent#/definitions/child/"
+      "x-sourcemeta-dialect-override-subschema",
+      "http://example.com/parent",
+      "/definitions/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/child", "/x-sourcemeta-dialect-override-subschema",
+      "/definitions/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/child#/$id", "http://example.com/parent",
+      "/definitions/child/$id", "http://json-schema.org/draft-06/schema#",
+      JSON_Schema_Draft_6, "http://example.com/child", "/$id",
+      "/definitions/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "http://example.com/child#/x-sourcemeta-dialect-override-subschema",
+      "http://example.com/parent",
+      "/definitions/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/child", "/x-sourcemeta-dialect-override-subschema",
+      "/definitions/child", false, true);
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-04/schema",
+      "http://json-schema.org/draft-04/schema", std::nullopt,
+      "http://json-schema.org/draft-04/schema#");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/definitions/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-06/schema",
+      "http://json-schema.org/draft-06/schema", std::nullopt,
+      "http://json-schema.org/draft-06/schema#");
+}
+
+TEST(JSONSchema_frame, override_destroys_resource_boundary_id_discarded) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/parent",
+    "$defs": {
+      "child": {
+        "$id": "https://example.com/child",
+        "x-sourcemeta-dialect-override-subschema":
+          "http://json-schema.org/draft-04/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 7);
+
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "https://example.com/parent", "https://example.com/parent", "",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12,
+      "https://example.com/parent", "", std::nullopt, false, false);
+
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$id",
+                              "https://example.com/parent", "/$id",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              JSON_Schema_2020_12, "https://example.com/parent",
+                              "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$schema",
+                              "https://example.com/parent", "/$schema",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              JSON_Schema_2020_12, "https://example.com/parent",
+                              "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$defs",
+                              "https://example.com/parent", "/$defs",
+                              "https://json-schema.org/draft/2020-12/schema",
+                              JSON_Schema_2020_12, "https://example.com/parent",
+                              "/$defs", "", false, false);
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/parent#/$defs/child",
+      "https://example.com/parent", "/$defs/child",
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_2020_12,
+      "https://example.com/parent", "/$defs/child", "", false, true);
+  EXPECT_FRAME_STATIC_POINTER(frame,
+                              "https://example.com/parent#/$defs/child/$id",
+                              "https://example.com/parent", "/$defs/child/$id",
+                              "http://json-schema.org/draft-04/schema#",
+                              JSON_Schema_2020_12, "https://example.com/parent",
+                              "/$defs/child/$id", "/$defs/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "https://example.com/parent#/$defs/child/"
+      "x-sourcemeta-dialect-override-subschema",
+      "https://example.com/parent",
+      "/$defs/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_2020_12,
+      "https://example.com/parent",
+      "/$defs/child/x-sourcemeta-dialect-override-subschema", "/$defs/child",
+      false, true);
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$defs/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-04/schema",
+      "http://json-schema.org/draft-04/schema", std::nullopt,
+      "http://json-schema.org/draft-04/schema#");
+}
+
+TEST(JSONSchema_frame, override_unresolvable_throws) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://example.com/does-not-exist"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaResolutionError);
+}
+
+TEST(JSONSchema_frame, override_inert_under_draft7_ref_siblings) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "bar": { "type": "string" }
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/definitions/bar",
+        "x-sourcemeta-dialect-override-subschema":
+          "https://example.com/does-not-exist"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  EXPECT_NO_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                                sourcemeta::core::schema_resolver));
+}
+
+TEST(JSONSchema_frame, override_surfaces_after_2019_09_upgrade) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$defs": {
+      "bar": { "type": "string" }
+    },
+    "properties": {
+      "foo": {
+        "$ref": "#/$defs/bar",
+        "x-sourcemeta-dialect-override-subschema":
+          "https://example.com/does-not-exist"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::Locations};
+  EXPECT_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                             sourcemeta::core::schema_resolver),
+               sourcemeta::core::SchemaResolutionError);
+}
+
+TEST(JSONSchema_frame, override_picks_dollarid_under_draft6) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/parent",
+    "definitions": {
+      "child": {
+        "id": "http://example.com/via-id",
+        "$id": "http://example.com/via-dollarid",
+        "x-sourcemeta-dialect-override-subschema":
+          "http://json-schema.org/draft-06/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 12);
+
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "http://example.com/parent", "http://example.com/parent", "",
+      "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
+      "http://example.com/parent", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "http://example.com/via-dollarid", "http://example.com/parent",
+      "/definitions/child", "http://json-schema.org/draft-06/schema#",
+      JSON_Schema_Draft_6, "http://example.com/via-dollarid", "", "", false,
+      true);
+
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/parent#/id", "http://example.com/parent",
+      "/id", "http://json-schema.org/draft-04/schema#", JSON_Schema_Draft_4,
+      "http://example.com/parent", "/id", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "http://example.com/parent#/$schema",
+                              "http://example.com/parent", "/$schema",
+                              "http://json-schema.org/draft-04/schema#",
+                              JSON_Schema_Draft_4, "http://example.com/parent",
+                              "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "http://example.com/parent#/definitions",
+                              "http://example.com/parent", "/definitions",
+                              "http://json-schema.org/draft-04/schema#",
+                              JSON_Schema_Draft_4, "http://example.com/parent",
+                              "/definitions", "", false, false);
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "http://example.com/parent#/definitions/child",
+      "http://example.com/parent", "/definitions/child",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid", "", "", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/parent#/definitions/child/id",
+      "http://example.com/parent", "/definitions/child/id",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid", "/id", "/definitions/child", false,
+      true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/parent#/definitions/child/$id",
+      "http://example.com/parent", "/definitions/child/$id",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid", "/$id", "/definitions/child", false,
+      true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "http://example.com/parent#/definitions/child/"
+      "x-sourcemeta-dialect-override-subschema",
+      "http://example.com/parent",
+      "/definitions/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid",
+      "/x-sourcemeta-dialect-override-subschema", "/definitions/child", false,
+      true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/via-dollarid#/id", "http://example.com/parent",
+      "/definitions/child/id", "http://json-schema.org/draft-06/schema#",
+      JSON_Schema_Draft_6, "http://example.com/via-dollarid", "/id",
+      "/definitions/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "http://example.com/via-dollarid#/$id",
+      "http://example.com/parent", "/definitions/child/$id",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid", "/$id", "/definitions/child", false,
+      true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "http://example.com/via-dollarid#/"
+      "x-sourcemeta-dialect-override-subschema",
+      "http://example.com/parent",
+      "/definitions/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-06/schema#", JSON_Schema_Draft_6,
+      "http://example.com/via-dollarid",
+      "/x-sourcemeta-dialect-override-subschema", "/definitions/child", false,
+      true);
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-04/schema",
+      "http://json-schema.org/draft-04/schema", std::nullopt,
+      "http://json-schema.org/draft-04/schema#");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/definitions/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-06/schema",
+      "http://json-schema.org/draft-06/schema", std::nullopt,
+      "http://json-schema.org/draft-06/schema#");
+}
+
+TEST(JSONSchema_frame, override_hides_anchor_under_draft7) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://example.com/parent",
+    "$defs": {
+      "child": {
+        "$id": "https://example.com/child",
+        "$anchor": "x",
+        "x-sourcemeta-dialect-override-subschema":
+          "http://json-schema.org/draft-07/schema#"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 12);
+
+  EXPECT_FALSE(
+      frame.locations().contains({sourcemeta::core::SchemaReferenceType::Static,
+                                  "https://example.com/child#x"}));
+
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "https://example.com/parent", "https://example.com/parent", "",
+      "https://json-schema.org/draft/2019-09/schema", JSON_Schema_2019_09,
+      "https://example.com/parent", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_RESOURCE(
+      frame, "https://example.com/child", "https://example.com/parent",
+      "/$defs/child", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, "https://example.com/child", "", "", false, true);
+
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$schema",
+                              "https://example.com/parent", "/$schema",
+                              "https://json-schema.org/draft/2019-09/schema",
+                              JSON_Schema_2019_09, "https://example.com/parent",
+                              "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$id",
+                              "https://example.com/parent", "/$id",
+                              "https://json-schema.org/draft/2019-09/schema",
+                              JSON_Schema_2019_09, "https://example.com/parent",
+                              "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/parent#/$defs",
+                              "https://example.com/parent", "/$defs",
+                              "https://json-schema.org/draft/2019-09/schema",
+                              JSON_Schema_2019_09, "https://example.com/parent",
+                              "/$defs", "", false, false);
+  EXPECT_FRAME_STATIC_SUBSCHEMA(
+      frame, "https://example.com/parent#/$defs/child",
+      "https://example.com/parent", "/$defs/child",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "https://example.com/child", "", "", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/parent#/$defs/child/$id",
+      "https://example.com/parent", "/$defs/child/$id",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "https://example.com/child", "/$id", "/$defs/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/parent#/$defs/child/$anchor",
+      "https://example.com/parent", "/$defs/child/$anchor",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "https://example.com/child", "/$anchor", "/$defs/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "https://example.com/parent#/$defs/child/"
+      "x-sourcemeta-dialect-override-subschema",
+      "https://example.com/parent",
+      "/$defs/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "https://example.com/child", "/x-sourcemeta-dialect-override-subschema",
+      "/$defs/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(frame, "https://example.com/child#/$id",
+                              "https://example.com/parent", "/$defs/child/$id",
+                              "http://json-schema.org/draft-07/schema#",
+                              JSON_Schema_Draft_7, "https://example.com/child",
+                              "/$id", "/$defs/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame, "https://example.com/child#/$anchor", "https://example.com/parent",
+      "/$defs/child/$anchor", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, "https://example.com/child", "/$anchor",
+      "/$defs/child", false, true);
+  EXPECT_FRAME_STATIC_POINTER(
+      frame,
+      "https://example.com/child#/x-sourcemeta-dialect-override-subschema",
+      "https://example.com/parent",
+      "/$defs/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-07/schema#", JSON_Schema_Draft_7,
+      "https://example.com/child", "/x-sourcemeta-dialect-override-subschema",
+      "/$defs/child", false, true);
+
+  EXPECT_EQ(frame.references().size(), 2);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$defs/child/x-sourcemeta-dialect-override-subschema",
+      "http://json-schema.org/draft-07/schema",
+      "http://json-schema.org/draft-07/schema", std::nullopt,
+      "http://json-schema.org/draft-07/schema#");
+}
