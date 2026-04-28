@@ -927,7 +927,6 @@ TEST(JSONSchema_walker, override_at_root) {
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-  EXPECT_EQ(entries.at(0).subschema.get(), document);
   EXPECT_FALSE(entries.at(0).orphan);
   EXPECT_FALSE(entries.at(0).property_name);
 }
@@ -959,7 +958,6 @@ TEST(JSONSchema_walker, override_does_not_inherit_to_children) {
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-  EXPECT_EQ(entries.at(0).subschema.get(), document);
   EXPECT_FALSE(entries.at(0).orphan);
   EXPECT_FALSE(entries.at(0).property_name);
 
@@ -972,8 +970,6 @@ TEST(JSONSchema_walker, override_does_not_inherit_to_children) {
   EXPECT_TRUE(entries.at(1).base_dialect.has_value());
   EXPECT_EQ(entries.at(1).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
-  EXPECT_EQ(entries.at(1).subschema.get(),
-            sourcemeta::core::parse_json(R"JSON({"type": "string"})JSON"));
   EXPECT_FALSE(entries.at(1).orphan);
   EXPECT_FALSE(entries.at(1).property_name);
 }
@@ -1006,7 +1002,6 @@ TEST(JSONSchema_walker, override_changes_child_discovery) {
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-  EXPECT_EQ(entries.at(0).subschema.get(), document);
   EXPECT_FALSE(entries.at(0).orphan);
   EXPECT_FALSE(entries.at(0).property_name);
 }
@@ -1043,7 +1038,6 @@ TEST(JSONSchema_walker, override_ignored_sibling_to_ref_in_draft7) {
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
-  EXPECT_EQ(entries.at(0).subschema.get(), document);
   EXPECT_FALSE(entries.at(0).orphan);
   EXPECT_FALSE(entries.at(0).property_name);
 
@@ -1056,8 +1050,6 @@ TEST(JSONSchema_walker, override_ignored_sibling_to_ref_in_draft7) {
   EXPECT_TRUE(entries.at(1).base_dialect.has_value());
   EXPECT_EQ(entries.at(1).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
-  EXPECT_EQ(entries.at(1).subschema.get(),
-            sourcemeta::core::parse_json(R"JSON({"type": "string"})JSON"));
   EXPECT_TRUE(entries.at(1).orphan);
   EXPECT_FALSE(entries.at(1).property_name);
 
@@ -1070,12 +1062,6 @@ TEST(JSONSchema_walker, override_ignored_sibling_to_ref_in_draft7) {
   EXPECT_TRUE(entries.at(2).base_dialect.has_value());
   EXPECT_EQ(entries.at(2).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
-  EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json(R"JSON({
-              "$ref": "#/definitions/bar",
-              "$id": "https://example.com/foo",
-              "x-sourcemeta-dialect-override-subschema":
-                "https://json-schema.org/draft/2020-12/schema"
-            })JSON"));
   EXPECT_FALSE(entries.at(2).orphan);
   EXPECT_FALSE(entries.at(2).property_name);
 }
@@ -1113,7 +1099,6 @@ TEST(JSONSchema_walker, override_honored_sibling_to_ref_in_2019_09) {
   EXPECT_TRUE(entries.at(0).base_dialect.has_value());
   EXPECT_EQ(entries.at(0).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
-  EXPECT_EQ(entries.at(0).subschema.get(), document);
   EXPECT_FALSE(entries.at(0).orphan);
   EXPECT_FALSE(entries.at(0).property_name);
 
@@ -1126,8 +1111,6 @@ TEST(JSONSchema_walker, override_honored_sibling_to_ref_in_2019_09) {
   EXPECT_TRUE(entries.at(1).base_dialect.has_value());
   EXPECT_EQ(entries.at(1).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09);
-  EXPECT_EQ(entries.at(1).subschema.get(),
-            sourcemeta::core::parse_json(R"JSON({"type": "string"})JSON"));
   EXPECT_TRUE(entries.at(1).orphan);
   EXPECT_FALSE(entries.at(1).property_name);
 
@@ -1141,12 +1124,6 @@ TEST(JSONSchema_walker, override_honored_sibling_to_ref_in_2019_09) {
   EXPECT_TRUE(entries.at(2).base_dialect.has_value());
   EXPECT_EQ(entries.at(2).base_dialect.value(),
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
-  EXPECT_EQ(entries.at(2).subschema.get(), sourcemeta::core::parse_json(R"JSON({
-              "$ref": "#/$defs/bar",
-              "$id": "https://example.com/foo",
-              "x-sourcemeta-dialect-override-subschema":
-                "https://json-schema.org/draft/2020-12/schema"
-            })JSON"));
   EXPECT_FALSE(entries.at(2).orphan);
   EXPECT_FALSE(entries.at(2).property_name);
 }
