@@ -4,7 +4,6 @@
 
 #include "uritemplate_helpers.h"
 
-#include <algorithm>  // std::sort
 #include <array>      // std::array
 #include <climits>    // INT64_MIN, INT64_MAX
 #include <cstdint>    // std::uint8_t, std::int64_t
@@ -2601,8 +2600,7 @@ TEST_F(URITemplateRouterViewTest, listing_size_matches_router) {
   EXPECT_EQ(restored.size(), 4);
 }
 
-TEST_F(URITemplateRouterViewTest,
-       listing_at_yields_each_identifier_exactly_once) {
+TEST_F(URITemplateRouterViewTest, listing_at_yields_identifiers_in_bfs_order) {
   {
     sourcemeta::core::URITemplateRouter router;
     router.add("/users", 1);
@@ -2613,17 +2611,11 @@ TEST_F(URITemplateRouterViewTest,
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
-  std::vector<sourcemeta::core::URITemplateRouter::Identifier> seen;
-  for (std::size_t index = 0; index < restored.size(); ++index) {
-    seen.push_back(restored.at(index));
-  }
-
-  ASSERT_EQ(seen.size(), 4);
-  std::sort(seen.begin(), seen.end());
-  EXPECT_EQ(seen[0], 1);
-  EXPECT_EQ(seen[1], 2);
-  EXPECT_EQ(seen[2], 3);
-  EXPECT_EQ(seen[3], 4);
+  EXPECT_EQ(restored.size(), 4);
+  EXPECT_EQ(restored.at(0), 1);
+  EXPECT_EQ(restored.at(1), 4);
+  EXPECT_EQ(restored.at(2), 2);
+  EXPECT_EQ(restored.at(3), 3);
 }
 
 TEST_F(URITemplateRouterViewTest, listing_context_returns_associated_context) {
@@ -2844,14 +2836,8 @@ TEST_F(URITemplateRouterViewTest, listing_iterate_via_size_and_at) {
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
-  std::vector<sourcemeta::core::URITemplateRouter::Identifier> seen;
-  for (std::size_t index = 0; index < restored.size(); ++index) {
-    seen.push_back(restored.at(index));
-  }
-
-  ASSERT_EQ(seen.size(), 3);
-  std::sort(seen.begin(), seen.end());
-  EXPECT_EQ(seen[0], 10);
-  EXPECT_EQ(seen[1], 20);
-  EXPECT_EQ(seen[2], 30);
+  EXPECT_EQ(restored.size(), 3);
+  EXPECT_EQ(restored.at(0), 10);
+  EXPECT_EQ(restored.at(1), 20);
+  EXPECT_EQ(restored.at(2), 30);
 }
