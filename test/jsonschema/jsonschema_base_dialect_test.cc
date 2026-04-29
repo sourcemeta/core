@@ -603,3 +603,45 @@ TEST(JSONSchema_base_dialect, to_base_dialect_empty) {
   const auto result{sourcemeta::core::to_base_dialect("")};
   EXPECT_FALSE(result.has_value());
 }
+
+TEST(JSONSchema_base_dialect, override_disallowed_returns_schema_base) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  const auto base_dialect{
+      sourcemeta::core::base_dialect(document, test_resolver, "", false)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
+}
+
+TEST(JSONSchema_base_dialect, override_disallowed_with_unresolvable_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://example.com/does-not-exist"
+  })JSON");
+
+  const auto base_dialect{
+      sourcemeta::core::base_dialect(document, test_resolver, "", false)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+}
+
+TEST(JSONSchema_base_dialect, override_disallowed_with_default_dialect) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  const auto base_dialect{sourcemeta::core::base_dialect(
+      document, test_resolver, "http://json-schema.org/draft-07/schema#",
+      false)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
+}
