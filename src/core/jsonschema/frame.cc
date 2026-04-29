@@ -168,22 +168,25 @@ auto find_nearest_bases(const MapType &bases,
   return {{}, sourcemeta::core::empty_weak_pointer};
 }
 
-template <typename DialectStringType> struct CombinedWalkResult {
-  std::optional<
-      std::pair<std::reference_wrapper<const std::vector<DialectStringType>>,
-                sourcemeta::core::WeakPointer>>
+struct DialectAtPointer {
+  std::vector<std::string_view> dialects;
+  sourcemeta::core::SchemaBaseDialect base_dialect;
+};
+
+struct CombinedWalkResult {
+  std::optional<std::pair<std::reference_wrapper<const DialectAtPointer>,
+                          sourcemeta::core::WeakPointer>>
       dialect_match;
   std::vector<std::pair<std::string_view, sourcemeta::core::WeakPointer>>
       every_base;
 };
 
-template <typename DialectStringType, typename DialectMapType,
-          typename BaseMapType>
+template <typename DialectMapType, typename BaseMapType>
 auto find_dialect_and_all_bases(const DialectMapType &base_dialects,
                                 const BaseMapType &base_uris,
                                 const sourcemeta::core::WeakPointer &pointer)
-    -> CombinedWalkResult<DialectStringType> {
-  CombinedWalkResult<DialectStringType> result;
+    -> CombinedWalkResult {
+  CombinedWalkResult result;
 
   auto current_pointer{pointer};
   while (true) {
@@ -451,11 +454,8 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
   std::unordered_map<WeakPointer, std::vector<JSON::String>,
                      WeakPointer::Hasher>
       base_uris;
-  std::unordered_map<WeakPointer, std::vector<std::string_view>,
-                     WeakPointer::Hasher>
+  std::unordered_map<WeakPointer, DialectAtPointer, WeakPointer::Hasher>
       base_dialects;
-  std::unordered_map<WeakPointer, SchemaBaseDialect, WeakPointer::Hasher>
-      base_dialects_resolved;
 
   for (const auto &path : paths) {
     // Passing paths that overlap is undefined behavior. No path should
@@ -524,12 +524,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
       // Dialect
       assert(!entry.dialect.empty());
-      base_dialects.insert({entry.pointer, {entry.dialect}});
-
-      // Base dialect
       assert(entry.base_dialect.has_value());
-      base_dialects_resolved.insert(
-          {entry.pointer, entry.base_dialect.value()});
+      base_dialects.insert(
+          {entry.pointer,
+           DialectAtPointer{.dialects = {entry.dialect},
+                            .base_dialect = entry.base_dialect.value()}});
 
       // Schema identifier
       // We need to store the default_id in a local variable to ensure
@@ -790,15 +789,15 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
     for (const auto &relative_pointer : pointers) {
       const auto pointer_weak{path.concat(relative_pointer)};
 
-      const auto combined{find_dialect_and_all_bases<std::string_view>(
-          base_dialects, base_uris, pointer_weak)};
+      const auto combined{
+          find_dialect_and_all_bases(base_dialects, base_uris, pointer_weak)};
       const auto &dialect_for_pointer{
           combined.dialect_match.has_value()
-              ? combined.dialect_match->first.get().front()
+              ? combined.dialect_match->first.get().dialects.front()
               : root_dialect};
       const auto base_dialect_for_pointer{
           combined.dialect_match.has_value()
-              ? base_dialects_resolved.at(combined.dialect_match->second)
+              ? combined.dialect_match->first.get().base_dialect
               : root_base_dialect.value()};
       const auto &every_base_result{combined.every_base};
 

@@ -8,6 +8,46 @@
 namespace {
 enum class SchemaWalkerType_t : std::uint8_t { Deep, Flat };
 
+struct DialectInfo {
+  std::string_view dialect;
+  sourcemeta::core::SchemaBaseDialect base_dialect;
+  bool override_active;
+};
+
+auto resolve_dialect_at(
+    const sourcemeta::core::JSON &subschema,
+    const std::string_view inherited_dialect,
+    const sourcemeta::core::SchemaBaseDialect inherited_base,
+    const sourcemeta::core::SchemaResolver &resolver, const std::size_t level,
+    const bool allow_dialect_override) -> DialectInfo {
+  auto local{sourcemeta::core::dialect(subschema, inherited_dialect,
+                                       allow_dialect_override)};
+  const auto override_active{
+      local != sourcemeta::core::dialect(subschema, inherited_dialect, false)};
+  auto id{sourcemeta::core::identify(subschema, resolver, local, "",
+                                     allow_dialect_override)};
+  if (id.empty() && local != inherited_dialect && !override_active) {
+    id = sourcemeta::core::identify(subschema, inherited_base);
+    if (!id.empty()) {
+      local = inherited_dialect;
+    }
+  }
+  if (!override_active && level > 0 && id.empty()) {
+    return {.dialect = inherited_dialect,
+            .base_dialect = inherited_base,
+            .override_active = false};
+  }
+  const auto resolved_base{
+      local != inherited_dialect
+          ? sourcemeta::core::base_dialect(subschema, resolver, local,
+                                           allow_dialect_override)
+                .value_or(inherited_base)
+          : inherited_base};
+  return {.dialect = local,
+          .base_dialect = resolved_base,
+          .override_active = override_active};
+}
+
 auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
           const sourcemeta::core::WeakPointer &pointer,
           std::vector<sourcemeta::core::SchemaIteratorEntry> &subschemas,
@@ -39,52 +79,27 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   const auto enclosing_ref_overrides{
       subschema.is_object() && subschema.defines("$ref") &&
       sourcemeta::core::ref_overrides_adjacent_keywords(base_dialect)};
-  auto maybe_current_dialect{
-      sourcemeta::core::dialect(subschema, dialect, !enclosing_ref_overrides)};
-  assert(!maybe_current_dialect.empty());
-  const auto without_override{
-      sourcemeta::core::dialect(subschema, dialect, false)};
-  const auto override_active{maybe_current_dialect != without_override};
 
-  // TODO: Note that we determine the identifier here, but the framing does it
-  // all over again. Maybe we should be storing this instead?
-  auto id{sourcemeta::core::identify(
-      subschema, sourcemeta::core::to_base_dialect(maybe_current_dialect)
-                     .value_or(base_dialect))};
-  const auto different_parent_dialect{maybe_current_dialect != dialect};
-  if (id.empty() && different_parent_dialect && !override_active) {
-    id = sourcemeta::core::identify(subschema, base_dialect);
-    if (!id.empty()) {
-      maybe_current_dialect = dialect;
-    }
-  }
-
-  const auto is_schema_resource{level == 0 || !id.empty()};
-  const std::string_view current_dialect{(override_active || is_schema_resource)
-                                             ? maybe_current_dialect
-                                             : dialect};
-  const auto maybe_resolved_base_dialect{
-      current_dialect != dialect
-          ? sourcemeta::core::base_dialect(subschema, resolver, current_dialect)
-          : std::nullopt};
-  const auto current_base_dialect{maybe_resolved_base_dialect.has_value()
-                                      ? maybe_resolved_base_dialect.value()
-                                      : base_dialect};
+  const auto entry{resolve_dialect_at(subschema, dialect, base_dialect,
+                                      resolver, level,
+                                      !enclosing_ref_overrides)};
+  const auto current_dialect{entry.dialect};
+  const auto current_base_dialect{entry.base_dialect};
 
   const auto vocabularies{sourcemeta::core::vocabularies(
       resolver, current_base_dialect, current_dialect)};
 
   if (type == SchemaWalkerType_t::Deep || level > 0) {
-    sourcemeta::core::SchemaIteratorEntry entry{.parent = parent,
-                                                .pointer = pointer,
-                                                .dialect = current_dialect,
-                                                .vocabularies = vocabularies,
-                                                .base_dialect =
-                                                    current_base_dialect,
-                                                .subschema = subschema,
-                                                .orphan = orphan,
-                                                .property_name = property_name};
-    subschemas.push_back(std::move(entry));
+    sourcemeta::core::SchemaIteratorEntry iterator_entry{
+        .parent = parent,
+        .pointer = pointer,
+        .dialect = current_dialect,
+        .vocabularies = vocabularies,
+        .base_dialect = current_base_dialect,
+        .subschema = subschema,
+        .orphan = orphan,
+        .property_name = property_name};
+    subschemas.push_back(std::move(iterator_entry));
   }
 
   // We can't recurse any further
@@ -93,21 +108,12 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
     return;
   }
 
-  std::string_view child_dialect{current_dialect};
-  sourcemeta::core::SchemaBaseDialect child_base_dialect{current_base_dialect};
-  if (override_active) {
-    auto seed_id{
-        sourcemeta::core::identify(subschema, resolver, without_override)};
-    if (seed_id.empty() && without_override != dialect) {
-      seed_id = sourcemeta::core::identify(subschema, base_dialect);
-    }
-    const auto seed_is_resource{level == 0 || !seed_id.empty()};
-    child_dialect = seed_is_resource ? without_override : dialect;
-    child_base_dialect =
-        seed_is_resource ? sourcemeta::core::to_base_dialect(without_override)
-                               .value_or(base_dialect)
-                         : base_dialect;
-  }
+  const auto child{entry.override_active
+                       ? resolve_dialect_at(subschema, dialect, base_dialect,
+                                            resolver, level, false)
+                       : entry};
+  const auto child_dialect{child.dialect};
+  const auto child_base_dialect{child.base_dialect};
 
   const auto has_overriding_ref{
       subschema.defines("$ref") &&

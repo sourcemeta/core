@@ -158,7 +158,8 @@ auto is_empty_schema(const JSON &schema) -> bool;
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto identify(const JSON &schema, const SchemaResolver &resolver,
               std::string_view default_dialect = "",
-              std::string_view default_id = "") -> std::string_view;
+              std::string_view default_id = "",
+              bool allow_dialect_override = true) -> std::string_view;
 
 /// @ingroup jsonschema
 ///
@@ -256,7 +257,7 @@ auto reidentify(JSON &schema, std::string_view new_identifier,
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto dialect(const JSON &schema, std::string_view default_dialect = "",
-             bool allow_internal_override = true) -> std::string_view;
+             bool allow_dialect_override = true) -> std::string_view;
 
 /// @ingroup jsonschema
 ///
@@ -313,7 +314,8 @@ auto metaschema(const JSON &schema, const SchemaResolver &resolver,
 /// ```
 SOURCEMETA_CORE_JSONSCHEMA_EXPORT
 auto base_dialect(const JSON &schema, const SchemaResolver &resolver,
-                  std::string_view default_dialect = "")
+                  std::string_view default_dialect = "",
+                  bool allow_dialect_override = true)
     -> std::optional<SchemaBaseDialect>;
 
 /// @ingroup jsonschema
