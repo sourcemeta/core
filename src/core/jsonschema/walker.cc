@@ -36,31 +36,18 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   // enough information to detect those cases and throw an error if they desire
   // to be more strict.
 
-  // The `$ref`-shadows-siblings rule (Draft 7 and earlier) is decided using
-  // the ENCLOSING base dialect. When it fires, the dialect override keyword
-  // is one of those siblings and is ignored at this location too.
   const auto enclosing_ref_overrides{
       subschema.is_object() && subschema.defines("$ref") &&
       sourcemeta::core::ref_overrides_adjacent_keywords(base_dialect)};
-  const auto *override_value{
-      (!enclosing_ref_overrides && subschema.is_object())
-          ? subschema.try_at("x-sourcemeta-dialect-override-subschema")
-          : nullptr};
-  const auto override_active{override_value != nullptr &&
-                             override_value->is_string() &&
-                             !override_value->to_string().empty()};
-
   auto maybe_current_dialect{
       sourcemeta::core::dialect(subschema, dialect, !enclosing_ref_overrides)};
   assert(!maybe_current_dialect.empty());
+  const auto without_override{
+      sourcemeta::core::dialect(subschema, dialect, false)};
+  const auto override_active{maybe_current_dialect != without_override};
 
   // TODO: Note that we determine the identifier here, but the framing does it
   // all over again. Maybe we should be storing this instead?
-  // Identify under the base dialect that corresponds to the current dialect
-  // URI without re-routing through `dialect()` internally. The 3-argument
-  // `identify()` would call `base_dialect()` which calls `dialect()`, picking
-  // up the internal override even when this walker has already decided to
-  // bypass it (e.g. under the `$ref` shadow rule).
   const auto identify_base_dialect{
       maybe_current_dialect == dialect
           ? base_dialect
@@ -68,9 +55,6 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
                 .value_or(base_dialect)};
   auto id{sourcemeta::core::identify(subschema, identify_base_dialect)};
   const auto different_parent_dialect{maybe_current_dialect != dialect};
-  // The embedded-resource recovery branch is disabled when the override is
-  // active. Otherwise an override that intentionally points at a dialect not
-  // recognising the present identifier keyword would be silently undone.
   if (id.empty() && different_parent_dialect && !override_active) {
     id = sourcemeta::core::identify(subschema, base_dialect);
     if (!id.empty()) {
@@ -79,11 +63,6 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
   }
 
   const auto is_schema_resource{level == 0 || !id.empty()};
-  // The override applies at this location regardless of resource-ness: it
-  // sets vocabulary classification, identifier-keyword choice, and anchor
-  // discovery here even when the location is not a resource boundary.
-  // `$schema` retains the existing rule (only honored at resource
-  // boundaries).
   const std::string_view current_dialect{(override_active || is_schema_resource)
                                              ? maybe_current_dialect
                                              : dialect};
@@ -117,21 +96,17 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
     return;
   }
 
-  // The override applies only at this location. Children inherit the
-  // dialect that would have applied without the override, so we re-run the
-  // resolution using `dialect()` with the internal override disabled.
   std::string_view child_dialect{current_dialect};
   sourcemeta::core::SchemaBaseDialect child_base_dialect{current_base_dialect};
   if (override_active) {
-    const auto seed_dialect{
-        sourcemeta::core::dialect(subschema, dialect, false)};
-    auto seed_id{sourcemeta::core::identify(subschema, resolver, seed_dialect)};
-    if (seed_id.empty() && seed_dialect != dialect) {
+    auto seed_id{
+        sourcemeta::core::identify(subschema, resolver, without_override)};
+    if (seed_id.empty() && without_override != dialect) {
       seed_id = sourcemeta::core::identify(subschema, base_dialect);
     }
     const auto seed_is_resource{level == 0 || !seed_id.empty()};
     if (seed_is_resource) {
-      child_dialect = seed_dialect;
+      child_dialect = without_override;
       if (child_dialect != dialect) {
         const auto known{sourcemeta::core::to_base_dialect(child_dialect)};
         child_base_dialect = known.value_or(base_dialect);
