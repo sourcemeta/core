@@ -199,6 +199,48 @@ TEST(JSONSchema_base_dialect, default_dialect_official_takes_precedence) {
             sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
 }
 
+TEST(JSONSchema_base_dialect, override_takes_precedence_over_schema) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+  const auto base_dialect{
+      sourcemeta::core::base_dialect(document, test_resolver)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+}
+
+TEST(JSONSchema_base_dialect, override_takes_precedence_over_default) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-sourcemeta-dialect-override-subschema":
+      "http://json-schema.org/draft-04/schema#"
+  })JSON");
+  const auto base_dialect{sourcemeta::core::base_dialect(
+      document, test_resolver, "https://json-schema.org/draft/2020-12/schema")};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
+}
+
+TEST(JSONSchema_base_dialect, override_unresolvable_throws) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://example.com/does-not-exist"
+  })JSON");
+
+  try {
+    sourcemeta::core::base_dialect(document, test_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaResolutionError &error) {
+    EXPECT_EQ(error.identifier(), "https://example.com/does-not-exist");
+  } catch (...) {
+    FAIL();
+  }
+}
+
 TEST(JSONSchema_base_dialect, to_string_2020_12) {
   EXPECT_EQ(sourcemeta::core::to_string(
                 sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12),
@@ -560,4 +602,46 @@ TEST(JSONSchema_base_dialect, to_base_dialect_unknown) {
 TEST(JSONSchema_base_dialect, to_base_dialect_empty) {
   const auto result{sourcemeta::core::to_base_dialect("")};
   EXPECT_FALSE(result.has_value());
+}
+
+TEST(JSONSchema_base_dialect, override_disallowed_returns_schema_base) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  const auto base_dialect{
+      sourcemeta::core::base_dialect(document, test_resolver, "", false)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_4);
+}
+
+TEST(JSONSchema_base_dialect, override_disallowed_with_unresolvable_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://example.com/does-not-exist"
+  })JSON");
+
+  const auto base_dialect{
+      sourcemeta::core::base_dialect(document, test_resolver, "", false)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_2020_12);
+}
+
+TEST(JSONSchema_base_dialect, override_disallowed_with_default_dialect) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  const auto base_dialect{sourcemeta::core::base_dialect(
+      document, test_resolver, "http://json-schema.org/draft-07/schema#",
+      false)};
+  EXPECT_TRUE(base_dialect.has_value());
+  EXPECT_EQ(base_dialect.value(),
+            sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7);
 }

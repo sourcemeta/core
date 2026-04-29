@@ -238,3 +238,44 @@ TEST(JSONSchema_identify, draft7_ref_with_wrong_id_keyword_strict) {
       document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_Draft_7)};
   EXPECT_TRUE(id.empty());
 }
+
+TEST(JSONSchema_identify, override_allowed_picks_dollarid) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/via-id",
+    "$id": "http://example.com/via-dollarid",
+    "x-sourcemeta-dialect-override-subschema":
+      "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  const auto id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
+  EXPECT_EQ(id, "http://example.com/via-dollarid");
+}
+
+TEST(JSONSchema_identify, override_disallowed_picks_id) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://example.com/via-id",
+    "$id": "http://example.com/via-dollarid",
+    "x-sourcemeta-dialect-override-subschema":
+      "http://json-schema.org/draft-06/schema#"
+  })JSON");
+
+  const auto id{sourcemeta::core::identify(
+      document, sourcemeta::core::schema_resolver, "", "", false)};
+  EXPECT_EQ(id, "http://example.com/via-id");
+}
+
+TEST(JSONSchema_identify, override_disallowed_with_unresolvable_uri) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "http://example.com/foo",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://example.com/does-not-exist"
+  })JSON");
+
+  const auto id{sourcemeta::core::identify(
+      document, sourcemeta::core::schema_resolver, "", "", false)};
+  EXPECT_EQ(id, "http://example.com/foo");
+}

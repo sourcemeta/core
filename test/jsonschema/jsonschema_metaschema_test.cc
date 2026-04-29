@@ -57,3 +57,46 @@ TEST(JSONSchema_metaschema, unknown_dialect) {
       sourcemeta::core::metaschema(schema, sourcemeta::core::schema_resolver),
       sourcemeta::core::SchemaResolutionError);
 }
+
+TEST(JSONSchema_metaschema, override_returns_override_metaschema) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON")};
+
+  const auto metaschema{
+      sourcemeta::core::metaschema(schema, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(metaschema.is_object());
+  EXPECT_EQ(metaschema, sourcemeta::core::schema_resolver(
+                            "https://json-schema.org/draft/2020-12/schema")
+                            .value());
+}
+
+TEST(JSONSchema_metaschema, override_only_returns_override_metaschema) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "x-sourcemeta-dialect-override-subschema":
+      "https://json-schema.org/draft/2020-12/schema",
+    "type": "string"
+  })JSON")};
+
+  const auto metaschema{
+      sourcemeta::core::metaschema(schema, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(metaschema.is_object());
+  EXPECT_EQ(metaschema, sourcemeta::core::schema_resolver(
+                            "https://json-schema.org/draft/2020-12/schema")
+                            .value());
+}
+
+TEST(JSONSchema_metaschema, override_unresolvable) {
+  const auto schema{sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "x-sourcemeta-dialect-override-subschema": "https://example.com/missing",
+    "type": "string"
+  })JSON")};
+
+  EXPECT_THROW(
+      sourcemeta::core::metaschema(schema, sourcemeta::core::schema_resolver),
+      sourcemeta::core::SchemaResolutionError);
+}
