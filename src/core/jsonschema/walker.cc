@@ -48,12 +48,9 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
 
   // TODO: Note that we determine the identifier here, but the framing does it
   // all over again. Maybe we should be storing this instead?
-  const auto identify_base_dialect{
-      maybe_current_dialect == dialect
-          ? base_dialect
-          : sourcemeta::core::to_base_dialect(maybe_current_dialect)
-                .value_or(base_dialect)};
-  auto id{sourcemeta::core::identify(subschema, identify_base_dialect)};
+  auto id{sourcemeta::core::identify(
+      subschema, sourcemeta::core::to_base_dialect(maybe_current_dialect)
+                     .value_or(base_dialect))};
   const auto different_parent_dialect{maybe_current_dialect != dialect};
   if (id.empty() && different_parent_dialect && !override_active) {
     id = sourcemeta::core::identify(subschema, base_dialect);
@@ -105,18 +102,11 @@ auto walk(const std::optional<sourcemeta::core::WeakPointer> &parent,
       seed_id = sourcemeta::core::identify(subschema, base_dialect);
     }
     const auto seed_is_resource{level == 0 || !seed_id.empty()};
-    if (seed_is_resource) {
-      child_dialect = without_override;
-      if (child_dialect != dialect) {
-        const auto known{sourcemeta::core::to_base_dialect(child_dialect)};
-        child_base_dialect = known.value_or(base_dialect);
-      } else {
-        child_base_dialect = base_dialect;
-      }
-    } else {
-      child_dialect = dialect;
-      child_base_dialect = base_dialect;
-    }
+    child_dialect = seed_is_resource ? without_override : dialect;
+    child_base_dialect =
+        seed_is_resource ? sourcemeta::core::to_base_dialect(without_override)
+                               .value_or(base_dialect)
+                         : base_dialect;
   }
 
   const auto has_overriding_ref{
