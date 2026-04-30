@@ -661,6 +661,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
             const auto maybe_fragment{maybe_relative.fragment()};
 
+            // Both 2019-09 and 2020-12 state:
+            //
+            //   "$id" MUST NOT contain a non-empty fragment, and SHOULD NOT
+            //   contain an empty fragment.
+            //
             // See
             // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.2
             // See

@@ -7702,3 +7702,48 @@ TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_valid_leading_underscore) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema#_foo", frame.root());
 }
+
+TEST(JSONSchema_frame_2020_12, top_level_id_absolute_with_non_empty_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema#foo",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/schema#foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, nested_id_absolute_with_non_empty_fragment) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": {
+        "$id": "https://www.sourcemeta.com/nested#foo"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_EQ(error.identifier(), "https://www.sourcemeta.com/nested#foo");
+  } catch (...) {
+    FAIL();
+  }
+}
