@@ -7398,3 +7398,217 @@ TEST(JSONSchema_frame_2020_12,
                                   "https://example.com/unreferenced#meta",
                                   "https://example.com/unreferenced");
 }
+
+TEST(JSONSchema_frame_2020_12, anchor_with_invalid_format_empty) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": ""
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, anchor_with_invalid_format_leading_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "1foo"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, anchor_with_invalid_format_leading_hyphen) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "-foo"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "-foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, anchor_with_invalid_format_whitespace) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "foo bar"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "foo bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, anchor_with_invalid_format_punctuation) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "foo!bar"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "foo!bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, anchor_with_invalid_format_colon) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "foo:bar"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$anchor");
+    EXPECT_EQ(error.value(), "foo:bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, anchor_with_valid_leading_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$anchor": "_foo"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  EXPECT_NO_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                                sourcemeta::core::schema_resolver));
+}
+
+TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_invalid_format_empty) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": ""
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$dynamicAnchor");
+    EXPECT_EQ(error.value(), "");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12,
+     dynamic_anchor_with_invalid_format_leading_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "1foo"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$dynamicAnchor");
+    EXPECT_EQ(error.value(), "1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_invalid_format_colon) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "foo:bar"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$dynamicAnchor");
+    EXPECT_EQ(error.value(), "foo:bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_2020_12, dynamic_anchor_with_valid_leading_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$dynamicAnchor": "_foo"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  EXPECT_NO_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
+                                sourcemeta::core::schema_resolver));
+}
