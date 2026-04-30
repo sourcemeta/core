@@ -69,3 +69,55 @@ TEST(URI_user_info, rfc3986_userinfo_with_at_sign) {
   // and must not be decoded
   EXPECT_EQ(uri.userinfo().value(), "user%40domain:pass");
 }
+
+TEST(URI_user_info_setter, set_on_uri_without_userinfo) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.userinfo().value(), "user");
+  EXPECT_EQ(uri.recompose(), "http://user@host/path");
+}
+
+TEST(URI_user_info_setter, replace_existing_userinfo) {
+  sourcemeta::core::URI uri{"http://user:pass@host/path"};
+  uri.userinfo("alice");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.userinfo().value(), "alice");
+  EXPECT_EQ(uri.recompose(), "http://alice@host/path");
+}
+
+TEST(URI_user_info_setter, clear_with_empty_string) {
+  sourcemeta::core::URI uri{"http://user:pass@host/path"};
+  uri.userinfo("");
+  EXPECT_FALSE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.recompose(), "http://host/path");
+}
+
+TEST(URI_user_info_setter, clear_when_already_absent) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("");
+  EXPECT_FALSE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.recompose(), "http://host/path");
+}
+
+TEST(URI_user_info_setter, set_with_colon) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user:secret");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.userinfo().value(), "user:secret");
+  EXPECT_EQ(uri.recompose(), "http://user:secret@host/path");
+}
+
+TEST(URI_user_info_setter, percent_encoding_applied_on_recompose) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user name");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.userinfo().value(), "user name");
+  EXPECT_EQ(uri.recompose(), "http://user%20name@host/path");
+}
+
+TEST(URI_user_info_setter, returns_reference_for_chaining) {
+  sourcemeta::core::URI uri{"http://host"};
+  uri.userinfo("user").fragment("section");
+  EXPECT_EQ(uri.recompose(), "http://user@host#section");
+}

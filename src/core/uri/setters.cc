@@ -154,4 +154,24 @@ auto URI::fragment(const std::string_view fragment) -> URI & {
   return *this;
 }
 
+auto URI::query(const std::string_view query) -> URI & {
+  if (query.empty()) {
+    this->query_ = std::nullopt;
+    return *this;
+  }
+
+  this->query_ = std::string{query.starts_with('?') ? query.substr(1) : query};
+  return *this;
+}
+
+auto URI::userinfo(const std::string_view userinfo) -> URI & {
+  if (userinfo.empty()) {
+    this->userinfo_ = std::nullopt;
+    return *this;
+  }
+
+  this->userinfo_ = std::string{userinfo};
+  return *this;
+}
+
 } // namespace sourcemeta::core
