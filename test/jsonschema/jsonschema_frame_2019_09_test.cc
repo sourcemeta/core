@@ -3211,12 +3211,55 @@ TEST(JSONSchema_frame_2019_09, anchor_with_invalid_format_punctuation) {
 
 TEST(JSONSchema_frame_2019_09, anchor_with_valid_colon) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$anchor": "foo:bar"
   })JSON");
 
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
-  EXPECT_NO_THROW(frame.analyse(document, sourcemeta::core::schema_walker,
-                                sourcemeta::core::schema_resolver));
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  EXPECT_FRAME_STATIC_2019_09_RESOURCE(
+      frame, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_2019_09_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$id",
+      "https://www.sourcemeta.com/schema", "/$id",
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_2019_09_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_2019_09_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$anchor",
+      "https://www.sourcemeta.com/schema", "/$anchor",
+      "https://www.sourcemeta.com/schema", "/$anchor", "", false, false);
+
+  // Anchors
+
+  EXPECT_FRAME_STATIC_2019_09_ANCHOR(
+      frame, "https://www.sourcemeta.com/schema#foo:bar",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2019-09/schema",
+      "https://json-schema.org/draft/2019-09/schema", std::nullopt,
+      "https://json-schema.org/draft/2019-09/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema#foo:bar", frame.root());
 }
