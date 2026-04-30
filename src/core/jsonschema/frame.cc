@@ -47,7 +47,7 @@ auto is_valid_anchor_2020_12(const std::string_view name) -> bool {
   return true;
 }
 
-auto is_valid_anchor_2019_09(const std::string_view name) -> bool {
+auto is_valid_anchor(const std::string_view name) -> bool {
   if (name.empty()) {
     return false;
   }
@@ -135,7 +135,7 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
     const auto *anchor_2019{schema.try_at("$anchor")};
     if (anchor_2019 && anchor_2019->is_string()) {
       const std::string_view anchor_view{anchor_2019->to_string()};
-      if (!is_valid_anchor_2019_09(anchor_view)) {
+      if (!is_valid_anchor(anchor_view)) {
         throw sourcemeta::core::SchemaKeywordError("$anchor", anchor_view,
                                                    "Invalid anchor value");
       }
@@ -168,8 +168,16 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       // A bare "#" carries no anchor name, so we treat it as no anchor at
       // all.
       if (id_view.starts_with('#') && id_view.size() > 1) {
-        // The original string is "#fragment", skip the '#'
-        result.emplace_back(id_view.substr(1), AnchorType::Static);
+        const std::string_view anchor_view{id_view.substr(1)};
+        // Per Draft 7 / 6 spec, the plain-name fragment in `$id` must
+        // begin with a letter `[A-Za-z]` followed by any number of
+        // letters, digits, hyphens, underscores, colons, or periods.
+        if (!is_valid_anchor(anchor_view)) {
+          throw sourcemeta::core::SchemaKeywordError("$id", id_view,
+                                                     "Invalid anchor value");
+        }
+
+        result.emplace_back(anchor_view, AnchorType::Static);
       }
     }
   }
@@ -186,7 +194,13 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
       // A bare "#" carries no anchor name, so we treat it as no anchor at
       // all.
       if (id_view.starts_with('#') && id_view.size() > 1) {
-        // The original string is "#fragment", skip the '#'
+        // Draft 4 imposes no plain-name pattern on the fragment, but the
+        // value must still be a valid URI reference per RFC 3986
+        if (!sourcemeta::core::URI::is_uri_reference(id_view)) {
+          throw sourcemeta::core::SchemaKeywordError(
+              "id", id_view, "The identifier is not a valid URI");
+        }
+
         result.emplace_back(id_view.substr(1), AnchorType::Static);
       }
     }
