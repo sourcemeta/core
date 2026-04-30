@@ -229,3 +229,13 @@ TEST(JSONSchema_identify_draft6, reidentify_set_with_top_level_ref_and_allof) {
                                             sourcemeta::core::schema_resolver),
                sourcemeta::core::SchemaReferenceObjectResourceError);
 }
+
+TEST(JSONSchema_identify_draft6, id_empty_fragment_only) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#",
+    "$schema": "http://json-schema.org/draft-06/schema#"
+  })JSON");
+  const auto id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(id.empty());
+}

@@ -180,6 +180,18 @@ auto sourcemeta::core::identify(const JSON &schema,
     return default_id;
   }
 
+  // An identifier consisting solely of the empty-fragment marker "#"
+  // canonicalizes to the empty string and resolves to the parent base.
+  // It carries no information, so we treat it as if no identifier was
+  // declared at all (i.e. no new schema resource is introduced).
+  // See
+  // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.2
+  // See
+  // https://json-schema.org/draft/2020-12/draft-bhutton-json-schema-01#section-8.2.1-5
+  if (identifier.to_string() == "#") {
+    return default_id;
+  }
+
   return identifier.to_string();
 }
 

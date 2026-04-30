@@ -1244,3 +1244,42 @@ TEST(JSONSchema_frame_draft7, nested_relative_ref_with_id) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://example.com#/additionalProperties", frame.root());
 }
+
+TEST(JSONSchema_frame_draft7, top_level_id_empty_fragment_only) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#",
+    "$schema": "http://json-schema.org/draft-07/schema#"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_TRUE(frame.root().empty());
+
+  EXPECT_EQ(frame.locations().size(), 3);
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, std::nullopt, false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$id", "/$id", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, "", false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-07/schema#",
+      JSON_Schema_Draft_7, "", false, false);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-07/schema",
+      "http://json-schema.org/draft-07/schema", std::nullopt,
+      "http://json-schema.org/draft-07/schema#");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
+}

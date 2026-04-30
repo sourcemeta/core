@@ -222,3 +222,34 @@ TEST(JSONSchema_identify_2019_09, reidentify_set_with_top_level_ref) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(JSONSchema_identify_2019_09, id_empty_fragment_only) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#",
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON");
+  const auto id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(id.empty());
+}
+
+TEST(JSONSchema_identify_2019_09, id_empty_fragment_only_with_default) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#",
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON");
+  const auto id{sourcemeta::core::identify(document,
+                                           sourcemeta::core::schema_resolver,
+                                           "", "https://example.com/fallback")};
+  EXPECT_EQ(id, "https://example.com/fallback");
+}
+
+TEST(JSONSchema_identify_2019_09, id_empty_fragment_only_base_dialect) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "#",
+    "$schema": "https://json-schema.org/draft/2019-09/schema"
+  })JSON");
+  const auto id{sourcemeta::core::identify(
+      document, sourcemeta::core::SchemaBaseDialect::JSON_Schema_2019_09)};
+  EXPECT_TRUE(id.empty());
+}
