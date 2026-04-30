@@ -901,3 +901,44 @@ TEST(JSONSchema_frame_draft3, top_level_id_empty_string) {
 
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
 }
+
+TEST(JSONSchema_frame_draft3, id_fragment_rejected) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "#foo",
+    "$schema": "http://json-schema.org/draft-03/schema#"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaFrameError &error) {
+    EXPECT_EQ(error.identifier(), "#foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_draft3, id_fragment_invalid_whitespace) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "#foo bar",
+    "$schema": "http://json-schema.org/draft-03/schema#"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "id");
+    EXPECT_EQ(error.value(), "#foo bar");
+  } catch (...) {
+    FAIL();
+  }
+}

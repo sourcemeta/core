@@ -1322,3 +1322,103 @@ TEST(JSONSchema_frame_draft7, top_level_id_empty_string) {
 
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
 }
+
+TEST(JSONSchema_frame_draft7, id_fragment_invalid_leading_digit) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": {
+        "$id": "#1foo"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#1foo");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_draft7, id_fragment_invalid_punctuation) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": {
+        "$id": "#foo!"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#foo!");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_draft7, id_fragment_invalid_at_sign) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": {
+        "$id": "#foo@bar"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#foo@bar");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(JSONSchema_frame_draft7, id_fragment_invalid_leading_underscore) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+      "foo": {
+        "$id": "#_foo"
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+
+  try {
+    frame.analyse(document, sourcemeta::core::schema_walker,
+                  sourcemeta::core::schema_resolver);
+    FAIL();
+  } catch (const sourcemeta::core::SchemaKeywordError &error) {
+    EXPECT_EQ(error.keyword(), "$id");
+    EXPECT_EQ(error.value(), "#_foo");
+  } catch (...) {
+    FAIL();
+  }
+}
