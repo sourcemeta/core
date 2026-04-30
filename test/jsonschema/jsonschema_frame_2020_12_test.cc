@@ -7848,3 +7848,104 @@ TEST(JSONSchema_frame_2020_12, nested_id_empty_fragment_only) {
   EXPECT_FRAME_LOCATION_REACHABLE(
       frame, Static, "https://www.sourcemeta.com/schema", frame.root());
 }
+
+TEST(JSONSchema_frame_2020_12, top_level_id_empty_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_TRUE(frame.root().empty());
+
+  EXPECT_EQ(frame.locations().size(), 3);
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "https://json-schema.org/draft/2020-12/schema",
+      JSON_Schema_2020_12, std::nullopt, false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$id", "/$id", "https://json-schema.org/draft/2020-12/schema",
+      JSON_Schema_2020_12, "", false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema",
+      "https://json-schema.org/draft/2020-12/schema", JSON_Schema_2020_12, "",
+      false, false);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
+}
+
+TEST(JSONSchema_frame_2020_12, nested_id_empty_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$id": "https://www.sourcemeta.com/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+      "foo": {
+        "$id": ""
+      }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.root(), "https://www.sourcemeta.com/schema");
+
+  EXPECT_EQ(frame.locations().size(), 6);
+
+  EXPECT_FRAME_STATIC_2020_12_RESOURCE(
+      frame, "https://www.sourcemeta.com/schema",
+      "https://www.sourcemeta.com/schema", "",
+      "https://www.sourcemeta.com/schema", "", std::nullopt, false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$id",
+      "https://www.sourcemeta.com/schema", "/$id",
+      "https://www.sourcemeta.com/schema", "/$id", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema",
+      "https://www.sourcemeta.com/schema", "/$schema", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs",
+      "https://www.sourcemeta.com/schema", "/$defs",
+      "https://www.sourcemeta.com/schema", "/$defs", "", false, false);
+  EXPECT_FRAME_STATIC_2020_12_SUBSCHEMA(
+      frame, "https://www.sourcemeta.com/schema#/$defs/foo",
+      "https://www.sourcemeta.com/schema", "/$defs/foo",
+      "https://www.sourcemeta.com/schema", "/$defs/foo", "", false, true);
+  EXPECT_FRAME_STATIC_2020_12_POINTER(
+      frame, "https://www.sourcemeta.com/schema#/$defs/foo/$id",
+      "https://www.sourcemeta.com/schema", "/$defs/foo/$id",
+      "https://www.sourcemeta.com/schema", "/$defs/foo/$id", "/$defs/foo",
+      false, true);
+
+  // References
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "https://json-schema.org/draft/2020-12/schema",
+      "https://json-schema.org/draft/2020-12/schema", std::nullopt,
+      "https://json-schema.org/draft/2020-12/schema");
+
+  // Reachability
+
+  EXPECT_FRAME_LOCATION_REACHABLE(
+      frame, Static, "https://www.sourcemeta.com/schema", frame.root());
+}

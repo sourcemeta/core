@@ -240,3 +240,13 @@ TEST(JSONSchema_identify_draft3, id_empty_fragment_only) {
       sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
   EXPECT_TRUE(id.empty());
 }
+
+TEST(JSONSchema_identify_draft3, id_empty_string) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "id": "",
+    "$schema": "http://json-schema.org/draft-03/schema#"
+  })JSON");
+  const auto id{
+      sourcemeta::core::identify(document, sourcemeta::core::schema_resolver)};
+  EXPECT_TRUE(id.empty());
+}
