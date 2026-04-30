@@ -116,3 +116,86 @@ TEST(URI_query, encoded_equals_preserved) {
   EXPECT_TRUE(uri.query().has_value());
   EXPECT_EQ(uri.query().value(), "key%3Dvalue");
 }
+
+TEST(URI_query_setter, set_on_uri_without_query) {
+  sourcemeta::core::URI uri{"https://example.com/path"};
+  uri.query("foo=bar");
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "foo=bar");
+  EXPECT_EQ(uri.recompose(), "https://example.com/path?foo=bar");
+}
+
+TEST(URI_query_setter, replace_existing_query) {
+  sourcemeta::core::URI uri{"https://example.com/path?old=value"};
+  uri.query("foo=bar");
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "foo=bar");
+  EXPECT_EQ(uri.recompose(), "https://example.com/path?foo=bar");
+}
+
+TEST(URI_query_setter, clear_with_empty_string) {
+  sourcemeta::core::URI uri{"https://example.com/path?foo=bar"};
+  uri.query("");
+  EXPECT_FALSE(uri.query().has_value());
+  EXPECT_EQ(uri.recompose(), "https://example.com/path");
+}
+
+TEST(URI_query_setter, clear_when_already_absent) {
+  sourcemeta::core::URI uri{"https://example.com/path"};
+  uri.query("");
+  EXPECT_FALSE(uri.query().has_value());
+  EXPECT_EQ(uri.recompose(), "https://example.com/path");
+}
+
+TEST(URI_query_setter, leading_question_mark_stripped) {
+  sourcemeta::core::URI uri{"https://example.com/path"};
+  uri.query("?foo=bar");
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "foo=bar");
+  EXPECT_EQ(uri.recompose(), "https://example.com/path?foo=bar");
+}
+
+TEST(URI_query_setter, clear_preserves_fragment) {
+  sourcemeta::core::URI uri{"https://example.com/path?foo=bar#section"};
+  uri.query("");
+  EXPECT_FALSE(uri.query().has_value());
+  EXPECT_EQ(uri.recompose(), "https://example.com/path#section");
+}
+
+TEST(URI_query_setter, percent_encoding_applied_on_recompose) {
+  sourcemeta::core::URI uri{"https://example.com/path"};
+  uri.query("foo=hello world");
+  EXPECT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value(), "foo=hello world");
+  EXPECT_EQ(uri.recompose(), "https://example.com/path?foo=hello%20world");
+}
+
+TEST(URI_query_setter, returns_reference_for_chaining) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  uri.query("a=1").fragment("section");
+  EXPECT_EQ(uri.recompose(), "https://example.com?a=1#section");
+}
+
+TEST(URI_query_setter, normalizes_unreserved_percent_encoding) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  uri.query("foo=%7Ebar");
+  EXPECT_TRUE(uri.query().has_value());
+  // %7E encodes ~, an unreserved character, so it must be decoded
+  EXPECT_EQ(uri.query().value(), "foo=~bar");
+}
+
+TEST(URI_query_setter, preserves_reserved_percent_encoding) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  uri.query("foo=%23bar");
+  EXPECT_TRUE(uri.query().has_value());
+  // %23 encodes #, a reserved character, so it must not be decoded
+  EXPECT_EQ(uri.query().value(), "foo=%23bar");
+}
+
+TEST(URI_query_setter, matches_parsed_uri_for_unreserved_percent) {
+  sourcemeta::core::URI built{"https://example.com"};
+  built.query("foo=%7Ebar");
+  const sourcemeta::core::URI parsed{"https://example.com?foo=%7Ebar"};
+  EXPECT_EQ(built.query().value(), parsed.query().value());
+  EXPECT_EQ(built.recompose(), parsed.recompose());
+}
