@@ -165,7 +165,9 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
     if (id_value) {
       assert(id_value->is_string());
       const std::string_view id_view{id_value->to_string()};
-      if (id_view.starts_with('#')) {
+      // A bare "#" carries no anchor name, so we treat it as no anchor at
+      // all.
+      if (id_view.starts_with('#') && id_view.size() > 1) {
         // The original string is "#fragment", skip the '#'
         result.emplace_back(id_view.substr(1), AnchorType::Static);
       }
@@ -181,7 +183,9 @@ auto find_anchors(const sourcemeta::core::JSON &schema,
     if (id_value) {
       assert(id_value->is_string());
       const std::string_view id_view{id_value->to_string()};
-      if (id_view.starts_with('#')) {
+      // A bare "#" carries no anchor name, so we treat it as no anchor at
+      // all.
+      if (id_view.starts_with('#') && id_view.size() > 1) {
         // The original string is "#fragment", skip the '#'
         result.emplace_back(id_view.substr(1), AnchorType::Static);
       }
@@ -661,6 +665,11 @@ auto SchemaFrame::analyse(const JSON &root, const SchemaWalker &walker,
 
             const auto maybe_fragment{maybe_relative.fragment()};
 
+            // Both 2019-09 and 2020-12 state:
+            //
+            //   "$id" MUST NOT contain a non-empty fragment, and SHOULD NOT
+            //   contain an empty fragment.
+            //
             // See
             // https://json-schema.org/draft/2019-09/draft-handrews-json-schema-02#rfc.section.8.2.2
             // See
