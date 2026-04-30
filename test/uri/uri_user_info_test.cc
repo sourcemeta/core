@@ -121,3 +121,47 @@ TEST(URI_user_info_setter, returns_reference_for_chaining) {
   uri.userinfo("user").fragment("section");
   EXPECT_EQ(uri.recompose(), "http://user@host#section");
 }
+
+TEST(URI_user_info_setter, normalizes_unreserved_percent_encoding) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user%7Ename");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  // %7E encodes ~, an unreserved character, so it must be decoded
+  EXPECT_EQ(uri.userinfo().value(), "user~name");
+}
+
+TEST(URI_user_info_setter, preserves_reserved_percent_encoding) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user%40name");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  // %40 encodes @, a reserved gen-delim, so it must not be decoded
+  EXPECT_EQ(uri.userinfo().value(), "user%40name");
+}
+
+TEST(URI_user_info_setter, matches_parsed_uri_for_unreserved_percent) {
+  sourcemeta::core::URI built{"http://host/path"};
+  built.userinfo("user%7Ename");
+  const sourcemeta::core::URI parsed{"http://user%7Ename@host/path"};
+  EXPECT_EQ(built.userinfo().value(), parsed.userinfo().value());
+  EXPECT_EQ(built.recompose(), parsed.recompose());
+}
+
+TEST(URI_user_info_setter, percent_encodes_at_sign_on_recompose) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user@domain");
+  EXPECT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.userinfo().value(), "user@domain");
+  // @ is a gen-delim that terminates userinfo, so it must be encoded
+  // on recompose to avoid producing an ambiguous URI
+  EXPECT_EQ(uri.recompose(), "http://user%40domain@host/path");
+}
+
+TEST(URI_user_info_setter, recompose_roundtrip_after_at_sign_encoded) {
+  sourcemeta::core::URI uri{"http://host/path"};
+  uri.userinfo("user@domain");
+  const auto recomposed{uri.recompose()};
+  const sourcemeta::core::URI parsed{recomposed};
+  EXPECT_EQ(parsed.recompose(), recomposed);
+  EXPECT_TRUE(parsed.userinfo().has_value());
+  EXPECT_EQ(parsed.userinfo().value(), "user%40domain");
+}

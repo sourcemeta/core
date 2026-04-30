@@ -1,5 +1,7 @@
 #include <sourcemeta/core/uri.h>
 
+#include "escaping.h"
+
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -160,7 +162,9 @@ auto URI::query(const std::string_view query) -> URI & {
     return *this;
   }
 
-  this->query_ = std::string{query.starts_with('?') ? query.substr(1) : query};
+  std::string value{query.starts_with('?') ? query.substr(1) : query};
+  uri_unescape_unreserved_inplace(value);
+  this->query_ = std::move(value);
   return *this;
 }
 
@@ -170,7 +174,9 @@ auto URI::userinfo(const std::string_view userinfo) -> URI & {
     return *this;
   }
 
-  this->userinfo_ = std::string{userinfo};
+  std::string value{userinfo};
+  uri_unescape_unreserved_inplace(value);
+  this->userinfo_ = std::move(value);
   return *this;
 }
 

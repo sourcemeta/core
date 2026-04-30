@@ -175,3 +175,27 @@ TEST(URI_query_setter, returns_reference_for_chaining) {
   uri.query("a=1").fragment("section");
   EXPECT_EQ(uri.recompose(), "https://example.com?a=1#section");
 }
+
+TEST(URI_query_setter, normalizes_unreserved_percent_encoding) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  uri.query("foo=%7Ebar");
+  EXPECT_TRUE(uri.query().has_value());
+  // %7E encodes ~, an unreserved character, so it must be decoded
+  EXPECT_EQ(uri.query().value(), "foo=~bar");
+}
+
+TEST(URI_query_setter, preserves_reserved_percent_encoding) {
+  sourcemeta::core::URI uri{"https://example.com"};
+  uri.query("foo=%23bar");
+  EXPECT_TRUE(uri.query().has_value());
+  // %23 encodes #, a reserved character, so it must not be decoded
+  EXPECT_EQ(uri.query().value(), "foo=%23bar");
+}
+
+TEST(URI_query_setter, matches_parsed_uri_for_unreserved_percent) {
+  sourcemeta::core::URI built{"https://example.com"};
+  built.query("foo=%7Ebar");
+  const sourcemeta::core::URI parsed{"https://example.com?foo=%7Ebar"};
+  EXPECT_EQ(built.query().value(), parsed.query().value());
+  EXPECT_EQ(built.recompose(), parsed.recompose());
+}
