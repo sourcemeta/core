@@ -942,3 +942,47 @@ TEST(JSONSchema_frame_draft3, id_fragment_invalid_whitespace) {
     FAIL();
   }
 }
+
+TEST(JSONSchema_frame_draft3, definitions_subschemas) {
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "http://json-schema.org/draft-03/schema#",
+    "definitions": {
+      "string": { "type": "string" }
+    }
+  })JSON");
+
+  sourcemeta::core::SchemaFrame frame{
+      sourcemeta::core::SchemaFrame::Mode::References};
+  frame.analyse(document, sourcemeta::core::schema_walker,
+                sourcemeta::core::schema_resolver);
+
+  EXPECT_EQ(frame.locations().size(), 5);
+
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "", "", "http://json-schema.org/draft-03/schema#",
+      JSON_Schema_Draft_3, std::nullopt, false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/$schema", "/$schema", "http://json-schema.org/draft-03/schema#",
+      JSON_Schema_Draft_3, "", false, false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions", "/definitions",
+      "http://json-schema.org/draft-03/schema#", JSON_Schema_Draft_3, "", false,
+      false);
+  EXPECT_ANONYMOUS_FRAME_STATIC_SUBSCHEMA(
+      frame, "#/definitions/string", "/definitions/string",
+      "http://json-schema.org/draft-03/schema#", JSON_Schema_Draft_3, "", false,
+      true);
+  EXPECT_ANONYMOUS_FRAME_STATIC_POINTER(
+      frame, "#/definitions/string/type", "/definitions/string/type",
+      "http://json-schema.org/draft-03/schema#", JSON_Schema_Draft_3,
+      "/definitions/string", false, true);
+
+  EXPECT_EQ(frame.references().size(), 1);
+
+  EXPECT_STATIC_REFERENCE(
+      frame, "/$schema", "http://json-schema.org/draft-03/schema",
+      "http://json-schema.org/draft-03/schema", std::nullopt,
+      "http://json-schema.org/draft-03/schema#");
+
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
+}

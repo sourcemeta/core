@@ -48,9 +48,9 @@ inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
     case SchemaBaseDialect::JSON_Schema_Draft_6_Hyper:
     case SchemaBaseDialect::JSON_Schema_Draft_4:
     case SchemaBaseDialect::JSON_Schema_Draft_4_Hyper:
-      return "definitions";
     case SchemaBaseDialect::JSON_Schema_Draft_3:
     case SchemaBaseDialect::JSON_Schema_Draft_3_Hyper:
+      return "definitions";
     case SchemaBaseDialect::JSON_Schema_Draft_2_Hyper:
     case SchemaBaseDialect::JSON_Schema_Draft_1_Hyper:
     case SchemaBaseDialect::JSON_Schema_Draft_0_Hyper:
@@ -59,6 +59,17 @@ inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
 
   assert(false);
   return "$defs";
+}
+
+inline auto allof_keyword(const SchemaBaseDialect base_dialect)
+    -> std::string_view {
+  switch (base_dialect) {
+    case SchemaBaseDialect::JSON_Schema_Draft_3:
+    case SchemaBaseDialect::JSON_Schema_Draft_3_Hyper:
+      return "extends";
+    default:
+      return "allOf";
+  }
 }
 
 // In older drafts, the presence of `$ref` would override any sibling keywords

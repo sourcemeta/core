@@ -454,10 +454,11 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
   if (ref_overrides_adjacent_keywords(schema_base_dialect.value()) &&
       schema.is_object() && schema.defines("$ref")) {
     if (schema.size() == 1) {
+      const auto applicator{allof_keyword(schema_base_dialect.value())};
       auto branches{JSON::make_array()};
       branches.push_back(schema);
       schema.at("$ref").into(std::move(branches));
-      schema.rename("$ref", "allOf");
+      schema.rename("$ref", JSON::String{applicator});
     } else {
       throw SchemaError(
           "Cannot bundle a JSON Schema Draft 7 or older with a top-level "
