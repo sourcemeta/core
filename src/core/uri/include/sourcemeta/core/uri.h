@@ -331,11 +331,6 @@ public:
   /// ```
   class SOURCEMETA_CORE_URI_EXPORT Query {
   public:
-    /// Construct a Query view over a raw RFC 3986 query string
-    /// (without the leading `?`). The view is non-owning. The
-    /// referenced string must outlive the Query instance
-    explicit Query(const std::string_view raw);
-
     /// Get the raw RFC 3986 query string this view was constructed
     /// from. For example:
     ///
@@ -402,6 +397,9 @@ public:
     [[nodiscard]] auto end() const -> const_iterator;
 
   private:
+    friend class URI;
+    explicit Query(const std::string_view raw);
+
     std::string_view raw_;
   };
 

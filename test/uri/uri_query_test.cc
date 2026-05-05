@@ -409,3 +409,183 @@ TEST(URI_query, at_value_view_points_into_uri_storage) {
   EXPECT_EQ(value.value().data(),
             query.value().raw().data() + query.value().raw().find("qux"));
 }
+
+TEST(URI_query, iterator_trailing_ampersand) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=bar&"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query.value()) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 2);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "bar");
+  EXPECT_EQ(pairs[1].first, "");
+  EXPECT_EQ(pairs[1].second, "");
+}
+
+TEST(URI_query, iterator_leading_ampersand) {
+  const sourcemeta::core::URI uri{"https://example.com/path?&foo=bar"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query.value()) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 2);
+  EXPECT_EQ(pairs[0].first, "");
+  EXPECT_EQ(pairs[0].second, "");
+  EXPECT_EQ(pairs[1].first, "foo");
+  EXPECT_EQ(pairs[1].second, "bar");
+}
+
+TEST(URI_query, iterator_consecutive_ampersands_between_pairs) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=bar&&baz=qux"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query.value()) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 3);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "bar");
+  EXPECT_EQ(pairs[1].first, "");
+  EXPECT_EQ(pairs[1].second, "");
+  EXPECT_EQ(pairs[2].first, "baz");
+  EXPECT_EQ(pairs[2].second, "qux");
+}
+
+TEST(URI_query, iterator_only_equals_sign) {
+  const sourcemeta::core::URI uri{"https://example.com/path?="};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query.value()) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 1);
+  EXPECT_EQ(pairs[0].first, "");
+  EXPECT_EQ(pairs[0].second, "");
+}
+
+TEST(URI_query, iterator_postfix_increment_returns_previous) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=1&bar=2"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  auto iterator{query.value().begin()};
+  const auto previous{iterator++};
+  EXPECT_EQ(previous->first, "foo");
+  EXPECT_EQ(previous->second, "1");
+  EXPECT_EQ(iterator->first, "bar");
+  EXPECT_EQ(iterator->second, "2");
+}
+
+TEST(URI_query, iterator_arrow_operator) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=bar"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto iterator{query.value().begin()};
+  EXPECT_EQ(iterator->first, "foo");
+  EXPECT_EQ(iterator->second, "bar");
+}
+
+TEST(URI_query, iterator_multipass_forward_guarantee) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=1&bar=2&baz=3"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto saved{query.value().begin()};
+  auto advanced{saved};
+  ++advanced;
+  ++advanced;
+  EXPECT_EQ(saved->first, "foo");
+  EXPECT_EQ(saved->second, "1");
+  EXPECT_EQ(advanced->first, "baz");
+  EXPECT_EQ(advanced->second, "3");
+}
+
+TEST(URI_query, iterator_pair_views_into_query_storage) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=bar&baz=qux"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto raw{query.value().raw()};
+  auto iterator{query.value().begin()};
+  EXPECT_EQ(iterator->first.data(), raw.data() + raw.find("foo"));
+  EXPECT_EQ(iterator->second.data(), raw.data() + raw.find("bar"));
+  ++iterator;
+  EXPECT_EQ(iterator->first.data(), raw.data() + raw.find("baz"));
+  EXPECT_EQ(iterator->second.data(), raw.data() + raw.find("qux"));
+}
+
+TEST(URI_query, iterator_subdelims_in_value) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=!$'()*+,;"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query.value()) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 1);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "!$'()*+,;");
+}
+
+TEST(URI_query, iterator_pchar_colon_at_in_value) {
+  const sourcemeta::core::URI uri{
+      "https://example.com/path?foo=user:pass@host"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query.value()) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 1);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "user:pass@host");
+}
+
+TEST(URI_query, at_case_sensitive_no_match) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=bar"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  EXPECT_FALSE(query.value().at("Foo").has_value());
+  EXPECT_FALSE(query.value().at("FOO").has_value());
+  EXPECT_FALSE(query.value().at("fOo").has_value());
+}
+
+TEST(URI_query, at_three_duplicates_returns_first) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=1&foo=2&foo=3"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto value{query.value().at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "1");
+}
+
+TEST(URI_query, at_first_value_empty_among_duplicates) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=&foo=2"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto value{query.value().at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "");
+}
+
+TEST(URI_query, at_value_containing_equals_returned_intact) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=bar=baz"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto value{query.value().at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "bar=baz");
+}
+
+TEST(URI_query, at_plus_sign_not_decoded_as_space) {
+  const sourcemeta::core::URI uri{"https://example.com/path?foo=a+b"};
+  const auto query{uri.query()};
+  ASSERT_TRUE(query.has_value());
+  const auto value{query.value().at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "a+b");
+}
