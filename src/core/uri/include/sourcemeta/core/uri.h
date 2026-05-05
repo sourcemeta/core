@@ -385,9 +385,15 @@ public:
       [[nodiscard]] auto operator!=(const const_iterator &other) const -> bool;
 
     private:
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251)
+#endif
       std::string_view raw_{};
       std::size_t pair_start_{std::string_view::npos};
       value_type current_{};
+#if defined(_MSC_VER)
+#pragma warning(default : 4251)
+#endif
     };
 
     /// Iterator to the first `(name, value)` pair
@@ -400,7 +406,13 @@ public:
     friend class URI;
     explicit Query(const std::string_view raw);
 
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251)
+#endif
     std::string_view raw_;
+#if defined(_MSC_VER)
+#pragma warning(default : 4251)
+#endif
   };
 
   /// Get the query part of the URI as a navigable view, if any.
