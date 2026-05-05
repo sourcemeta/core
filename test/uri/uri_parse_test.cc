@@ -79,7 +79,7 @@ TEST(URI_parse, urn_with_query) {
   sourcemeta::core::URI uri{"urn:example:foo?+bar"};
   EXPECT_EQ(uri.scheme().value(), "urn");
   EXPECT_EQ(uri.path().value(), "example:foo");
-  EXPECT_EQ(uri.query().value(), "+bar");
+  EXPECT_EQ(uri.query().value().raw(), "+bar");
   EXPECT_EQ(uri.recompose(), "urn:example:foo?+bar");
 }
 
@@ -460,7 +460,7 @@ TEST(URI_parse, success_with_equals_percent_3D_stays_encoded) {
   sourcemeta::core::URI uri{"https://www.example.com?foo%3Dbar"};
   // Per RFC 3986 Section 2.2, %3D (=) is a reserved sub-delim
   // and must not be decoded
-  EXPECT_EQ(uri.query(), "foo%3Dbar");
+  EXPECT_EQ(uri.query().value().raw(), "foo%3Dbar");
   EXPECT_EQ(uri.recompose(), "https://www.example.com?foo%3Dbar");
 }
 
@@ -631,7 +631,7 @@ TEST(URI_parse, rfc3986_complete_uri) {
   EXPECT_EQ(uri.host().value(), "example.com");
   EXPECT_EQ(uri.port().value(), 8080);
   EXPECT_EQ(uri.path().value(), "/path/to/resource");
-  EXPECT_EQ(uri.query().value(), "query=value&key=data");
+  EXPECT_EQ(uri.query().value().raw(), "query=value&key=data");
   EXPECT_EQ(uri.fragment().value(), "section");
 }
 
@@ -697,7 +697,7 @@ TEST(URI_parse, rfc3986_query_only) {
   sourcemeta::core::URI uri{"?query=value"};
   EXPECT_FALSE(uri.scheme().has_value());
   EXPECT_TRUE(uri.query().has_value());
-  EXPECT_EQ(uri.query().value(), "query=value");
+  EXPECT_EQ(uri.query().value().raw(), "query=value");
   EXPECT_EQ(uri.recompose(), "?query=value");
 }
 
@@ -797,7 +797,7 @@ TEST(URI_parse, rfc3986_empty_path_with_query) {
       sourcemeta::core::URI::is_uri_reference("http://example.com?query"));
   sourcemeta::core::URI uri{"http://example.com?query"};
   EXPECT_FALSE(uri.path().has_value());
-  EXPECT_EQ(uri.query().value(), "query");
+  EXPECT_EQ(uri.query().value().raw(), "query");
 }
 
 TEST(URI_parse, rfc3986_empty_path_with_fragment) {
