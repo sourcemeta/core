@@ -48,6 +48,31 @@ TEST(JSONSchema_walker_draft3, ref) {
   EXPECT_TRUE(result.instances.none());
 }
 
+TEST(JSONSchema_walker_draft3, definitions) {
+  using namespace sourcemeta::core;
+  const auto &result{schema_walker("definitions", VOCABULARIES_DRAFT3)};
+  EXPECT_EQ(result.type, SchemaKeywordType::LocationMembers);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3);
+  const std::unordered_set<std::string_view> expected{"$ref"};
+  EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
+TEST(JSONSchema_walker_draft3_hyperschema, definitions) {
+  using namespace sourcemeta::core;
+  const auto &result{
+      schema_walker("definitions", VOCABULARIES_DRAFT3_HYPERSCHEMA)};
+  EXPECT_EQ(result.type, SchemaKeywordType::LocationMembers);
+  EXPECT_TRUE(result.vocabulary.has_value());
+  EXPECT_VOCABULARY_KNOWN(result.vocabulary.value(), JSON_Schema_Draft_3_Hyper);
+  const std::unordered_set<std::string_view> expected{"$ref"};
+  EXPECT_EQ(result.dependencies, expected);
+  EXPECT_TRUE(result.order_dependencies.empty());
+  EXPECT_TRUE(result.instances.none());
+}
+
 TEST(JSONSchema_walker_draft3, items) {
   using namespace sourcemeta::core;
   const auto &result{schema_walker("items", VOCABULARIES_DRAFT3)};
