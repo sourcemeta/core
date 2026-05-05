@@ -985,6 +985,10 @@ TEST(JSONSchema_frame_draft3, definitions_subschemas) {
       "http://json-schema.org/draft-03/schema#");
 
   EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "", frame.root());
+  EXPECT_FRAME_LOCATION_NON_REACHABLE(frame, Static, "#/definitions/string",
+                                      frame.root());
+  EXPECT_FRAME_LOCATION_REACHABLE(frame, Static, "#/definitions/string",
+                                  "#/definitions/string");
 }
 
 TEST(JSONSchema_frame_draft3, ref_into_definitions) {
