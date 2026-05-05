@@ -61,17 +61,6 @@ inline auto definitions_keyword(const SchemaBaseDialect base_dialect)
   return "$defs";
 }
 
-inline auto allof_keyword(const SchemaBaseDialect base_dialect)
-    -> std::string_view {
-  switch (base_dialect) {
-    case SchemaBaseDialect::JSON_Schema_Draft_3:
-    case SchemaBaseDialect::JSON_Schema_Draft_3_Hyper:
-      return "extends";
-    default:
-      return "allOf";
-  }
-}
-
 // In older drafts, the presence of `$ref` would override any sibling keywords
 // See
 // https://json-schema.org/draft-07/draft-handrews-json-schema-01#rfc.section.8.3
