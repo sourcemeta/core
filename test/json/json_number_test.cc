@@ -639,3 +639,18 @@ TEST(JSON_number, as_integer_non_integer_real) {
   const sourcemeta::core::JSON document{5.5};
   EXPECT_EQ(document.as_integer(), 5);
 }
+
+TEST(JSON_number, is_integer_int_storage) {
+  const sourcemeta::core::JSON document{5};
+  EXPECT_TRUE(document.is_integer());
+}
+
+TEST(JSON_number, is_integer_real_storage_integer_valued) {
+  const sourcemeta::core::JSON document{5.0};
+  EXPECT_FALSE(document.is_integer());
+}
+
+TEST(JSON_number, is_integer_real_storage_fractional) {
+  const sourcemeta::core::JSON document{3.14};
+  EXPECT_FALSE(document.is_integer());
+}

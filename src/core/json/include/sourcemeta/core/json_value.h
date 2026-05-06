@@ -393,7 +393,10 @@ public:
     return this->current_type == Type::Null;
   }
 
-  /// Check if the input JSON document is an integer. For example:
+  /// Check if the input JSON document originated as an integer literal. This
+  /// is a source-form check that returns `true` for sources matching
+  /// `/^-?[0-9]+$/`, including arbitrary-precision integer literals that do
+  /// not fit in 64 bits and are stored as a `Decimal`. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -404,7 +407,14 @@ public:
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_integer() const noexcept
       -> bool {
-    return this->current_type == Type::Integer;
+    switch (this->current_type) {
+      case Type::Integer:
+        return true;
+      case Type::Decimal:
+        return this->to_decimal().is_integer();
+      default:
+        return false;
+    }
   }
 
   /// Check if the input JSON document is a real type. For example:
@@ -587,7 +597,7 @@ public:
   /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_integer() const noexcept
       -> Integer {
-    assert(this->is_integer());
+    assert(this->current_type == Type::Integer);
     return this->data_integer;
   }
 
@@ -793,7 +803,7 @@ public:
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_integer() const noexcept
       -> Integer {
     assert(this->is_number());
-    if (this->is_integer()) {
+    if (this->current_type == Type::Integer) {
       return this->to_integer();
     } else {
       return static_cast<Integer>(std::trunc(this->to_real()));

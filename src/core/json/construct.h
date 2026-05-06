@@ -291,7 +291,7 @@ inline auto construct_json(const char *buffer,
     case TapeType::Number: {
       auto value =
           internal::construct_number(buffer + entry.offset, entry.length);
-      if (value.is_integer()) {
+      if (value.type() == JSON::Type::Integer) {
         CALLBACK_PRE(Integer, entry, JSON::ParseContext::Root, 0,
                      empty_property);
         CALLBACK_POST(Integer, entry.line, internal::post_column_for(entry));
@@ -409,7 +409,7 @@ do_construct_array_item: {
       const auto current_index{frames.back().get().size()};
       auto value = internal::construct_number(buffer + item_entry.offset,
                                               item_entry.length);
-      if (value.is_integer()) {
+      if (value.type() == JSON::Type::Integer) {
         CALLBACK_PRE(Integer, item_entry, JSON::ParseContext::Index,
                      current_index, empty_property);
       } else if (value.is_decimal()) {

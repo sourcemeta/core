@@ -2886,7 +2886,8 @@ TEST(Numeric_decimal, to_uint64_at_boundaries) {
 
 TEST(Numeric_decimal, int_conversion_value_with_exponent_resolves_to_boundary) {
   const sourcemeta::core::Decimal value{"1e19"};
-  EXPECT_TRUE(value.is_integer());
+  EXPECT_FALSE(value.is_integer());
+  EXPECT_TRUE(value.is_integral());
   EXPECT_FALSE(value.is_int64());
   EXPECT_TRUE(value.is_uint64());
 }
@@ -3567,4 +3568,133 @@ TEST(Numeric_decimal, strict_from_large_value) {
 TEST(Numeric_decimal, strict_from_negative_1280_32) {
   const auto result{sourcemeta::core::Decimal::strict_from(-1280.32)};
   EXPECT_EQ(result, sourcemeta::core::Decimal{"-1280.32"});
+}
+
+TEST(Numeric_decimal, is_integer_string_lexical_positive) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{"5"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_lexical_negative) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{"-5"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_lexical_zero) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{"0"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_lexical_negative_zero) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{"-0"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_lexical_explicit_plus) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{"+5"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_lexical_bignum) {
+  const sourcemeta::core::Decimal value{
+      "12345678910111213141516171819202122232425262728293031"};
+  EXPECT_TRUE(value.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_exponent_lower_zero) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1e0"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_exponent_lower_positive) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1e2"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_exponent_lower_negative) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1e-2"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_exponent_upper) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1E5"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_dot_with_exponent) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1.5e2"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_resolved_via_negative_exponent) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"30e-1"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_dot_zero_fraction) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1.0"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_dot_non_zero_fraction) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"3.5"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_string_dot_high_precision) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{"1.000000000000000001"}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_int_typed_constructor_int) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{42}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_int_typed_constructor_negative) {
+  EXPECT_TRUE(sourcemeta::core::Decimal{-1}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_int_typed_constructor_int64_max) {
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal{std::numeric_limits<std::int64_t>::max()}
+          .is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_int_typed_constructor_int64_min) {
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal{std::numeric_limits<std::int64_t>::min()}
+          .is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_int_typed_constructor_uint64) {
+  EXPECT_TRUE(
+      sourcemeta::core::Decimal{std::numeric_limits<std::uint64_t>::max()}
+          .is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_double_constructor_integer_valued) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{3.0}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_double_constructor_fractional) {
+  EXPECT_FALSE(sourcemeta::core::Decimal{3.14}.is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_strict_from_double_integer_valued) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::strict_from(3.0).is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_arithmetic_clears_flag) {
+  const sourcemeta::core::Decimal sum{sourcemeta::core::Decimal{"5"} +
+                                      sourcemeta::core::Decimal{"3"}};
+  EXPECT_FALSE(sum.is_integer());
+  EXPECT_TRUE(sum.is_integral());
+}
+
+TEST(Numeric_decimal, is_integer_nan) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::nan().is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_snan) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::snan().is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_infinity) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::infinity().is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_negative_infinity) {
+  EXPECT_FALSE(sourcemeta::core::Decimal::negative_infinity().is_integer());
+}
+
+TEST(Numeric_decimal, is_integer_implies_is_integral) {
+  const sourcemeta::core::Decimal value{42};
+  EXPECT_TRUE(value.is_integer());
+  EXPECT_TRUE(value.is_integral());
 }
