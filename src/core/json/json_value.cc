@@ -471,7 +471,7 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
     // Keep in mind that standard strings might reserve more
     // space than what it is actually used by the string
     return this->byte_size() * sizeof(Char);
-  } else if (this->type() == Type::Integer) {
+  } else if (this->is_integer()) {
     return sizeof(Integer);
   } else if (this->is_real()) {
     return sizeof(Real);
@@ -521,7 +521,7 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
   assert(this->is_number());
   assert(divisor.is_number());
 
-  if (this->type() == Type::Integer && divisor.type() == Type::Integer) {
+  if (this->is_integer() && divisor.is_integer()) {
     const auto divisor_value{divisor.to_integer()};
     return divisor_value != 0 && this->to_integer() % divisor_value == 0;
   }

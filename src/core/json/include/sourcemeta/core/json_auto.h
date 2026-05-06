@@ -165,7 +165,7 @@ auto from_json(const JSON &value) -> std::optional<T> {
 template <typename T>
   requires(std::is_integral_v<T> && !std::is_same_v<T, bool>)
 auto from_json(const JSON &value) -> std::optional<T> {
-  if (value.type() == JSON::Type::Integer) {
+  if (value.is_integer()) {
     return static_cast<T>(value.to_integer());
   } else {
     return std::nullopt;
@@ -203,11 +203,9 @@ auto to_json(const T &hash) -> JSON {
 template <typename T>
   requires std::is_same_v<T, JSON::Object::hash_type>
 auto from_json(const JSON &value) -> std::optional<T> {
-  if (!value.is_array() || value.size() != 4 ||
-      value.at(0).type() != JSON::Type::Integer ||
-      value.at(1).type() != JSON::Type::Integer ||
-      value.at(2).type() != JSON::Type::Integer ||
-      value.at(3).type() != JSON::Type::Integer) {
+  if (!value.is_array() || value.size() != 4 || !value.at(0).is_integer() ||
+      !value.at(1).is_integer() || !value.at(2).is_integer() ||
+      !value.at(3).is_integer()) {
     return std::nullopt;
   }
 
@@ -244,7 +242,7 @@ auto to_json(const T value) -> JSON {
 template <typename T>
   requires std::is_same_v<T, std::filesystem::file_time_type>
 auto from_json(const JSON &value) -> std::optional<T> {
-  if (value.type() == JSON::Type::Integer) {
+  if (value.is_integer()) {
     using file_time_type = std::filesystem::file_time_type;
     return file_time_type{file_time_type::duration{
         static_cast<file_time_type::duration::rep>(value.to_integer())}};
@@ -292,7 +290,7 @@ template <typename T>
 auto from_json(const JSON &value) -> std::optional<T> {
   constexpr std::size_t N{json_auto_bitset_size<T>::value};
   if constexpr (N <= 64) {
-    if (value.type() == JSON::Type::Integer) {
+    if (value.is_integer()) {
       return T{static_cast<unsigned long long>(value.to_integer())};
     } else {
       return std::nullopt;
@@ -342,7 +340,7 @@ auto to_json(const T value) -> JSON {
 template <typename T>
   requires std::is_enum_v<T>
 auto from_json(const JSON &value) -> std::optional<T> {
-  if (value.type() == JSON::Type::Integer) {
+  if (value.is_integer()) {
     return static_cast<T>(value.to_integer());
   } else {
     return std::nullopt;
@@ -688,8 +686,7 @@ auto from_json_variant_impl(const JSON &data, std::size_t index)
 template <typename T>
   requires json_auto_is_variant<T>::value
 auto from_json(const JSON &value) -> std::optional<T> {
-  if (!value.is_array() || value.size() != 2 ||
-      value.at(0).type() != JSON::Type::Integer) {
+  if (!value.is_array() || value.size() != 2 || !value.at(0).is_integer()) {
     return std::nullopt;
   }
 
