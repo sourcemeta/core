@@ -122,9 +122,11 @@ public:
 
   /// Check if the decimal number originated as an integer literal. Returns
   /// `true` iff the value was constructed from an integer-typed constructor or
-  /// from a string source matching `/^-?[0-9]+$/`. Returns `false` for values
-  /// constructed from floating-point primitives, from strings with a fractional
-  /// or exponent part, or as the result of arithmetic operations.
+  /// from a string source consisting of an optional sign followed by one or
+  /// more digits, with no fractional part and no exponent part. Returns
+  /// `false` for values constructed from floating-point primitives, from
+  /// strings with a fractional or exponent part, or as the result of
+  /// arithmetic operations.
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto is_integer() const -> bool {
     return (this->flags_ & FLAG_INTEGER_LITERAL) != 0;
   }
