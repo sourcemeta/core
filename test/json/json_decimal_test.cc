@@ -1132,3 +1132,50 @@ TEST(JSON_decimal, fast_hash_large) {
       sourcemeta::core::Decimal{"123456789012345678901234567890"}};
   EXPECT_EQ(document.fast_hash(), 8);
 }
+
+TEST(JSON_decimal, lexical_bignum_integer) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{
+      "12345678910111213141516171819202122232425262728293031"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integer());
+  EXPECT_TRUE(document.is_integral());
+  EXPECT_TRUE(document.to_decimal().is_integer());
+  EXPECT_TRUE(document.to_decimal().is_integral());
+}
+
+TEST(JSON_decimal, exponent_form_integer_valued) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"1e2"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integer());
+  EXPECT_TRUE(document.is_integral());
+  EXPECT_FALSE(document.to_decimal().is_integer());
+  EXPECT_TRUE(document.to_decimal().is_integral());
+}
+
+TEST(JSON_decimal, exponent_zero_form) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"5e0"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integer());
+  EXPECT_TRUE(document.is_integral());
+  EXPECT_FALSE(document.to_decimal().is_integer());
+  EXPECT_TRUE(document.to_decimal().is_integral());
+}
+
+TEST(JSON_decimal, dot_zero_fraction_high_precision) {
+  const sourcemeta::core::JSON document{
+      sourcemeta::core::Decimal{"1234567890123456789012.0"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integer());
+  EXPECT_TRUE(document.is_integral());
+  EXPECT_FALSE(document.to_decimal().is_integer());
+  EXPECT_TRUE(document.to_decimal().is_integral());
+}
+
+TEST(JSON_decimal, negative_exponent_non_integral) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"1e-2"}};
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_FALSE(document.is_integer());
+  EXPECT_FALSE(document.is_integral());
+  EXPECT_FALSE(document.to_decimal().is_integer());
+  EXPECT_FALSE(document.to_decimal().is_integral());
+}
