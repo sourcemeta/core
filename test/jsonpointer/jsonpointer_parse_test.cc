@@ -4,6 +4,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 
 #include <string>
+#include <string_view>
 
 TEST(JSONPointer_parse, empty_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(""));
@@ -687,4 +688,30 @@ TEST(JSONPointer_parse, unicode_001F_within_word) {
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_TRUE(pointer.at(0).is_property());
   EXPECT_EQ(pointer.at(0).to_property(), "foo\u001Fbar");
+}
+
+TEST(JSONPointer_parse, to_pointer_with_string_view) {
+  const std::string_view input{"/foo/bar"};
+  const auto pointer = sourcemeta::core::to_pointer(input);
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+}
+
+TEST(JSONPointer_parse, to_pointer_with_string_view_subview) {
+  const std::string buffer{"prefix/foo/bar/0suffix"};
+  const std::string_view view{buffer.data() + 6, 10};
+  const auto pointer = sourcemeta::core::to_pointer(view);
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+  EXPECT_TRUE(pointer.at(2).is_index());
+  EXPECT_EQ(pointer.at(2).to_index(), 0);
+}
+
+TEST(JSONPointer_parse, to_pointer_default_string_view) {
+  const std::string_view input{};
+  EXPECT_EQ(input.data(), nullptr);
+  const auto pointer = sourcemeta::core::to_pointer(input);
+  EXPECT_EQ(pointer.size(), 0);
 }
