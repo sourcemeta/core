@@ -545,7 +545,7 @@ private:
                 "document start line"};
           }
           if (anchor_name.has_value() && anchor_line == current_token.line) {
-            JSON key_value{std::string{current_token.value}};
+            JSON key_value{current_token.value};
             this->recording_anchor_ = false;
             this->anchors_.insert_or_assign(
                 std::string{anchor_name.value()},
