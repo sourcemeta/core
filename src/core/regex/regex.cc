@@ -28,16 +28,18 @@ auto to_regex(const std::string_view pattern) -> std::optional<Regex> {
     return RegexTypeNonEmpty{};
   }
 
+  const char *const pattern_data{pattern.empty() ? "" : pattern.data()};
+
   const std::regex PREFIX_REGEX{R"(^\^([a-zA-Z0-9-_/@]+)(\.\*)?)"};
   std::cmatch matches_prefix;
-  if (std::regex_match(pattern.data(), pattern.data() + pattern.size(),
+  if (std::regex_match(pattern_data, pattern_data + pattern.size(),
                        matches_prefix, PREFIX_REGEX)) {
     return RegexTypePrefix{matches_prefix[1].str()};
   }
 
   const std::regex RANGE_REGEX{R"(^\^\.\{(\d+),(\d+)\}\$$)"};
   std::cmatch matches_range;
-  if (std::regex_match(pattern.data(), pattern.data() + pattern.size(),
+  if (std::regex_match(pattern_data, pattern_data + pattern.size(),
                        matches_range, RANGE_REGEX)) {
     const auto minimum_string = matches_range[1].str();
     const auto maximum_string = matches_range[2].str();

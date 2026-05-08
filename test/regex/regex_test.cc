@@ -75,3 +75,10 @@ TEST(Regex, matches_if_valid_with_string_view) {
   const std::string_view value{"foo bar"};
   EXPECT_TRUE(sourcemeta::core::matches_if_valid(pattern, value));
 }
+
+TEST(Regex, to_regex_default_string_view_does_not_invoke_ub) {
+  const std::string_view pattern{};
+  EXPECT_EQ(pattern.data(), nullptr);
+  const auto regex{sourcemeta::core::to_regex(pattern)};
+  EXPECT_TRUE(regex.has_value());
+}

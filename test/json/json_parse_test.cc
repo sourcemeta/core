@@ -1709,3 +1709,19 @@ TEST(JSON_parse, parse_string_view_with_line_column) {
       sourcemeta::core::parse_json(input, line, column);
   EXPECT_TRUE(document.is_array());
 }
+
+TEST(JSON_parse, parse_default_string_view_does_not_invoke_ub) {
+  const std::string_view input{};
+  EXPECT_EQ(input.data(), nullptr);
+  EXPECT_THROW(sourcemeta::core::parse_json(input),
+               sourcemeta::core::JSONParseError);
+}
+
+TEST(JSON_parse,
+     parse_default_string_view_with_line_column_does_not_invoke_ub) {
+  const std::string_view input{};
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_THROW(sourcemeta::core::parse_json(input, line, column),
+               sourcemeta::core::JSONParseError);
+}

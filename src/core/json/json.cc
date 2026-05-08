@@ -75,9 +75,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
 auto parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
     std::uint64_t &line, std::uint64_t &column) -> JSON {
-  const char *cursor{input.data()};
-  return internal_parse_json(cursor, input.data() + input.size(), line, column,
-                             true);
+  const char *cursor{input.empty() ? "" : input.data()};
+  return internal_parse_json(cursor, cursor + input.size(), line, column, true);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -104,8 +103,8 @@ auto parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input) -> JSON {
   std::uint64_t line{1};
   std::uint64_t column{0};
-  const char *cursor{input.data()};
-  return internal_parse_json(cursor, input.data() + input.size(), line, column,
+  const char *cursor{input.empty() ? "" : input.data()};
+  return internal_parse_json(cursor, cursor + input.size(), line, column,
                              false);
 }
 
@@ -141,9 +140,9 @@ auto parse_json(
     const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
     std::uint64_t &line, std::uint64_t &column, JSON &output,
     const JSON::ParseCallback &callback) -> void {
-  const char *cursor{input.data()};
-  internal_parse_json(cursor, input.data() + input.size(), line, column,
-                      callback, true, output);
+  const char *cursor{input.empty() ? "" : input.data()};
+  internal_parse_json(cursor, cursor + input.size(), line, column, callback,
+                      true, output);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -170,9 +169,9 @@ auto parse_json(
     JSON &output, const JSON::ParseCallback &callback) -> void {
   std::uint64_t line{1};
   std::uint64_t column{0};
-  const char *cursor{input.data()};
-  internal_parse_json(cursor, input.data() + input.size(), line, column,
-                      callback, false, output);
+  const char *cursor{input.empty() ? "" : input.data()};
+  internal_parse_json(cursor, cursor + input.size(), line, column, callback,
+                      false, output);
 }
 
 auto read_json(const std::filesystem::path &path, JSON &output,
