@@ -6,6 +6,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_set>
 #include <utility>
@@ -1127,4 +1128,19 @@ TEST(JSON_auto, vector_of_variants) {
   const auto back{sourcemeta::core::from_json<Type>(result)};
   EXPECT_TRUE(back.has_value());
   EXPECT_EQ(value, back.value());
+}
+
+TEST(JSON_auto, to_json_string_view) {
+  const std::string_view value{"hello"};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "hello");
+}
+
+TEST(JSON_auto, to_json_string_view_subview) {
+  const std::string buffer{"prefix-hello-suffix"};
+  const std::string_view value{buffer.data() + 7, 5};
+  const auto result{sourcemeta::core::to_json(value)};
+  EXPECT_TRUE(result.is_string());
+  EXPECT_EQ(result.to_string(), "hello");
 }

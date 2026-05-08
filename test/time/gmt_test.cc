@@ -3,6 +3,8 @@
 #include <chrono>
 #include <ctime>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
 #include <sourcemeta/core/time.h>
 
@@ -75,4 +77,17 @@ TEST(Time, gmt_comparison_less_than) {
 TEST(Time, gmt_comparison_greater_than) {
   EXPECT_TRUE(sourcemeta::core::from_gmt("Wed, 21 Oct 2100 11:28:00 GMT") >
               sourcemeta::core::from_gmt("Wed, 21 Oct 2015 11:28:00 GMT"));
+}
+
+TEST(Time, from_gmt_with_string_view) {
+  const std::string_view input{"Wed, 21 Oct 2015 11:28:00 GMT"};
+  const auto point{sourcemeta::core::from_gmt(input)};
+  EXPECT_EQ(sourcemeta::core::to_gmt(point), "Wed, 21 Oct 2015 11:28:00 GMT");
+}
+
+TEST(Time, from_gmt_with_string_view_subview) {
+  const std::string buffer{"prefix:Wed, 21 Oct 2015 11:28:00 GMT:suffix"};
+  const std::string_view input{buffer.data() + 7, 29};
+  const auto point{sourcemeta::core::from_gmt(input)};
+  EXPECT_EQ(sourcemeta::core::to_gmt(point), "Wed, 21 Oct 2015 11:28:00 GMT");
 }

@@ -2,7 +2,9 @@
 
 #include <sourcemeta/core/regex.h>
 
-#include <utility> // std::move
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 TEST(Regex, copy_construct) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
@@ -36,4 +38,40 @@ TEST(Regex, move_assign) {
   moved = std::move(regex).value();
   EXPECT_TRUE(sourcemeta::core::matches(moved, "foo bar"));
   EXPECT_FALSE(sourcemeta::core::matches(moved, "bar foo"));
+}
+
+TEST(Regex, to_regex_with_string_view) {
+  const std::string_view pattern{"^foo"};
+  const auto regex{sourcemeta::core::to_regex(pattern)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo bar"));
+}
+
+TEST(Regex, to_regex_with_string_view_subview) {
+  const std::string buffer{"prefix^foosuffix"};
+  const std::string_view pattern{buffer.data() + 6, 4};
+  const auto regex{sourcemeta::core::to_regex(pattern)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo bar"));
+}
+
+TEST(Regex, matches_with_string_view) {
+  const auto regex{sourcemeta::core::to_regex("^foo")};
+  EXPECT_TRUE(regex.has_value());
+  const std::string_view value{"foo bar"};
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value));
+}
+
+TEST(Regex, matches_with_string_view_subview) {
+  const auto regex{sourcemeta::core::to_regex("^foo")};
+  EXPECT_TRUE(regex.has_value());
+  const std::string buffer{"xxxfoo barxxx"};
+  const std::string_view value{buffer.data() + 3, 7};
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value));
+}
+
+TEST(Regex, matches_if_valid_with_string_view) {
+  const std::string_view pattern{"^foo"};
+  const std::string_view value{"foo bar"};
+  EXPECT_TRUE(sourcemeta::core::matches_if_valid(pattern, value));
 }

@@ -72,8 +72,9 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   return result;
 }
 
-auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
-                std::uint64_t &line, std::uint64_t &column) -> JSON {
+auto parse_json(
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    std::uint64_t &line, std::uint64_t &column) -> JSON {
   const char *cursor{input.data()};
   return internal_parse_json(cursor, input.data() + input.size(), line, column,
                              true);
@@ -99,8 +100,8 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream)
   return result;
 }
 
-auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input)
-    -> JSON {
+auto parse_json(
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input) -> JSON {
   std::uint64_t line{1};
   std::uint64_t column{0};
   const char *cursor{input.data()};
@@ -136,9 +137,10 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   }
 }
 
-auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
-                std::uint64_t &line, std::uint64_t &column, JSON &output,
-                const JSON::ParseCallback &callback) -> void {
+auto parse_json(
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    std::uint64_t &line, std::uint64_t &column, JSON &output,
+    const JSON::ParseCallback &callback) -> void {
   const char *cursor{input.data()};
   internal_parse_json(cursor, input.data() + input.size(), line, column,
                       callback, true, output);
@@ -163,8 +165,9 @@ auto parse_json(std::basic_istream<JSON::Char, JSON::CharTraits> &stream,
   }
 }
 
-auto parse_json(const std::basic_string<JSON::Char, JSON::CharTraits> &input,
-                JSON &output, const JSON::ParseCallback &callback) -> void {
+auto parse_json(
+    const std::basic_string_view<JSON::Char, JSON::CharTraits> input,
+    JSON &output, const JSON::ParseCallback &callback) -> void {
   std::uint64_t line{1};
   std::uint64_t column{0};
   const char *cursor{input.data()};
