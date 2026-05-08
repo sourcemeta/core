@@ -1685,3 +1685,43 @@ TEST(JSON_parse, double_precision_10_15_with_fraction) {
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
+
+TEST(JSON_parse, parse_string_view) {
+  const std::string_view input{"[ 1, 2, 3 ]"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 3);
+}
+
+TEST(JSON_parse, parse_string_view_subview) {
+  const std::string buffer{"prefix[ 1, 2, 3 ]suffix"};
+  const std::string_view view{buffer.data() + 6, 11};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(view);
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 3);
+}
+
+TEST(JSON_parse, parse_string_view_with_line_column) {
+  const std::string_view input{"[ 1, 2, 3 ]"};
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json(input, line, column);
+  EXPECT_TRUE(document.is_array());
+}
+
+TEST(JSON_parse, parse_default_string_view_does_not_invoke_ub) {
+  const std::string_view input{};
+  EXPECT_EQ(input.data(), nullptr);
+  EXPECT_THROW(sourcemeta::core::parse_json(input),
+               sourcemeta::core::JSONParseError);
+}
+
+TEST(JSON_parse,
+     parse_default_string_view_with_line_column_does_not_invoke_ub) {
+  const std::string_view input{};
+  std::uint64_t line{1};
+  std::uint64_t column{0};
+  EXPECT_THROW(sourcemeta::core::parse_json(input, line, column),
+               sourcemeta::core::JSONParseError);
+}

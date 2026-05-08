@@ -1210,3 +1210,136 @@ TEST(JSON_object, try_at_start_sequential_advances) {
 
   EXPECT_EQ(start, object.size());
 }
+
+TEST(JSON_object, defines_with_string_view) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string_view foo{"foo"};
+  const std::string_view bar{"bar"};
+  const std::string_view qux{"qux"};
+  EXPECT_TRUE(document.defines(foo));
+  EXPECT_TRUE(document.defines(bar));
+  EXPECT_FALSE(document.defines(qux));
+}
+
+TEST(JSON_object, defines_with_string_view_subview) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string buffer{"foobar"};
+  const std::string_view foo_view{buffer.data(), 3};
+  const std::string_view bar_view{buffer.data() + 3, 3};
+  EXPECT_TRUE(document.defines(foo_view));
+  EXPECT_TRUE(document.defines(bar_view));
+}
+
+TEST(JSON_object, defines_with_string_view_and_hash) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const auto &object{document.as_object()};
+  const std::string_view foo{"foo"};
+  const auto foo_hash{object.hash(foo)};
+  EXPECT_TRUE(document.defines(foo, foo_hash));
+}
+
+TEST(JSON_object, at_const_with_string_view) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string_view foo{"foo"};
+  const std::string_view bar{"bar"};
+  EXPECT_EQ(document.at(foo).to_integer(), 1);
+  EXPECT_EQ(document.at(bar).to_integer(), 2);
+}
+
+TEST(JSON_object, at_const_with_string_view_subview) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string buffer{"foobar"};
+  const std::string_view foo_view{buffer.data(), 3};
+  const std::string_view bar_view{buffer.data() + 3, 3};
+  EXPECT_EQ(document.at(foo_view).to_integer(), 1);
+  EXPECT_EQ(document.at(bar_view).to_integer(), 2);
+}
+
+TEST(JSON_object, at_mutable_with_string_view) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string_view foo{"foo"};
+  document.at(foo) = sourcemeta::core::JSON{42};
+  EXPECT_EQ(document.at("foo").to_integer(), 42);
+}
+
+TEST(JSON_object, at_const_with_string_view_and_hash) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const auto &object{document.as_object()};
+  const std::string_view foo{"foo"};
+  const auto foo_hash{object.hash(foo)};
+  EXPECT_EQ(document.at(foo, foo_hash).to_integer(), 1);
+}
+
+TEST(JSON_object, defines_with_string_view_long_key) {
+  const std::string_view long_key{
+      "this_is_a_long_key_more_than_thirty_one_characters"};
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(long_key, sourcemeta::core::JSON{1});
+  EXPECT_TRUE(document.defines(long_key));
+  EXPECT_EQ(document.at(long_key).to_integer(), 1);
+}
+
+TEST(JSON_object, assign_lvalue_with_string_view_key) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  const std::string_view key{"foo"};
+  const sourcemeta::core::JSON value{42};
+  document.assign(key, value);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_EQ(document.at("foo").to_integer(), 42);
+}
+
+TEST(JSON_object, assign_rvalue_with_string_view_key) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  const std::string_view key{"foo"};
+  document.assign(key, sourcemeta::core::JSON{42});
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_EQ(document.at("foo").to_integer(), 42);
+}
+
+TEST(JSON_object, assign_with_string_view_subview_key) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  const std::string buffer{"foobar"};
+  const std::string_view foo_view{buffer.data(), 3};
+  const std::string_view bar_view{buffer.data() + 3, 3};
+  document.assign(foo_view, sourcemeta::core::JSON{1});
+  document.assign(bar_view, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 2);
+}
+
+TEST(JSON_object, erase_with_string_view) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string_view foo{"foo"};
+  document.erase(foo);
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+}
+
+TEST(JSON_object, erase_with_string_view_subview) {
+  sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("{\"foo\":1,\"bar\":2}");
+  const std::string buffer{"foobar"};
+  const std::string_view foo_view{buffer.data(), 3};
+  document.erase(foo_view);
+  EXPECT_FALSE(document.defines("foo"));
+  EXPECT_TRUE(document.defines("bar"));
+}
+
+TEST(JSON_object, assign_if_missing_with_string_view) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign("foo", sourcemeta::core::JSON{1});
+  const std::string_view foo{"foo"};
+  const std::string_view bar{"bar"};
+  document.assign_if_missing(foo, sourcemeta::core::JSON{99});
+  document.assign_if_missing(bar, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 2);
+}
