@@ -199,7 +199,7 @@ auto sourcemeta::core::identify(const JSON &schema,
 auto sourcemeta::core::anonymize(JSON &schema,
                                  const SchemaBaseDialect base_dialect) -> void {
   if (schema.is_object()) {
-    schema.erase(std::string{sourcemeta::core::id_keyword(base_dialect)});
+    schema.erase(sourcemeta::core::id_keyword(base_dialect));
   }
 }
 
@@ -220,7 +220,7 @@ auto sourcemeta::core::reidentify(JSON &schema, std::string_view new_identifier,
     -> void {
   assert(is_schema(schema));
   assert(schema.is_object());
-  schema.assign(std::string{sourcemeta::core::id_keyword(base_dialect)},
+  schema.assign(sourcemeta::core::id_keyword(base_dialect),
                 JSON{new_identifier});
 
   // If we reidentify, and the identifier is still not retrievable, then

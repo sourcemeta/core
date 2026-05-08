@@ -1281,7 +1281,7 @@ TEST(JSON_object, defines_with_string_view_long_key) {
   const std::string_view long_key{
       "this_is_a_long_key_more_than_thirty_one_characters"};
   sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
-  document.assign(std::string{long_key}, sourcemeta::core::JSON{1});
+  document.assign(long_key, sourcemeta::core::JSON{1});
   EXPECT_TRUE(document.defines(long_key));
   EXPECT_EQ(document.at(long_key).to_integer(), 1);
 }

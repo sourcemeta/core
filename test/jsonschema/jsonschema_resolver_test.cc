@@ -13,9 +13,8 @@
     EXPECT_TRUE(sourcemeta::core::is_schema(document));                        \
     const auto id{sourcemeta::core::identify(                                  \
         document, sourcemeta::core::schema_resolver)};                         \
-    EXPECT_EQ(                                                                 \
-        sourcemeta::core::URI{std::string{id}}.canonicalize().recompose(),     \
-        sourcemeta::core::URI{identifier}.canonicalize().recompose());         \
+    EXPECT_EQ(sourcemeta::core::URI{id}.canonicalize().recompose(),            \
+              sourcemeta::core::URI{identifier}.canonicalize().recompose());   \
   }
 
 TEST(JSONSchema_resolver, jsonschema_2020_12) {
