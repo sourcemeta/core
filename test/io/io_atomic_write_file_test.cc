@@ -18,14 +18,7 @@ protected:
     std::filesystem::create_directories(this->workspace);
   }
 
-  void TearDown() override {
-    // Some tests strip write permissions; restore before removal so the
-    // recursive delete can proceed.
-    std::filesystem::permissions(this->workspace,
-                                 std::filesystem::perms::owner_all,
-                                 std::filesystem::perm_options::replace);
-    std::filesystem::remove_all(this->workspace);
-  }
+  void TearDown() override { std::filesystem::remove_all(this->workspace); }
 
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path workspace{std::filesystem::path{BUILD_DIRECTORY} /
@@ -159,9 +152,5 @@ TEST_F(IOAtomicWriteFileTest, read_only_parent_throws_permission_error) {
   } catch (...) {
     FAIL();
   }
-
-  // Restore permissions so TearDown's recursive delete can proceed
-  std::filesystem::permissions(read_only_dir, std::filesystem::perms::owner_all,
-                               std::filesystem::perm_options::replace);
 }
 #endif

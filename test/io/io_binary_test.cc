@@ -2,9 +2,9 @@
 
 #include <sourcemeta/core/io.h>
 
-#include <array>   // std::array
-#include <cstddef> // std::byte
-#include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
+#include <array>      // std::array
+#include <cstddef>    // std::byte
+#include <cstdint>    // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ofstream
 #include <ios>        // std::ios::binary
@@ -31,13 +31,6 @@ protected:
 
   void TearDown() override { std::filesystem::remove_all(this->workspace); }
 
-  auto write_via_binary_writer(const std::filesystem::path &path,
-                               auto &&writer_callback) -> void {
-    std::ofstream raw{path, std::ios::binary};
-    sourcemeta::core::BinaryWriter writer{raw};
-    writer_callback(writer);
-  }
-
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path workspace{std::filesystem::path{BUILD_DIRECTORY} /
                                   "sourcemeta_core_io_binary_test"};
@@ -45,42 +38,44 @@ protected:
 
 TEST_F(IOBinaryTest, write_single_integer) {
   const auto path{this->workspace / "value.bin"};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint32_t{0x12345678});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint32_t{0x12345678});
+  }
   EXPECT_EQ(std::filesystem::file_size(path), sizeof(std::uint32_t));
 }
 
 TEST_F(IOBinaryTest, write_span_of_integers) {
   const auto path{this->workspace / "values.bin"};
   constexpr std::array<std::uint32_t, 4> values{{1, 2, 3, 4}};
-
-  this->write_via_binary_writer(
-      path, [&](sourcemeta::core::BinaryWriter &writer) {
-        writer.write(std::span<const std::uint32_t>{values});
-      });
-
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::span<const std::uint32_t>{values});
+  }
   EXPECT_EQ(std::filesystem::file_size(path),
             values.size() * sizeof(std::uint32_t));
 }
 
 TEST_F(IOBinaryTest, write_empty_span) {
   const auto path{this->workspace / "empty.bin"};
-  this->write_via_binary_writer(
-      path, [](sourcemeta::core::BinaryWriter &writer) {
-        writer.write(std::span<const std::uint32_t>{});
-      });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::span<const std::uint32_t>{});
+  }
   EXPECT_EQ(std::filesystem::file_size(path), 0);
 }
 
 TEST_F(IOBinaryTest, read_after_write_integer_roundtrip) {
   const auto path{this->workspace / "value.bin"};
   constexpr std::uint32_t expected{0x12345678};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint32_t{0x12345678});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint32_t{0x12345678});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -91,9 +86,11 @@ TEST_F(IOBinaryTest, read_after_write_integer_roundtrip) {
 TEST_F(IOBinaryTest, read_after_write_struct_roundtrip) {
   const auto path{this->workspace / "header.bin"};
   const ExampleHeader expected{0xDEADBEEF, 7, 0x42, 1024};
-  this->write_via_binary_writer(
-      path,
-      [&](sourcemeta::core::BinaryWriter &writer) { writer.write(expected); });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(expected);
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -106,12 +103,13 @@ TEST_F(IOBinaryTest, read_after_write_struct_roundtrip) {
 
 TEST_F(IOBinaryTest, sequential_reads_advance_cursor) {
   const auto path{this->workspace / "sequence.bin"};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint32_t{10});
-                                  writer.write(std::uint32_t{20});
-                                  writer.write(std::uint32_t{30});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint32_t{10});
+    writer.write(std::uint32_t{20});
+    writer.write(std::uint32_t{30});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -125,12 +123,13 @@ TEST_F(IOBinaryTest, sequential_reads_advance_cursor) {
 
 TEST_F(IOBinaryTest, seek_moves_cursor) {
   const auto path{this->workspace / "seek.bin"};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint32_t{0xAAAAAAAA});
-                                  writer.write(std::uint32_t{0xBBBBBBBB});
-                                  writer.write(std::uint32_t{0xCCCCCCCC});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint32_t{0xAAAAAAAA});
+    writer.write(std::uint32_t{0xBBBBBBBB});
+    writer.write(std::uint32_t{0xCCCCCCCC});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -141,10 +140,11 @@ TEST_F(IOBinaryTest, seek_moves_cursor) {
 
 TEST_F(IOBinaryTest, seek_to_end_is_allowed) {
   const auto path{this->workspace / "end.bin"};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint32_t{42});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint32_t{42});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -154,10 +154,11 @@ TEST_F(IOBinaryTest, seek_to_end_is_allowed) {
 
 TEST_F(IOBinaryTest, seek_past_end_throws) {
   const auto path{this->workspace / "tiny.bin"};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint32_t{1});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint32_t{1});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -167,10 +168,11 @@ TEST_F(IOBinaryTest, seek_past_end_throws) {
 
 TEST_F(IOBinaryTest, read_past_end_throws) {
   const auto path{this->workspace / "tiny.bin"};
-  this->write_via_binary_writer(path,
-                                [](sourcemeta::core::BinaryWriter &writer) {
-                                  writer.write(std::uint8_t{1});
-                                });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::uint8_t{1});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
@@ -182,11 +184,11 @@ TEST_F(IOBinaryTest, read_byte_span_roundtrip) {
   const auto path{this->workspace / "bytes.bin"};
   constexpr std::array<std::byte, 4> payload{
       {std::byte{0x01}, std::byte{0x02}, std::byte{0x03}, std::byte{0x04}}};
-
-  this->write_via_binary_writer(
-      path, [&](sourcemeta::core::BinaryWriter &writer) {
-        writer.write(std::span<const std::byte>{payload});
-      });
+  {
+    std::ofstream raw{path, std::ios::binary};
+    sourcemeta::core::BinaryWriter writer{raw};
+    writer.write(std::span<const std::byte>{payload});
+  }
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
