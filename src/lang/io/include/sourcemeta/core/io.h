@@ -168,6 +168,12 @@ auto read_file_to_string(const std::filesystem::path &path)
 
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
 
+  // `file_size` only works on regular files, so fall back to a streaming
+  // read for FIFOs (i.e. process substitution), sockets, and pipes.
+  if (!std::filesystem::is_regular_file(canonical_path)) {
+    return read_to_string<CharT, Traits>(stream);
+  }
+
   std::basic_string<CharT, Traits> result;
   result.resize(
       static_cast<std::size_t>(std::filesystem::file_size(canonical_path)));

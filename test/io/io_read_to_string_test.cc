@@ -7,6 +7,11 @@
 #include <sstream>   // std::istringstream
 #include <string>    // std::string
 
+#if !defined(_WIN32)
+#include <sys/stat.h> // mkfifo, S_IRUSR, S_IWUSR
+#include <thread>     // std::thread
+#endif
+
 TEST(IO_read_to_string, empty_stream) {
   std::istringstream stream{""};
   EXPECT_EQ(sourcemeta::core::read_to_string(stream), "");
@@ -98,3 +103,20 @@ TEST_F(IOReadFileToStringTest, empty_file) {
   std::ofstream{path};
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "");
 }
+
+#if !defined(_WIN32)
+TEST_F(IOReadFileToStringTest, fifo) {
+  const auto path{this->workspace / "fifo"};
+  std::filesystem::remove(path);
+  ASSERT_EQ(::mkfifo(path.c_str(), S_IRUSR | S_IWUSR), 0);
+  std::thread writer{[&path]() {
+    std::ofstream stream{path};
+    stream << "piped payload\nsecond line\n";
+  }};
+  auto contents{sourcemeta::core::read_file_to_string(path)};
+  writer.join();
+  contents.erase(std::remove(contents.begin(), contents.end(), '\r'),
+                 contents.end());
+  EXPECT_EQ(contents, "piped payload\nsecond line\n");
+}
+#endif
