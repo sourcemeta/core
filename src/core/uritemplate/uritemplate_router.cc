@@ -1,8 +1,9 @@
+#include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/uritemplate.h>
 
 #include "helpers.h"
 
-#include <algorithm> // std::ranges::lower_bound
+#include <algorithm> // std::ranges::lower_bound, std::ranges::find_if
 #include <cassert>   // assert
 #include <limits>    // std::numeric_limits
 #include <tuple>     // std::get, std::make_tuple
@@ -151,6 +152,18 @@ auto URITemplateRouter::path(const Identifier identifier) const -> std::string {
   return std::string{std::get<2>(*entry)};
 }
 
+auto URITemplateRouter::operation(const std::string_view operation_id) const
+    -> std::pair<Identifier, Identifier> {
+  const auto entry = std::ranges::find_if(
+      this->operations_, [&operation_id](const auto &candidate) {
+        return std::get<0>(candidate) == operation_id;
+      });
+  if (entry == this->operations_.end()) {
+    return {Identifier{0}, Identifier{0}};
+  }
+  return {std::get<1>(*entry), std::get<2>(*entry)};
+}
+
 auto URITemplateRouter::otherwise(const Identifier context,
                                   const std::span<const Argument> arguments)
     -> void {
@@ -174,10 +187,27 @@ auto URITemplateRouter::otherwise(const Identifier context,
 }
 
 auto URITemplateRouter::add(const std::string_view uri_template,
+                            const std::string_view operation_id,
                             const Identifier identifier,
                             const Identifier context,
                             const std::span<const Argument> arguments) -> void {
   assert(identifier > 0);
+
+  static const Regex operation_id_regex =
+      to_regex("^[a-zA-Z][a-zA-Z0-9_-]{0,63}$").value();
+
+  if (!matches(operation_id_regex, operation_id)) {
+    throw URITemplateRouterInvalidOperationIdError{operation_id};
+  }
+
+  if (std::ranges::find_if(this->operations_,
+                           [&operation_id](const auto &entry) {
+                             return std::get<0>(entry) == operation_id;
+                           }) != this->operations_.end()) {
+    throw URITemplateRouterDuplicateOperationIdError{operation_id};
+  }
+
+  this->operations_.emplace_back(operation_id, identifier, context);
 
   // Walk base path segments to establish the trie prefix
   Node *current = nullptr;

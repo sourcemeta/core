@@ -28,7 +28,7 @@ protected:
 TEST_F(URITemplateRouterViewTest, single_literal_route) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_1", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -41,7 +41,7 @@ TEST_F(URITemplateRouterViewTest, single_literal_route) {
 TEST_F(URITemplateRouterViewTest, single_literal_route_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_2", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -54,7 +54,7 @@ TEST_F(URITemplateRouterViewTest, single_literal_route_no_match) {
 TEST_F(URITemplateRouterViewTest, multi_segment_literal) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/list", 1);
+    router.add("/users/list", "op_3", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -67,7 +67,7 @@ TEST_F(URITemplateRouterViewTest, multi_segment_literal) {
 TEST_F(URITemplateRouterViewTest, single_variable) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}", 1);
+    router.add("/users/{id}", "op_4", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -81,7 +81,7 @@ TEST_F(URITemplateRouterViewTest, single_variable) {
 TEST_F(URITemplateRouterViewTest, multiple_variables) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}/posts/{post_id}", 1);
+    router.add("/users/{id}/posts/{post_id}", "op_5", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -96,8 +96,8 @@ TEST_F(URITemplateRouterViewTest, multiple_variables) {
 TEST_F(URITemplateRouterViewTest, literal_before_variable_precedence) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/me", 1);
-    router.add("/users/{id}", 2);
+    router.add("/users/me", "op_6", 1);
+    router.add("/users/{id}", "op_7", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -110,8 +110,8 @@ TEST_F(URITemplateRouterViewTest, literal_before_variable_precedence) {
 TEST_F(URITemplateRouterViewTest, variable_fallback) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/me", 1);
-    router.add("/users/{id}", 2);
+    router.add("/users/me", "op_8", 1);
+    router.add("/users/{id}", "op_9", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -125,10 +125,10 @@ TEST_F(URITemplateRouterViewTest, variable_fallback) {
 TEST_F(URITemplateRouterViewTest, multiple_routes_match_users) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts", 3);
-    router.add("/posts/{id}", 4);
+    router.add("/users", "op_10", 1);
+    router.add("/users/{id}", "op_11", 2);
+    router.add("/posts", "op_12", 3);
+    router.add("/posts/{id}", "op_13", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -141,10 +141,10 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_users) {
 TEST_F(URITemplateRouterViewTest, multiple_routes_match_users_id) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts", 3);
-    router.add("/posts/{id}", 4);
+    router.add("/users", "op_14", 1);
+    router.add("/users/{id}", "op_15", 2);
+    router.add("/posts", "op_16", 3);
+    router.add("/posts/{id}", "op_17", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -158,10 +158,10 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_users_id) {
 TEST_F(URITemplateRouterViewTest, multiple_routes_match_posts) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts", 3);
-    router.add("/posts/{id}", 4);
+    router.add("/users", "op_18", 1);
+    router.add("/users/{id}", "op_19", 2);
+    router.add("/posts", "op_20", 3);
+    router.add("/posts/{id}", "op_21", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -174,10 +174,10 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_posts) {
 TEST_F(URITemplateRouterViewTest, multiple_routes_match_posts_id) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts", 3);
-    router.add("/posts/{id}", 4);
+    router.add("/users", "op_22", 1);
+    router.add("/users/{id}", "op_23", 2);
+    router.add("/posts", "op_24", 3);
+    router.add("/posts/{id}", "op_25", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -191,11 +191,11 @@ TEST_F(URITemplateRouterViewTest, multiple_routes_match_posts_id) {
 TEST_F(URITemplateRouterViewTest, binary_search_literals_gamma) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/alpha", 1);
-    router.add("/beta", 2);
-    router.add("/gamma", 3);
-    router.add("/delta", 4);
-    router.add("/epsilon", 5);
+    router.add("/alpha", "op_26", 1);
+    router.add("/beta", "op_27", 2);
+    router.add("/gamma", "op_28", 3);
+    router.add("/delta", "op_29", 4);
+    router.add("/epsilon", "op_30", 5);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -208,11 +208,11 @@ TEST_F(URITemplateRouterViewTest, binary_search_literals_gamma) {
 TEST_F(URITemplateRouterViewTest, binary_search_literals_alpha) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/alpha", 1);
-    router.add("/beta", 2);
-    router.add("/gamma", 3);
-    router.add("/delta", 4);
-    router.add("/epsilon", 5);
+    router.add("/alpha", "op_31", 1);
+    router.add("/beta", "op_32", 2);
+    router.add("/gamma", "op_33", 3);
+    router.add("/delta", "op_34", 4);
+    router.add("/epsilon", "op_35", 5);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -225,11 +225,11 @@ TEST_F(URITemplateRouterViewTest, binary_search_literals_alpha) {
 TEST_F(URITemplateRouterViewTest, binary_search_literals_epsilon) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/alpha", 1);
-    router.add("/beta", 2);
-    router.add("/gamma", 3);
-    router.add("/delta", 4);
-    router.add("/epsilon", 5);
+    router.add("/alpha", "op_36", 1);
+    router.add("/beta", "op_37", 2);
+    router.add("/gamma", "op_38", 3);
+    router.add("/delta", "op_39", 4);
+    router.add("/epsilon", "op_40", 5);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -242,7 +242,7 @@ TEST_F(URITemplateRouterViewTest, binary_search_literals_epsilon) {
 TEST_F(URITemplateRouterViewTest, root_template_matches_root) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
+    router.add("/", "op_41", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -255,7 +255,7 @@ TEST_F(URITemplateRouterViewTest, root_template_matches_root) {
 TEST_F(URITemplateRouterViewTest, root_template_no_match_empty) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
+    router.add("/", "op_42", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -268,7 +268,7 @@ TEST_F(URITemplateRouterViewTest, root_template_no_match_empty) {
 TEST_F(URITemplateRouterViewTest, root_template_no_match_path) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
+    router.add("/", "op_43", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -281,7 +281,7 @@ TEST_F(URITemplateRouterViewTest, root_template_no_match_path) {
 TEST_F(URITemplateRouterViewTest, empty_template_matches_empty) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
+    router.add("", "op_44", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -294,7 +294,7 @@ TEST_F(URITemplateRouterViewTest, empty_template_matches_empty) {
 TEST_F(URITemplateRouterViewTest, empty_template_no_match_root) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
+    router.add("", "op_45", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -307,7 +307,7 @@ TEST_F(URITemplateRouterViewTest, empty_template_no_match_root) {
 TEST_F(URITemplateRouterViewTest, empty_template_no_match_path) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
+    router.add("", "op_46", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -320,9 +320,9 @@ TEST_F(URITemplateRouterViewTest, empty_template_no_match_path) {
 TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_root) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
-    router.add("/users", 2);
-    router.add("/users/{id}", 3);
+    router.add("/", "op_47", 1);
+    router.add("/users", "op_48", 2);
+    router.add("/users/{id}", "op_49", 3);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -335,9 +335,9 @@ TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_root) {
 TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_users) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
-    router.add("/users", 2);
-    router.add("/users/{id}", 3);
+    router.add("/", "op_50", 1);
+    router.add("/users", "op_51", 2);
+    router.add("/users/{id}", "op_52", 3);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -350,9 +350,9 @@ TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_users) {
 TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_users_id) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
-    router.add("/users", 2);
-    router.add("/users/{id}", 3);
+    router.add("/", "op_53", 1);
+    router.add("/users", "op_54", 2);
+    router.add("/users/{id}", "op_55", 3);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -366,8 +366,8 @@ TEST_F(URITemplateRouterViewTest, root_and_other_routes_match_users_id) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_together_match_empty) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
+    router.add("", "op_56", 1);
+    router.add("/", "op_57", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -380,8 +380,8 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_together_match_empty) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_together_match_root) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
+    router.add("", "op_58", 1);
+    router.add("/", "op_59", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -394,8 +394,8 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_together_match_root) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_together_no_match_path) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
+    router.add("", "op_60", 1);
+    router.add("/", "op_61", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -408,10 +408,10 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_together_no_match_path) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_empty) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
-    router.add("/users", 3);
-    router.add("/users/{id}", 4);
+    router.add("", "op_62", 1);
+    router.add("/", "op_63", 2);
+    router.add("/users", "op_64", 3);
+    router.add("/users/{id}", "op_65", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -424,10 +424,10 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_empty) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_root) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
-    router.add("/users", 3);
-    router.add("/users/{id}", 4);
+    router.add("", "op_66", 1);
+    router.add("/", "op_67", 2);
+    router.add("/users", "op_68", 3);
+    router.add("/users/{id}", "op_69", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -440,10 +440,10 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_root) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_users) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
-    router.add("/users", 3);
-    router.add("/users/{id}", 4);
+    router.add("", "op_70", 1);
+    router.add("/", "op_71", 2);
+    router.add("/users", "op_72", 3);
+    router.add("/users/{id}", "op_73", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -456,10 +456,10 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_users) {
 TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_users_id) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("", 1);
-    router.add("/", 2);
-    router.add("/users", 3);
-    router.add("/users/{id}", 4);
+    router.add("", "op_74", 1);
+    router.add("/", "op_75", 2);
+    router.add("/users", "op_76", 3);
+    router.add("/users/{id}", "op_77", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -473,8 +473,8 @@ TEST_F(URITemplateRouterViewTest, empty_and_root_and_others_match_users_id) {
 TEST_F(URITemplateRouterViewTest, same_variable_names_allowed) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}/posts", 1);
-    router.add("/users/{id}/comments", 2);
+    router.add("/users/{id}/posts", "op_78", 1);
+    router.add("/users/{id}/comments", "op_79", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -488,7 +488,7 @@ TEST_F(URITemplateRouterViewTest, same_variable_names_allowed) {
 TEST_F(URITemplateRouterViewTest, reserved_expansion_catch_all) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
+    router.add("/files/{+path}", "op_80", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -502,7 +502,7 @@ TEST_F(URITemplateRouterViewTest, reserved_expansion_catch_all) {
 TEST_F(URITemplateRouterViewTest, reserved_expansion_with_literal_prefix) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/api/v1/proxy/{+url}", 1);
+    router.add("/api/v1/proxy/{+url}", "op_81", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -517,7 +517,7 @@ TEST_F(URITemplateRouterViewTest, reserved_expansion_with_literal_prefix) {
 TEST_F(URITemplateRouterViewTest, reserved_expansion_matches_multi_segment) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
+    router.add("/files/{+path}", "op_82", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -531,8 +531,8 @@ TEST_F(URITemplateRouterViewTest, reserved_expansion_matches_multi_segment) {
 TEST_F(URITemplateRouterViewTest, expansion_takes_priority_over_variable) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{path}", 1);
-    router.add("/files/{+path}", 2);
+    router.add("/files/{path}", "op_83", 1);
+    router.add("/files/{+path}", "op_84", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -546,8 +546,8 @@ TEST_F(URITemplateRouterViewTest, expansion_takes_priority_over_variable) {
 TEST_F(URITemplateRouterViewTest, expansion_takes_priority_multi_segment) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{path}", 1);
-    router.add("/files/{+path}", 2);
+    router.add("/files/{path}", "op_85", 1);
+    router.add("/files/{+path}", "op_86", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -561,8 +561,8 @@ TEST_F(URITemplateRouterViewTest, expansion_takes_priority_multi_segment) {
 TEST_F(URITemplateRouterViewTest, expansion_first_then_variable) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
-    router.add("/files/{path}", 2);
+    router.add("/files/{+path}", "op_87", 1);
+    router.add("/files/{path}", "op_88", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -576,8 +576,8 @@ TEST_F(URITemplateRouterViewTest, expansion_first_then_variable) {
 TEST_F(URITemplateRouterViewTest, literal_takes_priority_over_expansion) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
-    router.add("/files/special", 2);
+    router.add("/files/{+path}", "op_89", 1);
+    router.add("/files/special", "op_90", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -590,8 +590,8 @@ TEST_F(URITemplateRouterViewTest, literal_takes_priority_over_expansion) {
 TEST_F(URITemplateRouterViewTest, expansion_fallback_from_literal) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
-    router.add("/files/special", 2);
+    router.add("/files/{+path}", "op_91", 1);
+    router.add("/files/special", "op_92", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -605,7 +605,7 @@ TEST_F(URITemplateRouterViewTest, expansion_fallback_from_literal) {
 TEST_F(URITemplateRouterViewTest, trailing_slash_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_93", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -618,7 +618,7 @@ TEST_F(URITemplateRouterViewTest, trailing_slash_no_match) {
 TEST_F(URITemplateRouterViewTest, multiple_trailing_slashes_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_94", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -631,7 +631,7 @@ TEST_F(URITemplateRouterViewTest, multiple_trailing_slashes_no_match) {
 TEST_F(URITemplateRouterViewTest, leading_double_slash_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_95", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -644,7 +644,7 @@ TEST_F(URITemplateRouterViewTest, leading_double_slash_no_match) {
 TEST_F(URITemplateRouterViewTest, internal_double_slashes_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/posts", 1);
+    router.add("/users/posts", "op_96", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -657,7 +657,7 @@ TEST_F(URITemplateRouterViewTest, internal_double_slashes_no_match) {
 TEST_F(URITemplateRouterViewTest, trailing_slash_with_variable_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}", 1);
+    router.add("/users/{id}", "op_97", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -672,7 +672,7 @@ TEST_F(URITemplateRouterViewTest,
        internal_double_slash_with_variable_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}/posts", 1);
+    router.add("/users/{id}/posts", "op_98", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -685,7 +685,7 @@ TEST_F(URITemplateRouterViewTest,
 TEST_F(URITemplateRouterViewTest, expansion_matches_trailing_slash) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
+    router.add("/files/{+path}", "op_99", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -699,7 +699,7 @@ TEST_F(URITemplateRouterViewTest, expansion_matches_trailing_slash) {
 TEST_F(URITemplateRouterViewTest, expansion_matches_double_slashes) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1);
+    router.add("/files/{+path}", "op_100", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -965,7 +965,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_string) {
     const std::string argument_value{"some/response/schema"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"responseSchema", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_101", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -996,7 +996,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_integer) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"count", std::int64_t{42}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_102", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1026,7 +1026,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_boolean_true) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"enabled", true}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_103", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1055,7 +1055,7 @@ TEST_F(URITemplateRouterViewTest, arguments_single_boolean_false) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"disabled", false}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_104", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1084,7 +1084,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_zero) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"value", std::int64_t{0}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_105", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1114,7 +1114,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_negative) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"value", std::int64_t{-1}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_106", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1144,7 +1144,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_min) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"value", INT64_MIN}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_107", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1174,7 +1174,7 @@ TEST_F(URITemplateRouterViewTest, arguments_integer_max) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"value", INT64_MAX}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_108", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1205,7 +1205,7 @@ TEST_F(URITemplateRouterViewTest, arguments_empty_string_value) {
     const std::string argument_value{""};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"key", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_109", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1236,7 +1236,7 @@ TEST_F(URITemplateRouterViewTest, arguments_string_with_slashes) {
     const std::string argument_value{"/some/path/here"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"path", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_110", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1268,7 +1268,7 @@ TEST_F(URITemplateRouterViewTest, arguments_string_with_utf8) {
     const std::string argument_value{"\xC3\xA9"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"letter", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_111", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1300,7 +1300,7 @@ TEST_F(URITemplateRouterViewTest, arguments_string_with_nulls) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"binary", std::string_view{null_string.data(), 5}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_112", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1334,7 +1334,7 @@ TEST_F(URITemplateRouterViewTest, arguments_long_string_value) {
     const std::string argument_value(10000, 'x');
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"payload", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_113", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1370,7 +1370,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_mixed_types) {
         arguments{{{"name", std::string_view{string_value}},
                    {"count", std::int64_t{99}},
                    {"active", true}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_114", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1415,7 +1415,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_strings) {
         arguments{{{"first", std::string_view{first_value}},
                    {"second", std::string_view{second_value}},
                    {"third", std::string_view{third_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_115", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1458,7 +1458,7 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_integers) {
         arguments{{{"first", std::int64_t{10}},
                    {"second", std::int64_t{20}},
                    {"third", std::int64_t{30}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_116", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1505,7 +1505,7 @@ TEST_F(URITemplateRouterViewTest, arguments_five_arguments) {
                    {"bool_one", true},
                    {"string_two", std::string_view{string_two}},
                    {"integer_two", std::int64_t{-50}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_117", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1559,8 +1559,8 @@ TEST_F(URITemplateRouterViewTest, arguments_two_routes_different_args) {
         first_arguments{{{"data", std::string_view{first_route_value}}}};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         second_arguments{{{"data", std::string_view{second_route_value}}}};
-    router.add("/first", 1, 0, first_arguments);
-    router.add("/second", 2, 0, second_arguments);
+    router.add("/first", "op_118", 1, 0, first_arguments);
+    router.add("/second", "op_119", 2, 0, second_arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1607,9 +1607,9 @@ TEST_F(URITemplateRouterViewTest, arguments_three_routes_one_without_args) {
         first_arguments{{{"info", std::string_view{first_value}}}};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         third_arguments{{{"info", std::string_view{third_value}}}};
-    router.add("/alpha", 1, 0, first_arguments);
-    router.add("/beta", 2);
-    router.add("/gamma", 3, 0, third_arguments);
+    router.add("/alpha", "op_120", 1, 0, first_arguments);
+    router.add("/beta", "op_121", 2);
+    router.add("/gamma", "op_122", 3, 0, third_arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1681,7 +1681,7 @@ TEST_F(URITemplateRouterViewTest, arguments_empty_router) {
 TEST_F(URITemplateRouterViewTest, arguments_route_without_arguments) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/test", 1);
+    router.add("/test", "op_123", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1707,7 +1707,7 @@ TEST_F(URITemplateRouterViewTest, arguments_identifier_not_found) {
     const std::string argument_value{"data"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"key", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_124", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1732,7 +1732,7 @@ TEST_F(URITemplateRouterViewTest, arguments_identifier_zero) {
     const std::string argument_value{"data"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"key", std::string_view{argument_value}}}};
-    router.add("/test", 1, 0, arguments);
+    router.add("/test", "op_125", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1757,7 +1757,7 @@ TEST_F(URITemplateRouterViewTest, arguments_with_variable_capture) {
     const std::string argument_value{"user_metadata"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"metadata", std::string_view{argument_value}}}};
-    router.add("/users/{id}", 1, 0, arguments);
+    router.add("/users/{id}", "op_126", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1791,7 +1791,7 @@ TEST_F(URITemplateRouterViewTest, arguments_with_expansion) {
     const std::string argument_value{"file_info"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         arguments{{{"info", std::string_view{argument_value}}}};
-    router.add("/files/{+path}", 1, 0, arguments);
+    router.add("/files/{+path}", "op_127", 1, 0, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1831,9 +1831,9 @@ TEST_F(URITemplateRouterViewTest, arguments_multiple_routes_match_and_args) {
         post_arguments{{{"tag", std::string_view{post_value}}}};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         comment_arguments{{{"tag", std::string_view{comment_value}}}};
-    router.add("/users/{id}", 1, 0, user_arguments);
-    router.add("/posts/{id}", 2, 0, post_arguments);
-    router.add("/comments/{id}", 3, 0, comment_arguments);
+    router.add("/users/{id}", "op_128", 1, 0, user_arguments);
+    router.add("/posts/{id}", "op_129", 2, 0, post_arguments);
+    router.add("/comments/{id}", "op_130", 3, 0, comment_arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1893,8 +1893,8 @@ TEST_F(URITemplateRouterViewTest, arguments_do_not_affect_match_precedence) {
     const std::string me_value{"special_user"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         me_arguments{{{"role", std::string_view{me_value}}}};
-    router.add("/users/me", 1, 0, me_arguments);
-    router.add("/users/{id}", 2);
+    router.add("/users/me", "op_131", 1, 0, me_arguments);
+    router.add("/users/{id}", "op_132", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -1943,16 +1943,16 @@ TEST_F(URITemplateRouterViewTest, arguments_survive_large_trie) {
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> args_b{
         {{"payload", std::string_view{payload_b}}}};
 
-    router.add("/api/v1/alpha", 1, 0, args_a);
-    router.add("/api/v1/beta", 2, 0, args_b);
-    router.add("/api/v1/gamma", 3);
-    router.add("/api/v1/delta", 4);
-    router.add("/api/v1/epsilon", 5);
-    router.add("/api/v1/zeta", 6);
-    router.add("/api/v1/eta", 7);
-    router.add("/api/v1/theta", 8);
-    router.add("/api/v1/iota", 9);
-    router.add("/api/v1/kappa", 10);
+    router.add("/api/v1/alpha", "op_133", 1, 0, args_a);
+    router.add("/api/v1/beta", "op_134", 2, 0, args_b);
+    router.add("/api/v1/gamma", "op_135", 3);
+    router.add("/api/v1/delta", "op_136", 4);
+    router.add("/api/v1/epsilon", "op_137", 5);
+    router.add("/api/v1/zeta", "op_138", 6);
+    router.add("/api/v1/eta", "op_139", 7);
+    router.add("/api/v1/theta", "op_140", 8);
+    router.add("/api/v1/iota", "op_141", 9);
+    router.add("/api/v1/kappa", "op_142", 10);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2016,7 +2016,7 @@ TEST_F(URITemplateRouterViewTest, arguments_survive_large_trie) {
 TEST_F(URITemplateRouterViewTest, base_path_single_segment) {
   {
     sourcemeta::core::URITemplateRouter router{"/prefix"};
-    router.add("/foo", 1);
+    router.add("/foo", "op_143", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2029,7 +2029,7 @@ TEST_F(URITemplateRouterViewTest, base_path_single_segment) {
 TEST_F(URITemplateRouterViewTest, base_path_without_prefix_no_match) {
   {
     sourcemeta::core::URITemplateRouter router{"/prefix"};
-    router.add("/foo", 1);
+    router.add("/foo", "op_144", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2042,8 +2042,8 @@ TEST_F(URITemplateRouterViewTest, base_path_without_prefix_no_match) {
 TEST_F(URITemplateRouterViewTest, base_path_multi_segment) {
   {
     sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
-    router.add("/api/list", 1);
-    router.add("/{+path}", 2);
+    router.add("/api/list", "op_145", 1);
+    router.add("/{+path}", "op_146", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2060,7 +2060,7 @@ TEST_F(URITemplateRouterViewTest, base_path_multi_segment) {
 TEST_F(URITemplateRouterViewTest, base_path_with_variable) {
   {
     sourcemeta::core::URITemplateRouter router{"/prefix"};
-    router.add("/users/{id}", 1);
+    router.add("/users/{id}", "op_147", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2074,7 +2074,7 @@ TEST_F(URITemplateRouterViewTest, base_path_with_variable) {
 TEST_F(URITemplateRouterViewTest, base_path_prefix_boundary_no_match) {
   {
     sourcemeta::core::URITemplateRouter router{"/prefix"};
-    router.add("/foo", 1);
+    router.add("/foo", "op_148", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2087,7 +2087,7 @@ TEST_F(URITemplateRouterViewTest, base_path_prefix_boundary_no_match) {
 TEST_F(URITemplateRouterViewTest, base_path_with_empty_template) {
   {
     sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
-    router.add("", 1);
+    router.add("", "op_149", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2100,7 +2100,7 @@ TEST_F(URITemplateRouterViewTest, base_path_with_empty_template) {
 TEST_F(URITemplateRouterViewTest, base_path_no_base_path_unchanged) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/foo", 1);
+    router.add("/foo", "op_150", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2113,7 +2113,7 @@ TEST_F(URITemplateRouterViewTest, base_path_no_base_path_unchanged) {
 TEST_F(URITemplateRouterViewTest, base_path_expansion) {
   {
     sourcemeta::core::URITemplateRouter router{"/api"};
-    router.add("/files/{+path}", 1);
+    router.add("/files/{+path}", "op_151", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2127,7 +2127,7 @@ TEST_F(URITemplateRouterViewTest, base_path_expansion) {
 TEST_F(URITemplateRouterViewTest, base_path_trailing_slash_normalized) {
   {
     sourcemeta::core::URITemplateRouter router{"/prefix/"};
-    router.add("/foo", 1);
+    router.add("/foo", "op_152", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2141,7 +2141,7 @@ TEST_F(URITemplateRouterViewTest,
        base_path_multiple_trailing_slashes_normalized) {
   {
     sourcemeta::core::URITemplateRouter router{"/prefix///"};
-    router.add("/foo", 1);
+    router.add("/foo", "op_153", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2154,7 +2154,7 @@ TEST_F(URITemplateRouterViewTest,
 TEST_F(URITemplateRouterViewTest, add_with_context_literal_route) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 7);
+    router.add("/users", "op_154", 1, 7);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2166,7 +2166,7 @@ TEST_F(URITemplateRouterViewTest, add_with_context_literal_route) {
 TEST_F(URITemplateRouterViewTest, add_with_context_variable_route) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}", 1, 42);
+    router.add("/users/{id}", "op_155", 1, 42);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2179,7 +2179,7 @@ TEST_F(URITemplateRouterViewTest, add_with_context_variable_route) {
 TEST_F(URITemplateRouterViewTest, add_with_context_default_zero) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_156", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2191,8 +2191,8 @@ TEST_F(URITemplateRouterViewTest, add_with_context_default_zero) {
 TEST_F(URITemplateRouterViewTest, add_multiple_routes_different_contexts) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 1);
-    router.add("/posts", 2, 2);
+    router.add("/users", "op_157", 1, 1);
+    router.add("/posts", "op_158", 2, 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2210,8 +2210,8 @@ TEST_F(URITemplateRouterViewTest, add_multiple_routes_different_contexts) {
 TEST_F(URITemplateRouterViewTest, add_same_context_multiple_routes) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 99);
-    router.add("/posts", 2, 99);
+    router.add("/users", "op_159", 1, 99);
+    router.add("/posts", "op_160", 2, 99);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2234,7 +2234,7 @@ TEST_F(URITemplateRouterViewTest, add_with_context_and_arguments) {
             {"schema", std::string_view{"schemas/health"}},
             {"enabled", true},
         }};
-    router.add("/api/health", 1, 11, arguments);
+    router.add("/api/health", "op_161", 1, 11, arguments);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2268,7 +2268,7 @@ TEST_F(URITemplateRouterViewTest, add_with_context_and_arguments) {
 TEST_F(URITemplateRouterViewTest, add_context_expansion_route) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+path}", 1, 5);
+    router.add("/files/{+path}", "op_162", 1, 5);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2281,7 +2281,7 @@ TEST_F(URITemplateRouterViewTest, add_context_expansion_route) {
 TEST_F(URITemplateRouterViewTest, add_context_base_path) {
   {
     sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
-    router.add("/api/list", 1, 33);
+    router.add("/api/list", "op_163", 1, 33);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2294,7 +2294,7 @@ TEST_F(URITemplateRouterViewTest, add_context_base_path) {
 TEST_F(URITemplateRouterViewTest, add_with_context_no_match_returns_zero_pair) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 7);
+    router.add("/users", "op_164", 1, 7);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2307,8 +2307,8 @@ TEST_F(URITemplateRouterViewTest,
        add_with_context_overwrites_previous_context) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 10);
-    router.add("/users", 1, 20);
+    router.add("/users", "op_165", 1, 10);
+    router.add("/users", "op_166", 1, 20);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2330,7 +2330,7 @@ TEST_F(URITemplateRouterViewTest, size_empty_router) {
 TEST_F(URITemplateRouterViewTest, size_single_route) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_167", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2341,10 +2341,10 @@ TEST_F(URITemplateRouterViewTest, size_single_route) {
 TEST_F(URITemplateRouterViewTest, size_multiple_routes) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts", 3);
-    router.add("/posts/{id}", 4);
+    router.add("/users", "op_168", 1);
+    router.add("/users/{id}", "op_169", 2);
+    router.add("/posts", "op_170", 3);
+    router.add("/posts/{id}", "op_171", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2355,8 +2355,8 @@ TEST_F(URITemplateRouterViewTest, size_multiple_routes) {
 TEST_F(URITemplateRouterViewTest, size_duplicate_route_does_not_increase) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users", 2);
+    router.add("/users", "op_172", 1);
+    router.add("/users", "op_173", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2367,8 +2367,8 @@ TEST_F(URITemplateRouterViewTest, size_duplicate_route_does_not_increase) {
 TEST_F(URITemplateRouterViewTest, size_with_base_path) {
   {
     sourcemeta::core::URITemplateRouter router{"/v1"};
-    router.add("/users", 1);
-    router.add("/posts", 2);
+    router.add("/users", "op_174", 1);
+    router.add("/posts", "op_175", 2);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2379,7 +2379,7 @@ TEST_F(URITemplateRouterViewTest, size_with_base_path) {
 TEST_F(URITemplateRouterViewTest, otherwise_returned_from_unknown_path) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 5);
+    router.add("/users", "op_176", 1, 5);
     router.otherwise(99);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2392,7 +2392,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_returned_from_unknown_path) {
 TEST_F(URITemplateRouterViewTest, otherwise_not_returned_from_matching_route) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 5);
+    router.add("/users", "op_177", 1, 5);
     router.otherwise(99);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2405,7 +2405,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_not_returned_from_matching_route) {
 TEST_F(URITemplateRouterViewTest, otherwise_returned_for_empty_segment) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_178", 1);
     router.otherwise(77);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2417,7 +2417,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_returned_for_empty_segment) {
 TEST_F(URITemplateRouterViewTest, otherwise_returned_for_root_slash_no_match) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_179", 1);
     router.otherwise(88);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2430,7 +2430,7 @@ TEST_F(URITemplateRouterViewTest,
        otherwise_without_registration_returns_zero_context) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_180", 1);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
@@ -2502,7 +2502,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_does_not_affect_other_arguments) {
     const std::string schema_value{"user.json"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         route_args{{{"schema", std::string_view{schema_value}}}};
-    router.add("/users", 1, 0, route_args);
+    router.add("/users", "op_181", 1, 0, route_args);
 
     const std::string message_value{"not found"};
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
@@ -2541,7 +2541,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_does_not_affect_other_arguments) {
 TEST_F(URITemplateRouterViewTest, otherwise_does_not_count_as_route_in_size) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
+    router.add("/users", "op_182", 1);
     router.otherwise(99);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2553,7 +2553,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_does_not_count_as_route_in_size) {
 TEST_F(URITemplateRouterViewTest, otherwise_with_base_path_and_unmatched) {
   {
     sourcemeta::core::URITemplateRouter router{"/v1"};
-    router.add("/users", 1);
+    router.add("/users", "op_183", 1);
     router.otherwise(42);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2565,7 +2565,7 @@ TEST_F(URITemplateRouterViewTest, otherwise_with_base_path_and_unmatched) {
 TEST_F(URITemplateRouterViewTest, otherwise_with_partial_trie_walk) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}/posts", 1);
+    router.add("/users/{id}/posts", "op_184", 1);
     router.otherwise(42);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2589,235 +2589,22 @@ TEST_F(URITemplateRouterViewTest, otherwise_overwrite_context) {
 TEST_F(URITemplateRouterViewTest, listing_size_matches_router) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts/{id}/comments/{comment_id}", 3);
-    router.add("/files/{+rest}", 4);
+    router.add("/users", "op_185", 1);
+    router.add("/users/{id}", "op_186", 2);
+    router.add("/posts/{id}/comments/{comment_id}", "op_187", 3);
+    router.add("/files/{+rest}", "op_188", 4);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
   EXPECT_EQ(restored.size(), 4);
-}
-
-TEST_F(URITemplateRouterViewTest, listing_at_yields_identifiers_in_bfs_order) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts/{id}/comments/{comment_id}", 3);
-    router.add("/files/{+rest}", 4);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.size(), 4);
-  EXPECT_EQ(restored.at(0), 1);
-  EXPECT_EQ(restored.at(1), 4);
-  EXPECT_EQ(restored.at(2), 2);
-  EXPECT_EQ(restored.at(3), 3);
-}
-
-TEST_F(URITemplateRouterViewTest, listing_context_returns_associated_context) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1, 100);
-    router.add("/posts/{id}", 2, 200);
-    router.add("/comments", 3, 300);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.context(1), 100);
-  EXPECT_EQ(restored.context(2), 200);
-  EXPECT_EQ(restored.context(3), 300);
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_literal_route) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/users");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_multi_segment_literal) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users/list", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/users/list");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_variable_route) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/users/{id}");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_multi_variable_route) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}/posts/{post_id}", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/users/{id}/posts/{post_id}");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_expansion_route) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/files/{+rest}", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/files/{+rest}");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_root_route) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_excludes_base_path) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/api/v1"};
-    router.add("/users/{id}", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.base_path(), "/api/v1");
-  EXPECT_EQ(restored.path(1), "/users/{id}");
-}
-
-TEST_F(URITemplateRouterViewTest,
-       listing_path_excludes_base_path_for_root_template) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/api"};
-    router.add("/", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/");
-}
-
-TEST_F(URITemplateRouterViewTest,
-       listing_path_excludes_base_path_for_empty_template) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/api"};
-    router.add("", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_multiple_routes) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/users/{id}", 2);
-    router.add("/posts/{id}/comments/{comment_id}", 3);
-    router.add("/files/{+rest}", 4);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/users");
-  EXPECT_EQ(restored.path(2), "/users/{id}");
-  EXPECT_EQ(restored.path(3), "/posts/{id}/comments/{comment_id}");
-  EXPECT_EQ(restored.path(4), "/files/{+rest}");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_deeply_nested_variables) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/a/{x}/b/{y}/c/{z}", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/a/{x}/b/{y}/c/{z}");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_path_for_literal_after_base_path) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/foo/bar"};
-    router.add("/baz", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.path(1), "/baz");
-}
-
-TEST_F(URITemplateRouterViewTest, listing_save_load_path_round_trip_each_id) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/api"};
-    router.add("/users", 1, 11);
-    router.add("/users/{id}", 2, 22);
-    router.add("/posts", 3, 33);
-    router.add("/posts/{id}/comments/{comment_id}", 4, 44);
-    router.add("/files/{+rest}", 5, 55);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.context(1), 11);
-  EXPECT_EQ(restored.context(2), 22);
-  EXPECT_EQ(restored.context(3), 33);
-  EXPECT_EQ(restored.context(4), 44);
-  EXPECT_EQ(restored.context(5), 55);
-  EXPECT_EQ(restored.path(1), "/users");
-  EXPECT_EQ(restored.path(2), "/users/{id}");
-  EXPECT_EQ(restored.path(3), "/posts");
-  EXPECT_EQ(restored.path(4), "/posts/{id}/comments/{comment_id}");
-  EXPECT_EQ(restored.path(5), "/files/{+rest}");
-}
-
-TEST_F(URITemplateRouterViewTest,
-       listing_path_returns_freshly_allocated_string) {
-  {
-    sourcemeta::core::URITemplateRouter router;
-    router.add("/users/{id}", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  const auto first = restored.path(1);
-  const auto second = restored.path(1);
-  EXPECT_EQ(first, second);
-  EXPECT_NE(first.data(), second.data());
 }
 
 TEST_F(URITemplateRouterViewTest, listing_size_excludes_otherwise) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/users", 1);
-    router.add("/posts", 2);
+    router.add("/users", "op_189", 1);
+    router.add("/posts", "op_190", 2);
     router.otherwise(99);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
@@ -2826,18 +2613,100 @@ TEST_F(URITemplateRouterViewTest, listing_size_excludes_otherwise) {
   EXPECT_EQ(restored.size(), 2);
 }
 
-TEST_F(URITemplateRouterViewTest, listing_iterate_via_size_and_at) {
+TEST_F(URITemplateRouterViewTest, operation_returns_identifier_and_context) {
   {
     sourcemeta::core::URITemplateRouter router;
-    router.add("/a", 10);
-    router.add("/b/{id}", 20);
-    router.add("/c/{+rest}", 30);
+    router.add("/a", "alpha", 1, 11);
+    router.add("/b", "beta", 2, 22);
+    router.add("/c", "gamma", 3, 33);
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
   const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.size(), 3);
-  EXPECT_EQ(restored.at(0), 10);
-  EXPECT_EQ(restored.at(1), 20);
-  EXPECT_EQ(restored.at(2), 30);
+
+  const auto alpha = restored.operation("alpha");
+  EXPECT_EQ(alpha.first, 1);
+  EXPECT_EQ(alpha.second, 11);
+
+  const auto beta = restored.operation("beta");
+  EXPECT_EQ(beta.first, 2);
+  EXPECT_EQ(beta.second, 22);
+
+  const auto gamma = restored.operation("gamma");
+  EXPECT_EQ(gamma.first, 3);
+  EXPECT_EQ(gamma.second, 33);
+}
+
+TEST_F(URITemplateRouterViewTest, operation_unknown_returns_zero_zero) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/a", "alpha", 1, 11);
+    router.otherwise(99);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  const auto result = restored.operation("missing");
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST_F(URITemplateRouterViewTest, operation_full_character_set_round_trip) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/a", "aZ0_-", 1);
+    router.add("/b", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-09",
+               2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.operation("aZ0_-").first, 1);
+  EXPECT_EQ(
+      restored
+          .operation("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                     "_-09")
+          .first,
+      2);
+}
+
+TEST_F(URITemplateRouterViewTest, operation_empty_router) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  const auto result = restored.operation("anything");
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST_F(URITemplateRouterViewTest, operation_rejects_v5_blob) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/a", "alpha", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  // Forge the version field down to 5
+  std::vector<std::uint8_t> blob;
+  {
+    std::ifstream file{this->path, std::ios::binary | std::ios::ate};
+    const auto size = static_cast<std::size_t>(file.tellg());
+    file.seekg(0, std::ios::beg);
+    blob.resize(size);
+    file.read(reinterpret_cast<char *>(blob.data()),
+              static_cast<std::streamsize>(size));
+  }
+
+  const std::uint32_t old_version = 5;
+  std::memcpy(blob.data() + sizeof(std::uint32_t), &old_version,
+              sizeof(old_version));
+
+  const sourcemeta::core::URITemplateRouterView restored{blob.data(),
+                                                         blob.size()};
+  const auto result = restored.operation("alpha");
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
 }
