@@ -5,9 +5,11 @@
 #define EXPECT_URITEMPLATE_PARSE_ERROR(input, expected_column)                 \
   try {                                                                        \
     const sourcemeta::core::URITemplate uri_template{input};                   \
-    FAIL() << "Expected parse error for: " << input;                           \
+    FAIL();                                                                    \
   } catch (const sourcemeta::core::URITemplateParseError &error) {             \
     EXPECT_EQ(error.column(), expected_column);                                \
+  } catch (...) {                                                              \
+    FAIL();                                                                    \
   }
 
 TEST(URITemplate_parse_error, unclosed_brace) {

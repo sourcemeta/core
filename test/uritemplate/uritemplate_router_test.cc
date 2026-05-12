@@ -17,10 +17,12 @@
 #define EXPECT_ROUTER_SEGMENT_ERROR(router, input, identifier, expected)       \
   try {                                                                        \
     router.add(input, "op", identifier);                                       \
-    FAIL() << "Expected error for: " << input;                                 \
+    FAIL();                                                                    \
   } catch (                                                                    \
       const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {   \
     EXPECT_EQ(error.segment(), expected);                                      \
+  } catch (...) {                                                              \
+    FAIL();                                                                    \
   }
 
 TEST(URITemplateRouter, single_literal_route) {
@@ -1714,10 +1716,12 @@ TEST(URITemplateRouter, operation_id_reject_too_long) {
   const std::string operation_id(65, 'a');
   try {
     router.add("/a", operation_id, 1);
-    FAIL() << "Expected URITemplateRouterInvalidOperationIdError";
+    FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
     EXPECT_EQ(error.operation_id(), operation_id);
+  } catch (...) {
+    FAIL();
   }
 }
 
@@ -1754,10 +1758,12 @@ TEST(URITemplateRouter, operation_id_duplicate_throws) {
   router.add("/a", "listUsers", 1);
   try {
     router.add("/b", "listUsers", 2);
-    FAIL() << "Expected URITemplateRouterDuplicateOperationIdError";
+    FAIL();
   } catch (const sourcemeta::core::URITemplateRouterDuplicateOperationIdError
                &error) {
     EXPECT_EQ(error.operation_id(), "listUsers");
+  } catch (...) {
+    FAIL();
   }
 }
 

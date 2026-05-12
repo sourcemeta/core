@@ -6,5 +6,5 @@ if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME uritemplate)
 endif()
 
-target_link_libraries(sourcemeta_core_uritemplate PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_uritemplate PUBLIC sourcemeta::core::io)
 target_link_libraries(sourcemeta_core_uritemplate PRIVATE sourcemeta::core::regex)

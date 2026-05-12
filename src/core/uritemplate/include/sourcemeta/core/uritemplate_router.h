@@ -5,22 +5,23 @@
 #include <sourcemeta/core/uritemplate_export.h>
 #endif
 
+#include <sourcemeta/core/io.h>
+
 #include <cstddef> // std::size_t
 #include <cstdint> // std::uint16_t, std::uint32_t, std::uint8_t, std::int64_t
-#include <filesystem>  // std::filesystem::path
-#include <functional>  // std::function
-#include <memory>      // std::unique_ptr
-#include <span>        // std::span
-#include <string>      // std::string
-#include <string_view> // std::string_view
-#include <tuple>       // std::tuple
-#include <utility>     // std::pair
-#include <variant>     // std::variant
-#include <vector>      // std::vector
+#include <filesystem>    // std::filesystem::path
+#include <functional>    // std::function
+#include <memory>        // std::unique_ptr
+#include <span>          // std::span
+#include <string>        // std::string
+#include <string_view>   // std::string_view
+#include <tuple>         // std::tuple
+#include <unordered_map> // std::unordered_map
+#include <utility>       // std::pair
+#include <variant>       // std::variant
+#include <vector>        // std::vector
 
 namespace sourcemeta::core {
-
-class FileView;
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -145,7 +146,8 @@ private:
   std::string base_path_;
   std::vector<std::pair<Identifier, std::vector<Argument>>> arguments_;
   std::vector<std::tuple<Identifier, Identifier, std::string_view>> entries_;
-  std::vector<std::tuple<std::string_view, Identifier, Identifier>> operations_;
+  std::unordered_map<std::string_view, std::pair<Identifier, Identifier>>
+      operations_;
 };
 
 /// @ingroup uritemplate

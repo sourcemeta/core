@@ -272,12 +272,12 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
   // so the view can binary-search.
   std::vector<OperationEntry> operation_entries;
   operation_entries.reserve(router.operations_.size());
-  for (const auto &[operation_id, identifier, context] : router.operations_) {
+  for (const auto &[operation_id, route] : router.operations_) {
     OperationEntry entry{};
     entry.string_offset = static_cast<std::uint32_t>(string_table.size());
     entry.string_length = static_cast<std::uint32_t>(operation_id.size());
-    entry.identifier = identifier;
-    entry.context = context;
+    entry.identifier = route.first;
+    entry.context = route.second;
     string_table.append(operation_id.data(), operation_id.size());
     operation_entries.push_back(entry);
   }

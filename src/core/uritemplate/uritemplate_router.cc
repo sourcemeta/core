@@ -154,14 +154,11 @@ auto URITemplateRouter::path(const Identifier identifier) const -> std::string {
 
 auto URITemplateRouter::operation(const std::string_view operation_id) const
     -> std::pair<Identifier, Identifier> {
-  const auto entry = std::ranges::find_if(
-      this->operations_, [&operation_id](const auto &candidate) {
-        return std::get<0>(candidate) == operation_id;
-      });
-  if (entry == this->operations_.end()) {
+  const auto iterator = this->operations_.find(operation_id);
+  if (iterator == this->operations_.end()) {
     return {Identifier{0}, Identifier{0}};
   }
-  return {std::get<1>(*entry), std::get<2>(*entry)};
+  return iterator->second;
 }
 
 auto URITemplateRouter::otherwise(const Identifier context,
@@ -200,14 +197,11 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     throw URITemplateRouterInvalidOperationIdError{operation_id};
   }
 
-  if (std::ranges::find_if(this->operations_,
-                           [&operation_id](const auto &entry) {
-                             return std::get<0>(entry) == operation_id;
-                           }) != this->operations_.end()) {
+  const auto [iterator, inserted] = this->operations_.emplace(
+      operation_id, std::pair<Identifier, Identifier>{identifier, context});
+  if (!inserted) {
     throw URITemplateRouterDuplicateOperationIdError{operation_id};
   }
-
-  this->operations_.emplace_back(operation_id, identifier, context);
 
   // Walk base path segments to establish the trie prefix
   Node *current = nullptr;
