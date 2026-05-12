@@ -106,15 +106,24 @@ TEST_F(IOReadFileToStringTest, empty_file) {
 
 #if !defined(_WIN32)
 TEST_F(IOReadFileToStringTest, fifo) {
+  struct ThreadJoiner {
+    std::thread &thread;
+    ~ThreadJoiner() {
+      if (thread.joinable()) {
+        thread.join();
+      }
+    }
+  };
+
   const auto path{this->workspace / "fifo"};
   std::filesystem::remove(path);
   ASSERT_EQ(::mkfifo(path.c_str(), S_IRUSR | S_IWUSR), 0);
-  std::jthread writer{[&path]() {
+  std::thread writer{[&path]() {
     std::ofstream stream{path};
     stream << "piped payload\nsecond line\n";
   }};
+  ThreadJoiner joiner{writer};
   auto contents{sourcemeta::core::read_file_to_string(path)};
-  writer.join();
   contents.erase(std::remove(contents.begin(), contents.end(), '\r'),
                  contents.end());
   EXPECT_EQ(contents, "piped payload\nsecond line\n");
