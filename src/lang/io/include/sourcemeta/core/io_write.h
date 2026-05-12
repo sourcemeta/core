@@ -111,13 +111,6 @@ auto atomic_write_file(const std::filesystem::path &path, Writer &&writer)
     -> void {
   detail::AtomicFileWriter file{path};
   std::forward<Writer>(writer)(file.stream());
-  // MSVC's flow analysis can determine `commit()` is unreachable when the
-  // writer is provably-throwing at the call site (legitimate for tests that
-  // simulate write failures). Suppress the warning since the unreachable-on-
-  // throw path is the intended behaviour.
-#if defined(_MSC_VER)
-#pragma warning(suppress : 4702)
-#endif
   file.commit();
 }
 

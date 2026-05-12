@@ -91,8 +91,11 @@ TEST(IO_atomic_write_file, exception_in_callback_leaves_destination_untouched) {
   sourcemeta::core::atomic_write_file(path, "original");
 
   try {
-    sourcemeta::core::atomic_write_file(
-        path, [](std::ostream &) -> void { throw std::runtime_error{"boom"}; });
+    sourcemeta::core::atomic_write_file(path, [&path](std::ostream &) -> void {
+      if (!path.empty()) {
+        throw std::runtime_error{"boom"};
+      }
+    });
     FAIL() << "Expected std::runtime_error";
   } catch (const std::runtime_error &) {
     // expected
@@ -109,8 +112,11 @@ TEST(IO_atomic_write_file, exception_in_callback_removes_staging_file) {
   staging += ".tmp";
 
   try {
-    sourcemeta::core::atomic_write_file(
-        path, [](std::ostream &) -> void { throw std::runtime_error{"boom"}; });
+    sourcemeta::core::atomic_write_file(path, [&path](std::ostream &) -> void {
+      if (!path.empty()) {
+        throw std::runtime_error{"boom"};
+      }
+    });
     FAIL() << "Expected std::runtime_error";
   } catch (const std::runtime_error &) {
     // expected
