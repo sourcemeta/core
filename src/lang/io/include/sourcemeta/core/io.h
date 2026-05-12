@@ -169,18 +169,17 @@ auto read_file_to_string(const std::filesystem::path &path)
 
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
 
-  // `file_size` only works on regular files, so fall back to a streaming
-  // read for FIFOs (i.e. process substitution), sockets, and pipes. Treat
-  // any stat failure as non-regular so the fallback still runs on the
-  // already-open stream rather than surfacing as a `filesystem_error`.
-  std::error_code regular_file_error;
-  if (!std::filesystem::is_regular_file(canonical_path, regular_file_error)) {
+  // `file_size` only works on regular files, so when it cannot determine a
+  // size (FIFOs from process substitution, sockets, pipes, or any other
+  // stat failure) fall back to a streaming read on the already-open stream.
+  std::error_code file_size_error;
+  const auto size{std::filesystem::file_size(canonical_path, file_size_error)};
+  if (file_size_error) {
     return read_to_string<CharT, Traits>(stream);
   }
 
   std::basic_string<CharT, Traits> result;
-  result.resize(
-      static_cast<std::size_t>(std::filesystem::file_size(canonical_path)));
+  result.resize(static_cast<std::size_t>(size));
   stream.read(result.data(), static_cast<std::streamsize>(result.size()));
   // Text-mode reads may return fewer characters than the byte count
   // (i.e. CRLF collapses to LF on Windows), so trim to actual.
