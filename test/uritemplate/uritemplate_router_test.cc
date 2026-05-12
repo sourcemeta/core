@@ -1809,13 +1809,12 @@ TEST(URITemplateRouter, operation_id_not_reserved_when_add_throws) {
     router.add("/foo/{bar}.json", "listFoo", 1);
     FAIL();
   } catch (const sourcemeta::core::URITemplateRouterInvalidSegmentError &) {
+    router.add("/users", "listFoo", 2);
+    const auto result = router.operation("listFoo");
+    EXPECT_EQ(result.first, 2);
   } catch (...) {
     FAIL();
   }
-
-  router.add("/users", "listFoo", 2);
-  const auto result = router.operation("listFoo");
-  EXPECT_EQ(result.first, 2);
 }
 
 TEST(URITemplateRouter, operation_id_overwrite_removes_previous_mapping) {
