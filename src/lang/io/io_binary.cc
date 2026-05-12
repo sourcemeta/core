@@ -1,9 +1,8 @@
 #include <sourcemeta/core/io_binary.h>
+#include <sourcemeta/core/io_error.h>
 
-#include <cstring>      // std::memcpy
-#include <filesystem>   // std::filesystem::filesystem_error
-#include <ios>          // std::streamsize
-#include <system_error> // std::make_error_code, std::errc
+#include <cstring> // std::memcpy
+#include <ios>     // std::streamsize
 
 namespace sourcemeta::core {
 
@@ -14,9 +13,7 @@ auto BinaryWriter::write_bytes(const std::byte *data, const std::size_t size)
   this->stream_->write(reinterpret_cast<const char *>(data),
                        static_cast<std::streamsize>(size));
   if (this->stream_->fail()) {
-    throw std::filesystem::filesystem_error{
-        "BinaryWriter: failed to write to stream",
-        std::make_error_code(std::errc::io_error)};
+    throw IOStreamWriteError{};
   }
 }
 
@@ -28,9 +25,7 @@ auto BinaryReader::offset() const noexcept -> std::size_t {
 
 auto BinaryReader::seek(const std::size_t position) -> void {
   if (position > this->view_->size()) {
-    throw std::filesystem::filesystem_error{
-        "BinaryReader: seek position past end of view",
-        std::make_error_code(std::errc::result_out_of_range)};
+    throw IOReadOutOfBoundsError{};
   }
 
   this->offset_ = position;
@@ -39,9 +34,7 @@ auto BinaryReader::seek(const std::size_t position) -> void {
 auto BinaryReader::read_bytes(std::byte *destination, const std::size_t size)
     -> void {
   if (this->offset_ + size > this->view_->size()) {
-    throw std::filesystem::filesystem_error{
-        "BinaryReader: read past end of view",
-        std::make_error_code(std::errc::result_out_of_range)};
+    throw IOReadOutOfBoundsError{};
   }
 
   if (size > 0) {

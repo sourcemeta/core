@@ -161,7 +161,8 @@ TEST_F(IOBinaryTest, seek_past_end_throws) {
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
-  EXPECT_THROW(reader.seek(view.size() + 1), std::filesystem::filesystem_error);
+  EXPECT_THROW(reader.seek(view.size() + 1),
+               sourcemeta::core::IOReadOutOfBoundsError);
 }
 
 TEST_F(IOBinaryTest, read_past_end_throws) {
@@ -174,7 +175,7 @@ TEST_F(IOBinaryTest, read_past_end_throws) {
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
   EXPECT_THROW((void)reader.read<std::uint32_t>(),
-               std::filesystem::filesystem_error);
+               sourcemeta::core::IOReadOutOfBoundsError);
 }
 
 TEST_F(IOBinaryTest, read_byte_span_roundtrip) {

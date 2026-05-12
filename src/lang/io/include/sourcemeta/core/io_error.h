@@ -135,6 +135,25 @@ private:
   std::filesystem::path path_;
 };
 
+/// @ingroup io
+/// A read attempted to access bytes outside the bounds of the underlying
+/// data.
+class SOURCEMETA_CORE_IO_EXPORT IOReadOutOfBoundsError : public std::exception {
+public:
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return "Read past the end of the underlying data";
+  }
+};
+
+/// @ingroup io
+/// A write to the underlying stream failed.
+class SOURCEMETA_CORE_IO_EXPORT IOStreamWriteError : public std::exception {
+public:
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return "Failed to write to stream";
+  }
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif
