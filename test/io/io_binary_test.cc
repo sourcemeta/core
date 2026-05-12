@@ -3,6 +3,7 @@
 #include <sourcemeta/core/io.h>
 
 #include <array>   // std::array
+#include <bit>     // std::endian
 #include <cstddef> // std::byte
 #include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
 #include <filesystem> // std::filesystem
@@ -57,8 +58,13 @@ TEST(IO_BinaryWriter, put_word_emits_two_bytes_in_host_order) {
   writer.put_word(0xCAFE);
   const auto bytes{stream.str()};
   ASSERT_EQ(bytes.size(), 2);
-  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xFE);
-  EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCA);
+  if constexpr (std::endian::native == std::endian::little) {
+    EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xFE);
+    EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCA);
+  } else {
+    EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xCA);
+    EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xFE);
+  }
 }
 
 TEST(IO_BinaryWriter, put_dword_emits_four_bytes) {
@@ -233,7 +239,7 @@ TEST(IO_BinaryReader, has_more_data_on_empty_stringstream) {
 
 TEST(IO_BinaryReader, has_more_data_treats_null_byte_as_data) {
   // A null byte at the cursor is a legitimate value, not end-of-stream.
-  std::istringstream input{std::string{'\0', 1}};
+  std::istringstream input{std::string(1, '\0')};
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_TRUE(reader.has_more_data());
 }

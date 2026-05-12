@@ -28,6 +28,10 @@ auto BinaryWriter::put_qword(const std::uint64_t value) -> void {
 
 auto BinaryWriter::put_bytes(const std::byte *data, const std::size_t size)
     -> void {
+  if (size == 0) {
+    return;
+  }
+
   this->stream_->write(reinterpret_cast<const char *>(data),
                        static_cast<std::streamsize>(size));
   if (this->stream_->fail()) {
@@ -36,7 +40,12 @@ auto BinaryWriter::put_bytes(const std::byte *data, const std::size_t size)
 }
 
 auto BinaryWriter::position() const -> std::size_t {
-  return static_cast<std::size_t>(this->stream_->tellp());
+  const auto position{this->stream_->tellp()};
+  if (position == std::streampos{-1}) {
+    throw IOStreamWriteError{};
+  }
+
+  return static_cast<std::size_t>(position);
 }
 
 BinaryReader::BinaryReader(const FileView &view) noexcept : view_{&view} {}
@@ -65,7 +74,12 @@ auto BinaryReader::position() const -> std::size_t {
   }
 
   assert(this->stream_);
-  return static_cast<std::size_t>(this->stream_->tellg());
+  const auto position{this->stream_->tellg()};
+  if (position == std::streampos{-1}) {
+    throw IOReadOutOfBoundsError{};
+  }
+
+  return static_cast<std::size_t>(position);
 }
 
 auto BinaryReader::seek(const std::size_t position) -> void {
