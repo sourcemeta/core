@@ -130,18 +130,34 @@ auto atomic_directory_swap(const std::filesystem::path &original,
 #if defined(__linux__)
   if (syscall(SYS_renameat2, AT_FDCWD, replacement.c_str(), AT_FDCWD,
               original.c_str(), RENAME_EXCHANGE) != 0) {
+    const auto error_code = std::error_code{errno, std::generic_category()};
+    if (error_code == std::errc::no_such_file_or_directory) {
+      throw IOFileNotFoundError{original};
+    }
+    if (error_code == std::errc::permission_denied) {
+      throw IOFilePermissionError{original};
+    }
+
     throw std::filesystem::filesystem_error{
         "failed to atomically swap directories", replacement, original,
-        std::error_code{errno, std::generic_category()}};
+        error_code};
   }
 
   // Atomic swap via renameatx_np with RENAME_SWAP
 #elif defined(__APPLE__)
   if (renameatx_np(AT_FDCWD, replacement.c_str(), AT_FDCWD, original.c_str(),
                    RENAME_SWAP) != 0) {
+    const auto error_code = std::error_code{errno, std::generic_category()};
+    if (error_code == std::errc::no_such_file_or_directory) {
+      throw IOFileNotFoundError{original};
+    }
+    if (error_code == std::errc::permission_denied) {
+      throw IOFilePermissionError{original};
+    }
+
     throw std::filesystem::filesystem_error{
         "failed to atomically swap directories", replacement, original,
-        std::error_code{errno, std::generic_category()}};
+        error_code};
   }
 
 #else
