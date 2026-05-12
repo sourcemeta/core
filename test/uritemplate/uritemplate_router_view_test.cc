@@ -2689,7 +2689,6 @@ TEST_F(URITemplateRouterViewTest, operation_rejects_v5_blob) {
     sourcemeta::core::URITemplateRouterView::save(router, this->path);
   }
 
-  // Forge the version field down to 5
   std::vector<std::uint8_t> blob;
   {
     std::ifstream file{this->path, std::ios::binary | std::ios::ate};

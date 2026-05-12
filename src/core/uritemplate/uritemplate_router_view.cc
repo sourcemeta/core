@@ -37,8 +37,6 @@ struct RouterHeader {
   std::uint32_t base_path_offset;
   std::uint32_t base_path_length;
   std::uint32_t otherwise_context;
-  // Keep `sizeof(RouterHeader)` a multiple of 8 so the `SerializedNode`
-  // array that follows is properly aligned for direct `reinterpret_cast`
   std::uint32_t padding;
 };
 
@@ -48,8 +46,6 @@ struct ArgumentEntryHeader {
   std::uint32_t blob_length;
 };
 
-// Serialized layout per operation entry, written and read field by field
-// so the entries array does not require pointer alignment
 constexpr std::size_t OPERATION_ENTRY_SIZE =
     sizeof(std::uint32_t) + sizeof(std::uint32_t) +
     sizeof(URITemplateRouter::Identifier) +
@@ -277,9 +273,6 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
     argument_entries.push_back(entry);
   }
 
-  // Build the operations section. Each operation_id is appended to the
-  // string table, then entries are sorted lexicographically by the bytes
-  // so the view can binary-search.
   std::vector<OperationEntry> operation_entries;
   operation_entries.reserve(router.operations_.size());
   for (const auto &[operation_id, route] : router.operations_) {
@@ -353,8 +346,6 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
                static_cast<std::streamsize>(argument_blob.size()));
   }
 
-  // Write operations section. Each entry is written field-by-field to
-  // keep the on-disk layout independent of in-memory struct alignment
   file.write(reinterpret_cast<const char *>(&operation_count),
              sizeof(operation_count));
   for (const auto &entry : operation_entries) {

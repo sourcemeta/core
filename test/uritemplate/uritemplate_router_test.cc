@@ -1813,7 +1813,6 @@ TEST(URITemplateRouter, operation_id_not_reserved_when_add_throws) {
     FAIL();
   }
 
-  // The failed add() must not have stranded the operation_id
   router.add("/users", "listFoo", 2);
   const auto result = router.operation("listFoo");
   EXPECT_EQ(result.first, 2);
@@ -1824,12 +1823,10 @@ TEST(URITemplateRouter, operation_id_overwrite_removes_previous_mapping) {
   router.add("/users", "first", 1, 11);
   router.add("/users", "second", 2, 22);
 
-  // The old operation_id no longer resolves to the now-stale identifier
   const auto stale = router.operation("first");
   EXPECT_EQ(stale.first, 0);
   EXPECT_EQ(stale.second, 0);
 
-  // The new operation_id resolves to the live route
   const auto live = router.operation("second");
   EXPECT_EQ(live.first, 2);
   EXPECT_EQ(live.second, 22);
