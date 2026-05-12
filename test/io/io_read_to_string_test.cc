@@ -109,7 +109,7 @@ TEST_F(IOReadFileToStringTest, fifo) {
   const auto path{this->workspace / "fifo"};
   std::filesystem::remove(path);
   ASSERT_EQ(::mkfifo(path.c_str(), S_IRUSR | S_IWUSR), 0);
-  std::thread writer{[&path]() {
+  std::jthread writer{[&path]() {
     std::ofstream stream{path};
     stream << "piped payload\nsecond line\n";
   }};

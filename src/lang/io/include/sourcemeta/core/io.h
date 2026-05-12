@@ -13,12 +13,13 @@
 #include <sourcemeta/core/io_temporary.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::basic_ifstream
-#include <iostream>   // std::cin
-#include <istream>    // std::basic_istream
-#include <sstream>    // std::basic_ostringstream
-#include <string>     // std::basic_string, std::char_traits, std::string
+#include <filesystem>   // std::filesystem
+#include <fstream>      // std::basic_ifstream
+#include <iostream>     // std::cin
+#include <istream>      // std::basic_istream
+#include <sstream>      // std::basic_ostringstream
+#include <string>       // std::basic_string, std::char_traits, std::string
+#include <system_error> // std::error_code
 
 /// @defgroup io I/O
 /// @brief A growing collection of I/O utilities
@@ -169,8 +170,11 @@ auto read_file_to_string(const std::filesystem::path &path)
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
 
   // `file_size` only works on regular files, so fall back to a streaming
-  // read for FIFOs (i.e. process substitution), sockets, and pipes.
-  if (!std::filesystem::is_regular_file(canonical_path)) {
+  // read for FIFOs (i.e. process substitution), sockets, and pipes. Treat
+  // any stat failure as non-regular so the fallback still runs on the
+  // already-open stream rather than surfacing as a `filesystem_error`.
+  std::error_code regular_file_error;
+  if (!std::filesystem::is_regular_file(canonical_path, regular_file_error)) {
     return read_to_string<CharT, Traits>(stream);
   }
 
