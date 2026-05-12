@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 
 #include <exception>
@@ -710,26 +711,26 @@ TEST(JSON_parse_error, read_json_invalid_bigint) {
 }
 
 TEST(JSON_parse_error, read_json_directory) {
+  const std::filesystem::path path{TEST_DIRECTORY};
   try {
-    sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY});
-  } catch (const std::filesystem::filesystem_error &error) {
-    EXPECT_EQ(error.code(), std::errc::is_a_directory);
-    EXPECT_EQ(error.path1(), std::filesystem::path{TEST_DIRECTORY});
+    sourcemeta::core::read_json(path);
+    FAIL();
+  } catch (const sourcemeta::core::IOIsADirectoryError &error) {
+    EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a filesystem error";
+    FAIL();
   }
 }
 
 TEST(JSON_parse_error, read_json_non_existent) {
+  const auto path{std::filesystem::path{TEST_DIRECTORY} / "i-dont-exist"};
   try {
-    sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
-                                "i-dont-exist");
-  } catch (const std::filesystem::filesystem_error &error) {
-    EXPECT_EQ(error.code(), std::errc::no_such_file_or_directory);
-    EXPECT_EQ(error.path1(),
-              std::filesystem::path{TEST_DIRECTORY} / "i-dont-exist");
+    sourcemeta::core::read_json(path);
+    FAIL();
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a filesystem error";
+    FAIL();
   }
 }
 

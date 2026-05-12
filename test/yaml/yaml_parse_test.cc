@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/yaml.h>
 
@@ -206,13 +207,13 @@ TEST(YAML_parse, yaml_or_json_stub_test_2) {
 TEST(YAML_parse, file_not_exists) {
   EXPECT_THROW(sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
                                            "not_exists.yaml"),
-               std::filesystem::filesystem_error);
+               sourcemeta::core::IOFileNotFoundError);
 }
 
 TEST(YAML_parse, yaml_or_json_file_not_exists) {
   EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
                    std::filesystem::path{STUBS_PATH} / "not_exists.yaml"),
-               std::filesystem::filesystem_error);
+               sourcemeta::core::IOFileNotFoundError);
 }
 
 TEST(YAML_parse, istringstream) {

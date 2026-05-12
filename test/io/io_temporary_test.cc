@@ -91,8 +91,9 @@ TEST(IO_TemporaryDirectory, parent_is_a_file) {
   try {
     sourcemeta::core::TemporaryDirectory(file_path, ".test-");
     FAIL();
-  } catch (const std::filesystem::filesystem_error &error) {
-    EXPECT_EQ(error.path1(), file_path);
-    EXPECT_EQ(error.code(), std::make_error_code(std::errc::not_a_directory));
+  } catch (const sourcemeta::core::IONotADirectoryError &error) {
+    EXPECT_EQ(error.path(), file_path);
+  } catch (...) {
+    FAIL();
   }
 }

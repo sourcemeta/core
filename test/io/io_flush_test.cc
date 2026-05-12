@@ -14,18 +14,8 @@ TEST(IO_flush, not_exists) {
   try {
     sourcemeta::core::flush(path);
     FAIL();
-  } catch (const std::filesystem::filesystem_error &error) {
-    EXPECT_EQ(error.path1(), path);
-    EXPECT_EQ(error.code().default_error_condition(),
-              std::errc::no_such_file_or_directory);
-
-#if defined(_WIN32)
-    // Windows uses system_category()
-    EXPECT_EQ(&error.code().category(), &std::system_category());
-#else
-    // POSIX uses generic_category()
-    EXPECT_EQ(&error.code().category(), &std::generic_category());
-#endif
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_EQ(error.path(), path);
   } catch (...) {
     FAIL();
   }

@@ -18,12 +18,25 @@ TEST(IO_read_file, text_file) {
 }
 
 TEST(IO_read_file, directory) {
+  const std::filesystem::path path{STUBS_DIRECTORY};
   try {
-    sourcemeta::core::read_file(std::filesystem::path{STUBS_DIRECTORY});
-  } catch (const std::filesystem::filesystem_error &error) {
-    EXPECT_EQ(error.code(), std::errc::is_a_directory);
-    EXPECT_EQ(error.path1(), std::filesystem::path{STUBS_DIRECTORY});
+    sourcemeta::core::read_file(path);
+    FAIL();
+  } catch (const sourcemeta::core::IOIsADirectoryError &error) {
+    EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a filesystem error";
+    FAIL();
+  }
+}
+
+TEST(IO_read_file, not_exists) {
+  const auto path{std::filesystem::path{STUBS_DIRECTORY} / "missing.txt"};
+  try {
+    sourcemeta::core::read_file(path);
+    FAIL();
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_EQ(error.path(), path);
+  } catch (...) {
+    FAIL();
   }
 }

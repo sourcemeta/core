@@ -1,14 +1,17 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
   SOURCES
+    io_atomic_directory_swap_test.cc
+    io_atomic_write_file_test.cc
+    io_binary_test.cc
     io_canonical_test.cc
-    io_flush_test.cc
-    io_weakly_canonical_test.cc
-    io_starts_with_test.cc
-    io_read_file_test.cc
     io_fileview_test.cc
-    io_temporary_test.cc
+    io_flush_test.cc
     io_hardlink_directory_test.cc
-    io_atomic_directory_swap_test.cc)
+    io_read_file_test.cc
+    io_read_to_string_test.cc
+    io_starts_with_test.cc
+    io_temporary_test.cc
+    io_weakly_canonical_test.cc)
 
 target_link_libraries(sourcemeta_core_io_unit
   PRIVATE sourcemeta::core::io)
