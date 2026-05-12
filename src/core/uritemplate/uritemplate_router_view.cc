@@ -758,7 +758,7 @@ auto URITemplateRouterView::operation(const std::string_view operation_id) const
     -> std::pair<URITemplateRouter::Identifier, URITemplateRouter::Identifier> {
   constexpr std::pair<URITemplateRouter::Identifier,
                       URITemplateRouter::Identifier>
-      miss{0, 0};
+      miss{URITemplateRouter::Identifier{0}, URITemplateRouter::Identifier{0}};
 
   if (this->size_ < sizeof(RouterHeader)) {
     return miss;
