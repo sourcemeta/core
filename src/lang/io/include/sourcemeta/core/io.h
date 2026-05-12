@@ -6,18 +6,20 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/io_atomic.h>
 #include <sourcemeta/core/io_binary.h>
 #include <sourcemeta/core/io_error.h>
 #include <sourcemeta/core/io_fileview.h>
-#include <sourcemeta/core/io_stream.h>
 #include <sourcemeta/core/io_temporary.h>
-#include <sourcemeta/core/io_write.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <cassert>    // assert
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::basic_ifstream
-#include <string>     // std::char_traits
+#include <iostream>   // std::cin
+#include <istream>    // std::basic_istream
+#include <sstream>    // std::basic_ostringstream
+#include <string>     // std::basic_string, std::char_traits, std::string
 
 /// @defgroup io I/O
 /// @brief A growing collection of I/O utilities
@@ -103,6 +105,63 @@ auto read_file(const std::filesystem::path &path)
 
 /// @ingroup io
 ///
+/// Drain an input stream into a string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+/// #include <sstream>
+/// #include <cassert>
+///
+/// std::istringstream stream{"hello"};
+/// const auto contents{sourcemeta::core::read_to_string(stream)};
+/// assert(contents == "hello");
+/// ```
+template <typename CharT = char, typename Traits = std::char_traits<CharT>>
+auto read_to_string(std::basic_istream<CharT, Traits> &stream)
+    -> std::basic_string<CharT, Traits> {
+  std::basic_ostringstream<CharT, Traits> buffer;
+  buffer << stream.rdbuf();
+  return buffer.str();
+}
+
+/// @ingroup io
+///
+/// Read an entire file into a string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+/// #include <cassert>
+///
+/// const auto contents{sourcemeta::core::read_file_to_string("/tmp/foo.json")};
+/// assert(!contents.empty());
+/// ```
+template <typename CharT = char, typename Traits = std::char_traits<CharT>>
+auto read_file_to_string(const std::filesystem::path &path)
+    -> std::basic_string<CharT, Traits> {
+  if (std::filesystem::is_directory(path)) {
+    throw IOIsADirectoryError{path};
+  }
+
+  std::basic_ifstream<CharT, Traits> stream{sourcemeta::core::canonical(path)};
+  stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
+  assert(!stream.fail());
+  assert(stream.is_open());
+  return read_to_string(stream);
+}
+
+/// @ingroup io
+///
+/// Drain `std::cin` fully into a string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+///
+/// const auto input{sourcemeta::core::read_stdin()};
+/// ```
+inline auto read_stdin() -> std::string { return read_to_string(std::cin); }
+
+/// @ingroup io
+///
 /// Recursively mirror a directory tree using hard links for regular files.
 /// Directories are created, regular files are hard-linked. Both paths must
 /// reside on the same filesystem. The destination must not be inside the
@@ -116,24 +175,6 @@ auto read_file(const std::filesystem::path &path)
 SOURCEMETA_CORE_IO_EXPORT
 auto hardlink_directory(const std::filesystem::path &source,
                         const std::filesystem::path &destination) -> void;
-
-/// @ingroup io
-///
-/// Atomically swap two directories. Both directories must reside on the same
-/// filesystem and the original path must not be a bare filename (it must have
-/// a parent component). After the call, the original path holds the contents
-/// of the replacement and the replacement path holds the former contents of
-/// the original. If the original does not exist, the replacement is simply
-/// renamed into place and the replacement path will no longer exist.
-///
-/// ```cpp
-/// #include <sourcemeta/core/io.h>
-///
-/// sourcemeta::core::atomic_directory_swap("/output", "/staging");
-/// ```
-SOURCEMETA_CORE_IO_EXPORT
-auto atomic_directory_swap(const std::filesystem::path &original,
-                           const std::filesystem::path &replacement) -> void;
 
 /// @ingroup io
 ///

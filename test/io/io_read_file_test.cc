@@ -25,7 +25,7 @@ TEST(IO_read_file, directory) {
   } catch (const sourcemeta::core::IOIsADirectoryError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "Expected IOIsADirectoryError";
+    FAIL();
   }
 }
 
@@ -37,6 +37,6 @@ TEST(IO_read_file, not_exists) {
   } catch (const sourcemeta::core::IOFileNotFoundError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "Expected IOFileNotFoundError";
+    FAIL();
   }
 }

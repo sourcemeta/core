@@ -16,11 +16,8 @@ namespace sourcemeta::core {
 
 /// @ingroup io
 ///
-/// Typed wrapper over an output stream. Eliminates the
-/// `reinterpret_cast<const char *>(&value)` and
-/// `static_cast<std::streamsize>(size)` rituals that surround every raw
-/// binary write. Endianness is host-native; the wrapper does not perform
-/// any conversion.
+/// Typed wrapper over an output stream. rituals that surround every raw binary
+/// write.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -58,9 +55,7 @@ private:
 
 /// @ingroup io
 ///
-/// Cursor-tracking reader over a `FileView`. Bounds-checks each read
-/// against `view.size()` and throws `std::filesystem::filesystem_error`
-/// on overflow. Endianness is host-native.
+/// Cursor-tracking reader over a `FileView`.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>

@@ -718,7 +718,7 @@ TEST(JSON_parse_error, read_json_directory) {
   } catch (const sourcemeta::core::IOIsADirectoryError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "Expected IOIsADirectoryError";
+    FAIL();
   }
 }
 
@@ -730,7 +730,7 @@ TEST(JSON_parse_error, read_json_non_existent) {
   } catch (const sourcemeta::core::IOFileNotFoundError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "Expected IOFileNotFoundError";
+    FAIL();
   }
 }
 

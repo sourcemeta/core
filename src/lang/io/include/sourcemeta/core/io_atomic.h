@@ -1,5 +1,5 @@
-#ifndef SOURCEMETA_CORE_IO_WRITE_H_
-#define SOURCEMETA_CORE_IO_WRITE_H_
+#ifndef SOURCEMETA_CORE_IO_ATOMIC_H_
+#define SOURCEMETA_CORE_IO_ATOMIC_H_
 
 #ifndef SOURCEMETA_CORE_IO_EXPORT
 #include <sourcemeta/core/io_export.h>
@@ -18,12 +18,6 @@ namespace sourcemeta::core {
 
 namespace detail {
 
-/// @ingroup io
-///
-/// RAII helper used by `atomic_write_file`. Stages writes to a sibling
-/// `<path>.tmp` file, fsyncs and renames on `commit`, deletes the
-/// staging file in the destructor if `commit` was not called. Not part
-/// of the public API.
 class SOURCEMETA_CORE_IO_EXPORT AtomicFileWriter {
 public:
   AtomicFileWriter(const std::filesystem::path &destination);
@@ -57,10 +51,7 @@ private:
 
 /// @ingroup io
 ///
-/// Atomically write `contents` to `path`. Stages at a sibling `<path>.tmp`,
-/// fsyncs to disk (via `sourcemeta::core::flush`), and renames over `path`.
-/// Creates parent directories if missing. The staging file is removed if
-/// the operation fails before the rename. For example:
+/// Atomically write `contents` to `path`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -73,8 +64,7 @@ auto atomic_write_file(const std::filesystem::path &path,
 
 /// @ingroup io
 ///
-/// Atomically write a byte span to `path`. See the string-view overload
-/// for semantics. For example:
+/// Atomically write a byte span to `path`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -90,10 +80,7 @@ auto atomic_write_file(const std::filesystem::path &path,
 
 /// @ingroup io
 ///
-/// Callback variant of `atomic_write_file`. Opens a staging `std::ostream`,
-/// passes it to `writer`, renames on clean return, deletes the staging file
-/// if `writer` throws. The staging stream is opened in binary mode so
-/// callers get exact byte semantics on every platform. For example:
+/// Callback variant of `atomic_write_file`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
@@ -113,6 +100,24 @@ auto atomic_write_file(const std::filesystem::path &path, Writer &&writer)
   std::forward<Writer>(writer)(file.stream());
   file.commit();
 }
+
+/// @ingroup io
+///
+/// Atomically swap two directories. Both directories must reside on the same
+/// filesystem and the original path must not be a bare filename (it must have
+/// a parent component). After the call, the original path holds the contents
+/// of the replacement and the replacement path holds the former contents of
+/// the original. If the original does not exist, the replacement is simply
+/// renamed into place and the replacement path will no longer exist.
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+///
+/// sourcemeta::core::atomic_directory_swap("/output", "/staging");
+/// ```
+SOURCEMETA_CORE_IO_EXPORT
+auto atomic_directory_swap(const std::filesystem::path &original,
+                           const std::filesystem::path &replacement) -> void;
 
 } // namespace sourcemeta::core
 

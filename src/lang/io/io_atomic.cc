@@ -1,11 +1,20 @@
 #include <sourcemeta/core/io.h>
-#include <sourcemeta/core/io_write.h>
+#include <sourcemeta/core/io_atomic.h>
 
 #include <cassert>      // assert
 #include <cerrno>       // EACCES, errno
 #include <filesystem>   // std::filesystem
 #include <ios>          // std::ios::binary, std::ios::trunc
-#include <system_error> // std::error_code
+#include <system_error> // std::error_code, std::generic_category
+
+#if defined(__linux__)
+#include <fcntl.h>       // AT_FDCWD
+#include <linux/fs.h>    // RENAME_EXCHANGE
+#include <sys/syscall.h> // SYS_renameat2, syscall
+#elif defined(__APPLE__)
+#include <fcntl.h>     // AT_FDCWD
+#include <sys/stdio.h> // renameatx_np, RENAME_SWAP
+#endif
 
 namespace sourcemeta::core::detail {
 
@@ -77,6 +86,55 @@ auto atomic_write_file(const std::filesystem::path &path,
     stream.write(reinterpret_cast<const char *>(contents.data()),
                  static_cast<std::streamsize>(contents.size()));
   });
+}
+
+auto atomic_directory_swap(const std::filesystem::path &original,
+                           const std::filesystem::path &replacement) -> void {
+  assert(std::filesystem::is_directory(replacement));
+  assert(!std::filesystem::exists(original) ||
+         std::filesystem::is_directory(original));
+  assert(!original.parent_path().empty());
+
+  if (!std::filesystem::exists(original)) {
+    std::filesystem::rename(replacement, original);
+    return;
+  }
+
+  // Atomic swap via renameat2 with RENAME_EXCHANGE
+#if defined(__linux__)
+  if (syscall(SYS_renameat2, AT_FDCWD, replacement.c_str(), AT_FDCWD,
+              original.c_str(), RENAME_EXCHANGE) != 0) {
+    throw std::filesystem::filesystem_error{
+        "failed to atomically swap directories", replacement, original,
+        std::error_code{errno, std::generic_category()}};
+  }
+
+  // Atomic swap via renameatx_np with RENAME_SWAP
+#elif defined(__APPLE__)
+  if (renameatx_np(AT_FDCWD, replacement.c_str(), AT_FDCWD, original.c_str(),
+                   RENAME_SWAP) != 0) {
+    throw std::filesystem::filesystem_error{
+        "failed to atomically swap directories", replacement, original,
+        std::error_code{errno, std::generic_category()}};
+  }
+
+#else
+  // Non-atomic fallback: two-rename approach with rollback
+  //
+  // Note we cannot safely use the temporary directory of the system as it
+  // might be in another volume
+  TemporaryDirectory temporary{original.parent_path(), ".swap-"};
+  std::filesystem::remove(temporary.path());
+  std::filesystem::rename(original, temporary.path());
+  try {
+    std::filesystem::rename(replacement, original);
+  } catch (...) {
+    std::filesystem::rename(temporary.path(), original);
+    throw;
+  }
+
+  std::filesystem::rename(temporary.path(), replacement);
+#endif
 }
 
 } // namespace sourcemeta::core

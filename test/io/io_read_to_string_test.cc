@@ -47,11 +47,11 @@ TEST(IO_read_file_to_string, directory) {
   const std::filesystem::path path{STUBS_DIRECTORY};
   try {
     sourcemeta::core::read_file_to_string(path);
-    FAIL() << "Expected IOIsADirectoryError";
+    FAIL();
   } catch (const sourcemeta::core::IOIsADirectoryError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "Wrong exception type";
+    FAIL();
   }
 }
 
@@ -59,18 +59,30 @@ TEST(IO_read_file_to_string, missing_file_throws) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "no-such-file.txt"};
   try {
     sourcemeta::core::read_file_to_string(path);
-    FAIL() << "Expected IOFileNotFoundError";
+    FAIL();
   } catch (const sourcemeta::core::IOFileNotFoundError &error) {
     EXPECT_EQ(error.path(), path);
   } catch (...) {
-    FAIL() << "Wrong exception type";
+    FAIL();
   }
 }
 
-TEST(IO_read_file_to_string, freshly_written_file) {
-  const sourcemeta::core::TemporaryDirectory workspace{
-      std::filesystem::path{BUILD_DIRECTORY}, ".test-read-file-"};
-  const auto path{workspace.path() / "payload.txt"};
+class IOReadFileToStringTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    std::filesystem::create_directories(this->workspace);
+  }
+
+  void TearDown() override { std::filesystem::remove_all(this->workspace); }
+
+  // The tests are always sequential, so using the same path is safe
+  std::filesystem::path workspace{
+      std::filesystem::path{BUILD_DIRECTORY} /
+      "sourcemeta_core_io_read_file_to_string_test"};
+};
+
+TEST_F(IOReadFileToStringTest, freshly_written_file) {
+  const auto path{this->workspace / "payload.txt"};
   {
     std::ofstream stream{path};
     stream << "first line\nsecond line\n";
@@ -81,10 +93,8 @@ TEST(IO_read_file_to_string, freshly_written_file) {
   EXPECT_EQ(contents, "first line\nsecond line\n");
 }
 
-TEST(IO_read_file_to_string, empty_file) {
-  const sourcemeta::core::TemporaryDirectory workspace{
-      std::filesystem::path{BUILD_DIRECTORY}, ".test-read-file-"};
-  const auto path{workspace.path() / "empty.txt"};
+TEST_F(IOReadFileToStringTest, empty_file) {
+  const auto path{this->workspace / "empty.txt"};
   std::ofstream{path};
   EXPECT_EQ(sourcemeta::core::read_file_to_string(path), "");
 }
