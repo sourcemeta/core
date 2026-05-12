@@ -134,6 +134,8 @@ TEST_F(IOAtomicWriteFileTest, binary_writes_preserve_exact_bytes) {
   EXPECT_EQ(actual, "line one\nline two\n");
 }
 
+// POSIX permission bits don't map cleanly to Windows ACLs, and the
+// EACCES-via-errno detection inside `atomic_write_file` is POSIX-only.
 #if !defined(_WIN32)
 TEST_F(IOAtomicWriteFileTest, read_only_parent_throws_permission_error) {
   const auto read_only_dir{this->workspace / "locked"};

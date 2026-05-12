@@ -20,27 +20,20 @@ TEST(IO_canonical, not_exists) {
   }
 }
 
+// Creating symlinks on Windows requires elevated privileges, which CI
+// runners typically lack.
 #if !defined(_WIN32)
-class IOCanonicalTest : public ::testing::Test {
-protected:
-  void SetUp() override {
-    std::filesystem::create_directories(this->workspace);
-  }
-
-  void TearDown() override { std::filesystem::remove_all(this->workspace); }
-
-  // The tests are always sequential, so using the same path is safe
-  std::filesystem::path workspace{std::filesystem::path{BUILD_DIRECTORY} /
-                                  "sourcemeta_core_io_canonical_test"};
-};
-
-TEST_F(IOCanonicalTest, unmapped_error_surfaces_as_filesystem_error) {
-  const auto loop_path{this->workspace / "loop"};
+TEST(IO_canonical, unmapped_error_surfaces_as_filesystem_error) {
+  const auto loop_path{std::filesystem::path{BUILD_DIRECTORY} /
+                       "sourcemeta_core_io_canonical_loop"};
+  std::filesystem::remove(loop_path);
   // A symlink pointing at itself produces a loop error which is neither
   // no_such_file_or_directory nor any of the other mapped categories.
   std::filesystem::create_symlink(loop_path, loop_path);
 
   EXPECT_THROW(sourcemeta::core::canonical(loop_path),
                std::filesystem::filesystem_error);
+
+  std::filesystem::remove(loop_path);
 }
 #endif
