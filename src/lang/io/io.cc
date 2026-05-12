@@ -22,8 +22,19 @@ auto canonical(const std::filesystem::path &path) -> std::filesystem::path {
   // On Linux, FIFO files (like /dev/fd/XX due to process substitution)
   // cannot be made canonical
   // See https://github.com/sourcemeta/jsonschema/issues/252
-  return std::filesystem::is_fifo(path) ? path
-                                        : std::filesystem::canonical(path);
+  if (std::filesystem::is_fifo(path)) {
+    return path;
+  }
+
+  try {
+    return std::filesystem::canonical(path);
+  } catch (const std::filesystem::filesystem_error &error) {
+    if (error.code() == std::errc::no_such_file_or_directory) {
+      throw IOFileNotFoundError{path};
+    }
+
+    throw;
+  }
 }
 
 auto weakly_canonical(const std::filesystem::path &path)
@@ -31,9 +42,19 @@ auto weakly_canonical(const std::filesystem::path &path)
   // On Linux, FIFO files (like /dev/fd/XX due to process substitution)
   // cannot be made canonical
   // See https://github.com/sourcemeta/jsonschema/issues/252
-  return std::filesystem::is_fifo(path)
-             ? path
-             : std::filesystem::weakly_canonical(path);
+  if (std::filesystem::is_fifo(path)) {
+    return path;
+  }
+
+  try {
+    return std::filesystem::weakly_canonical(path);
+  } catch (const std::filesystem::filesystem_error &error) {
+    if (error.code() == std::errc::no_such_file_or_directory) {
+      throw IOFileNotFoundError{path};
+    }
+
+    throw;
+  }
 }
 
 auto starts_with(const std::filesystem::path &path,
@@ -128,10 +149,17 @@ auto flush(const std::filesystem::path &path) -> void {
                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
   if (hFile == INVALID_HANDLE_VALUE) {
-    throw std::filesystem::filesystem_error{
-        "failed to open file for flushing", path,
-        std::error_code{static_cast<int>(GetLastError()),
-                        std::system_category()}};
+    const auto error_code = std::error_code{static_cast<int>(GetLastError()),
+                                            std::system_category()};
+    if (error_code == std::errc::no_such_file_or_directory) {
+      throw IOFileNotFoundError{path};
+    }
+    if (error_code == std::errc::permission_denied) {
+      throw IOFilePermissionError{path};
+    }
+
+    throw std::filesystem::filesystem_error{"failed to open file for flushing",
+                                            path, error_code};
   }
 
   if (!FlushFileBuffers(hFile)) {
@@ -147,9 +175,16 @@ auto flush(const std::filesystem::path &path) -> void {
 #else
   auto fd = ::open(path.c_str(), O_RDWR);
   if (fd == -1) {
-    throw std::filesystem::filesystem_error{
-        "failed to open file for flushing", path,
-        std::error_code{errno, std::generic_category()}};
+    const auto error_code = std::error_code{errno, std::generic_category()};
+    if (error_code == std::errc::no_such_file_or_directory) {
+      throw IOFileNotFoundError{path};
+    }
+    if (error_code == std::errc::permission_denied) {
+      throw IOFilePermissionError{path};
+    }
+
+    throw std::filesystem::filesystem_error{"failed to open file for flushing",
+                                            path, error_code};
   }
 
   if (::fsync(fd) == -1) {

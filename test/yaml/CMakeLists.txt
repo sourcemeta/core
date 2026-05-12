@@ -6,6 +6,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME yaml
     yaml_roundtrip_test.cc)
 
 target_link_libraries(sourcemeta_core_yaml_unit
+  PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_yaml_unit
   PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_yaml_unit
   PRIVATE sourcemeta::core::yaml)

@@ -6,9 +6,12 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/io_binary.h>
 #include <sourcemeta/core/io_error.h>
 #include <sourcemeta/core/io_fileview.h>
+#include <sourcemeta/core/io_stream.h>
 #include <sourcemeta/core/io_temporary.h>
+#include <sourcemeta/core/io_write.h>
 // NOLINTEND(misc-include-cleaner)
 
 #include <cassert>    // assert
@@ -88,9 +91,7 @@ template <typename CharT = char, typename Traits = std::char_traits<CharT>>
 auto read_file(const std::filesystem::path &path)
     -> std::basic_ifstream<CharT, Traits> {
   if (std::filesystem::is_directory(path)) {
-    throw std::filesystem::filesystem_error(
-        "Cannot open a directory as a file", path,
-        std::make_error_code(std::errc::is_a_directory));
+    throw IOIsADirectoryError{path};
   }
 
   std::ifstream stream{sourcemeta::core::canonical(path)};
