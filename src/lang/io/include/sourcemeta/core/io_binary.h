@@ -32,6 +32,12 @@ class SOURCEMETA_CORE_IO_EXPORT BinaryWriter {
 public:
   BinaryWriter(std::ostream &stream) noexcept;
 
+  // Prevent copying, as this class is tied to a stream resource
+  BinaryWriter(const BinaryWriter &) = delete;
+  BinaryWriter(BinaryWriter &&) = delete;
+  auto operator=(const BinaryWriter &) -> BinaryWriter & = delete;
+  auto operator=(BinaryWriter &&) -> BinaryWriter & = delete;
+
   /// Write a trivially-copyable value as its raw bytes.
   template <typename T>
     requires std::is_trivially_copyable_v<T>
@@ -69,6 +75,12 @@ class SOURCEMETA_CORE_IO_EXPORT BinaryReader {
 public:
   BinaryReader(const FileView &view) noexcept;
 
+  // Prevent copying, as this class is tied to an input resource
+  BinaryReader(const BinaryReader &) = delete;
+  BinaryReader(BinaryReader &&) = delete;
+  auto operator=(const BinaryReader &) -> BinaryReader & = delete;
+  auto operator=(BinaryReader &&) -> BinaryReader & = delete;
+
   /// Read a trivially-copyable value from the current cursor position
   /// and advance the cursor by `sizeof(T)`.
   template <typename T>
@@ -81,8 +93,7 @@ public:
 
   [[nodiscard]] auto offset() const noexcept -> std::size_t;
 
-  /// Move the cursor to `position`. Position equal to `view.size()` is
-  /// allowed and represents "at end".
+  /// Move the cursor to `position`.
   auto seek(const std::size_t position) -> void;
 
   auto read_bytes(std::byte *destination, const std::size_t size) -> void;
