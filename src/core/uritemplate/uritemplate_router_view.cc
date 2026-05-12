@@ -37,6 +37,9 @@ struct RouterHeader {
   std::uint32_t base_path_offset;
   std::uint32_t base_path_length;
   std::uint32_t otherwise_context;
+  // Keep `sizeof(RouterHeader)` a multiple of 8 so the `SerializedNode`
+  // array that follows is properly aligned for direct `reinterpret_cast`
+  std::uint32_t padding;
 };
 
 struct ArgumentEntryHeader {
@@ -45,7 +48,14 @@ struct ArgumentEntryHeader {
   std::uint32_t blob_length;
 };
 
-struct alignas(4) OperationEntry {
+// Serialized layout per operation entry, written and read field by field
+// so the entries array does not require pointer alignment
+constexpr std::size_t OPERATION_ENTRY_SIZE =
+    sizeof(std::uint32_t) + sizeof(std::uint32_t) +
+    sizeof(URITemplateRouter::Identifier) +
+    sizeof(URITemplateRouter::Identifier);
+
+struct OperationEntry {
   std::uint32_t string_offset;
   std::uint32_t string_length;
   URITemplateRouter::Identifier identifier;
@@ -343,13 +353,19 @@ auto URITemplateRouterView::save(const URITemplateRouter &router,
                static_cast<std::streamsize>(argument_blob.size()));
   }
 
-  // Write operations section
+  // Write operations section. Each entry is written field-by-field to
+  // keep the on-disk layout independent of in-memory struct alignment
   file.write(reinterpret_cast<const char *>(&operation_count),
              sizeof(operation_count));
-  if (!operation_entries.empty()) {
-    file.write(reinterpret_cast<const char *>(operation_entries.data()),
-               static_cast<std::streamsize>(operation_entries.size() *
-                                            sizeof(OperationEntry)));
+  for (const auto &entry : operation_entries) {
+    file.write(reinterpret_cast<const char *>(&entry.string_offset),
+               sizeof(entry.string_offset));
+    file.write(reinterpret_cast<const char *>(&entry.string_length),
+               sizeof(entry.string_length));
+    file.write(reinterpret_cast<const char *>(&entry.identifier),
+               sizeof(entry.identifier));
+    file.write(reinterpret_cast<const char *>(&entry.context),
+               sizeof(entry.context));
   }
 
   if (!file) {
@@ -778,7 +794,7 @@ auto URITemplateRouterView::operation(const std::string_view operation_id) const
 
   const auto entries_offset = operations_start + sizeof(entry_count);
   const auto entries_size =
-      static_cast<std::size_t>(entry_count) * sizeof(OperationEntry);
+      static_cast<std::size_t>(entry_count) * OPERATION_ENTRY_SIZE;
   if (entries_size > this->size_ - entries_offset) {
     return miss;
   }
@@ -791,16 +807,31 @@ auto URITemplateRouterView::operation(const std::string_view operation_id) const
 
   const auto *string_table =
       reinterpret_cast<const char *>(this->data_ + header->string_table_offset);
-  const auto string_table_size = this->size_ - header->string_table_offset;
-
-  const auto *entries =
-      reinterpret_cast<const OperationEntry *>(this->data_ + entries_offset);
+  const auto string_table_size =
+      header->arguments_offset - header->string_table_offset;
 
   std::uint32_t low = 0;
   std::uint32_t high = entry_count;
   while (low < high) {
     const auto middle = low + (high - low) / 2;
-    const auto &entry = entries[middle];
+    const auto entry_offset =
+        entries_offset +
+        static_cast<std::size_t>(middle) * OPERATION_ENTRY_SIZE;
+
+    OperationEntry entry{};
+    std::memcpy(&entry.string_offset, this->data_ + entry_offset,
+                sizeof(entry.string_offset));
+    std::memcpy(&entry.string_length,
+                this->data_ + entry_offset + sizeof(entry.string_offset),
+                sizeof(entry.string_length));
+    std::memcpy(&entry.identifier,
+                this->data_ + entry_offset + sizeof(entry.string_offset) +
+                    sizeof(entry.string_length),
+                sizeof(entry.identifier));
+    std::memcpy(&entry.context,
+                this->data_ + entry_offset + sizeof(entry.string_offset) +
+                    sizeof(entry.string_length) + sizeof(entry.identifier),
+                sizeof(entry.context));
 
     if (entry.string_offset > string_table_size ||
         entry.string_length > string_table_size - entry.string_offset) {

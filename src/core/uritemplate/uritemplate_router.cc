@@ -197,9 +197,7 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     throw URITemplateRouterInvalidOperationIdError{operation_id};
   }
 
-  const auto [iterator, inserted] = this->operations_.emplace(
-      operation_id, std::pair<Identifier, Identifier>{identifier, context});
-  if (!inserted) {
+  if (this->operations_.contains(operation_id)) {
     throw URITemplateRouterDuplicateOperationIdError{operation_id};
   }
 
@@ -240,9 +238,15 @@ auto URITemplateRouter::add(const std::string_view uri_template,
       if (existing != this->entries_.end()) {
         *existing = std::make_tuple(identifier, context, uri_template);
       }
+      std::erase_if(this->operations_,
+                    [&previous_identifier](const auto &entry) {
+                      return entry.second.first == previous_identifier;
+                    });
     }
     target.identifier = identifier;
     target.context = context;
+    this->operations_.emplace(
+        operation_id, std::pair<Identifier, Identifier>{identifier, context});
     if (!arguments.empty()) {
       assert(std::ranges::none_of(this->arguments_,
                                   [&identifier](const auto &entry) {
@@ -421,9 +425,15 @@ auto URITemplateRouter::add(const std::string_view uri_template,
       if (existing != this->entries_.end()) {
         *existing = std::make_tuple(identifier, context, uri_template);
       }
+      std::erase_if(this->operations_,
+                    [&previous_identifier](const auto &entry) {
+                      return entry.second.first == previous_identifier;
+                    });
     }
     current->identifier = identifier;
     current->context = context;
+    this->operations_.emplace(
+        operation_id, std::pair<Identifier, Identifier>{identifier, context});
     if (!arguments.empty()) {
       assert(std::ranges::none_of(this->arguments_,
                                   [&identifier](const auto &entry) {
