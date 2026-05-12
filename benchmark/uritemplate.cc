@@ -4,8 +4,10 @@
 
 #include <array>       // std::array
 #include <cassert>     // assert
+#include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint16_t, std::int64_t
 #include <filesystem>  // std::filesystem
+#include <string>      // std::string, std::to_string
 #include <string_view> // std::string_view
 
 static constexpr std::string_view ROUTES[] = {
@@ -113,11 +115,21 @@ static constexpr std::string_view ROUTES[] = {
 
 static constexpr std::size_t ROUTE_COUNT = sizeof(ROUTES) / sizeof(ROUTES[0]);
 
+static auto make_operation_ids() -> std::array<std::string, ROUTE_COUNT> {
+  std::array<std::string, ROUTE_COUNT> ids;
+  for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
+    ids[index] = "route_" + std::to_string(index);
+  }
+  return ids;
+}
+
+static const auto OPERATION_IDS = make_operation_ids();
+
 static void URITemplateRouter_Create(benchmark::State &state) {
   for (auto _ : state) {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index],
+      router.add(ROUTES[index], OPERATION_IDS[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -129,7 +141,7 @@ static void URITemplateRouter_Create(benchmark::State &state) {
 static void URITemplateRouter_Match(benchmark::State &state) {
   sourcemeta::core::URITemplateRouter router;
   for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-    router.add(ROUTES[index],
+    router.add(ROUTES[index], OPERATION_IDS[index],
                static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                    index + 1));
   }
@@ -151,7 +163,7 @@ static void URITemplateRouterView_Restore(benchmark::State &state) {
   {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index],
+      router.add(ROUTES[index], OPERATION_IDS[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -174,7 +186,7 @@ static void URITemplateRouterView_Match(benchmark::State &state) {
   {
     sourcemeta::core::URITemplateRouter router;
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index],
+      router.add(ROUTES[index], OPERATION_IDS[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }
@@ -322,9 +334,9 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
     sourcemeta::core::URITemplateRouter router;
     const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
         small_args{{{"schema", std::string_view{"schemas/health"}}}};
-    router.add("/api/v1/health", 1, 0, small_args);
-    router.add("/api/v1/users/{id}", 2, 0, small_args);
-    router.add("/api/v1/many", 3, 0, many_arguments);
+    router.add("/api/v1/health", "op_5", 1, 0, small_args);
+    router.add("/api/v1/users/{id}", "op_6", 2, 0, small_args);
+    router.add("/api/v1/many", "op_7", 3, 0, many_arguments);
     sourcemeta::core::URITemplateRouterView::save(router, path);
   }
 
@@ -350,7 +362,7 @@ static void URITemplateRouterView_Arguments(benchmark::State &state) {
 static void URITemplateRouter_Match_BasePath(benchmark::State &state) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-    router.add(ROUTES[index],
+    router.add(ROUTES[index], OPERATION_IDS[index],
                static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                    index + 1));
   }
@@ -372,7 +384,7 @@ static void URITemplateRouterView_Match_BasePath(benchmark::State &state) {
   {
     sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
     for (std::size_t index = 0; index < ROUTE_COUNT; ++index) {
-      router.add(ROUTES[index],
+      router.add(ROUTES[index], OPERATION_IDS[index],
                  static_cast<sourcemeta::core::URITemplateRouter::Identifier>(
                      index + 1));
     }

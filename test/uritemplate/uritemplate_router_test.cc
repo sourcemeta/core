@@ -16,17 +16,19 @@
 
 #define EXPECT_ROUTER_SEGMENT_ERROR(router, input, identifier, expected)       \
   try {                                                                        \
-    router.add(input, identifier);                                             \
-    FAIL() << "Expected error for: " << input;                                 \
+    router.add(input, "op", identifier);                                       \
+    FAIL();                                                                    \
   } catch (                                                                    \
       const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {   \
     EXPECT_EQ(error.segment(), expected);                                      \
+  } catch (...) {                                                              \
+    FAIL();                                                                    \
   }
 
 TEST(URITemplateRouter, single_literal_route) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_2", 1);
   EXPECT_ROUTER_MATCH(router, "/users", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -34,7 +36,7 @@ TEST(URITemplateRouter, single_literal_route) {
 TEST(URITemplateRouter, single_literal_route_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_3", 1);
   EXPECT_ROUTER_MATCH(router, "/posts", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -42,7 +44,7 @@ TEST(URITemplateRouter, single_literal_route_no_match) {
 TEST(URITemplateRouter, multi_segment_literal) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/list", 1);
+  router.add("/users/list", "op_4", 1);
   EXPECT_ROUTER_MATCH(router, "/users/list", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -50,7 +52,7 @@ TEST(URITemplateRouter, multi_segment_literal) {
 TEST(URITemplateRouter, single_variable) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{id}", 1);
+  router.add("/users/{id}", "op_5", 1);
   EXPECT_ROUTER_MATCH(router, "/users/123", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -59,7 +61,7 @@ TEST(URITemplateRouter, single_variable) {
 TEST(URITemplateRouter, multiple_variables) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{id}/posts/{post_id}", 1);
+  router.add("/users/{id}/posts/{post_id}", "op_6", 1);
   EXPECT_ROUTER_MATCH(router, "/users/42/posts/99", 1, 0, captures);
   EXPECT_EQ(captures.size(), 2);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -69,8 +71,8 @@ TEST(URITemplateRouter, multiple_variables) {
 TEST(URITemplateRouter, literal_before_variable_precedence) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/me", 1);
-  router.add("/users/{id}", 2);
+  router.add("/users/me", "op_7", 1);
+  router.add("/users/{id}", "op_8", 2);
   EXPECT_ROUTER_MATCH(router, "/users/me", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -78,8 +80,8 @@ TEST(URITemplateRouter, literal_before_variable_precedence) {
 TEST(URITemplateRouter, variable_fallback) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/me", 1);
-  router.add("/users/{id}", 2);
+  router.add("/users/me", "op_9", 1);
+  router.add("/users/{id}", "op_10", 2);
   EXPECT_ROUTER_MATCH(router, "/users/123", 2, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -88,10 +90,10 @@ TEST(URITemplateRouter, variable_fallback) {
 TEST(URITemplateRouter, multiple_routes_match_users) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
-  router.add("/users/{id}", 2);
-  router.add("/posts", 3);
-  router.add("/posts/{id}", 4);
+  router.add("/users", "op_11", 1);
+  router.add("/users/{id}", "op_12", 2);
+  router.add("/posts", "op_13", 3);
+  router.add("/posts/{id}", "op_14", 4);
   EXPECT_ROUTER_MATCH(router, "/users", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -99,10 +101,10 @@ TEST(URITemplateRouter, multiple_routes_match_users) {
 TEST(URITemplateRouter, multiple_routes_match_users_id) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
-  router.add("/users/{id}", 2);
-  router.add("/posts", 3);
-  router.add("/posts/{id}", 4);
+  router.add("/users", "op_15", 1);
+  router.add("/users/{id}", "op_16", 2);
+  router.add("/posts", "op_17", 3);
+  router.add("/posts/{id}", "op_18", 4);
   EXPECT_ROUTER_MATCH(router, "/users/42", 2, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -111,10 +113,10 @@ TEST(URITemplateRouter, multiple_routes_match_users_id) {
 TEST(URITemplateRouter, multiple_routes_match_posts) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
-  router.add("/users/{id}", 2);
-  router.add("/posts", 3);
-  router.add("/posts/{id}", 4);
+  router.add("/users", "op_19", 1);
+  router.add("/users/{id}", "op_20", 2);
+  router.add("/posts", "op_21", 3);
+  router.add("/posts/{id}", "op_22", 4);
   EXPECT_ROUTER_MATCH(router, "/posts", 3, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -122,10 +124,10 @@ TEST(URITemplateRouter, multiple_routes_match_posts) {
 TEST(URITemplateRouter, multiple_routes_match_posts_id) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
-  router.add("/users/{id}", 2);
-  router.add("/posts", 3);
-  router.add("/posts/{id}", 4);
+  router.add("/users", "op_23", 1);
+  router.add("/users/{id}", "op_24", 2);
+  router.add("/posts", "op_25", 3);
+  router.add("/posts/{id}", "op_26", 4);
   EXPECT_ROUTER_MATCH(router, "/posts/99", 4, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "99");
@@ -134,28 +136,28 @@ TEST(URITemplateRouter, multiple_routes_match_posts_id) {
 TEST(URITemplateRouter, no_match_partial_path) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{id}/posts", 1);
+  router.add("/users/{id}/posts", "op_27", 1);
   EXPECT_ROUTER_MATCH(router, "/users/123", 0, 0, captures);
 }
 
 TEST(URITemplateRouter, no_match_extra_segments) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_28", 1);
   EXPECT_ROUTER_MATCH(router, "/users/123", 0, 0, captures);
 }
 
 TEST(URITemplateRouter, empty_path) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_29", 1);
   EXPECT_ROUTER_MATCH(router, "", 0, 0, captures);
 }
 
 TEST(URITemplateRouter, root_template_matches_root) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/", 1);
+  router.add("/", "op_30", 1);
   EXPECT_ROUTER_MATCH(router, "/", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -163,7 +165,7 @@ TEST(URITemplateRouter, root_template_matches_root) {
 TEST(URITemplateRouter, root_template_no_match_empty) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/", 1);
+  router.add("/", "op_31", 1);
   EXPECT_ROUTER_MATCH(router, "", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -171,7 +173,7 @@ TEST(URITemplateRouter, root_template_no_match_empty) {
 TEST(URITemplateRouter, root_template_no_match_path) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/", 1);
+  router.add("/", "op_32", 1);
   EXPECT_ROUTER_MATCH(router, "/foo", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -179,7 +181,7 @@ TEST(URITemplateRouter, root_template_no_match_path) {
 TEST(URITemplateRouter, empty_template_matches_empty) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
+  router.add("", "op_33", 1);
   EXPECT_ROUTER_MATCH(router, "", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -187,7 +189,7 @@ TEST(URITemplateRouter, empty_template_matches_empty) {
 TEST(URITemplateRouter, empty_template_no_match_root) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
+  router.add("", "op_34", 1);
   EXPECT_ROUTER_MATCH(router, "/", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -195,7 +197,7 @@ TEST(URITemplateRouter, empty_template_no_match_root) {
 TEST(URITemplateRouter, empty_template_no_match_path) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
+  router.add("", "op_35", 1);
   EXPECT_ROUTER_MATCH(router, "/foo", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -203,9 +205,9 @@ TEST(URITemplateRouter, empty_template_no_match_path) {
 TEST(URITemplateRouter, root_and_other_routes_match_root) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/", 1);
-  router.add("/users", 2);
-  router.add("/users/{id}", 3);
+  router.add("/", "op_36", 1);
+  router.add("/users", "op_37", 2);
+  router.add("/users/{id}", "op_38", 3);
   EXPECT_ROUTER_MATCH(router, "/", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -213,9 +215,9 @@ TEST(URITemplateRouter, root_and_other_routes_match_root) {
 TEST(URITemplateRouter, root_and_other_routes_match_users) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/", 1);
-  router.add("/users", 2);
-  router.add("/users/{id}", 3);
+  router.add("/", "op_39", 1);
+  router.add("/users", "op_40", 2);
+  router.add("/users/{id}", "op_41", 3);
   EXPECT_ROUTER_MATCH(router, "/users", 2, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -223,9 +225,9 @@ TEST(URITemplateRouter, root_and_other_routes_match_users) {
 TEST(URITemplateRouter, root_and_other_routes_match_users_id) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/", 1);
-  router.add("/users", 2);
-  router.add("/users/{id}", 3);
+  router.add("/", "op_42", 1);
+  router.add("/users", "op_43", 2);
+  router.add("/users/{id}", "op_44", 3);
   EXPECT_ROUTER_MATCH(router, "/users/123", 3, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -234,8 +236,8 @@ TEST(URITemplateRouter, root_and_other_routes_match_users_id) {
 TEST(URITemplateRouter, empty_and_root_together_match_empty) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
+  router.add("", "op_45", 1);
+  router.add("/", "op_46", 2);
   EXPECT_ROUTER_MATCH(router, "", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -243,8 +245,8 @@ TEST(URITemplateRouter, empty_and_root_together_match_empty) {
 TEST(URITemplateRouter, empty_and_root_together_match_root) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
+  router.add("", "op_47", 1);
+  router.add("/", "op_48", 2);
   EXPECT_ROUTER_MATCH(router, "/", 2, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -252,8 +254,8 @@ TEST(URITemplateRouter, empty_and_root_together_match_root) {
 TEST(URITemplateRouter, empty_and_root_together_no_match_path) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
+  router.add("", "op_49", 1);
+  router.add("/", "op_50", 2);
   EXPECT_ROUTER_MATCH(router, "/foo", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -261,10 +263,10 @@ TEST(URITemplateRouter, empty_and_root_together_no_match_path) {
 TEST(URITemplateRouter, empty_and_root_and_others_match_empty) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
-  router.add("/users", 3);
-  router.add("/users/{id}", 4);
+  router.add("", "op_51", 1);
+  router.add("/", "op_52", 2);
+  router.add("/users", "op_53", 3);
+  router.add("/users/{id}", "op_54", 4);
   EXPECT_ROUTER_MATCH(router, "", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -272,10 +274,10 @@ TEST(URITemplateRouter, empty_and_root_and_others_match_empty) {
 TEST(URITemplateRouter, empty_and_root_and_others_match_root) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
-  router.add("/users", 3);
-  router.add("/users/{id}", 4);
+  router.add("", "op_55", 1);
+  router.add("/", "op_56", 2);
+  router.add("/users", "op_57", 3);
+  router.add("/users/{id}", "op_58", 4);
   EXPECT_ROUTER_MATCH(router, "/", 2, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -283,10 +285,10 @@ TEST(URITemplateRouter, empty_and_root_and_others_match_root) {
 TEST(URITemplateRouter, empty_and_root_and_others_match_users) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
-  router.add("/users", 3);
-  router.add("/users/{id}", 4);
+  router.add("", "op_59", 1);
+  router.add("/", "op_60", 2);
+  router.add("/users", "op_61", 3);
+  router.add("/users/{id}", "op_62", 4);
   EXPECT_ROUTER_MATCH(router, "/users", 3, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -294,10 +296,10 @@ TEST(URITemplateRouter, empty_and_root_and_others_match_users) {
 TEST(URITemplateRouter, empty_and_root_and_others_match_users_id) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("", 1);
-  router.add("/", 2);
-  router.add("/users", 3);
-  router.add("/users/{id}", 4);
+  router.add("", "op_63", 1);
+  router.add("/", "op_64", 2);
+  router.add("/users", "op_65", 3);
+  router.add("/users/{id}", "op_66", 4);
   EXPECT_ROUTER_MATCH(router, "/users/42", 4, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -306,11 +308,11 @@ TEST(URITemplateRouter, empty_and_root_and_others_match_users_id) {
 TEST(URITemplateRouter, binary_search_literals_gamma) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/alpha", 1);
-  router.add("/beta", 2);
-  router.add("/gamma", 3);
-  router.add("/delta", 4);
-  router.add("/epsilon", 5);
+  router.add("/alpha", "op_67", 1);
+  router.add("/beta", "op_68", 2);
+  router.add("/gamma", "op_69", 3);
+  router.add("/delta", "op_70", 4);
+  router.add("/epsilon", "op_71", 5);
   EXPECT_ROUTER_MATCH(router, "/gamma", 3, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -318,11 +320,11 @@ TEST(URITemplateRouter, binary_search_literals_gamma) {
 TEST(URITemplateRouter, binary_search_literals_alpha) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/alpha", 1);
-  router.add("/beta", 2);
-  router.add("/gamma", 3);
-  router.add("/delta", 4);
-  router.add("/epsilon", 5);
+  router.add("/alpha", "op_72", 1);
+  router.add("/beta", "op_73", 2);
+  router.add("/gamma", "op_74", 3);
+  router.add("/delta", "op_75", 4);
+  router.add("/epsilon", "op_76", 5);
   EXPECT_ROUTER_MATCH(router, "/alpha", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -330,11 +332,11 @@ TEST(URITemplateRouter, binary_search_literals_alpha) {
 TEST(URITemplateRouter, binary_search_literals_epsilon) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/alpha", 1);
-  router.add("/beta", 2);
-  router.add("/gamma", 3);
-  router.add("/delta", 4);
-  router.add("/epsilon", 5);
+  router.add("/alpha", "op_77", 1);
+  router.add("/beta", "op_78", 2);
+  router.add("/gamma", "op_79", 3);
+  router.add("/delta", "op_80", 4);
+  router.add("/epsilon", "op_81", 5);
   EXPECT_ROUTER_MATCH(router, "/epsilon", 5, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -342,9 +344,9 @@ TEST(URITemplateRouter, binary_search_literals_epsilon) {
 TEST(URITemplateRouter, conflicting_variable_names_throws) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{user_id}/posts", 1);
+  router.add("/users/{user_id}/posts", "op_82", 1);
   try {
-    router.add("/users/{id}/comments", 2);
+    router.add("/users/{id}/comments", "op_83", 2);
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
@@ -357,8 +359,8 @@ TEST(URITemplateRouter, conflicting_variable_names_throws) {
 TEST(URITemplateRouter, same_variable_names_allowed) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{id}/posts", 1);
-  router.add("/users/{id}/comments", 2);
+  router.add("/users/{id}/posts", "op_84", 1);
+  router.add("/users/{id}/comments", "op_85", 2);
   EXPECT_ROUTER_MATCH(router, "/users/123/posts", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -367,9 +369,9 @@ TEST(URITemplateRouter, same_variable_names_allowed) {
 TEST(URITemplateRouter, conflicting_expansion_variable_names_throws) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{id}", 1);
+  router.add("/files/{id}", "op_86", 1);
   try {
-    router.add("/files/{+path}", 2);
+    router.add("/files/{+path}", "op_87", 2);
     FAIL();
   } catch (
       const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
@@ -382,7 +384,7 @@ TEST(URITemplateRouter, conflicting_expansion_variable_names_throws) {
 TEST(URITemplateRouter, reserved_expansion_catch_all) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_88", 1);
   EXPECT_ROUTER_MATCH(router, "/files/foo/bar/baz.txt", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/baz.txt");
@@ -391,7 +393,7 @@ TEST(URITemplateRouter, reserved_expansion_catch_all) {
 TEST(URITemplateRouter, reserved_expansion_single_segment) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_89", 1);
   EXPECT_ROUTER_MATCH(router, "/files/readme.md", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "readme.md");
@@ -400,7 +402,7 @@ TEST(URITemplateRouter, reserved_expansion_single_segment) {
 TEST(URITemplateRouter, reserved_expansion_with_literal_prefix) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/api/v1/proxy/{+url}", 1);
+  router.add("/api/v1/proxy/{+url}", "op_90", 1);
   EXPECT_ROUTER_MATCH(router, "/api/v1/proxy/https://example.com/path", 1, 0,
                       captures);
   EXPECT_EQ(captures.size(), 1);
@@ -410,7 +412,7 @@ TEST(URITemplateRouter, reserved_expansion_with_literal_prefix) {
 TEST(URITemplateRouter, reserved_expansion_matches_single_segment) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_91", 1);
   EXPECT_ROUTER_MATCH(router, "/files/123", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "123");
@@ -419,7 +421,7 @@ TEST(URITemplateRouter, reserved_expansion_matches_single_segment) {
 TEST(URITemplateRouter, reserved_expansion_matches_multi_segment) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_92", 1);
   EXPECT_ROUTER_MATCH(router, "/files/foo/bar", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar");
@@ -428,8 +430,8 @@ TEST(URITemplateRouter, reserved_expansion_matches_multi_segment) {
 TEST(URITemplateRouter, expansion_takes_priority_over_variable) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{path}", 1);
-  router.add("/files/{+path}", 2);
+  router.add("/files/{path}", "op_93", 1);
+  router.add("/files/{+path}", "op_94", 2);
   EXPECT_ROUTER_MATCH(router, "/files/readme.md", 2, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "readme.md");
@@ -438,8 +440,8 @@ TEST(URITemplateRouter, expansion_takes_priority_over_variable) {
 TEST(URITemplateRouter, expansion_takes_priority_multi_segment) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{path}", 1);
-  router.add("/files/{+path}", 2);
+  router.add("/files/{path}", "op_95", 1);
+  router.add("/files/{+path}", "op_96", 2);
   EXPECT_ROUTER_MATCH(router, "/files/foo/bar/baz", 2, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/baz");
@@ -448,8 +450,8 @@ TEST(URITemplateRouter, expansion_takes_priority_multi_segment) {
 TEST(URITemplateRouter, expansion_first_then_variable) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
-  router.add("/files/{path}", 2);
+  router.add("/files/{+path}", "op_97", 1);
+  router.add("/files/{path}", "op_98", 2);
   EXPECT_ROUTER_MATCH(router, "/files/readme.md", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "readme.md");
@@ -458,8 +460,8 @@ TEST(URITemplateRouter, expansion_first_then_variable) {
 TEST(URITemplateRouter, literal_takes_priority_over_expansion) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
-  router.add("/files/special", 2);
+  router.add("/files/{+path}", "op_99", 1);
+  router.add("/files/special", "op_100", 2);
   EXPECT_ROUTER_MATCH(router, "/files/special", 2, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -467,8 +469,8 @@ TEST(URITemplateRouter, literal_takes_priority_over_expansion) {
 TEST(URITemplateRouter, expansion_fallback_from_literal) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
-  router.add("/files/special", 2);
+  router.add("/files/{+path}", "op_101", 1);
+  router.add("/files/special", "op_102", 2);
   EXPECT_ROUTER_MATCH(router, "/files/other", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "other");
@@ -700,7 +702,7 @@ TEST(URITemplateRouter, error_expansion_not_last_segment_trailing_slash) {
 TEST(URITemplateRouter, trailing_slash_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_103", 1);
   EXPECT_ROUTER_MATCH(router, "/users/", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -708,7 +710,7 @@ TEST(URITemplateRouter, trailing_slash_no_match) {
 TEST(URITemplateRouter, multiple_trailing_slashes_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_104", 1);
   EXPECT_ROUTER_MATCH(router, "/users///", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -716,7 +718,7 @@ TEST(URITemplateRouter, multiple_trailing_slashes_no_match) {
 TEST(URITemplateRouter, leading_double_slash_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users", 1);
+  router.add("/users", "op_105", 1);
   EXPECT_ROUTER_MATCH(router, "//users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -724,7 +726,7 @@ TEST(URITemplateRouter, leading_double_slash_no_match) {
 TEST(URITemplateRouter, internal_double_slashes_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/posts", 1);
+  router.add("/users/posts", "op_106", 1);
   EXPECT_ROUTER_MATCH(router, "/users//posts", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -732,7 +734,7 @@ TEST(URITemplateRouter, internal_double_slashes_no_match) {
 TEST(URITemplateRouter, trailing_slash_with_variable_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{id}", 1);
+  router.add("/users/{id}", "op_107", 1);
   EXPECT_ROUTER_MATCH(router, "/users/123/", 0, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -741,7 +743,7 @@ TEST(URITemplateRouter, trailing_slash_with_variable_no_match) {
 TEST(URITemplateRouter, internal_double_slash_with_variable_no_match) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/users/{id}/posts", 1);
+  router.add("/users/{id}/posts", "op_108", 1);
   EXPECT_ROUTER_MATCH(router, "/users//123//posts", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -749,7 +751,7 @@ TEST(URITemplateRouter, internal_double_slash_with_variable_no_match) {
 TEST(URITemplateRouter, expansion_matches_trailing_slash) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_109", 1);
   EXPECT_ROUTER_MATCH(router, "/files/foo/bar/", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/");
@@ -758,7 +760,7 @@ TEST(URITemplateRouter, expansion_matches_trailing_slash) {
 TEST(URITemplateRouter, expansion_matches_double_slashes) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_110", 1);
   EXPECT_ROUTER_MATCH(router, "/files/foo//bar", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo//bar");
@@ -769,7 +771,7 @@ TEST(URITemplateRouter, add_with_single_string_argument) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"responseSchema", std::string_view{"some/path"}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_111", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -789,7 +791,7 @@ TEST(URITemplateRouter, add_with_single_integer_argument) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"maxItems", std::int64_t{42}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_112", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -809,7 +811,7 @@ TEST(URITemplateRouter, add_with_single_boolean_argument_true) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"verbose", true}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_113", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -829,7 +831,7 @@ TEST(URITemplateRouter, add_with_single_boolean_argument_false) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"verbose", false}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_114", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -851,7 +853,7 @@ TEST(URITemplateRouter, add_with_multiple_arguments) {
       {{"responseSchema", std::string_view{"some/path"}},
        {"maxItems", std::int64_t{100}},
        {"verbose", true}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_115", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -873,7 +875,7 @@ TEST(URITemplateRouter, add_with_multiple_arguments) {
 TEST(URITemplateRouter, add_with_empty_arguments_span) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/test", 1, 0,
+  router.add("/test", "op_116", 1, 0,
              std::span<const sourcemeta::core::URITemplateRouter::Argument>{});
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -889,7 +891,7 @@ TEST(URITemplateRouter, add_with_empty_arguments_span) {
 TEST(URITemplateRouter, add_without_arguments_parameter) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/test", 1);
+  router.add("/test", "op_117", 1);
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
       collected;
@@ -911,9 +913,9 @@ TEST(URITemplateRouter, add_multiple_routes_with_arguments) {
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
       arguments_three{{{"active", false}}};
 
-  router.add("/alpha", 1, 0, arguments_one);
-  router.add("/beta", 2, 0, arguments_two);
-  router.add("/gamma", 3, 0, arguments_three);
+  router.add("/alpha", "op_118", 1, 0, arguments_one);
+  router.add("/beta", "op_119", 2, 0, arguments_two);
+  router.add("/gamma", "op_120", 3, 0, arguments_three);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -957,7 +959,7 @@ TEST(URITemplateRouter, add_arguments_negative_integer) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"offset", std::int64_t{INT64_MIN}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_121", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -977,7 +979,7 @@ TEST(URITemplateRouter, add_arguments_zero_integer) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"count", std::int64_t{0}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_122", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -997,7 +999,7 @@ TEST(URITemplateRouter, add_arguments_max_integer) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"limit", std::int64_t{INT64_MAX}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_123", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -1017,7 +1019,7 @@ TEST(URITemplateRouter, add_arguments_empty_string_value) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"description", std::string_view{""}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_124", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -1037,7 +1039,7 @@ TEST(URITemplateRouter, add_arguments_empty_string_name) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"", std::string_view{"some_value"}}}};
-  router.add("/test", 1, 0, arguments);
+  router.add("/test", "op_125", 1, 0, arguments);
 
   std::vector<std::pair<std::string_view,
                         sourcemeta::core::URITemplateRouter::ArgumentValue>>
@@ -1057,7 +1059,7 @@ TEST(URITemplateRouter, match_still_works_with_arguments) {
   EXPECT_TRUE(router.base_path().empty());
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> arguments{
       {{"responseSchema", std::string_view{"schemas/user"}}}};
-  router.add("/users/{id}", 1, 0, arguments);
+  router.add("/users/{id}", "op_126", 1, 0, arguments);
   EXPECT_ROUTER_MATCH(router, "/users/42", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -1066,7 +1068,7 @@ TEST(URITemplateRouter, match_still_works_with_arguments) {
 TEST(URITemplateRouter, base_path_single_segment) {
   sourcemeta::core::URITemplateRouter router{"/prefix"};
   EXPECT_EQ(router.base_path(), "/prefix");
-  router.add("/foo", 1);
+  router.add("/foo", "op_127", 1);
   EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1074,7 +1076,7 @@ TEST(URITemplateRouter, base_path_single_segment) {
 TEST(URITemplateRouter, base_path_without_prefix_no_match) {
   sourcemeta::core::URITemplateRouter router{"/prefix"};
   EXPECT_EQ(router.base_path(), "/prefix");
-  router.add("/foo", 1);
+  router.add("/foo", "op_128", 1);
   EXPECT_ROUTER_MATCH(router, "/foo", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1082,8 +1084,8 @@ TEST(URITemplateRouter, base_path_without_prefix_no_match) {
 TEST(URITemplateRouter, base_path_multi_segment) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   EXPECT_EQ(router.base_path(), "/v1/catalog");
-  router.add("/api/list", 1);
-  router.add("/{+path}", 2);
+  router.add("/api/list", "op_129", 1);
+  router.add("/{+path}", "op_130", 2);
   EXPECT_ROUTER_MATCH(router, "/v1/catalog/api/list", 1, 0, captures_list);
   EXPECT_EQ(captures_list.size(), 0);
   EXPECT_ROUTER_MATCH(router, "/v1/catalog/foo/bar", 2, 0, captures_expansion);
@@ -1094,7 +1096,7 @@ TEST(URITemplateRouter, base_path_multi_segment) {
 TEST(URITemplateRouter, base_path_with_variable) {
   sourcemeta::core::URITemplateRouter router{"/prefix"};
   EXPECT_EQ(router.base_path(), "/prefix");
-  router.add("/users/{id}", 1);
+  router.add("/users/{id}", "op_131", 1);
   EXPECT_ROUTER_MATCH(router, "/prefix/users/42", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
@@ -1103,7 +1105,7 @@ TEST(URITemplateRouter, base_path_with_variable) {
 TEST(URITemplateRouter, base_path_prefix_boundary_no_match) {
   sourcemeta::core::URITemplateRouter router{"/prefix"};
   EXPECT_EQ(router.base_path(), "/prefix");
-  router.add("/foo", 1);
+  router.add("/foo", "op_132", 1);
   EXPECT_ROUTER_MATCH(router, "/prefixfoo", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1111,7 +1113,7 @@ TEST(URITemplateRouter, base_path_prefix_boundary_no_match) {
 TEST(URITemplateRouter, base_path_with_empty_template) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   EXPECT_EQ(router.base_path(), "/v1/catalog");
-  router.add("", 1);
+  router.add("", "op_133", 1);
   EXPECT_ROUTER_MATCH(router, "/v1/catalog", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1119,7 +1121,7 @@ TEST(URITemplateRouter, base_path_with_empty_template) {
 TEST(URITemplateRouter, base_path_slash_only_is_no_base_path) {
   sourcemeta::core::URITemplateRouter router{"/"};
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/foo", 1);
+  router.add("/foo", "op_134", 1);
   EXPECT_ROUTER_MATCH(router, "/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1127,7 +1129,7 @@ TEST(URITemplateRouter, base_path_slash_only_is_no_base_path) {
 TEST(URITemplateRouter, base_path_trailing_slash_normalized) {
   sourcemeta::core::URITemplateRouter router{"/prefix/"};
   EXPECT_EQ(router.base_path(), "/prefix");
-  router.add("/foo", 1);
+  router.add("/foo", "op_135", 1);
   EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1135,7 +1137,7 @@ TEST(URITemplateRouter, base_path_trailing_slash_normalized) {
 TEST(URITemplateRouter, base_path_multiple_trailing_slashes_normalized) {
   sourcemeta::core::URITemplateRouter router{"/prefix///"};
   EXPECT_EQ(router.base_path(), "/prefix");
-  router.add("/foo", 1);
+  router.add("/foo", "op_136", 1);
   EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1143,7 +1145,7 @@ TEST(URITemplateRouter, base_path_multiple_trailing_slashes_normalized) {
 TEST(URITemplateRouter, base_path_expansion) {
   sourcemeta::core::URITemplateRouter router{"/api"};
   EXPECT_EQ(router.base_path(), "/api");
-  router.add("/files/{+path}", 1);
+  router.add("/files/{+path}", "op_137", 1);
   EXPECT_ROUTER_MATCH(router, "/api/files/a/b/c", 1, 0, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
@@ -1152,14 +1154,14 @@ TEST(URITemplateRouter, base_path_expansion) {
 TEST(URITemplateRouter, base_path_trailing_slash_on_request_no_match) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   EXPECT_EQ(router.base_path(), "/v1/catalog");
-  router.add("/foo", 1);
+  router.add("/foo", "op_138", 1);
   EXPECT_ROUTER_MATCH(router, "/v1/catalog/foo/", 0, 0, captures);
 }
 
 TEST(URITemplateRouter, base_path_empty_string_is_no_base_path) {
   sourcemeta::core::URITemplateRouter router{""};
   EXPECT_TRUE(router.base_path().empty());
-  router.add("/foo", 1);
+  router.add("/foo", "op_139", 1);
   EXPECT_ROUTER_MATCH(router, "/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1167,7 +1169,7 @@ TEST(URITemplateRouter, base_path_empty_string_is_no_base_path) {
 TEST(URITemplateRouter, base_path_wrong_prefix_no_match) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   EXPECT_EQ(router.base_path(), "/v1/catalog");
-  router.add("/api/list", 1);
+  router.add("/api/list", "op_140", 1);
   EXPECT_ROUTER_MATCH(router, "/v2/catalog/api/list", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1175,21 +1177,21 @@ TEST(URITemplateRouter, base_path_wrong_prefix_no_match) {
 TEST(URITemplateRouter, base_path_partial_prefix_no_match) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
   EXPECT_EQ(router.base_path(), "/v1/catalog");
-  router.add("/api/list", 1);
+  router.add("/api/list", "op_141", 1);
   EXPECT_ROUTER_MATCH(router, "/v1/api/list", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(URITemplateRouter, add_with_context_literal_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 7);
+  router.add("/users", "op_142", 1, 7);
   EXPECT_ROUTER_MATCH(router, "/users", 1, 7, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(URITemplateRouter, add_with_context_variable_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users/{id}", 1, 42);
+  router.add("/users/{id}", "op_143", 1, 42);
   EXPECT_ROUTER_MATCH(router, "/users/123", 1, 42, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "id", "123");
@@ -1197,15 +1199,15 @@ TEST(URITemplateRouter, add_with_context_variable_route) {
 
 TEST(URITemplateRouter, add_with_context_default_zero) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_144", 1);
   EXPECT_ROUTER_MATCH(router, "/users", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(URITemplateRouter, add_multiple_routes_different_contexts) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 1);
-  router.add("/posts", 2, 2);
+  router.add("/users", "op_145", 1, 1);
+  router.add("/posts", "op_146", 2, 2);
   {
     EXPECT_ROUTER_MATCH(router, "/users", 1, 1, captures);
     EXPECT_EQ(captures.size(), 0);
@@ -1218,8 +1220,8 @@ TEST(URITemplateRouter, add_multiple_routes_different_contexts) {
 
 TEST(URITemplateRouter, add_same_context_multiple_routes) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 99);
-  router.add("/posts", 2, 99);
+  router.add("/users", "op_147", 1, 99);
+  router.add("/posts", "op_148", 2, 99);
   {
     EXPECT_ROUTER_MATCH(router, "/users", 1, 99, captures);
     EXPECT_EQ(captures.size(), 0);
@@ -1236,7 +1238,7 @@ TEST(URITemplateRouter, add_with_context_and_arguments) {
       {"schema", std::string_view{"schemas/health"}},
       {"enabled", true},
   }};
-  router.add("/api/health", 1, 11, arguments);
+  router.add("/api/health", "op_149", 1, 11, arguments);
   EXPECT_ROUTER_MATCH(router, "/api/health", 1, 11, captures);
   EXPECT_EQ(captures.size(), 0);
 
@@ -1265,7 +1267,7 @@ TEST(URITemplateRouter, add_with_context_and_arguments) {
 
 TEST(URITemplateRouter, add_context_expansion_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/files/{+path}", 1, 5);
+  router.add("/files/{+path}", "op_150", 1, 5);
   EXPECT_ROUTER_MATCH(router, "/files/a/b/c", 1, 5, captures);
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
@@ -1273,22 +1275,22 @@ TEST(URITemplateRouter, add_context_expansion_route) {
 
 TEST(URITemplateRouter, add_context_base_path) {
   sourcemeta::core::URITemplateRouter router{"/v1/catalog"};
-  router.add("/api/list", 1, 33);
+  router.add("/api/list", "op_151", 1, 33);
   EXPECT_ROUTER_MATCH(router, "/v1/catalog/api/list", 1, 33, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(URITemplateRouter, add_with_context_no_match_returns_zero_pair) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 7);
+  router.add("/users", "op_152", 1, 7);
   EXPECT_ROUTER_MATCH(router, "/posts", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
 TEST(URITemplateRouter, add_with_context_overwrites_previous_context) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 10);
-  router.add("/users", 1, 20);
+  router.add("/users", "op_153", 1, 10);
+  router.add("/users", "op_154", 1, 20);
   EXPECT_ROUTER_MATCH(router, "/users", 1, 20, captures);
   EXPECT_EQ(captures.size(), 0);
 }
@@ -1300,49 +1302,49 @@ TEST(URITemplateRouter, size_empty_router) {
 
 TEST(URITemplateRouter, size_single_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_155", 1);
   EXPECT_EQ(router.size(), 1);
 }
 
 TEST(URITemplateRouter, size_multiple_routes) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
-  router.add("/users/{id}", 2);
-  router.add("/posts", 3);
-  router.add("/posts/{id}", 4);
+  router.add("/users", "op_156", 1);
+  router.add("/users/{id}", "op_157", 2);
+  router.add("/posts", "op_158", 3);
+  router.add("/posts/{id}", "op_159", 4);
   EXPECT_EQ(router.size(), 4);
 }
 
 TEST(URITemplateRouter, size_duplicate_route_does_not_increase) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
-  router.add("/users", 2);
+  router.add("/users", "op_160", 1);
+  router.add("/users", "op_161", 2);
   EXPECT_EQ(router.size(), 1);
 }
 
 TEST(URITemplateRouter, size_with_context_overwrite_does_not_increase) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 10);
-  router.add("/users", 1, 20);
+  router.add("/users", "op_162", 1, 10);
+  router.add("/users", "op_163", 1, 20);
   EXPECT_EQ(router.size(), 1);
 }
 
 TEST(URITemplateRouter, size_root_template) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("", 1);
+  router.add("", "op_164", 1);
   EXPECT_EQ(router.size(), 1);
 }
 
 TEST(URITemplateRouter, size_with_base_path) {
   sourcemeta::core::URITemplateRouter router{"/v1"};
-  router.add("/users", 1);
-  router.add("/posts", 2);
+  router.add("/users", "op_165", 1);
+  router.add("/posts", "op_166", 2);
   EXPECT_EQ(router.size(), 2);
 }
 
 TEST(URITemplateRouter, otherwise_default_is_zero_context) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_167", 1);
   EXPECT_ROUTER_MATCH(router, "/unknown", 0, 0, captures);
 }
 
@@ -1354,7 +1356,7 @@ TEST(URITemplateRouter, otherwise_sets_context) {
 
 TEST(URITemplateRouter, otherwise_returned_from_match_on_unknown_path) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 5);
+  router.add("/users", "op_168", 1, 5);
   router.otherwise(99);
   EXPECT_ROUTER_MATCH(router, "/unknown", 0, 99, captures);
   EXPECT_EQ(captures.size(), 0);
@@ -1362,7 +1364,7 @@ TEST(URITemplateRouter, otherwise_returned_from_match_on_unknown_path) {
 
 TEST(URITemplateRouter, otherwise_not_returned_from_matching_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 5);
+  router.add("/users", "op_169", 1, 5);
   router.otherwise(99);
   EXPECT_ROUTER_MATCH(router, "/users", 1, 5, captures);
   EXPECT_EQ(captures.size(), 0);
@@ -1370,21 +1372,21 @@ TEST(URITemplateRouter, otherwise_not_returned_from_matching_route) {
 
 TEST(URITemplateRouter, otherwise_returned_for_empty_segment) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_170", 1);
   router.otherwise(77);
   EXPECT_ROUTER_MATCH(router, "/users//", 0, 77, captures);
 }
 
 TEST(URITemplateRouter, otherwise_returned_for_root_slash_no_match) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_171", 1);
   router.otherwise(88);
   EXPECT_ROUTER_MATCH(router, "/", 0, 88, captures);
 }
 
 TEST(URITemplateRouter, otherwise_without_registration_returns_zero_context) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_172", 1);
   EXPECT_ROUTER_MATCH(router, "/unknown", 0, 0, captures);
 }
 
@@ -1491,7 +1493,7 @@ TEST(URITemplateRouter, otherwise_does_not_affect_other_arguments) {
   sourcemeta::core::URITemplateRouter router;
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> route_args{
       {{"schema", std::string_view{"user.json"}}}};
-  router.add("/users", 1, 0, route_args);
+  router.add("/users", "op_173", 1, 0, route_args);
 
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
       default_args{{{"message", std::string_view{"not found"}}}};
@@ -1524,30 +1526,30 @@ TEST(URITemplateRouter, otherwise_does_not_affect_other_arguments) {
 
 TEST(URITemplateRouter, otherwise_does_not_count_as_route_in_size) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_174", 1);
   router.otherwise(99);
   EXPECT_EQ(router.size(), 1);
 }
 
 TEST(URITemplateRouter, otherwise_with_base_path_and_unmatched) {
   sourcemeta::core::URITemplateRouter router{"/v1"};
-  router.add("/users", 1);
+  router.add("/users", "op_175", 1);
   router.otherwise(42);
   EXPECT_ROUTER_MATCH(router, "/v1/other", 0, 42, captures);
 }
 
 TEST(URITemplateRouter, otherwise_with_partial_trie_walk) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users/{id}/posts", 1);
+  router.add("/users/{id}/posts", "op_176", 1);
   router.otherwise(42);
   EXPECT_ROUTER_MATCH(router, "/users/123", 0, 42, captures);
 }
 
 TEST(URITemplateRouter, listing_at_returns_identifiers_in_add_order) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 7);
-  router.add("/posts/{id}", 3);
-  router.add("/{+rest}", 9);
+  router.add("/users", "op_177", 7);
+  router.add("/posts/{id}", "op_178", 3);
+  router.add("/{+rest}", "op_179", 9);
   EXPECT_EQ(router.size(), 3);
   EXPECT_EQ(router.at(0), 7);
   EXPECT_EQ(router.at(1), 3);
@@ -1556,9 +1558,9 @@ TEST(URITemplateRouter, listing_at_returns_identifiers_in_add_order) {
 
 TEST(URITemplateRouter, listing_context_returns_associated_context) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1, 100);
-  router.add("/posts/{id}", 2, 200);
-  router.add("/comments", 3, 300);
+  router.add("/users", "op_180", 1, 100);
+  router.add("/posts/{id}", "op_181", 2, 200);
+  router.add("/comments", "op_182", 3, 300);
   EXPECT_EQ(router.context(1), 100);
   EXPECT_EQ(router.context(2), 200);
   EXPECT_EQ(router.context(3), 300);
@@ -1566,66 +1568,66 @@ TEST(URITemplateRouter, listing_context_returns_associated_context) {
 
 TEST(URITemplateRouter, listing_context_default_zero) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
-  router.add("/posts", 2);
+  router.add("/users", "op_183", 1);
+  router.add("/posts", "op_184", 2);
   EXPECT_EQ(router.context(1), 0);
   EXPECT_EQ(router.context(2), 0);
 }
 
 TEST(URITemplateRouter, listing_path_for_literal_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_185", 1);
   EXPECT_EQ(router.path(1), "/users");
 }
 
 TEST(URITemplateRouter, listing_path_for_variable_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users/{id}", 1);
+  router.add("/users/{id}", "op_186", 1);
   EXPECT_EQ(router.path(1), "/users/{id}");
 }
 
 TEST(URITemplateRouter, listing_path_for_multi_variable_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users/{id}/posts/{post_id}", 1);
+  router.add("/users/{id}/posts/{post_id}", "op_187", 1);
   EXPECT_EQ(router.path(1), "/users/{id}/posts/{post_id}");
 }
 
 TEST(URITemplateRouter, listing_path_for_expansion_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/files/{+rest}", 1);
+  router.add("/files/{+rest}", "op_188", 1);
   EXPECT_EQ(router.path(1), "/files/{+rest}");
 }
 
 TEST(URITemplateRouter, listing_path_for_root_route) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/", 1);
+  router.add("/", "op_189", 1);
   EXPECT_EQ(router.path(1), "/");
 }
 
 TEST(URITemplateRouter, listing_path_excludes_base_path) {
   sourcemeta::core::URITemplateRouter router{"/api/v1"};
-  router.add("/users/{id}", 1);
+  router.add("/users/{id}", "op_190", 1);
   EXPECT_EQ(router.path(1), "/users/{id}");
 }
 
 TEST(URITemplateRouter, listing_path_excludes_base_path_for_root_template) {
   sourcemeta::core::URITemplateRouter router{"/api"};
-  router.add("/", 1);
+  router.add("/", "op_191", 1);
   EXPECT_EQ(router.path(1), "/");
 }
 
 TEST(URITemplateRouter, listing_path_excludes_base_path_for_empty_template) {
   sourcemeta::core::URITemplateRouter router{"/api"};
-  router.add("", 1);
+  router.add("", "op_192", 1);
   EXPECT_EQ(router.path(1), "");
 }
 
 TEST(URITemplateRouter, listing_path_for_multiple_routes_each_correct) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
-  router.add("/users/{id}", 2);
-  router.add("/posts/{id}/comments/{comment_id}", 3);
-  router.add("/files/{+rest}", 4);
+  router.add("/users", "op_193", 1);
+  router.add("/users/{id}", "op_194", 2);
+  router.add("/posts/{id}/comments/{comment_id}", "op_195", 3);
+  router.add("/files/{+rest}", "op_196", 4);
   EXPECT_EQ(router.path(1), "/users");
   EXPECT_EQ(router.path(2), "/users/{id}");
   EXPECT_EQ(router.path(3), "/posts/{id}/comments/{comment_id}");
@@ -1634,8 +1636,8 @@ TEST(URITemplateRouter, listing_path_for_multiple_routes_each_correct) {
 
 TEST(URITemplateRouter, listing_size_does_not_count_otherwise) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
-  router.add("/posts", 2);
+  router.add("/users", "op_197", 1);
+  router.add("/posts", "op_198", 2);
   router.otherwise(99);
   EXPECT_EQ(router.size(), 2);
   EXPECT_EQ(router.at(0), 1);
@@ -1644,7 +1646,7 @@ TEST(URITemplateRouter, listing_size_does_not_count_otherwise) {
 
 TEST(URITemplateRouter, listing_path_returns_freshly_allocated_string) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users/{id}", 1);
+  router.add("/users/{id}", "op_199", 1);
   const auto first = router.path(1);
   const auto second = router.path(1);
   EXPECT_EQ(first, second);
@@ -1653,9 +1655,9 @@ TEST(URITemplateRouter, listing_path_returns_freshly_allocated_string) {
 
 TEST(URITemplateRouter, listing_iterate_via_size_and_at) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/a", 10);
-  router.add("/b/{id}", 20);
-  router.add("/c/{+rest}", 30);
+  router.add("/a", "op_200", 10);
+  router.add("/b/{id}", "op_201", 20);
+  router.add("/c/{+rest}", "op_202", 30);
 
   std::vector<sourcemeta::core::URITemplateRouter::Identifier> seen;
   for (std::size_t index = 0; index < router.size(); ++index) {
@@ -1670,10 +1672,161 @@ TEST(URITemplateRouter, listing_iterate_via_size_and_at) {
 
 TEST(URITemplateRouter, listing_size_overwrite_does_not_grow) {
   sourcemeta::core::URITemplateRouter router;
-  router.add("/users", 1);
+  router.add("/users", "op_203", 1);
   EXPECT_EQ(router.size(), 1);
-  router.add("/users", 2);
+  router.add("/users", "op_204", 2);
   EXPECT_EQ(router.size(), 1);
   EXPECT_EQ(router.at(0), 2);
   EXPECT_EQ(router.path(2), "/users");
+}
+
+TEST(URITemplateRouter, operation_id_minimum_length) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "x", 1);
+  const auto result = router.operation("x");
+  EXPECT_EQ(result.first, 1);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST(URITemplateRouter, operation_id_maximum_length) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::string operation_id(64, 'a');
+  router.add("/a", operation_id, 1);
+  const auto result = router.operation(operation_id);
+  EXPECT_EQ(result.first, 1);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST(URITemplateRouter, operation_id_full_character_set) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "aZ0_-", 7, 42);
+  const auto result = router.operation("aZ0_-");
+  EXPECT_EQ(result.first, 7);
+  EXPECT_EQ(result.second, 42);
+}
+
+TEST(URITemplateRouter, operation_id_reject_empty) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_THROW(router.add("/a", "", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+}
+
+TEST(URITemplateRouter, operation_id_reject_too_long) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::string operation_id(65, 'a');
+  try {
+    router.add("/a", operation_id, 1);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), operation_id);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(URITemplateRouter, operation_id_reject_leading_digit) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_THROW(router.add("/a", "1foo", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+}
+
+TEST(URITemplateRouter, operation_id_reject_leading_underscore) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_THROW(router.add("/a", "_foo", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+}
+
+TEST(URITemplateRouter, operation_id_reject_leading_hyphen) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_THROW(router.add("/a", "-foo", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+}
+
+TEST(URITemplateRouter, operation_id_reject_invalid_characters) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_THROW(router.add("/a", "foo.bar", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+  EXPECT_THROW(router.add("/a", "foo/bar", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+  EXPECT_THROW(router.add("/a", "foo bar", 1),
+               sourcemeta::core::URITemplateRouterInvalidOperationIdError);
+}
+
+TEST(URITemplateRouter, operation_id_duplicate_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "listUsers", 1);
+  try {
+    router.add("/b", "listUsers", 2);
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterDuplicateOperationIdError
+               &error) {
+    EXPECT_EQ(error.operation_id(), "listUsers");
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(URITemplateRouter, operation_unknown_returns_zero_zero) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "listUsers", 1, 11);
+  const auto result = router.operation("missing");
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST(URITemplateRouter, operation_unknown_ignores_otherwise) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "listUsers", 1, 11);
+  router.otherwise(99);
+  const auto result = router.operation("missing");
+  EXPECT_EQ(result.first, 0);
+  EXPECT_EQ(result.second, 0);
+}
+
+TEST(URITemplateRouter, operation_returns_identifier_and_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "alpha", 1, 11);
+  router.add("/b", "beta", 2, 22);
+  router.add("/c", "gamma", 3, 33);
+
+  const auto alpha = router.operation("alpha");
+  EXPECT_EQ(alpha.first, 1);
+  EXPECT_EQ(alpha.second, 11);
+
+  const auto beta = router.operation("beta");
+  EXPECT_EQ(beta.first, 2);
+  EXPECT_EQ(beta.second, 22);
+
+  const auto gamma = router.operation("gamma");
+  EXPECT_EQ(gamma.first, 3);
+  EXPECT_EQ(gamma.second, 33);
+}
+
+TEST(URITemplateRouter, operation_id_not_reserved_when_add_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  try {
+    router.add("/foo/{bar}.json", "listFoo", 1);
+    FAIL();
+  } catch (const sourcemeta::core::URITemplateRouterInvalidSegmentError &) {
+    router.add("/users", "listFoo", 2);
+    const auto result = router.operation("listFoo");
+    EXPECT_EQ(result.first, 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(URITemplateRouter, operation_id_overwrite_removes_previous_mapping) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "first", 1, 11);
+  router.add("/users", "second", 2, 22);
+
+  const auto stale = router.operation("first");
+  EXPECT_EQ(stale.first, 0);
+  EXPECT_EQ(stale.second, 0);
+
+  const auto live = router.operation("second");
+  EXPECT_EQ(live.first, 2);
+  EXPECT_EQ(live.second, 22);
 }
