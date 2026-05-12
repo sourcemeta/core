@@ -1,10 +1,23 @@
 #include <sourcemeta/core/io_binary.h>
 #include <sourcemeta/core/io_error.h>
 
+#include <bit>       // std::endian, std::byteswap
 #include <cassert>   // assert
 #include <cstring>   // std::memcpy
 #include <ios>       // std::streamsize, std::streamoff
 #include <streambuf> // std::streambuf
+
+namespace {
+
+template <typename T> auto to_little_endian(const T value) -> T {
+  if constexpr (std::endian::native == std::endian::big) {
+    return std::byteswap(value);
+  } else {
+    return value;
+  }
+}
+
+} // namespace
 
 namespace sourcemeta::core {
 
@@ -15,15 +28,15 @@ auto BinaryWriter::put_byte(const std::uint8_t value) -> void {
 }
 
 auto BinaryWriter::put_word(const std::uint16_t value) -> void {
-  this->put(value);
+  this->put(to_little_endian(value));
 }
 
 auto BinaryWriter::put_dword(const std::uint32_t value) -> void {
-  this->put(value);
+  this->put(to_little_endian(value));
 }
 
 auto BinaryWriter::put_qword(const std::uint64_t value) -> void {
-  this->put(value);
+  this->put(to_little_endian(value));
 }
 
 auto BinaryWriter::put_bytes(const std::byte *data, const std::size_t size)
@@ -57,15 +70,15 @@ auto BinaryReader::get_byte() -> std::uint8_t {
 }
 
 auto BinaryReader::get_word() -> std::uint16_t {
-  return this->get<std::uint16_t>();
+  return to_little_endian(this->get<std::uint16_t>());
 }
 
 auto BinaryReader::get_dword() -> std::uint32_t {
-  return this->get<std::uint32_t>();
+  return to_little_endian(this->get<std::uint32_t>());
 }
 
 auto BinaryReader::get_qword() -> std::uint64_t {
-  return this->get<std::uint64_t>();
+  return to_little_endian(this->get<std::uint64_t>());
 }
 
 auto BinaryReader::position() const -> std::size_t {

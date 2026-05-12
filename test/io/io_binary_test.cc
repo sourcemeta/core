@@ -3,7 +3,6 @@
 #include <sourcemeta/core/io.h>
 
 #include <array>   // std::array
-#include <bit>     // std::endian
 #include <cstddef> // std::byte
 #include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
 #include <filesystem> // std::filesystem
@@ -52,33 +51,42 @@ TEST(IO_BinaryWriter, put_byte_emits_one_byte) {
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0x42);
 }
 
-TEST(IO_BinaryWriter, put_word_emits_two_bytes_in_host_order) {
+TEST(IO_BinaryWriter, put_word_emits_two_bytes_little_endian) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_word(0xCAFE);
   const auto bytes{stream.str()};
   ASSERT_EQ(bytes.size(), 2);
-  if constexpr (std::endian::native == std::endian::little) {
-    EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xFE);
-    EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCA);
-  } else {
-    EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xCA);
-    EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xFE);
-  }
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xFE);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCA);
 }
 
-TEST(IO_BinaryWriter, put_dword_emits_four_bytes) {
+TEST(IO_BinaryWriter, put_dword_emits_four_bytes_little_endian) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
-  writer.put_dword(0x12345678);
-  EXPECT_EQ(stream.str().size(), 4);
+  writer.put_dword(0xDEADBEEF);
+  const auto bytes{stream.str()};
+  ASSERT_EQ(bytes.size(), 4);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xEF);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xBE);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[2]), 0xAD);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[3]), 0xDE);
 }
 
-TEST(IO_BinaryWriter, put_qword_emits_eight_bytes) {
+TEST(IO_BinaryWriter, put_qword_emits_eight_bytes_little_endian) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_qword(0x0123456789ABCDEFULL);
-  EXPECT_EQ(stream.str().size(), 8);
+  const auto bytes{stream.str()};
+  ASSERT_EQ(bytes.size(), 8);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xEF);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCD);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[2]), 0xAB);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[3]), 0x89);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[4]), 0x67);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[5]), 0x45);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[6]), 0x23);
+  EXPECT_EQ(static_cast<std::uint8_t>(bytes[7]), 0x01);
 }
 
 TEST(IO_BinaryWriter, put_bytes_emits_raw_buffer) {
