@@ -47,7 +47,7 @@ TEST(IO_BinaryWriter, write_span_of_integers) {
       std::filesystem::path{BUILD_DIRECTORY}, ".test-binary-"};
   const auto path{workspace.path() / "values.bin"};
 
-  constexpr std::array<std::uint32_t, 4> values{1, 2, 3, 4};
+  constexpr std::array<std::uint32_t, 4> values{{1, 2, 3, 4}};
 
   write_via_binary_writer(path, [&](sourcemeta::core::BinaryWriter &writer) {
     writer.write(std::span<const std::uint32_t>{values});
@@ -192,8 +192,8 @@ TEST(IO_BinaryReader, read_byte_span_roundtrip) {
       std::filesystem::path{BUILD_DIRECTORY}, ".test-binary-"};
   const auto path{workspace.path() / "bytes.bin"};
 
-  constexpr std::array<std::byte, 4> payload{std::byte{0x01}, std::byte{0x02},
-                                             std::byte{0x03}, std::byte{0x04}};
+  constexpr std::array<std::byte, 4> payload{
+      {std::byte{0x01}, std::byte{0x02}, std::byte{0x03}, std::byte{0x04}}};
 
   write_via_binary_writer(path, [&](sourcemeta::core::BinaryWriter &writer) {
     writer.write(std::span<const std::byte>{payload});

@@ -38,9 +38,9 @@ TEST(IO_atomic_write_file, byte_span_creates_file) {
       std::filesystem::path{BUILD_DIRECTORY}, ".test-atomic-write-"};
   const auto path{workspace.path() / "out.bin"};
 
-  constexpr std::array<std::byte, 5> bytes{std::byte{0x48}, std::byte{0x65},
-                                           std::byte{0x6c}, std::byte{0x6c},
-                                           std::byte{0x6f}};
+  constexpr std::array<std::byte, 5> bytes{{std::byte{0x48}, std::byte{0x65},
+                                            std::byte{0x6c}, std::byte{0x6c},
+                                            std::byte{0x6f}}};
   sourcemeta::core::atomic_write_file(path, std::span<const std::byte>{bytes});
 
   EXPECT_TRUE(std::filesystem::exists(path));
