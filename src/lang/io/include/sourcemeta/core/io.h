@@ -119,6 +119,22 @@ auto read_file(const std::filesystem::path &path)
 template <typename CharT = char, typename Traits = std::char_traits<CharT>>
 auto read_to_string(std::basic_istream<CharT, Traits> &stream)
     -> std::basic_string<CharT, Traits> {
+  const auto start{stream.tellg()};
+  if (start != static_cast<std::streampos>(-1)) {
+    stream.seekg(0, std::ios::end);
+    const auto end{stream.tellg()};
+    stream.seekg(start);
+    if (end > start) {
+      std::basic_string<CharT, Traits> result;
+      result.resize(static_cast<std::size_t>(end - start));
+      stream.read(result.data(), static_cast<std::streamsize>(result.size()));
+      // Text-mode reads may return fewer characters than the byte count
+      // (i.e. CRLF collapses to LF on Windows), so trim to actual.
+      result.resize(static_cast<std::size_t>(stream.gcount()));
+      return result;
+    }
+  }
+
   std::basic_ostringstream<CharT, Traits> buffer;
   buffer << stream.rdbuf();
   return buffer.str();
@@ -142,11 +158,20 @@ auto read_file_to_string(const std::filesystem::path &path)
     throw IOIsADirectoryError{path};
   }
 
-  std::basic_ifstream<CharT, Traits> stream{sourcemeta::core::canonical(path)};
+  const auto canonical_path{sourcemeta::core::canonical(path)};
+  std::basic_ifstream<CharT, Traits> stream{canonical_path};
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
   assert(!stream.fail());
   assert(stream.is_open());
-  return read_to_string(stream);
+
+  std::basic_string<CharT, Traits> result;
+  result.resize(
+      static_cast<std::size_t>(std::filesystem::file_size(canonical_path)));
+  stream.read(result.data(), static_cast<std::streamsize>(result.size()));
+  // Text-mode reads may return fewer characters than the byte count
+  // (i.e. CRLF collapses to LF on Windows), so trim to actual.
+  result.resize(static_cast<std::size_t>(stream.gcount()));
+  return result;
 }
 
 /// @ingroup io

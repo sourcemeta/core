@@ -2,9 +2,9 @@
 
 #include <sourcemeta/core/io.h>
 
-#include <array>      // std::array
-#include <cstddef>    // std::byte
-#include <cstdint>    // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
+#include <array>   // std::array
+#include <cstddef> // std::byte
+#include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ofstream
 #include <ios>        // std::ios::binary
