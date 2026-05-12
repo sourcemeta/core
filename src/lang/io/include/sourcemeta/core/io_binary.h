@@ -7,26 +7,25 @@
 
 #include <sourcemeta/core/io_fileview.h>
 
-#include <cstddef>     // std::byte, std::size_t
-#include <ostream>     // std::ostream
-#include <span>        // std::span
+#include <cstddef> // std::byte, std::size_t
+#include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
+#include <istream> // std::istream
+#include <ostream> // std::ostream
 #include <type_traits> // std::is_trivially_copyable_v
 
 namespace sourcemeta::core {
 
 /// @ingroup io
 ///
-/// Typed wrapper over an output stream. rituals that surround every raw binary
-/// write.
+/// Typed wrapper over an output stream.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
 /// #include <fstream>
-/// #include <cstdint>
 ///
 /// std::ofstream raw{"/tmp/out.bin", std::ios::binary};
 /// sourcemeta::core::BinaryWriter writer{raw};
-/// writer.write(std::uint32_t{0x12345678});
+/// writer.put_dword(0x12345678);
 /// ```
 class SOURCEMETA_CORE_IO_EXPORT BinaryWriter {
 public:
@@ -38,42 +37,40 @@ public:
   auto operator=(const BinaryWriter &) -> BinaryWriter & = delete;
   auto operator=(BinaryWriter &&) -> BinaryWriter & = delete;
 
-  /// Write a trivially-copyable value as its raw bytes.
-  template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  auto write(const T &value) -> void {
-    this->write_bytes(reinterpret_cast<const std::byte *>(&value), sizeof(T));
-  }
+  auto put_byte(const std::uint8_t value) -> void;
+  auto put_word(const std::uint16_t value) -> void;
+  auto put_dword(const std::uint32_t value) -> void;
+  auto put_qword(const std::uint64_t value) -> void;
 
-  /// Write a span of trivially-copyable values as their raw bytes.
-  template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  auto write(const std::span<const T> values) -> void {
-    this->write_bytes(reinterpret_cast<const std::byte *>(values.data()),
-                      values.size() * sizeof(T));
-  }
+  auto put_bytes(const std::byte *data, const std::size_t size) -> void;
 
-  auto write_bytes(const std::byte *data, const std::size_t size) -> void;
+  [[nodiscard]] auto position() const -> std::size_t;
 
 private:
+  template <typename T>
+    requires std::is_trivially_copyable_v<T>
+  auto put(const T &value) -> void {
+    this->put_bytes(reinterpret_cast<const std::byte *>(&value), sizeof(T));
+  }
+
   std::ostream *stream_;
 };
 
 /// @ingroup io
 ///
-/// Cursor-tracking reader over a `FileView`.
+/// Cursor-tracking reader over a `FileView` or an `std::istream`.
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
-/// #include <cstdint>
 ///
 /// sourcemeta::core::FileView view{"/tmp/out.bin"};
 /// sourcemeta::core::BinaryReader reader{view};
-/// const auto value{reader.read<std::uint32_t>()};
+/// const auto value{reader.get_dword()};
 /// ```
 class SOURCEMETA_CORE_IO_EXPORT BinaryReader {
 public:
   BinaryReader(const FileView &view) noexcept;
+  BinaryReader(std::istream &stream) noexcept;
 
   // Prevent copying, as this class is tied to an input resource
   BinaryReader(const BinaryReader &) = delete;
@@ -81,25 +78,33 @@ public:
   auto operator=(const BinaryReader &) -> BinaryReader & = delete;
   auto operator=(BinaryReader &&) -> BinaryReader & = delete;
 
-  /// Read a trivially-copyable value from the current cursor position
-  /// and advance the cursor by `sizeof(T)`.
-  template <typename T>
-    requires std::is_trivially_copyable_v<T>
-  [[nodiscard]] auto read() -> T {
-    T value;
-    this->read_bytes(reinterpret_cast<std::byte *>(&value), sizeof(T));
-    return value;
-  }
+  [[nodiscard]] auto get_byte() -> std::uint8_t;
+  [[nodiscard]] auto get_word() -> std::uint16_t;
+  [[nodiscard]] auto get_dword() -> std::uint32_t;
+  [[nodiscard]] auto get_qword() -> std::uint64_t;
 
-  [[nodiscard]] auto offset() const noexcept -> std::size_t;
+  auto get_bytes(std::byte *destination, const std::size_t size) -> void;
+
+  [[nodiscard]] auto position() const -> std::size_t;
 
   /// Move the cursor to `position`.
   auto seek(const std::size_t position) -> void;
 
-  auto read_bytes(std::byte *destination, const std::size_t size) -> void;
+  /// Whether the source has unconsumed bytes at the current cursor.
+  [[nodiscard]] auto has_more_data() const -> bool;
 
 private:
-  const FileView *view_;
+  template <typename T>
+    requires std::is_trivially_copyable_v<T>
+  [[nodiscard]] auto get() -> T {
+    T value;
+    this->get_bytes(reinterpret_cast<std::byte *>(&value), sizeof(T));
+    return value;
+  }
+
+  // Exactly one is non-null
+  const FileView *view_{nullptr};
+  std::istream *stream_{nullptr};
   std::size_t offset_{0};
 };
 
