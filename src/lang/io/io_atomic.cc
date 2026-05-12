@@ -12,7 +12,8 @@
 #if defined(__linux__)
 #include <fcntl.h>       // AT_FDCWD
 #include <linux/fs.h>    // RENAME_EXCHANGE
-#include <sys/syscall.h> // SYS_renameat2, syscall
+#include <sys/syscall.h> // SYS_renameat2
+#include <unistd.h>      // syscall
 #elif defined(__APPLE__)
 #include <fcntl.h>     // AT_FDCWD
 #include <sys/stdio.h> // renameatx_np, RENAME_SWAP
@@ -53,6 +54,7 @@ public:
   ~AtomicFileWriter() {
     if (!this->committed_) {
       if (this->stream_.is_open()) {
+        this->stream_.exceptions(std::ios::goodbit);
         this->stream_.close();
       }
 

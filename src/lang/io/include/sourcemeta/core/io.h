@@ -13,7 +13,6 @@
 #include <sourcemeta/core/io_temporary.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <cassert>    // assert
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::basic_ifstream
 #include <iostream>   // std::cin
@@ -96,10 +95,13 @@ auto read_file(const std::filesystem::path &path)
     throw IOIsADirectoryError{path};
   }
 
-  std::ifstream stream{sourcemeta::core::canonical(path)};
+  const auto canonical_path{sourcemeta::core::canonical(path)};
+  std::ifstream stream{canonical_path};
+  if (!stream.is_open()) {
+    throw IOFilePermissionError{canonical_path};
+  }
+
   stream.exceptions(std::ifstream::badbit);
-  assert(!stream.fail());
-  assert(stream.is_open());
   return stream;
 }
 
@@ -160,9 +162,11 @@ auto read_file_to_string(const std::filesystem::path &path)
 
   const auto canonical_path{sourcemeta::core::canonical(path)};
   std::basic_ifstream<CharT, Traits> stream{canonical_path};
+  if (!stream.is_open()) {
+    throw IOFilePermissionError{canonical_path};
+  }
+
   stream.exceptions(std::basic_ifstream<CharT, Traits>::badbit);
-  assert(!stream.fail());
-  assert(stream.is_open());
 
   std::basic_string<CharT, Traits> result;
   result.resize(

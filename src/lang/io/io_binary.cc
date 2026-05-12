@@ -33,7 +33,7 @@ auto BinaryReader::seek(const std::size_t position) -> void {
 
 auto BinaryReader::read_bytes(std::byte *destination, const std::size_t size)
     -> void {
-  if (this->offset_ + size > this->view_->size()) {
+  if (size > this->view_->size() - this->offset_) {
     throw IOReadOutOfBoundsError{};
   }
 
