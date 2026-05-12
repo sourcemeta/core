@@ -1,14 +1,32 @@
 #include <sourcemeta/core/io_binary.h>
 #include <sourcemeta/core/io_error.h>
 
-#include <cstring> // std::memcpy
-#include <ios>     // std::streamsize
+#include <cassert>   // assert
+#include <cstring>   // std::memcpy
+#include <ios>       // std::streamsize, std::streamoff
+#include <streambuf> // std::streambuf
 
 namespace sourcemeta::core {
 
 BinaryWriter::BinaryWriter(std::ostream &stream) noexcept : stream_{&stream} {}
 
-auto BinaryWriter::write_bytes(const std::byte *data, const std::size_t size)
+auto BinaryWriter::put_byte(const std::uint8_t value) -> void {
+  this->put(value);
+}
+
+auto BinaryWriter::put_word(const std::uint16_t value) -> void {
+  this->put(value);
+}
+
+auto BinaryWriter::put_dword(const std::uint32_t value) -> void {
+  this->put(value);
+}
+
+auto BinaryWriter::put_qword(const std::uint64_t value) -> void {
+  this->put(value);
+}
+
+auto BinaryWriter::put_bytes(const std::byte *data, const std::size_t size)
     -> void {
   this->stream_->write(reinterpret_cast<const char *>(data),
                        static_cast<std::streamsize>(size));
@@ -17,30 +35,89 @@ auto BinaryWriter::write_bytes(const std::byte *data, const std::size_t size)
   }
 }
 
+auto BinaryWriter::position() const -> std::size_t {
+  return static_cast<std::size_t>(this->stream_->tellp());
+}
+
 BinaryReader::BinaryReader(const FileView &view) noexcept : view_{&view} {}
 
-auto BinaryReader::offset() const noexcept -> std::size_t {
-  return this->offset_;
+BinaryReader::BinaryReader(std::istream &stream) noexcept : stream_{&stream} {}
+
+auto BinaryReader::get_byte() -> std::uint8_t {
+  return this->get<std::uint8_t>();
+}
+
+auto BinaryReader::get_word() -> std::uint16_t {
+  return this->get<std::uint16_t>();
+}
+
+auto BinaryReader::get_dword() -> std::uint32_t {
+  return this->get<std::uint32_t>();
+}
+
+auto BinaryReader::get_qword() -> std::uint64_t {
+  return this->get<std::uint64_t>();
+}
+
+auto BinaryReader::position() const -> std::size_t {
+  if (this->view_) {
+    return this->offset_;
+  }
+
+  assert(this->stream_);
+  return static_cast<std::size_t>(this->stream_->tellg());
 }
 
 auto BinaryReader::seek(const std::size_t position) -> void {
-  if (position > this->view_->size()) {
-    throw IOReadOutOfBoundsError{};
+  if (this->view_) {
+    if (position > this->view_->size()) {
+      throw IOReadOutOfBoundsError{};
+    }
+
+    this->offset_ = position;
+    return;
   }
 
-  this->offset_ = position;
+  assert(this->stream_);
+  this->stream_->seekg(static_cast<std::streamoff>(position));
+  if (this->stream_->fail()) {
+    throw IOReadOutOfBoundsError{};
+  }
 }
 
-auto BinaryReader::read_bytes(std::byte *destination, const std::size_t size)
+auto BinaryReader::get_bytes(std::byte *destination, const std::size_t size)
     -> void {
-  if (size > this->view_->size() - this->offset_) {
-    throw IOReadOutOfBoundsError{};
+  if (this->view_) {
+    if (size > this->view_->size() - this->offset_) {
+      throw IOReadOutOfBoundsError{};
+    }
+
+    if (size > 0) {
+      std::memcpy(destination, this->view_->as<std::byte>(this->offset_), size);
+      this->offset_ += size;
+    }
+
+    return;
   }
 
-  if (size > 0) {
-    std::memcpy(destination, this->view_->as<std::byte>(this->offset_), size);
-    this->offset_ += size;
+  assert(this->stream_);
+  this->stream_->read(reinterpret_cast<char *>(destination),
+                      static_cast<std::streamsize>(size));
+  const auto consumed{static_cast<std::size_t>(this->stream_->gcount())};
+  if (consumed != size) {
+    throw IOReadOutOfBoundsError{};
   }
+}
+
+auto BinaryReader::has_more_data() const -> bool {
+  if (this->view_) {
+    return this->offset_ < this->view_->size();
+  }
+
+  assert(this->stream_);
+  auto *buffer{this->stream_->rdbuf()};
+  return buffer->in_avail() > 0 ||
+         buffer->sgetc() != std::char_traits<char>::eof();
 }
 
 } // namespace sourcemeta::core
