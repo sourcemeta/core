@@ -7,47 +7,12 @@
 
 #include <cstddef>     // std::byte
 #include <filesystem>  // std::filesystem::path
-#include <fstream>     // std::ofstream
+#include <functional>  // std::function
 #include <ostream>     // std::ostream
 #include <span>        // std::span
 #include <string_view> // std::string_view
-#include <type_traits> // std::is_invocable_v
-#include <utility>     // std::forward
 
 namespace sourcemeta::core {
-
-namespace detail {
-
-class SOURCEMETA_CORE_IO_EXPORT AtomicFileWriter {
-public:
-  AtomicFileWriter(const std::filesystem::path &destination);
-  ~AtomicFileWriter();
-
-  AtomicFileWriter(const AtomicFileWriter &) = delete;
-  AtomicFileWriter(AtomicFileWriter &&) = delete;
-  auto operator=(const AtomicFileWriter &) -> AtomicFileWriter & = delete;
-  auto operator=(AtomicFileWriter &&) -> AtomicFileWriter & = delete;
-
-  [[nodiscard]] auto stream() -> std::ostream &;
-  auto commit() -> void;
-
-private:
-// Exporting symbols that depends on the standard C++ library is considered
-// safe.
-// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
-#if defined(_MSC_VER)
-#pragma warning(disable : 4251)
-#endif
-  std::filesystem::path destination_;
-  std::filesystem::path staging_;
-  std::ofstream stream_;
-#if defined(_MSC_VER)
-#pragma warning(default : 4251)
-#endif
-  bool committed_{false};
-};
-
-} // namespace detail
 
 /// @ingroup io
 ///
@@ -92,14 +57,10 @@ auto atomic_write_file(const std::filesystem::path &path,
 ///       stream << "\n";
 ///     });
 /// ```
-template <typename Writer>
-  requires std::is_invocable_v<Writer, std::ostream &>
-auto atomic_write_file(const std::filesystem::path &path, Writer &&writer)
-    -> void {
-  detail::AtomicFileWriter file{path};
-  std::forward<Writer>(writer)(file.stream());
-  file.commit();
-}
+SOURCEMETA_CORE_IO_EXPORT
+auto atomic_write_file(const std::filesystem::path &path,
+                       const std::function<void(std::ostream &)> &writer)
+    -> void;
 
 /// @ingroup io
 ///
