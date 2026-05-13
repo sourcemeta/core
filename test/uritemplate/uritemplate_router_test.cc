@@ -1831,10 +1831,6 @@ TEST(URITemplateRouter, operation_id_overwrite_removes_previous_mapping) {
   EXPECT_EQ(live.second, 22);
 }
 
-// ----------------------------------------------------------------------------
-// {/var*} parser tests
-// ----------------------------------------------------------------------------
-
 TEST(URITemplateRouter, optional_expansion_accepted_simple) {
   sourcemeta::core::URITemplateRouter router;
   router.add("/list{/path*}", "op_oex_1", 1);
@@ -1956,10 +1952,6 @@ TEST(URITemplateRouter, literal_followed_by_reserved_expansion_still_throws) {
   sourcemeta::core::URITemplateRouter router;
   EXPECT_ROUTER_SEGMENT_ERROR(router, "/api/list{+path}", 1, "list{+path}");
 }
-
-// ----------------------------------------------------------------------------
-// {/var*} matcher tests
-// ----------------------------------------------------------------------------
 
 TEST(URITemplateRouter, optional_expansion_match_empty_capture) {
   sourcemeta::core::URITemplateRouter router;
@@ -2116,10 +2108,6 @@ TEST(URITemplateRouter, optional_expansion_empty_with_context) {
   EXPECT_EQ(captures.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "");
 }
-
-// ----------------------------------------------------------------------------
-// {/var*} sibling routes / precedence
-// ----------------------------------------------------------------------------
 
 TEST(URITemplateRouter, optional_expansion_literal_sibling_takes_priority) {
   sourcemeta::core::URITemplateRouter router;

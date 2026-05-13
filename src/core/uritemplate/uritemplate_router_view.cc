@@ -519,8 +519,8 @@ auto URITemplateRouterView::match(
       }
 
       // Check if this is an expansion (catch-all) or optional expansion.
-      // Both behave identically mid-path; the type ordering lets us use a
-      // single comparison on the hot path
+      // Both behave identically mid-path, and the type ordering lets us
+      // use a single comparison on the hot path
       if (variable_node.type >= URITemplateRouter::NodeType::Expansion) {
         const auto remaining_length =
             static_cast<std::uint32_t>(path_end - segment_start);

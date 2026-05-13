@@ -2738,10 +2738,6 @@ TEST_F(URITemplateRouterViewTest, operation_rejects_v6_blob) {
   EXPECT_EQ(result.second, 0);
 }
 
-// ----------------------------------------------------------------------------
-// {/var*} round-trip tests
-// ----------------------------------------------------------------------------
-
 TEST_F(URITemplateRouterViewTest, optional_expansion_empty_capture) {
   {
     sourcemeta::core::URITemplateRouter router;
