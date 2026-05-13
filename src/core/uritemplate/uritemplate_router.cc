@@ -410,7 +410,7 @@ auto URITemplateRouter::add(const std::string_view uri_template,
 
       if (is_expansion_type(type) && position < end) {
         throw URITemplateRouterInvalidSegmentError{
-            "Reserved expansion must be the last segment", expression};
+            "Expansion operator must be the last segment", expression};
       }
 
       auto &variable = current ? current->variable : this->root_.variable;
@@ -569,7 +569,7 @@ auto URITemplateRouter::match(const std::string_view path,
     } else if (*variable_child) {
       assert(variable_index <=
              std::numeric_limits<URITemplateRouter::Index>::max());
-      if ((*variable_child)->type >= NodeType::Expansion) {
+      if (is_expansion_type((*variable_child)->type)) {
         const std::string_view remaining{
             segment_start, static_cast<std::size_t>(path_end - segment_start)};
         callback(static_cast<URITemplateRouter::Index>(variable_index),

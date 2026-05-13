@@ -3092,3 +3092,32 @@ TEST_F(URITemplateRouterViewTest, optional_expansion_many_routes) {
   EXPECT_ROUTER_MATCH(restored, "/d", 4, 0, captures_d);
   EXPECT_ROUTER_CAPTURE(captures_d, 0, "w", "");
 }
+
+TEST_F(URITemplateRouterViewTest, variable_does_not_consume_multiple_segments) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users/{id}", "v_var_no_consume_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/users/42/extra", 0, 0, captures);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       expansion_types_distinct_from_plain_variable) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/a/{x}", "v_plain_var", 1);
+    router.add("/b/{+y}", "v_reserved_exp", 2);
+    router.add("/c{/z*}", "v_optional_exp", 3);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/a/one/two", 0, 0, captures_a);
+  EXPECT_ROUTER_MATCH(restored, "/b/one/two", 2, 0, captures_b);
+  EXPECT_EQ(captures_b.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_b, 0, "y", "one/two");
+  EXPECT_ROUTER_MATCH(restored, "/c/one/two", 3, 0, captures_c);
+  EXPECT_EQ(captures_c.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_c, 0, "z", "one/two");
+}

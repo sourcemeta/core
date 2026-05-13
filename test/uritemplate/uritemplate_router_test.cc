@@ -2391,3 +2391,36 @@ TEST(URITemplateRouter, optional_expansion_overwrite_replaces_identifier) {
   EXPECT_EQ(live.first, 2);
   EXPECT_EQ(live.second, 22);
 }
+
+TEST(URITemplateRouter, variable_does_not_consume_multiple_segments) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}", "var_no_consume_1", 1);
+  EXPECT_ROUTER_MATCH(router, "/users/42/extra", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, variable_does_not_consume_with_literal_suffix) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}/posts", "var_no_consume_2", 1);
+  EXPECT_ROUTER_MATCH(router, "/users/42/extra/posts", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, variable_segment_does_not_match_empty_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}", "var_no_empty", 1);
+  EXPECT_ROUTER_MATCH(router, "/users", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, expansion_consumes_unlike_plain_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a/{x}", "plain_var", 1);
+  router.add("/b/{+y}", "reserved_exp", 2);
+  router.add("/c{/z*}", "optional_exp", 3);
+  EXPECT_ROUTER_MATCH(router, "/a/one/two", 0, 0, captures_a);
+  EXPECT_ROUTER_MATCH(router, "/b/one/two", 2, 0, captures_b);
+  EXPECT_EQ(captures_b.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_b, 0, "y", "one/two");
+  EXPECT_ROUTER_MATCH(router, "/c/one/two", 3, 0, captures_c);
+  EXPECT_EQ(captures_c.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_c, 0, "z", "one/two");
+}

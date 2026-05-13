@@ -83,6 +83,12 @@ finalize_match(const URITemplateRouter::Identifier otherwise_context,
   return {identifier, context};
 }
 
+inline auto is_expansion_type(const URITemplateRouter::NodeType type) noexcept
+    -> bool {
+  return type == URITemplateRouter::NodeType::Expansion ||
+         type == URITemplateRouter::NodeType::OptionalExpansion;
+}
+
 // Binary search for a literal child matching the given segment
 inline auto binary_search_literal_children(
     const SerializedNode *nodes, const char *string_table,
@@ -518,10 +524,9 @@ auto URITemplateRouterView::match(
         return finalize_match(otherwise_context, 0, 0);
       }
 
-      // Check if this is an expansion (catch-all) or optional expansion.
-      // Both behave identically mid-path, and the type ordering lets us
-      // use a single comparison on the hot path
-      if (variable_node.type >= URITemplateRouter::NodeType::Expansion) {
+      // Both Expansion and OptionalExpansion consume the rest of the path
+      // verbatim
+      if (is_expansion_type(variable_node.type)) {
         const auto remaining_length =
             static_cast<std::uint32_t>(path_end - segment_start);
         callback(static_cast<URITemplateRouter::Index>(variable_index),

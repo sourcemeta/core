@@ -61,9 +61,7 @@ public:
   using ArgumentCallback =
       std::function<void(std::string_view, const ArgumentValue &)>;
 
-  /// The type of a node in the router trie. The numeric values of
-  /// `Expansion` and `OptionalExpansion` are deliberately adjacent so the
-  /// hot match path can test both with a single comparison
+  /// The type of a node in the router trie
   enum class NodeType : std::uint8_t {
     Root = 0,
     Literal = 1,
