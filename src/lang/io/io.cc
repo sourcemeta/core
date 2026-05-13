@@ -1,14 +1,48 @@
 #include <sourcemeta/core/io.h>
 
+#include <cerrno>      // EACCES, errno
+#include <cstddef>     // std::byte
+#include <filesystem>  // std::filesystem
+#include <fstream>     // std::ofstream
+#include <functional>  // std::function
+#include <ios>         // std::ios::binary, std::ios::trunc, std::streamsize
+#include <ostream>     // std::ostream
+#include <span>        // std::span
+#include <string_view> // std::string_view
 #include <system_error> // std::error_code, std::system_category, std::generic_category
 
 #if defined(_WIN32)
 #include <windows.h> // HANDLE, CreateFileW, FlushFileBuffers, CloseHandle
 #else
-#include <cerrno>   // errno (for error codes)
 #include <fcntl.h>  // open, O_RDWR, O_DIRECTORY, O_RDONLY
 #include <unistd.h> // close, fsync
 #endif
+
+namespace {
+
+auto open_file_for_write(const std::filesystem::path &path) -> std::ofstream {
+  if (path.has_parent_path()) {
+    std::filesystem::create_directories(path.parent_path());
+  }
+
+  std::ofstream stream;
+  stream.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+  try {
+    stream.open(path, std::ios::binary | std::ios::trunc);
+  } catch (...) {
+    // Capture before any other syscall can clobber errno
+    const auto open_errno{errno};
+    if (open_errno == EACCES) {
+      throw sourcemeta::core::IOFilePermissionError{path};
+    }
+
+    throw;
+  }
+
+  return stream;
+}
+
+} // namespace
 
 namespace sourcemeta::core {
 
@@ -85,6 +119,31 @@ auto hardlink_directory(const std::filesystem::path &source,
       std::filesystem::create_hard_link(entry.path(), target);
     }
   }
+}
+
+auto write_file(const std::filesystem::path &path,
+                const std::string_view contents) -> void {
+  auto stream{open_file_for_write(path)};
+  stream.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+  stream.flush();
+  stream.close();
+}
+
+auto write_file(const std::filesystem::path &path,
+                const std::span<const std::byte> contents) -> void {
+  auto stream{open_file_for_write(path)};
+  stream.write(reinterpret_cast<const char *>(contents.data()),
+               static_cast<std::streamsize>(contents.size()));
+  stream.flush();
+  stream.close();
+}
+
+auto write_file(const std::filesystem::path &path,
+                const std::function<void(std::ostream &)> &writer) -> void {
+  auto stream{open_file_for_write(path)};
+  writer(stream);
+  stream.flush();
+  stream.close();
 }
 
 auto flush(const std::filesystem::path &path) -> void {
