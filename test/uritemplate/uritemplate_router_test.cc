@@ -1830,3 +1830,576 @@ TEST(URITemplateRouter, operation_id_overwrite_removes_previous_mapping) {
   EXPECT_EQ(live.first, 2);
   EXPECT_EQ(live.second, 22);
 }
+
+// ----------------------------------------------------------------------------
+// {/var*} parser tests
+// ----------------------------------------------------------------------------
+
+TEST(URITemplateRouter, optional_expansion_accepted_simple) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/list{/path*}", "op_oex_1", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, optional_expansion_accepted_with_explicit_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list/{/path*}", "op_oex_2", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, optional_expansion_accepted_at_root) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{/path*}", "op_oex_3", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, optional_expansion_accepted_with_deep_literal_prefix) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/v1/users/list{/path*}", "op_oex_4", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, optional_expansion_accepted_no_literal_prefix) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("{/path*}", "op_oex_5", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_no_explode) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path}", 1, "{/path}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_no_explode_at_root) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "{/path}", 1, "{/path}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_empty_name) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/}", 1, "{/}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_empty_name_with_explode) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/*}", 1, "{/*}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_unclosed) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path*", 1, "{/path*");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_not_last_segment_literal) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path*}/more", 1, "{/path*}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_not_last_segment_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path*}/{tail}", 1, "{/path*}");
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_reject_not_last_segment_trailing_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path*}/", 1, "{/path*}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_extra_after_explode) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path*abc}", 1, "{/path*abc}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_comma_after_explode) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/path*,more}", 1, "{/path*,more}");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_invalid_varname_char) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list{/pa-th*}", 1, "{/pa-th*}");
+}
+
+TEST(URITemplateRouter, simple_explode_still_rejected) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list/{var*}", 1, "{var*}");
+}
+
+TEST(URITemplateRouter, reserved_explode_still_rejected) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/list/{+var*}", 1, "{+var*}");
+}
+
+TEST(URITemplateRouter, optional_expansion_dotted_varname_accepted) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/list{/foo.bar*}", "op_oex_dot", 1);
+  EXPECT_ROUTER_MATCH(router, "/list/x", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "foo.bar", "x");
+}
+
+TEST(URITemplateRouter, literal_followed_by_path_segment_no_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_join", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+}
+
+TEST(URITemplateRouter, literal_followed_by_non_path_segment_still_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/api/list{path}", 1, "list{path}");
+}
+
+TEST(URITemplateRouter, literal_followed_by_reserved_expansion_still_throws) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/api/list{+path}", 1, "list{+path}");
+}
+
+// ----------------------------------------------------------------------------
+// {/var*} matcher tests
+// ----------------------------------------------------------------------------
+
+TEST(URITemplateRouter, optional_expansion_match_empty_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m1", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "");
+}
+
+TEST(URITemplateRouter, optional_expansion_match_single_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m2", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+}
+
+TEST(URITemplateRouter, optional_expansion_match_two_segments) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m3", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo/bar", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter, optional_expansion_match_many_segments) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m4", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo/bar/baz/qux", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar/baz/qux");
+}
+
+TEST(URITemplateRouter, optional_expansion_match_percent_encoded_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m5", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo%2Fbar", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo%2Fbar");
+}
+
+TEST(URITemplateRouter, optional_expansion_match_dot_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m6", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/.well-known/version", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", ".well-known/version");
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_trailing_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m7", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_double_trailing_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m8", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list//", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_internal_empty_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m9", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list//foo", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_non_prefix) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m10", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/listing", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_unrelated_root) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m11", 1);
+  EXPECT_ROUTER_MATCH(router, "/other", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_empty_path) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m12", 1);
+  EXPECT_ROUTER_MATCH(router, "", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_reject_root_path) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_m13", 1);
+  EXPECT_ROUTER_MATCH(router, "/", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_root_template_does_not_match_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{/path*}", "op_oex_m14", 1);
+  EXPECT_ROUTER_MATCH(router, "/", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_root_template_matches_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{/path*}", "op_oex_m15", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_root_template_matches_multiple_segments) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/{/path*}", "op_oex_m16", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo/bar", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter, optional_expansion_callback_index_zero) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_idx", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_EQ(std::get<0>(captures.at(0)), 0);
+}
+
+TEST(URITemplateRouter, optional_expansion_callback_index_after_variables) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/{namespace}/list{/path*}", "op_oex_idx2", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/users/list/foo/bar", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 2);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "namespace", "users");
+  EXPECT_ROUTER_CAPTURE(captures, 1, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_empty_callback_index_after_variables) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/{namespace}/list{/path*}", "op_oex_idx3", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/users/list", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 2);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "namespace", "users");
+  EXPECT_ROUTER_CAPTURE(captures, 1, "path", "");
+}
+
+TEST(URITemplateRouter, optional_expansion_with_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_ctx", 1, 42);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 1, 42, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+}
+
+TEST(URITemplateRouter, optional_expansion_empty_with_context) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_ctx2", 1, 42);
+  EXPECT_ROUTER_MATCH(router, "/api/list", 1, 42, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "");
+}
+
+// ----------------------------------------------------------------------------
+// {/var*} sibling routes / precedence
+// ----------------------------------------------------------------------------
+
+TEST(URITemplateRouter, optional_expansion_literal_sibling_takes_priority) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_p1", 1);
+  router.add("/api/list/special", "op_oex_p2", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list/special", 2, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, optional_expansion_literal_sibling_fallback) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_p3", 1);
+  router.add("/api/list/special", "op_oex_p4", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list/other", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "other");
+}
+
+TEST(URITemplateRouter, optional_expansion_literal_sibling_fallback_multi) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_p5", 1);
+  router.add("/api/list/special", "op_oex_p6", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list/other/nested", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "other/nested");
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_literal_parent_route_takes_priority) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list", "op_oex_pp1", 1);
+  router.add("/api/list{/path*}", "op_oex_pp2", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, optional_expansion_literal_parent_route_other_order) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_pp3", 2);
+  router.add("/api/list", "op_oex_pp4", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, optional_expansion_with_literal_parent_match_nested) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list", "op_oex_pn1", 1);
+  router.add("/api/list{/path*}", "op_oex_pn2", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo/bar", 2, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter, optional_expansion_versus_simple_variable_upgrade) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list/{path}", "op_oex_v1", 1);
+  router.add("/api/list{/path*}", "op_oex_v2", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 2, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+}
+
+TEST(URITemplateRouter, optional_expansion_versus_simple_variable_absorbs) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_v3", 1);
+  router.add("/api/list/{path}", "op_oex_v4", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+}
+
+TEST(URITemplateRouter, optional_expansion_conflicts_with_reserved_expansion) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list/{+path}", "op_oex_c1", 1);
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/api/list{/path*}", 2, "{/path*}");
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_conflicts_with_reserved_expansion_other_order) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_c2", 1);
+  EXPECT_ROUTER_SEGMENT_ERROR(router, "/api/list/{+path}", 2, "{+path}");
+}
+
+TEST(URITemplateRouter, optional_expansion_variable_name_mismatch) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list/{id}", "op_oex_mm1", 1);
+  try {
+    router.add("/api/list{/path*}", "op_oex_mm2", 2);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
+    EXPECT_EQ(error.left(), "id");
+    EXPECT_EQ(error.right(), "path");
+    SUCCEED();
+  }
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_variable_name_mismatch_with_expansion) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list/{+abc}", "op_oex_mm3", 1);
+  try {
+    router.add("/api/list{/xyz*}", "op_oex_mm4", 2);
+    FAIL();
+  } catch (
+      const sourcemeta::core::URITemplateRouterVariableMismatchError &error) {
+    EXPECT_EQ(error.left(), "abc");
+    EXPECT_EQ(error.right(), "xyz");
+    SUCCEED();
+  }
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_distinct_parents_independent_registration) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/a{/x*}", "op_oex_d1", 1);
+  router.add("/api/b{/y*}", "op_oex_d2", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/a/foo", 1, 0, captures_a);
+  EXPECT_EQ(captures_a.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_a, 0, "x", "foo");
+  EXPECT_ROUTER_MATCH(router, "/api/b/bar", 2, 0, captures_b);
+  EXPECT_EQ(captures_b.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_b, 0, "y", "bar");
+}
+
+TEST(URITemplateRouter, optional_expansion_distinct_parents_both_empty) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/a{/x*}", "op_oex_d3", 1);
+  router.add("/api/b{/y*}", "op_oex_d4", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/a", 1, 0, captures_a);
+  EXPECT_EQ(captures_a.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_a, 0, "x", "");
+  EXPECT_ROUTER_MATCH(router, "/api/b", 2, 0, captures_b);
+  EXPECT_EQ(captures_b.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_b, 0, "y", "");
+}
+
+TEST(URITemplateRouter, optional_expansion_otherwise_fallback) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_o1", 1);
+  router.otherwise(99);
+  EXPECT_ROUTER_MATCH(router, "/api/list/", 0, 99, captures);
+  EXPECT_ROUTER_MATCH(router, "/api/listing", 0, 99, no_captures);
+}
+
+TEST(URITemplateRouter, optional_expansion_under_intermediate_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/{tenant}{/path*}", "op_oex_iv1", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/acme", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 2);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "tenant", "acme");
+  EXPECT_ROUTER_CAPTURE(captures, 1, "path", "");
+}
+
+TEST(URITemplateRouter,
+     optional_expansion_under_intermediate_variable_with_payload) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/{tenant}{/path*}", "op_oex_iv2", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/acme/foo/bar", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 2);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "tenant", "acme");
+  EXPECT_ROUTER_CAPTURE(captures, 1, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter, optional_expansion_path_method_round_trips) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_pth", 1);
+  EXPECT_EQ(router.path(1), "/api/list{/path*}");
+}
+
+TEST(URITemplateRouter, optional_expansion_operation_lookup) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "list_directory", 1, 42);
+  const auto result = router.operation("list_directory");
+  EXPECT_EQ(result.first, 1);
+  EXPECT_EQ(result.second, 42);
+}
+
+TEST(URITemplateRouter, optional_expansion_size_counts_one) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_sz", 1);
+  EXPECT_EQ(router.size(), 1);
+}
+
+TEST(URITemplateRouter, optional_expansion_size_counts_with_sibling_literal) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list", "op_oex_sz1", 1);
+  router.add("/api/list{/path*}", "op_oex_sz2", 2);
+  EXPECT_EQ(router.size(), 2);
+}
+
+TEST(URITemplateRouter, optional_expansion_with_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 2> arguments{
+      {{"max", std::int64_t{10}}, {"flag", true}}};
+  router.add("/api/list{/path*}", "op_oex_args", 1, 0, arguments);
+
+  std::vector<std::pair<std::string_view,
+                        sourcemeta::core::URITemplateRouter::ArgumentValue>>
+      collected;
+  router.arguments(
+      1, [&](const std::string_view name,
+             const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        collected.emplace_back(name, value);
+      });
+  EXPECT_EQ(collected.size(), 2);
+  EXPECT_EQ(collected[0].first, "max");
+  EXPECT_EQ(std::get<std::int64_t>(collected[0].second), 10);
+  EXPECT_EQ(collected[1].first, "flag");
+  EXPECT_EQ(std::get<bool>(collected[1].second), true);
+}
+
+TEST(URITemplateRouter, optional_expansion_with_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/v1"};
+  router.add("/api/list{/path*}", "op_oex_bp", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/api/list", 1, 0, captures_empty);
+  EXPECT_EQ(captures_empty.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_empty, 0, "path", "");
+  EXPECT_ROUTER_MATCH(router, "/v1/api/list/foo", 1, 0, captures_one);
+  EXPECT_EQ(captures_one.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_one, 0, "path", "foo");
+  EXPECT_ROUTER_MATCH(router, "/v1/api/list/foo/bar", 1, 0, captures_two);
+  EXPECT_EQ(captures_two.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_two, 0, "path", "foo/bar");
+}
+
+TEST(URITemplateRouter, optional_expansion_matches_after_variable_segment) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}/files{/path*}", "op_oex_uf", 1);
+  EXPECT_ROUTER_MATCH(router, "/users/42/files", 1, 0, captures_empty);
+  EXPECT_EQ(captures_empty.size(), 2);
+  EXPECT_ROUTER_CAPTURE(captures_empty, 0, "id", "42");
+  EXPECT_ROUTER_CAPTURE(captures_empty, 1, "path", "");
+  EXPECT_ROUTER_MATCH(router, "/users/42/files/readme.md", 1, 0, captures_one);
+  EXPECT_EQ(captures_one.size(), 2);
+  EXPECT_ROUTER_CAPTURE(captures_one, 0, "id", "42");
+  EXPECT_ROUTER_CAPTURE(captures_one, 1, "path", "readme.md");
+}
+
+TEST(URITemplateRouter, optional_expansion_motivating_use_case) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/self/v1/api/list{/path*}", "list_directory", 1, 7);
+  EXPECT_ROUTER_MATCH(router, "/self/v1/api/list", 1, 7, captures_root);
+  EXPECT_EQ(captures_root.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_root, 0, "path", "");
+  EXPECT_ROUTER_MATCH(router, "/self/v1/api/list/foo", 1, 7, captures_one);
+  EXPECT_EQ(captures_one.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_one, 0, "path", "foo");
+  EXPECT_ROUTER_MATCH(router, "/self/v1/api/list/foo/bar/baz/qux", 1, 7,
+                      captures_deep);
+  EXPECT_EQ(captures_deep.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_deep, 0, "path", "foo/bar/baz/qux");
+  EXPECT_ROUTER_MATCH(router, "/self/v1/api/listing", 0, 0, captures_nope);
+  EXPECT_EQ(captures_nope.size(), 0);
+  EXPECT_ROUTER_MATCH(router, "/self/v1/api/list/", 0, 0, captures_trailing);
+}
+
+TEST(URITemplateRouter, optional_expansion_listing_does_not_count_node) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "op_oex_lc", 1);
+  EXPECT_EQ(router.size(), 1);
+  EXPECT_EQ(router.at(0), 1);
+  EXPECT_EQ(router.path(1), "/api/list{/path*}");
+  EXPECT_EQ(router.context(1), 0);
+}
+
+TEST(URITemplateRouter, optional_expansion_overwrite_replaces_identifier) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/api/list{/path*}", "first", 1, 11);
+  router.add("/api/list{/path*}", "second", 2, 22);
+
+  EXPECT_EQ(router.size(), 1);
+  EXPECT_ROUTER_MATCH(router, "/api/list/foo", 2, 22, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo");
+
+  const auto stale = router.operation("first");
+  EXPECT_EQ(stale.first, 0);
+  const auto live = router.operation("second");
+  EXPECT_EQ(live.first, 2);
+  EXPECT_EQ(live.second, 22);
+}
