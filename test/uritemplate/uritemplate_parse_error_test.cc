@@ -10,7 +10,8 @@
     EXPECT_EQ(error.column(), expected_column);                                \
   } catch (...) {                                                              \
     FAIL();                                                                    \
-  }
+  }                                                                            \
+  EXPECT_FALSE(sourcemeta::core::URITemplate::is_uritemplate(input))
 
 TEST(URITemplate_parse_error, unclosed_brace) {
   EXPECT_URITEMPLATE_PARSE_ERROR("{var", 1);
