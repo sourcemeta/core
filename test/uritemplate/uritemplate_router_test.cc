@@ -1182,6 +1182,54 @@ TEST(URITemplateRouter, base_path_partial_prefix_no_match) {
   EXPECT_EQ(captures.size(), 0);
 }
 
+TEST(URITemplateRouter, base_url_empty_by_default) {
+  sourcemeta::core::URITemplateRouter router;
+  EXPECT_TRUE(router.base_url().empty());
+}
+
+TEST(URITemplateRouter, base_url_empty_when_only_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/prefix"};
+  EXPECT_EQ(router.base_path(), "/prefix");
+  EXPECT_TRUE(router.base_url().empty());
+}
+
+TEST(URITemplateRouter, base_url_set_with_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/v1", "https://api.example.com"};
+  EXPECT_EQ(router.base_path(), "/v1");
+  EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_set_without_base_path) {
+  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com"};
+  EXPECT_TRUE(router.base_path().empty());
+  EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_trailing_slash_normalized) {
+  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com/"};
+  EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_multiple_trailing_slashes_normalized) {
+  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com///"};
+  EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_only_slash_collapses_to_empty) {
+  sourcemeta::core::URITemplateRouter router{"", "/"};
+  EXPECT_TRUE(router.base_url().empty());
+}
+
+TEST(URITemplateRouter, base_url_not_used_for_matching) {
+  sourcemeta::core::URITemplateRouter router{"/v1", "https://api.example.com"};
+  router.add("/foo", "op_base_url_match", 1);
+  EXPECT_ROUTER_MATCH(router, "/v1/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+  EXPECT_ROUTER_MATCH(router, "https://api.example.com/v1/foo", 0, 0,
+                      captures_absolute);
+  EXPECT_EQ(captures_absolute.size(), 0);
+}
+
 TEST(URITemplateRouter, add_with_context_literal_route) {
   sourcemeta::core::URITemplateRouter router;
   router.add("/users", "op_142", 1, 7);
