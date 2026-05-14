@@ -366,11 +366,12 @@ TEST(Email, invalid_domain_label_64) {
   EXPECT_FALSE(sourcemeta::core::is_email("a@" + std::string(64, 'b')));
 }
 
-// RFC 5321 §4.5.3.1.2 Domain: 256-byte domain exceeds cap
+// RFC 5321 §4.5.3.1.2 Domain: 256-byte domain exceeds cap (63 + "." + 63 +
+// "." + 63 + "." + 62 + "." + "f" = 256 bytes)
 TEST(Email, invalid_domain_total_256) {
   EXPECT_FALSE(sourcemeta::core::is_email(
       "a@" + std::string(63, 'b') + "." + std::string(63, 'c') + "." +
-      std::string(63, 'd') + "." + std::string(63, 'e') + ".f"));
+      std::string(63, 'd') + "." + std::string(62, 'e') + ".f"));
 }
 
 // RFC 5321 §4.1.2 Domain: ASCII only, bytes >= 0x80 excluded
@@ -539,7 +540,7 @@ TEST(Email, invalid_quoted_qtext_control_byte) {
 
 // RFC 5321 §4.1.2: qtextSMTP excludes NUL
 TEST(Email, invalid_quoted_qtext_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_email(std::string_view{"\"\x00\"@b", 6}));
+  EXPECT_FALSE(sourcemeta::core::is_email(std::string_view{"\"\x00\"@b", 5}));
 }
 
 // RFC 5321 §4.1.2: qtextSMTP is ASCII, bytes >= 0x80 are excluded
