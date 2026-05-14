@@ -2151,6 +2151,103 @@ TEST_F(URITemplateRouterViewTest,
   EXPECT_EQ(captures.size(), 0);
 }
 
+TEST_F(URITemplateRouterViewTest, base_url_empty_by_default) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/foo", "op_base_url_default", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
+  EXPECT_TRUE(restored.base_url().empty());
+  EXPECT_ROUTER_MATCH(restored, "/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_url_empty_when_only_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/foo", "op_base_url_only_path", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
+  EXPECT_TRUE(restored.base_url().empty());
+}
+
+TEST_F(URITemplateRouterViewTest, base_url_round_trip_with_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/v1",
+                                               "https://api.example.com"};
+    router.add("/foo", "op_base_url_round_trip", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/v1");
+  EXPECT_EQ(restored.base_url(), "https://api.example.com");
+  EXPECT_ROUTER_MATCH(restored, "/v1/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_url_round_trip_without_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"", "https://api.example.com"};
+    router.add("/foo", "op_base_url_no_path", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.base_path().empty());
+  EXPECT_EQ(restored.base_url(), "https://api.example.com");
+  EXPECT_ROUTER_MATCH(restored, "/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_url_trailing_slash_normalized) {
+  {
+    sourcemeta::core::URITemplateRouter router{"", "https://api.example.com/"};
+    router.add("/foo", "op_base_url_trailing", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_url(), "https://api.example.com");
+}
+
+TEST_F(URITemplateRouterViewTest, base_url_arguments_still_resolve) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/v1",
+                                               "https://api.example.com"};
+    const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+        arguments{{
+            {"schema", std::string_view{"schemas/health"}},
+        }};
+    router.add("/health", "op_base_url_args", 1, 0, arguments);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/v1");
+  EXPECT_EQ(restored.base_url(), "https://api.example.com");
+
+  std::vector<std::pair<std::string, std::string>> seen;
+  restored.arguments(
+      1,
+      [&seen](const std::string_view name,
+              const sourcemeta::core::URITemplateRouter::ArgumentValue &value) {
+        if (std::holds_alternative<std::string_view>(value)) {
+          seen.emplace_back(std::string{name},
+                            std::string{std::get<std::string_view>(value)});
+        }
+      });
+  ASSERT_EQ(seen.size(), 1);
+  EXPECT_EQ(seen.at(0).first, "schema");
+  EXPECT_EQ(seen.at(0).second, "schemas/health");
+}
+
 TEST_F(URITemplateRouterViewTest, add_with_context_literal_route) {
   {
     sourcemeta::core::URITemplateRouter router;
