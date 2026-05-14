@@ -1042,3 +1042,211 @@ TEST(Email, valid_minimum_length_mailbox) {
 TEST(Email, valid_general_literal_minimum_dcontent) {
   EXPECT_TRUE(sourcemeta::core::is_email("a@[A:B]"));
 }
+
+// RFC 5321 §4.1.2 ALPHA upper bound: "Z" (%d90) is in atext
+TEST(Email, valid_atext_alpha_upper_Z) {
+  EXPECT_TRUE(sourcemeta::core::is_email("Z@b"));
+}
+
+// RFC 5321 §4.1.2 ALPHA upper bound: "z" (%d122) is in atext
+TEST(Email, valid_atext_alpha_lower_z) {
+  EXPECT_TRUE(sourcemeta::core::is_email("z@b"));
+}
+
+// RFC 5321 §4.1.2 DIGIT upper bound: "9" (%d57) is in atext
+TEST(Email, valid_atext_digit_nine) {
+  EXPECT_TRUE(sourcemeta::core::is_email("9@b"));
+}
+
+// RFC 5321 §4.1.2: Atom = 1*atext, an all-digit atom is permitted
+TEST(Email, valid_dot_string_numeric_atom) {
+  EXPECT_TRUE(sourcemeta::core::is_email("123@b"));
+}
+
+// RFC 5321 §4.1.2: atext mixes letters, digits, and specials in one atom
+TEST(Email, valid_dot_string_alpha_digit_special_mix) {
+  EXPECT_TRUE(sourcemeta::core::is_email("aB1!c2#@d"));
+}
+
+// RFC 5321 §4.1.2: qtextSMTP %d93-126 excludes %d127 (DEL)
+TEST(Email, invalid_quoted_qtext_del_byte) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\x7f\"@b"));
+}
+
+// RFC 5321 §4.1.2: qtextSMTP excludes %d9 (TAB)
+TEST(Email, invalid_quoted_qtext_tab) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"a\tb\"@c"));
+}
+
+// RFC 5321 §4.1.2: quoted-pairSMTP body excludes NUL (%d0)
+TEST(Email, invalid_quoted_pair_nul_byte) {
+  EXPECT_FALSE(sourcemeta::core::is_email(std::string_view{"\"\\\x00\"@b", 6}));
+}
+
+// RFC 5321 §4.1.2: quoted-pairSMTP body permits "@" (%d64)
+TEST(Email, valid_quoted_pair_at_sign) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\@\"@b"));
+}
+
+// RFC 5321 §4.1.2: two consecutive quoted-pairs back-to-back inside a
+// Quoted-string
+TEST(Email, valid_quoted_two_consecutive_pairs) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\\\\\\\"\"@b"));
+}
+
+// RFC 5321 §4.1.2 Domain: a single Let-dig digit is a valid sub-domain
+TEST(Email, valid_domain_single_digit) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@1"));
+}
+
+// RFC 5321 §4.1.2: a single atext byte is not a valid Mailbox without "@"
+TEST(Email, invalid_single_atext_no_at) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a"));
+}
+
+// RFC 5321 §4.1.2 Domain: a stray "]" with no opening "[" cannot match
+// address-literal and "]" is not in Ldh-str
+TEST(Email, invalid_unbalanced_closing_bracket) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@b]"));
+}
+
+// RFC 5321 §4.1.2 Domain: "[" embedded in a Domain is not in Ldh-str
+TEST(Email, invalid_bracket_in_middle_of_domain) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@b[c]d"));
+}
+
+// RFC 5321 §4.1.3: a domain consisting of just "[" never closes the
+// address-literal
+TEST(Email, invalid_domain_just_open_bracket) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@["));
+}
+
+// RFC 5321 §4.1.2 Domain: a domain consisting of just "]" is not Ldh-str
+TEST(Email, invalid_domain_just_close_bracket) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@]"));
+}
+
+// RFC 5321 §4.1.3: "::1" between brackets has no "IPv6:" prefix and an empty
+// Standardized-tag for General-address-literal, so all three alternatives
+// reject it
+TEST(Email, invalid_bracket_just_ipv6_addr_no_prefix) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[::1]"));
+}
+
+// RFC 5321 §4.1.3: a bracketed word without ":" cannot match General, and
+// without digits cannot match IPv4
+TEST(Email, invalid_bracket_with_plain_word) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[hello]"));
+}
+
+// RFC 5321 §4.1.3: leading SP inside the brackets fails IPv4 (non-digit) and
+// fails General (Standardized-tag has no SP)
+TEST(Email, invalid_bracket_with_leading_space) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[ 1.2.3.4]"));
+}
+
+// RFC 5321 §4.1.3 + RFC 5234 §3.2: a case-insensitive "IPv6:" match that
+// fails IPv6-addr still falls through to General-address-literal
+TEST(Email, valid_lowercase_ipv6_fallthrough_to_general) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[ipv6:not-an-address]"));
+}
+
+// RFC 5321 §4.1.2 Ldh-str: leading "-" before another "-" before Let-dig is
+// still a valid Ldh-str
+TEST(Email, valid_general_literal_multiple_leading_hyphens) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[--a:b]"));
+}
+
+// RFC 5321 §4.1.3: any Ldh-str is a valid Standardized-tag per the grammar,
+// including ones not registered with IANA such as "IPv7"
+TEST(Email, valid_general_literal_ipv7_like_tag) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[IPv7:foo]"));
+}
+
+// RFC 5321 §4.1.2 Ldh-str alphabet excludes ".", so a tag with "." cannot
+// match Standardized-tag
+TEST(Email, invalid_general_tag_with_dot) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[a.b:c]"));
+}
+
+// RFC 5321 §4.1.3: General-address-literal content of just ":" is a single
+// dcontent byte (%d58 is in %d33-90)
+TEST(Email, valid_general_literal_content_just_colon) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[a::]"));
+}
+
+// RFC 5321 §4.1.3 + RFC 5234 §3.2: bracketed input where the first colon
+// produces an empty tag fails the Standardized-tag rule
+TEST(Email, invalid_bracket_empty_tag) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[:foo]"));
+}
+
+// RFC 5321 §4.1.2 Domain: an address-literal whose Domain branch tries
+// is_hostname must reject a stray "[" inside what would otherwise be Ldh-str
+TEST(Email, invalid_domain_open_bracket_inside) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@b[c"));
+}
+
+// RFC 5321 §4.1.2 Dot-string: a Quoted-string opener "\"" inside an
+// otherwise Dot-string Local-part is not in atext
+TEST(Email, invalid_dquote_inside_dot_string) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a\"b@c"));
+}
+
+// RFC 5321 §4.1.2 Mailbox: a Mailbox cannot start with the boundary "@"
+TEST(Email, invalid_starts_with_at) {
+  EXPECT_FALSE(sourcemeta::core::is_email("@example.com"));
+}
+
+// RFC 5321 §4.1.2 Mailbox: a Mailbox cannot end with the boundary "@"
+TEST(Email, invalid_ends_with_at) {
+  EXPECT_FALSE(sourcemeta::core::is_email("user@"));
+}
+
+// RFC 5321 §4.1.2: Local-part = 64 octets via Dot-string that includes "."
+TEST(Email, valid_local_part_length_64_with_dots) {
+  EXPECT_TRUE(sourcemeta::core::is_email(std::string(31, 'a') + "." +
+                                         std::string(32, 'b') + "@c"));
+}
+
+// RFC 5321 §4.5.3.1.1: 65-octet Dot-string Local-part that contains "."
+TEST(Email, invalid_local_part_length_65_with_dots) {
+  EXPECT_FALSE(sourcemeta::core::is_email(std::string(32, 'a') + "." +
+                                          std::string(32, 'b') + "@c"));
+}
+
+// RFC 5321 §4.1.2: a Domain consisting of many short labels still parses
+TEST(Email, valid_domain_many_short_labels) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@a.b.c.d.e.f.g.h.i.j.k"));
+}
+
+// RFC 5321 §4.1.3: dcontent excludes DEL (%d127)
+TEST(Email, invalid_general_dcontent_del_byte) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[Tag:\x7f]"));
+}
+
+// RFC 5321 §4.1.3 + §4.5.3.1.2: a General-address-literal whose Domain total
+// length equals the 255-octet cap ("[" + "Tag" + ":" + 249 dcontent + "]") is
+// accepted
+TEST(Email, valid_general_literal_inner_at_cap) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_email("a@[Tag:" + std::string(249, 'x') + "]"));
+}
+
+// RFC 5321 §4.5.3.1.2: General-address-literal one octet past the 255-octet
+// Domain cap is rejected
+TEST(Email, invalid_general_literal_inner_over_cap) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_email("a@[Tag:" + std::string(250, 'x') + "]"));
+}
+
+// RFC 5321 §4.1.2: a single quoted byte plus minimal Domain
+TEST(Email, valid_quoted_single_letter_then_minimal_domain) {
+  EXPECT_TRUE(sourcemeta::core::is_email("\"x\"@y"));
+}
+
+// RFC 5321 §4.1.2: Dot-string ending with the boundary "@" right after the
+// dot has no terminating Atom
+TEST(Email, invalid_dot_then_at) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a.@b"));
+}
