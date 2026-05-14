@@ -557,6 +557,11 @@ TEST(Email, invalid_quoted_pair_del_byte) {
   EXPECT_FALSE(sourcemeta::core::is_email("\"\\\x7f\"@b"));
 }
 
+// RFC 5321 §4.1.2: quoted-pairSMTP body is ASCII, bytes >= 0x80 are excluded
+TEST(Email, invalid_quoted_pair_high_bit_byte) {
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\\\x80\"@b"));
+}
+
 // RFC 5321 §4.5.3.1.1: 63 qtext bytes plus two DQUOTEs equals 65 octets, one
 // past the cap
 TEST(Email, invalid_quoted_local_length_65) {
@@ -725,17 +730,20 @@ TEST(Email, valid_no_ipv6_prefix_as_general) {
   EXPECT_TRUE(sourcemeta::core::is_email("a@[2001:db8::1]"));
 }
 
-// RFC 5321 §4.1.3: lowercase "ipv6:" is not the case-sensitive IPv6-address-
-// literal tag, but tag "ipv6" and content "::1" both satisfy the General-
-// address-literal grammar
-TEST(Email, valid_lowercase_ipv6_as_general) {
+// RFC 5234 §2.3: ABNF literal strings are case-insensitive by default, so the
+// "IPv6:" prefix matches "ipv6:"
+TEST(Email, valid_lowercase_ipv6_literal) {
   EXPECT_TRUE(sourcemeta::core::is_email("a@[ipv6:::1]"));
 }
 
-// RFC 5321 §4.1.3: uppercase "IPV6:" is not the IPv6-address-literal tag, but
-// is a valid General-address-literal tag
-TEST(Email, valid_uppercase_ipv6_as_general) {
+// RFC 5234 §2.3: case-insensitive literal also matches "IPV6:"
+TEST(Email, valid_uppercase_ipv6_literal) {
   EXPECT_TRUE(sourcemeta::core::is_email("a@[IPV6:::1]"));
+}
+
+// RFC 5234 §2.3: mixed-case prefix also matches the IPv6 tag
+TEST(Email, valid_mixed_case_ipv6_literal) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[iPv6:::1]"));
 }
 
 // RFC 5234 §3.2: ABNF alternatives are unordered. The literal five-byte
@@ -939,6 +947,25 @@ TEST(Email, valid_dot_string_with_ipv4_literal) {
 // RFC 5321 §4.1.2 + §4.1.3: Dot-string Local-part with IPv6 address-literal
 TEST(Email, valid_dot_string_with_ipv6_literal) {
   EXPECT_TRUE(sourcemeta::core::is_email("foo@[IPv6:::1]"));
+}
+
+// RFC 5321 §4.1.2 + §4.1.3: Dot-string Local-part with General-address-literal
+TEST(Email, valid_dot_string_with_general_literal) {
+  EXPECT_TRUE(sourcemeta::core::is_email("foo@[X400:bar]"));
+}
+
+// RFC 5321 §4.5.3.1.2: an address-literal whose total length equals the
+// 255-octet domain cap (including the surrounding "[" and "]") is accepted
+TEST(Email, valid_address_literal_length_255) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_email("a@[X:" + std::string(251, 'a') + "]"));
+}
+
+// RFC 5321 §4.5.3.1.2: an address-literal one octet past the 255-octet cap is
+// rejected
+TEST(Email, invalid_address_literal_length_256) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_email("a@[X:" + std::string(252, 'a') + "]"));
 }
 
 // RFC 5321 §4.1.2: Mailbox cannot be empty

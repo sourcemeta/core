@@ -73,6 +73,15 @@ static constexpr auto is_ldh_str(const std::string_view value) -> bool {
   return true;
 }
 
+// RFC 5234 §2.3: ABNF literal strings are case-insensitive by default
+// RFC 5321 §4.1.3: IPv6-address-literal prefix is the literal "IPv6:"
+static constexpr auto matches_ipv6_tag(const std::string_view value) -> bool {
+  return value.size() >= 5 && (value[0] == 'I' || value[0] == 'i') &&
+         (value[1] == 'P' || value[1] == 'p') &&
+         (value[2] == 'v' || value[2] == 'V') && value[3] == '6' &&
+         value[4] == ':';
+}
+
 // RFC 5321 §4.1.3: General-address-literal = Standardized-tag ":" 1*dcontent
 static constexpr auto is_general_address_literal(const std::string_view value)
     -> bool {
@@ -171,10 +180,13 @@ auto is_email(const std::string_view value) -> bool {
     if (domain.back() != ']') {
       return false;
     }
+    // RFC 5321 §4.5.3.1.2: 255-octet cap on a domain "name or number"
+    if (domain.size() > 255) {
+      return false;
+    }
     const auto inner{domain.substr(1, domain.size() - 2)};
     // RFC 5321 §4.1.3: IPv6-address-literal = "IPv6:" IPv6-addr
-    static constexpr std::string_view ipv6_tag{"IPv6:"};
-    if (inner.starts_with(ipv6_tag) && is_ipv6(inner.substr(ipv6_tag.size()))) {
+    if (matches_ipv6_tag(inner) && is_ipv6(inner.substr(5))) {
       return true;
     }
     // RFC 5234 §3.2: ABNF alternatives are unordered. A failed IPv6 match
