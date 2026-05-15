@@ -2472,3 +2472,62 @@ TEST(URITemplateRouter, expansion_consumes_unlike_plain_variable) {
   EXPECT_EQ(captures_c.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures_c, 0, "z", "one/two");
 }
+
+TEST(URITemplateRouter, operation_id_round_trip_single_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "list_users", 1);
+  EXPECT_EQ(router.operation_id(1), "list_users");
+}
+
+TEST(URITemplateRouter, operation_id_round_trip_multiple_routes) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "list_users", 1, 11);
+  router.add("/posts/{id}", "show_post", 2, 22);
+  router.add("/files/{+rest}", "fetch_files", 3, 33);
+  EXPECT_EQ(router.operation_id(1), "list_users");
+  EXPECT_EQ(router.operation_id(2), "show_post");
+  EXPECT_EQ(router.operation_id(3), "fetch_files");
+}
+
+TEST(URITemplateRouter, operation_id_inverse_of_operation) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/a", "alpha", 1, 11);
+  router.add("/b", "beta", 2, 22);
+  router.add("/c", "gamma", 3, 33);
+
+  EXPECT_EQ(router.operation_id(1), "alpha");
+  EXPECT_EQ(router.operation_id(2), "beta");
+  EXPECT_EQ(router.operation_id(3), "gamma");
+
+  const auto resolved_alpha = router.operation(router.operation_id(1));
+  EXPECT_EQ(resolved_alpha.first, 1);
+  EXPECT_EQ(resolved_alpha.second, 11);
+
+  const auto resolved_beta = router.operation(router.operation_id(2));
+  EXPECT_EQ(resolved_beta.first, 2);
+  EXPECT_EQ(resolved_beta.second, 22);
+
+  const auto resolved_gamma = router.operation(router.operation_id(3));
+  EXPECT_EQ(resolved_gamma.first, 3);
+  EXPECT_EQ(resolved_gamma.second, 33);
+}
+
+TEST(URITemplateRouter, operation_id_zero_returns_empty) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "list_users", 1);
+  EXPECT_TRUE(router.operation_id(0).empty());
+}
+
+TEST(URITemplateRouter, operation_id_unregistered_returns_empty) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "list_users", 1);
+  EXPECT_TRUE(router.operation_id(99).empty());
+}
+
+TEST(URITemplateRouter, operation_id_after_overwrite) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "list_users", 1);
+  router.add("/users", "list_users_v2", 2);
+  EXPECT_TRUE(router.operation_id(1).empty());
+  EXPECT_EQ(router.operation_id(2), "list_users_v2");
+}

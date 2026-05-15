@@ -3218,3 +3218,264 @@ TEST_F(URITemplateRouterViewTest,
   EXPECT_EQ(captures_c.size(), 1);
   EXPECT_ROUTER_CAPTURE(captures_c, 0, "z", "one/two");
 }
+
+TEST_F(URITemplateRouterViewTest, listing_at_returns_identifiers_in_add_order) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 7);
+    router.add("/posts/{id}", "show_post", 3);
+    router.add("/{+rest}", "fetch_all", 9);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 3);
+  EXPECT_EQ(restored.at(0), 7);
+  EXPECT_EQ(restored.at(1), 3);
+  EXPECT_EQ(restored.at(2), 9);
+}
+
+TEST_F(URITemplateRouterViewTest, listing_context_returns_associated_context) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1, 100);
+    router.add("/posts/{id}", "show_post", 2, 200);
+    router.add("/comments", "list_comments", 3, 300);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.context(1), 100);
+  EXPECT_EQ(restored.context(2), 200);
+  EXPECT_EQ(restored.context(3), 300);
+}
+
+TEST_F(URITemplateRouterViewTest, listing_context_default_zero) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1);
+    router.add("/posts", "list_posts", 2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.context(1), 0);
+  EXPECT_EQ(restored.context(2), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_for_literal_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/users");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_for_variable_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users/{id}", "show_user", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/users/{id}");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_for_multi_variable_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users/{id}/posts/{post_id}", "show_post", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/users/{id}/posts/{post_id}");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_for_expansion_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+rest}", "fetch_files", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/files/{+rest}");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_for_optional_expansion_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/api/list{/path*}", "list_directory", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/api/list{/path*}");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_for_root_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/", "root_route", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/");
+}
+
+TEST_F(URITemplateRouterViewTest,
+       listing_path_for_multiple_routes_each_correct) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1);
+    router.add("/users/{id}", "show_user", 2);
+    router.add("/posts/{id}/comments/{comment_id}", "show_comment", 3);
+    router.add("/files/{+rest}", "fetch_files", 4);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/users");
+  EXPECT_EQ(restored.path(2), "/users/{id}");
+  EXPECT_EQ(restored.path(3), "/posts/{id}/comments/{comment_id}");
+  EXPECT_EQ(restored.path(4), "/files/{+rest}");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_operation_id_round_trip) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1);
+    router.add("/posts/{id}", "show_post", 2);
+    router.add("/files/{+rest}", "fetch_files", 3);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.operation_id(1), "list_users");
+  EXPECT_EQ(restored.operation_id(2), "show_post");
+  EXPECT_EQ(restored.operation_id(3), "fetch_files");
+}
+
+TEST_F(URITemplateRouterViewTest, listing_operation_id_zero_returns_empty) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.operation_id(0).empty());
+}
+
+TEST_F(URITemplateRouterViewTest,
+       listing_operation_id_unregistered_returns_empty) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "list_users", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.operation_id(99).empty());
+}
+
+TEST_F(URITemplateRouterViewTest, listing_operation_id_inverse_of_operation) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/a", "alpha", 1, 11);
+    router.add("/b", "beta", 2, 22);
+    router.add("/c", "gamma", 3, 33);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+
+  EXPECT_EQ(restored.operation_id(1), "alpha");
+  EXPECT_EQ(restored.operation_id(2), "beta");
+  EXPECT_EQ(restored.operation_id(3), "gamma");
+
+  const auto resolved_alpha = restored.operation(restored.operation_id(1));
+  EXPECT_EQ(resolved_alpha.first, 1);
+  EXPECT_EQ(resolved_alpha.second, 11);
+
+  const auto resolved_beta = restored.operation(restored.operation_id(2));
+  EXPECT_EQ(resolved_beta.first, 2);
+  EXPECT_EQ(resolved_beta.second, 22);
+
+  const auto resolved_gamma = restored.operation(restored.operation_id(3));
+  EXPECT_EQ(resolved_gamma.first, 3);
+  EXPECT_EQ(resolved_gamma.second, 33);
+}
+
+TEST_F(URITemplateRouterViewTest, listing_matches_writable_router) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "list_users", 1, 10);
+  router.add("/posts/{id}", "show_post", 2, 20);
+  router.add("/files/{+rest}", "fetch_files", 3, 30);
+  router.add("/api/list{/path*}", "list_directory", 4, 40);
+  sourcemeta::core::URITemplateRouterView::save(router, this->path);
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), router.size());
+
+  EXPECT_EQ(restored.at(0), router.at(0));
+  EXPECT_EQ(restored.at(1), router.at(1));
+  EXPECT_EQ(restored.at(2), router.at(2));
+  EXPECT_EQ(restored.at(3), router.at(3));
+
+  EXPECT_EQ(restored.context(1), router.context(1));
+  EXPECT_EQ(restored.context(2), router.context(2));
+  EXPECT_EQ(restored.context(3), router.context(3));
+  EXPECT_EQ(restored.context(4), router.context(4));
+
+  EXPECT_EQ(restored.path(1), router.path(1));
+  EXPECT_EQ(restored.path(2), router.path(2));
+  EXPECT_EQ(restored.path(3), router.path(3));
+  EXPECT_EQ(restored.path(4), router.path(4));
+
+  EXPECT_EQ(restored.operation_id(1), router.operation_id(1));
+  EXPECT_EQ(restored.operation_id(2), router.operation_id(2));
+  EXPECT_EQ(restored.operation_id(3), router.operation_id(3));
+  EXPECT_EQ(restored.operation_id(4), router.operation_id(4));
+}
+
+TEST_F(URITemplateRouterViewTest, listing_empty_router_size_zero) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 0);
+  EXPECT_TRUE(restored.operation_id(0).empty());
+  EXPECT_TRUE(restored.operation_id(1).empty());
+}
+
+TEST_F(URITemplateRouterViewTest, listing_only_otherwise_size_zero) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.otherwise(99);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.size(), 0);
+  EXPECT_TRUE(restored.operation_id(0).empty());
+}
+
+TEST_F(URITemplateRouterViewTest, listing_path_excludes_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api/v1"};
+    router.add("/users/{id}", "show_user", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/users/{id}");
+}
