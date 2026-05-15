@@ -208,3 +208,52 @@ TEST(Time_rfc3339_datetime, valid_leap_second_unknown_offset) {
 TEST(Time_rfc3339_datetime, invalid_leap_second_zero_hour_utc) {
   EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("1998-12-31T00:00:60Z"));
 }
+
+TEST(Time_rfc3339_datetime, valid_leap_second_june_30) {
+  EXPECT_TRUE(sourcemeta::core::is_rfc3339_datetime("2012-06-30T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, valid_leap_second_december_31) {
+  EXPECT_TRUE(sourcemeta::core::is_rfc3339_datetime("2008-12-31T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, valid_leap_second_june_30_negative_offset) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_rfc3339_datetime("2012-06-30T15:59:60-08:00"));
+}
+
+TEST(Time_rfc3339_datetime,
+     valid_leap_second_june_30_positive_offset_rollover) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_rfc3339_datetime("2012-07-01T03:59:60+04:00"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_december_30) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("1998-12-30T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_march_31) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("2024-03-31T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_september_30) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("2024-09-30T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_june_29) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("2024-06-29T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_july_1) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("2024-07-01T23:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_january_1_utc_shifts_to_jan_1) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_rfc3339_datetime("2024-01-01T23:59:60-00:00"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_year_zero_jan_1_underflow) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_rfc3339_datetime("0000-01-01T00:59:60+01:00"));
+}

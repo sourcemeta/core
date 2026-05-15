@@ -205,17 +205,55 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     return false;
   }
 
-  // --- Validate leap second (§5.6) ---
-  // The value 60 is only legal at the end of a UTC day, i.e. when the
-  // UTC equivalent of the local time is 23:59
+  // --- Validate leap second (§5.7) ---
+  // The value 60 is only legal at the end of months in which a leap second
+  // occurs: June (XXXX-06-30T23:59:60Z) or December (XXXX-12-31T23:59:60Z),
+  // evaluated in UTC after applying the time offset
   if (second == 60) {
     const auto local_minute_of_day{hour * 60 + minute};
     const auto offset_total_minutes{offset_hour * 60 + offset_minute};
-    const auto utc_minute_of_day{
-        offset_sign == '+'
-            ? (local_minute_of_day + 1440 - offset_total_minutes) % 1440
-            : (local_minute_of_day + offset_total_minutes) % 1440};
+
+    unsigned int utc_minute_of_day{0};
+    bool previous_utc_day{false};
+
+    if (offset_sign == '+') {
+      if (local_minute_of_day >= offset_total_minutes) {
+        utc_minute_of_day = local_minute_of_day - offset_total_minutes;
+      } else {
+        utc_minute_of_day = local_minute_of_day + 1440 - offset_total_minutes;
+        previous_utc_day = true;
+      }
+    } else {
+      utc_minute_of_day = (local_minute_of_day + offset_total_minutes) % 1440;
+    }
+
     if (utc_minute_of_day != 23 * 60 + 59) {
+      return false;
+    }
+
+    // A "next UTC day" shift cannot coexist with UTC time 23:59, since
+    // max(local) + max(offset) = 1439 + 1439 = 2878 < 1440 + 1439
+
+    unsigned int utc_month{month};
+    unsigned int utc_day{day};
+    if (previous_utc_day) {
+      if (utc_day > 1) {
+        utc_day -= 1;
+      } else if (utc_month > 1) {
+        utc_month -= 1;
+        utc_day = max_day_in_month(utc_month, year);
+      } else {
+        // Going back from year 0000 January 1 would yield year -1
+        if (year == 0) {
+          return false;
+        }
+        utc_month = 12;
+        utc_day = 31;
+      }
+    }
+
+    if (!((utc_month == 6 && utc_day == 30) ||
+          (utc_month == 12 && utc_day == 31))) {
       return false;
     }
   }
