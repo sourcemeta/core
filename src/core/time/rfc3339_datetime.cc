@@ -148,9 +148,14 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     return false;
   }
 
+  char offset_sign{'+'};
+  unsigned int offset_hour{0};
+  unsigned int offset_minute{0};
+
   if (value[position] == 'Z' || value[position] == 'z') {
     position += 1;
   } else if (value[position] == '+' || value[position] == '-') {
+    offset_sign = value[position];
     position += 1;
 
     // time-numoffset = ("+" / "-") time-hour ":" time-minute
@@ -162,9 +167,8 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     if (!is_digit(value[position]) || !is_digit(value[position + 1])) {
       return false;
     }
-    const auto offset_hour{
-        static_cast<unsigned int>(value[position] - '0') * 10 +
-        static_cast<unsigned int>(value[position + 1] - '0')};
+    offset_hour = static_cast<unsigned int>(value[position] - '0') * 10 +
+                  static_cast<unsigned int>(value[position + 1] - '0');
     if (offset_hour > 23) {
       return false;
     }
@@ -180,9 +184,8 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     if (!is_digit(value[position]) || !is_digit(value[position + 1])) {
       return false;
     }
-    const auto offset_minute{
-        static_cast<unsigned int>(value[position] - '0') * 10 +
-        static_cast<unsigned int>(value[position + 1] - '0')};
+    offset_minute = static_cast<unsigned int>(value[position] - '0') * 10 +
+                    static_cast<unsigned int>(value[position + 1] - '0');
     if (offset_minute > 59) {
       return false;
     }
@@ -200,6 +203,21 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
   // --- Validate date-mday against month/year (§5.7) ---
   if (day < 1 || day > max_day_in_month(month, year)) {
     return false;
+  }
+
+  // --- Validate leap second (§5.6) ---
+  // The value 60 is only legal at the end of a UTC day, i.e. when the
+  // UTC equivalent of the local time is 23:59
+  if (second == 60) {
+    const auto local_minute_of_day{hour * 60 + minute};
+    const auto offset_total_minutes{offset_hour * 60 + offset_minute};
+    const auto utc_minute_of_day{
+        offset_sign == '+'
+            ? (local_minute_of_day + 1440 - offset_total_minutes) % 1440
+            : (local_minute_of_day + offset_total_minutes) % 1440};
+    if (utc_minute_of_day != 23 * 60 + 59) {
+      return false;
+    }
   }
 
   return true;

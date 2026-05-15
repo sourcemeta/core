@@ -171,3 +171,40 @@ TEST(Time_rfc3339_datetime, invalid_empty_secfrac) {
 TEST(Time_rfc3339_datetime, invalid_feb29_year_2300) {
   EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("2300-02-29T00:00:00Z"));
 }
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_wrong_minute_utc) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("1998-12-31T23:58:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_wrong_hour_utc) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("1998-12-31T22:59:60Z"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_wrong_local_negative_offset) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_rfc3339_datetime("1998-12-31T22:59:60-08:00"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_wrong_local_positive_offset) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_rfc3339_datetime("1998-12-31T04:59:60+04:00"));
+}
+
+TEST(Time_rfc3339_datetime, valid_leap_second_positive_offset_rollover) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_rfc3339_datetime("1999-01-01T03:59:60+04:00"));
+}
+
+TEST(Time_rfc3339_datetime, valid_leap_second_negative_offset_rollover) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_rfc3339_datetime("1998-12-31T07:59:60-16:00"));
+}
+
+TEST(Time_rfc3339_datetime, valid_leap_second_unknown_offset) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_rfc3339_datetime("1998-12-31T23:59:60-00:00"));
+}
+
+TEST(Time_rfc3339_datetime, invalid_leap_second_zero_hour_utc) {
+  EXPECT_FALSE(sourcemeta::core::is_rfc3339_datetime("1998-12-31T00:00:60Z"));
+}
