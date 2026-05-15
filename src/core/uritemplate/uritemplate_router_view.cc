@@ -979,22 +979,35 @@ auto URITemplateRouterView::operation(const std::string_view operation_id) const
 
 auto URITemplateRouterView::at(const std::size_t index) const
     -> URITemplateRouter::Identifier {
-  assert(this->size_ >= sizeof(RouterHeader));
+  if (this->size_ < sizeof(RouterHeader)) {
+    return URITemplateRouter::Identifier{0};
+  }
 
   const auto *header = reinterpret_cast<const RouterHeader *>(this->data_);
-  assert(header->magic == ROUTER_MAGIC);
-  assert(header->version == ROUTER_VERSION);
+  if (header->magic != ROUTER_MAGIC || header->version != ROUTER_VERSION) {
+    return URITemplateRouter::Identifier{0};
+  }
 
   const auto paths_start = static_cast<std::size_t>(header->paths_offset);
-  assert(paths_start <= this->size_);
-  assert(this->size_ - paths_start >= sizeof(std::uint16_t));
+  if (paths_start > this->size_ ||
+      this->size_ - paths_start < sizeof(std::uint16_t)) {
+    return URITemplateRouter::Identifier{0};
+  }
 
   std::uint16_t path_count = 0;
   std::memcpy(&path_count, this->data_ + paths_start, sizeof(path_count));
-  assert(index < path_count);
+  if (index >= path_count) {
+    return URITemplateRouter::Identifier{0};
+  }
 
-  const auto entry_offset =
-      paths_start + sizeof(path_count) + index * PATH_ENTRY_SIZE;
+  const auto entries_offset = paths_start + sizeof(path_count);
+  const auto entries_size =
+      static_cast<std::size_t>(path_count) * PATH_ENTRY_SIZE;
+  if (entries_size > this->size_ - entries_offset) {
+    return URITemplateRouter::Identifier{0};
+  }
+
+  const auto entry_offset = entries_offset + index * PATH_ENTRY_SIZE;
   const auto entry = read_path_entry(this->data_, entry_offset);
   return entry.identifier;
 }
@@ -1002,21 +1015,31 @@ auto URITemplateRouterView::at(const std::size_t index) const
 auto URITemplateRouterView::context(
     const URITemplateRouter::Identifier identifier) const
     -> URITemplateRouter::Identifier {
-  assert(identifier > 0);
-  assert(this->size_ >= sizeof(RouterHeader));
+  if (identifier == 0 || this->size_ < sizeof(RouterHeader)) {
+    return URITemplateRouter::Identifier{0};
+  }
 
   const auto *header = reinterpret_cast<const RouterHeader *>(this->data_);
-  assert(header->magic == ROUTER_MAGIC);
-  assert(header->version == ROUTER_VERSION);
+  if (header->magic != ROUTER_MAGIC || header->version != ROUTER_VERSION) {
+    return URITemplateRouter::Identifier{0};
+  }
 
   const auto paths_start = static_cast<std::size_t>(header->paths_offset);
-  assert(paths_start <= this->size_);
-  assert(this->size_ - paths_start >= sizeof(std::uint16_t));
+  if (paths_start > this->size_ ||
+      this->size_ - paths_start < sizeof(std::uint16_t)) {
+    return URITemplateRouter::Identifier{0};
+  }
 
   std::uint16_t path_count = 0;
   std::memcpy(&path_count, this->data_ + paths_start, sizeof(path_count));
 
   const auto entries_offset = paths_start + sizeof(path_count);
+  const auto entries_size =
+      static_cast<std::size_t>(path_count) * PATH_ENTRY_SIZE;
+  if (entries_size > this->size_ - entries_offset) {
+    return URITemplateRouter::Identifier{0};
+  }
+
   for (std::uint16_t index = 0; index < path_count; ++index) {
     const auto entry_offset = entries_offset + index * PATH_ENTRY_SIZE;
     const auto entry = read_path_entry(this->data_, entry_offset);
@@ -1025,44 +1048,60 @@ auto URITemplateRouterView::context(
     }
   }
 
-  assert(false);
   return URITemplateRouter::Identifier{0};
 }
 
 auto URITemplateRouterView::path(
     const URITemplateRouter::Identifier identifier) const -> std::string {
-  assert(identifier > 0);
-  assert(this->size_ >= sizeof(RouterHeader));
+  if (identifier == 0 || this->size_ < sizeof(RouterHeader)) {
+    return {};
+  }
 
   const auto *header = reinterpret_cast<const RouterHeader *>(this->data_);
-  assert(header->magic == ROUTER_MAGIC);
-  assert(header->version == ROUTER_VERSION);
+  if (header->magic != ROUTER_MAGIC || header->version != ROUTER_VERSION) {
+    return {};
+  }
 
   const auto paths_start = static_cast<std::size_t>(header->paths_offset);
-  assert(paths_start <= this->size_);
-  assert(this->size_ - paths_start >= sizeof(std::uint16_t));
+  if (paths_start > this->size_ ||
+      this->size_ - paths_start < sizeof(std::uint16_t)) {
+    return {};
+  }
 
-  std::uint16_t path_count = 0;
-  std::memcpy(&path_count, this->data_ + paths_start, sizeof(path_count));
+  if (header->string_table_offset > this->size_ ||
+      header->arguments_offset < header->string_table_offset ||
+      header->arguments_offset > this->size_) {
+    return {};
+  }
 
   const auto *string_table =
       reinterpret_cast<const char *>(this->data_ + header->string_table_offset);
   const auto string_table_size =
       header->arguments_offset - header->string_table_offset;
 
+  std::uint16_t path_count = 0;
+  std::memcpy(&path_count, this->data_ + paths_start, sizeof(path_count));
+
   const auto entries_offset = paths_start + sizeof(path_count);
+  const auto entries_size =
+      static_cast<std::size_t>(path_count) * PATH_ENTRY_SIZE;
+  if (entries_size > this->size_ - entries_offset) {
+    return {};
+  }
+
   for (std::uint16_t index = 0; index < path_count; ++index) {
     const auto entry_offset = entries_offset + index * PATH_ENTRY_SIZE;
     const auto entry = read_path_entry(this->data_, entry_offset);
     if (entry.identifier == identifier) {
-      assert(entry.string_offset <= string_table_size);
-      assert(entry.string_length <= string_table_size - entry.string_offset);
+      if (entry.string_offset > string_table_size ||
+          entry.string_length > string_table_size - entry.string_offset) {
+        return {};
+      }
       return std::string{string_table + entry.string_offset,
                          entry.string_length};
     }
   }
 
-  assert(false);
   return {};
 }
 
