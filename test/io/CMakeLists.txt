@@ -9,7 +9,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
     io_hardlink_directory_test.cc
     io_read_file_test.cc
     io_read_to_string_test.cc
-    io_starts_with_test.cc
+    io_is_under_path_test.cc
+    io_strip_path_prefix_test.cc
     io_temporary_test.cc
     io_weakly_canonical_test.cc
     io_write_file_test.cc)
