@@ -1,55 +1,56 @@
 #ifndef SOURCEMETA_CORE_URI_NORMALIZE_H_
 #define SOURCEMETA_CORE_URI_NORMALIZE_H_
 
-#include <cstddef> // std::size_t
-#include <string>  // std::string
+#include <cstddef>     // std::size_t
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 namespace sourcemeta::core {
 
 // Remove "." and ".." segments from a URI path per RFC 3986 Section 5.2.4
 // (Remove Dot Segments). Operates in place.
 inline auto normalize_path(std::string &path) -> void {
-  std::string input{std::move(path)};
+  const std::string buffer{std::move(path)};
+  std::string_view input{buffer};
   std::string output;
-  output.reserve(input.size());
+  output.reserve(buffer.size());
 
   while (!input.empty()) {
     if (input.starts_with("../")) {
-      input.erase(0, 3);
-    } else if (input.starts_with("./")) {
-      input.erase(0, 2);
-    } else if (input.starts_with("/./")) {
-      input.replace(0, 3, 1, '/');
+      input.remove_prefix(3);
+    } else if (input.starts_with("./") || input.starts_with("/./")) {
+      input.remove_prefix(2);
     } else if (input == "/.") {
-      input = "/";
+      output.push_back('/');
+      break;
     } else if (input.starts_with("/../")) {
-      input.replace(0, 4, 1, '/');
+      input.remove_prefix(3);
       const auto last_slash{output.rfind('/')};
       if (last_slash == std::string::npos) {
         output.clear();
       } else {
-        output.erase(last_slash);
+        output.resize(last_slash);
       }
     } else if (input == "/..") {
-      input = "/";
       const auto last_slash{output.rfind('/')};
       if (last_slash == std::string::npos) {
         output.clear();
       } else {
-        output.erase(last_slash);
+        output.resize(last_slash);
       }
+      output.push_back('/');
+      break;
     } else if (input == "." || input == "..") {
-      input.clear();
+      break;
     } else {
       const std::size_t next_slash{input.starts_with('/') ? input.find('/', 1)
                                                           : input.find('/')};
-      if (next_slash == std::string::npos) {
+      if (next_slash == std::string_view::npos) {
         output.append(input);
-        input.clear();
-      } else {
-        output.append(input, 0, next_slash);
-        input.erase(0, next_slash);
+        break;
       }
+      output.append(input.substr(0, next_slash));
+      input.remove_prefix(next_slash);
     }
   }
 
