@@ -614,7 +614,7 @@ TEST(JSONWeakPointer_to_uri, with_relative_base_uri) {
   const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
   const sourcemeta::core::URI base{"../baz"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  EXPECT_EQ(fragment.recompose(), "baz#/foo/bar");
+  EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
 }
 
 TEST(JSONWeakPointer_to_uri, with_absolute_base_string_view) {
@@ -635,5 +635,5 @@ TEST(JSONWeakPointer_to_uri, with_relative_base_string_view) {
   const sourcemeta::core::WeakPointer pointer{std::cref(foo), std::cref(bar)};
   const std::string_view base{"../baz"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
-  EXPECT_EQ(fragment.recompose(), "baz#/foo/bar");
+  EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
 }
