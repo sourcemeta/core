@@ -55,7 +55,7 @@ inline auto normalize_path(std::string &path) -> void {
     } else if (input == ".") {
       break;
     } else if (input == "..") {
-      if (!is_absolute && output.empty()) {
+      if (!is_absolute) {
         output.append("../");
       }
       break;
