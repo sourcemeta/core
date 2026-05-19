@@ -92,3 +92,27 @@ TEST(URI_to_path, unicode_windows) {
   const std::filesystem::path expected{u8R"(C:\data\résumé.doc)"};
   EXPECT_EQ(uri.to_path(), expected);
 }
+
+TEST(URI_to_path, windows_unc_simple) {
+  const sourcemeta::core::URI uri{"file://server/share/file.txt"};
+  const std::filesystem::path expected{R"(\\server\share\file.txt)"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(URI_to_path, windows_unc_with_space) {
+  const sourcemeta::core::URI uri{"file://srv/My%20Docs/a%20b.txt"};
+  const std::filesystem::path expected{R"(\\srv\My Docs\a b.txt)"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(URI_to_path, windows_unc_unicode) {
+  const sourcemeta::core::URI uri{"file://server/data/%C3%A9clair.txt"};
+  const std::filesystem::path expected{u8R"(\\server\data\éclair.txt)"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
+
+TEST(URI_to_path, localhost_treated_as_no_host) {
+  const sourcemeta::core::URI uri{"file://localhost/foo/bar"};
+  const std::filesystem::path expected{"/foo/bar"};
+  EXPECT_EQ(uri.to_path(), expected);
+}
