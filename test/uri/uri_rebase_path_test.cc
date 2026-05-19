@@ -139,10 +139,11 @@ TEST(URI_rebase_path, malformed_percent_returns_nullopt) {
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(URI_rebase_path, lowercase_hex_returns_nullopt) {
+TEST(URI_rebase_path, lowercase_hex_normalised) {
   const auto result{
       sourcemeta::core::URI::rebase_path("/foo/%2f", "/foo", "/x")};
-  EXPECT_FALSE(result.has_value());
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "/x/%2F");
 }
 
 TEST(URI_rebase_path, non_absolute_path_returns_nullopt) {

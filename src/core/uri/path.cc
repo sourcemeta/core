@@ -11,98 +11,38 @@
 
 namespace {
 
-using sourcemeta::core::uri_hex_to_int;
-using sourcemeta::core::uri_is_pchar;
-using sourcemeta::core::uri_is_unreserved;
-using sourcemeta::core::URI_PERCENT;
-using sourcemeta::core::URI_SLASH;
+auto canonicalize_path(const std::string_view input, std::string &output)
+    -> bool {
+  output.assign(input);
+  if (output.empty()) {
+    return true;
+  }
+  if (output.front() != sourcemeta::core::URI_SLASH) {
+    return false;
+  }
 
-auto is_hex_uppercase(const char character) -> bool {
-  return (character >= '0' && character <= '9') ||
-         (character >= 'A' && character <= 'F');
-}
-
-auto validate_pchar_string(const std::string_view value) -> bool {
-  std::size_t index{0};
-  while (index < value.size()) {
-    const auto character{value[index]};
-    if (character == URI_PERCENT) {
-      if (index + 3 > value.size()) {
-        return false;
-      }
-      const auto high{value[index + 1]};
-      const auto low{value[index + 2]};
-      if (!is_hex_uppercase(high) || !is_hex_uppercase(low)) {
-        return false;
-      }
-      const auto decoded{
-          static_cast<char>((uri_hex_to_int(high) << 4) | uri_hex_to_int(low))};
-      if (uri_is_unreserved(decoded)) {
+  for (std::size_t index{0}; index < output.size();) {
+    const auto character{output[index]};
+    if (character == sourcemeta::core::URI_PERCENT) {
+      if (!sourcemeta::core::uri_is_percent_encoded(output, index)) {
         return false;
       }
       index += 3;
-    } else if (character != URI_PERCENT && uri_is_pchar(character)) {
+    } else if (character == sourcemeta::core::URI_SLASH ||
+               sourcemeta::core::uri_is_pchar(character)) {
       ++index;
     } else {
       return false;
     }
   }
-  return true;
-}
 
-auto validate_and_collect(const std::string_view path, std::string &output)
-    -> bool {
-  output.clear();
-  if (path.empty()) {
-    return true;
-  }
-  if (path.front() != URI_SLASH) {
-    return false;
-  }
-
-  output.reserve(path.size());
-  output.push_back(URI_SLASH);
-
-  std::size_t segment_start{1};
-  for (std::size_t index{1}; index <= path.size(); ++index) {
-    if (index < path.size() && path[index] != URI_SLASH) {
-      continue;
-    }
-
-    const auto length{index - segment_start};
-    if (length == 0) {
-      if (index < path.size()) {
-        return false;
-      }
-      break;
-    }
-
-    const auto segment{path.substr(segment_start, length)};
-    if (segment != "." && segment != "..") {
-      if (!validate_pchar_string(segment)) {
-        return false;
-      }
-    }
-    if (output.size() > 1) {
-      output.push_back(URI_SLASH);
-    }
-    output.append(segment);
-    segment_start = index + 1;
-  }
-
-  if (path.size() > 1 && path.back() == URI_SLASH && output.size() > 1 &&
-      output.back() != URI_SLASH) {
-    output.push_back(URI_SLASH);
-  }
-
-  return true;
-}
-
-auto canonicalize_path(const std::string_view input, std::string &output)
-    -> bool {
-  if (!validate_and_collect(input, output)) {
-    return false;
-  }
+  sourcemeta::core::uri_normalize_percent_encoding_inplace(output);
+  sourcemeta::core::uri_unescape_if_inplace(output, [](const char character) {
+    return sourcemeta::core::uri_is_unreserved(character) ||
+           sourcemeta::core::uri_is_sub_delim(character) ||
+           character == sourcemeta::core::URI_COLON ||
+           character == sourcemeta::core::URI_AT;
+  });
   sourcemeta::core::normalize_path(output);
   return true;
 }
