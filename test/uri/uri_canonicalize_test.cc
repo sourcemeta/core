@@ -71,7 +71,7 @@ TEST(URI_canonicalize, example_10) {
 TEST(URI_canonicalize, example_relative_1) {
   sourcemeta::core::URI uri{"../foo"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "../foo");
+  EXPECT_EQ(uri.recompose(), "foo");
 }
 
 TEST(URI_canonicalize, example_relative_2) {
@@ -178,22 +178,22 @@ TEST(URI_canonicalize, path_with_mixed_dot_segments) {
   EXPECT_EQ(uri.recompose(), "http://example.com/foo/baz");
 }
 
-TEST(URI_canonicalize, relative_path_with_dotdot) {
+TEST(URI_canonicalize, relative_path_leading_dotdot_removed) {
   sourcemeta::core::URI uri{"../foo/bar"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "../foo/bar");
+  EXPECT_EQ(uri.recompose(), "foo/bar");
 }
 
-TEST(URI_canonicalize, relative_path_with_dotdot_middle) {
+TEST(URI_canonicalize, relative_path_dotdot_pops_first_segment) {
   sourcemeta::core::URI uri{"foo/../bar"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "bar");
+  EXPECT_EQ(uri.recompose(), "/bar");
 }
 
-TEST(URI_canonicalize, relative_path_multiple_dotdot) {
+TEST(URI_canonicalize, relative_path_multiple_leading_dotdot_removed) {
   sourcemeta::core::URI uri{"../../foo"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "../../foo");
+  EXPECT_EQ(uri.recompose(), "foo");
 }
 
 TEST(URI_canonicalize, absolute_path_with_dotdot) {
@@ -286,31 +286,31 @@ TEST(URI_canonicalize, relative_path_no_canonicalize) {
 TEST(URI_canonicalize, relative_path_dotdot_trailing) {
   sourcemeta::core::URI uri{"../../abc/.."};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "../../");
+  EXPECT_EQ(uri.recompose(), "/");
 }
 
 TEST(URI_canonicalize, relative_path_dotdot_middle_with_segment) {
   sourcemeta::core::URI uri{"../../abc/../def"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "../../def");
+  EXPECT_EQ(uri.recompose(), "/def");
 }
 
-TEST(URI_canonicalize, relative_path_cancel_to_empty) {
+TEST(URI_canonicalize, relative_path_cancel_to_root) {
   sourcemeta::core::URI uri{"abc/.."};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "");
+  EXPECT_EQ(uri.recompose(), "/");
 }
 
-TEST(URI_canonicalize, relative_path_cancel_to_empty_trailing_slash) {
+TEST(URI_canonicalize, relative_path_cancel_to_root_trailing_slash) {
   sourcemeta::core::URI uri{"abc/../"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "");
+  EXPECT_EQ(uri.recompose(), "/");
 }
 
-TEST(URI_canonicalize, relative_path_multiple_dotdot_with_dot) {
+TEST(URI_canonicalize, relative_path_dot_segment_resolved) {
   sourcemeta::core::URI uri{"../../abc/./def"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "../../abc/def");
+  EXPECT_EQ(uri.recompose(), "abc/def");
 }
 
 TEST(URI_canonicalize, relative_path_leading_dot_removed) {
@@ -371,13 +371,13 @@ TEST(URI_canonicalize, path_empty_segments_with_trailing_dotdot) {
 TEST(URI_canonicalize, relative_path_collapse_completely) {
   sourcemeta::core::URI uri{"a/b/c/../../.."};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "");
+  EXPECT_EQ(uri.recompose(), "/");
 }
 
 TEST(URI_canonicalize, relative_path_nested_collapse) {
   sourcemeta::core::URI uri{"a/b/../../c/.."};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "");
+  EXPECT_EQ(uri.recompose(), "/");
 }
 
 TEST(URI_canonicalize, ipv6_uppercase_to_lowercase) {

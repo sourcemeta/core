@@ -37,12 +37,7 @@ auto canonicalize_path(const std::string_view input, std::string &output)
   }
 
   sourcemeta::core::uri_normalize_percent_encoding_inplace(output);
-  sourcemeta::core::uri_unescape_if_inplace(output, [](const char character) {
-    return sourcemeta::core::uri_is_unreserved(character) ||
-           sourcemeta::core::uri_is_sub_delim(character) ||
-           character == sourcemeta::core::URI_COLON ||
-           character == sourcemeta::core::URI_AT;
-  });
+  sourcemeta::core::uri_unescape_unreserved_inplace(output);
   sourcemeta::core::normalize_path(output);
   return true;
 }
@@ -62,18 +57,19 @@ auto URI::strip_path_prefix(const std::string_view path,
   }
 
   std::size_t suffix_start{0};
+  const bool prefix_provides_boundary{prefix_canonical.ends_with(URI_SLASH)};
   if (!prefix_canonical.empty()) {
     if (!path_canonical.starts_with(prefix_canonical)) {
       return std::nullopt;
     }
-    if (!prefix_canonical.ends_with(URI_SLASH) &&
+    if (!prefix_provides_boundary &&
         path_canonical.size() > prefix_canonical.size() &&
         path_canonical[prefix_canonical.size()] != URI_SLASH) {
       return std::nullopt;
     }
     suffix_start = prefix_canonical.size();
   }
-  if (suffix_start < path_canonical.size() &&
+  if (!prefix_provides_boundary && suffix_start < path_canonical.size() &&
       path_canonical[suffix_start] == URI_SLASH) {
     ++suffix_start;
   }

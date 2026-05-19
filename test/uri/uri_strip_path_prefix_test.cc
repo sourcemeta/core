@@ -192,11 +192,11 @@ TEST(URI_strip_path_prefix, lowercase_hex_normalised_to_uppercase) {
   EXPECT_EQ(result.value(), "%2F");
 }
 
-TEST(URI_strip_path_prefix, encoded_sub_delim_decoded) {
+TEST(URI_strip_path_prefix, encoded_sub_delim_uppercased_not_decoded) {
   const auto result{
       sourcemeta::core::URI::strip_path_prefix("/foo/%2a", "/foo")};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "*");
+  EXPECT_EQ(result.value(), "%2A");
 }
 
 TEST(URI_strip_path_prefix, encoded_unreserved_decoded) {
@@ -308,11 +308,10 @@ TEST(URI_strip_path_prefix, percent_encoded_segment_matches_byte_for_byte) {
   EXPECT_EQ(result.value(), "bar");
 }
 
-TEST(URI_strip_path_prefix, encoded_sub_delim_equivalent_to_decoded) {
+TEST(URI_strip_path_prefix, encoded_sub_delim_not_equivalent_to_decoded) {
   const auto result{
       sourcemeta::core::URI::strip_path_prefix("/foo/%21/bar", "/foo/!")};
-  EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "bar");
+  EXPECT_FALSE(result.has_value());
 }
 
 TEST(URI_strip_path_prefix, prefix_is_proper_prefix_segment_boundary) {
@@ -335,10 +334,36 @@ TEST(URI_strip_path_prefix, prefix_ending_at_dot_segment_boundary) {
   EXPECT_EQ(result.value(), "");
 }
 
-TEST(URI_strip_path_prefix, double_trailing_slash_collapsed) {
+TEST(URI_strip_path_prefix, trailing_empty_segments_preserved) {
   const auto result{sourcemeta::core::URI::strip_path_prefix("/foo//", "/foo")};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "");
+  EXPECT_EQ(result.value(), "/");
+}
+
+TEST(URI_strip_path_prefix, multiple_trailing_empty_segments_preserved) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo///", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "//");
+}
+
+TEST(URI_strip_path_prefix, mid_and_trailing_empty_segments_preserved) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo//bar//", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "/bar//");
+}
+
+TEST(URI_strip_path_prefix, path_of_only_slashes_preserved) {
+  const auto result{sourcemeta::core::URI::strip_path_prefix("////", "/")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "///");
+}
+
+TEST(URI_strip_path_prefix, path_abempty_double_leading_slash) {
+  const auto result{sourcemeta::core::URI::strip_path_prefix("//foo/bar", "/")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "/foo/bar");
 }
 
 TEST(URI_strip_path_prefix, lowercase_hex_in_prefix_normalised) {
@@ -363,18 +388,18 @@ TEST(URI_strip_path_prefix, encoded_tilde_decoded) {
   EXPECT_EQ(result.value(), "~home");
 }
 
-TEST(URI_strip_path_prefix, encoded_at_decoded) {
+TEST(URI_strip_path_prefix, encoded_at_not_decoded) {
   const auto result{
       sourcemeta::core::URI::strip_path_prefix("/foo/%40handle", "/foo")};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "@handle");
+  EXPECT_EQ(result.value(), "%40handle");
 }
 
-TEST(URI_strip_path_prefix, encoded_colon_decoded) {
+TEST(URI_strip_path_prefix, encoded_colon_not_decoded) {
   const auto result{
       sourcemeta::core::URI::strip_path_prefix("/foo/a%3Ab", "/foo")};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), "a:b");
+  EXPECT_EQ(result.value(), "a%3Ab");
 }
 
 TEST(URI_strip_path_prefix, encoded_slash_never_decoded) {
