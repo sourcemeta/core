@@ -366,6 +366,105 @@ TEST(URI_strip_path_prefix, path_abempty_double_leading_slash) {
   EXPECT_EQ(result.value(), "/foo/bar");
 }
 
+TEST(URI_strip_path_prefix, encoded_hyphen_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%2Db", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a-b");
+}
+
+TEST(URI_strip_path_prefix, encoded_underscore_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%5Fb", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a_b");
+}
+
+TEST(URI_strip_path_prefix, encoded_period_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%2Eb", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a.b");
+}
+
+TEST(URI_strip_path_prefix, encoded_digit_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/%30", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "0");
+}
+
+TEST(URI_strip_path_prefix, encoded_plus_not_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%2Bb", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a%2Bb");
+}
+
+TEST(URI_strip_path_prefix, encoded_semicolon_not_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%3Bb", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a%3Bb");
+}
+
+TEST(URI_strip_path_prefix, encoded_equals_not_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%3Db", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a%3Db");
+}
+
+TEST(URI_strip_path_prefix, encoded_open_bracket_not_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%5Bb", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "a%5Bb");
+}
+
+TEST(URI_strip_path_prefix, encoded_null_byte_not_decoded) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/%00", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "%00");
+}
+
+TEST(URI_strip_path_prefix, high_byte_percent_encoded_preserved) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/%FF", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "%FF");
+}
+
+TEST(URI_strip_path_prefix, segment_named_three_dots_passes_through) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/.../bar", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), ".../bar");
+}
+
+TEST(URI_strip_path_prefix, encoded_three_dots_segment_passes_through) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/%2E%2E%2E", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "...");
+}
+
+TEST(URI_strip_path_prefix,
+     lowercase_encoded_dot_dot_resolves_after_normalisation) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/%2e%2e/bar", "/")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "bar");
+}
+
+TEST(URI_strip_path_prefix, mixed_encoded_and_literal_unreserved) {
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/foo/a%62c%64", "/foo")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "abcd");
+}
+
 TEST(URI_strip_path_prefix, lowercase_hex_in_prefix_normalised) {
   const auto result{
       sourcemeta::core::URI::strip_path_prefix("/foo/%2F/bar", "/foo/%2f")};
