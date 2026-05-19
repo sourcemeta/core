@@ -60,9 +60,8 @@ inline auto normalize_path(std::string &path) -> void {
       }
       break;
     } else {
-      const std::size_t next_slash{input.starts_with('/')
-                                       ? input.find('/', 1)
-                                       : input.find('/')};
+      const std::size_t next_slash{input.starts_with('/') ? input.find('/', 1)
+                                                          : input.find('/')};
       if (next_slash == std::string_view::npos) {
         output.append(input);
         break;
