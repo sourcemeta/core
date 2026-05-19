@@ -196,6 +196,24 @@ TEST(URI_canonicalize, relative_path_multiple_dotdot) {
   EXPECT_EQ(uri.recompose(), "../../foo");
 }
 
+TEST(URI_canonicalize, relative_path_only_dotdot) {
+  sourcemeta::core::URI uri{".."};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "../");
+}
+
+TEST(URI_canonicalize, relative_path_two_dotdot_no_segment) {
+  sourcemeta::core::URI uri{"../.."};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "../../");
+}
+
+TEST(URI_canonicalize, relative_path_three_dotdot_no_segment) {
+  sourcemeta::core::URI uri{"../../.."};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "../../../");
+}
+
 TEST(URI_canonicalize, absolute_path_with_dotdot) {
   sourcemeta::core::URI uri{"/foo/bar/../baz"};
   uri.canonicalize();
