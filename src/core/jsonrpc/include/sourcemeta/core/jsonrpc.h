@@ -1,13 +1,15 @@
 #ifndef SOURCEMETA_CORE_JSONRPC_H_
 #define SOURCEMETA_CORE_JSONRPC_H_
 
+#ifndef SOURCEMETA_CORE_JSONRPC_EXPORT
+#include <sourcemeta/core/jsonrpc_export.h>
+#endif
+
 #include <sourcemeta/core/json.h>
 
 #include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
-#include <string>      // std::string
 #include <string_view> // std::string_view
-#include <utility>     // std::move
 
 /// @defgroup jsonrpc JSON-RPC
 /// @brief An implementation of the JSON-RPC 2.0 specification.
@@ -20,185 +22,287 @@
 
 namespace sourcemeta::core {
 
-// See https://www.jsonrpc.org/specification#error_object
+/// @ingroup jsonrpc
+/// The pre-defined JSON-RPC 2.0 error code for invalid JSON received by the
+/// server.
 constexpr std::int64_t JSONRPC_CODE_PARSE = -32700;
+
+/// @ingroup jsonrpc
+/// The pre-defined JSON-RPC 2.0 error code for a malformed request envelope.
 constexpr std::int64_t JSONRPC_CODE_INVALID_REQUEST = -32600;
+
+/// @ingroup jsonrpc
+/// The pre-defined JSON-RPC 2.0 error code for unknown methods.
 constexpr std::int64_t JSONRPC_CODE_METHOD_NOT_FOUND = -32601;
+
+/// @ingroup jsonrpc
+/// The pre-defined JSON-RPC 2.0 error code for invalid method parameters.
 constexpr std::int64_t JSONRPC_CODE_INVALID_PARAMS = -32602;
+
+/// @ingroup jsonrpc
+/// The pre-defined JSON-RPC 2.0 error code for internal server errors.
 constexpr std::int64_t JSONRPC_CODE_INTERNAL = -32603;
+
+/// @ingroup jsonrpc
+/// The lower bound of the JSON-RPC 2.0 reserved range for
+/// implementation-defined server errors.
 constexpr std::int64_t JSONRPC_CODE_SERVER_ERROR_MIN = -32099;
+
+/// @ingroup jsonrpc
+/// The upper bound of the JSON-RPC 2.0 reserved range for
+/// implementation-defined server errors.
 constexpr std::int64_t JSONRPC_CODE_SERVER_ERROR_MAX = -32000;
 
-inline auto jsonrpc_is_server_error(const std::int64_t code) -> bool {
-  return code >= JSONRPC_CODE_SERVER_ERROR_MIN &&
-         code <= JSONRPC_CODE_SERVER_ERROR_MAX;
-}
+/// @ingroup jsonrpc
+/// Check whether the given code lies within the JSON-RPC 2.0 reserved range
+/// for implementation-defined server errors. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::jsonrpc_is_server_error(-32050));
+/// assert(!sourcemeta::core::jsonrpc_is_server_error(-32603));
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_is_server_error(const std::int64_t code) -> bool;
 
-inline const auto JSONRPC_HASH_ID{
-    sourcemeta::core::JSON::make_object().as_object().hash("id")};
-inline const auto JSONRPC_HASH_JSONRPC{
-    sourcemeta::core::JSON::make_object().as_object().hash("jsonrpc")};
-inline const auto JSONRPC_HASH_METHOD{
-    sourcemeta::core::JSON::make_object().as_object().hash("method")};
-inline const auto JSONRPC_HASH_RESULT{
-    sourcemeta::core::JSON::make_object().as_object().hash("result")};
-inline const auto JSONRPC_HASH_ERROR{
-    sourcemeta::core::JSON::make_object().as_object().hash("error")};
-inline const auto JSONRPC_HASH_CODE{
-    sourcemeta::core::JSON::make_object().as_object().hash("code")};
-inline const auto JSONRPC_HASH_MESSAGE{
-    sourcemeta::core::JSON::make_object().as_object().hash("message")};
-inline const auto JSONRPC_HASH_DATA{
-    sourcemeta::core::JSON::make_object().as_object().hash("data")};
-inline const auto JSONRPC_HASH_PARAMS{
-    sourcemeta::core::JSON::make_object().as_object().hash("params")};
+/// @ingroup jsonrpc
+/// Extract the request identifier from a JSON-RPC 2.0 envelope, or `nullptr`
+/// when the value is not a valid string or integer identifier. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto request{sourcemeta::core::parse_json(
+///     R"({ "jsonrpc": "2.0", "id": 7, "method": "ping" })")};
+/// const auto *identifier{sourcemeta::core::jsonrpc_request_id(request)};
+/// assert(identifier != nullptr);
+/// assert(identifier->to_integer() == 7);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_request_id(const sourcemeta::core::JSON &request)
+    -> const sourcemeta::core::JSON *;
 
-inline auto jsonrpc_request_id(const sourcemeta::core::JSON &request)
-    -> const sourcemeta::core::JSON * {
-  if (!request.is_object()) {
-    return nullptr;
-  }
-  const auto *identifier{request.try_at("id", JSONRPC_HASH_ID)};
-  if (identifier == nullptr ||
-      (!identifier->is_string() && !identifier->is_integer())) {
-    return nullptr;
-  }
-  return identifier;
-}
+/// @ingroup jsonrpc
+/// Check whether the given JSON value is a well-formed JSON-RPC 2.0 request.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto request{sourcemeta::core::parse_json(
+///     R"({ "jsonrpc": "2.0", "id": 1, "method": "ping" })")};
+/// assert(sourcemeta::core::jsonrpc_is_request(request));
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_is_request(const sourcemeta::core::JSON &request) -> bool;
 
-inline auto jsonrpc_is_request(const sourcemeta::core::JSON &request) -> bool {
-  if (!request.is_object()) {
-    return false;
-  }
-  const auto *jsonrpc_field{request.try_at("jsonrpc", JSONRPC_HASH_JSONRPC)};
-  if (jsonrpc_field == nullptr || !jsonrpc_field->is_string() ||
-      jsonrpc_field->to_string() != "2.0" ||
-      jsonrpc_request_id(request) == nullptr) {
-    return false;
-  }
-  const auto *method_field{request.try_at("method", JSONRPC_HASH_METHOD)};
-  return method_field != nullptr && method_field->is_string();
-}
+/// @ingroup jsonrpc
+/// Extract the method name from a JSON-RPC 2.0 envelope, or an empty view
+/// when the method field is missing or not a string. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto request{sourcemeta::core::parse_json(
+///     R"({ "jsonrpc": "2.0", "id": 1, "method": "ping" })")};
+/// assert(sourcemeta::core::jsonrpc_method(request) == "ping");
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_method(const sourcemeta::core::JSON &request) -> std::string_view;
 
-inline auto jsonrpc_method(const sourcemeta::core::JSON &request)
-    -> std::string_view {
-  if (!request.is_object()) {
-    return {};
-  }
-  const auto *method_field{request.try_at("method", JSONRPC_HASH_METHOD)};
-  if (method_field == nullptr || !method_field->is_string()) {
-    return {};
-  }
-  return method_field->to_string();
-}
+/// @ingroup jsonrpc
+/// Extract the params from a JSON-RPC 2.0 envelope, or `nullptr` when the
+/// value is missing or not an object or array. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto request{sourcemeta::core::parse_json(R"JSON({
+///   "jsonrpc": "2.0",
+///   "id": 1,
+///   "method": "subtract",
+///   "params": [ 42, 23 ]
+/// })JSON")};
+/// const auto *parameters{sourcemeta::core::jsonrpc_params(request)};
+/// assert(parameters != nullptr);
+/// assert(parameters->is_array());
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_params(const sourcemeta::core::JSON &request)
+    -> const sourcemeta::core::JSON *;
 
-inline auto jsonrpc_params(const sourcemeta::core::JSON &request)
-    -> const sourcemeta::core::JSON * {
-  if (!request.is_object()) {
-    return nullptr;
-  }
-  const auto *params{request.try_at("params", JSONRPC_HASH_PARAMS)};
-  if (params == nullptr || (!params->is_object() && !params->is_array())) {
-    return nullptr;
-  }
-  return params;
-}
+/// @ingroup jsonrpc
+/// Check whether the given JSON value is a well-formed JSON-RPC 2.0
+/// notification (a request without an identifier). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto request{sourcemeta::core::parse_json(
+///     R"({ "jsonrpc": "2.0", "method": "notifications/initialized" })")};
+/// assert(sourcemeta::core::jsonrpc_is_notification(request));
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_is_notification(const sourcemeta::core::JSON &request) -> bool;
 
-inline auto jsonrpc_is_notification(const sourcemeta::core::JSON &request)
-    -> bool {
-  if (!request.is_object()) {
-    return false;
-  }
-  const auto *jsonrpc_field{request.try_at("jsonrpc", JSONRPC_HASH_JSONRPC)};
-  if (jsonrpc_field == nullptr || !jsonrpc_field->is_string() ||
-      jsonrpc_field->to_string() != "2.0" ||
-      request.try_at("id", JSONRPC_HASH_ID) != nullptr) {
-    return false;
-  }
-  const auto *method_field{request.try_at("method", JSONRPC_HASH_METHOD)};
-  return method_field != nullptr && method_field->is_string();
-}
+/// @ingroup jsonrpc
+/// Construct a successful JSON-RPC 2.0 response envelope with the given
+/// identifier and result. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+/// #include <utility>
+///
+/// const auto identifier{sourcemeta::core::JSON{1}};
+/// auto result{sourcemeta::core::JSON::make_object()};
+/// result.assign("foo", sourcemeta::core::JSON{42});
+/// const auto envelope{
+///     sourcemeta::core::jsonrpc_make_success(identifier, std::move(result))};
+/// assert(envelope.at("id").to_integer() == 1);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_success(const sourcemeta::core::JSON &identifier,
+                          sourcemeta::core::JSON result)
+    -> sourcemeta::core::JSON;
 
-inline auto jsonrpc_make_success(const sourcemeta::core::JSON &id,
-                                 sourcemeta::core::JSON result)
-    -> sourcemeta::core::JSON {
-  auto envelope{sourcemeta::core::JSON::make_object()};
-  envelope.assign_assume_new(std::string{"jsonrpc"},
-                             sourcemeta::core::JSON{"2.0"},
-                             JSONRPC_HASH_JSONRPC);
-  envelope.assign_assume_new(std::string{"id"}, sourcemeta::core::JSON{id},
-                             JSONRPC_HASH_ID);
-  envelope.assign_assume_new(std::string{"result"}, std::move(result),
-                             JSONRPC_HASH_RESULT);
-  return envelope;
-}
+/// @ingroup jsonrpc
+/// Construct a successful JSON-RPC 2.0 response envelope with the given
+/// identifier and an empty object result. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto identifier{sourcemeta::core::JSON{1}};
+/// const auto envelope{
+///     sourcemeta::core::jsonrpc_make_success_empty(identifier)};
+/// assert(envelope.at("result").is_object());
+/// assert(envelope.at("result").empty());
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_success_empty(const sourcemeta::core::JSON &identifier)
+    -> sourcemeta::core::JSON;
 
-inline auto jsonrpc_make_success_empty(const sourcemeta::core::JSON &id)
-    -> sourcemeta::core::JSON {
-  return jsonrpc_make_success(id, sourcemeta::core::JSON::make_object());
-}
+/// @ingroup jsonrpc
+/// Construct a JSON-RPC 2.0 error response envelope. The identifier may be
+/// null when the originating request could not be parsed, and the optional
+/// data carries implementation-specific extra information. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto identifier{sourcemeta::core::JSON{1}};
+/// const auto envelope{sourcemeta::core::jsonrpc_make_error(
+///     &identifier, -32000, "Server error")};
+/// assert(envelope.at("error").at("code").to_integer() == -32000);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_error(const sourcemeta::core::JSON *identifier,
+                        const std::int64_t code, const std::string_view message,
+                        std::optional<sourcemeta::core::JSON> data =
+                            std::nullopt) -> sourcemeta::core::JSON;
 
-inline auto
-jsonrpc_make_error(const sourcemeta::core::JSON *id, const std::int64_t code,
-                   const std::string_view message,
-                   std::optional<sourcemeta::core::JSON> data = std::nullopt)
-    -> sourcemeta::core::JSON {
-  auto envelope{sourcemeta::core::JSON::make_object()};
-  envelope.assign_assume_new(std::string{"jsonrpc"},
-                             sourcemeta::core::JSON{"2.0"},
-                             JSONRPC_HASH_JSONRPC);
-  if (id != nullptr) {
-    envelope.assign_assume_new(std::string{"id"}, sourcemeta::core::JSON{*id},
-                               JSONRPC_HASH_ID);
-  }
-  auto error{sourcemeta::core::JSON::make_object()};
-  error.assign_assume_new(std::string{"code"}, sourcemeta::core::JSON{code},
-                          JSONRPC_HASH_CODE);
-  error.assign_assume_new(std::string{"message"},
-                          sourcemeta::core::JSON{message},
-                          JSONRPC_HASH_MESSAGE);
-  if (data.has_value()) {
-    error.assign_assume_new(std::string{"data"}, std::move(data.value()),
-                            JSONRPC_HASH_DATA);
-  }
-  envelope.assign_assume_new(std::string{"error"}, std::move(error),
-                             JSONRPC_HASH_ERROR);
-  return envelope;
-}
+/// @ingroup jsonrpc
+/// Get the canonical JSON-RPC 2.0 parse-error envelope. The returned reference
+/// is to a static instance that lives for the duration of the program. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto &envelope{sourcemeta::core::jsonrpc_make_error_parse()};
+/// assert(envelope.at("error").at("code").to_integer() == -32700);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_error_parse() -> const sourcemeta::core::JSON &;
 
-inline auto jsonrpc_make_error_parse() -> const sourcemeta::core::JSON & {
-  static const auto envelope{
-      jsonrpc_make_error(nullptr, JSONRPC_CODE_PARSE, "Parse error")};
-  return envelope;
-}
+/// @ingroup jsonrpc
+/// Construct a JSON-RPC 2.0 invalid-request error envelope, optionally
+/// carrying the offending request identifier. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto envelope{sourcemeta::core::jsonrpc_make_error_invalid_request()};
+/// assert(envelope.at("error").at("code").to_integer() == -32600);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_error_invalid_request(
+    const sourcemeta::core::JSON *identifier = nullptr)
+    -> sourcemeta::core::JSON;
 
-inline auto
-jsonrpc_make_error_invalid_request(const sourcemeta::core::JSON *id = nullptr)
-    -> sourcemeta::core::JSON {
-  return jsonrpc_make_error(id, JSONRPC_CODE_INVALID_REQUEST,
-                            "Invalid Request");
-}
+/// @ingroup jsonrpc
+/// Construct a JSON-RPC 2.0 method-not-found error envelope for the given
+/// request identifier. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto identifier{sourcemeta::core::JSON{2}};
+/// const auto envelope{
+///     sourcemeta::core::jsonrpc_make_error_method_not_found(identifier)};
+/// assert(envelope.at("error").at("code").to_integer() == -32601);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_error_method_not_found(
+    const sourcemeta::core::JSON &identifier) -> sourcemeta::core::JSON;
 
-inline auto
-jsonrpc_make_error_method_not_found(const sourcemeta::core::JSON &id)
-    -> sourcemeta::core::JSON {
-  return jsonrpc_make_error(&id, JSONRPC_CODE_METHOD_NOT_FOUND,
-                            "Method not found");
-}
-
-inline auto jsonrpc_make_error_invalid_params(
-    const sourcemeta::core::JSON &id,
+/// @ingroup jsonrpc
+/// Construct a JSON-RPC 2.0 invalid-params error envelope for the given
+/// request identifier, optionally carrying implementation-specific data. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto identifier{sourcemeta::core::JSON{"req-7"}};
+/// const auto envelope{
+///     sourcemeta::core::jsonrpc_make_error_invalid_params(identifier)};
+/// assert(envelope.at("error").at("code").to_integer() == -32602);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_error_invalid_params(
+    const sourcemeta::core::JSON &identifier,
     std::optional<sourcemeta::core::JSON> data = std::nullopt)
-    -> sourcemeta::core::JSON {
-  return jsonrpc_make_error(&id, JSONRPC_CODE_INVALID_PARAMS, "Invalid params",
-                            std::move(data));
-}
+    -> sourcemeta::core::JSON;
 
-inline auto
-jsonrpc_make_error_internal(const sourcemeta::core::JSON *id = nullptr)
-    -> sourcemeta::core::JSON {
-  return jsonrpc_make_error(id, JSONRPC_CODE_INTERNAL, "Internal error");
-}
+/// @ingroup jsonrpc
+/// Construct a JSON-RPC 2.0 internal-error envelope, optionally carrying the
+/// offending request identifier. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jsonrpc.h>
+/// #include <cassert>
+///
+/// const auto envelope{sourcemeta::core::jsonrpc_make_error_internal()};
+/// assert(envelope.at("error").at("code").to_integer() == -32603);
+/// ```
+SOURCEMETA_CORE_JSONRPC_EXPORT
+auto jsonrpc_make_error_internal(const sourcemeta::core::JSON *identifier =
+                                     nullptr) -> sourcemeta::core::JSON;
 
 } // namespace sourcemeta::core
 
