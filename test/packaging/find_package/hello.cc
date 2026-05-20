@@ -7,6 +7,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonl.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/jsonrpc.h>
 #include <sourcemeta/core/jsonschema.h>
 #include <sourcemeta/core/markdown.h>
 #include <sourcemeta/core/numeric.h>
