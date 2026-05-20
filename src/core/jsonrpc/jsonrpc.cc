@@ -64,6 +64,11 @@ auto jsonrpc_is_request(const sourcemeta::core::JSON &request) -> bool {
       jsonrpc_request_id(request) == nullptr) {
     return false;
   }
+  const auto *parameters_field{request.try_at("params", JSONRPC_HASH_PARAMS)};
+  if (parameters_field != nullptr && !parameters_field->is_object() &&
+      !parameters_field->is_array()) {
+    return false;
+  }
   const auto *method_field{request.try_at("method", JSONRPC_HASH_METHOD)};
   return method_field != nullptr && method_field->is_string();
 }
@@ -100,6 +105,11 @@ auto jsonrpc_is_notification(const sourcemeta::core::JSON &request) -> bool {
   if (jsonrpc_field == nullptr || !jsonrpc_field->is_string() ||
       jsonrpc_field->to_string() != "2.0" ||
       request.try_at("id", JSONRPC_HASH_ID) != nullptr) {
+    return false;
+  }
+  const auto *parameters_field{request.try_at("params", JSONRPC_HASH_PARAMS)};
+  if (parameters_field != nullptr && !parameters_field->is_object() &&
+      !parameters_field->is_array()) {
     return false;
   }
   const auto *method_field{request.try_at("method", JSONRPC_HASH_METHOD)};

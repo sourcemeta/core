@@ -184,6 +184,24 @@ TEST(JSONRPC, is_request_primitive) {
   EXPECT_FALSE(sourcemeta::core::jsonrpc_is_request(request));
 }
 
+TEST(JSONRPC, is_request_primitive_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": 1, "method": "ping", "params": "x" })")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_request(request));
+}
+
+TEST(JSONRPC, is_request_null_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": 1, "method": "ping", "params": null })")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_request(request));
+}
+
+TEST(JSONRPC, is_request_omitted_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": 1, "method": "ping" })")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_request(request));
+}
+
 TEST(JSONRPC, is_notification_valid) {
   const auto request{sourcemeta::core::parse_json(
       R"({ "jsonrpc": "2.0", "method": "notifications/initialized" })")};
@@ -227,6 +245,30 @@ TEST(JSONRPC, is_notification_wrong_jsonrpc_version) {
 TEST(JSONRPC, is_notification_array) {
   const auto request{sourcemeta::core::parse_json(R"([ 1, 2 ])")};
   EXPECT_FALSE(sourcemeta::core::jsonrpc_is_notification(request));
+}
+
+TEST(JSONRPC, is_notification_primitive_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "method": "ping", "params": "x" })")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_notification(request));
+}
+
+TEST(JSONRPC, is_notification_null_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "method": "ping", "params": null })")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_notification(request));
+}
+
+TEST(JSONRPC, is_notification_array_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "method": "ping", "params": [ 1, 2 ] })")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(request));
+}
+
+TEST(JSONRPC, is_notification_object_params) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "method": "ping", "params": { "x": 1 } })")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_notification(request));
 }
 
 TEST(JSONRPC, method_present) {
