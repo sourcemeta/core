@@ -727,6 +727,73 @@ TEST(JSONSchema_bundle_2020_12, metaschema) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(JSONSchema_bundle_2020_12, openapi_3_1_dialect) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
+    "$schema": "https://spec.openapis.org/oas/3.1/dialect/base",
+    "type": "object"
+  })JSON");
+
+  sourcemeta::core::bundle(document, sourcemeta::core::schema_walker,
+                           test_resolver);
+
+  EXPECT_EQ(document.at("$schema").to_string(),
+            "https://spec.openapis.org/oas/3.1/dialect/base");
+  EXPECT_TRUE(document.defines("$defs"));
+  EXPECT_TRUE(document.at("$defs").is_object());
+  EXPECT_EQ(document.at("$defs").size(), 10);
+
+  EXPECT_EQ(
+      document.at("$defs").at("https://spec.openapis.org/oas/3.1/dialect/base"),
+      sourcemeta::core::schema_resolver(
+          "https://spec.openapis.org/oas/3.1/dialect/base")
+          .value());
+  EXPECT_EQ(
+      document.at("$defs").at("https://spec.openapis.org/oas/3.1/meta/base"),
+      sourcemeta::core::schema_resolver(
+          "https://spec.openapis.org/oas/3.1/meta/base")
+          .value());
+  EXPECT_EQ(
+      document.at("$defs").at("https://json-schema.org/draft/2020-12/schema"),
+      sourcemeta::core::schema_resolver(
+          "https://json-schema.org/draft/2020-12/schema")
+          .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/core"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/core")
+                .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/applicator"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/applicator")
+                .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/unevaluated"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/unevaluated")
+                .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/validation"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/validation")
+                .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/meta-data"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/meta-data")
+                .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/format-annotation"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/format-annotation")
+                .value());
+  EXPECT_EQ(document.at("$defs").at(
+                "https://json-schema.org/draft/2020-12/meta/content"),
+            sourcemeta::core::schema_resolver(
+                "https://json-schema.org/draft/2020-12/meta/content")
+                .value());
+}
+
 TEST(JSONSchema_bundle_2020_12, hyperschema_smoke) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
