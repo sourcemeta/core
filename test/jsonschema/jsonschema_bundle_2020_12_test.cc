@@ -742,21 +742,21 @@ TEST(JSONSchema_bundle_2020_12, openapi_3_1_dialect) {
   EXPECT_TRUE(document.at("$defs").is_object());
   EXPECT_EQ(document.at("$defs").size(), 10);
 
-  EXPECT_EQ(document.at("$defs").at(
-                "https://spec.openapis.org/oas/3.1/dialect/base"),
-            sourcemeta::core::schema_resolver(
-                "https://spec.openapis.org/oas/3.1/dialect/base")
-                .value());
-  EXPECT_EQ(document.at("$defs").at(
-                "https://spec.openapis.org/oas/3.1/meta/base"),
-            sourcemeta::core::schema_resolver(
-                "https://spec.openapis.org/oas/3.1/meta/base")
-                .value());
-  EXPECT_EQ(document.at("$defs").at(
-                "https://json-schema.org/draft/2020-12/schema"),
-            sourcemeta::core::schema_resolver(
-                "https://json-schema.org/draft/2020-12/schema")
-                .value());
+  EXPECT_EQ(
+      document.at("$defs").at("https://spec.openapis.org/oas/3.1/dialect/base"),
+      sourcemeta::core::schema_resolver(
+          "https://spec.openapis.org/oas/3.1/dialect/base")
+          .value());
+  EXPECT_EQ(
+      document.at("$defs").at("https://spec.openapis.org/oas/3.1/meta/base"),
+      sourcemeta::core::schema_resolver(
+          "https://spec.openapis.org/oas/3.1/meta/base")
+          .value());
+  EXPECT_EQ(
+      document.at("$defs").at("https://json-schema.org/draft/2020-12/schema"),
+      sourcemeta::core::schema_resolver(
+          "https://json-schema.org/draft/2020-12/schema")
+          .value());
   EXPECT_EQ(document.at("$defs").at(
                 "https://json-schema.org/draft/2020-12/meta/core"),
             sourcemeta::core::schema_resolver(
