@@ -404,12 +404,16 @@ TEST(EditorSchema, 2020_12_bundle_metaschema) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "string",
+    "$ref": "#/$defs/__sourcemeta-core-bundle__",
     "$defs": {
-      "https://example.com/meta/1.json": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      "__sourcemeta-core-bundle__": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string"
       },
       "https://example.com/meta/2.json": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "https://example.com/meta/1.json": {
         "$schema": "https://json-schema.org/draft/2020-12/schema"
       }
     }
@@ -483,12 +487,16 @@ TEST(EditorSchema, 2019_09_bundle_metaschema) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "https://json-schema.org/draft/2019-09/schema",
-    "type": "string",
+    "$ref": "#/$defs/__sourcemeta-core-bundle__",
     "$defs": {
-      "https://example.com/meta/1.json": {
-        "$schema": "https://json-schema.org/draft/2019-09/schema"
+      "__sourcemeta-core-bundle__": {
+        "$schema": "https://json-schema.org/draft/2019-09/schema",
+        "type": "string"
       },
       "https://example.com/meta/2.json": {
+        "$schema": "https://json-schema.org/draft/2019-09/schema"
+      },
+      "https://example.com/meta/1.json": {
         "$schema": "https://json-schema.org/draft/2019-09/schema"
       }
     }
@@ -622,12 +630,18 @@ TEST(EditorSchema, draft7_bundle_metaschema) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "type": "string",
+    "allOf": [
+      { "$ref": "#/definitions/__sourcemeta-core-bundle__" }
+    ],
     "definitions": {
-      "https://example.com/meta/1.json": {
-        "$schema": "http://json-schema.org/draft-07/schema#"
+      "__sourcemeta-core-bundle__": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
       },
       "https://example.com/meta/2.json": {
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "https://example.com/meta/1.json": {
         "$schema": "http://json-schema.org/draft-07/schema#"
       }
     }
@@ -687,12 +701,18 @@ TEST(EditorSchema, draft6_bundle_metaschema) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-06/schema#",
-    "type": "string",
+    "allOf": [
+      { "$ref": "#/definitions/__sourcemeta-core-bundle__" }
+    ],
     "definitions": {
-      "https://example.com/meta/1.json": {
-        "$schema": "http://json-schema.org/draft-06/schema#"
+      "__sourcemeta-core-bundle__": {
+        "$schema": "http://json-schema.org/draft-06/schema#",
+        "type": "string"
       },
       "https://example.com/meta/2.json": {
+        "$schema": "http://json-schema.org/draft-06/schema#"
+      },
+      "https://example.com/meta/1.json": {
         "$schema": "http://json-schema.org/draft-06/schema#"
       }
     }
@@ -752,12 +772,18 @@ TEST(EditorSchema, draft4_bundle_metaschema) {
 
   const auto expected = sourcemeta::core::parse_json(R"JSON({
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "type": "string",
+    "allOf": [
+      { "$ref": "#/definitions/__sourcemeta-core-bundle__" }
+    ],
     "definitions": {
-      "https://example.com/meta/1.json": {
-        "$schema": "http://json-schema.org/draft-04/schema#"
+      "__sourcemeta-core-bundle__": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "type": "string"
       },
       "https://example.com/meta/2.json": {
+        "$schema": "http://json-schema.org/draft-04/schema#"
+      },
+      "https://example.com/meta/1.json": {
         "$schema": "http://json-schema.org/draft-04/schema#"
       }
     }

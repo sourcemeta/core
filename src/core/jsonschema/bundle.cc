@@ -13,15 +13,6 @@
 
 namespace {
 
-auto is_official_metaschema_reference(
-    const sourcemeta::core::WeakPointer &pointer,
-    const std::string &destination) -> bool {
-  assert(!pointer.empty());
-  assert(pointer.back().is_property());
-  return pointer.back().to_property() == "$schema" &&
-         sourcemeta::core::is_official_schema(destination);
-}
-
 auto dependencies_internal(const sourcemeta::core::JSON &schema,
                            const sourcemeta::core::SchemaWalker &walker,
                            const sourcemeta::core::SchemaResolver &resolver,
@@ -29,7 +20,8 @@ auto dependencies_internal(const sourcemeta::core::JSON &schema,
                            std::string_view default_dialect,
                            std::string_view default_id,
                            const sourcemeta::core::SchemaFrame::Paths &paths,
-                           std::unordered_set<std::string> &visited) -> void {
+                           std::unordered_set<std::string> &visited,
+                           const bool include_official_refs) -> void {
   sourcemeta::core::SchemaFrame frame{
       sourcemeta::core::SchemaFrame::Mode::References};
   frame.analyse(schema, walker, resolver, default_dialect, default_id, paths);
@@ -43,8 +35,12 @@ auto dependencies_internal(const sourcemeta::core::JSON &schema,
   frame.for_each_unresolved_reference([&](const auto &pointer,
                                           const auto &reference) {
     // We don't want to report official schemas, as we can expect
-    // virtually all implementations to understand them out of the box
-    if (is_official_metaschema_reference(pointer, reference.destination)) {
+    // virtually all implementations to understand them out of the box.
+    // The exception is when the top-level input itself has an official
+    // identifier: reporting dependencies of such a document is an
+    // explicit ask for the full graph of officials it depends on
+    if (!include_official_refs &&
+        sourcemeta::core::is_official_schema(reference.destination)) {
       return;
     }
 
@@ -98,14 +94,22 @@ auto dependencies_internal(const sourcemeta::core::JSON &schema,
   for (const auto &entry : found) {
     dependencies_internal(std::get<0>(entry), walker, resolver, callback,
                           default_dialect, std::get<1>(entry),
-                          {sourcemeta::core::empty_weak_pointer}, visited);
+                          {sourcemeta::core::empty_weak_pointer}, visited,
+                          include_official_refs);
   }
 }
 
 auto embed_schema(sourcemeta::core::JSON &root,
                   const sourcemeta::core::Pointer &container,
                   const std::string_view identifier,
+                  const std::string_view reserved_identifier,
                   sourcemeta::core::JSON &&target) -> void {
+  if (!reserved_identifier.empty() && identifier == reserved_identifier) {
+    throw sourcemeta::core::SchemaReservedIdentifierError(
+        identifier,
+        "This identifier is reserved by the bundler for internal use");
+  }
+
   auto *current{&root};
   for (const auto &token : container) {
     if (token.is_property()) {
@@ -137,7 +141,7 @@ auto elevate_embedded_resources(
     const sourcemeta::core::Pointer &container,
     const sourcemeta::core::SchemaBaseDialect remote_dialect,
     const sourcemeta::core::SchemaResolver &resolver,
-    std::string_view default_dialect,
+    std::string_view default_dialect, std::string_view reserved_identifier,
     std::unordered_map<sourcemeta::core::JSON::String,
                        sourcemeta::core::JSON::String> &bundled) -> void {
   const auto keyword{sourcemeta::core::definitions_keyword(remote_dialect)};
@@ -216,7 +220,7 @@ auto elevate_embedded_resources(
   for (const auto &key : to_extract) {
     auto value{std::move(defs.at(key))};
     defs.erase(key);
-    embed_schema(root, container, key, std::move(value));
+    embed_schema(root, container, key, reserved_identifier, std::move(value));
   }
 
   for (const auto &key : to_remove) {
@@ -238,6 +242,8 @@ auto bundle_schema(sourcemeta::core::JSON &root,
                    const sourcemeta::core::SchemaFrame::Paths &paths,
                    std::unordered_map<sourcemeta::core::JSON::String,
                                       sourcemeta::core::JSON::String> &bundled,
+                   const bool include_official_refs,
+                   std::string_view reserved_identifier,
                    const std::size_t depth = 0) -> void {
   // Create a fresh frame for each schema we analyze to avoid key collisions
   // between different schemas that have references at the same pointer paths
@@ -262,17 +268,13 @@ auto bundle_schema(sourcemeta::core::JSON &root,
   frame.for_each_unresolved_reference([&](const auto &pointer,
                                           const auto &reference) {
     // We don't want to bundle official schemas, as we can expect
-    // virtually all implementations to understand them out of the box
-    if (is_official_metaschema_reference(pointer, reference.destination)) {
+    // virtually all implementations to understand them out of the box.
+    // The exception is when the top-level input itself has an official
+    // identifier: bundling such a document is an explicit ask for the
+    // full graph of official references it depends on
+    if (!include_official_refs &&
+        sourcemeta::core::is_official_schema(reference.destination)) {
       return;
-    }
-
-    // If we can't find the destination but there is a base and we can
-    // find base, then we are facing an unresolved fragment
-    if (!reference.base.empty() && frame.traverse(reference.base).has_value()) {
-      throw sourcemeta::core::SchemaReferenceError(
-          reference.destination, sourcemeta::core::to_pointer(pointer),
-          "Could not resolve schema reference");
     }
 
     if (reference.base.empty()) {
@@ -294,9 +296,27 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
         ref_rewrites.emplace_back(sourcemeta::core::to_pointer(pointer),
                                   rewrite_uri.recompose());
+        return;
+      }
+
+      // Identity mapping: the base resource is in the bundle but the
+      // destination fragment could not be traversed, which is a broken
+      // reference
+      if (frame.traverse(reference.base).has_value()) {
+        throw sourcemeta::core::SchemaReferenceError(
+            reference.destination, sourcemeta::core::to_pointer(pointer),
+            "Could not resolve schema reference");
       }
 
       return;
+    }
+
+    // If we can't find the destination but there is a base and we can
+    // find base, then we are facing an unresolved fragment
+    if (frame.traverse(reference.base).has_value()) {
+      throw sourcemeta::core::SchemaReferenceError(
+          reference.destination, sourcemeta::core::to_pointer(pointer),
+          "Could not resolve schema reference");
     }
 
     auto remote{resolver(identifier)};
@@ -376,10 +396,13 @@ auto bundle_schema(sourcemeta::core::JSON &root,
 
   for (auto &[remote, effective_id, remote_dialect] : deferred) {
     bundle_schema(root, container, remote, walker, resolver, default_dialect,
-                  effective_id, paths, bundled, depth + 1);
+                  effective_id, paths, bundled, include_official_refs,
+                  reserved_identifier, depth + 1);
     elevate_embedded_resources(remote, root, container, remote_dialect,
-                               resolver, default_dialect, bundled);
-    embed_schema(root, container, effective_id, std::move(remote));
+                               resolver, default_dialect, reserved_identifier,
+                               bundled);
+    embed_schema(root, container, effective_id, reserved_identifier,
+                 std::move(remote));
   }
 }
 
@@ -393,8 +416,10 @@ auto dependencies(const JSON &schema, const SchemaWalker &walker,
                   std::string_view default_dialect, std::string_view default_id,
                   const SchemaFrame::Paths &paths) -> void {
   std::unordered_set<std::string> visited;
+  const bool include_official_refs{
+      is_official_schema(identify(schema, resolver, default_dialect))};
   dependencies_internal(schema, walker, resolver, callback, default_dialect,
-                        default_id, paths, visited);
+                        default_id, paths, visited, include_official_refs);
 }
 
 // TODO: Refactor this function to internally rely on the `.dependencies()`
@@ -404,10 +429,137 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
             std::string_view default_id,
             const std::optional<Pointer> &default_container,
             const SchemaFrame::Paths &paths) -> void {
+  std::unordered_map<JSON::String, JSON::String> bundled;
+
+  constexpr std::string_view BUNDLE_FALLBACK_IDENTIFIER{
+      "__sourcemeta-core-bundle__"};
+  std::string_view reserved_identifier;
+
+  // If the user's input itself has an identifier that corresponds to an
+  // official schema (e.g. a JSON Schema meta-schema being bundled
+  // explicitly), then the user is asking for the full graph of officials
+  // they depend on. The default filter that skips official references
+  // does not apply
+  const bool include_official_refs{
+      is_official_schema(identify(schema, resolver, default_dialect))};
+
+  // When the outer schema declares a non-official meta-schema, wrap the
+  // document in an envelope whose dialect matches the input's base
+  // dialect so the resulting compound document has an unambiguous outer
+  // dialect (and thus a deterministic container keyword). The original
+  // schema lives in the container with its identifier rephrased via an
+  // extra `/x` path segment, and any reference targeting the original
+  // identifier is rewritten on the fly via the shared `bundled` map below
+  if (!default_container.has_value()) {
+    const auto outer_dialect{dialect(schema, default_dialect)};
+    if (!outer_dialect.empty() && !is_official_schema(outer_dialect)) {
+      // Inject `default_id` ahead of elevation so the envelope can carry
+      // it as its top-level identifier
+      if (!default_id.empty() &&
+          identify(schema, resolver, default_dialect).empty()) {
+        reidentify(schema, default_id, resolver, default_dialect);
+      }
+
+      const auto inner_base_dialect{
+          base_dialect(schema, resolver, default_dialect)};
+      if (!inner_base_dialect.has_value()) {
+        throw SchemaError(
+            "Could not determine how to perform bundling in this dialect");
+      }
+
+      const auto envelope_container{
+          definitions_keyword(inner_base_dialect.value())};
+      if (envelope_container.empty()) {
+        throw SchemaError(
+            "Could not determine how to perform bundling in this dialect");
+      }
+
+      const JSON::String original_id{
+          identify(schema, resolver, default_dialect)};
+
+      // Discover existing resource URIs in the input so the rephrased
+      // inner URI does not collide with a sub-resource the user authored
+      std::unordered_set<JSON::String> existing_uris;
+      {
+        SchemaFrame discovery_frame{SchemaFrame::Mode::Locations};
+        discovery_frame.analyse(schema, walker, resolver, default_dialect,
+                                default_id, paths);
+        discovery_frame.for_each_resource_uri(
+            [&](const auto &uri) { existing_uris.emplace(JSON::String{uri}); });
+      }
+
+      JSON::String inner_id;
+      if (!original_id.empty()) {
+        URI inner_uri{std::string{original_id}};
+        inner_uri.append_path("x");
+        inner_uri.canonicalize();
+        inner_id = inner_uri.recompose();
+        while (existing_uris.contains(inner_id)) {
+          inner_uri.append_path("x");
+          inner_id = inner_uri.recompose();
+        }
+      } else {
+        inner_id = JSON::String{BUNDLE_FALLBACK_IDENTIFIER};
+        URI inner_uri{inner_id};
+        while (existing_uris.contains(inner_id)) {
+          inner_uri.append_path("x");
+          inner_id = inner_uri.recompose();
+        }
+        // The bundler is using its reserved fallback identifier as the
+        // identity of the embedded inner. From this point on, any other
+        // schema we bundle must not declare this same identifier
+        reserved_identifier = BUNDLE_FALLBACK_IDENTIFIER;
+      }
+
+      auto inner_copy{schema};
+      reidentify(inner_copy, inner_id, resolver, default_dialect);
+
+      auto envelope{JSON::make_object()};
+      envelope.assign_assume_new("$schema",
+                                 JSON{to_string(inner_base_dialect.value())});
+      if (!original_id.empty()) {
+        envelope.assign_assume_new(
+            JSON::String{id_keyword(inner_base_dialect.value())},
+            JSON{original_id});
+      }
+
+      // In Draft 7 and older, `$ref` overrides sibling keywords, so we
+      // route the redirect through `allOf` (or `extends` for Draft 3)
+      // instead of using a top-level `$ref`
+      if (ref_overrides_adjacent_keywords(inner_base_dialect.value())) {
+        auto ref_branch{JSON::make_object()};
+        ref_branch.assign_assume_new("$ref", JSON{inner_id});
+        auto branches{JSON::make_array()};
+        branches.push_back(std::move(ref_branch));
+        const bool is_draft3{inner_base_dialect.value() ==
+                                 SchemaBaseDialect::JSON_Schema_Draft_3 ||
+                             inner_base_dialect.value() ==
+                                 SchemaBaseDialect::JSON_Schema_Draft_3_Hyper};
+        envelope.assign_assume_new(is_draft3 ? "extends" : "allOf",
+                                   std::move(branches));
+      } else {
+        envelope.assign_assume_new("$ref", JSON{inner_id});
+      }
+
+      envelope.assign_assume_new(JSON::String{envelope_container},
+                                 JSON::make_object());
+      envelope.at(JSON::String{envelope_container})
+          .assign_assume_new(inner_id, std::move(inner_copy));
+
+      schema = std::move(envelope);
+
+      // Seed the rewrite mapping. Every reference (in the inner itself
+      // and in every schema bundle subsequently pulls in) that targets
+      // `original_id` will be retargeted at `inner_id`
+      if (!original_id.empty()) {
+        bundled.emplace(original_id, inner_id);
+      }
+    }
+  }
+
   // Pre-scan the schema to find any already-embedded schemas and mark them
   // as bundled to avoid re-embedding them. This includes the root schema itself
   // and any schemas already embedded within it
-  std::unordered_map<JSON::String, JSON::String> bundled;
   SchemaFrame initial_frame{SchemaFrame::Mode::Locations};
   initial_frame.analyse(schema, walker, resolver, default_dialect, default_id,
                         paths);
@@ -418,7 +570,8 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
     // This is undefined behavior
     assert(!default_container.value().empty());
     bundle_schema(schema, default_container.value(), schema, walker, resolver,
-                  default_dialect, default_id, paths, bundled);
+                  default_dialect, default_id, paths, bundled,
+                  include_official_refs, reserved_identifier);
     return;
   }
 
@@ -471,7 +624,8 @@ auto bundle(JSON &schema, const SchemaWalker &walker,
   }
 
   bundle_schema(schema, {JSON::String{container_keyword}}, schema, walker,
-                resolver, default_dialect, default_id, paths, bundled);
+                resolver, default_dialect, default_id, paths, bundled,
+                include_official_refs, reserved_identifier);
 }
 
 auto bundle(const JSON &schema, const SchemaWalker &walker,
