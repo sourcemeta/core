@@ -78,12 +78,29 @@ TEST(JSONRPC, request_id_missing) {
 TEST(JSONRPC, request_id_null) {
   const auto request{sourcemeta::core::parse_json(
       R"({ "jsonrpc": "2.0", "id": null, "method": "ping" })")};
-  EXPECT_EQ(sourcemeta::core::jsonrpc_request_id(request), nullptr);
+  const auto *identifier{sourcemeta::core::jsonrpc_request_id(request)};
+  ASSERT_NE(identifier, nullptr);
+  EXPECT_TRUE(identifier->is_null());
 }
 
 TEST(JSONRPC, request_id_floating_point) {
   const auto request{sourcemeta::core::parse_json(
       R"({ "jsonrpc": "2.0", "id": 1.5, "method": "ping" })")};
+  const auto *identifier{sourcemeta::core::jsonrpc_request_id(request)};
+  ASSERT_NE(identifier, nullptr);
+  EXPECT_TRUE(identifier->is_real());
+  EXPECT_EQ(identifier->to_real(), 1.5);
+}
+
+TEST(JSONRPC, request_id_boolean) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": true, "method": "ping" })")};
+  EXPECT_EQ(sourcemeta::core::jsonrpc_request_id(request), nullptr);
+}
+
+TEST(JSONRPC, request_id_object) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": {}, "method": "ping" })")};
   EXPECT_EQ(sourcemeta::core::jsonrpc_request_id(request), nullptr);
 }
 
@@ -118,7 +135,13 @@ TEST(JSONRPC, is_request_missing_id) {
 TEST(JSONRPC, is_request_null_id) {
   const auto request{sourcemeta::core::parse_json(
       R"({ "jsonrpc": "2.0", "id": null, "method": "ping" })")};
-  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_request(request));
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_request(request));
+}
+
+TEST(JSONRPC, is_request_floating_point_id) {
+  const auto request{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": 1.5, "method": "ping" })")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_request(request));
 }
 
 TEST(JSONRPC, is_request_missing_method) {
@@ -364,6 +387,7 @@ TEST(JSONRPC, make_error_without_id) {
       sourcemeta::core::jsonrpc_make_error(nullptr, -32000, "Server error")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
+    "id": null,
     "error": {
       "code": -32000,
       "message": "Server error"
@@ -379,6 +403,7 @@ TEST(JSONRPC, make_error_without_id_with_object_data) {
       nullptr, -32000, "Server error", std::move(data))};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
+    "id": null,
     "error": {
       "code": -32000,
       "message": "Server error",
@@ -392,6 +417,7 @@ TEST(JSONRPC, make_error_parse) {
   const auto &envelope{sourcemeta::core::jsonrpc_make_error_parse()};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
+    "id": null,
     "error": {
       "code": -32700,
       "message": "Parse error"
@@ -425,6 +451,7 @@ TEST(JSONRPC, make_error_invalid_request_without_id) {
   const auto envelope{sourcemeta::core::jsonrpc_make_error_invalid_request()};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
+    "id": null,
     "error": {
       "code": -32600,
       "message": "Invalid Request"
@@ -498,6 +525,7 @@ TEST(JSONRPC, make_error_internal_without_id) {
   const auto envelope{sourcemeta::core::jsonrpc_make_error_internal()};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
+    "id": null,
     "error": {
       "code": -32603,
       "message": "Internal error"

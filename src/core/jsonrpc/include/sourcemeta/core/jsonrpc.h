@@ -68,8 +68,10 @@ SOURCEMETA_CORE_JSONRPC_EXPORT
 auto jsonrpc_is_server_error(const std::int64_t code) -> bool;
 
 /// @ingroup jsonrpc
-/// Extract the request identifier from a JSON-RPC 2.0 envelope, or `nullptr`
-/// when the value is not a valid string or integer identifier. For example:
+/// Extract the request identifier from a JSON-RPC 2.0 envelope. Returns a
+/// pointer to the identifier (string, number, or null per the specification)
+/// or `nullptr` when the field is missing or not one of those types. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -199,9 +201,10 @@ auto jsonrpc_make_success_empty(const sourcemeta::core::JSON &identifier)
     -> sourcemeta::core::JSON;
 
 /// @ingroup jsonrpc
-/// Construct a JSON-RPC 2.0 error response envelope. The identifier may be
-/// null when the originating request could not be parsed, and the optional
-/// data carries implementation-specific extra information. For example:
+/// Construct a JSON-RPC 2.0 error response envelope. Passing `nullptr` for the
+/// identifier writes an `"id": null` member, as the specification requires
+/// when the originating request could not be parsed. The optional data
+/// carries implementation-specific extra information. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

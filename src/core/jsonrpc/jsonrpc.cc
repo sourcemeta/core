@@ -44,8 +44,11 @@ auto jsonrpc_request_id(const sourcemeta::core::JSON &request)
     return nullptr;
   }
   const auto *identifier{request.try_at("id", JSONRPC_HASH_ID)};
-  if (identifier == nullptr ||
-      (!identifier->is_string() && !identifier->is_integer())) {
+  if (identifier == nullptr) {
+    return nullptr;
+  }
+  if (!identifier->is_string() && !identifier->is_number() &&
+      !identifier->is_null()) {
     return nullptr;
   }
   return identifier;
@@ -131,11 +134,11 @@ auto jsonrpc_make_error(const sourcemeta::core::JSON *identifier,
   envelope.assign_assume_new(std::string{"jsonrpc"},
                              sourcemeta::core::JSON{"2.0"},
                              JSONRPC_HASH_JSONRPC);
-  if (identifier != nullptr) {
-    envelope.assign_assume_new(std::string{"id"},
-                               sourcemeta::core::JSON{*identifier},
-                               JSONRPC_HASH_ID);
-  }
+  envelope.assign_assume_new(std::string{"id"},
+                             identifier != nullptr
+                                 ? sourcemeta::core::JSON{*identifier}
+                                 : sourcemeta::core::JSON{nullptr},
+                             JSONRPC_HASH_ID);
   auto error{sourcemeta::core::JSON::make_object()};
   error.assign_assume_new(std::string{"code"}, sourcemeta::core::JSON{code},
                           JSONRPC_HASH_CODE);
