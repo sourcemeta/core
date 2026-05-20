@@ -536,3 +536,17 @@ auto sourcemeta::core::is_known_schema(
     const std::string_view identifier) noexcept -> bool {
   return parse_identifier(identifier) != KnownSchema::UNKNOWN;
 }
+
+auto sourcemeta::core::is_official_schema(
+    const std::string_view identifier) noexcept -> bool {
+  switch (parse_identifier(identifier)) {
+    case KnownSchema::OAS_3_2_DIALECT_2025_09_17:
+    case KnownSchema::OAS_3_2_META_2025_09_17:
+    case KnownSchema::OAS_3_1_DIALECT_BASE:
+    case KnownSchema::OAS_3_1_META_BASE:
+    case KnownSchema::UNKNOWN:
+      return false;
+    default:
+      return true;
+  }
+}

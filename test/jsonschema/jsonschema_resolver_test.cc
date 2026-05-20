@@ -577,3 +577,162 @@ TEST(JSONSchema_resolver, is_known_schema_unknown) {
                    "http://json-schema.org/draft-99/schema")
                    .has_value());
 }
+
+TEST(JSONSchema_resolver, is_official_schema_2020_12) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft/2020-12/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/hyper-schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/applicator"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/core"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/format-annotation"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/format-assertion"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/hyper-schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/meta-data"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/unevaluated"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/meta/validation"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/links"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2020-12/output/schema"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_2019_09) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft/2019-09/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/hyper-schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/meta/applicator"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/meta/core"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/meta/format"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/meta/hyper-schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/meta/meta-data"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/meta/validation"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/links"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/output/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft/2019-09/output/hyper-schema"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft7) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-07/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-07/schema"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "https://json-schema.org/draft-07/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-07/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-07/links#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-07/hyper-schema-output"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft6) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-06/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-06/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-06/links#"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft4) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-04/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-04/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-04/links#"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft3) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-03/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-03/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-03/links#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-03/json-ref#"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft2) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-02/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-02/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-02/links#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-02/json-ref#"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft1) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-01/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-01/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-01/links#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-01/json-ref#"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_draft0) {
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-00/schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-00/hyper-schema#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-00/links#"));
+  EXPECT_TRUE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-00/json-ref#"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_openapi_3_1) {
+  EXPECT_FALSE(sourcemeta::core::is_official_schema(
+      "https://spec.openapis.org/oas/3.1/dialect/base"));
+  EXPECT_FALSE(sourcemeta::core::is_official_schema(
+      "https://spec.openapis.org/oas/3.1/meta/base"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_openapi_3_2) {
+  EXPECT_FALSE(sourcemeta::core::is_official_schema(
+      "https://spec.openapis.org/oas/3.2/dialect/2025-09-17"));
+  EXPECT_FALSE(sourcemeta::core::is_official_schema(
+      "https://spec.openapis.org/oas/3.2/meta/2025-09-17"));
+}
+
+TEST(JSONSchema_resolver, is_official_schema_unknown) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_official_schema("https://example.com/foobar"));
+  EXPECT_FALSE(sourcemeta::core::is_official_schema(""));
+  EXPECT_FALSE(sourcemeta::core::is_official_schema(
+      "http://json-schema.org/draft-99/schema"));
+}
