@@ -57,19 +57,21 @@ function(sourcemeta_add_default_options visibility target)
       # See https://users.cs.utah.edu/~regehr/papers/overflow12.pdf
       # See https://www.postgresql.org/message-id/1689.1134422394@sss.pgh.pa.us
       -fwrapv
+      # Fast-math relaxations relax IEEE conformance (errno after math.h,
+      # signed-zero handling, reassociation), so they affect observable
+      # behavior and must apply to every config to keep Debug and Release
+      # semantics aligned
+      -fno-math-errno
+      -fno-trapping-math
+      -fno-signed-zeros
+      -freciprocal-math
+      -fassociative-math
 
       # Optimization-only: emitted only when not building Debug. At -O0 these
       # run analyses that never reach codegen, costing build time for no
       # behavioral effect
       $<$<NOT:$<CONFIG:Debug>>:-funroll-loops>
-      $<$<NOT:$<CONFIG:Debug>>:-ftree-vectorize>
-
-      # Fast-math relaxations: only meaningful with -O1+ vectorization
-      $<$<NOT:$<CONFIG:Debug>>:-fno-math-errno>
-      $<$<NOT:$<CONFIG:Debug>>:-fno-trapping-math>
-      $<$<NOT:$<CONFIG:Debug>>:-fno-signed-zeros>
-      $<$<NOT:$<CONFIG:Debug>>:-freciprocal-math>
-      $<$<NOT:$<CONFIG:Debug>>:-fassociative-math>)
+      $<$<NOT:$<CONFIG:Debug>>:-ftree-vectorize>)
   endif()
 
   if(SOURCEMETA_COMPILER_LLVM)
