@@ -160,6 +160,18 @@ TEST(Text_to_title_case, digit_after_separator) {
   EXPECT_EQ(value, "Abc 123");
 }
 
+TEST(Text_to_title_case, letter_after_leading_digits_in_segment) {
+  std::string value{"abc_123def"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Abc 123Def");
+}
+
+TEST(Text_to_title_case, leading_digits_then_letter_at_start) {
+  std::string value{"123abc"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "123Abc");
+}
+
 TEST(Text_to_title_case, space_in_input_is_not_a_separator) {
   std::string value{"hello world"};
   sourcemeta::core::to_title_case(value);

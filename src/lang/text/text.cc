@@ -1,6 +1,6 @@
 #include <sourcemeta/core/text.h>
 
-#include <cctype>  // std::toupper
+#include <cctype>  // std::isalpha, std::toupper
 #include <cstddef> // std::size_t
 
 namespace sourcemeta::core {
@@ -23,7 +23,9 @@ auto to_title_case(std::string &value) -> void {
       if (capitalize_next) {
         value[write++] = static_cast<char>(
             std::toupper(static_cast<unsigned char>(character)));
-        capitalize_next = false;
+        if (std::isalpha(static_cast<unsigned char>(character))) {
+          capitalize_next = false;
+        }
       } else {
         value[write++] = character;
       }
