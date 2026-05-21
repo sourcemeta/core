@@ -22,16 +22,22 @@ TEST(Text_to_title_case, single_uppercase_character) {
   EXPECT_EQ(value, "A");
 }
 
-TEST(Text_to_title_case, single_underscore) {
+TEST(Text_to_title_case, single_underscore_is_empty) {
   std::string value{"_"};
   sourcemeta::core::to_title_case(value);
-  EXPECT_EQ(value, " ");
+  EXPECT_EQ(value, "");
 }
 
-TEST(Text_to_title_case, single_dash) {
+TEST(Text_to_title_case, single_dash_is_empty) {
   std::string value{"-"};
   sourcemeta::core::to_title_case(value);
-  EXPECT_EQ(value, " ");
+  EXPECT_EQ(value, "");
+}
+
+TEST(Text_to_title_case, only_separators_is_empty) {
+  std::string value{"___"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "");
 }
 
 TEST(Text_to_title_case, single_lowercase_word) {
@@ -82,22 +88,58 @@ TEST(Text_to_title_case, preserves_existing_uppercase_after_separator) {
   EXPECT_EQ(value, "Hello World");
 }
 
-TEST(Text_to_title_case, leading_underscore) {
+TEST(Text_to_title_case, leading_underscore_is_stripped) {
   std::string value{"_hello"};
   sourcemeta::core::to_title_case(value);
-  EXPECT_EQ(value, " Hello");
+  EXPECT_EQ(value, "Hello");
 }
 
-TEST(Text_to_title_case, trailing_underscore) {
+TEST(Text_to_title_case, leading_dash_is_stripped) {
+  std::string value{"-hello"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Hello");
+}
+
+TEST(Text_to_title_case, trailing_underscore_is_stripped) {
   std::string value{"hello_"};
   sourcemeta::core::to_title_case(value);
-  EXPECT_EQ(value, "Hello ");
+  EXPECT_EQ(value, "Hello");
 }
 
-TEST(Text_to_title_case, consecutive_separators) {
+TEST(Text_to_title_case, trailing_dash_is_stripped) {
+  std::string value{"hello-"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Hello");
+}
+
+TEST(Text_to_title_case, separators_around_word_are_stripped) {
+  std::string value{"_hello_"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Hello");
+}
+
+TEST(Text_to_title_case, multiple_leading_separators_are_stripped) {
+  std::string value{"__hello"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Hello");
+}
+
+TEST(Text_to_title_case, multiple_trailing_separators_are_stripped) {
+  std::string value{"hello__"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Hello");
+}
+
+TEST(Text_to_title_case, consecutive_separators_collapse_to_single_space) {
   std::string value{"hello__world"};
   sourcemeta::core::to_title_case(value);
-  EXPECT_EQ(value, "Hello  World");
+  EXPECT_EQ(value, "Hello World");
+}
+
+TEST(Text_to_title_case, mixed_consecutive_separators_collapse) {
+  std::string value{"hello_-world"};
+  sourcemeta::core::to_title_case(value);
+  EXPECT_EQ(value, "Hello World");
 }
 
 TEST(Text_to_title_case, single_letter_words) {
