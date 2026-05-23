@@ -42,8 +42,7 @@ TEST(JSON_auto, class_with_custom_method) {
 }
 
 TEST(JSON_auto, object_hash) {
-  const auto value{
-      sourcemeta::core::JSON::make_object().as_object().hash("foo")};
+  const auto value{sourcemeta::core::JSON::Object::hash("foo")};
   const auto result{sourcemeta::core::to_json(value)};
   EXPECT_TRUE(result.is_array());
   EXPECT_FALSE(result.empty());

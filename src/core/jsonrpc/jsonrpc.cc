@@ -10,24 +10,17 @@
 
 namespace {
 
-const auto JSONRPC_HASH_ID{
-    sourcemeta::core::JSON::make_object().as_object().hash("id")};
+const auto JSONRPC_HASH_ID{sourcemeta::core::JSON::Object::hash("id")};
 const auto JSONRPC_HASH_JSONRPC{
-    sourcemeta::core::JSON::make_object().as_object().hash("jsonrpc")};
-const auto JSONRPC_HASH_METHOD{
-    sourcemeta::core::JSON::make_object().as_object().hash("method")};
-const auto JSONRPC_HASH_RESULT{
-    sourcemeta::core::JSON::make_object().as_object().hash("result")};
-const auto JSONRPC_HASH_ERROR{
-    sourcemeta::core::JSON::make_object().as_object().hash("error")};
-const auto JSONRPC_HASH_CODE{
-    sourcemeta::core::JSON::make_object().as_object().hash("code")};
+    sourcemeta::core::JSON::Object::hash("jsonrpc")};
+const auto JSONRPC_HASH_METHOD{sourcemeta::core::JSON::Object::hash("method")};
+const auto JSONRPC_HASH_RESULT{sourcemeta::core::JSON::Object::hash("result")};
+const auto JSONRPC_HASH_ERROR{sourcemeta::core::JSON::Object::hash("error")};
+const auto JSONRPC_HASH_CODE{sourcemeta::core::JSON::Object::hash("code")};
 const auto JSONRPC_HASH_MESSAGE{
-    sourcemeta::core::JSON::make_object().as_object().hash("message")};
-const auto JSONRPC_HASH_DATA{
-    sourcemeta::core::JSON::make_object().as_object().hash("data")};
-const auto JSONRPC_HASH_PARAMS{
-    sourcemeta::core::JSON::make_object().as_object().hash("params")};
+    sourcemeta::core::JSON::Object::hash("message")};
+const auto JSONRPC_HASH_DATA{sourcemeta::core::JSON::Object::hash("data")};
+const auto JSONRPC_HASH_PARAMS{sourcemeta::core::JSON::Object::hash("params")};
 
 } // namespace
 
