@@ -71,10 +71,9 @@ namespace sourcemeta::core {
 auto mcp_make_text_block(const std::string_view text)
     -> sourcemeta::core::JSON {
   auto block{sourcemeta::core::JSON::make_object()};
-  block.assign_assume_new(std::string{"type"}, sourcemeta::core::JSON{"text"},
+  block.assign_assume_new("type", sourcemeta::core::JSON{"text"},
                           MCP_HASH_TYPE);
-  block.assign_assume_new(std::string{"text"}, sourcemeta::core::JSON{text},
-                          MCP_HASH_TEXT);
+  block.assign_assume_new("text", sourcemeta::core::JSON{text}, MCP_HASH_TEXT);
   return block;
 }
 
@@ -103,22 +102,18 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
   }
 
   auto block{sourcemeta::core::JSON::make_object()};
-  block.assign_assume_new(std::string{"type"},
-                          sourcemeta::core::JSON{"resource_link"},
+  block.assign_assume_new("type", sourcemeta::core::JSON{"resource_link"},
                           MCP_HASH_TYPE);
-  block.assign_assume_new(std::string{"uri"}, sourcemeta::core::JSON{uri},
-                          MCP_HASH_URI);
+  block.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
   if (!name.empty()) {
-    block.assign_assume_new(std::string{"name"}, sourcemeta::core::JSON{name},
+    block.assign_assume_new("name", sourcemeta::core::JSON{name},
                             MCP_HASH_NAME);
   }
   if (!description.empty()) {
-    block.assign_assume_new(std::string{"description"},
-                            sourcemeta::core::JSON{description},
+    block.assign_assume_new("description", sourcemeta::core::JSON{description},
                             MCP_HASH_DESCRIPTION);
   }
-  block.assign_assume_new(std::string{"mimeType"},
-                          sourcemeta::core::JSON{mime_type},
+  block.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
                           MCP_HASH_MIME_TYPE);
   return block;
 }
@@ -134,15 +129,14 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
   content.push_back(mcp_make_text_block(payload.str()));
 
   auto envelope_result{sourcemeta::core::JSON::make_object()};
-  envelope_result.assign_assume_new(std::string{"content"}, std::move(content),
+  envelope_result.assign_assume_new("content", std::move(content),
                                     MCP_HASH_CONTENT);
   if (mcp_supports_structured_content(version)) {
-    envelope_result.assign_assume_new(std::string{"structuredContent"},
-                                      std::move(result),
+    envelope_result.assign_assume_new("structuredContent", std::move(result),
                                       MCP_HASH_STRUCTURED_CONTENT);
   }
-  envelope_result.assign_assume_new(
-      std::string{"isError"}, sourcemeta::core::JSON{false}, MCP_HASH_IS_ERROR);
+  envelope_result.assign_assume_new("isError", sourcemeta::core::JSON{false},
+                                    MCP_HASH_IS_ERROR);
   return sourcemeta::core::jsonrpc_make_success(identifier,
                                                 std::move(envelope_result));
 }
@@ -153,15 +147,15 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
                            sourcemeta::core::JSON content_blocks)
     -> sourcemeta::core::JSON {
   auto envelope_result{sourcemeta::core::JSON::make_object()};
-  envelope_result.assign_assume_new(
-      std::string{"content"}, std::move(content_blocks), MCP_HASH_CONTENT);
+  envelope_result.assign_assume_new("content", std::move(content_blocks),
+                                    MCP_HASH_CONTENT);
   if (mcp_supports_structured_content(version)) {
-    envelope_result.assign_assume_new(std::string{"structuredContent"},
+    envelope_result.assign_assume_new("structuredContent",
                                       std::move(structured),
                                       MCP_HASH_STRUCTURED_CONTENT);
   }
-  envelope_result.assign_assume_new(
-      std::string{"isError"}, sourcemeta::core::JSON{false}, MCP_HASH_IS_ERROR);
+  envelope_result.assign_assume_new("isError", sourcemeta::core::JSON{false},
+                                    MCP_HASH_IS_ERROR);
   return sourcemeta::core::jsonrpc_make_success(identifier,
                                                 std::move(envelope_result));
 }
@@ -173,10 +167,10 @@ auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
   content.push_back(mcp_make_text_block(message));
 
   auto envelope_result{sourcemeta::core::JSON::make_object()};
-  envelope_result.assign_assume_new(std::string{"content"}, std::move(content),
+  envelope_result.assign_assume_new("content", std::move(content),
                                     MCP_HASH_CONTENT);
-  envelope_result.assign_assume_new(
-      std::string{"isError"}, sourcemeta::core::JSON{true}, MCP_HASH_IS_ERROR);
+  envelope_result.assign_assume_new("isError", sourcemeta::core::JSON{true},
+                                    MCP_HASH_IS_ERROR);
   return sourcemeta::core::jsonrpc_make_success(identifier,
                                                 std::move(envelope_result));
 }
@@ -195,21 +189,18 @@ auto mcp_make_resource(const std::string_view uri, const std::string_view name,
                        const std::optional<std::size_t> size)
     -> sourcemeta::core::JSON {
   auto resource{sourcemeta::core::JSON::make_object()};
-  resource.assign_assume_new(std::string{"uri"}, sourcemeta::core::JSON{uri},
-                             MCP_HASH_URI);
-  resource.assign_assume_new(std::string{"name"}, sourcemeta::core::JSON{name},
+  resource.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
+  resource.assign_assume_new("name", sourcemeta::core::JSON{name},
                              MCP_HASH_NAME);
   if (!description.empty()) {
-    resource.assign_assume_new(std::string{"description"},
+    resource.assign_assume_new("description",
                                sourcemeta::core::JSON{description},
                                MCP_HASH_DESCRIPTION);
   }
-  resource.assign_assume_new(std::string{"mimeType"},
-                             sourcemeta::core::JSON{mime_type},
+  resource.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
                              MCP_HASH_MIME_TYPE);
   if (size.has_value()) {
-    resource.assign_assume_new(std::string{"size"},
-                               sourcemeta::core::JSON{size.value()},
+    resource.assign_assume_new("size", sourcemeta::core::JSON{size.value()},
                                MCP_HASH_SIZE);
   }
   return resource;
@@ -220,21 +211,17 @@ auto mcp_make_resource_text_content(const std::string_view uri,
                                     const std::string_view text)
     -> sourcemeta::core::JSON {
   auto entry{sourcemeta::core::JSON::make_object()};
-  entry.assign_assume_new(std::string{"uri"}, sourcemeta::core::JSON{uri},
-                          MCP_HASH_URI);
-  entry.assign_assume_new(std::string{"mimeType"},
-                          sourcemeta::core::JSON{mime_type},
+  entry.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
+  entry.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
                           MCP_HASH_MIME_TYPE);
-  entry.assign_assume_new(std::string{"text"}, sourcemeta::core::JSON{text},
-                          MCP_HASH_TEXT);
+  entry.assign_assume_new("text", sourcemeta::core::JSON{text}, MCP_HASH_TEXT);
   return entry;
 }
 
 auto mcp_make_resources_read_result(sourcemeta::core::JSON contents)
     -> sourcemeta::core::JSON {
   auto result{sourcemeta::core::JSON::make_object()};
-  result.assign_assume_new(std::string{"contents"}, std::move(contents),
-                           MCP_HASH_CONTENTS);
+  result.assign_assume_new("contents", std::move(contents), MCP_HASH_CONTENTS);
   return result;
 }
 
@@ -244,16 +231,12 @@ auto mcp_make_resource_template(const std::string_view uri_template,
                                 const std::string_view mime_type)
     -> sourcemeta::core::JSON {
   auto entry{sourcemeta::core::JSON::make_object()};
-  entry.assign_assume_new(std::string{"uriTemplate"},
-                          sourcemeta::core::JSON{uri_template},
+  entry.assign_assume_new("uriTemplate", sourcemeta::core::JSON{uri_template},
                           MCP_HASH_URI_TEMPLATE);
-  entry.assign_assume_new(std::string{"name"}, sourcemeta::core::JSON{name},
-                          MCP_HASH_NAME);
-  entry.assign_assume_new(std::string{"description"},
-                          sourcemeta::core::JSON{description},
+  entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
+  entry.assign_assume_new("description", sourcemeta::core::JSON{description},
                           MCP_HASH_DESCRIPTION);
-  entry.assign_assume_new(std::string{"mimeType"},
-                          sourcemeta::core::JSON{mime_type},
+  entry.assign_assume_new("mimeType", sourcemeta::core::JSON{mime_type},
                           MCP_HASH_MIME_TYPE);
   return entry;
 }
@@ -267,40 +250,35 @@ auto mcp_make_tool_descriptor(
   assert(!annotations.read_only || annotations.idempotent);
 
   auto entry{sourcemeta::core::JSON::make_object()};
-  entry.assign_assume_new(std::string{"name"}, sourcemeta::core::JSON{name},
-                          MCP_HASH_NAME);
-  entry.assign_assume_new(std::string{"description"},
-                          sourcemeta::core::JSON{description},
+  entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
+  entry.assign_assume_new("description", sourcemeta::core::JSON{description},
                           MCP_HASH_DESCRIPTION);
-  entry.assign_assume_new(std::string{"inputSchema"}, std::move(input_schema),
+  entry.assign_assume_new("inputSchema", std::move(input_schema),
                           MCP_HASH_INPUT_SCHEMA);
   if (output_schema.has_value() && mcp_supports_output_schema(version)) {
-    entry.assign_assume_new(std::string{"outputSchema"},
-                            std::move(output_schema).value(),
+    entry.assign_assume_new("outputSchema", std::move(output_schema).value(),
                             MCP_HASH_OUTPUT_SCHEMA);
   }
 
   auto annotations_object{sourcemeta::core::JSON::make_object()};
   if (!annotations.title.empty()) {
     annotations_object.assign_assume_new(
-        std::string{"title"}, sourcemeta::core::JSON{annotations.title},
-        MCP_HASH_TITLE);
+        "title", sourcemeta::core::JSON{annotations.title}, MCP_HASH_TITLE);
   }
   annotations_object.assign_assume_new(
-      std::string{"readOnlyHint"},
-      sourcemeta::core::JSON{annotations.read_only}, MCP_HASH_READ_ONLY_HINT);
+      "readOnlyHint", sourcemeta::core::JSON{annotations.read_only},
+      MCP_HASH_READ_ONLY_HINT);
   annotations_object.assign_assume_new(
-      std::string{"destructiveHint"},
-      sourcemeta::core::JSON{annotations.destructive},
+      "destructiveHint", sourcemeta::core::JSON{annotations.destructive},
       MCP_HASH_DESTRUCTIVE_HINT);
   annotations_object.assign_assume_new(
-      std::string{"idempotentHint"},
-      sourcemeta::core::JSON{annotations.idempotent}, MCP_HASH_IDEMPOTENT_HINT);
+      "idempotentHint", sourcemeta::core::JSON{annotations.idempotent},
+      MCP_HASH_IDEMPOTENT_HINT);
   annotations_object.assign_assume_new(
-      std::string{"openWorldHint"},
-      sourcemeta::core::JSON{annotations.open_world}, MCP_HASH_OPEN_WORLD_HINT);
-  entry.assign_assume_new(std::string{"annotations"},
-                          std::move(annotations_object), MCP_HASH_ANNOTATIONS);
+      "openWorldHint", sourcemeta::core::JSON{annotations.open_world},
+      MCP_HASH_OPEN_WORLD_HINT);
+  entry.assign_assume_new("annotations", std::move(annotations_object),
+                          MCP_HASH_ANNOTATIONS);
 
   return entry;
 }
@@ -330,67 +308,60 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
 
   auto capabilities_object{sourcemeta::core::JSON::make_object()};
   if (capabilities.prompts) {
-    capabilities_object.assign_assume_new(std::string{"prompts"},
-                                          sourcemeta::core::JSON::make_object(),
-                                          MCP_HASH_PROMPTS);
+    capabilities_object.assign_assume_new(
+        "prompts", sourcemeta::core::JSON::make_object(), MCP_HASH_PROMPTS);
   }
   if (capabilities.resources) {
-    capabilities_object.assign_assume_new(std::string{"resources"},
-                                          sourcemeta::core::JSON::make_object(),
-                                          MCP_HASH_RESOURCES);
+    capabilities_object.assign_assume_new(
+        "resources", sourcemeta::core::JSON::make_object(), MCP_HASH_RESOURCES);
   }
   if (capabilities.tools) {
-    capabilities_object.assign_assume_new(std::string{"tools"},
-                                          sourcemeta::core::JSON::make_object(),
-                                          MCP_HASH_TOOLS);
+    capabilities_object.assign_assume_new(
+        "tools", sourcemeta::core::JSON::make_object(), MCP_HASH_TOOLS);
   }
   if (capabilities.logging) {
-    capabilities_object.assign_assume_new(std::string{"logging"},
-                                          sourcemeta::core::JSON::make_object(),
-                                          MCP_HASH_LOGGING);
+    capabilities_object.assign_assume_new(
+        "logging", sourcemeta::core::JSON::make_object(), MCP_HASH_LOGGING);
   }
   if (capabilities.completions) {
-    capabilities_object.assign_assume_new(std::string{"completions"},
+    capabilities_object.assign_assume_new("completions",
                                           sourcemeta::core::JSON::make_object(),
                                           MCP_HASH_COMPLETIONS);
   }
 
   auto server_info{sourcemeta::core::JSON::make_object()};
+  server_info.assign_assume_new("name", sourcemeta::core::JSON{server.name},
+                                MCP_HASH_NAME);
   server_info.assign_assume_new(
-      std::string{"name"}, sourcemeta::core::JSON{server.name}, MCP_HASH_NAME);
-  server_info.assign_assume_new(std::string{"version"},
-                                sourcemeta::core::JSON{server.version},
-                                MCP_HASH_VERSION);
+      "version", sourcemeta::core::JSON{server.version}, MCP_HASH_VERSION);
   if (!server.title.empty() && mcp_supports_implementation_title(version)) {
-    server_info.assign_assume_new(std::string{"title"},
-                                  sourcemeta::core::JSON{server.title},
+    server_info.assign_assume_new("title", sourcemeta::core::JSON{server.title},
                                   MCP_HASH_TITLE);
   }
   if (!server.description.empty() &&
       mcp_supports_implementation_description(version)) {
-    server_info.assign_assume_new(std::string{"description"},
+    server_info.assign_assume_new("description",
                                   sourcemeta::core::JSON{server.description},
                                   MCP_HASH_DESCRIPTION);
   }
   if (!server.website_url.empty() &&
       mcp_supports_implementation_website_url(version)) {
-    server_info.assign_assume_new(std::string{"websiteUrl"},
+    server_info.assign_assume_new("websiteUrl",
                                   sourcemeta::core::JSON{server.website_url},
                                   MCP_HASH_WEBSITE_URL);
   }
 
   auto result{sourcemeta::core::JSON::make_object()};
   result.assign_assume_new(
-      std::string{"protocolVersion"},
+      "protocolVersion",
       sourcemeta::core::JSON{mcp_protocol_version_string(version)},
       MCP_HASH_PROTOCOL_VERSION);
-  result.assign_assume_new(std::string{"capabilities"},
-                           std::move(capabilities_object),
+  result.assign_assume_new("capabilities", std::move(capabilities_object),
                            MCP_HASH_CAPABILITIES);
-  result.assign_assume_new(std::string{"serverInfo"}, std::move(server_info),
+  result.assign_assume_new("serverInfo", std::move(server_info),
                            MCP_HASH_SERVER_INFO);
   if (!instructions.empty()) {
-    result.assign_assume_new(std::string{"instructions"},
+    result.assign_assume_new("instructions",
                              sourcemeta::core::JSON{instructions},
                              MCP_HASH_INSTRUCTIONS);
   }
