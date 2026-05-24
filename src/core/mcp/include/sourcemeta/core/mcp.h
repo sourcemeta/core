@@ -523,9 +523,8 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
 
 /// @ingroup mcp
 /// Borrow the `arguments` object from a JSON-RPC `tools/call` envelope, or
-/// return `nullptr` when it is missing or `params` is not an object. The
-/// returned pointer is valid for the lifetime of the input envelope. For
-/// example:
+/// return `nullptr` if no `arguments` object is present. The returned pointer
+/// is valid for the lifetime of the input envelope. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

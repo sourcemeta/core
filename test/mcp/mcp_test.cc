@@ -922,3 +922,33 @@ TEST(MCP, tool_call_arguments_no_params) {
   })JSON")};
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
+
+TEST(MCP, tool_call_arguments_string_value) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "foo", "arguments": "not-an-object" }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
+}
+
+TEST(MCP, tool_call_arguments_array_value) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "foo", "arguments": [ 1, 2, 3 ] }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
+}
+
+TEST(MCP, tool_call_arguments_null_value) {
+  const auto envelope{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": { "name": "foo", "arguments": null }
+  })JSON")};
+  EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
+}

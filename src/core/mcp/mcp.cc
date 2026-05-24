@@ -296,12 +296,11 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
   }
 
   std::string_view requested_version{};
-  if (parameters->defines("protocolVersion", MCP_HASH_PROTOCOL_VERSION) &&
-      parameters->at("protocolVersion", MCP_HASH_PROTOCOL_VERSION)
-          .is_string()) {
-    requested_version =
-        parameters->at("protocolVersion", MCP_HASH_PROTOCOL_VERSION)
-            .to_string();
+  const auto *protocol_version_field{
+      parameters->try_at("protocolVersion", MCP_HASH_PROTOCOL_VERSION)};
+  if (protocol_version_field != nullptr &&
+      protocol_version_field->is_string()) {
+    requested_version = protocol_version_field->to_string();
   }
   const auto resolved{mcp_resolve_protocol_version(requested_version)};
   const auto version{resolved.value_or(MCPProtocolVersion::V_2025_11_25)};
@@ -371,11 +370,14 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
 auto mcp_tool_call_arguments(const sourcemeta::core::JSON &envelope)
     -> const sourcemeta::core::JSON * {
   const auto *parameters{sourcemeta::core::jsonrpc_params(envelope)};
-  if (parameters == nullptr || !parameters->is_object() ||
-      !parameters->defines("arguments", MCP_HASH_ARGUMENTS)) {
+  if (parameters == nullptr || !parameters->is_object()) {
     return nullptr;
   }
-  return &parameters->at("arguments", MCP_HASH_ARGUMENTS);
+  const auto *arguments{parameters->try_at("arguments", MCP_HASH_ARGUMENTS)};
+  if (arguments == nullptr || !arguments->is_object()) {
+    return nullptr;
+  }
+  return arguments;
 }
 
 } // namespace sourcemeta::core
