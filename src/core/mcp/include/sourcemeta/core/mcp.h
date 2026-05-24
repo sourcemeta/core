@@ -143,6 +143,10 @@ constexpr auto
 mcp_resolve_protocol_version(const std::string_view header) noexcept
     -> std::optional<MCPProtocolVersion> {
   if (header.empty()) {
+    // Per the MCP Streamable HTTP transport spec: if the server does not
+    // receive an MCP-Protocol-Version header, and has no other way to identify
+    // the version, the server SHOULD assume protocol version 2025-03-26.
+    // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#protocol-version-header
     return MCPProtocolVersion::V_2025_03_26;
   }
   if (header == "2025-11-25") {
