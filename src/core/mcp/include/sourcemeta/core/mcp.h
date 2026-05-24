@@ -15,8 +15,7 @@
 #include <utility>     // std::unreachable
 
 /// @defgroup mcp MCP
-/// @brief Helpers for building Model Context Protocol (MCP) envelopes on top of
-/// JSON-RPC 2.0.
+/// @brief Helpers for building Model Context Protocol (MCP) envelopes.
 ///
 /// This functionality is included as follows:
 ///
@@ -125,9 +124,7 @@ constexpr auto mcp_is_request_method(const std::string_view method) noexcept
 
 /// @ingroup mcp
 /// Resolve an `MCP-Protocol-Version` header value into a known protocol
-/// version. An empty header defaults to the earliest revision, per the MCP
-/// specification. Returns `std::nullopt` when the header is unrecognised. For
-/// example:
+/// version, or `std::nullopt` when the value is unrecognised. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -226,9 +223,7 @@ SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_text_block(const std::string_view text) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build an MCP `resource_link` content block, or a `text` content block
-/// fallback when the protocol version does not support the link form. For
-/// example:
+/// Build an MCP content block referencing a resource by URI. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -248,10 +243,8 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build a JSON-RPC envelope wrapping a successful MCP tool call response. The
-/// `result` is serialised as a `text` content block and additionally copied
-/// into `structuredContent` when the protocol version supports it. For
-/// example:
+/// Build a JSON-RPC envelope wrapping a successful MCP tool call response from
+/// the given result payload. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -274,10 +267,8 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build a JSON-RPC envelope wrapping a successful MCP tool call response with
-/// caller-provided content blocks and structured payload. The structured
-/// payload is included only when the protocol version supports it. For
-/// example:
+/// Build a JSON-RPC envelope wrapping a successful MCP tool call response from
+/// caller-provided content blocks and a structured payload. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -303,9 +294,8 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build a JSON-RPC envelope wrapping a failed MCP tool call response. The
-/// `isError` field is set to `true` and `content` carries a single `text`
-/// block. For example:
+/// Build a JSON-RPC envelope wrapping a failed MCP tool call response with the
+/// given error message. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -323,8 +313,8 @@ auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build a JSON-RPC error envelope using the MCP "resource not found" code
-/// and the offending URI as the `data` field. For example:
+/// Build a JSON-RPC error envelope reporting that an MCP resource URI could
+/// not be resolved. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -342,9 +332,8 @@ auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Build an MCP resource descriptor as used in `resources/list` responses.
-/// The `description` is omitted when empty and the `size` is omitted when
-/// unset. For example:
+/// Build an MCP resource descriptor as used in `resources/list` responses. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -419,9 +408,7 @@ auto mcp_make_resource_template(const std::string_view uri_template,
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
-/// Optional hints attached to an MCP tool descriptor. Field semantics follow
-/// the MCP specification: defaults reflect the worst-case assumptions (a
-/// destructive, open-world, non-idempotent tool).
+/// Optional hints attached to an MCP tool descriptor.
 struct MCPToolAnnotations {
   /// Optional human-readable title for the tool.
   std::string_view title = {};
@@ -437,9 +424,7 @@ struct MCPToolAnnotations {
 };
 
 /// @ingroup mcp
-/// Build a single entry for an MCP `tools/list` response. The `outputSchema`
-/// is dropped automatically when the protocol version predates its support.
-/// For example:
+/// Build a single entry for an MCP `tools/list` response. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/mcp.h>
@@ -459,8 +444,7 @@ auto mcp_make_tool_descriptor(
 
 /// @ingroup mcp
 /// Implementation info advertised by an MCP server during the initialize
-/// handshake. Fields that the negotiated protocol version does not support
-/// are dropped automatically.
+/// handshake.
 struct MCPImplementation {
   /// Short machine-readable server name.
   std::string_view name;
@@ -476,8 +460,7 @@ struct MCPImplementation {
 
 /// @ingroup mcp
 /// Boolean toggles for the MCP `capabilities` object returned during the
-/// initialize handshake. Each toggle gates the presence of an empty object
-/// under the corresponding key.
+/// initialize handshake.
 struct MCPServerCapabilities {
   /// Whether the server advertises prompts.
   bool prompts = false;
@@ -493,8 +476,7 @@ struct MCPServerCapabilities {
 
 /// @ingroup mcp
 /// Build the JSON-RPC envelope returned in response to an MCP `initialize`
-/// request. Returns a JSON-RPC invalid-request envelope when the incoming
-/// request lacks an identifier or a `params` object. For example:
+/// request. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
