@@ -247,6 +247,12 @@ auto mcp_make_tool_descriptor(
     const MCPToolAnnotations &annotations) -> sourcemeta::core::JSON {
   assert(!annotations.read_only || !annotations.destructive);
   assert(!annotations.read_only || annotations.idempotent);
+  // The MCP spec requires `type: "object"` on tool input schemas.
+  // https://modelcontextprotocol.io/specification/2025-06-18/server/tools
+  assert(input_schema.is_object() &&
+         input_schema.defines("type", MCP_HASH_TYPE) &&
+         input_schema.at("type", MCP_HASH_TYPE).is_string() &&
+         input_schema.at("type", MCP_HASH_TYPE).to_string() == "object");
 
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("name", sourcemeta::core::JSON{name}, MCP_HASH_NAME);
