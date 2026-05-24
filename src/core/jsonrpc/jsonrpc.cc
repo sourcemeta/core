@@ -2,11 +2,9 @@
 
 #include <sourcemeta/core/json.h>
 
-#include <cstdint>     // std::int64_t
-#include <optional>    // std::optional, std::nullopt
-#include <string>      // std::string
-#include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <cstdint>  // std::int64_t
+#include <optional> // std::optional, std::nullopt
+#include <utility>  // std::move
 
 namespace {
 
@@ -66,7 +64,7 @@ auto jsonrpc_is_request(const sourcemeta::core::JSON &request) -> bool {
   return method_field != nullptr && method_field->is_string();
 }
 
-auto jsonrpc_method(const sourcemeta::core::JSON &request) -> std::string_view {
+auto jsonrpc_method(const sourcemeta::core::JSON &request) -> JSON::StringView {
   if (!request.is_object()) {
     return {};
   }
@@ -128,7 +126,7 @@ auto jsonrpc_make_success_empty(const sourcemeta::core::JSON &identifier)
 }
 
 auto jsonrpc_make_error(const sourcemeta::core::JSON *identifier,
-                        const std::int64_t code, const std::string_view message,
+                        const std::int64_t code, const JSON::StringView message,
                         std::optional<sourcemeta::core::JSON> data)
     -> sourcemeta::core::JSON {
   auto envelope{sourcemeta::core::JSON::make_object()};

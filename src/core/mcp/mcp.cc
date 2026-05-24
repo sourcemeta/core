@@ -3,13 +3,12 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
-#include <cassert>     // assert
-#include <cstddef>     // std::size_t
-#include <optional>    // std::optional
-#include <sstream>     // std::ostringstream
-#include <string>      // std::string
-#include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <cassert>  // assert
+#include <cstddef>  // std::size_t
+#include <optional> // std::optional
+#include <sstream>  // std::ostringstream
+#include <string>   // std::string
+#include <utility>  // std::move
 
 namespace {
 
@@ -68,7 +67,7 @@ const auto MCP_HASH_WEBSITE_URL{
 
 namespace sourcemeta::core {
 
-auto mcp_make_text_block(const std::string_view text)
+auto mcp_make_text_block(const JSON::StringView text)
     -> sourcemeta::core::JSON {
   auto block{sourcemeta::core::JSON::make_object()};
   block.assign_assume_new("type", sourcemeta::core::JSON{"text"},
@@ -78,10 +77,10 @@ auto mcp_make_text_block(const std::string_view text)
 }
 
 auto mcp_make_resource_link(const MCPProtocolVersion version,
-                            const std::string_view uri,
-                            const std::string_view mime_type,
-                            const std::string_view name,
-                            const std::string_view description)
+                            const JSON::StringView uri,
+                            const JSON::StringView mime_type,
+                            const JSON::StringView name,
+                            const JSON::StringView description)
     -> sourcemeta::core::JSON {
   if (!mcp_supports_resource_link_content(version)) {
     std::string text;
@@ -161,7 +160,7 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
 }
 
 auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
-                         const std::string_view message)
+                         const JSON::StringView message)
     -> sourcemeta::core::JSON {
   auto content{sourcemeta::core::JSON::make_array()};
   content.push_back(mcp_make_text_block(message));
@@ -176,16 +175,16 @@ auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
 }
 
 auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier,
-                                       const std::string_view uri)
+                                       const JSON::StringView uri)
     -> sourcemeta::core::JSON {
   return sourcemeta::core::jsonrpc_make_error(
       &identifier, MCP_CODE_RESOURCE_NOT_FOUND, "Resource not found",
       sourcemeta::core::JSON{uri});
 }
 
-auto mcp_make_resource(const std::string_view uri, const std::string_view name,
-                       const std::string_view mime_type,
-                       const std::string_view description,
+auto mcp_make_resource(const JSON::StringView uri, const JSON::StringView name,
+                       const JSON::StringView mime_type,
+                       const JSON::StringView description,
                        const std::optional<std::size_t> size)
     -> sourcemeta::core::JSON {
   auto resource{sourcemeta::core::JSON::make_object()};
@@ -206,9 +205,9 @@ auto mcp_make_resource(const std::string_view uri, const std::string_view name,
   return resource;
 }
 
-auto mcp_make_resource_text_content(const std::string_view uri,
-                                    const std::string_view mime_type,
-                                    const std::string_view text)
+auto mcp_make_resource_text_content(const JSON::StringView uri,
+                                    const JSON::StringView mime_type,
+                                    const JSON::StringView text)
     -> sourcemeta::core::JSON {
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("uri", sourcemeta::core::JSON{uri}, MCP_HASH_URI);
@@ -225,10 +224,10 @@ auto mcp_make_resources_read_result(sourcemeta::core::JSON contents)
   return result;
 }
 
-auto mcp_make_resource_template(const std::string_view uri_template,
-                                const std::string_view name,
-                                const std::string_view description,
-                                const std::string_view mime_type)
+auto mcp_make_resource_template(const JSON::StringView uri_template,
+                                const JSON::StringView name,
+                                const JSON::StringView description,
+                                const JSON::StringView mime_type)
     -> sourcemeta::core::JSON {
   auto entry{sourcemeta::core::JSON::make_object()};
   entry.assign_assume_new("uriTemplate", sourcemeta::core::JSON{uri_template},
@@ -242,8 +241,8 @@ auto mcp_make_resource_template(const std::string_view uri_template,
 }
 
 auto mcp_make_tool_descriptor(
-    const MCPProtocolVersion version, const std::string_view name,
-    const std::string_view description, sourcemeta::core::JSON input_schema,
+    const MCPProtocolVersion version, const JSON::StringView name,
+    const JSON::StringView description, sourcemeta::core::JSON input_schema,
     std::optional<sourcemeta::core::JSON> output_schema,
     const MCPToolAnnotations &annotations) -> sourcemeta::core::JSON {
   assert(!annotations.read_only || !annotations.destructive);
@@ -286,7 +285,7 @@ auto mcp_make_tool_descriptor(
 auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
                                 const MCPServerCapabilities &capabilities,
                                 const MCPImplementation &server,
-                                const std::string_view instructions)
+                                const JSON::StringView instructions)
     -> sourcemeta::core::JSON {
   const auto *identifier{sourcemeta::core::jsonrpc_request_id(request)};
   const auto *parameters{sourcemeta::core::jsonrpc_params(request)};
@@ -295,7 +294,7 @@ auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
     return sourcemeta::core::jsonrpc_make_error_invalid_request(identifier);
   }
 
-  std::string_view requested_version{};
+  JSON::StringView requested_version{};
   const auto *protocol_version_field{
       parameters->try_at("protocolVersion", MCP_HASH_PROTOCOL_VERSION)};
   if (protocol_version_field != nullptr &&

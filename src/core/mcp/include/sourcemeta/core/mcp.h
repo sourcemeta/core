@@ -8,11 +8,10 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
-#include <cstddef>     // std::size_t
-#include <cstdint>     // std::int64_t, std::uint8_t
-#include <optional>    // std::optional, std::nullopt
-#include <string_view> // std::string_view
-#include <utility>     // std::unreachable
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::int64_t, std::uint8_t
+#include <optional> // std::optional, std::nullopt
+#include <utility>  // std::unreachable
 
 /// @defgroup mcp MCP
 /// @brief Helpers for building Model Context Protocol (MCP) envelopes.
@@ -47,7 +46,7 @@ enum class MCPProtocolVersion : std::uint8_t {
 /// ```
 constexpr auto
 mcp_protocol_version_string(const MCPProtocolVersion version) noexcept
-    -> std::string_view {
+    -> JSON::StringView {
   switch (version) {
     case MCPProtocolVersion::V_2025_03_26:
       return "2025-03-26";
@@ -61,36 +60,36 @@ mcp_protocol_version_string(const MCPProtocolVersion version) noexcept
 
 /// @ingroup mcp
 /// The MCP method name for the `initialize` request.
-constexpr std::string_view MCP_METHOD_INITIALIZE{"initialize"};
+constexpr JSON::StringView MCP_METHOD_INITIALIZE{"initialize"};
 
 /// @ingroup mcp
 /// The MCP method name for the `ping` request.
-constexpr std::string_view MCP_METHOD_PING{"ping"};
+constexpr JSON::StringView MCP_METHOD_PING{"ping"};
 
 /// @ingroup mcp
 /// The MCP method name for the `tools/list` request.
-constexpr std::string_view MCP_METHOD_TOOLS_LIST{"tools/list"};
+constexpr JSON::StringView MCP_METHOD_TOOLS_LIST{"tools/list"};
 
 /// @ingroup mcp
 /// The MCP method name for the `tools/call` request.
-constexpr std::string_view MCP_METHOD_TOOLS_CALL{"tools/call"};
+constexpr JSON::StringView MCP_METHOD_TOOLS_CALL{"tools/call"};
 
 /// @ingroup mcp
 /// The MCP method name for the `resources/list` request.
-constexpr std::string_view MCP_METHOD_RESOURCES_LIST{"resources/list"};
+constexpr JSON::StringView MCP_METHOD_RESOURCES_LIST{"resources/list"};
 
 /// @ingroup mcp
 /// The MCP method name for the `resources/read` request.
-constexpr std::string_view MCP_METHOD_RESOURCES_READ{"resources/read"};
+constexpr JSON::StringView MCP_METHOD_RESOURCES_READ{"resources/read"};
 
 /// @ingroup mcp
 /// The MCP method name for the `resources/templates/list` request.
-constexpr std::string_view MCP_METHOD_RESOURCES_TEMPLATES_LIST{
+constexpr JSON::StringView MCP_METHOD_RESOURCES_TEMPLATES_LIST{
     "resources/templates/list"};
 
 /// @ingroup mcp
 /// The MCP method name for the `notifications/initialized` notification.
-constexpr std::string_view MCP_METHOD_NOTIFICATIONS_INITIALIZED{
+constexpr JSON::StringView MCP_METHOD_NOTIFICATIONS_INITIALIZED{
     "notifications/initialized"};
 
 /// @ingroup mcp
@@ -113,7 +112,7 @@ constexpr std::int64_t MCP_CODE_URL_ELICITATION_REQUIRED{-32042};
 /// assert(sourcemeta::core::mcp_is_request_method("initialize"));
 /// assert(!sourcemeta::core::mcp_is_request_method("notifications/initialized"));
 /// ```
-constexpr auto mcp_is_request_method(const std::string_view method) noexcept
+constexpr auto mcp_is_request_method(const JSON::StringView method) noexcept
     -> bool {
   return method == MCP_METHOD_INITIALIZE || method == MCP_METHOD_PING ||
          method == MCP_METHOD_TOOLS_LIST || method == MCP_METHOD_TOOLS_CALL ||
@@ -137,7 +136,7 @@ constexpr auto mcp_is_request_method(const std::string_view method) noexcept
 ///        sourcemeta::core::MCPProtocolVersion::V_2025_11_25);
 /// ```
 constexpr auto
-mcp_resolve_protocol_version(const std::string_view header) noexcept
+mcp_resolve_protocol_version(const JSON::StringView header) noexcept
     -> std::optional<MCPProtocolVersion> {
   if (header.empty()) {
     // Per the MCP Streamable HTTP transport spec: if the server does not
@@ -220,7 +219,7 @@ constexpr auto mcp_supports_implementation_website_url(
 /// assert(block.at("text").to_string() == "hello");
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_text_block(const std::string_view text) -> sourcemeta::core::JSON;
+auto mcp_make_text_block(const JSON::StringView text) -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Build an MCP content block referencing a resource by URI. For example:
@@ -236,10 +235,10 @@ auto mcp_make_text_block(const std::string_view text) -> sourcemeta::core::JSON;
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_resource_link(const MCPProtocolVersion version,
-                            const std::string_view uri,
-                            const std::string_view mime_type,
-                            const std::string_view name = {},
-                            const std::string_view description = {})
+                            const JSON::StringView uri,
+                            const JSON::StringView mime_type,
+                            const JSON::StringView name = {},
+                            const JSON::StringView description = {})
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -309,7 +308,7 @@ auto mcp_make_tool_success(const MCPProtocolVersion version,
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
-                         const std::string_view message)
+                         const JSON::StringView message)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -328,7 +327,7 @@ auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier,
-                                       const std::string_view uri)
+                                       const JSON::StringView uri)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -344,9 +343,9 @@ auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier,
 /// assert(resource.at("uri").to_string() == "file:///a");
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resource(const std::string_view uri, const std::string_view name,
-                       const std::string_view mime_type,
-                       const std::string_view description = {},
+auto mcp_make_resource(const JSON::StringView uri, const JSON::StringView name,
+                       const JSON::StringView mime_type,
+                       const JSON::StringView description = {},
                        const std::optional<std::size_t> size = std::nullopt)
     -> sourcemeta::core::JSON;
 
@@ -362,9 +361,9 @@ auto mcp_make_resource(const std::string_view uri, const std::string_view name,
 /// assert(content.at("text").to_string() == "Hello");
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resource_text_content(const std::string_view uri,
-                                    const std::string_view mime_type,
-                                    const std::string_view text)
+auto mcp_make_resource_text_content(const JSON::StringView uri,
+                                    const JSON::StringView mime_type,
+                                    const JSON::StringView text)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
@@ -401,17 +400,17 @@ auto mcp_make_resources_read_result(sourcemeta::core::JSON contents)
 /// assert(entry.at("uriTemplate").to_string() == "file:///{path}");
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_resource_template(const std::string_view uri_template,
-                                const std::string_view name,
-                                const std::string_view description,
-                                const std::string_view mime_type)
+auto mcp_make_resource_template(const JSON::StringView uri_template,
+                                const JSON::StringView name,
+                                const JSON::StringView description,
+                                const JSON::StringView mime_type)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
 /// Optional hints attached to an MCP tool descriptor.
 struct MCPToolAnnotations {
   /// Optional human-readable title for the tool.
-  std::string_view title = {};
+  JSON::StringView title = {};
   /// `true` when the tool guarantees no side effects.
   bool read_only = false;
   /// `true` when the tool may mutate or delete state.
@@ -437,8 +436,8 @@ struct MCPToolAnnotations {
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_tool_descriptor(
-    const MCPProtocolVersion version, const std::string_view name,
-    const std::string_view description, sourcemeta::core::JSON input_schema,
+    const MCPProtocolVersion version, const JSON::StringView name,
+    const JSON::StringView description, sourcemeta::core::JSON input_schema,
     std::optional<sourcemeta::core::JSON> output_schema = std::nullopt,
     const MCPToolAnnotations &annotations = {}) -> sourcemeta::core::JSON;
 
@@ -447,15 +446,15 @@ auto mcp_make_tool_descriptor(
 /// handshake.
 struct MCPImplementation {
   /// Short machine-readable server name.
-  std::string_view name;
+  JSON::StringView name;
   /// Semver-compatible server version.
-  std::string_view version;
+  JSON::StringView version;
   /// Optional human-readable title.
-  std::string_view title = {};
+  JSON::StringView title = {};
   /// Optional human-readable description.
-  std::string_view description = {};
+  JSON::StringView description = {};
   /// Optional public website URL.
-  std::string_view website_url = {};
+  JSON::StringView website_url = {};
 };
 
 /// @ingroup mcp
@@ -500,7 +499,7 @@ SOURCEMETA_CORE_MCP_EXPORT
 auto mcp_make_initialize_result(const sourcemeta::core::JSON &request,
                                 const MCPServerCapabilities &capabilities,
                                 const MCPImplementation &server,
-                                const std::string_view instructions = {})
+                                const JSON::StringView instructions = {})
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
