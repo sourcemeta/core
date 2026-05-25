@@ -135,6 +135,30 @@ SOURCEMETA_CORE_TIME_EXPORT
 auto is_rfc3339_fulldate(const std::string_view value) -> bool;
 
 /// @ingroup time
+/// Check whether the given string is a valid full-time value per RFC 3339
+/// Section 5.6 (Internet Date/Time Format). This implements the `full-time`
+/// production rule:
+///
+/// ```
+/// full-time = partial-time time-offset
+/// ```
+///
+/// where "Z" may also be lowercase "z" (per RFC 3339 §5.6 NOTE). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/time.h>
+///
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_rfc3339_fulltime("23:20:50.52Z"));
+/// assert(sourcemeta::core::is_rfc3339_fulltime("16:39:57-08:00"));
+/// assert(sourcemeta::core::is_rfc3339_fulltime("23:59:60Z"));
+/// assert(!sourcemeta::core::is_rfc3339_fulltime("14:30:00"));
+/// ```
+SOURCEMETA_CORE_TIME_EXPORT
+auto is_rfc3339_fulltime(const std::string_view value) -> bool;
+
+/// @ingroup time
 /// Check whether the given year is a leap year per the Gregorian calendar
 /// (RFC 3339 Appendix C). For example:
 ///
