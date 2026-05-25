@@ -7,8 +7,7 @@
 namespace sourcemeta::core {
 
 auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void {
-  assert(codepoint <= 0x10FFFF);
-  assert(codepoint < 0xD800 || codepoint > 0xDFFF);
+  assert(is_valid_codepoint(codepoint));
   if (codepoint < 0x80) {
     output.put(static_cast<char>(codepoint));
   } else if (codepoint < 0x800) {
@@ -27,8 +26,7 @@ auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void {
 }
 
 auto codepoint_to_utf8(const char32_t codepoint, std::string &output) -> void {
-  assert(codepoint <= 0x10FFFF);
-  assert(codepoint < 0xD800 || codepoint > 0xDFFF);
+  assert(is_valid_codepoint(codepoint));
   if (codepoint < 0x80) {
     output.push_back(static_cast<char>(codepoint));
   } else if (codepoint < 0x800) {
@@ -57,41 +55,39 @@ auto utf8_to_utf32(std::istream &input) -> std::optional<std::u32string> {
   std::uint8_t byte{0};
 
   while (input.read(reinterpret_cast<char *>(&byte), 1)) {
-    char32_t code_point{0};
-    std::uint8_t continuation_count{0};
-    char32_t minimum{0};
-
-    if (byte < 0x80) {
-      result.push_back(byte);
-      continue;
-    } else if ((byte & 0xE0) == 0xC0) {
-      code_point = byte & 0x1F;
-      continuation_count = 1;
-      minimum = 0x80;
-    } else if ((byte & 0xF0) == 0xE0) {
-      code_point = byte & 0x0F;
-      continuation_count = 2;
-      minimum = 0x800;
-    } else if ((byte & 0xF8) == 0xF0) {
-      code_point = byte & 0x07;
-      continuation_count = 3;
-      minimum = 0x10000;
-    } else {
+    const auto size{utf8_lead_byte_size(byte)};
+    if (size == 0) {
       return std::nullopt;
     }
+    if (size == 1) {
+      result.push_back(byte);
+      continue;
+    }
 
-    for (std::uint8_t index = 0; index < continuation_count; ++index) {
+    char32_t code_point{0};
+    char32_t minimum{0};
+    if (size == 2) {
+      code_point = byte & 0x1F;
+      minimum = 0x80;
+    } else if (size == 3) {
+      code_point = byte & 0x0F;
+      minimum = 0x800;
+    } else {
+      code_point = byte & 0x07;
+      minimum = 0x10000;
+    }
+
+    for (std::uint8_t index{1}; index < size; ++index) {
       std::uint8_t continuation{0};
       if (!input.read(reinterpret_cast<char *>(&continuation), 1) ||
-          (continuation & 0xC0) != 0x80) {
+          !is_utf8_continuation(continuation)) {
         return std::nullopt;
       }
 
       code_point = (code_point << 6) | (continuation & 0x3F);
     }
 
-    if (code_point < minimum || code_point > 0x10FFFF ||
-        (code_point >= 0xD800 && code_point <= 0xDFFF)) {
+    if (code_point < minimum || !is_valid_codepoint(code_point)) {
       return std::nullopt;
     }
 
