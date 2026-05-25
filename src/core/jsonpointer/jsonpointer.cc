@@ -445,7 +445,7 @@ auto is_relative_pointer(const std::string_view input) noexcept -> bool {
   std::string_view::size_type position{0};
   if (input[0] == '0') {
     position = 1;
-  } else if (input[0] >= '1' && input[0] <= '9') {
+  } else if (is_positive_digit(input[0])) {
     position = 1;
     while (position < size && is_digit(input[position])) {
       position += 1;
