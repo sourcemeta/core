@@ -6,6 +6,7 @@
 #endif
 
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <chrono>      // std::chrono::system_clock::time_point
 #include <cstdint>     // std::uint8_t, std::uint16_t
 #include <string>      // std::string
@@ -168,6 +169,7 @@ inline constexpr auto is_leap_year(const std::uint16_t year) -> bool {
 inline constexpr auto max_day_in_month(const std::uint8_t month,
                                        const std::uint16_t year)
     -> std::uint8_t {
+  assert(month >= 1 && month <= 12);
   constexpr std::array<std::uint8_t, 13> days{
       {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
   if (month == 2 && is_leap_year(year)) {
