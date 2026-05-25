@@ -305,37 +305,24 @@ TEST(MCP, make_resource_link_2025_06_18_supports_structured) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(
-    MCP,
-    make_resource_link_2025_03_26_falls_back_to_text_with_name_and_description) {
+TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_with_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
       "text/plain", "My File", "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
-    "text": "My File (A description): file:///foo"
+    "text": "file:///foo (My File)"
   })JSON")};
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_name_only) {
-  const auto block{sourcemeta::core::mcp_make_resource_link(
-      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
-      "text/plain", "My File")};
-  const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "type": "text",
-    "text": "My File: file:///foo"
-  })JSON")};
-  EXPECT_EQ(block, expected);
-}
-
-TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_description_only) {
+TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_without_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
       "text/plain", {}, "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
-    "text": "A description: file:///foo"
+    "text": "file:///foo"
   })JSON")};
   EXPECT_EQ(block, expected);
 }

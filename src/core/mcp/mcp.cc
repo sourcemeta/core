@@ -83,20 +83,12 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
                             const JSON::StringView description)
     -> sourcemeta::core::JSON {
   if (!mcp_supports_resource_link_content(version)) {
-    std::string text;
+    std::string text{uri};
     if (!name.empty()) {
+      text.append(" (");
       text.append(name);
-      if (!description.empty()) {
-        text.append(" (");
-        text.append(description);
-        text.append(")");
-      }
-      text.append(": ");
-    } else if (!description.empty()) {
-      text.append(description);
-      text.append(": ");
+      text.append(")");
     }
-    text.append(uri);
     return mcp_make_text_block(text);
   }
 
