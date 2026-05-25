@@ -681,16 +681,6 @@ inline auto preprocess_regex(const std::string &pattern)
       }
     }
 
-    // Reject POSIX character classes inside a character class (PCRE-only)
-    if (in_class && current == '[' && !is_escaped(pattern, position) &&
-        position + 1 < pattern.size() && pattern[position + 1] == ':') {
-      if constexpr (CheckECMA) {
-        return false;
-      } else {
-        return std::nullopt;
-      }
-    }
-
     // Reject possessive quantifiers (PCRE-only): *+ ++ ?+
     if (current == '+' && position > 0 && !in_class) {
       const char prev = pattern[position - 1];
@@ -825,16 +815,24 @@ inline auto preprocess_regex(const std::string &pattern)
       if constexpr (!CheckECMA) {
         result += "\\k<";
       }
-      for (position += 3; position < pattern.size() && pattern[position] != '>';
-           ++position) {
+      const auto name_start = position + 3;
+      position = name_start;
+      while (position < pattern.size() && pattern[position] != '>') {
         if constexpr (!CheckECMA) {
           result += pattern[position];
         }
+        ++position;
       }
-      if (position < pattern.size()) {
-        if constexpr (!CheckECMA) {
-          result += '>';
+      // Reject unterminated \k<name or empty name \k<>
+      if (position >= pattern.size() || position == name_start) {
+        if constexpr (CheckECMA) {
+          return false;
+        } else {
+          return std::nullopt;
         }
+      }
+      if constexpr (!CheckECMA) {
+        result += '>';
       }
       continue;
     }

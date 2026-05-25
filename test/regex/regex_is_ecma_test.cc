@@ -287,3 +287,19 @@ TEST(Regex_is_ecma, invalid_backtracking_control) {
 TEST(Regex_is_ecma, invalid_perl_g_backreference) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(foo)\\g{1}"));
 }
+
+TEST(Regex_is_ecma, valid_literal_open_bracket_colon_in_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[[:abc]"));
+}
+
+TEST(Regex_is_ecma, valid_literal_colon_inside_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a:b]"));
+}
+
+TEST(Regex_is_ecma, invalid_unterminated_named_backreference) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<name"));
+}
+
+TEST(Regex_is_ecma, invalid_empty_named_backreference) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\k<>"));
+}
