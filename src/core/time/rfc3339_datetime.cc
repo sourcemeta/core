@@ -1,27 +1,9 @@
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/time.h>
 
-#include <array> // std::array
+#include <cstdint> // std::uint8_t, std::uint16_t
 
 namespace sourcemeta::core {
-
-static constexpr auto is_digit(const char character) -> bool {
-  return character >= '0' && character <= '9';
-}
-
-static constexpr auto is_leap_year(const unsigned int year) -> bool {
-  return (year % 4 == 0) && (year % 100 != 0 || year % 400 == 0);
-}
-
-static constexpr auto max_day_in_month(const unsigned int month,
-                                       const unsigned int year)
-    -> unsigned int {
-  constexpr std::array<unsigned int, 13> days{
-      {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
-  if (month == 2 && is_leap_year(year)) {
-    return 29;
-  }
-  return days[month];
-}
 
 auto is_rfc3339_datetime(const std::string_view value) -> bool {
   const auto size{value.size()};
@@ -31,51 +13,20 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     return false;
   }
 
-  std::string_view::size_type position{0};
-
   // --- full-date: date-fullyear "-" date-month "-" date-mday ---
+  if (!is_rfc3339_fulldate(value.substr(0, 10))) {
+    return false;
+  }
 
-  // date-fullyear = 4DIGIT
-  if (!is_digit(value[0]) || !is_digit(value[1]) || !is_digit(value[2]) ||
-      !is_digit(value[3])) {
-    return false;
-  }
-  const auto year{static_cast<unsigned int>(value[0] - '0') * 1000 +
-                  static_cast<unsigned int>(value[1] - '0') * 100 +
-                  static_cast<unsigned int>(value[2] - '0') * 10 +
-                  static_cast<unsigned int>(value[3] - '0')};
-  position = 4;
+  const auto year{static_cast<std::uint16_t>(
+      (value[0] - '0') * 1000 + (value[1] - '0') * 100 + (value[2] - '0') * 10 +
+      (value[3] - '0'))};
+  const auto month{
+      static_cast<std::uint8_t>((value[5] - '0') * 10 + (value[6] - '0'))};
+  const auto day{
+      static_cast<std::uint8_t>((value[8] - '0') * 10 + (value[9] - '0'))};
 
-  // "-"
-  if (value[position] != '-') {
-    return false;
-  }
-  position += 1;
-
-  // date-month = 2DIGIT ; 01-12
-  if (!is_digit(value[position]) || !is_digit(value[position + 1])) {
-    return false;
-  }
-  const auto month{static_cast<unsigned int>(value[position] - '0') * 10 +
-                   static_cast<unsigned int>(value[position + 1] - '0')};
-  if (month < 1 || month > 12) {
-    return false;
-  }
-  position += 2;
-
-  // "-"
-  if (value[position] != '-') {
-    return false;
-  }
-  position += 1;
-
-  // date-mday = 2DIGIT ; 01-28/29/30/31 based on month/year
-  if (!is_digit(value[position]) || !is_digit(value[position + 1])) {
-    return false;
-  }
-  const auto day{static_cast<unsigned int>(value[position] - '0') * 10 +
-                 static_cast<unsigned int>(value[position + 1] - '0')};
-  position += 2;
+  std::string_view::size_type position{10};
 
   // --- "T" or "t" separator ---
   if (value[position] != 'T' && value[position] != 't') {
@@ -200,11 +151,6 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     return false;
   }
 
-  // --- Validate date-mday against month/year (§5.7) ---
-  if (day < 1 || day > max_day_in_month(month, year)) {
-    return false;
-  }
-
   // --- Validate leap second (§5.7) ---
   // The value 60 is only legal at the end of months in which a leap second
   // occurs: June (XXXX-06-30T23:59:60Z) or December (XXXX-12-31T23:59:60Z),
@@ -234,8 +180,8 @@ auto is_rfc3339_datetime(const std::string_view value) -> bool {
     // A "next UTC day" shift cannot coexist with UTC time 23:59, since
     // max(local) + max(offset) = 1439 + 1439 = 2878 < 1440 + 1439
 
-    unsigned int utc_month{month};
-    unsigned int utc_day{day};
+    std::uint8_t utc_month{month};
+    std::uint8_t utc_day{day};
     if (previous_utc_day) {
       if (utc_day > 1) {
         utc_day -= 1;

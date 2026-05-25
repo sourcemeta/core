@@ -5,6 +5,46 @@
 #include <cstdint> // std::int64_t, std::uint64_t, std::uint8_t
 #include <limits>  // std::numeric_limits
 
+TEST(Numeric_util, is_digit_zero) {
+  EXPECT_TRUE(sourcemeta::core::is_digit('0'));
+}
+
+TEST(Numeric_util, is_digit_nine) {
+  EXPECT_TRUE(sourcemeta::core::is_digit('9'));
+}
+
+TEST(Numeric_util, is_digit_five) {
+  EXPECT_TRUE(sourcemeta::core::is_digit('5'));
+}
+
+TEST(Numeric_util, is_digit_lowercase_letter) {
+  EXPECT_FALSE(sourcemeta::core::is_digit('a'));
+}
+
+TEST(Numeric_util, is_digit_uppercase_letter) {
+  EXPECT_FALSE(sourcemeta::core::is_digit('Z'));
+}
+
+TEST(Numeric_util, is_digit_space) {
+  EXPECT_FALSE(sourcemeta::core::is_digit(' '));
+}
+
+TEST(Numeric_util, is_digit_slash) {
+  EXPECT_FALSE(sourcemeta::core::is_digit('/'));
+}
+
+TEST(Numeric_util, is_digit_colon) {
+  EXPECT_FALSE(sourcemeta::core::is_digit(':'));
+}
+
+TEST(Numeric_util, is_digit_null) {
+  EXPECT_FALSE(sourcemeta::core::is_digit('\0'));
+}
+
+TEST(Numeric_util, is_digit_minus) {
+  EXPECT_FALSE(sourcemeta::core::is_digit('-'));
+}
+
 TEST(Numeric_util, is_byte_zero) { EXPECT_TRUE(sourcemeta::core::is_byte(0)); }
 
 TEST(Numeric_util, is_byte_255) { EXPECT_TRUE(sourcemeta::core::is_byte(255)); }
