@@ -143,7 +143,10 @@ auto is_rfc3339_fulldate(const std::string_view value) -> bool;
 /// full-time = partial-time time-offset
 /// ```
 ///
-/// where "Z" may also be lowercase "z" (per RFC 3339 §5.6 NOTE). For example:
+/// where "Z" may also be lowercase "z" (per RFC 3339 §5.6 NOTE). When
+/// `time-second` is `60` (leap second), only the UTC `23:59` alignment is
+/// verified; the §5.7 calendar restriction to June 30 or December 31
+/// requires date context and is therefore out of scope. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/time.h>
