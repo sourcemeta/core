@@ -7,6 +7,7 @@
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <type_traits> // std::conditional_t
 #include <utility>     // std::pair
 
 namespace sourcemeta::core {
@@ -636,10 +637,13 @@ inline auto find_shorthand(char escape) -> const ShorthandExpansion * {
 
 } // namespace
 
+template <bool CheckECMA>
 inline auto preprocess_regex(const std::string &pattern)
-    -> std::optional<std::string> {
+    -> std::conditional_t<CheckECMA, bool, std::optional<std::string>> {
   std::string result;
-  result.reserve(pattern.size() * 2);
+  if constexpr (!CheckECMA) {
+    result.reserve(pattern.size() * 2);
+  }
   bool in_class = false;
 
   for (std::size_t position = 0; position < pattern.size(); ++position) {
@@ -680,10 +684,16 @@ inline auto preprocess_regex(const std::string &pattern)
       if (use_v_flag) {
         const auto expanded = expand_char_class(nested_content);
         if (!expanded) {
-          return std::nullopt;
+          if constexpr (CheckECMA) {
+            return false;
+          } else {
+            return std::nullopt;
+          }
         }
 
-        result += *expanded;
+        if constexpr (!CheckECMA) {
+          result += *expanded;
+        }
         position = nested_end - 1;
         continue;
       }
@@ -696,36 +706,48 @@ inline auto preprocess_regex(const std::string &pattern)
     }
 
     if (current != '\\' || position + 1 >= pattern.size()) {
-      result += current;
+      if constexpr (!CheckECMA) {
+        result += current;
+      }
       continue;
     }
 
     const char next = pattern[position + 1];
     if (std::string_view{"\\[]^$"}.contains(next)) {
-      result += current;
-      result += next;
+      if constexpr (!CheckECMA) {
+        result += current;
+        result += next;
+      }
       ++position;
       continue;
     }
 
     if (next == 'u' && position + 2 < pattern.size()) {
       if (pattern[position + 2] == '{') {
-        result += "\\x{";
+        if constexpr (!CheckECMA) {
+          result += "\\x{";
+        }
         for (position += 3;
              position < pattern.size() && pattern[position] != '}';
              ++position) {
-          result += pattern[position];
+          if constexpr (!CheckECMA) {
+            result += pattern[position];
+          }
         }
 
         if (position < pattern.size()) {
-          result += '}';
+          if constexpr (!CheckECMA) {
+            result += '}';
+          }
         }
 
         continue;
       }
 
       if (position + 5 < pattern.size() && all_hex(pattern, position + 2, 4)) {
-        result += "\\x{" + pattern.substr(position + 2, 4) + '}';
+        if constexpr (!CheckECMA) {
+          result += "\\x{" + pattern.substr(position + 2, 4) + '}';
+        }
         position += 5;
         continue;
       }
@@ -742,13 +764,19 @@ inline auto preprocess_regex(const std::string &pattern)
 
       if (position < pattern.size()) {
         if (auto translated = translate_property(name, next == 'P')) {
-          result += *translated;
+          if constexpr (!CheckECMA) {
+            result += *translated;
+          }
         } else {
-          result += pattern.substr(start, position - start + 1);
+          if constexpr (!CheckECMA) {
+            result += pattern.substr(start, position - start + 1);
+          }
         }
       } else {
         position = start;
-        result += current;
+        if constexpr (!CheckECMA) {
+          result += current;
+        }
       }
 
       continue;
@@ -756,18 +784,42 @@ inline auto preprocess_regex(const std::string &pattern)
 
     if (const auto *expansion = find_shorthand(next)) {
       if (in_class && expansion->inside_class.empty()) {
-        result += std::string{current} + next;
+        if constexpr (!CheckECMA) {
+          result += std::string{current} + next;
+        }
       } else {
-        result += in_class ? expansion->inside_class : expansion->outside_class;
+        if constexpr (!CheckECMA) {
+          result +=
+              in_class ? expansion->inside_class : expansion->outside_class;
+        }
       }
 
       ++position;
     } else {
-      result += current;
+      // Reject escape sequences that are not valid in ECMA-262 strict mode
+      constexpr std::string_view ecma_remaining_escapes{"tnrfvcx0"};
+      const bool is_ecma_escape{ecma_remaining_escapes.contains(next) ||
+                                v_flag_syntax.contains(next) ||
+                                (next >= '1' && next <= '9')};
+      if (!is_ecma_escape) {
+        if constexpr (CheckECMA) {
+          return false;
+        } else {
+          return std::nullopt;
+        }
+      }
+
+      if constexpr (!CheckECMA) {
+        result += current;
+      }
     }
   }
 
-  return result;
+  if constexpr (CheckECMA) {
+    return true;
+  } else {
+    return result;
+  }
 }
 
 } // namespace sourcemeta::core
