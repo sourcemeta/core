@@ -219,3 +219,71 @@ TEST(Regex_is_ecma, valid_email_loose) {
 TEST(Regex_is_ecma, valid_iso_date) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^\\d{4}-\\d{2}-\\d{2}$"));
 }
+
+TEST(Regex_is_ecma, valid_named_group) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<name>foo)"));
+}
+
+TEST(Regex_is_ecma, valid_named_backreference) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<name>foo)\\k<name>"));
+}
+
+TEST(Regex_is_ecma, invalid_python_named_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?P<name>foo)"));
+}
+
+TEST(Regex_is_ecma, invalid_atomic_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?>foo)"));
+}
+
+TEST(Regex_is_ecma, invalid_inline_option_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i)foo"));
+}
+
+TEST(Regex_is_ecma, invalid_inline_option_scoped) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?i:foo)"));
+}
+
+TEST(Regex_is_ecma, invalid_branch_reset_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?|a|b)"));
+}
+
+TEST(Regex_is_ecma, invalid_conditional_group) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?(1)yes|no)"));
+}
+
+TEST(Regex_is_ecma, invalid_subroutine_call) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?&name)"));
+}
+
+TEST(Regex_is_ecma, invalid_recursion) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(?R)"));
+}
+
+TEST(Regex_is_ecma, invalid_backreference_uppercase_k) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("foo\\Kbar"));
+}
+
+TEST(Regex_is_ecma, invalid_line_break_escape) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\R"));
+}
+
+TEST(Regex_is_ecma, invalid_quote_sequence) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("\\Qfoo\\E"));
+}
+
+TEST(Regex_is_ecma, invalid_posix_class_alpha) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[[:alpha:]]"));
+}
+
+TEST(Regex_is_ecma, invalid_possessive_quantifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a*+"));
+}
+
+TEST(Regex_is_ecma, invalid_backtracking_control) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(*FAIL)"));
+}
+
+TEST(Regex_is_ecma, invalid_perl_g_backreference) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("(foo)\\g{1}"));
+}
