@@ -381,18 +381,19 @@ TEST(IdnEmail, valid_domain_label_at_max_length) {
   EXPECT_TRUE(sourcemeta::core::is_email("a@" + label));
 }
 
-// RFC 5321 §4.5.3.1.2: total domain > 255 octets is invalid
+// RFC 5321 §4.5.3.1.2: total domain > 255 octets is invalid.
+// Construction must avoid trailing-dot and per-label (>63) confounds: 5
+// labels of 51/51/51/51/48 'a' chars separated by 4 dots = 256 octets, no
+// trailing dot, every label within the 63-octet RFC 1035 cap
 TEST(IdnEmail, invalid_domain_total_too_long) {
-  // Construct a 256-octet domain: four 63-octet labels separated by dots
-  // 63*4 + 3 = 255, so add an extra label to overflow
   std::string domain;
   for (int index = 0; index < 4; ++index) {
-    domain.append(63, 'a');
+    domain.append(51, 'a');
     domain.push_back('.');
   }
-  domain.append(1, 'a');
-  // size = 63*4 + 4 + 1 = 257; trim to exactly 256
-  domain.resize(256, 'a');
+  domain.append(48, 'a');
+  EXPECT_EQ(domain.size(), 256u);
+  EXPECT_NE(domain.back(), '.');
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a@" + domain));
   EXPECT_FALSE(sourcemeta::core::is_email("a@" + domain));
 }
