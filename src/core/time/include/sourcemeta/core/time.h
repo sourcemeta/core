@@ -162,6 +162,32 @@ SOURCEMETA_CORE_TIME_EXPORT
 auto is_rfc3339_fulltime(const std::string_view value) -> bool;
 
 /// @ingroup time
+/// Check whether the given string is a valid duration value per RFC 3339
+/// Appendix A (ISO 8601 Collected ABNF). This implements the `duration`
+/// production rule:
+///
+/// ```
+/// duration = "P" (dur-date / dur-time / dur-week)
+/// ```
+///
+/// where `dur-week` is mutually exclusive with the date and time components.
+/// Only ASCII digits and uppercase unit letters are accepted; fractional
+/// values are not permitted by the RFC 3339 ABNF. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/time.h>
+///
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_rfc3339_duration("P4DT12H30M5S"));
+/// assert(sourcemeta::core::is_rfc3339_duration("P1Y2M3D"));
+/// assert(sourcemeta::core::is_rfc3339_duration("P2W"));
+/// assert(!sourcemeta::core::is_rfc3339_duration("PT1D"));
+/// ```
+SOURCEMETA_CORE_TIME_EXPORT
+auto is_rfc3339_duration(const std::string_view value) -> bool;
+
+/// @ingroup time
 /// Check whether the given year is a leap year per the Gregorian calendar
 /// (RFC 3339 Appendix C). For example:
 ///
