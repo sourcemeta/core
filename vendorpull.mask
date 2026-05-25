@@ -38,3 +38,4 @@ vendor/pyca-cryptography.mask
 vendor/cmark-gfm.mask
 vendor/libdeflate.mask
 vendor/openapi.mask
+vendor/unicodetools.mask
