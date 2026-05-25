@@ -1,6 +1,7 @@
 #include <sourcemeta/core/email.h>
 
 #include <sourcemeta/core/dns.h>
+#include <sourcemeta/core/unicode.h>
 
 #include "helpers.h"
 
@@ -115,7 +116,7 @@ static auto is_mailbox(const std::string_view value) -> bool {
 
   if constexpr (AllowUtf8) {
     // RFC 6531 §3.3: sub-domain =/ U-label
-    return is_idn_domain(domain);
+    return is_idn_hostname(domain);
   } else {
     // RFC 5321 §4.1.2 Domain matches is_hostname (RFC 1123 §2.1) by
     // grammar, by 63-octet label cap (RFC 1035 §2.3.4), and by

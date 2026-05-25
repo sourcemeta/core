@@ -2,7 +2,6 @@
 #define SOURCEMETA_CORE_EMAIL_HELPERS_H_
 
 #include <sourcemeta/core/ip.h>
-#include <sourcemeta/core/unicode.h>
 
 #include <string_view> // std::string_view
 
@@ -130,69 +129,6 @@ inline auto is_address_literal(const std::string_view domain) -> bool {
     return sourcemeta::core::is_ipv4(inner);
   }
   return is_general_address_literal(inner);
-}
-
-// TODO: Move to src/core/dns
-
-// RFC 6531 §3.3: sub-domain =/ U-label
-// Relaxed sub-domain grammar where each label is a non-empty sequence of
-// LetDig / hyphen / UTF8-non-ascii bytes, with no leading or trailing hyphen,
-// length limits per RFC 5321 §4.5.3.1.2 and RFC 1035 §2.3.4
-inline auto is_idn_domain(const std::string_view value) -> bool {
-  if (value.empty() || value.size() > 255) {
-    return false;
-  }
-
-  std::string_view::size_type position{0};
-  while (position < value.size()) {
-    const auto label_start{position};
-    bool last_was_hyphen{false};
-    bool label_has_content{false};
-
-    while (position < value.size() && value[position] != '.') {
-      const auto character{value[position]};
-      if (character == '-') {
-        if (!label_has_content) {
-          return false;
-        }
-        last_was_hyphen = true;
-        position += 1;
-        label_has_content = true;
-        continue;
-      }
-
-      if (is_let_dig(character)) {
-        last_was_hyphen = false;
-        position += 1;
-        label_has_content = true;
-        continue;
-      }
-
-      const auto utf8_length{
-          sourcemeta::core::utf8_codepoint_length(value, position)};
-      if (utf8_length < 2) {
-        return false;
-      }
-      last_was_hyphen = false;
-      position += utf8_length;
-      label_has_content = true;
-    }
-
-    const auto label_length{position - label_start};
-    if (label_length == 0 || label_length > 63 || last_was_hyphen) {
-      return false;
-    }
-
-    if (position < value.size()) {
-      position += 1;
-      if (position == value.size()) {
-        // RFC 5321 §4.1.2 Domain has no trailing dot
-        return false;
-      }
-    }
-  }
-
-  return true;
 }
 
 } // namespace
