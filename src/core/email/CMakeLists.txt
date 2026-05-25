@@ -9,3 +9,5 @@ target_link_libraries(sourcemeta_core_email
   PRIVATE sourcemeta::core::dns)
 target_link_libraries(sourcemeta_core_email
   PRIVATE sourcemeta::core::ip)
+target_link_libraries(sourcemeta_core_email
+  PRIVATE sourcemeta::core::unicode)

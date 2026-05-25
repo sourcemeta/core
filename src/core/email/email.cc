@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/dns.h>
 #include <sourcemeta/core/ip.h>
+#include <sourcemeta/core/unicode.h>
 
 namespace sourcemeta::core {
 
@@ -104,6 +105,66 @@ static constexpr auto is_general_address_literal(const std::string_view value)
   return true;
 }
 
+// RFC 6531 §3.3: sub-domain =/ U-label
+// Relaxed sub-domain grammar where each label is a non-empty sequence of
+// LetDig / hyphen / UTF8-non-ascii bytes, with no leading or trailing hyphen,
+// length limits per RFC 5321 §4.5.3.1.2 and RFC 1035 §2.3.4
+static auto is_idn_domain(const std::string_view value) -> bool {
+  if (value.empty() || value.size() > 255) {
+    return false;
+  }
+
+  std::string_view::size_type position{0};
+  while (position < value.size()) {
+    const auto label_start{position};
+    bool last_was_hyphen{false};
+    bool label_has_content{false};
+
+    while (position < value.size() && value[position] != '.') {
+      const auto character{value[position]};
+      if (character == '-') {
+        if (!label_has_content) {
+          return false;
+        }
+        last_was_hyphen = true;
+        position += 1;
+        label_has_content = true;
+        continue;
+      }
+
+      if (is_let_dig(character)) {
+        last_was_hyphen = false;
+        position += 1;
+        label_has_content = true;
+        continue;
+      }
+
+      const auto utf8_length{utf8_codepoint_length(value, position)};
+      if (utf8_length < 2) {
+        return false;
+      }
+      last_was_hyphen = false;
+      position += utf8_length;
+      label_has_content = true;
+    }
+
+    const auto label_length{position - label_start};
+    if (label_length == 0 || label_length > 63 || last_was_hyphen) {
+      return false;
+    }
+
+    if (position < value.size()) {
+      position += 1;
+      if (position == value.size()) {
+        // RFC 5321 §4.1.2 Domain has no trailing dot
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 auto is_email(const std::string_view value) -> bool {
   if (value.empty()) {
     return false;
@@ -203,6 +264,120 @@ auto is_email(const std::string_view value) -> bool {
   // grammar, by 63-octet label cap (RFC 1035 §2.3.4), and by
   // 255-octet total cap (RFC 5321 §4.5.3.1.2)
   return is_hostname(domain);
+}
+
+auto is_idn_email(const std::string_view value) -> bool {
+  if (value.empty()) {
+    return false;
+  }
+
+  std::string_view::size_type position{0};
+
+  if (value[0] == '"') {
+    // RFC 5321 §4.1.2: Quoted-string = DQUOTE *QcontentSMTP DQUOTE
+    // RFC 6531 §3.3: qtextSMTP =/ UTF8-non-ascii
+    position = 1;
+    while (position < value.size() && value[position] != '"') {
+      if (value[position] == '\\') {
+        // RFC 5321 §4.1.2: quoted-pairSMTP = %d92 %d32-126
+        position += 1;
+        if (position >= value.size()) {
+          return false;
+        }
+        const auto body{static_cast<unsigned char>(value[position])};
+        if (body < 32 || body > 126) {
+          return false;
+        }
+        position += 1;
+        continue;
+      }
+
+      if (is_qtext_smtp(static_cast<unsigned char>(value[position]))) {
+        position += 1;
+        continue;
+      }
+
+      const auto utf8_length{utf8_codepoint_length(value, position)};
+      if (utf8_length < 2) {
+        return false;
+      }
+      position += utf8_length;
+    }
+    if (position >= value.size()) {
+      return false;
+    }
+    // value[position] is the closing DQUOTE
+    position += 1;
+  } else {
+    // RFC 5321 §4.1.2: Dot-string = Atom *("." Atom), Atom = 1*atext
+    // RFC 6531 §3.3: atext =/ UTF8-non-ascii
+    bool previous_was_dot{false};
+    bool atom_started{false};
+    while (position < value.size() && value[position] != '@') {
+      const auto character{value[position]};
+      if (character == '.') {
+        if (!atom_started || previous_was_dot) {
+          return false;
+        }
+        previous_was_dot = true;
+        atom_started = false;
+        position += 1;
+        continue;
+      }
+
+      if (is_atext(character)) {
+        previous_was_dot = false;
+        atom_started = true;
+        position += 1;
+        continue;
+      }
+
+      const auto utf8_length{utf8_codepoint_length(value, position)};
+      if (utf8_length < 2) {
+        return false;
+      }
+      previous_was_dot = false;
+      atom_started = true;
+      position += utf8_length;
+    }
+    if (position == 0 || previous_was_dot) {
+      return false;
+    }
+  }
+
+  // RFC 5321 §4.5.3.1.1: Local-part octet limit is 64
+  if (position > 64) {
+    return false;
+  }
+
+  // RFC 5321 §4.1.2: Mailbox = Local-part "@" ( Domain / address-literal )
+  if (position >= value.size() || value[position] != '@') {
+    return false;
+  }
+
+  const auto domain{value.substr(position + 1)};
+
+  // RFC 5321 §4.1.3: address-literal = "[" ( IPv4 / IPv6 / General ) "]"
+  // Address literals are ASCII-only — no IDNA applies
+  if (!domain.empty() && domain.front() == '[') {
+    if (domain.back() != ']') {
+      return false;
+    }
+    if (domain.size() > 255) {
+      return false;
+    }
+    const auto inner{domain.substr(1, domain.size() - 2)};
+    if (matches_ipv6_tag(inner) && is_ipv6(inner.substr(5))) {
+      return true;
+    }
+    if (inner.find(':') == std::string_view::npos) {
+      return is_ipv4(inner);
+    }
+    return is_general_address_literal(inner);
+  }
+
+  // RFC 6531 §3.3: sub-domain =/ U-label
+  return is_idn_domain(domain);
 }
 
 } // namespace sourcemeta::core
