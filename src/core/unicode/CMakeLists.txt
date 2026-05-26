@@ -11,12 +11,14 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
     "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/PropertyValueAliases.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedJoiningType.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedBidiClass.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/Scripts.txt"
   DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/PropertyValueAliases.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedJoiningType.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedBidiClass.txt"
@@ -25,6 +27,7 @@ add_custom_command(
   VERBATIM)
 
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME unicode
+  PRIVATE_HEADERS ucd.h
   SOURCES unicode.cc "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}")
 
 target_include_directories(sourcemeta_core_unicode PRIVATE

@@ -39,3 +39,7 @@ vendor/cmark-gfm.mask
 vendor/libdeflate.mask
 vendor/openapi.mask
 vendor/unicodetools.mask
+vendor/unicodetools/unicodetools/data/ucd/dev/BidiCharacterTest.txt
+vendor/unicodetools/unicodetools/data/ucd/dev/BidiTest.txt
+vendor/unicodetools/unicodetools/data/ucd/dev/NormalizationTest.txt
+vendor/unicodetools/unicodetools/data/idna/dev/IdnaTestV2.txt
