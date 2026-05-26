@@ -49,7 +49,7 @@ $NormalizedContent = (Get-Content $Actual -Raw) `
 $ExpectedContent = (@"
 
 ================================================================================
-signal:  0xc0000005 (SEH)
+signal:  0xADDR (SEH)
 pid:     <PID>
 
 # 0xADDR crash_handler +0xOFFSET
@@ -63,6 +63,8 @@ pid:     <PID>
 ================================================================================
 "@) -replace "`r`n", "`n"
 
+$NormalizedContent = $NormalizedContent.TrimEnd()
+$ExpectedContent = $ExpectedContent.TrimEnd()
 [System.IO.File]::WriteAllText($Normalized, $NormalizedContent)
 [System.IO.File]::WriteAllText($Expected, $ExpectedContent)
 

@@ -55,6 +55,8 @@ pid:     <PID>
 ================================================================================
 "@) -replace "`r`n", "`n"
 
+$NormalizedContent = $NormalizedContent.TrimEnd()
+$ExpectedContent = $ExpectedContent.TrimEnd()
 [System.IO.File]::WriteAllText($Normalized, $NormalizedContent)
 [System.IO.File]::WriteAllText($Expected, $ExpectedContent)
 
