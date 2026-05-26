@@ -13,10 +13,12 @@ add_custom_command(
     "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedJoiningType.txt"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedBidiClass.txt"
   DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedJoiningType.txt"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedBidiClass.txt"
   COMMENT "Generating Unicode property tables"
   VERBATIM)
 

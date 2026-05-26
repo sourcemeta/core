@@ -264,6 +264,54 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto joining_type(const char32_t codepoint) -> JoiningType;
 
 /// @ingroup unicode
+/// The bidirectional class of a Unicode codepoint per UAX #44. See
+/// https://www.unicode.org/reports/tr44/ for the property's definition.
+enum class BidiClass : std::uint8_t {
+  LeftToRight = 0,
+  RightToLeft = 1,
+  ArabicLetter = 2,
+  EuropeanNumber = 3,
+  EuropeanSeparator = 4,
+  EuropeanTerminator = 5,
+  ArabicNumber = 6,
+  CommonSeparator = 7,
+  NonspacingMark = 8,
+  BoundaryNeutral = 9,
+  ParagraphSeparator = 10,
+  SegmentSeparator = 11,
+  WhiteSpace = 12,
+  OtherNeutral = 13,
+  LeftToRightEmbedding = 14,
+  LeftToRightOverride = 15,
+  RightToLeftEmbedding = 16,
+  RightToLeftOverride = 17,
+  PopDirectionalFormat = 18,
+  LeftToRightIsolate = 19,
+  RightToLeftIsolate = 20,
+  FirstStrongIsolate = 21,
+  PopDirectionalIsolate = 22,
+};
+
+/// @ingroup unicode
+/// Return the bidirectional class of a Unicode codepoint. See
+/// https://www.unicode.org/reports/tr44/ for the property's definition.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::bidi_class(U'A') ==
+///        sourcemeta::core::BidiClass::LeftToRight);
+/// assert(sourcemeta::core::bidi_class(U'\u05D0') ==
+///        sourcemeta::core::BidiClass::RightToLeft);
+/// assert(sourcemeta::core::bidi_class(U'\u0627') ==
+///        sourcemeta::core::BidiClass::ArabicLetter);
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto bidi_class(const char32_t codepoint) -> BidiClass;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong
