@@ -78,9 +78,9 @@ def parse_alias_lines(aliases_path, property_short):
 
 def build_combining_mark_value_map(aliases_path):
     """Build {form: int} from PropertyValueAliases.txt mapping each
-    General_Category alias to 1 if it is a combining mark (Mn, Mc, Me)
-    and to 0 otherwise."""
-    combining = {"Mn", "Mc", "Me"}
+    General_Category alias to 1 if it is a combining mark (Mn, Mc, Me,
+    or the supergroup M / Mark / Combining_Mark) and to 0 otherwise."""
+    combining = {"M", "Mn", "Mc", "Me"}
     result = {}
     for row in parse_alias_lines(aliases_path, "gc"):
         value = 1 if any(field in combining for field in row) else 0
