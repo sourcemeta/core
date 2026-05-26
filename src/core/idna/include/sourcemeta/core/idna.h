@@ -47,8 +47,7 @@ enum class IDNALabelKind : std::uint8_t {
 /// #include <cassert>
 ///
 /// std::u32string decoded;
-/// // U+00DF U+03C2 (ASCII view sees only LOW-7-BIT bytes, here non-ASCII)
-/// assert(sourcemeta::core::idna_classify_label(U"ßς", decoded) ==
+/// assert(sourcemeta::core::idna_classify_label(U"\u00DF\u03C2", decoded) ==
 ///        sourcemeta::core::IDNALabelKind::ULabel);
 /// assert(sourcemeta::core::idna_classify_label(U"xn--mnchen-3ya", decoded) ==
 ///        sourcemeta::core::IDNALabelKind::ALabel);

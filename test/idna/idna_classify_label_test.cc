@@ -44,7 +44,7 @@ TEST(IDNA_classify_label, valid_a_label_lowercase_prefix) {
   ASSERT_TRUE(kind.has_value());
   EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
   // U+00FC LATIN SMALL LETTER U WITH DIAERESIS
-  EXPECT_EQ(decoded, U"münchen");
+  EXPECT_EQ(decoded, U"m\u00FCnchen");
 }
 
 TEST(IDNA_classify_label, valid_a_label_uppercase_prefix) {
@@ -53,7 +53,7 @@ TEST(IDNA_classify_label, valid_a_label_uppercase_prefix) {
       sourcemeta::core::idna_classify_label(U"XN--mnchen-3ya", decoded)};
   ASSERT_TRUE(kind.has_value());
   EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
-  EXPECT_EQ(decoded, U"münchen");
+  EXPECT_EQ(decoded, U"m\u00FCnchen");
 }
 
 TEST(IDNA_classify_label, valid_a_label_mixed_case_prefix) {
@@ -62,7 +62,7 @@ TEST(IDNA_classify_label, valid_a_label_mixed_case_prefix) {
       sourcemeta::core::idna_classify_label(U"Xn--mnchen-3ya", decoded)};
   ASSERT_TRUE(kind.has_value());
   EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ALabel);
-  EXPECT_EQ(decoded, U"münchen");
+  EXPECT_EQ(decoded, U"m\u00FCnchen");
 }
 
 // RFC 5891 §4.2: A-label Punycode body must round-trip
@@ -89,24 +89,25 @@ TEST(IDNA_classify_label, invalid_a_label_garbage_body) {
 // RFC 5890 §2.3.2.2: U-label has at least one non-ASCII codepoint
 TEST(IDNA_classify_label, valid_u_label_two_byte) {
   std::u32string decoded;
-  const auto kind{sourcemeta::core::idna_classify_label(U"α", decoded)};
+  const auto kind{sourcemeta::core::idna_classify_label(U"\u03B1", decoded)};
   ASSERT_TRUE(kind.has_value());
   EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ULabel);
-  EXPECT_EQ(decoded, U"α");
+  EXPECT_EQ(decoded, U"\u03B1");
 }
 
 TEST(IDNA_classify_label, valid_u_label_mixed_pvalid_codepoints) {
   std::u32string decoded;
-  const auto kind{sourcemeta::core::idna_classify_label(U"münchen", decoded)};
+  const auto kind{
+      sourcemeta::core::idna_classify_label(U"m\u00FCnchen", decoded)};
   ASSERT_TRUE(kind.has_value());
   EXPECT_EQ(*kind, sourcemeta::core::IDNALabelKind::ULabel);
-  EXPECT_EQ(decoded, U"münchen");
+  EXPECT_EQ(decoded, U"m\u00FCnchen");
 }
 
 // RFC 5891 §4.2.3.1: U-label must not start with a hyphen
 TEST(IDNA_classify_label, invalid_u_label_leading_hyphen) {
   std::u32string decoded;
-  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"-α", decoded),
+  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"-\u03B1", decoded),
             std::nullopt);
 }
 
@@ -114,7 +115,7 @@ TEST(IDNA_classify_label, invalid_u_label_leading_hyphen) {
 TEST(IDNA_classify_label, invalid_u_label_leading_combining_mark) {
   std::u32string decoded;
   // U+0300 COMBINING GRAVE ACCENT
-  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"̀hello", decoded),
+  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"\u0300hello", decoded),
             std::nullopt);
 }
 
@@ -122,6 +123,6 @@ TEST(IDNA_classify_label, invalid_u_label_leading_combining_mark) {
 TEST(IDNA_classify_label, invalid_u_label_disallowed_codepoint) {
   std::u32string decoded;
   // U+302E HANGUL SINGLE DOT TONE MARK is DISALLOWED
-  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"a〮b", decoded),
+  EXPECT_EQ(sourcemeta::core::idna_classify_label(U"a\u302Eb", decoded),
             std::nullopt);
 }
