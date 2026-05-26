@@ -59,6 +59,7 @@ UNICODE_SCRIPT_ORDER = [
     "Thaana", "Thai", "Tibetan", "Tifinagh", "Tirhuta", "Todhri",
     "Tolong_Siki", "Toto", "Tulu_Tigalari", "Ugaritic", "Unknown", "Vai",
     "Vithkuqi", "Wancho", "Warang_Citi", "Yezidi", "Yi", "Zanabazar_Square",
+    "Katakana_Or_Hiragana",
 ]
 
 
@@ -75,7 +76,7 @@ def parse_alias_lines(aliases_path, property_short):
     return rows
 
 
-def build_value_map(aliases_path, property_short, canonical_order=None, ignore=()):
+def build_value_map(aliases_path, property_short, canonical_order=None):
     """Build {form: int} for a property. With canonical_order, each row's
     integer is its canonical's position in that list; without, the row's
     first field is read as the integer directly (used for ccc)."""
@@ -84,12 +85,9 @@ def build_value_map(aliases_path, property_short, canonical_order=None, ignore=(
         if canonical_order is not None
         else None
     )
-    ignored = set(ignore)
     result = {}
     unmatched = []
     for row in parse_alias_lines(aliases_path, property_short):
-        if any(field in ignored for field in row):
-            continue
         if canonical_to_int is None:
             value = int(row[0])
         else:
@@ -112,19 +110,22 @@ def build_value_map(aliases_path, property_short, canonical_order=None, ignore=(
 
 def parse_file(path, value_map):
     """Read a UCD file and return a list of (first, last, value) entries
-    in file order. UAX #44 puts @missing lines before data lines, so the
-    file-order list can be applied directly to the dense values array."""
-    entries = []
+    with @missing defaults first and data ranges second, so callers can
+    apply them in order regardless of where @missing appears in the file."""
+    missing = []
+    data = []
     with open(path) as source:
         for line_number, line in enumerate(source, start=1):
             stripped = line.strip()
             if not stripped:
                 continue
+            target = data
             if stripped.startswith("#"):
                 prefix = MISSING_PREFIX.match(stripped)
                 if not prefix:
                     continue
                 stripped = stripped[prefix.end():]
+                target = missing
             match = LINE.match(stripped)
             if not match:
                 raise ValueError(
@@ -139,8 +140,8 @@ def parse_file(path, value_map):
                 raise ValueError(
                     f"{path}:{line_number}: invalid value {raw_value!r}: {error}"
                 ) from error
-            entries.append((first, last, value))
-    return entries
+            target.append((first, last, value))
+    return missing + data
 
 
 def build_pages(entries):
@@ -206,8 +207,7 @@ def main():
         ("BIDI_CLASS", sys.argv[5],
          build_value_map(aliases_path, "bc", BIDI_CLASS_ORDER)),
         ("UNICODE_SCRIPT", sys.argv[6],
-         build_value_map(aliases_path, "sc", UNICODE_SCRIPT_ORDER,
-                         ignore=("Hrkt",))),
+         build_value_map(aliases_path, "sc", UNICODE_SCRIPT_ORDER)),
     ]
 
     with open(output_path, "w") as output:

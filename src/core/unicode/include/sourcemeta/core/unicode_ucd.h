@@ -225,6 +225,9 @@ enum class UnicodeScript : std::uint8_t {
   Yezidi = 172,
   Yi = 173,
   ZanabazarSquare = 174,
+  // Per UAX #24 §1.4, the value Katakana_Or_Hiragana only appears in the
+  // Script_Extensions property and never in the Script property itself.
+  KatakanaOrHiragana = 175,
 };
 
 } // namespace sourcemeta::core
