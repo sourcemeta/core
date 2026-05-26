@@ -98,6 +98,23 @@ auto idna_passes_contextj(const std::u32string_view label,
 SOURCEMETA_CORE_IDNA_EXPORT
 auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool;
 
+/// @ingroup idna
+/// Return whether the given label is a valid U-label per RFC 5891 §4. See
+/// https://www.rfc-editor.org/rfc/rfc5891#section-4 for the criteria.
+/// The Bidi rule is not checked here because Bidi domain detection is a
+/// property of the whole domain, not of a single label. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/idna.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::idna_is_valid_u_label(U"d\u00E9j\u00E0"));
+/// assert(!sourcemeta::core::idna_is_valid_u_label(U"ab--cd"));
+/// assert(!sourcemeta::core::idna_is_valid_u_label(U"-abc"));
+/// ```
+SOURCEMETA_CORE_IDNA_EXPORT
+auto idna_is_valid_u_label(const std::u32string_view label) noexcept -> bool;
+
 } // namespace sourcemeta::core
 
 #endif

@@ -147,6 +147,52 @@ auto idna_passes_contextj(const std::u32string_view label,
   return true;
 }
 
+// TODO: Reject labels that are not NFC-normalized
+auto idna_is_valid_u_label(const std::u32string_view label) noexcept -> bool {
+  if (label.empty()) {
+    return false;
+  }
+
+  // RFC 5891 §4.2.3.1: must not start or end with a hyphen, and must not
+  // have a hyphen in both positions 3 and 4 (the IDNA A-label prefix
+  // shape "xn--" must not appear in U-labels).
+  if (label.front() == U'-' || label.back() == U'-') {
+    return false;
+  }
+  if (label.size() >= 4 && label[2] == U'-' && label[3] == U'-') {
+    return false;
+  }
+
+  // RFC 5891 §4.2.3.2: must not start with a combining mark.
+  if (is_combining_mark(label.front())) {
+    return false;
+  }
+
+  // RFC 5891 §4.2.3.3: every codepoint must be PVALID or satisfy its
+  // CONTEXTJ / CONTEXTO contextual rule. DISALLOWED and UNASSIGNED reject.
+  for (std::size_t position = 0; position < label.size(); ++position) {
+    switch (idna_property(label[position])) {
+      case IDNAProperty::PValid:
+        break;
+      case IDNAProperty::ContextJ:
+        if (!idna_passes_contextj(label, position)) {
+          return false;
+        }
+        break;
+      case IDNAProperty::ContextO:
+        if (!idna_passes_contexto(label, position)) {
+          return false;
+        }
+        break;
+      case IDNAProperty::Disallowed:
+      case IDNAProperty::Unassigned:
+        return false;
+    }
+  }
+
+  return true;
+}
+
 auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool {
   if (label.empty()) {
     return false;
