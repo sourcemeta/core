@@ -283,45 +283,53 @@ auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool {
 }
 
 auto idna_is_valid_a_label(const std::string_view label) noexcept -> bool {
+  constexpr std::string_view prefix{"xn--"};
+  if (!label.starts_with(prefix)) {
+    return false;
+  }
+
+  // RFC 5890 §2.3.2.1: A-labels are pure ASCII
+  for (const auto byte : label) {
+    if (static_cast<unsigned char>(byte) > 0x7F) {
+      return false;
+    }
+  }
+
+  // The substring after the prefix. Constructing the view via (data, size)
+  // avoids `std::string_view::substr`, which is not noexcept.
+  const std::string_view encoded{label.data() + prefix.size(),
+                                 label.size() - prefix.size()};
+  if (encoded.empty()) {
+    return false;
+  }
+
+  std::u32string decoded;
   try {
-    constexpr std::string_view prefix{"xn--"};
-    if (!label.starts_with(prefix)) {
-      return false;
-    }
+    decoded = punycode_to_utf32(encoded);
+  } catch (...) {
+    return false;
+  }
 
-    // RFC 5890 §2.3.2.1: A-labels are pure ASCII
-    for (const auto byte : label) {
-      if (static_cast<unsigned char>(byte) > 0x7F) {
-        return false;
-      }
+  // RFC 5890 §2.3.2.1: a U-label contains at least one non-ASCII codepoint.
+  // A Punycode body that decodes to pure ASCII is not a real A-label.
+  bool has_non_ascii{false};
+  for (const auto codepoint : decoded) {
+    if (codepoint > 0x7F) {
+      has_non_ascii = true;
+      break;
     }
+  }
+  if (!has_non_ascii) {
+    return false;
+  }
 
-    const auto encoded{label.substr(prefix.size())};
-    if (encoded.empty()) {
-      return false;
-    }
+  if (!idna_is_valid_u_label(decoded)) {
+    return false;
+  }
 
-    const auto decoded{punycode_to_utf32(encoded)};
-
-    // RFC 5890 §2.3.2.1: a U-label contains at least one non-ASCII codepoint.
-    // A Punycode body that decodes to pure ASCII is not a real A-label.
-    bool has_non_ascii{false};
-    for (const auto codepoint : decoded) {
-      if (codepoint > 0x7F) {
-        has_non_ascii = true;
-        break;
-      }
-    }
-    if (!has_non_ascii) {
-      return false;
-    }
-
-    if (!idna_is_valid_u_label(decoded)) {
-      return false;
-    }
-
-    // RFC 5891 §4.2: A-labels must be in canonical Punycode form, so
-    // re-encoding the decoded U-label must yield the original bytes.
+  // RFC 5891 §4.2: A-labels must be in canonical Punycode form, so
+  // re-encoding the decoded U-label must yield the original bytes.
+  try {
     return utf32_to_punycode(decoded) == encoded;
   } catch (...) {
     return false;
