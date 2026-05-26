@@ -116,6 +116,10 @@ auto matches_if_valid(const std::string_view pattern,
 }
 
 auto is_regex_ecma(const std::string_view pattern) -> bool {
+  if (!preprocess_regex<true>(std::string{pattern})) {
+    return false;
+  }
+
   const auto pcre2_pattern{preprocess_regex<false>(std::string{pattern})};
   if (!pcre2_pattern.has_value()) {
     return false;

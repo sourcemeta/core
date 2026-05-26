@@ -649,47 +649,38 @@ inline auto preprocess_regex(const std::string &pattern)
   for (std::size_t position = 0; position < pattern.size(); ++position) {
     const char current = pattern[position];
 
-    // Reject group constructs that are not part of ECMA-262
-    if (current == '(' && !is_escaped(pattern, position) && !in_class &&
-        position + 1 < pattern.size()) {
-      // (*...) backtracking control verbs (PCRE-only)
-      if (pattern[position + 1] == '*') {
-        if constexpr (CheckECMA) {
+    if constexpr (CheckECMA) {
+      // Reject group constructs that are not part of ECMA-262
+      if (current == '(' && !is_escaped(pattern, position) && !in_class &&
+          position + 1 < pattern.size()) {
+        // (*...) backtracking control verbs (PCRE-only)
+        if (pattern[position + 1] == '*') {
           return false;
-        } else {
-          return std::nullopt;
         }
-      }
-      // (?X...): ECMA only allows (?:  (?=  (?!  (?<=  (?<!  (?<name>
-      if (pattern[position + 1] == '?' && position + 2 < pattern.size()) {
-        const char third = pattern[position + 2];
-        bool valid_extension{third == ':' || third == '=' || third == '!'};
-        if (!valid_extension && third == '<' && position + 3 < pattern.size()) {
-          const char fourth = pattern[position + 3];
-          valid_extension = fourth == '=' || fourth == '!' ||
-                            (fourth >= 'a' && fourth <= 'z') ||
-                            (fourth >= 'A' && fourth <= 'Z') || fourth == '_' ||
-                            fourth == '$';
-        }
-        if (!valid_extension) {
-          if constexpr (CheckECMA) {
+        // (?X...): ECMA only allows (?:  (?=  (?!  (?<=  (?<!  (?<name>
+        if (pattern[position + 1] == '?' && position + 2 < pattern.size()) {
+          const char third = pattern[position + 2];
+          bool valid_extension{third == ':' || third == '=' || third == '!'};
+          if (!valid_extension && third == '<' &&
+              position + 3 < pattern.size()) {
+            const char fourth = pattern[position + 3];
+            valid_extension = fourth == '=' || fourth == '!' ||
+                              (fourth >= 'a' && fourth <= 'z') ||
+                              (fourth >= 'A' && fourth <= 'Z') ||
+                              fourth == '_' || fourth == '$';
+          }
+          if (!valid_extension) {
             return false;
-          } else {
-            return std::nullopt;
           }
         }
       }
-    }
 
-    // Reject possessive quantifiers (PCRE-only): *+ ++ ?+
-    if (current == '+' && position > 0 && !in_class) {
-      const char prev = pattern[position - 1];
-      if ((prev == '*' || prev == '+' || prev == '?') &&
-          !is_escaped(pattern, position - 1)) {
-        if constexpr (CheckECMA) {
+      // Reject possessive quantifiers (PCRE-only): *+ ++ ?+
+      if (current == '+' && position > 0 && !in_class) {
+        const char prev = pattern[position - 1];
+        if ((prev == '*' || prev == '+' || prev == '?') &&
+            !is_escaped(pattern, position - 1)) {
           return false;
-        } else {
-          return std::nullopt;
         }
       }
     }
@@ -702,13 +693,16 @@ inline auto preprocess_regex(const std::string &pattern)
       const auto nested_content =
           pattern.substr(position + 1, nested_end - position - 2);
 
-      // Reject POSIX-style character classes like [[:alpha:]] (PCRE-only)
-      if (nested_content.size() >= 4 && nested_content[0] == '[' &&
-          nested_content[1] == ':' && nested_content.ends_with(":]")) {
+      // POSIX-style character classes like [[:alpha:]] are PCRE-only.
+      // ECMA mode rejects them outright; otherwise fall through to the
+      // standard class path so the bracket contents are emitted verbatim
+      // and PCRE2 interprets them at match time.
+      const bool is_posix_class =
+          nested_content.size() >= 4 && nested_content[0] == '[' &&
+          nested_content[1] == ':' && nested_content.ends_with(":]");
+      if (is_posix_class) {
         if constexpr (CheckECMA) {
           return false;
-        } else {
-          return std::nullopt;
         }
       }
 
@@ -734,8 +728,9 @@ inline auto preprocess_regex(const std::string &pattern)
       // 2. Content starts with [ (indicating v-flag nested class syntax)
       //    AND the ends differ AND the class continues after simple end
       const bool use_v_flag =
-          nested_has_ops || (starts_with_nested && simple_end != nested_end &&
-                             after_simple_continues_class);
+          !is_posix_class &&
+          (nested_has_ops || (starts_with_nested && simple_end != nested_end &&
+                              after_simple_continues_class));
 
       if (use_v_flag) {
         const auto expanded = expand_char_class(nested_content);
@@ -880,20 +875,16 @@ inline auto preprocess_regex(const std::string &pattern)
 
       ++position;
     } else {
-      // Reject escape sequences that are not valid in ECMA-262 strict mode
-      constexpr std::string_view ecma_remaining_escapes{"tnrfvcx0"};
-      const bool is_ecma_escape{ecma_remaining_escapes.contains(next) ||
-                                v_flag_syntax.contains(next) ||
-                                (next >= '1' && next <= '9')};
-      if (!is_ecma_escape) {
-        if constexpr (CheckECMA) {
+      if constexpr (CheckECMA) {
+        // Reject escape sequences that are not valid in ECMA-262 strict mode
+        constexpr std::string_view ecma_remaining_escapes{"tnrfvcx0"};
+        const bool is_ecma_escape{ecma_remaining_escapes.contains(next) ||
+                                  v_flag_syntax.contains(next) ||
+                                  (next >= '1' && next <= '9')};
+        if (!is_ecma_escape) {
           return false;
-        } else {
-          return std::nullopt;
         }
-      }
-
-      if constexpr (!CheckECMA) {
+      } else {
         result += current;
       }
     }
