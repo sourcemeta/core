@@ -10,11 +10,13 @@ add_custom_command(
   OUTPUT "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}"
   COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
-    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
     "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedJoiningType.txt"
   DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedCombiningClass.txt"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedJoiningType.txt"
   COMMENT "Generating Unicode property tables"
   VERBATIM)
 

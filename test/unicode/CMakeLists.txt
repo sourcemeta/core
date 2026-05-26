@@ -8,7 +8,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_is_utf8_continuation_test.cc
     unicode_is_surrogate_test.cc
     unicode_is_valid_codepoint_test.cc
-    unicode_combining_class_test.cc)
+    unicode_combining_class_test.cc
+    unicode_joining_type_test.cc)
 
 target_link_libraries(sourcemeta_core_unicode_unit
   PRIVATE sourcemeta::core::unicode)
