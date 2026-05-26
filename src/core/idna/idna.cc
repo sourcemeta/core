@@ -147,6 +147,7 @@ auto idna_passes_contextj(const std::u32string_view label,
   return true;
 }
 
+// TODO: Reject labels that are not NFC-normalized
 auto idna_is_valid_u_label(const std::u32string_view label) noexcept -> bool {
   if (label.empty()) {
     return false;
