@@ -91,7 +91,6 @@ unicodetools/data/ucd/dev/VerticalOrientation.txt
 unicodetools/data/ucd/dev/extracted/DerivedBinaryProperties.txt
 unicodetools/data/ucd/dev/extracted/DerivedDecompositionType.txt
 unicodetools/data/ucd/dev/extracted/DerivedEastAsianWidth.txt
-unicodetools/data/ucd/dev/extracted/DerivedGeneralCategory.txt
 unicodetools/data/ucd/dev/extracted/DerivedJoiningGroup.txt
 unicodetools/data/ucd/dev/extracted/DerivedLineBreak.txt
 unicodetools/data/ucd/dev/extracted/DerivedName.txt
