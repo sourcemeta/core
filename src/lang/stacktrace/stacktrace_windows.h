@@ -76,7 +76,9 @@ __declspec(noinline) auto write_frames(int file_descriptor,
   }
 }
 
-auto WINAPI crash_filter(EXCEPTION_POINTERS *information) -> LONG {
+} // namespace
+
+extern "C" auto WINAPI crash_handler(EXCEPTION_POINTERS *information) -> LONG {
   const int file_descriptor{2};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
@@ -95,8 +97,6 @@ auto WINAPI crash_filter(EXCEPTION_POINTERS *information) -> LONG {
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
-} // namespace
-
 namespace sourcemeta::core {
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
@@ -105,7 +105,7 @@ auto stacktrace_on_crash() -> void {
   if (!crash_handler_installed.compare_exchange_strong(expected, true)) {
     return;
   }
-  ::SetUnhandledExceptionFilter(&crash_filter);
+  ::SetUnhandledExceptionFilter(&crash_handler);
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)

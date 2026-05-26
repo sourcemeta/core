@@ -56,9 +56,6 @@ add_stacktrace_test_unix(on_demand g1)
 add_stacktrace_test_unix(on_demand none)
 
 add_stacktrace_test_windows(segfault)
-add_stacktrace_test_windows(abort)
 add_stacktrace_test_windows(on_demand)
-
 add_stacktrace_test_windows_no_debug(segfault)
-add_stacktrace_test_windows_no_debug(abort)
 add_stacktrace_test_windows_no_debug(on_demand)

@@ -34,8 +34,8 @@ Get-Content $Actual
   -replace '\+0xADDR', '+0xOFFSET' `
   -replace '(?m)^pid:\s+\d+', 'pid:     <PID>' `
   -replace '(?m)^#\d+ ', '# ' `
-  -replace '(?m)^# [^\r\n]*(_sigtramp|__restore_rt| _?start \+)[^\r\n]*\r?\n  in [^\r\n]*\r?\n', '' `
-  -replace '(?m)^# [^\r\n]*\r?\n  in [^\r\n]*(libsystem_|libdyld|/dyld)[^\r\n]*\r?\n', '' `
+  -replace '(?m)^# [^\r\n]*(_sigtramp|__restore_rt| _?start \+|__scrt_|BaseThreadInitThunk|RtlUserThreadStart|UnhandledExceptionFilter|KiUserExceptionDispatcher)[^\r\n]*\r?\n  in [^\r\n]*\r?\n', '' `
+  -replace '(?m)^# [^\r\n]*\r?\n  in [^\r\n]*(libsystem_|libdyld|/dyld|\\Windows\\)[^\r\n]*\r?\n', '' `
   | Set-Content -NoNewline $Normalized
 
 @"

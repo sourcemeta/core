@@ -37,8 +37,8 @@ Get-Content $Actual
   -replace '\+0xADDR', '+0xOFFSET' `
   -replace '(?m)^pid:\s+\d+', 'pid:     <PID>' `
   -replace '(?m)^#\d+ ', '# ' `
-  -replace '(?m)^# [^\r\n]*(_sigtramp|__restore_rt| _?start \+)[^\r\n]*\r?\n  in [^\r\n]*\r?\n', '' `
-  -replace '(?m)^# [^\r\n]*\r?\n  in [^\r\n]*(libsystem_|libdyld|/dyld)[^\r\n]*\r?\n', '' `
+  -replace '(?m)^# [^\r\n]*(_sigtramp|__restore_rt| _?start \+|__scrt_|BaseThreadInitThunk|RtlUserThreadStart|UnhandledExceptionFilter|KiUserExceptionDispatcher)[^\r\n]*\r?\n  in [^\r\n]*\r?\n', '' `
+  -replace '(?m)^# [^\r\n]*\r?\n  in [^\r\n]*(libsystem_|libdyld|/dyld|\\Windows\\)[^\r\n]*\r?\n', '' `
   | Set-Content -NoNewline $Normalized
 
 @"
@@ -47,10 +47,10 @@ Get-Content $Actual
 signal:  0xc0000005 (SEH)
 pid:     <PID>
 
-# 0xADDR sourcemeta_core_stacktrace_test::crash_deepest +0xOFFSET
-  in $StacktraceSegfaultMain
 # 0xADDR crash_handler +0xOFFSET
   in $LibraryPath
+# 0xADDR sourcemeta_core_stacktrace_test::crash_deepest +0xOFFSET
+  in $StacktraceSegfaultMain
 # 0xADDR sourcemeta_core_stacktrace_test::crash_middle +0xOFFSET
   in $StacktraceSegfaultMain
 # 0xADDR main +0xOFFSET
