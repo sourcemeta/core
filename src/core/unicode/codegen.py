@@ -9,13 +9,15 @@ LINE = re.compile(r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\d+)\b")
 def parse_ranges(path):
     ranges = []
     with open(path) as source:
-        for line in source:
+        for line_number, line in enumerate(source, start=1):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
             match = LINE.match(stripped)
             if not match:
-                continue
+                raise ValueError(
+                    f"{path}:{line_number}: unparseable line: {stripped!r}"
+                )
             first = int(match.group(1), 16)
             last = int(match.group(2), 16) if match.group(2) else first
             value = int(match.group(3))
@@ -41,6 +43,7 @@ def coalesce(ranges):
 
 def emit(ranges, output_path):
     with open(output_path, "w") as output:
+        output.write("#include <cstdint>\n\n")
         output.write("namespace {\n\n")
         output.write("constexpr char32_t COMBINING_CLASS_FIRSTS[] = {\n")
         for first, _, _ in ranges:

@@ -1,7 +1,7 @@
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 set(SOURCEMETA_CORE_UNICODE_UCD_DIR
-  "${PROJECT_SOURCE_DIR}/vendor/unicodetools/unicodetools/data/ucd/dev")
+  "${core_SOURCE_DIR}/vendor/unicodetools/unicodetools/data/ucd/dev")
 
 set(SOURCEMETA_CORE_UNICODE_COMBINING_CLASS_HEADER
   "${CMAKE_CURRENT_BINARY_DIR}/combining_class.h")
