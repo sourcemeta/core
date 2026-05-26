@@ -7,6 +7,7 @@
 
 #include <cstddef>  // std::size_t
 #include <cstdint>  // std::int64_t
+#include <limits>   // std::numeric_limits
 #include <optional> // std::optional, std::nullopt
 #include <utility>  // std::move
 
@@ -566,6 +567,99 @@ TEST(MCP, make_resource_without_size) {
     "name": "Alpha",
     "description": "First file",
     "mimeType": "text/plain"
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", "First file",
+      std::optional<std::size_t>{1024}, std::optional<double>{0.75})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "description": "First file",
+    "mimeType": "text/plain",
+    "size": 1024,
+    "annotations": { "priority": 0.75 }
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority_without_size) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+      std::optional<double>{0.25})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 0.25 }
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority_clamped_high) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+      std::optional<double>{2.5})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 1.0 }
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority_clamped_low) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+      std::optional<double>{-5.0})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 0.0 }
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority_positive_infinity) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+      std::optional<double>{std::numeric_limits<double>::infinity()})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 1.0 }
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority_negative_infinity) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+      std::optional<double>{-std::numeric_limits<double>::infinity()})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 0.0 }
+  })JSON")};
+  EXPECT_EQ(resource, expected);
+}
+
+TEST(MCP, make_resource_with_priority_nan) {
+  const auto resource{sourcemeta::core::mcp_make_resource(
+      "file:///a", "Alpha", "text/plain", {}, std::nullopt,
+      std::optional<double>{std::numeric_limits<double>::quiet_NaN()})};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "uri": "file:///a",
+    "name": "Alpha",
+    "mimeType": "text/plain",
+    "annotations": { "priority": 1.0 }
   })JSON")};
   EXPECT_EQ(resource, expected);
 }
