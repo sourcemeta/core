@@ -18,11 +18,12 @@ $Actual = Join-Path $WorkDir "$Self.actual.txt"
 $Normalized = Join-Path $WorkDir "$Self.normalized.txt"
 $Expected = Join-Path $WorkDir "$Self.expected.txt"
 
-# `$ErrorActionPreference = "Stop"` would treat the crashing binary's stderr
-# output as a NativeCommandError and abort the script; soften it just for the
-# native invocation.
+# Delegate the redirection to cmd.exe: PowerShell wraps native-command stderr
+# as ErrorRecord objects whose stringified form (with file/line/category
+# metadata) ends up in the captured file. cmd.exe does plain fd-level
+# redirection without that wrapping.
 $ErrorActionPreference = "Continue"
-& $StacktraceSegfaultMain > $Actual 2>&1
+& cmd.exe /c "`"$StacktraceSegfaultMain`" > `"$Actual`" 2>&1"
 $ExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 # Crashed by a fatal exception

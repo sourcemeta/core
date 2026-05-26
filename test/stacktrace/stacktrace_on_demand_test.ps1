@@ -19,7 +19,7 @@ $Normalized = Join-Path $WorkDir "$Self.normalized.txt"
 $Expected = Join-Path $WorkDir "$Self.expected.txt"
 
 $ErrorActionPreference = "Continue"
-& $StacktraceOnDemandMain > $Actual 2>&1
+& cmd.exe /c "`"$StacktraceOnDemandMain`" > `"$Actual`" 2>&1"
 $ExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 # Exited cleanly after printing the on-demand trace

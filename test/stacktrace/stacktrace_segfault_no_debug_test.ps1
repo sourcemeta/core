@@ -10,7 +10,7 @@ $Self = [IO.Path]::GetFileName($StacktraceSegfaultMain)
 $Actual = Join-Path $WorkDir "$Self.actual.txt"
 
 $ErrorActionPreference = "Continue"
-& $StacktraceSegfaultMain > $Actual 2>&1
+& cmd.exe /c "`"$StacktraceSegfaultMain`" > `"$Actual`" 2>&1"
 $ExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 # Crashed by a fatal exception

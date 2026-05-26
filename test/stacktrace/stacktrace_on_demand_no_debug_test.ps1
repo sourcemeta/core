@@ -10,7 +10,7 @@ $Self = [IO.Path]::GetFileName($StacktraceOnDemandMain)
 $Actual = Join-Path $WorkDir "$Self.actual.txt"
 
 $ErrorActionPreference = "Continue"
-& $StacktraceOnDemandMain > $Actual 2>&1
+& cmd.exe /c "`"$StacktraceOnDemandMain`" > `"$Actual`" 2>&1"
 $ExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 # Exited cleanly after printing the on-demand trace
