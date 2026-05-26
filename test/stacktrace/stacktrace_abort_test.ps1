@@ -2,11 +2,18 @@ param(
   [Parameter(Mandatory=$true)]
   [string]$StacktraceAbortMain,
   [Parameter(Mandatory=$true)]
-  [string]$WorkDir
+  [string]$WorkDir,
+  [Parameter(Mandatory=$true)]
+  [string]$StacktraceLibrary
 )
 
 $ErrorActionPreference = "Stop"
 $Self = [IO.Path]::GetFileName($StacktraceAbortMain)
+$LibraryPath = if ($StacktraceLibrary -match '\.(lib|a)$') {
+  $StacktraceAbortMain
+} else {
+  $StacktraceLibrary
+}
 $Actual = Join-Path $WorkDir "$Self.actual.txt"
 $Normalized = Join-Path $WorkDir "$Self.normalized.txt"
 $Expected = Join-Path $WorkDir "$Self.expected.txt"
@@ -35,6 +42,8 @@ Get-Content $Actual
 signal:  0x80000003 (SEH)
 pid:     <PID>
 
+# 0xADDR crash_handler +0xOFFSET
+  in $LibraryPath
 # 0xADDR sourcemeta_core_stacktrace_test::crash_deepest +0xOFFSET
   in $StacktraceAbortMain
 # 0xADDR sourcemeta_core_stacktrace_test::crash_middle +0xOFFSET

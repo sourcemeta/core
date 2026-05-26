@@ -2,11 +2,18 @@ param(
   [Parameter(Mandatory=$true)]
   [string]$StacktraceSegfaultMain,
   [Parameter(Mandatory=$true)]
-  [string]$WorkDir
+  [string]$WorkDir,
+  [Parameter(Mandatory=$true)]
+  [string]$StacktraceLibrary
 )
 
 $ErrorActionPreference = "Stop"
 $Self = [IO.Path]::GetFileName($StacktraceSegfaultMain)
+$LibraryPath = if ($StacktraceLibrary -match '\.(lib|a)$') {
+  $StacktraceSegfaultMain
+} else {
+  $StacktraceLibrary
+}
 $Actual = Join-Path $WorkDir "$Self.actual.txt"
 $Normalized = Join-Path $WorkDir "$Self.normalized.txt"
 $Expected = Join-Path $WorkDir "$Self.expected.txt"
@@ -37,6 +44,8 @@ pid:     <PID>
 
 # 0xADDR sourcemeta_core_stacktrace_test::crash_deepest +0xOFFSET
   in $StacktraceSegfaultMain
+# 0xADDR crash_handler +0xOFFSET
+  in $LibraryPath
 # 0xADDR sourcemeta_core_stacktrace_test::crash_middle +0xOFFSET
   in $StacktraceSegfaultMain
 # 0xADDR main +0xOFFSET

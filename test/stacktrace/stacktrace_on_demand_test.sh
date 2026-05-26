@@ -5,7 +5,13 @@ set -o nounset
 
 STACKTRACE_ON_DEMAND_MAIN="$1"
 WORKDIR="$2"
+STACKTRACE_LIBRARY="$3"
 SELF="$(basename "$STACKTRACE_ON_DEMAND_MAIN")"
+
+case "$STACKTRACE_LIBRARY" in
+  *.a|*.lib) LIBRARY_PATH="$STACKTRACE_ON_DEMAND_MAIN" ;;
+  *)         LIBRARY_PATH="$STACKTRACE_LIBRARY" ;;
+esac
 
 "$STACKTRACE_ON_DEMAND_MAIN" > "$WORKDIR/$SELF.actual.txt" 2>&1 \
   && EXIT_CODE="$?" || EXIT_CODE="$?"
@@ -28,7 +34,7 @@ cat << EOF > "$WORKDIR/$SELF.expected.txt"
 pid:     <PID>
 
 # 0xADDR _ZN10sourcemeta4core10stacktraceEv +0xOFFSET
-  in $STACKTRACE_ON_DEMAND_MAIN
+  in $LIBRARY_PATH
 # 0xADDR _ZN31sourcemeta_core_stacktrace_test13print_deepestEv +0xOFFSET
   in $STACKTRACE_ON_DEMAND_MAIN
 # 0xADDR _ZN31sourcemeta_core_stacktrace_test12print_middleEv +0xOFFSET

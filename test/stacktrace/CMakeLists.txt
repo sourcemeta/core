@@ -11,7 +11,8 @@ macro(add_stacktrace_test_unix scenario debug_flag)
     add_test(NAME core.stacktrace.${scenario}.${debug_flag}.e2e
       COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/stacktrace_${scenario}_test.sh"
         "$<TARGET_FILE:${target}>"
-        "${CMAKE_CURRENT_BINARY_DIR}")
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        "$<TARGET_FILE:sourcemeta_core_stacktrace>")
   endif()
 endmacro()
 
@@ -26,7 +27,8 @@ macro(add_stacktrace_test_windows scenario)
       COMMAND powershell -ExecutionPolicy Bypass -File
         "${CMAKE_CURRENT_SOURCE_DIR}/stacktrace_${scenario}_test.ps1"
         "$<TARGET_FILE:${target}>"
-        "${CMAKE_CURRENT_BINARY_DIR}")
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        "$<TARGET_FILE:sourcemeta_core_stacktrace>")
   endif()
 endmacro()
 
