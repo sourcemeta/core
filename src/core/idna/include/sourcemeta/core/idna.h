@@ -5,6 +5,8 @@
 #include <sourcemeta/core/idna_export.h>
 #endif
 
+#include <sourcemeta/core/idna_ucd.h>
+
 #include <cstddef>     // std::size_t
 #include <string_view> // std::u32string_view
 
@@ -18,6 +20,23 @@
 /// ```
 
 namespace sourcemeta::core {
+
+/// @ingroup idna
+/// Return the RFC 5892 derived property of a Unicode codepoint. See
+/// https://www.rfc-editor.org/rfc/rfc5892 for the property's definition.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/idna.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::idna_property(U'a') ==
+///        sourcemeta::core::IDNAProperty::PValid);
+/// assert(sourcemeta::core::idna_property(U'\u200D') ==
+///        sourcemeta::core::IDNAProperty::ContextJ);
+/// ```
+SOURCEMETA_CORE_IDNA_EXPORT
+auto idna_property(const char32_t codepoint) noexcept -> IDNAProperty;
 
 /// @ingroup idna
 /// Return whether the codepoint at `position` within `label` does not

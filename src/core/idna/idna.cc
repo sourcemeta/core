@@ -5,7 +5,18 @@
 #include <cstddef>     // std::size_t
 #include <string_view> // std::u32string_view
 
+#include "idna_data.h"
+
 namespace sourcemeta::core {
+
+auto idna_property(const char32_t codepoint) noexcept -> IDNAProperty {
+  if (codepoint > 0x10FFFF) {
+    return IDNAProperty::Unassigned;
+  }
+  const std::size_t page{IDNA_PROPERTY_STAGE1[codepoint >> 10U]};
+  return static_cast<IDNAProperty>(
+      IDNA_PROPERTY_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
+}
 
 auto idna_passes_contexto(const std::u32string_view label,
                           const std::size_t position) noexcept -> bool {
