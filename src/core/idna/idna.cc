@@ -136,4 +136,91 @@ auto idna_passes_contextj(const std::u32string_view label,
   return true;
 }
 
+auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool {
+  if (label.empty()) {
+    return false;
+  }
+
+  // RFC 5893 §2 condition 1: the first character must be L, R, or AL.
+  const auto first_class{bidi_class(label[0])};
+  bool is_rtl_label{false};
+  if (first_class == BidiClass::LeftToRight) {
+    is_rtl_label = false;
+  } else if (first_class == BidiClass::RightToLeft ||
+             first_class == BidiClass::ArabicLetter) {
+    is_rtl_label = true;
+  } else {
+    return false;
+  }
+
+  bool has_european_number{false};
+  bool has_arabic_number{false};
+
+  // RFC 5893 §2 conditions 2 and 5: only specific classes are allowed in
+  // each label direction.
+  for (const auto codepoint : label) {
+    const auto class_value{bidi_class(codepoint)};
+    if (is_rtl_label) {
+      switch (class_value) {
+        case BidiClass::RightToLeft:
+        case BidiClass::ArabicLetter:
+        case BidiClass::ArabicNumber:
+        case BidiClass::EuropeanNumber:
+        case BidiClass::EuropeanSeparator:
+        case BidiClass::CommonSeparator:
+        case BidiClass::EuropeanTerminator:
+        case BidiClass::OtherNeutral:
+        case BidiClass::BoundaryNeutral:
+        case BidiClass::NonspacingMark:
+          break;
+        default:
+          return false;
+      }
+      if (class_value == BidiClass::EuropeanNumber) {
+        has_european_number = true;
+      } else if (class_value == BidiClass::ArabicNumber) {
+        has_arabic_number = true;
+      }
+    } else {
+      switch (class_value) {
+        case BidiClass::LeftToRight:
+        case BidiClass::EuropeanNumber:
+        case BidiClass::EuropeanSeparator:
+        case BidiClass::CommonSeparator:
+        case BidiClass::EuropeanTerminator:
+        case BidiClass::OtherNeutral:
+        case BidiClass::BoundaryNeutral:
+        case BidiClass::NonspacingMark:
+          break;
+        default:
+          return false;
+      }
+    }
+  }
+
+  // RFC 5893 §2 condition 4: an RTL label cannot have both EN and AN.
+  if (is_rtl_label && has_european_number && has_arabic_number) {
+    return false;
+  }
+
+  // RFC 5893 §2 conditions 3 and 6: the label must end with a specific
+  // class, optionally followed by NSM characters.
+  for (std::size_t index = label.size(); index-- > 0;) {
+    const auto class_value{bidi_class(label[index])};
+    if (class_value == BidiClass::NonspacingMark) {
+      continue;
+    }
+    if (is_rtl_label) {
+      return class_value == BidiClass::RightToLeft ||
+             class_value == BidiClass::ArabicLetter ||
+             class_value == BidiClass::EuropeanNumber ||
+             class_value == BidiClass::ArabicNumber;
+    }
+    return class_value == BidiClass::LeftToRight ||
+           class_value == BidiClass::EuropeanNumber;
+  }
+
+  return false;
+}
+
 } // namespace sourcemeta::core

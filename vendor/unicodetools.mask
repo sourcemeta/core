@@ -58,6 +58,8 @@ unicodetools/data/ucd/16.0.0/
 unicodetools/data/ucd/dev/auxiliary/
 unicodetools/data/ucd/dev/emoji/
 unicodetools/data/ucd/dev/Unihan/
+unicodetools/data/ucd/dev/BidiCharacterTest.txt
+unicodetools/data/ucd/dev/BidiTest.txt
 unicodetools/data/ucd/dev/Blocks.txt
 unicodetools/data/ucd/dev/CJKRadicals.txt
 unicodetools/data/ucd/dev/DerivedAge.txt

@@ -59,6 +59,26 @@ SOURCEMETA_CORE_IDNA_EXPORT
 auto idna_passes_contextj(const std::u32string_view label,
                           const std::size_t position) noexcept -> bool;
 
+/// @ingroup idna
+/// Return whether the given label satisfies the RFC 5893 Bidi rule. The
+/// rule applies to every label of a Bidi domain name (a domain name that
+/// contains at least one right-to-left codepoint). The caller is
+/// responsible for invoking this only when the domain is a Bidi domain.
+/// See https://www.rfc-editor.org/rfc/rfc5893#section-2 for the rule.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/idna.h>
+/// #include <cassert>
+///
+/// // Hebrew letter Alef
+/// assert(sourcemeta::core::idna_passes_bidi_rule(U"\u05D0"));
+/// // Label starting with a digit (Bidi rule condition 1 violated)
+/// assert(!sourcemeta::core::idna_passes_bidi_rule(U"0abc"));
+/// ```
+SOURCEMETA_CORE_IDNA_EXPORT
+auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool;
+
 } // namespace sourcemeta::core
 
 #endif
