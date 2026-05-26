@@ -137,4 +137,13 @@ auto bidi_class(const char32_t codepoint) -> BidiClass {
       BIDI_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
 }
 
+auto script(const char32_t codepoint) -> UnicodeScript {
+  if (codepoint > 0x10FFFF) {
+    return UnicodeScript::Unknown;
+  }
+  const std::size_t page{UNICODE_SCRIPT_STAGE1[codepoint >> 10U]};
+  return static_cast<UnicodeScript>(
+      UNICODE_SCRIPT_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
+}
+
 } // namespace sourcemeta::core

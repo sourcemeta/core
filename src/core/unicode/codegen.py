@@ -83,6 +83,184 @@ BIDI_CLASS_FULL_NAMES = {
     "Pop_Directional_Isolate": 22,
 }
 
+UNICODE_SCRIPT_VALUES = {
+    "Adlam": 0,
+    "Ahom": 1,
+    "Anatolian_Hieroglyphs": 2,
+    "Arabic": 3,
+    "Armenian": 4,
+    "Avestan": 5,
+    "Balinese": 6,
+    "Bamum": 7,
+    "Bassa_Vah": 8,
+    "Batak": 9,
+    "Bengali": 10,
+    "Beria_Erfe": 11,
+    "Bhaiksuki": 12,
+    "Bopomofo": 13,
+    "Brahmi": 14,
+    "Braille": 15,
+    "Buginese": 16,
+    "Buhid": 17,
+    "Canadian_Aboriginal": 18,
+    "Carian": 19,
+    "Caucasian_Albanian": 20,
+    "Chakma": 21,
+    "Cham": 22,
+    "Cherokee": 23,
+    "Chorasmian": 24,
+    "Common": 25,
+    "Coptic": 26,
+    "Cuneiform": 27,
+    "Cypriot": 28,
+    "Cypro_Minoan": 29,
+    "Cyrillic": 30,
+    "Deseret": 31,
+    "Devanagari": 32,
+    "Dives_Akuru": 33,
+    "Dogra": 34,
+    "Duployan": 35,
+    "Egyptian_Hieroglyphs": 36,
+    "Elbasan": 37,
+    "Elymaic": 38,
+    "Ethiopic": 39,
+    "Garay": 40,
+    "Georgian": 41,
+    "Glagolitic": 42,
+    "Gothic": 43,
+    "Grantha": 44,
+    "Greek": 45,
+    "Gujarati": 46,
+    "Gunjala_Gondi": 47,
+    "Gurmukhi": 48,
+    "Gurung_Khema": 49,
+    "Han": 50,
+    "Hangul": 51,
+    "Hanifi_Rohingya": 52,
+    "Hanunoo": 53,
+    "Hatran": 54,
+    "Hebrew": 55,
+    "Hiragana": 56,
+    "Imperial_Aramaic": 57,
+    "Inherited": 58,
+    "Inscriptional_Pahlavi": 59,
+    "Inscriptional_Parthian": 60,
+    "Javanese": 61,
+    "Kaithi": 62,
+    "Kannada": 63,
+    "Katakana": 64,
+    "Kawi": 65,
+    "Kayah_Li": 66,
+    "Kharoshthi": 67,
+    "Khitan_Small_Script": 68,
+    "Khmer": 69,
+    "Khojki": 70,
+    "Khudawadi": 71,
+    "Kirat_Rai": 72,
+    "Lao": 73,
+    "Latin": 74,
+    "Lepcha": 75,
+    "Limbu": 76,
+    "Linear_A": 77,
+    "Linear_B": 78,
+    "Lisu": 79,
+    "Lycian": 80,
+    "Lydian": 81,
+    "Mahajani": 82,
+    "Makasar": 83,
+    "Malayalam": 84,
+    "Mandaic": 85,
+    "Manichaean": 86,
+    "Marchen": 87,
+    "Masaram_Gondi": 88,
+    "Medefaidrin": 89,
+    "Meetei_Mayek": 90,
+    "Mende_Kikakui": 91,
+    "Meroitic_Cursive": 92,
+    "Meroitic_Hieroglyphs": 93,
+    "Miao": 94,
+    "Modi": 95,
+    "Mongolian": 96,
+    "Mro": 97,
+    "Multani": 98,
+    "Myanmar": 99,
+    "Nabataean": 100,
+    "Nag_Mundari": 101,
+    "Nandinagari": 102,
+    "New_Tai_Lue": 103,
+    "Newa": 104,
+    "Nko": 105,
+    "Nushu": 106,
+    "Nyiakeng_Puachue_Hmong": 107,
+    "Ogham": 108,
+    "Ol_Chiki": 109,
+    "Ol_Onal": 110,
+    "Old_Hungarian": 111,
+    "Old_Italic": 112,
+    "Old_North_Arabian": 113,
+    "Old_Permic": 114,
+    "Old_Persian": 115,
+    "Old_Sogdian": 116,
+    "Old_South_Arabian": 117,
+    "Old_Turkic": 118,
+    "Old_Uyghur": 119,
+    "Oriya": 120,
+    "Osage": 121,
+    "Osmanya": 122,
+    "Pahawh_Hmong": 123,
+    "Palmyrene": 124,
+    "Pau_Cin_Hau": 125,
+    "Phags_Pa": 126,
+    "Phoenician": 127,
+    "Psalter_Pahlavi": 128,
+    "Rejang": 129,
+    "Runic": 130,
+    "Samaritan": 131,
+    "Saurashtra": 132,
+    "Sharada": 133,
+    "Shavian": 134,
+    "Siddham": 135,
+    "Sidetic": 136,
+    "SignWriting": 137,
+    "Sinhala": 138,
+    "Sogdian": 139,
+    "Sora_Sompeng": 140,
+    "Soyombo": 141,
+    "Sundanese": 142,
+    "Sunuwar": 143,
+    "Syloti_Nagri": 144,
+    "Syriac": 145,
+    "Tagalog": 146,
+    "Tagbanwa": 147,
+    "Tai_Le": 148,
+    "Tai_Tham": 149,
+    "Tai_Viet": 150,
+    "Tai_Yo": 151,
+    "Takri": 152,
+    "Tamil": 153,
+    "Tangsa": 154,
+    "Tangut": 155,
+    "Telugu": 156,
+    "Thaana": 157,
+    "Thai": 158,
+    "Tibetan": 159,
+    "Tifinagh": 160,
+    "Tirhuta": 161,
+    "Todhri": 162,
+    "Tolong_Siki": 163,
+    "Toto": 164,
+    "Tulu_Tigalari": 165,
+    "Ugaritic": 166,
+    "Unknown": 167,
+    "Vai": 168,
+    "Vithkuqi": 169,
+    "Wancho": 170,
+    "Warang_Citi": 171,
+    "Yezidi": 172,
+    "Yi": 173,
+    "Zanabazar_Square": 174,
+}
+
 
 def parse_value(path, line_number, raw_value, value_parser, label):
     try:
@@ -187,13 +365,14 @@ def generate_property(input_path, data_parser, missing_parser):
 
 
 def main():
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         print(
             f"Usage: {sys.argv[0]} "
             "<output.h> "
             "<DerivedCombiningClass.txt> "
             "<DerivedJoiningType.txt> "
-            "<DerivedBidiClass.txt>",
+            "<DerivedBidiClass.txt> "
+            "<Scripts.txt>",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -202,6 +381,7 @@ def main():
     combining_class_input = sys.argv[2]
     joining_type_input = sys.argv[3]
     bidi_class_input = sys.argv[4]
+    script_input = sys.argv[5]
 
     combining_class_stage1, combining_class_pages = generate_property(
         combining_class_input,
@@ -218,6 +398,11 @@ def main():
         data_parser=lambda raw: BIDI_CLASS_VALUES[raw],
         missing_parser=lambda raw: BIDI_CLASS_FULL_NAMES[raw],
     )
+    script_stage1, script_pages = generate_property(
+        script_input,
+        data_parser=lambda raw: UNICODE_SCRIPT_VALUES[raw],
+        missing_parser=lambda raw: UNICODE_SCRIPT_VALUES[raw],
+    )
 
     with open(output_path, "w") as output:
         output.write("#include <cstdint>\n\n")
@@ -230,6 +415,9 @@ def main():
         )
         emit_property(
             output, "BIDI_CLASS", bidi_class_stage1, bidi_class_pages
+        )
+        emit_property(
+            output, "UNICODE_SCRIPT", script_stage1, script_pages
         )
         output.write("} // namespace\n")
 
