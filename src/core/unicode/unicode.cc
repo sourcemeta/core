@@ -1,13 +1,10 @@
 #include <sourcemeta/core/unicode.h>
 
-#include <algorithm> // std::lower_bound
-#include <cassert>   // assert
-#include <cstddef>   // std::size_t
-#include <cstdint>   // std::uint8_t
-#include <iterator>  // std::cbegin, std::cend
-#include <sstream>   // std::istringstream, std::ostringstream
+#include <cassert> // assert
+#include <cstdint> // std::uint8_t
+#include <sstream> // std::istringstream, std::ostringstream
 
-#include "combining_class.h"
+#include "unicode_data.h"
 
 namespace sourcemeta::core {
 
@@ -115,17 +112,11 @@ auto utf8_to_utf32(const std::string_view input)
 }
 
 auto combining_class(const char32_t codepoint) -> std::uint8_t {
-  const auto first{std::cbegin(COMBINING_CLASS_LASTS)};
-  const auto last{std::cend(COMBINING_CLASS_LASTS)};
-  const auto found{std::lower_bound(first, last, codepoint)};
-  if (found == last) {
+  if (codepoint > 0x10FFFF) {
     return 0;
   }
-  const auto index{static_cast<std::size_t>(found - first)};
-  if (COMBINING_CLASS_FIRSTS[index] > codepoint) {
-    return 0;
-  }
-  return COMBINING_CLASS_VALUES[index];
+  const std::size_t page{COMBINING_CLASS_STAGE1[codepoint >> 10U]};
+  return COMBINING_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)];
 }
 
 } // namespace sourcemeta::core
