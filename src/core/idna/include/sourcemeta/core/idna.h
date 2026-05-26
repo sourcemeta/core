@@ -40,8 +40,7 @@ enum class IDNALabelKind : std::uint8_t {
 /// Classify `label` as an Ascii / A-label / U-label per RFC 5890 §2.3.2,
 /// validate the A-label and U-label cases per RFC 5891 §4, and write the
 /// U-label codepoint form to `decoded`. Detection of the ACE prefix "xn--"
-/// is case-insensitive per RFC 5890 §2.3.2.1. Returns std::nullopt on
-/// failure. For example:
+/// is case-insensitive per RFC 5890 §2.3.2.1. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/idna.h>
