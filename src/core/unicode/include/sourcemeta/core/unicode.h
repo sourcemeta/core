@@ -233,6 +233,37 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto combining_class(const char32_t codepoint) -> std::uint8_t;
 
 /// @ingroup unicode
+/// The joining type of a Unicode codepoint per UAX #44. See
+/// https://www.unicode.org/reports/tr44/ for the property's definition.
+enum class JoiningType : std::uint8_t {
+  NonJoining = 0,
+  Transparent = 1,
+  LeftJoining = 2,
+  RightJoining = 3,
+  DualJoining = 4,
+  JoinCausing = 5,
+};
+
+/// @ingroup unicode
+/// Return the joining type of a Unicode codepoint. See
+/// https://www.unicode.org/reports/tr44/ for the property's definition.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::joining_type(U'\u0628') ==
+///        sourcemeta::core::JoiningType::DualJoining);
+/// assert(sourcemeta::core::joining_type(U'\u200D') ==
+///        sourcemeta::core::JoiningType::JoinCausing);
+/// assert(sourcemeta::core::joining_type(U'A') ==
+///        sourcemeta::core::JoiningType::NonJoining);
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto joining_type(const char32_t codepoint) -> JoiningType;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

@@ -119,4 +119,13 @@ auto combining_class(const char32_t codepoint) -> std::uint8_t {
   return COMBINING_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)];
 }
 
+auto joining_type(const char32_t codepoint) -> JoiningType {
+  if (codepoint > 0x10FFFF) {
+    return JoiningType::NonJoining;
+  }
+  const std::size_t page{JOINING_TYPE_STAGE1[codepoint >> 10U]};
+  return static_cast<JoiningType>(
+      JOINING_TYPE_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
+}
+
 } // namespace sourcemeta::core
