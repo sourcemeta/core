@@ -9,6 +9,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Self = [IO.Path]::GetFileName($StacktraceSegfaultMain)
+# CMake's $<TARGET_FILE:> can emit forward slashes; dbghelp returns
+# backslashes via GetModuleFileNameA. Normalize so the expected matches.
+$StacktraceSegfaultMain = $StacktraceSegfaultMain -replace '/', '\'
+$StacktraceLibrary = $StacktraceLibrary -replace '/', '\'
 $LibraryPath = if ($StacktraceLibrary -match '\.(lib|a)$') {
   $StacktraceSegfaultMain
 } else {
@@ -33,16 +37,16 @@ if ($ExitCode -eq 0) {
 
 Get-Content $Actual
 
-(Get-Content $Actual -Raw) `
+$NormalizedContent = (Get-Content $Actual -Raw) `
   -replace '0x[0-9a-fA-F]+', '0xADDR' `
   -replace '\+0xADDR', '+0xOFFSET' `
   -replace '(?m)^pid:\s+\d+', 'pid:     <PID>' `
   -replace '(?m)^#\d+ ', '# ' `
   -replace '(?m)^# [^\r\n]*(_sigtramp|__restore_rt| _?start \+|__scrt_|BaseThreadInitThunk|RtlUserThreadStart|UnhandledExceptionFilter|KiUserExceptionDispatcher)[^\r\n]*\r?\n  in [^\r\n]*\r?\n', '' `
   -replace '(?m)^# [^\r\n]*\r?\n  in [^\r\n]*(libsystem_|libdyld|/dyld|\\Windows\\)[^\r\n]*\r?\n', '' `
-  | Set-Content -NoNewline $Normalized
+  -replace "`r`n", "`n"
 
-@"
+$ExpectedContent = (@"
 
 ================================================================================
 signal:  0xc0000005 (SEH)
@@ -57,9 +61,15 @@ pid:     <PID>
 # 0xADDR main +0xOFFSET
   in $StacktraceSegfaultMain
 ================================================================================
-"@ | Set-Content -NoNewline $Expected
+"@) -replace "`r`n", "`n"
 
-if ((Get-Content $Normalized -Raw) -ne (Get-Content $Expected -Raw)) {
-  Compare-Object (Get-Content $Expected) (Get-Content $Normalized)
+[System.IO.File]::WriteAllText($Normalized, $NormalizedContent)
+[System.IO.File]::WriteAllText($Expected, $ExpectedContent)
+
+if ($NormalizedContent -ne $ExpectedContent) {
+  Write-Host "=== EXPECTED ==="
+  Write-Host $ExpectedContent
+  Write-Host "=== ACTUAL (normalized) ==="
+  Write-Host $NormalizedContent
   throw "Output did not match expected"
 }

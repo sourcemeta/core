@@ -78,7 +78,8 @@ __declspec(noinline) auto write_frames(int file_descriptor,
 
 } // namespace
 
-extern "C" auto WINAPI crash_handler(EXCEPTION_POINTERS *information) -> LONG {
+extern "C" SOURCEMETA_CORE_STACKTRACE_EXPORT auto WINAPI
+crash_handler(EXCEPTION_POINTERS *information) -> LONG {
   const int file_descriptor{2};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
