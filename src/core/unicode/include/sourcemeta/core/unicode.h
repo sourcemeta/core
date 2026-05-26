@@ -217,6 +217,22 @@ inline constexpr auto utf8_codepoint_byte_count(const char32_t codepoint)
 }
 
 /// @ingroup unicode
+/// Return the canonical combining class of a Unicode codepoint. See
+/// https://www.unicode.org/reports/tr44/ for the property's definition.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::combining_class(U'\u094D') == 9);
+/// assert(sourcemeta::core::combining_class(U'\u0301') == 230);
+/// assert(sourcemeta::core::combining_class(U'A') == 0);
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto combining_class(const char32_t codepoint) -> std::uint8_t;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

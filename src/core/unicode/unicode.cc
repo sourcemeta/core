@@ -4,6 +4,8 @@
 #include <cstdint> // std::uint8_t
 #include <sstream> // std::istringstream, std::ostringstream
 
+#include "unicode_data.h"
+
 namespace sourcemeta::core {
 
 auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void {
@@ -107,6 +109,14 @@ auto utf8_to_utf32(const std::string_view input)
   // supports it (__cpp_lib_spanstream), to avoid copying the input string
   std::istringstream stream{std::string{input}};
   return utf8_to_utf32(stream);
+}
+
+auto combining_class(const char32_t codepoint) -> std::uint8_t {
+  if (codepoint > 0x10FFFF) {
+    return 0;
+  }
+  const std::size_t page{COMBINING_CLASS_STAGE1[codepoint >> 10U]};
+  return COMBINING_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)];
 }
 
 } // namespace sourcemeta::core
