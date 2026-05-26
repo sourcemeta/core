@@ -18,6 +18,7 @@ option(SOURCEMETA_CORE_CRYPTO "Build the Sourcemeta Core Crypto library" ON)
 option(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL "Use system OpenSSL for the Sourcemeta Core Crypto library" OFF)
 option(SOURCEMETA_CORE_REGEX "Build the Sourcemeta Core Regex library" ON)
 option(SOURCEMETA_CORE_IP "Build the Sourcemeta Core IP library" ON)
+option(SOURCEMETA_CORE_IDNA "Build the Sourcemeta Core IDNA library" ON)
 option(SOURCEMETA_CORE_DNS "Build the Sourcemeta Core DNS library" ON)
 option(SOURCEMETA_CORE_EMAIL "Build the Sourcemeta Core Email library" ON)
 option(SOURCEMETA_CORE_URI "Build the Sourcemeta Core URI library" ON)
@@ -125,6 +126,10 @@ endif()
 
 if(SOURCEMETA_CORE_IP)
   add_subdirectory(src/core/ip)
+endif()
+
+if(SOURCEMETA_CORE_IDNA)
+  add_subdirectory(src/core/idna)
 endif()
 
 if(SOURCEMETA_CORE_DNS)
@@ -267,6 +272,10 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_IP)
     add_subdirectory(test/ip)
+  endif()
+
+  if(SOURCEMETA_CORE_IDNA)
+    add_subdirectory(test/idna)
   endif()
 
   if(SOURCEMETA_CORE_DNS)
