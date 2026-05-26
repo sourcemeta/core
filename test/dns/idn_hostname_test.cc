@@ -65,10 +65,11 @@ TEST(DNS_idn_hostname, valid_label_three_byte_utf8) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("\xe4\xb8\xad"));
 }
 
-// RFC 5890 §2.3.2.3 / RFC 6532 §3.1: U-label (4-byte UTF-8: U+1F600)
+// RFC 5890 §2.3.2.3 / RFC 6532 §3.1: U-label with a 4-byte UTF-8 codepoint
+// (U+20000 CJK UNIFIED IDEOGRAPH-20000, PVALID per RFC 5892)
 TEST(DNS_idn_hostname, valid_label_four_byte_utf8) {
-  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xf0\x9f\x98\x80"));
-  EXPECT_FALSE(sourcemeta::core::is_hostname("\xf0\x9f\x98\x80"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xf0\xa0\x80\x80"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xf0\xa0\x80\x80"));
 }
 
 TEST(DNS_idn_hostname, valid_mixed_ascii_and_utf8_labels) {
@@ -81,11 +82,12 @@ TEST(DNS_idn_hostname, valid_utf8_label_with_internal_hyphen) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("\xce\xb1-\xe4\xb8\xad"));
 }
 
+// U+03B1, U+4E2D, U+20000 are all PVALID per RFC 5892
 TEST(DNS_idn_hostname, valid_utf8_only_dotted) {
   EXPECT_TRUE(sourcemeta::core::is_idn_hostname(
-      "\xce\xb1.\xe4\xb8\xad.\xf0\x9f\x98\x80"));
+      "\xce\xb1.\xe4\xb8\xad.\xf0\xa0\x80\x80"));
   EXPECT_FALSE(
-      sourcemeta::core::is_hostname("\xce\xb1.\xe4\xb8\xad.\xf0\x9f\x98\x80"));
+      sourcemeta::core::is_hostname("\xce\xb1.\xe4\xb8\xad.\xf0\xa0\x80\x80"));
 }
 
 // RFC 1035 §2.3.4: label may be exactly 63 octets
@@ -95,18 +97,85 @@ TEST(DNS_idn_hostname, valid_ascii_label_at_63) {
   EXPECT_TRUE(sourcemeta::core::is_hostname(label));
 }
 
-// RFC 5321 §4.5.3.1.2 / RFC 1035 §2.3.4: total length may be exactly 255
-TEST(DNS_idn_hostname, valid_total_at_255) {
-  // 4 × 63 + 3 dots = 255
-  std::string hostname;
-  for (int index = 0; index < 3; ++index) {
-    hostname.append(63, 'a');
-    hostname.push_back('.');
+// RFC 5891 §4.2.4: per-label A-label form must be ≤ 63 octets. A U-label of
+// 55 Greek codepoints Punycode-encodes to a 61-character body, giving an
+// A-label of 65 octets even though the codepoint count is well under 63.
+TEST(DNS_idn_hostname, invalid_u_label_a_form_over_63) {
+  // "παράδειγμα" (10 codepoints) × 5 + "παράδ" (5 codepoints) = 55
+  std::string label;
+  for (int index = 0; index < 5; ++index) {
+    label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4"
+                 "\xce\xb5\xce\xb9\xce\xb3\xce\xbc\xce\xb1");
   }
-  hostname.append(63, 'a');
-  EXPECT_EQ(hostname.size(), 255u);
+  label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4");
+  EXPECT_EQ(label.size(), 110u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(label));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(label));
+}
+
+// RFC 5891 §4.2.4: 52 Greek codepoints Punycode-encode to a 57-character
+// body, giving a 61-octet A-label that just fits the per-label cap
+TEST(DNS_idn_hostname, valid_u_label_a_form_at_61) {
+  // "παράδειγμα" × 5 + "πα" = 52 codepoints
+  std::string label;
+  for (int index = 0; index < 5; ++index) {
+    label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4"
+                 "\xce\xb5\xce\xb9\xce\xb3\xce\xbc\xce\xb1");
+  }
+  label.append("\xcf\x80\xce\xb1");
+  EXPECT_EQ(label.size(), 104u);
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(label));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(label));
+}
+
+// RFC 1035 §3.1: A-label-form presentation total must be ≤ 253 octets. 32
+// single-α labels have UTF-8 input of only 95 bytes (well below the 255
+// RFC 1123 hostname cap) but the A-label total is 32 × 7 + 31 = 255 octets
+TEST(DNS_idn_hostname, invalid_a_label_total_over_253_short_utf8) {
+  std::string hostname{"\xce\xb1"};
+  for (int index = 0; index < 31; ++index) {
+    hostname.append(".\xce\xb1");
+  }
+  EXPECT_EQ(hostname.size(), 95u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(hostname));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(hostname));
+}
+
+// 31 single-α labels: A-label total = 31 × 7 + 30 = 247 ≤ 253
+TEST(DNS_idn_hostname, valid_a_label_total_at_247_short_utf8) {
+  std::string hostname{"\xce\xb1"};
+  for (int index = 0; index < 30; ++index) {
+    hostname.append(".\xce\xb1");
+  }
+  EXPECT_EQ(hostname.size(), 92u);
   EXPECT_TRUE(sourcemeta::core::is_idn_hostname(hostname));
-  EXPECT_TRUE(sourcemeta::core::is_hostname(hostname));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(hostname));
+}
+
+// RFC 1035 §3.1: presentation form may be exactly 253 octets for IDN.
+// RFC 1123 §2.1 is more permissive and accepts up to 255 characters
+TEST(DNS_idn_hostname, total_length_boundary_253_vs_255) {
+  // 4 × 63 + 3 dots = 255 (RFC 1123) but not RFC 1035 presentation
+  std::string at_255;
+  for (int index = 0; index < 3; ++index) {
+    at_255.append(63, 'a');
+    at_255.push_back('.');
+  }
+  at_255.append(63, 'a');
+  EXPECT_EQ(at_255.size(), 255u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(at_255));
+  EXPECT_TRUE(sourcemeta::core::is_hostname(at_255));
+
+  // 4 × 63 + 3 dots - 2 = 253: drop two octets from the last label
+  std::string at_253;
+  for (int index = 0; index < 3; ++index) {
+    at_253.append(63, 'a');
+    at_253.push_back('.');
+  }
+  at_253.append(61, 'a');
+  EXPECT_EQ(at_253.size(), 253u);
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(at_253));
+  EXPECT_TRUE(sourcemeta::core::is_hostname(at_253));
 }
 
 TEST(DNS_idn_hostname, invalid_empty) {
@@ -240,4 +309,264 @@ TEST(DNS_idn_hostname, invalid_lead_f5) {
 TEST(DNS_idn_hostname, invalid_invalid_utf8_in_middle_label) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("a.\xc0\x80.b"));
   EXPECT_FALSE(sourcemeta::core::is_hostname("a.\xc0\x80.b"));
+}
+
+// RFC 5890 §2.3.2.3: 실례.테스트 ("example.test" in Hangul)
+TEST(DNS_idn_hostname, valid_hangul_example_test_full) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(
+      "\xec\x8b\xa4\xeb\xa1\x80.\xed\x85\x8c\xec\x8a\xa4\xed\x8a\xb8"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xec\x8b\xa4\xeb\xa1\x80.\xed\x85\x8c\xec\x8a\xa4\xed\x8a\xb8"));
+}
+
+// RFC 5891 §4.2.3.2: first character must not be a combining mark.
+// U+302E (HANGUL SINGLE DOT TONE MARK) is a Spacing Combining Mark
+TEST(DNS_idn_hostname, invalid_first_char_combining_mark_u302e) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\xe3\x80\xae\xec\x8b\xa4\xeb\xa1\x80.\xed\x85\x8c\xec\x8a\xa4\xed\x8a"
+      "\xb8"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xe3\x80\xae\xec\x8b\xa4\xeb\xa1\x80.\xed\x85\x8c\xec\x8a\xa4\xed\x8a"
+      "\xb8"));
+}
+
+// RFC 5892 Table A: U+302E is DISALLOWED, so it cannot appear anywhere
+TEST(DNS_idn_hostname, invalid_disallowed_u302e_middle) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\xec\x8b\xa4\xe3\x80\xae\xeb\xa1\x80.\xed\x85\x8c\xec\x8a\xa4\xed\x8a"
+      "\xb8"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xec\x8b\xa4\xe3\x80\xae\xeb\xa1\x80.\xed\x85\x8c\xec\x8a\xa4\xed\x8a"
+      "\xb8"));
+}
+
+// RFC 5891 §4.2.3.2: first character is a Nonspacing Mark (U+0300)
+TEST(DNS_idn_hostname, invalid_first_char_nonspacing_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xcc\x80hello"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xcc\x80hello"));
+}
+
+// RFC 5891 §4.2.3.2: first character is a Spacing Combining Mark (U+0903)
+TEST(DNS_idn_hostname, invalid_first_char_spacing_combining_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xe0\xa4\x83hello"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xe0\xa4\x83hello"));
+}
+
+// RFC 5891 §4.2.3.2: first character is an Enclosing Mark (U+0488)
+TEST(DNS_idn_hostname, invalid_first_char_enclosing_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xd2\x88hello"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd2\x88hello"));
+}
+
+// RFC 3492 §6.2: 'xn--X' has no Punycode body that decodes meaningfully.
+// RFC 1123 §2.1 ASCII LDH grammar accepts the literal form
+TEST(DNS_idn_hostname, invalid_punycode_xn_dash_dash_X) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--X"));
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--X"));
+}
+
+// RFC 5892 §2.6: PVALID exceptions ßς་〇 (LTR)
+TEST(DNS_idn_hostname, valid_pvalid_exceptions_ltr) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(
+      "\xc3\x9f\xcf\x82\xe0\xbc\x8b\xe3\x80\x87"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xc3\x9f\xcf\x82\xe0\xbc\x8b\xe3\x80\x87"));
+}
+
+// RFC 5892 §2.6: PVALID exceptions ۽۾ (RTL, Arabic signs)
+TEST(DNS_idn_hostname, valid_pvalid_exceptions_rtl) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xdb\xbd\xdb\xbe"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xdb\xbd\xdb\xbe"));
+}
+
+// RFC 5892 §2.6: ـ (U+0640 TATWEEL) and ߺ (U+07FA) are DISALLOWED
+TEST(DNS_idn_hostname, invalid_disallowed_exceptions_rtl) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xd9\x80\xdf\xba"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd9\x80\xdf\xba"));
+}
+
+// RFC 5892 §2.6: 〱〲〳〴〵〮〯〻 are all DISALLOWED
+TEST(DNS_idn_hostname, invalid_disallowed_exceptions_ltr) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\xe3\x80\xb1\xe3\x80\xb2\xe3\x80\xb3\xe3\x80\xb4\xe3\x80\xb5\xe3\x80"
+      "\xae\xe3\x80\xaf\xe3\x80\xbb"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xe3\x80\xb1\xe3\x80\xb2\xe3\x80\xb3\xe3\x80\xb4\xe3\x80\xb5\xe3\x80"
+      "\xae\xe3\x80\xaf\xe3\x80\xbb"));
+}
+
+// RFC 5892 Appendix A.3: MIDDLE DOT requires surrounding 'l' codepoints
+TEST(DNS_idn_hostname, valid_middle_dot_between_l) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("l\xc2\xb7l"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("l\xc2\xb7l"));
+}
+
+TEST(DNS_idn_hostname, invalid_middle_dot_no_preceding_l) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("a\xc2\xb7l"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xc2\xb7l"));
+}
+
+TEST(DNS_idn_hostname, invalid_middle_dot_no_following_l) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("l\xc2\xb7"
+                                                 "a"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("l\xc2\xb7"
+                                             "a"));
+}
+
+TEST(DNS_idn_hostname, invalid_middle_dot_leading) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xc2\xb7l"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xc2\xb7l"));
+}
+
+TEST(DNS_idn_hostname, invalid_middle_dot_trailing) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("l\xc2\xb7"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("l\xc2\xb7"));
+}
+
+// RFC 5892 Appendix A.4: Greek KERAIA must be followed by a Greek codepoint
+TEST(DNS_idn_hostname, valid_keraia_followed_by_greek) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xce\xb1\xcd\xb5\xce\xb2"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xce\xb1\xcd\xb5\xce\xb2"));
+}
+
+TEST(DNS_idn_hostname, invalid_keraia_followed_by_latin) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xce\xb1\xcd\xb5S"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xce\xb1\xcd\xb5S"));
+}
+
+TEST(DNS_idn_hostname, invalid_keraia_trailing) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xce\xb1\xcd\xb5"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xce\xb1\xcd\xb5"));
+}
+
+// RFC 5892 Appendix A.5: Hebrew GERESH must be preceded by a Hebrew codepoint
+TEST(DNS_idn_hostname, valid_geresh_preceded_by_hebrew) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xd7\x90\xd7\xb3\xd7\x91"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd7\x90\xd7\xb3\xd7\x91"));
+}
+
+TEST(DNS_idn_hostname, invalid_geresh_preceded_by_latin) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("A\xd7\xb3\xd7\x91"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("A\xd7\xb3\xd7\x91"));
+}
+
+TEST(DNS_idn_hostname, invalid_geresh_leading) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xd7\xb3\xd7\x91"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd7\xb3\xd7\x91"));
+}
+
+// RFC 5892 Appendix A.6: Hebrew GERSHAYIM must be preceded by Hebrew
+TEST(DNS_idn_hostname, valid_gershayim_preceded_by_hebrew) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xd7\x90\xd7\xb4\xd7\x91"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd7\x90\xd7\xb4\xd7\x91"));
+}
+
+TEST(DNS_idn_hostname, invalid_gershayim_preceded_by_latin) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("A\xd7\xb4\xd7\x91"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("A\xd7\xb4\xd7\x91"));
+}
+
+// RFC 5892 Appendix A.7: KATAKANA MIDDLE DOT requires Hiragana/Katakana/Han
+TEST(DNS_idn_hostname, valid_katakana_middle_dot_with_hiragana) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xe3\x83\xbb\xe3\x81\x81"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xe3\x83\xbb\xe3\x81\x81"));
+}
+
+TEST(DNS_idn_hostname, valid_katakana_middle_dot_with_katakana) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xe3\x83\xbb\xe3\x82\xa1"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xe3\x83\xbb\xe3\x82\xa1"));
+}
+
+TEST(DNS_idn_hostname, valid_katakana_middle_dot_with_han) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xe3\x83\xbb\xe4\xb8\x88"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xe3\x83\xbb\xe4\xb8\x88"));
+}
+
+TEST(DNS_idn_hostname, invalid_katakana_middle_dot_without_japanese) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("def\xe3\x83\xbb"
+                                                 "abc"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("def\xe3\x83\xbb"
+                                             "abc"));
+}
+
+// RFC 5892 Appendix A.8/A.9: Arabic-Indic and Extended Arabic-Indic digits
+// must not mix within a label
+TEST(DNS_idn_hostname, valid_arabic_indic_digits_only) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xd8\xa8\xd9\xa0\xd8\xa8"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd8\xa8\xd9\xa0\xd8\xa8"));
+}
+
+TEST(DNS_idn_hostname, invalid_mixed_arabic_indic_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xd8\xa8\xd9\xa0\xdb\xb0"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xd8\xa8\xd9\xa0\xdb\xb0"));
+}
+
+// RFC 5892 Appendix A.2: ZERO WIDTH JOINER must be preceded by Virama
+TEST(DNS_idn_hostname, valid_zwj_after_virama) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(
+      "\xe0\xa4\x95\xe0\xa5\x8d\xe2\x80\x8d\xe0\xa4\xb7"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xe0\xa4\x95\xe0\xa5\x8d\xe2\x80\x8d\xe0\xa4\xb7"));
+}
+
+TEST(DNS_idn_hostname, invalid_zwj_not_after_virama) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\xe0\xa4\x95\xe2\x80\x8d\xe0\xa4\xb7"));
+  EXPECT_FALSE(
+      sourcemeta::core::is_hostname("\xe0\xa4\x95\xe2\x80\x8d\xe0\xa4\xb7"));
+}
+
+// RFC 5892 Appendix A.1: ZERO WIDTH NON-JOINER requires Virama or proper
+// joining-context match
+TEST(DNS_idn_hostname, valid_zwnj_after_virama) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(
+      "\xe0\xa4\x95\xe0\xa5\x8d\xe2\x80\x8c\xe0\xa4\xb7"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xe0\xa4\x95\xe0\xa5\x8d\xe2\x80\x8c\xe0\xa4\xb7"));
+}
+
+TEST(DNS_idn_hostname, valid_zwnj_between_arabic_joiners) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(
+      "\xd8\xa8\xd9\x8a\xe2\x80\x8c\xd8\xa8\xd9\x8a"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      "\xd8\xa8\xd9\x8a\xe2\x80\x8c\xd8\xa8\xd9\x8a"));
+}
+
+// UTS #46 §3.1: alternative label separators are recognised
+TEST(DNS_idn_hostname, valid_ideographic_full_stop_separator) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("a\xe3\x80\x82"
+                                                "b"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xe3\x80\x82"
+                                             "b"));
+}
+
+TEST(DNS_idn_hostname, valid_fullwidth_full_stop_separator) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("a\xef\xbc\x8e"
+                                                "b"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xef\xbc\x8e"
+                                             "b"));
+}
+
+TEST(DNS_idn_hostname, valid_halfwidth_ideographic_full_stop_separator) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("a\xef\xbd\xa1"
+                                                "b"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xef\xbd\xa1"
+                                             "b"));
+}
+
+TEST(DNS_idn_hostname, invalid_leading_ideographic_full_stop) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xe3\x80\x82"
+                                                 "example"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xe3\x80\x82"
+                                             "example"));
+}
+
+TEST(DNS_idn_hostname, invalid_trailing_ideographic_full_stop) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("example\xe3\x80\x82"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xe3\x80\x82"));
+}
+
+TEST(DNS_idn_hostname, invalid_single_ideographic_full_stop) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xe3\x80\x82"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xe3\x80\x82"));
 }

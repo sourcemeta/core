@@ -388,12 +388,13 @@ TEST(Email, valid_domain_label_63) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("a@" + std::string(63, 'b')));
 }
 
-// RFC 5321 §4.5.3.1.2 Domain: 255-byte domain is the cap
-TEST(Email, valid_domain_total_255) {
+// RFC 5321 §4.5.3.1.2 Domain: 255-byte domain is the RFC 1123 cap.
+// RFC 1035 §3.1: IDN strict presentation form caps the domain at 253 octets
+TEST(Email, domain_total_255) {
   EXPECT_TRUE(sourcemeta::core::is_email(
       "a@" + std::string(63, 'b') + "." + std::string(63, 'c') + "." +
       std::string(63, 'd') + "." + std::string(63, 'e')));
-  EXPECT_TRUE(sourcemeta::core::is_idn_email(
+  EXPECT_FALSE(sourcemeta::core::is_idn_email(
       "a@" + std::string(63, 'b') + "." + std::string(63, 'c') + "." +
       std::string(63, 'd') + "." + std::string(63, 'e')));
 }
@@ -1083,14 +1084,14 @@ TEST(Email, invalid_general_dcontent_high_bit) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[X400:\x80]"));
 }
 
-// RFC 5321 §4.5.3.1: 64-byte Local-part plus "@" plus a 254-byte Domain still
-// fits within both caps
-TEST(Email, valid_max_length_email) {
+// RFC 5321 §4.5.3.1: 64-byte Local-part plus "@" plus a 254-byte Domain fits
+// the RFC 1123 cap. RFC 1035 §3.1 caps the IDN domain at 253 octets
+TEST(Email, max_length_email) {
   EXPECT_TRUE(sourcemeta::core::is_email(
       std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
       std::string(63, 'c') + "." + std::string(63, 'd') + "." +
       std::string(62, 'e')));
-  EXPECT_TRUE(sourcemeta::core::is_idn_email(
+  EXPECT_FALSE(sourcemeta::core::is_idn_email(
       std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
       std::string(63, 'c') + "." + std::string(63, 'd') + "." +
       std::string(62, 'e')));

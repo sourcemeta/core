@@ -4,12 +4,68 @@
 #include <sourcemeta/core/unicode.h>
 
 #include <cstddef>     // std::size_t
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string, std::u32string
 #include <string_view> // std::string_view, std::u32string_view
 
 #include "idna_data.h"
 
 namespace sourcemeta::core {
+
+auto idna_classify_label(const std::u32string_view label,
+                         std::u32string &decoded)
+    -> std::optional<IDNALabelKind> {
+  if (label.empty()) {
+    return std::nullopt;
+  }
+
+  bool is_pure_ascii{true};
+  for (const auto codepoint : label) {
+    if (codepoint > 0x7F) {
+      is_pure_ascii = false;
+      break;
+    }
+  }
+
+  if (is_pure_ascii) {
+    // RFC 5890 §2.3.2.1: the ACE prefix "xn--" is case-insensitive
+    const auto has_a_label_prefix{
+        label.size() >= 4 && ((label[0] | 0x20) == U'x') &&
+        ((label[1] | 0x20) == U'n') && label[2] == U'-' && label[3] == U'-'};
+
+    if (has_a_label_prefix) {
+      std::string ascii;
+      ascii.reserve(label.size());
+      for (const auto codepoint : label) {
+        ascii.push_back(static_cast<char>(codepoint));
+      }
+      // Normalise the prefix to canonical lowercase before validating, so
+      // the round-trip equality inside `idna_is_valid_a_label` does not
+      // reject input that only differs in the case of the prefix
+      ascii[0] = 'x';
+      ascii[1] = 'n';
+      if (!idna_is_valid_a_label(ascii)) {
+        return std::nullopt;
+      }
+      try {
+        decoded = punycode_to_utf32(
+            std::string_view{ascii.data() + 4, ascii.size() - 4});
+      } catch (...) {
+        return std::nullopt;
+      }
+      return IDNALabelKind::ALabel;
+    }
+
+    decoded.assign(label.begin(), label.end());
+    return IDNALabelKind::Ascii;
+  }
+
+  if (!idna_is_valid_u_label(label)) {
+    return std::nullopt;
+  }
+  decoded.assign(label.begin(), label.end());
+  return IDNALabelKind::ULabel;
+}
 
 auto idna_property(const char32_t codepoint) noexcept -> IDNAProperty {
   if (codepoint > 0x10FFFF) {
