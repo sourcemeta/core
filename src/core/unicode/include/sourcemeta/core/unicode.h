@@ -292,6 +292,23 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto script(const char32_t codepoint) noexcept -> UnicodeScript;
 
 /// @ingroup unicode
+/// Return whether a Unicode codepoint is a combining mark, in the sense
+/// of UAX #44 general category Mn (Nonspacing_Mark), Mc (Spacing_Mark),
+/// or Me (Enclosing_Mark). See https://www.unicode.org/reports/tr44/ for
+/// the property's definition. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_combining_mark(U'\u0301'));
+/// assert(sourcemeta::core::is_combining_mark(U'\u094D'));
+/// assert(!sourcemeta::core::is_combining_mark(U'A'));
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto is_combining_mark(const char32_t codepoint) noexcept -> bool;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

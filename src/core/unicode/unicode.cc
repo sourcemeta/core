@@ -146,4 +146,12 @@ auto script(const char32_t codepoint) noexcept -> UnicodeScript {
       UNICODE_SCRIPT_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
 }
 
+auto is_combining_mark(const char32_t codepoint) noexcept -> bool {
+  if (codepoint > 0x10FFFF) {
+    return false;
+  }
+  const std::size_t page{IS_COMBINING_MARK_STAGE1[codepoint >> 10U]};
+  return IS_COMBINING_MARK_STAGE2[(page << 10U) | (codepoint & 0x3FFU)] != 0;
+}
+
 } // namespace sourcemeta::core
