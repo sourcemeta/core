@@ -9,8 +9,14 @@ STACKTRACE_LIBRARY="$3"
 SELF="$(basename "$STACKTRACE_ABORT_MAIN")"
 
 case "$STACKTRACE_LIBRARY" in
-  *.a|*.lib) LIBRARY_PATH="$STACKTRACE_ABORT_MAIN" ;;
-  *)         LIBRARY_PATH="$(echo "$STACKTRACE_LIBRARY" | sed -E -e 's|\.so\.[0-9.]+|.so|g' -e 's|\.[0-9.]+\.dylib|.dylib|g')" ;;
+  *.a|*.lib)
+    LIBRARY_PATH="$STACKTRACE_ABORT_MAIN"
+    ;;
+  *)
+    LIBRARY_PATH="$(echo "$STACKTRACE_LIBRARY" | sed -E \
+      -e 's|\.so\.[0-9.]+|.so|g' \
+      -e 's|\.[0-9.]+\.dylib|.dylib|g')"
+    ;;
 esac
 
 "$STACKTRACE_ABORT_MAIN" > "$WORKDIR/$SELF.actual.txt" 2>&1 \
@@ -45,7 +51,7 @@ cat << EOF > "$WORKDIR/$SELF.expected.txt"
 signal:  6 (SIGABRT)
 pid:     <PID>
 
-# 0xADDR crash_handler +0xOFFSET
+# 0xADDR sourcemeta_core_stacktrace_crash_handler +0xOFFSET
   in $LIBRARY_PATH
 # 0xADDR _ZN31sourcemeta_core_stacktrace_test13crash_deepestEv +0xOFFSET
   in $STACKTRACE_ABORT_MAIN

@@ -174,7 +174,9 @@ std::atomic<bool> crash_handler_installed{false};
 // grant external linkage per C++11
 // NOLINTNEXTLINE(misc-definitions-in-headers)
 extern "C" __attribute__((visibility("default"))) auto
-crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
+sourcemeta_core_stacktrace_crash_handler(int signal_number,
+                                         siginfo_t * /*info*/, void *context)
+    -> void {
   const int file_descriptor{STDERR_FILENO};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
@@ -227,7 +229,7 @@ __attribute__((visibility("default"))) auto stacktrace_on_crash() -> void {
   }
 
   struct sigaction action{};
-  action.sa_sigaction = &crash_handler;
+  action.sa_sigaction = &sourcemeta_core_stacktrace_crash_handler;
   action.sa_flags = static_cast<int>(SA_SIGINFO | SA_RESETHAND | SA_NODEFER);
   sigemptyset(&action.sa_mask);
 

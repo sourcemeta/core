@@ -87,7 +87,8 @@ __declspec(noinline) auto write_frames(int file_descriptor,
 } // namespace
 
 extern "C" SOURCEMETA_CORE_STACKTRACE_EXPORT auto WINAPI
-crash_handler(EXCEPTION_POINTERS *information) -> LONG {
+sourcemeta_core_stacktrace_crash_handler(EXCEPTION_POINTERS *information)
+    -> LONG {
   const int file_descriptor{2};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
@@ -114,7 +115,7 @@ auto stacktrace_on_crash() -> void {
   if (!crash_handler_installed.compare_exchange_strong(expected, true)) {
     return;
   }
-  ::SetUnhandledExceptionFilter(&crash_handler);
+  ::SetUnhandledExceptionFilter(&sourcemeta_core_stacktrace_crash_handler);
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)

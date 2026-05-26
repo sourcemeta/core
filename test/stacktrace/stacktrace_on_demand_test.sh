@@ -9,8 +9,14 @@ STACKTRACE_LIBRARY="$3"
 SELF="$(basename "$STACKTRACE_ON_DEMAND_MAIN")"
 
 case "$STACKTRACE_LIBRARY" in
-  *.a|*.lib) LIBRARY_PATH="$STACKTRACE_ON_DEMAND_MAIN" ;;
-  *)         LIBRARY_PATH="$(echo "$STACKTRACE_LIBRARY" | sed -E -e 's|\.so\.[0-9.]+|.so|g' -e 's|\.[0-9.]+\.dylib|.dylib|g')" ;;
+  *.a|*.lib)
+    LIBRARY_PATH="$STACKTRACE_ON_DEMAND_MAIN"
+    ;;
+  *)
+    LIBRARY_PATH="$(echo "$STACKTRACE_LIBRARY" | sed -E \
+      -e 's|\.so\.[0-9.]+|.so|g' \
+      -e 's|\.[0-9.]+\.dylib|.dylib|g')"
+    ;;
 esac
 
 "$STACKTRACE_ON_DEMAND_MAIN" > "$WORKDIR/$SELF.actual.txt" 2>&1 \

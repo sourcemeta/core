@@ -52,7 +52,7 @@ $ExpectedContent = (@"
 signal:  0xADDR (SEH)
 pid:     <PID>
 
-# 0xADDR crash_handler +0xOFFSET
+# 0xADDR sourcemeta_core_stacktrace_crash_handler +0xOFFSET
   in $LibraryPath
 # 0xADDR sourcemeta_core_stacktrace_test::crash_deepest +0xOFFSET
   in $StacktraceSegfaultMain
