@@ -9,8 +9,10 @@ $ErrorActionPreference = "Stop"
 $Self = [IO.Path]::GetFileName($StacktraceSegfaultMain)
 $Actual = Join-Path $WorkDir "$Self.actual.txt"
 
-& $StacktraceSegfaultMain *> $Actual
+$ErrorActionPreference = "Continue"
+& $StacktraceSegfaultMain > $Actual 2>&1
 $ExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
 # Crashed by a fatal exception
 if ($ExitCode -eq 0) {
   throw "Expected non-zero exit code, got $ExitCode"

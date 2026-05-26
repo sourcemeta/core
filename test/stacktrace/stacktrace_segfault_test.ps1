@@ -18,8 +18,13 @@ $Actual = Join-Path $WorkDir "$Self.actual.txt"
 $Normalized = Join-Path $WorkDir "$Self.normalized.txt"
 $Expected = Join-Path $WorkDir "$Self.expected.txt"
 
-& $StacktraceSegfaultMain *> $Actual
+# `$ErrorActionPreference = "Stop"` would treat the crashing binary's stderr
+# output as a NativeCommandError and abort the script; soften it just for the
+# native invocation.
+$ErrorActionPreference = "Continue"
+& $StacktraceSegfaultMain > $Actual 2>&1
 $ExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
 # Crashed by a fatal exception
 if ($ExitCode -eq 0) {
   throw "Expected non-zero exit code, got $ExitCode"

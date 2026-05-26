@@ -9,8 +9,10 @@ $ErrorActionPreference = "Stop"
 $Self = [IO.Path]::GetFileName($StacktraceOnDemandMain)
 $Actual = Join-Path $WorkDir "$Self.actual.txt"
 
-& $StacktraceOnDemandMain *> $Actual
+$ErrorActionPreference = "Continue"
+& $StacktraceOnDemandMain > $Actual 2>&1
 $ExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
 # Exited cleanly after printing the on-demand trace
 if ($ExitCode -ne 0) {
   throw "Expected exit code 0, got $ExitCode"
