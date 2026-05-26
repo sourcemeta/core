@@ -128,4 +128,13 @@ auto joining_type(const char32_t codepoint) -> JoiningType {
       JOINING_TYPE_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
 }
 
+auto bidi_class(const char32_t codepoint) -> BidiClass {
+  if (codepoint > 0x10FFFF) {
+    return BidiClass::LeftToRight;
+  }
+  const std::size_t page{BIDI_CLASS_STAGE1[codepoint >> 10U]};
+  return static_cast<BidiClass>(
+      BIDI_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
+}
+
 } // namespace sourcemeta::core
