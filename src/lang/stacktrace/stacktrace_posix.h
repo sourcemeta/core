@@ -100,8 +100,10 @@ auto write_frame(int file_descriptor, int frame_index, void *address) -> void {
   write_text(file_descriptor, "\n");
 }
 
-auto write_backtrace(int file_descriptor, int frames_to_skip,
-                     void *crash_pc = nullptr) -> void {
+__attribute__((noinline)) auto write_backtrace(int file_descriptor,
+                                               int frames_to_skip,
+                                               void *crash_pc = nullptr)
+    -> void {
   int frame_index{0};
   if (crash_pc != nullptr) {
     write_frame(file_descriptor, frame_index, crash_pc);
@@ -209,7 +211,7 @@ auto install_crash_handler() -> void {
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-auto stacktrace() -> void {
+__attribute__((noinline)) auto stacktrace() -> void {
   const int file_descriptor{STDERR_FILENO};
   write_text(file_descriptor, separator);
   write_text(file_descriptor, "pid:     ");

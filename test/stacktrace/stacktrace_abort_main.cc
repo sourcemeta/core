@@ -1,6 +1,6 @@
 #include <sourcemeta/core/stacktrace.h>
 
-#include <cstdlib> // std::abort
+#include <csignal> // raise, SIGABRT
 
 namespace sourcemeta_core_stacktrace_test {
 
@@ -9,7 +9,10 @@ volatile int sink{0};
 auto crash_deepest() -> void;
 auto crash_middle() -> void;
 
-__attribute__((noinline)) auto crash_deepest() -> void { std::abort(); }
+__attribute__((noinline)) auto crash_deepest() -> void {
+  ::raise(SIGABRT);
+  sink = sink + 1;
+}
 
 __attribute__((noinline)) auto crash_middle() -> void {
   crash_deepest();

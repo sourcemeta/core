@@ -9,6 +9,7 @@ auto print_middle() -> void;
 
 __attribute__((noinline)) auto print_deepest() -> void {
   sourcemeta::core::stacktrace();
+  sink = sink + 1;
 }
 
 __attribute__((noinline)) auto print_middle() -> void {

@@ -31,7 +31,7 @@ pid:     <PID>
 
 # 0xADDR crash_handler +0xOFFSET
   in $STACKTRACE_ABORT_MAIN
-# 0xADDR _ZN31sourcemeta_core_stacktrace_test12crash_middleEv +0xOFFSET
+# 0xADDR _ZN31sourcemeta_core_stacktrace_test13crash_deepestEv +0xOFFSET
   in $STACKTRACE_ABORT_MAIN
 # 0xADDR _ZN31sourcemeta_core_stacktrace_test12crash_middleEv +0xOFFSET
   in $STACKTRACE_ABORT_MAIN

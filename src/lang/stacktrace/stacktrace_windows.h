@@ -37,7 +37,8 @@ auto write_text(int file_descriptor, const char *text) -> void {
   ::_write(file_descriptor, text, static_cast<unsigned int>(std::strlen(text)));
 }
 
-auto write_frames(int file_descriptor, USHORT frames_to_skip) -> void {
+__declspec(noinline) auto write_frames(int file_descriptor,
+                                       USHORT frames_to_skip) -> void {
   void *frames[maximum_frames];
   const USHORT captured{
       ::CaptureStackBackTrace(frames_to_skip, maximum_frames, frames, nullptr)};
@@ -108,7 +109,7 @@ auto install_crash_handler() -> void {
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-auto stacktrace() -> void {
+__declspec(noinline) auto stacktrace() -> void {
   const int file_descriptor{2};
   write_text(file_descriptor, separator);
   char header[256];

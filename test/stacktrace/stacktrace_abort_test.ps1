@@ -35,6 +35,8 @@ Get-Content $Actual
 signal:  0x80000003 (SEH)
 pid:     <PID>
 
+# 0xADDR sourcemeta_core_stacktrace_test::crash_deepest +0xOFFSET
+  in $StacktraceAbortMain
 # 0xADDR sourcemeta_core_stacktrace_test::crash_middle +0xOFFSET
   in $StacktraceAbortMain
 # 0xADDR main +0xOFFSET
