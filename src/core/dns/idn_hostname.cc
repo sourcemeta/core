@@ -11,11 +11,12 @@
 
 namespace sourcemeta::core {
 
-// UTS #46 §3.1: the four IDNA label separators
+// UTS #46 §3.1: the four IDNA label separators (FULL STOP, IDEOGRAPHIC
+// FULL STOP, FULLWIDTH FULL STOP, HALFWIDTH IDEOGRAPHIC FULL STOP)
 static constexpr auto is_idna_label_separator(const char32_t codepoint)
     -> bool {
-  return codepoint == U'.' || codepoint == U'。' || codepoint == U'．' ||
-         codepoint == U'｡';
+  return codepoint == U'.' || codepoint == U'\u3002' ||
+         codepoint == U'\uFF0E' || codepoint == U'\uFF61';
 }
 
 auto is_idn_hostname(const std::string_view value) -> bool {
