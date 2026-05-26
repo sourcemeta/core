@@ -115,6 +115,28 @@ auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool;
 SOURCEMETA_CORE_IDNA_EXPORT
 auto idna_is_valid_u_label(const std::u32string_view label) noexcept -> bool;
 
+/// @ingroup idna
+/// Return whether the given label is a valid A-label per RFC 5891 §4. See
+/// https://www.rfc-editor.org/rfc/rfc5891#section-4 for the criteria.
+/// A valid A-label starts with the ACE prefix "xn--", is pure ASCII, has a
+/// non-empty Punycode body that decodes to a U-label containing at least
+/// one non-ASCII codepoint, and round-trips through Punycode in its
+/// canonical form. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/idna.h>
+/// #include <cassert>
+///
+/// // xn--mnchen-3ya decodes to "München"
+/// assert(sourcemeta::core::idna_is_valid_a_label("xn--mnchen-3ya"));
+/// // Missing "xn--" prefix
+/// assert(!sourcemeta::core::idna_is_valid_a_label("abc"));
+/// // Decodes to "abc" (no non-ASCII codepoint)
+/// assert(!sourcemeta::core::idna_is_valid_a_label("xn--abc-"));
+/// ```
+SOURCEMETA_CORE_IDNA_EXPORT
+auto idna_is_valid_a_label(const std::string_view label) noexcept -> bool;
+
 } // namespace sourcemeta::core
 
 #endif
