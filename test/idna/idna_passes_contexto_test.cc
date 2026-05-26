@@ -105,3 +105,19 @@ TEST(IDNA_passes_contexto, position_out_of_range) {
 TEST(IDNA_passes_contexto, empty_label) {
   EXPECT_FALSE(sourcemeta::core::idna_passes_contexto(U"", 0));
 }
+
+TEST(IDNA_passes_contexto, ascii_letter_has_no_rule) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_contexto(U"abc", 0));
+}
+
+TEST(IDNA_passes_contexto, ascii_digit_has_no_rule) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_contexto(U"a0b", 1));
+}
+
+TEST(IDNA_passes_contexto, devanagari_letter_has_no_rule) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_contexto(U"\u0905", 0));
+}
+
+TEST(IDNA_passes_contexto, zero_width_joiner_has_no_contexto_rule) {
+  EXPECT_TRUE(sourcemeta::core::idna_passes_contexto(U"\u200D", 0));
+}

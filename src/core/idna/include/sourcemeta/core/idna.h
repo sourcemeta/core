@@ -20,8 +20,9 @@
 namespace sourcemeta::core {
 
 /// @ingroup idna
-/// Apply the RFC 5892 Appendix A.3-A.9 contextual rules to the codepoint at
-/// `position` within `label`. See
+/// Return whether the codepoint at `position` within `label` does not
+/// violate any RFC 5892 Appendix A.3-A.9 contextual rule. Returns true
+/// vacuously when the codepoint has no such rule. See
 /// https://www.rfc-editor.org/rfc/rfc5892#appendix-A for the rules.
 /// For example:
 ///

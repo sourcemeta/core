@@ -79,7 +79,9 @@ auto idna_passes_contexto(const std::u32string_view label,
     return true;
   }
 
-  return false;
+  // No RFC 5892 Appendix A.3-A.9 rule applies to this codepoint, so there
+  // is nothing to violate.
+  return true;
 }
 
 } // namespace sourcemeta::core
