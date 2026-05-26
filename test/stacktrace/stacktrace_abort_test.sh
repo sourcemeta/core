@@ -10,7 +10,7 @@ SELF="$(basename "$STACKTRACE_ABORT_MAIN")"
 
 case "$STACKTRACE_LIBRARY" in
   *.a|*.lib) LIBRARY_PATH="$STACKTRACE_ABORT_MAIN" ;;
-  *)         LIBRARY_PATH="$STACKTRACE_LIBRARY" ;;
+  *)         LIBRARY_PATH="$(echo "$STACKTRACE_LIBRARY" | sed -E -e 's|\.so\.[0-9.]+|.so|g' -e 's|\.[0-9.]+\.dylib|.dylib|g')" ;;
 esac
 
 "$STACKTRACE_ABORT_MAIN" > "$WORKDIR/$SELF.actual.txt" 2>&1 \
@@ -25,7 +25,11 @@ sed -E \
   -e 's/\+0xADDR/+0xOFFSET/g' \
   -e 's/^pid:[[:space:]]+[0-9]+/pid:     <PID>/' \
   -e 's/^#[0-9]+ /# /' \
-  -e '/^# /{N;/_sigtramp|__restore_rt|libsystem_|libdyld|\/dyld| _?start \+/d;}' \
+  -e '/^# /{N;/_sigtramp|__restore_rt|__kernel_rt_sigreturn|__libc_start_main|libsystem_|libdyld|\/dyld|linux-vdso|libc\.so| pthread_kill | gsignal | raise | _?start \+/d;}' \
+  -e 's|\.so\.[0-9.]+|.so|g' \
+  -e 's|\.[0-9.]+\.dylib|.dylib|g' \
+  -e '/^Aborted/d' \
+  -e '/^Segmentation fault/d' \
   "$WORKDIR/$SELF.actual.txt" \
   > "$WORKDIR/$SELF.normalized.txt"
 

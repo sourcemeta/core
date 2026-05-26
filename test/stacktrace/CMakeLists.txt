@@ -4,9 +4,9 @@ macro(add_stacktrace_test_unix scenario debug_flag)
     add_executable(${target} stacktrace_${scenario}_main.cc)
     target_link_libraries(${target} PRIVATE sourcemeta::core::stacktrace)
     if("${debug_flag}" STREQUAL "none")
-      target_compile_options(${target} PRIVATE -g0)
+      target_compile_options(${target} PRIVATE -g0 -fvisibility=default)
     else()
-      target_compile_options(${target} PRIVATE -${debug_flag})
+      target_compile_options(${target} PRIVATE -${debug_flag} -fvisibility=default)
     endif()
     add_test(NAME core.stacktrace.${scenario}.${debug_flag}.e2e
       COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/stacktrace_${scenario}_test.sh"

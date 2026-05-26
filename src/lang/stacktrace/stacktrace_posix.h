@@ -104,16 +104,32 @@ __attribute__((noinline)) auto write_backtrace(int file_descriptor,
                                                int frames_to_skip,
                                                void *crash_pc = nullptr)
     -> void {
+  std::array<void *, maximum_frames> frames{};
+  const int captured{::backtrace(frames.data(), maximum_frames)};
+
   int frame_index{0};
+  void *suppress_saddr{nullptr};
   if (crash_pc != nullptr) {
     write_frame(file_descriptor, frame_index, crash_pc);
     frame_index = frame_index + 1;
+    Dl_info crash_information{};
+    if (::dladdr(crash_pc, &crash_information) != 0 &&
+        crash_information.dli_saddr != nullptr) {
+      suppress_saddr = crash_information.dli_saddr;
+    }
   }
-  std::array<void *, maximum_frames> frames{};
-  const int captured{::backtrace(frames.data(), maximum_frames)};
+
   for (int index{frames_to_skip}; index < captured; ++index) {
-    write_frame(file_descriptor, frame_index,
-                frames[static_cast<std::size_t>(index)]);
+    void *address{frames[static_cast<std::size_t>(index)]};
+    if (suppress_saddr != nullptr) {
+      Dl_info frame_information{};
+      if (::dladdr(address, &frame_information) != 0 &&
+          frame_information.dli_saddr == suppress_saddr) {
+        suppress_saddr = nullptr;
+        continue;
+      }
+    }
+    write_frame(file_descriptor, frame_index, address);
     frame_index = frame_index + 1;
   }
 }
@@ -145,8 +161,8 @@ constexpr const char *separator{"========================================"
 
 std::atomic<bool> crash_handler_installed{false};
 
-extern "C" auto crash_handler(int signal_number, siginfo_t * /*info*/,
-                              void *context) -> void {
+extern "C" __attribute__((visibility("default"))) auto
+crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
   const int file_descriptor{STDERR_FILENO};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
@@ -194,7 +210,7 @@ extern "C" auto crash_handler(int signal_number, siginfo_t * /*info*/,
 namespace sourcemeta::core {
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-auto install_crash_handler() -> void {
+__attribute__((visibility("default"))) auto install_crash_handler() -> void {
   bool expected{false};
   if (!crash_handler_installed.compare_exchange_strong(expected, true)) {
     return;
@@ -211,7 +227,7 @@ auto install_crash_handler() -> void {
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-__attribute__((noinline)) auto stacktrace() -> void {
+__attribute__((noinline, visibility("default"))) auto stacktrace() -> void {
   const int file_descriptor{STDERR_FILENO};
   write_text(file_descriptor, separator);
   write_text(file_descriptor, "pid:     ");

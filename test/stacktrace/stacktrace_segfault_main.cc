@@ -14,7 +14,7 @@ auto crash_deepest() -> void;
 auto crash_middle() -> void;
 
 STACKTRACE_TEST_NOINLINE auto crash_deepest() -> void {
-  volatile int *null_pointer{nullptr};
+  volatile int *volatile null_pointer{nullptr};
   *null_pointer = 42;
 }
 
