@@ -111,7 +111,7 @@ auto utf8_to_utf32(const std::string_view input)
   return utf8_to_utf32(stream);
 }
 
-auto combining_class(const char32_t codepoint) -> std::uint8_t {
+auto combining_class(const char32_t codepoint) noexcept -> std::uint8_t {
   if (codepoint > 0x10FFFF) {
     return 0;
   }
@@ -119,7 +119,7 @@ auto combining_class(const char32_t codepoint) -> std::uint8_t {
   return COMBINING_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)];
 }
 
-auto joining_type(const char32_t codepoint) -> JoiningType {
+auto joining_type(const char32_t codepoint) noexcept -> JoiningType {
   if (codepoint > 0x10FFFF) {
     return JoiningType::NonJoining;
   }
@@ -128,7 +128,7 @@ auto joining_type(const char32_t codepoint) -> JoiningType {
       JOINING_TYPE_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
 }
 
-auto bidi_class(const char32_t codepoint) -> BidiClass {
+auto bidi_class(const char32_t codepoint) noexcept -> BidiClass {
   if (codepoint > 0x10FFFF) {
     return BidiClass::LeftToRight;
   }
@@ -137,7 +137,7 @@ auto bidi_class(const char32_t codepoint) -> BidiClass {
       BIDI_CLASS_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
 }
 
-auto script(const char32_t codepoint) -> UnicodeScript {
+auto script(const char32_t codepoint) noexcept -> UnicodeScript {
   if (codepoint > 0x10FFFF) {
     return UnicodeScript::Unknown;
   }
