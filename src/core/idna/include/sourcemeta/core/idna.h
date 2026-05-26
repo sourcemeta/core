@@ -41,8 +41,9 @@ auto idna_property(const char32_t codepoint) noexcept -> IDNAProperty;
 /// @ingroup idna
 /// Return whether the codepoint at `position` within `label` does not
 /// violate any RFC 5892 Appendix A.3-A.9 contextual rule. Returns true
-/// vacuously when the codepoint has no such rule. See
-/// https://www.rfc-editor.org/rfc/rfc5892#appendix-A for the rules.
+/// vacuously when the codepoint has no such rule. Returns false when
+/// `position` is out of range, treated as a precondition violation.
+/// See https://www.rfc-editor.org/rfc/rfc5892#appendix-A for the rules.
 /// For example:
 ///
 /// ```cpp
@@ -59,8 +60,9 @@ auto idna_passes_contexto(const std::u32string_view label,
 /// @ingroup idna
 /// Return whether the codepoint at `position` within `label` does not
 /// violate any RFC 5892 Appendix A.1 / A.2 contextual rule. Returns true
-/// vacuously when the codepoint has no such rule. See
-/// https://www.rfc-editor.org/rfc/rfc5892#appendix-A for the rules.
+/// vacuously when the codepoint has no such rule. Returns false when
+/// `position` is out of range, treated as a precondition violation.
+/// See https://www.rfc-editor.org/rfc/rfc5892#appendix-A for the rules.
 /// For example:
 ///
 /// ```cpp
@@ -102,7 +104,9 @@ auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool;
 /// Return whether the given label is a valid U-label per RFC 5891 §4. See
 /// https://www.rfc-editor.org/rfc/rfc5891#section-4 for the criteria.
 /// The Bidi rule is not checked here because Bidi domain detection is a
-/// property of the whole domain, not of a single label. For example:
+/// property of the whole domain, not of a single label. Callers needing
+/// strict conformance must normalise the input to NFC themselves. The
+/// RFC 5891 §4.1.2.A NFC requirement is not enforced. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/idna.h>
