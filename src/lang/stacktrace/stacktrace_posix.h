@@ -86,9 +86,10 @@ auto write_frame(int file_descriptor, int frame_index, void *address) -> void {
   write_text(file_descriptor, symbol_name);
 
   if (resolved != 0 && information.dli_saddr != nullptr) {
-    const auto offset{static_cast<std::uintptr_t>(
-        reinterpret_cast<char *>(address) -
-        reinterpret_cast<char *>(information.dli_saddr))};
+    // Subtract as integers. Pointer subtraction across unrelated objects is
+    // undefined behavior in C++
+    const auto offset{reinterpret_cast<std::uintptr_t>(address) -
+                      reinterpret_cast<std::uintptr_t>(information.dli_saddr)};
     write_text(file_descriptor, " +");
     write_hex(file_descriptor, offset);
   }
@@ -149,7 +150,7 @@ auto extract_crash_pc(void *context) -> void * {
   program_counter = user_context->uc_mcontext.pc;
 #elif defined(__linux__) && defined(__x86_64__)
   program_counter =
-      static_cast<std::uintptr_t>(user_context->uc_mcontext.gregs[16]);
+      static_cast<std::uintptr_t>(user_context->uc_mcontext.gregs[REG_RIP]);
 #endif
   // NOLINTNEXTLINE(performance-no-int-to-ptr)
   return reinterpret_cast<void *>(program_counter);
@@ -160,6 +161,21 @@ constexpr const char *separator{"========================================"
 
 std::atomic<bool> crash_handler_installed{false};
 
+} // namespace
+
+// NOTE: This handler intentionally calls `backtrace()`, `dladdr()`, and
+// `strlen()`, which are not strictly async-signal-safe by POSIX. In practice
+// they are reentrant enough for the realistic crash population (null derefs,
+// bad casts, divide-by-zero, raised signals). The theoretical failure mode
+// is a crash during a `malloc` call on another thread, in which case the
+// trace is lost but the OS still produces a core dump. We avoid demangling
+// here for the same reason. `__cxa_demangle` calls `malloc`, which is the
+// riskiest of the lot.
+//
+// Outside any anonymous namespace so `dladdr` reliably resolves the symbol
+// name across platforms. `extern "C"` inside an unnamed namespace does NOT
+// grant external linkage per C++11
+// NOLINTNEXTLINE(misc-definitions-in-headers)
 extern "C" __attribute__((visibility("default"))) auto
 crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
   const int file_descriptor{STDERR_FILENO};
@@ -203,8 +219,6 @@ crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
   ::sigaction(signal_number, &default_action, nullptr);
   ::raise(signal_number);
 }
-
-} // namespace
 
 namespace sourcemeta::core {
 

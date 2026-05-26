@@ -6,7 +6,7 @@ if(UNIX)
   target_link_libraries(sourcemeta_core_stacktrace PRIVATE ${CMAKE_DL_LIBS})
   target_link_options(sourcemeta_core_stacktrace INTERFACE
     "$<$<PLATFORM_ID:Linux>:-rdynamic>"
-    "$<$<PLATFORM_ID:Darwin>:-rdynamic>")
+    "$<$<PLATFORM_ID:Darwin>:-Wl,-export_dynamic>")
 elseif(WIN32)
   target_link_libraries(sourcemeta_core_stacktrace PRIVATE dbghelp)
 endif()

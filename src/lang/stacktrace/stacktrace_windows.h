@@ -12,6 +12,7 @@
 #include <cstdio>    // std::snprintf
 #include <cstring>   // std::strlen
 #include <io.h>      // _write
+#include <mutex>     // std::mutex, std::lock_guard
 #include <process.h> // _getpid
 
 #pragma comment(lib, "dbghelp.lib")
@@ -24,12 +25,18 @@ constexpr const char *separator{"========================================"
 
 std::atomic<bool> crash_handler_installed{false};
 std::atomic<bool> symbols_initialized{false};
+// dbghelp is documented as single-threaded by Microsoft, so serialize symbol
+// lookups across concurrent `stacktrace()` callers
+std::mutex dbghelp_mutex;
 
 auto ensure_symbols_initialized() -> void {
   bool expected{false};
   if (symbols_initialized.compare_exchange_strong(expected, true)) {
     ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
-    ::SymInitialize(::GetCurrentProcess(), nullptr, TRUE);
+    if (::SymInitialize(::GetCurrentProcess(), nullptr, TRUE) == FALSE) {
+      // Unset the flag so a future caller can retry
+      symbols_initialized.store(false);
+    }
   }
 }
 
@@ -43,6 +50,7 @@ __declspec(noinline) auto write_frames(int file_descriptor,
   const USHORT captured{
       ::CaptureStackBackTrace(frames_to_skip, maximum_frames, frames, nullptr)};
   ensure_symbols_initialized();
+  const std::lock_guard<std::mutex> guard{dbghelp_mutex};
   const HANDLE process{::GetCurrentProcess()};
 
   alignas(SYMBOL_INFO) char symbol_buffer[sizeof(SYMBOL_INFO) + 512]{};
