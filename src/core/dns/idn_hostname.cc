@@ -1,6 +1,7 @@
 #include <sourcemeta/core/dns.h>
 
 #include <sourcemeta/core/idna.h>
+#include <sourcemeta/core/punycode.h>
 #include <sourcemeta/core/unicode.h>
 
 #include <cstddef>     // std::size_t
@@ -17,38 +18,6 @@ static constexpr auto is_idna_label_separator(const char32_t codepoint)
          codepoint == U'｡';
 }
 
-// Validate one label per RFC 5891 §4.2 plus the DNS-specific RFC 1035
-// length and RFC 1123 ASCII LDH constraints. Stores the U-label codepoint
-// form in `decoded` for the later Bidi rule check.
-static auto validate_label(const std::u32string_view label,
-                           std::u32string &decoded) -> bool {
-  // RFC 1035 §2.3.4: every label must be small enough that the
-  // corresponding A-label form fits in 63 octets. The codepoint count is an
-  // upper bound that catches all overly-long labels in practice.
-  if (label.size() > 63) {
-    return false;
-  }
-
-  const auto kind{idna_classify_label(label, decoded)};
-  if (!kind.has_value()) {
-    return false;
-  }
-
-  // RFC 1123 §2.1: ASCII labels still need the LDH grammar check
-  if (*kind == IDNALabelKind::Ascii) {
-    std::string ascii;
-    ascii.reserve(label.size());
-    for (const auto codepoint : label) {
-      ascii.push_back(static_cast<char>(codepoint));
-    }
-    if (!is_hostname(ascii)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 auto is_idn_hostname(const std::string_view value) -> bool {
   // TODO: Once NFC normalisation lands, also exercise this implementation
   // against `vendor/unicodetools/IdnaTestV2.txt`. The current test corpus is
@@ -56,11 +25,6 @@ auto is_idn_hostname(const std::string_view value) -> bool {
   // are already in NFC.
 
   if (value.empty()) {
-    return false;
-  }
-
-  // RFC 1123 §2.1: SHOULD handle host names of up to 255 characters
-  if (value.size() > 255) {
     return false;
   }
 
@@ -76,6 +40,8 @@ auto is_idn_hostname(const std::string_view value) -> bool {
   }
 
   std::vector<std::u32string> decoded_labels;
+  // RFC 1035 §3.1: presentation form ≤ 253 octets in A-label form
+  std::size_t total_octets{0};
   std::size_t label_start{0};
   for (std::size_t position = 0; position <= codepoints->size(); ++position) {
     const bool at_end{position == codepoints->size()};
@@ -84,10 +50,51 @@ auto is_idn_hostname(const std::string_view value) -> bool {
     }
     const std::u32string_view label{codepoints->data() + label_start,
                                     position - label_start};
+
     std::u32string decoded;
-    if (!validate_label(label, decoded)) {
+    const auto kind{idna_classify_label(label, decoded)};
+    if (!kind.has_value()) {
       return false;
     }
+
+    // The label's A-label form octet count: for Ascii and ALabel kinds the
+    // input is already in A-label form, so codepoint count equals octet
+    // count. For ULabel kinds we Punycode-encode the U-label to measure
+    // the corresponding A-label.
+    std::size_t a_label_octets{label.size()};
+    if (*kind == IDNALabelKind::ULabel) {
+      try {
+        const auto body{utf32_to_punycode(decoded)};
+        a_label_octets = 4 + body.size();
+      } catch (...) {
+        return false;
+      }
+    } else if (*kind == IDNALabelKind::Ascii) {
+      // RFC 1123 §2.1: ASCII labels still need the LDH grammar check
+      std::string ascii;
+      ascii.reserve(label.size());
+      for (const auto codepoint : label) {
+        ascii.push_back(static_cast<char>(codepoint));
+      }
+      if (!is_hostname(ascii)) {
+        return false;
+      }
+    }
+
+    // RFC 5891 §4.2.4 / RFC 1035 §2.3.4: each label, in A-label form,
+    // must be 1-63 octets
+    if (a_label_octets > 63) {
+      return false;
+    }
+
+    if (!decoded_labels.empty()) {
+      total_octets += 1;
+    }
+    total_octets += a_label_octets;
+    if (total_octets > 253) {
+      return false;
+    }
+
     decoded_labels.push_back(std::move(decoded));
     label_start = position + 1;
   }

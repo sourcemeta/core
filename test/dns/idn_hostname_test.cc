@@ -97,18 +97,85 @@ TEST(DNS_idn_hostname, valid_ascii_label_at_63) {
   EXPECT_TRUE(sourcemeta::core::is_hostname(label));
 }
 
-// RFC 5321 §4.5.3.1.2 / RFC 1035 §2.3.4: total length may be exactly 255
-TEST(DNS_idn_hostname, valid_total_at_255) {
-  // 4 × 63 + 3 dots = 255
-  std::string hostname;
-  for (int index = 0; index < 3; ++index) {
-    hostname.append(63, 'a');
-    hostname.push_back('.');
+// RFC 5891 §4.2.4: per-label A-label form must be ≤ 63 octets. A U-label of
+// 55 Greek codepoints Punycode-encodes to a 61-character body, giving an
+// A-label of 65 octets even though the codepoint count is well under 63.
+TEST(DNS_idn_hostname, invalid_u_label_a_form_over_63) {
+  // "παράδειγμα" (10 codepoints) × 5 + "παράδ" (5 codepoints) = 55
+  std::string label;
+  for (int index = 0; index < 5; ++index) {
+    label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4"
+                 "\xce\xb5\xce\xb9\xce\xb3\xce\xbc\xce\xb1");
   }
-  hostname.append(63, 'a');
-  EXPECT_EQ(hostname.size(), 255u);
+  label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4");
+  EXPECT_EQ(label.size(), 110u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(label));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(label));
+}
+
+// RFC 5891 §4.2.4: 52 Greek codepoints Punycode-encode to a 57-character
+// body, giving a 61-octet A-label that just fits the per-label cap
+TEST(DNS_idn_hostname, valid_u_label_a_form_at_61) {
+  // "παράδειγμα" × 5 + "πα" = 52 codepoints
+  std::string label;
+  for (int index = 0; index < 5; ++index) {
+    label.append("\xcf\x80\xce\xb1\xcf\x81\xce\xac\xce\xb4"
+                 "\xce\xb5\xce\xb9\xce\xb3\xce\xbc\xce\xb1");
+  }
+  label.append("\xcf\x80\xce\xb1");
+  EXPECT_EQ(label.size(), 104u);
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(label));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(label));
+}
+
+// RFC 1035 §3.1: A-label-form presentation total must be ≤ 253 octets. 32
+// single-α labels have UTF-8 input of only 95 bytes (well below the 255
+// RFC 1123 hostname cap) but the A-label total is 32 × 7 + 31 = 255 octets
+TEST(DNS_idn_hostname, invalid_a_label_total_over_253_short_utf8) {
+  std::string hostname{"\xce\xb1"};
+  for (int index = 0; index < 31; ++index) {
+    hostname.append(".\xce\xb1");
+  }
+  EXPECT_EQ(hostname.size(), 95u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(hostname));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(hostname));
+}
+
+// 31 single-α labels: A-label total = 31 × 7 + 30 = 247 ≤ 253
+TEST(DNS_idn_hostname, valid_a_label_total_at_247_short_utf8) {
+  std::string hostname{"\xce\xb1"};
+  for (int index = 0; index < 30; ++index) {
+    hostname.append(".\xce\xb1");
+  }
+  EXPECT_EQ(hostname.size(), 92u);
   EXPECT_TRUE(sourcemeta::core::is_idn_hostname(hostname));
-  EXPECT_TRUE(sourcemeta::core::is_hostname(hostname));
+  EXPECT_FALSE(sourcemeta::core::is_hostname(hostname));
+}
+
+// RFC 1035 §3.1: presentation form may be exactly 253 octets for IDN.
+// RFC 1123 §2.1 is more permissive and accepts up to 255 characters
+TEST(DNS_idn_hostname, total_length_boundary_253_vs_255) {
+  // 4 × 63 + 3 dots = 255 (RFC 1123) but not RFC 1035 presentation
+  std::string at_255;
+  for (int index = 0; index < 3; ++index) {
+    at_255.append(63, 'a');
+    at_255.push_back('.');
+  }
+  at_255.append(63, 'a');
+  EXPECT_EQ(at_255.size(), 255u);
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(at_255));
+  EXPECT_TRUE(sourcemeta::core::is_hostname(at_255));
+
+  // 4 × 63 + 3 dots - 2 = 253: drop two octets from the last label
+  std::string at_253;
+  for (int index = 0; index < 3; ++index) {
+    at_253.append(63, 'a');
+    at_253.push_back('.');
+  }
+  at_253.append(61, 'a');
+  EXPECT_EQ(at_253.size(), 253u);
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname(at_253));
+  EXPECT_TRUE(sourcemeta::core::is_hostname(at_253));
 }
 
 TEST(DNS_idn_hostname, invalid_empty) {
