@@ -84,4 +84,56 @@ auto idna_passes_contexto(const std::u32string_view label,
   return true;
 }
 
+auto idna_passes_contextj(const std::u32string_view label,
+                          const std::size_t position) -> bool {
+  if (position >= label.size()) {
+    return false;
+  }
+
+  const auto codepoint{label[position]};
+
+  // RFC 5892 Appendix A.2 ZERO WIDTH JOINER (U+200D)
+  if (codepoint == 0x200D) {
+    if (position == 0) {
+      return false;
+    }
+    return combining_class(label[position - 1]) == 9;
+  }
+
+  // RFC 5892 Appendix A.1 ZERO WIDTH NON-JOINER (U+200C)
+  if (codepoint == 0x200C) {
+    if (position > 0 && combining_class(label[position - 1]) == 9) {
+      return true;
+    }
+
+    bool has_left{false};
+    for (std::size_t index = position; index-- > 0;) {
+      const auto joining{joining_type(label[index])};
+      if (joining == JoiningType::Transparent) {
+        continue;
+      }
+      has_left = joining == JoiningType::LeftJoining ||
+                 joining == JoiningType::DualJoining;
+      break;
+    }
+    if (!has_left) {
+      return false;
+    }
+
+    for (std::size_t index = position + 1; index < label.size(); ++index) {
+      const auto joining{joining_type(label[index])};
+      if (joining == JoiningType::Transparent) {
+        continue;
+      }
+      return joining == JoiningType::RightJoining ||
+             joining == JoiningType::DualJoining;
+    }
+    return false;
+  }
+
+  // No RFC 5892 Appendix A.1 / A.2 rule applies to this codepoint, so there
+  // is nothing to violate.
+  return true;
+}
+
 } // namespace sourcemeta::core
