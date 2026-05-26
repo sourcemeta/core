@@ -11,6 +11,7 @@ option(SOURCEMETA_CORE_LANG_NUMERIC "Build the Sourcemeta Core language numeric 
 option(SOURCEMETA_CORE_LANG_ERROR "Build the Sourcemeta Core language error library" ON)
 option(SOURCEMETA_CORE_LANG_OPTIONS "Build the Sourcemeta Core Options library" ON)
 option(SOURCEMETA_CORE_LANG_TEXT "Build the Sourcemeta Core language text library" ON)
+option(SOURCEMETA_CORE_LANG_STACKTRACE "Build the Sourcemeta Core language stacktrace library" ON)
 option(SOURCEMETA_CORE_UNICODE "Build the Sourcemeta Core Unicode library" ON)
 option(SOURCEMETA_CORE_PUNYCODE "Build the Sourcemeta Core Punycode library" ON)
 option(SOURCEMETA_CORE_TIME "Build the Sourcemeta Core time library" ON)
@@ -98,6 +99,10 @@ endif()
 
 if(SOURCEMETA_CORE_LANG_TEXT)
   add_subdirectory(src/lang/text)
+endif()
+
+if(SOURCEMETA_CORE_LANG_STACKTRACE)
+  add_subdirectory(src/lang/stacktrace)
 endif()
 
 if(SOURCEMETA_CORE_UNICODE)
@@ -248,6 +253,12 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_LANG_TEXT)
     add_subdirectory(test/text)
+  endif()
+
+  if(SOURCEMETA_CORE_LANG_STACKTRACE
+     AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
+     AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
+    add_subdirectory(test/stacktrace)
   endif()
 
   if(SOURCEMETA_CORE_UNICODE)
