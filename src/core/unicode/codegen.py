@@ -34,7 +34,14 @@ def parse_ranges(path, value_parser):
                 )
             first = int(match.group(1), 16)
             last = int(match.group(2), 16) if match.group(2) else first
-            ranges.append((first, last, value_parser(match.group(3))))
+            raw_value = match.group(3)
+            try:
+                value = value_parser(raw_value)
+            except (KeyError, ValueError) as error:
+                raise ValueError(
+                    f"{path}:{line_number}: invalid value {raw_value!r}: {error}"
+                ) from error
+            ranges.append((first, last, value))
     return ranges
 
 
