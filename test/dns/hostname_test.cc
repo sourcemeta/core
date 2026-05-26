@@ -121,11 +121,13 @@ TEST(DNS_hostname, valid_punycoded_draft4) {
   EXPECT_TRUE(sourcemeta::core::is_idn_hostname("xn--4gbwdl.xn--wgbh1c"));
 }
 
-// RFC 1123 §2.1: no positions-3-4 rule exists; we accept (documented TS d7+
-// #20 divergence — test cites RFC 5891 §4.2.3.1, which is IDNA2008 only)
-TEST(DNS_hostname, valid_xn_positions_34_both_hyphen) {
+// RFC 1123 §2.1 has no positions-3-4 rule, so the ASCII grammar accepts.
+// RFC 5891 §4.2.3.1 rejects: case-insensitive xn-- detection treats this as
+// an A-label whose Punycode body decodes to a U-label with "--" at the
+// forbidden positions
+TEST(DNS_hostname, xn_positions_34_both_hyphen) {
   EXPECT_TRUE(sourcemeta::core::is_hostname("XN--aa---o47jg78q"));
-  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("XN--aa---o47jg78q"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--aa---o47jg78q"));
 }
 
 // RFC 952 §B: grammar has no rule against consecutive interior hyphens

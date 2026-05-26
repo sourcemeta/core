@@ -8,7 +8,10 @@
 #include <sourcemeta/core/idna_ucd.h>
 
 #include <cstddef>     // std::size_t
-#include <string_view> // std::u32string_view
+#include <cstdint>     // std::uint8_t
+#include <optional>    // std::optional
+#include <string>      // std::u32string
+#include <string_view> // std::string_view, std::u32string_view
 
 /// @defgroup idna IDNA
 /// @brief Internationalized Domain Names in Applications (IDNA2008) utilities.
@@ -20,6 +23,43 @@
 /// ```
 
 namespace sourcemeta::core {
+
+/// @ingroup idna
+/// The RFC 5890 §2.3.2 classification of a domain name label.
+enum class IDNALabelKind : std::uint8_t {
+  /// A pure ASCII label that is not an A-label. The IDNA specification
+  /// does not validate such labels.
+  Ascii = 0,
+  /// An RFC 5890 §2.3.2.1 A-label (ACE form), validated per RFC 5891 §4.
+  ALabel = 1,
+  /// An RFC 5890 §2.3.2.2 U-label (Unicode form), validated per RFC 5891 §4.
+  ULabel = 2,
+};
+
+/// @ingroup idna
+/// Classify `label` as an Ascii / A-label / U-label per RFC 5890 §2.3.2,
+/// validate the A-label and U-label cases per RFC 5891 §4, and write the
+/// U-label codepoint form to `decoded`. Detection of the ACE prefix "xn--"
+/// is case-insensitive per RFC 5890 §2.3.2.1. Returns std::nullopt on
+/// failure. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/idna.h>
+/// #include <cassert>
+///
+/// std::u32string decoded;
+/// // U+00DF U+03C2 (ASCII view sees only LOW-7-BIT bytes, here non-ASCII)
+/// assert(sourcemeta::core::idna_classify_label(U"ßς", decoded) ==
+///        sourcemeta::core::IDNALabelKind::ULabel);
+/// assert(sourcemeta::core::idna_classify_label(U"xn--mnchen-3ya", decoded) ==
+///        sourcemeta::core::IDNALabelKind::ALabel);
+/// assert(sourcemeta::core::idna_classify_label(U"example", decoded) ==
+///        sourcemeta::core::IDNALabelKind::Ascii);
+/// ```
+SOURCEMETA_CORE_IDNA_EXPORT
+auto idna_classify_label(const std::u32string_view label,
+                         std::u32string &decoded)
+    -> std::optional<IDNALabelKind>;
 
 /// @ingroup idna
 /// Return the RFC 5892 derived property of a Unicode codepoint. See
