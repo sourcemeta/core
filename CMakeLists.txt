@@ -250,7 +250,9 @@ if(SOURCEMETA_CORE_TESTS)
     add_subdirectory(test/text)
   endif()
 
-  if(SOURCEMETA_CORE_LANG_STACKTRACE)
+  if(SOURCEMETA_CORE_LANG_STACKTRACE
+     AND NOT SOURCEMETA_CORE_ADDRESS_SANITIZER
+     AND NOT SOURCEMETA_CORE_UNDEFINED_SANITIZER)
     add_subdirectory(test/stacktrace)
   endif()
 
