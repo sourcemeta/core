@@ -35,7 +35,7 @@ namespace sourcemeta::core {
 /// ```
 SOURCEMETA_CORE_IDNA_EXPORT
 auto idna_passes_contexto(const std::u32string_view label,
-                          const std::size_t position) -> bool;
+                          const std::size_t position) noexcept -> bool;
 
 /// @ingroup idna
 /// Return whether the codepoint at `position` within `label` does not
@@ -57,7 +57,7 @@ auto idna_passes_contexto(const std::u32string_view label,
 /// ```
 SOURCEMETA_CORE_IDNA_EXPORT
 auto idna_passes_contextj(const std::u32string_view label,
-                          const std::size_t position) -> bool;
+                          const std::size_t position) noexcept -> bool;
 
 } // namespace sourcemeta::core
 

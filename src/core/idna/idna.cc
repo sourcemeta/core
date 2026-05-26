@@ -8,7 +8,7 @@
 namespace sourcemeta::core {
 
 auto idna_passes_contexto(const std::u32string_view label,
-                          const std::size_t position) -> bool {
+                          const std::size_t position) noexcept -> bool {
   if (position >= label.size()) {
     return false;
   }
@@ -85,7 +85,7 @@ auto idna_passes_contexto(const std::u32string_view label,
 }
 
 auto idna_passes_contextj(const std::u32string_view label,
-                          const std::size_t position) -> bool {
+                          const std::size_t position) noexcept -> bool {
   if (position >= label.size()) {
     return false;
   }
