@@ -11,7 +11,7 @@ PAGE_SHIFT = 10
 PAGE_SIZE = 1 << PAGE_SHIFT
 NUM_PAGES = TOTAL_CODEPOINTS // PAGE_SIZE
 
-# Integer values must match the IdnaProperty enum in idna_ucd.h.
+# Integer values must match the IDNAProperty enum in idna_ucd.h.
 IDNA_PROPERTY_VALUES = {
     "PVALID": 0,
     "CONTEXTJ": 1,

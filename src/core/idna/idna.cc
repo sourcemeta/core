@@ -149,7 +149,6 @@ auto idna_passes_contextj(const std::u32string_view label,
   return true;
 }
 
-// TODO: Reject labels that are not NFC-normalized
 auto idna_is_valid_u_label(const std::u32string_view label) noexcept -> bool {
   if (label.empty()) {
     return false;
@@ -257,7 +256,9 @@ auto idna_passes_bidi_rule(const std::u32string_view label) noexcept -> bool {
     }
   }
 
-  // RFC 5893 §2 condition 4: an RTL label cannot have both EN and AN.
+  // RFC 5893 §2 condition 4 (RTL labels only): cannot have both EN and AN.
+  // The "and vice versa" wording in the RFC is internal to the RTL branch
+  // (EN/AN exclusivity within RTL), not symmetry to LTR.
   if (is_rtl_label && has_european_number && has_arabic_number) {
     return false;
   }
