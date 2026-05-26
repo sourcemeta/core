@@ -28,7 +28,7 @@ STACKTRACE_TEST_NOINLINE auto crash_middle() -> void {
 } // namespace sourcemeta_core_stacktrace_test
 
 auto main() -> int {
-  sourcemeta::core::install_crash_handler();
+  sourcemeta::core::stacktrace_on_crash();
   sourcemeta_core_stacktrace_test::crash_middle();
   return 0;
 }

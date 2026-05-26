@@ -100,7 +100,7 @@ auto WINAPI crash_filter(EXCEPTION_POINTERS *information) -> LONG {
 namespace sourcemeta::core {
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-auto install_crash_handler() -> void {
+auto stacktrace_on_crash() -> void {
   bool expected{false};
   if (!crash_handler_installed.compare_exchange_strong(expected, true)) {
     return;

@@ -138,7 +138,8 @@ auto extract_crash_pc(void *context) -> void * {
   if (context == nullptr) {
     return nullptr;
   }
-  const auto *user_context{static_cast<const ucontext_t *>(context)};
+  [[maybe_unused]] const auto *user_context{
+      static_cast<const ucontext_t *>(context)};
   std::uintptr_t program_counter{0};
 #if defined(__APPLE__) && defined(__aarch64__)
   program_counter = user_context->uc_mcontext->__ss.__pc;
@@ -149,8 +150,6 @@ auto extract_crash_pc(void *context) -> void * {
 #elif defined(__linux__) && defined(__x86_64__)
   program_counter =
       static_cast<std::uintptr_t>(user_context->uc_mcontext.gregs[16]);
-#else
-  (void)user_context;
 #endif
   // NOLINTNEXTLINE(performance-no-int-to-ptr)
   return reinterpret_cast<void *>(program_counter);
@@ -210,7 +209,7 @@ crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
 namespace sourcemeta::core {
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
-__attribute__((visibility("default"))) auto install_crash_handler() -> void {
+__attribute__((visibility("default"))) auto stacktrace_on_crash() -> void {
   bool expected{false};
   if (!crash_handler_installed.compare_exchange_strong(expected, true)) {
     return;

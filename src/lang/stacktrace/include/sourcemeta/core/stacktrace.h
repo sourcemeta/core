@@ -25,12 +25,12 @@ namespace sourcemeta::core {
 /// #include <sourcemeta/core/stacktrace.h>
 ///
 /// auto main() -> int {
-///   sourcemeta::core::install_crash_handler();
+///   sourcemeta::core::stacktrace_on_crash();
 ///   // ... rest of the program
 /// }
 /// ```
 SOURCEMETA_CORE_STACKTRACE_EXPORT
-auto install_crash_handler() -> void;
+auto stacktrace_on_crash() -> void;
 
 /// @ingroup stacktrace
 ///
