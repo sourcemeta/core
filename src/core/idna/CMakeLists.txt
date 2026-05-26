@@ -1,5 +1,29 @@
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+set(SOURCEMETA_CORE_IDNA_UCD_DIR
+  "${core_SOURCE_DIR}/vendor/unicodetools/unicodetools/data/idna/dev")
+
+set(SOURCEMETA_CORE_IDNA_DATA_HEADER
+  "${CMAKE_CURRENT_BINARY_DIR}/idna_data.h")
+
+add_custom_command(
+  OUTPUT "${SOURCEMETA_CORE_IDNA_DATA_HEADER}"
+  COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
+    "${SOURCEMETA_CORE_IDNA_DATA_HEADER}"
+    "${SOURCEMETA_CORE_IDNA_UCD_DIR}/Idna2008.txt"
+  DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
+    "${SOURCEMETA_CORE_IDNA_UCD_DIR}/Idna2008.txt"
+  COMMENT "Generating IDNA property tables"
+  VERBATIM)
+
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME idna
-  SOURCES idna.cc)
+  PRIVATE_HEADERS ucd.h
+  SOURCES idna.cc "${SOURCEMETA_CORE_IDNA_DATA_HEADER}")
+
+target_include_directories(sourcemeta_core_idna PRIVATE
+  "${CMAKE_CURRENT_BINARY_DIR}")
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME idna)
