@@ -225,8 +225,8 @@ inline constexpr auto utf8_codepoint_byte_count(const char32_t codepoint)
 /// #include <sourcemeta/core/unicode.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::combining_class(U'्') == 9);
-/// assert(sourcemeta::core::combining_class(U'́') == 230);
+/// assert(sourcemeta::core::combining_class(U'\u094D') == 9);
+/// assert(sourcemeta::core::combining_class(U'\u0301') == 230);
 /// assert(sourcemeta::core::combining_class(U'A') == 0);
 /// ```
 SOURCEMETA_CORE_UNICODE_EXPORT
