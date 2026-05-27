@@ -7,6 +7,12 @@ LINE = re.compile(r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)")
 MULTI_PROPERTY_LINE = re.compile(
     r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)\s*;\s*(\S+)"
 )
+# Boolean-property rows in multi-property files use a two-field shape,
+# with no value column. Used to recognise the row instead of silently
+# skipping it.
+BOOLEAN_PROPERTY_LINE = re.compile(
+    r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)\s*$"
+)
 MISSING_PREFIX = re.compile(r"^#\s*@missing:\s*")
 
 TOTAL_CODEPOINTS = 0x110000
@@ -152,7 +158,13 @@ def parse_file(path, value_map, property_filter=None):
                 target = missing
             match = line_re.match(stripped)
             if not match:
-                if property_filter is not None:
+                # Recognise the boolean-property shape used in multi-property
+                # files. Skip those rows, but still raise loudly on any
+                # truly unparseable line so a file format change cannot
+                # silently drop NFC_QC data.
+                data_only = stripped.split("#", 1)[0].strip()
+                if (property_filter is not None and
+                        BOOLEAN_PROPERTY_LINE.fullmatch(data_only)):
                     continue
                 raise ValueError(
                     f"{path}:{line_number}: unparseable line: {stripped!r}"

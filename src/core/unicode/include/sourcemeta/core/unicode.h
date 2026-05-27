@@ -319,7 +319,7 @@ auto is_combining_mark(const char32_t codepoint) noexcept -> bool;
 ///
 /// assert(sourcemeta::core::nfc_quick_check(U'A') ==
 ///        sourcemeta::core::NFCQuickCheck::Yes);
-/// assert(sourcemeta::core::nfc_quick_check(U'\u00C0') ==
+/// assert(sourcemeta::core::nfc_quick_check(U'\u2126') ==
 ///        sourcemeta::core::NFCQuickCheck::No);
 /// assert(sourcemeta::core::nfc_quick_check(U'\u0300') ==
 ///        sourcemeta::core::NFCQuickCheck::Maybe);
