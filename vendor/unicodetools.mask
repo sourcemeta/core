@@ -123,3 +123,15 @@ unicodetools/.gitignore
 .project
 .mvn
 .flake8
+unicodetools/data/ucd/dev/ArabicShaping.txt
+unicodetools/data/ucd/dev/BidiBrackets.txt
+unicodetools/data/ucd/dev/BidiMirroring.txt
+unicodetools/data/ucd/dev/CaseFolding.txt
+unicodetools/data/ucd/dev/DerivedCoreProperties.txt
+unicodetools/data/ucd/dev/NormalizationCorrections.txt
+unicodetools/data/ucd/dev/PropertyAliases.txt
+unicodetools/data/ucd/dev/PropList.txt
+unicodetools/data/ucd/dev/ScriptExtensions.txt
+unicodetools/data/ucd/dev/ReadMe.txt
+unicodetools/data/idna/dev/IdnaTestV2.txt
+unicodetools/data/idna/dev/ReadMe.txt
