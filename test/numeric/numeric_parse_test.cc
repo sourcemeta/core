@@ -2,7 +2,7 @@
 
 #include <sourcemeta/core/numeric.h>
 
-#include <cstdint> // std::int64_t
+#include <cstdint> // std::int64_t, std::uint64_t
 #include <string>  // std::string
 
 TEST(Numeric_parse, to_double_positive_integer) {
@@ -104,6 +104,24 @@ TEST(Numeric_parse, to_double_out_of_range_too_small) {
   EXPECT_FALSE(result.has_value());
 }
 
+TEST(Numeric_parse, to_double_invalid_trailing_junk) {
+  const std::string input{"42abc"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_trailing_decimal_junk) {
+  const std::string input{"42.5abc"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_trailing_whitespace) {
+  const std::string input{"42 "};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
 TEST(Numeric_parse, to_int64_t_positive) {
   const std::string input{"123456"};
   const auto result{sourcemeta::core::to_int64_t(input)};
@@ -185,6 +203,18 @@ TEST(Numeric_parse, to_int64_t_out_of_range_too_small) {
 
 TEST(Numeric_parse, to_int64_t_out_of_range_way_too_large) {
   const std::string input{"99999999999999999999"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_int64_t_invalid_trailing_junk) {
+  const std::string input{"123abc"};
+  const auto result{sourcemeta::core::to_int64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_int64_t_invalid_trailing_whitespace) {
+  const std::string input{"42 "};
   const auto result{sourcemeta::core::to_int64_t(input)};
   EXPECT_FALSE(result.has_value());
 }
@@ -285,5 +315,107 @@ TEST(Numeric_parse, to_int64_t_base16_empty) {
 TEST(Numeric_parse, to_int64_t_base8_empty) {
   const std::string input{""};
   const auto result{sourcemeta::core::to_int64_t(input, 8)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_zero) {
+  const std::string input{"0"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0);
+}
+
+TEST(Numeric_parse, to_uint64_t_positive) {
+  const std::string input{"42"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 42);
+}
+
+TEST(Numeric_parse, to_uint64_t_large_positive) {
+  const std::string input{"1000000000000"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 1000000000000ULL);
+}
+
+TEST(Numeric_parse, to_uint64_t_max_value) {
+  const std::string input{"18446744073709551615"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 18446744073709551615ULL);
+}
+
+TEST(Numeric_parse, to_uint64_t_out_of_range_too_large) {
+  const std::string input{"18446744073709551616"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_out_of_range_way_too_large) {
+  const std::string input{"99999999999999999999999"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_empty_string) {
+  const std::string input{""};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_non_numeric) {
+  const std::string input{"not_a_number"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_letters) {
+  const std::string input{"abc123"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_trailing_junk) {
+  const std::string input{"42abc"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_negative) {
+  const std::string input{"-1"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_leading_plus) {
+  const std::string input{"+1"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_leading_zero) {
+  const std::string input{"050"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 50);
+}
+
+TEST(Numeric_parse, to_uint64_t_all_zeros) {
+  const std::string input{"00"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 0);
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_leading_whitespace) {
+  const std::string input{"  42"};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_uint64_t_invalid_trailing_whitespace) {
+  const std::string input{"42 "};
+  const auto result{sourcemeta::core::to_uint64_t(input)};
   EXPECT_FALSE(result.has_value());
 }
