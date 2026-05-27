@@ -159,13 +159,14 @@ def parse_file(path, value_map, property_filter=None):
             match = line_re.match(stripped)
             if not match:
                 # Recognise the boolean-property shape used in multi-property
-                # files. Skip those rows, but still raise loudly on any
-                # truly unparseable line so a file format change cannot
-                # silently drop NFC_QC data.
+                # files, but only for properties other than the one we are
+                # filtering for. A boolean-shape row that names our target
+                # property would be malformed data and must raise.
                 data_only = stripped.split("#", 1)[0].strip()
-                if (property_filter is not None and
-                        BOOLEAN_PROPERTY_LINE.fullmatch(data_only)):
-                    continue
+                if property_filter is not None:
+                    boolean = BOOLEAN_PROPERTY_LINE.fullmatch(data_only)
+                    if boolean and boolean.group(3) != property_filter:
+                        continue
                 raise ValueError(
                     f"{path}:{line_number}: unparseable line: {stripped!r}"
                 )
