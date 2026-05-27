@@ -371,6 +371,38 @@ auto canonical_composition(const char32_t starter,
     -> std::optional<char32_t>;
 
 /// @ingroup unicode
+/// Return the Unicode Normalisation Form C of `input` per UAX #15.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::nfc(U"A\u0300") == U"\u00C0");
+/// assert(sourcemeta::core::nfc(U"\u00C0") == U"\u00C0");
+/// assert(sourcemeta::core::nfc(U"\u1100\u1161") == U"\uAC00");
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto nfc(const std::u32string_view input) -> std::u32string;
+
+/// @ingroup unicode
+/// Return whether `input` is already in Unicode Normalisation Form C
+/// per UAX #15. Uses a quick-check fast path and falls back to a full
+/// normalise-and-compare when the quick check is inconclusive.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_nfc(U"À"));
+/// assert(!sourcemeta::core::is_nfc(U"À"));
+/// assert(sourcemeta::core::is_nfc(U"가"));
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto is_nfc(const std::u32string_view input) -> bool;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

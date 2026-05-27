@@ -36,7 +36,7 @@ add_custom_command(
 
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME unicode
   PRIVATE_HEADERS ucd.h
-  SOURCES unicode.cc "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}")
+  SOURCES unicode.cc nfc.cc "${SOURCEMETA_CORE_UNICODE_DATA_HEADER}")
 
 target_include_directories(sourcemeta_core_unicode PRIVATE
   "${CMAKE_CURRENT_BINARY_DIR}")
