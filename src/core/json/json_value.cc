@@ -6,6 +6,7 @@
 #include <cmath>            // std::isinf, std::isnan, std::modf
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::int64_t
+#include <exception>        // std::terminate
 #include <functional>       // std::reference_wrapper
 #include <initializer_list> // std::initializer_list
 #include <memory>           // std::construct_at
@@ -237,7 +238,59 @@ auto JSON::operator=(JSON &&other) noexcept -> JSON & {
   return *this;
 }
 
-JSON::~JSON() { this->maybe_destruct_union(); }
+JSON::~JSON() {
+  // Drain containers iteratively to avoid unbounded recursion on deeply
+  // nested values, which would otherwise overflow the call stack
+  if (this->current_type == Type::Array || this->current_type == Type::Object) {
+    try {
+      std::vector<JSON> pending;
+      pending.reserve(16);
+
+      if (this->current_type == Type::Array) {
+        auto &elements{this->data_array.data};
+        pending.reserve(elements.size());
+        for (auto &child : elements) {
+          pending.push_back(std::move(child));
+        }
+      } else {
+        auto &entries{this->data_object.data};
+        pending.reserve(entries.size());
+        for (auto &entry : entries) {
+          pending.push_back(std::move(entry.second));
+        }
+      }
+
+      while (!pending.empty()) {
+        // Use copy-init so the move constructor is selected. Direct-list-init
+        // would route through JSON(initializer_list<JSON>) on GCC and MSVC,
+        // whose single-element workaround invokes the recursive copy assign
+        JSON node = std::move(pending.back());
+        pending.pop_back();
+        if (node.current_type == Type::Array) {
+          auto &elements{node.data_array.data};
+          pending.reserve(pending.size() + elements.size());
+          for (auto &child : elements) {
+            pending.push_back(std::move(child));
+          }
+          node.data_array.~JSONArray();
+          node.current_type = Type::Null;
+        } else if (node.current_type == Type::Object) {
+          auto &entries{node.data_object.data};
+          pending.reserve(pending.size() + entries.size());
+          for (auto &entry : entries) {
+            pending.push_back(std::move(entry.second));
+          }
+          node.data_object.~JSONObject();
+          node.current_type = Type::Null;
+        }
+      }
+    } catch (...) {
+      std::terminate();
+    }
+  }
+
+  this->maybe_destruct_union();
+}
 
 auto JSON::make_array() -> JSON { return JSON{Array{}}; }
 

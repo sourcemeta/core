@@ -2,7 +2,9 @@
 
 #include <sourcemeta/core/json.h>
 
+#include <cstddef>       // std::size_t
 #include <functional>    // std::reference_wrapper
+#include <string>        // std::string
 #include <type_traits>   // std::is_default_constructible, etc
 #include <unordered_map> // std::unordered_map
 #include <unordered_set> // std::unordered_set
@@ -455,4 +457,28 @@ TEST(JSON_value, unordered_map_with_reference_wrapper) {
   EXPECT_EQ(value.at(std::cref(foo)), 1);
   EXPECT_EQ(value.at(std::cref(bar)), 2);
   EXPECT_EQ(value.at(std::cref(bar_duplicate)), 2);
+}
+
+TEST(JSON_value, destructs_deeply_nested_array_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 2 + 1);
+  deep.append(depth, '[');
+  deep.push_back('0');
+  deep.append(depth, ']');
+  auto document = sourcemeta::core::parse_json(deep);
+  EXPECT_TRUE(document.is_array());
+}
+
+TEST(JSON_value, destructs_deeply_nested_object_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 6 + 1 + depth);
+  for (std::size_t index = 0; index < depth; ++index) {
+    deep.append("{\"x\":");
+  }
+  deep.push_back('0');
+  deep.append(depth, '}');
+  auto document = sourcemeta::core::parse_json(deep);
+  EXPECT_TRUE(document.is_object());
 }
