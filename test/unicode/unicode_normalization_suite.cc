@@ -79,13 +79,30 @@ public:
     ASSERT_EQ(field_index, fields.size())
         << "Expected 5 semicolon-separated columns, got " << field_index;
 
-    const auto &source{fields[0]};
-    const auto &nfc_form{fields[1]};
+    // Per the NormalizationTest.txt header, the NFC invariants over the
+    // five columns are:
+    //
+    //   c2 == toNFC(c1) == toNFC(c2) == toNFC(c3)
+    //   c4 == toNFC(c4) == toNFC(c5)
+    //
+    // and a codepoint is in NFC iff its NFC form equals itself.
+    const auto &c1{fields[0]};
+    const auto &c2{fields[1]};
+    const auto &c3{fields[2]};
+    const auto &c4{fields[3]};
+    const auto &c5{fields[4]};
 
-    EXPECT_EQ(sourcemeta::core::nfc(source), nfc_form);
-    EXPECT_EQ(sourcemeta::core::nfc(nfc_form), nfc_form);
-    EXPECT_TRUE(sourcemeta::core::is_nfc(nfc_form));
-    EXPECT_EQ(sourcemeta::core::is_nfc(source), source == nfc_form);
+    EXPECT_EQ(sourcemeta::core::nfc(c1), c2);
+    EXPECT_EQ(sourcemeta::core::nfc(c2), c2);
+    EXPECT_EQ(sourcemeta::core::nfc(c3), c2);
+    EXPECT_EQ(sourcemeta::core::nfc(c4), c4);
+    EXPECT_EQ(sourcemeta::core::nfc(c5), c4);
+
+    EXPECT_TRUE(sourcemeta::core::is_nfc(c2));
+    EXPECT_TRUE(sourcemeta::core::is_nfc(c4));
+    EXPECT_EQ(sourcemeta::core::is_nfc(c1), c1 == c2);
+    EXPECT_EQ(sourcemeta::core::is_nfc(c3), c3 == c2);
+    EXPECT_EQ(sourcemeta::core::is_nfc(c5), c5 == c4);
   }
 
 private:
