@@ -163,4 +163,17 @@ auto nfc_quick_check(const char32_t codepoint) noexcept -> NFCQuickCheck {
       NFC_QUICK_CHECK_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
 }
 
+auto canonical_decomposition(const char32_t codepoint) noexcept
+    -> std::u32string_view {
+  if (codepoint > 0x10FFFF) {
+    return {};
+  }
+  const std::size_t page{CANONICAL_DECOMPOSITION_STAGE1[codepoint >> 10U]};
+  const std::uint16_t packed{
+      CANONICAL_DECOMPOSITION_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]};
+  const auto length{static_cast<std::size_t>(packed >> 14U)};
+  const auto offset{static_cast<std::size_t>(packed & 0x3FFFU)};
+  return std::u32string_view{CANONICAL_DECOMPOSITION_BLOB + offset, length};
+}
+
 } // namespace sourcemeta::core
