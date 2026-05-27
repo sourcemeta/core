@@ -110,31 +110,72 @@ JSON::JSON(Decimal &&value) : current_type{Type::Decimal} {
   this->data_decimal = new Decimal{std::move(value)};
 }
 
-JSON::JSON(const JSON &other) : current_type{other.current_type} {
-  switch (other.current_type) {
-    case Type::Boolean:
-      this->data_boolean = other.data_boolean;
-      break;
-    case Type::Integer:
-      this->data_integer = other.data_integer;
-      break;
-    case Type::Real:
-      this->data_real = other.data_real;
-      break;
-    case Type::String:
-      std::construct_at(&this->data_string, other.data_string);
-      break;
-    case Type::Array:
-      std::construct_at(&this->data_array, other.data_array);
-      break;
-    case Type::Object:
-      std::construct_at(&this->data_object, other.data_object);
-      break;
-    case Type::Decimal:
-      this->data_decimal = new Decimal{*other.data_decimal};
-      break;
-    default:
-      break;
+JSON::JSON(const JSON &other) {
+  // Build the copy iteratively to avoid unbounded recursion on deeply nested
+  // values, which would otherwise overflow the call stack. Each task copies
+  // a single source-destination pair shallowly and queues children for
+  // containers. Pre-filling destination containers with Null placeholders
+  // gives stable addresses to queue child tasks against
+  struct CopyTask {
+    const JSON *source;
+    JSON *destination;
+  };
+  std::vector<CopyTask> tasks;
+  tasks.reserve(16);
+  tasks.push_back({&other, this});
+
+  while (!tasks.empty()) {
+    const auto task{tasks.back()};
+    tasks.pop_back();
+    const JSON &source{*task.source};
+    JSON &destination{*task.destination};
+    destination.current_type = source.current_type;
+    switch (source.current_type) {
+      case Type::Boolean:
+        destination.data_boolean = source.data_boolean;
+        break;
+      case Type::Integer:
+        destination.data_integer = source.data_integer;
+        break;
+      case Type::Real:
+        destination.data_real = source.data_real;
+        break;
+      case Type::String:
+        std::construct_at(&destination.data_string, source.data_string);
+        break;
+      case Type::Decimal:
+        destination.data_decimal = new Decimal{*source.data_decimal};
+        break;
+      case Type::Array: {
+        std::construct_at(&destination.data_array, Array{});
+        const auto &source_data{source.data_array.data};
+        auto &destination_data{destination.data_array.data};
+        destination_data.reserve(source_data.size());
+        for (std::size_t index = 0; index < source_data.size(); ++index) {
+          destination_data.emplace_back(nullptr);
+        }
+        for (std::size_t index = 0; index < source_data.size(); ++index) {
+          tasks.push_back({&source_data[index], &destination_data[index]});
+        }
+        break;
+      }
+      case Type::Object: {
+        std::construct_at(&destination.data_object, Object{});
+        const auto &source_data{source.data_object.data};
+        auto &destination_data{destination.data_object.data};
+        destination_data.reserve(source_data.size());
+        for (const auto &entry : source_data) {
+          destination_data.emplace_back(entry.first, JSON{nullptr}, entry.hash);
+        }
+        for (std::size_t index = 0; index < source_data.size(); ++index) {
+          tasks.push_back(
+              {&source_data[index].second, &destination_data[index].second});
+        }
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 
@@ -171,70 +212,26 @@ JSON::JSON(JSON &&other) noexcept : current_type{other.current_type} {
 }
 
 auto JSON::operator=(const JSON &other) -> JSON & {
-  this->maybe_destruct_union();
-  this->current_type = other.current_type;
-  switch (other.current_type) {
-    case Type::Boolean:
-      this->data_boolean = other.data_boolean;
-      break;
-    case Type::Integer:
-      this->data_integer = other.data_integer;
-      break;
-    case Type::Real:
-      this->data_real = other.data_real;
-      break;
-    case Type::String:
-      std::construct_at(&this->data_string, other.data_string);
-      break;
-    case Type::Array:
-      std::construct_at(&this->data_array, other.data_array);
-      break;
-    case Type::Object:
-      std::construct_at(&this->data_object, other.data_object);
-      break;
-    case Type::Decimal:
-      this->data_decimal = new Decimal{*other.data_decimal};
-      break;
-    default:
-      break;
+  // Destroy-then-rebuild using the iterative copy ctor and destructor so the
+  // assignment is safe for arbitrarily deep values. The intermediate copy
+  // gives strong exception safety. If the copy throws, this is unchanged
+  if (this == &other) {
+    return *this;
   }
-
+  JSON copy = other;
+  this->~JSON();
+  std::construct_at(this, std::move(copy));
   return *this;
 }
 
 auto JSON::operator=(JSON &&other) noexcept -> JSON & {
-  this->maybe_destruct_union();
-  this->current_type = other.current_type;
-  switch (other.current_type) {
-    case Type::Boolean:
-      this->data_boolean = other.data_boolean;
-      break;
-    case Type::Integer:
-      this->data_integer = other.data_integer;
-      break;
-    case Type::Real:
-      this->data_real = other.data_real;
-      break;
-    case Type::String:
-      std::construct_at(&this->data_string, std::move(other.data_string));
-      other.current_type = Type::Null;
-      break;
-    case Type::Array:
-      std::construct_at(&this->data_array, std::move(other.data_array));
-      other.current_type = Type::Null;
-      break;
-    case Type::Object:
-      std::construct_at(&this->data_object, std::move(other.data_object));
-      other.current_type = Type::Null;
-      break;
-    case Type::Decimal:
-      this->data_decimal = std::exchange(other.data_decimal, nullptr);
-      other.current_type = Type::Null;
-      break;
-    default:
-      break;
+  // Destroy-then-rebuild so the existing value in this is torn down by the
+  // iterative destructor
+  if (this == &other) {
+    return *this;
   }
-
+  this->~JSON();
+  std::construct_at(this, std::move(other));
   return *this;
 }
 
@@ -263,7 +260,8 @@ JSON::~JSON() {
       while (!pending.empty()) {
         // Use copy-init so the move constructor is selected. Direct-list-init
         // would route through JSON(initializer_list<JSON>) on GCC and MSVC,
-        // whose single-element workaround invokes the recursive copy assign
+        // whose single-element workaround takes the slower copy-and-replace
+        // path instead of a direct move
         JSON node = std::move(pending.back());
         pending.pop_back();
         if (node.current_type == Type::Array) {
