@@ -50,7 +50,7 @@ auto to_title_case(std::string &value) -> void;
 /// assert(sourcemeta::core::to_lowercase('5') == '5');
 /// ```
 SOURCEMETA_CORE_TEXT_EXPORT
-[[nodiscard]] auto to_lowercase(const char character) noexcept -> char;
+auto to_lowercase(const char character) noexcept -> char;
 
 /// @ingroup text
 ///
@@ -87,9 +87,8 @@ auto truncate(std::string &input, const std::size_t maximum_length,
 /// assert(trimmed == "schema");
 /// ```
 SOURCEMETA_CORE_TEXT_EXPORT
-[[nodiscard]] auto
-remove_suffix_ignore_case(const std::string_view input,
-                          const std::string_view suffix) noexcept
+auto remove_suffix_ignore_case(const std::string_view input,
+                               const std::string_view suffix) noexcept
     -> std::string_view;
 
 } // namespace sourcemeta::core
