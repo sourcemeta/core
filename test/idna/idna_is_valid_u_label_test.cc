@@ -143,3 +143,27 @@ TEST(IDNA_is_valid_u_label, single_hyphen_in_position_4_only) {
   // Only position 4 is hyphen, position 3 is not, so allowed
   EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(U"abc-def"));
 }
+
+// RFC 5891 §4.1.2.A: a U-label must be in Unicode Normalisation Form C.
+// `a` (U+0061) and combining grave (U+0300) are both PVALID, so the only
+// reason this decomposed sequence is rejected is the missing NFC. The
+// precomposed `\u00E0` counterpart is accepted
+TEST(IDNA_is_valid_u_label, decomposed_lowercase_a_grave_rejected) {
+  EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(U"a\u0300"));
+}
+
+TEST(IDNA_is_valid_u_label, precomposed_lowercase_a_grave_accepted) {
+  EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(U"\u00E0"));
+}
+
+// Out-of-order combining marks violate canonical CCC ordering, so the
+// label is not in NFC even though every codepoint is PVALID
+TEST(IDNA_is_valid_u_label, out_of_order_combining_marks_rejected) {
+  // a + U+0301 (CCC=230) + U+0316 (CCC=220)
+  EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(U"a\u0301\u0316"));
+}
+
+// Hangul precomposed syllable is PVALID and already in NFC
+TEST(IDNA_is_valid_u_label, hangul_precomposed_syllable_accepted) {
+  EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(U"\uAC00"));
+}

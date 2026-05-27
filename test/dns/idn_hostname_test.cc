@@ -570,3 +570,26 @@ TEST(DNS_idn_hostname, invalid_single_ideographic_full_stop) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\xe3\x80\x82"));
   EXPECT_FALSE(sourcemeta::core::is_hostname("\xe3\x80\x82"));
 }
+
+// RFC 5891 §4.1.2.A: a U-label must be in Unicode Normalisation Form C.
+// Decomposed `a` + combining grave (both PVALID) is rejected; the
+// precomposed `\u00E0` form is accepted
+TEST(DNS_idn_hostname, decomposed_label_rejected_not_nfc) {
+  // UTF-8 of "a\u0300": "a" then \xCC\x80
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("a\xcc\x80"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xcc\x80"));
+}
+
+TEST(DNS_idn_hostname, precomposed_label_accepted) {
+  // UTF-8 of U+00E0: 0xC3 0xA0
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("\xc3\xa0"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\xc3\xa0"));
+}
+
+// Out-of-order combining marks fail the NFC check inside the label
+// validator, so the whole hostname is rejected
+TEST(DNS_idn_hostname, label_with_out_of_order_combining_marks_rejected) {
+  // a + U+0301 + U+0316: "a" 0xCC 0x81 0xCC 0x96
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("a\xcc\x81\xcc\x96"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xcc\x81\xcc\x96"));
+}

@@ -20,10 +20,10 @@ static constexpr auto is_idna_label_separator(const char32_t codepoint)
 }
 
 auto is_idn_hostname(const std::string_view value) -> bool {
-  // TODO: Once NFC normalisation lands, also exercise this implementation
-  // against `vendor/unicodetools/IdnaTestV2.txt`. The current test corpus is
-  // inspired by the JSON Schema idn-hostname format test suite, whose inputs
-  // are already in NFC.
+  // TODO: Add an end-to-end conformance pass over
+  // `vendor/unicodetools/IdnaTestV2.txt`. The current test corpus is
+  // hand-written, inspired by the JSON Schema idn-hostname format test
+  // suite plus dedicated cases for the RFC 5891 §4.1.2.A NFC requirement.
 
   if (value.empty()) {
     return false;
