@@ -260,12 +260,51 @@ JSON::JSON(JSON &&other) noexcept : current_type{other.current_type} {
 }
 
 auto JSON::operator=(const JSON &other) -> JSON & {
-  // Destroy-then-rebuild using the iterative copy ctor and destructor so the
-  // assignment is safe for arbitrarily deep values. The intermediate copy
-  // gives strong exception safety. If the copy throws, this is unchanged
   if (this == &other) {
     return *this;
   }
+
+  // Fast path for scalar sources: destroy this iteratively (safe for any
+  // depth) then assign the scalar directly. Avoids the copy-then-move dance
+  // that the container path needs for strong exception safety
+  switch (other.current_type) {
+    case Type::Null:
+      this->~JSON();
+      this->current_type = Type::Null;
+      return *this;
+    case Type::Boolean:
+      this->~JSON();
+      this->data_boolean = other.data_boolean;
+      this->current_type = Type::Boolean;
+      return *this;
+    case Type::Integer:
+      this->~JSON();
+      this->data_integer = other.data_integer;
+      this->current_type = Type::Integer;
+      return *this;
+    case Type::Real:
+      this->~JSON();
+      this->data_real = other.data_real;
+      this->current_type = Type::Real;
+      return *this;
+    case Type::String:
+      this->~JSON();
+      std::construct_at(&this->data_string, other.data_string);
+      this->current_type = Type::String;
+      return *this;
+    case Type::Decimal:
+      this->~JSON();
+      this->data_decimal = new Decimal{*other.data_decimal};
+      this->current_type = Type::Decimal;
+      return *this;
+    case Type::Array:
+    case Type::Object:
+      break;
+  }
+
+  // Container source: copy first (may throw) so this is unchanged on failure,
+  // then destroy and shallow-move into place. Both the copy and the destroy
+  // use the iterative pipeline and handle arbitrary depth
   JSON copy = other;
   this->~JSON();
   std::construct_at(this, std::move(copy));
