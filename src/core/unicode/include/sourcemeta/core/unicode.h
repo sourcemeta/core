@@ -328,6 +328,27 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto nfc_quick_check(const char32_t codepoint) noexcept -> NFCQuickCheck;
 
 /// @ingroup unicode
+/// Return the non-recursive canonical decomposition of a Unicode codepoint
+/// per UAX #15. The view points into static data and remains valid for the
+/// program's lifetime. An empty view means the codepoint has no canonical
+/// decomposition. Hangul precomposed syllables decompose algorithmically
+/// per UAX #15 and are reported as empty here. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::canonical_decomposition(U'A').empty());
+/// assert(sourcemeta::core::canonical_decomposition(U'\u00FC') ==
+///        std::u32string_view{U"u\u0308"});
+/// assert(sourcemeta::core::canonical_decomposition(U'\u2126') ==
+///        std::u32string_view{U"\u03A9"});
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto canonical_decomposition(const char32_t codepoint) noexcept
+    -> std::u32string_view;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

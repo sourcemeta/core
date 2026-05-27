@@ -185,6 +185,107 @@ def parse_file(path, value_map, property_filter=None):
     return missing + data
 
 
+def parse_canonical_decompositions(path):
+    """Read UnicodeData.txt and return {codepoint: [decomposition codepoints]}
+    for canonical decompositions only. Compatibility decompositions (those
+    whose field 5 starts with a `<tag>` prefix per UAX #44) are excluded.
+
+    Raises if any canonical decomposition has more than two codepoints, which
+    would indicate a format change in UnicodeData.txt."""
+    result = {}
+    with open(path) as source:
+        for line_number, line in enumerate(source, start=1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            fields = stripped.split(";")
+            if len(fields) < 6:
+                raise ValueError(
+                    f"{path}:{line_number}: too few fields: {stripped!r}"
+                )
+            decomp_field = fields[5].strip()
+            if not decomp_field or decomp_field.startswith("<"):
+                continue
+            try:
+                codepoint = int(fields[0], 16)
+            except ValueError as error:
+                raise ValueError(
+                    f"{path}:{line_number}: invalid codepoint: {fields[0]!r}"
+                ) from error
+            decomposition = [int(token, 16) for token in decomp_field.split()]
+            if len(decomposition) > 2:
+                raise ValueError(
+                    f"{path}:{line_number}: canonical decomposition of "
+                    f"U+{codepoint:04X} has {len(decomposition)} codepoints, "
+                    f"expected 1 or 2"
+                )
+            result[codepoint] = decomposition
+    return result
+
+
+# Packed per-codepoint entry: (length << OFFSET_BITS) | offset. A zero entry
+# means no decomposition. Length 1 / 2 covers the entire canonical space.
+DECOMPOSITION_OFFSET_BITS = 14
+DECOMPOSITION_OFFSET_MASK = (1 << DECOMPOSITION_OFFSET_BITS) - 1
+
+
+def build_canonical_decomposition_pages(decompositions):
+    """Build the flat blob plus per-codepoint packed entries, then run the
+    standard two-stage page-table dedup on top of the packed array."""
+    blob = []
+    packed = [0] * TOTAL_CODEPOINTS
+    for codepoint in sorted(decompositions):
+        decomposition = decompositions[codepoint]
+        offset = len(blob)
+        if offset > DECOMPOSITION_OFFSET_MASK:
+            raise ValueError(
+                f"canonical decomposition blob exceeds "
+                f"{DECOMPOSITION_OFFSET_BITS}-bit offset cap at "
+                f"U+{codepoint:04X}"
+            )
+        blob.extend(decomposition)
+        packed[codepoint] = (len(decomposition) << DECOMPOSITION_OFFSET_BITS) | offset
+
+    page_to_id = {}
+    unique_pages = []
+    stage1 = []
+    for page_index in range(NUM_PAGES):
+        start = page_index * PAGE_SIZE
+        page = tuple(packed[start : start + PAGE_SIZE])
+        if page not in page_to_id:
+            page_to_id[page] = len(unique_pages)
+            unique_pages.append(page)
+        stage1.append(page_to_id[page])
+    return blob, stage1, unique_pages
+
+
+def emit_canonical_decomposition(output, blob, stage1, unique_pages):
+    output.write(
+        f"constexpr char32_t CANONICAL_DECOMPOSITION_BLOB[{len(blob)}] = {{\n"
+    )
+    for offset in range(0, len(blob), 8):
+        chunk = blob[offset : offset + 8]
+        output.write(
+            "    " + ", ".join(f"0x{value:X}" for value in chunk) + ",\n"
+        )
+    output.write("};\n\n")
+
+    output.write(
+        f"constexpr std::uint16_t CANONICAL_DECOMPOSITION_STAGE1"
+        f"[{len(stage1)}] = {{\n"
+    )
+    emit_row(output, stage1)
+    output.write("};\n\n")
+    stage2_size = len(unique_pages) * PAGE_SIZE
+    output.write(
+        f"constexpr std::uint16_t CANONICAL_DECOMPOSITION_STAGE2"
+        f"[{stage2_size}] = {{\n"
+    )
+    for page in unique_pages:
+        emit_row(output, list(page))
+    output.write("};\n\n")
+
+
 def build_pages(entries):
     values = [0] * TOTAL_CODEPOINTS
     for first, last, value in entries:
@@ -224,7 +325,7 @@ def emit_property(output, prefix, stage1, unique_pages):
 
 
 def main():
-    if len(sys.argv) != 9:
+    if len(sys.argv) != 10:
         print(
             f"Usage: {sys.argv[0]} "
             "<output.h> "
@@ -234,7 +335,8 @@ def main():
             "<DerivedBidiClass.txt> "
             "<Scripts.txt> "
             "<DerivedGeneralCategory.txt> "
-            "<DerivedNormalizationProps.txt>",
+            "<DerivedNormalizationProps.txt> "
+            "<UnicodeData.txt>",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -257,6 +359,8 @@ def main():
          build_value_map(aliases_path, "NFC_QC", NFC_QUICK_CHECK_ORDER)),
     ]
 
+    unicode_data_path = sys.argv[9]
+
     with open(output_path, "w") as output:
         output.write("#include <cstdint>\n\n")
         output.write("namespace {\n\n")
@@ -265,6 +369,10 @@ def main():
                 parse_file(input_path, value_map, property_filter)
             )
             emit_property(output, prefix, stage1, pages)
+        blob, stage1, pages = build_canonical_decomposition_pages(
+            parse_canonical_decompositions(unicode_data_path)
+        )
+        emit_canonical_decomposition(output, blob, stage1, pages)
         output.write("} // namespace\n")
 
 
