@@ -284,24 +284,30 @@ auto JSON::operator=(JSON &&other) noexcept -> JSON & {
 }
 
 JSON::~JSON() {
-  // Drain containers iteratively to avoid unbounded recursion on deeply
-  // nested values, which would otherwise overflow the call stack
+  // Drain only nested container children iteratively so deeply nested values
+  // do not overflow the call stack. Scalar and empty children are left in
+  // place to be destroyed by maybe_destruct_union, which is non-recursive
+  // for non-container types. pending stays empty when no descendant has its
+  // own container children, so containers full of scalars cost no heap
+  // allocation. Allocation failures during destruction have no sensible
+  // recovery, so terminate
   if (this->current_type == Type::Array || this->current_type == Type::Object) {
     try {
       std::vector<JSON> pending;
-      pending.reserve(16);
 
       if (this->current_type == Type::Array) {
-        auto &elements{this->data_array.data};
-        pending.reserve(elements.size());
-        for (auto &child : elements) {
-          pending.push_back(std::move(child));
+        for (auto &child : this->data_array.data) {
+          if (child.current_type == Type::Array ||
+              child.current_type == Type::Object) {
+            pending.push_back(std::move(child));
+          }
         }
       } else {
-        auto &entries{this->data_object.data};
-        pending.reserve(entries.size());
-        for (auto &entry : entries) {
-          pending.push_back(std::move(entry.second));
+        for (auto &entry : this->data_object.data) {
+          if (entry.second.current_type == Type::Array ||
+              entry.second.current_type == Type::Object) {
+            pending.push_back(std::move(entry.second));
+          }
         }
       }
 
@@ -313,18 +319,20 @@ JSON::~JSON() {
         JSON node = std::move(pending.back());
         pending.pop_back();
         if (node.current_type == Type::Array) {
-          auto &elements{node.data_array.data};
-          pending.reserve(pending.size() + elements.size());
-          for (auto &child : elements) {
-            pending.push_back(std::move(child));
+          for (auto &child : node.data_array.data) {
+            if (child.current_type == Type::Array ||
+                child.current_type == Type::Object) {
+              pending.push_back(std::move(child));
+            }
           }
           node.data_array.~JSONArray();
           node.current_type = Type::Null;
-        } else if (node.current_type == Type::Object) {
-          auto &entries{node.data_object.data};
-          pending.reserve(pending.size() + entries.size());
-          for (auto &entry : entries) {
-            pending.push_back(std::move(entry.second));
+        } else {
+          for (auto &entry : node.data_object.data) {
+            if (entry.second.current_type == Type::Array ||
+                entry.second.current_type == Type::Object) {
+              pending.push_back(std::move(entry.second));
+            }
           }
           node.data_object.~JSONObject();
           node.current_type = Type::Null;
