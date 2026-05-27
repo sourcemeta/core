@@ -163,14 +163,14 @@ std::atomic<bool> crash_handler_installed{false};
 
 } // namespace
 
-// NOTE: backtrace, dladdr, and strlen are not on POSIX's strict
+// NOTE: `backtrace`, `dladdr`, and `strlen` are not on POSIX's strict
 // async-signal-safe list but are reentrant in practice for the synchronous
 // faults we care about (null derefs, bad casts, divide-by-zero). We
-// deliberately do not demangle. __cxa_demangle allocates, which is the one
+// deliberately do not demangle. `__cxa_demangle` allocates, which is the one
 // operation that would actually risk a deadlock.
 //
-// Outside any anonymous namespace so dladdr reliably resolves the symbol
-// name across platforms. extern "C" inside an unnamed namespace does NOT
+// Outside any anonymous namespace so `dladdr` reliably resolves the symbol
+// name across platforms. `extern "C"` inside an unnamed namespace does NOT
 // grant external linkage per C++11
 // NOLINTNEXTLINE(misc-definitions-in-headers)
 extern "C" __attribute__((visibility("default"))) auto

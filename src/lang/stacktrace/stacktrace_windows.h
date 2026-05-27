@@ -25,18 +25,25 @@ constexpr const char *separator{"========================================"
 
 std::atomic<bool> crash_handler_installed{false};
 std::atomic<bool> symbols_initialized{false};
-// dbghelp is documented as single-threaded by Microsoft, so serialize symbol
-// lookups across concurrent `stacktrace()` callers
+// `dbghelp` is documented as single-threaded by Microsoft, so serialize
+// symbol lookups across concurrent `stacktrace()` callers
 std::mutex dbghelp_mutex;
 
+// Double-checked locking. The atomic check fast-paths once init has
+// succeeded. The mutex serializes the actual `SymInitialize` call so a
+// second thread cannot enter `write_frames` and call `SymFromAddr` while
+// init is still in flight on the first thread
 auto ensure_symbols_initialized() -> void {
-  bool expected{false};
-  if (symbols_initialized.compare_exchange_strong(expected, true)) {
-    ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
-    if (::SymInitialize(::GetCurrentProcess(), nullptr, TRUE) == FALSE) {
-      // Unset the flag so a future caller can retry
-      symbols_initialized.store(false);
-    }
+  if (symbols_initialized.load(std::memory_order_acquire)) {
+    return;
+  }
+  const std::lock_guard<std::mutex> guard{dbghelp_mutex};
+  if (symbols_initialized.load(std::memory_order_relaxed)) {
+    return;
+  }
+  ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+  if (::SymInitialize(::GetCurrentProcess(), nullptr, TRUE) != FALSE) {
+    symbols_initialized.store(true, std::memory_order_release);
   }
 }
 
