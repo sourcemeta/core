@@ -12,6 +12,7 @@
 #include <cstdio>    // std::snprintf
 #include <cstring>   // std::strlen
 #include <io.h>      // _write
+#include <mutex>     // std::mutex, std::lock_guard
 #include <process.h> // _getpid
 
 #pragma comment(lib, "dbghelp.lib")
@@ -24,12 +25,25 @@ constexpr const char *separator{"========================================"
 
 std::atomic<bool> crash_handler_installed{false};
 std::atomic<bool> symbols_initialized{false};
+// `dbghelp` is documented as single-threaded by Microsoft, so serialize
+// symbol lookups across concurrent `stacktrace()` callers
+std::mutex dbghelp_mutex;
 
+// Double-checked locking. The atomic check fast-paths once init has
+// succeeded. The mutex serializes the actual `SymInitialize` call so a
+// second thread cannot enter `write_frames` and call `SymFromAddr` while
+// init is still in flight on the first thread
 auto ensure_symbols_initialized() -> void {
-  bool expected{false};
-  if (symbols_initialized.compare_exchange_strong(expected, true)) {
-    ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
-    ::SymInitialize(::GetCurrentProcess(), nullptr, TRUE);
+  if (symbols_initialized.load(std::memory_order_acquire)) {
+    return;
+  }
+  const std::lock_guard<std::mutex> guard{dbghelp_mutex};
+  if (symbols_initialized.load(std::memory_order_relaxed)) {
+    return;
+  }
+  ::SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS);
+  if (::SymInitialize(::GetCurrentProcess(), nullptr, TRUE) != FALSE) {
+    symbols_initialized.store(true, std::memory_order_release);
   }
 }
 
@@ -43,6 +57,7 @@ __declspec(noinline) auto write_frames(int file_descriptor,
   const USHORT captured{
       ::CaptureStackBackTrace(frames_to_skip, maximum_frames, frames, nullptr)};
   ensure_symbols_initialized();
+  const std::lock_guard<std::mutex> guard{dbghelp_mutex};
   const HANDLE process{::GetCurrentProcess()};
 
   alignas(SYMBOL_INFO) char symbol_buffer[sizeof(SYMBOL_INFO) + 512]{};
@@ -79,7 +94,8 @@ __declspec(noinline) auto write_frames(int file_descriptor,
 } // namespace
 
 extern "C" SOURCEMETA_CORE_STACKTRACE_EXPORT auto WINAPI
-crash_handler(EXCEPTION_POINTERS *information) -> LONG {
+sourcemeta_core_stacktrace_crash_handler(EXCEPTION_POINTERS *information)
+    -> LONG {
   const int file_descriptor{2};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
@@ -106,7 +122,7 @@ auto stacktrace_on_crash() -> void {
   if (!crash_handler_installed.compare_exchange_strong(expected, true)) {
     return;
   }
-  ::SetUnhandledExceptionFilter(&crash_handler);
+  ::SetUnhandledExceptionFilter(&sourcemeta_core_stacktrace_crash_handler);
 }
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)

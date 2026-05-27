@@ -86,9 +86,10 @@ auto write_frame(int file_descriptor, int frame_index, void *address) -> void {
   write_text(file_descriptor, symbol_name);
 
   if (resolved != 0 && information.dli_saddr != nullptr) {
-    const auto offset{static_cast<std::uintptr_t>(
-        reinterpret_cast<char *>(address) -
-        reinterpret_cast<char *>(information.dli_saddr))};
+    // Subtract as integers. Pointer subtraction across unrelated objects is
+    // undefined behavior in C++
+    const auto offset{reinterpret_cast<std::uintptr_t>(address) -
+                      reinterpret_cast<std::uintptr_t>(information.dli_saddr)};
     write_text(file_descriptor, " +");
     write_hex(file_descriptor, offset);
   }
@@ -149,7 +150,7 @@ auto extract_crash_pc(void *context) -> void * {
   program_counter = user_context->uc_mcontext.pc;
 #elif defined(__linux__) && defined(__x86_64__)
   program_counter =
-      static_cast<std::uintptr_t>(user_context->uc_mcontext.gregs[16]);
+      static_cast<std::uintptr_t>(user_context->uc_mcontext.gregs[REG_RIP]);
 #endif
   // NOLINTNEXTLINE(performance-no-int-to-ptr)
   return reinterpret_cast<void *>(program_counter);
@@ -160,8 +161,22 @@ constexpr const char *separator{"========================================"
 
 std::atomic<bool> crash_handler_installed{false};
 
+} // namespace
+
+// NOTE: `backtrace`, `dladdr`, and `strlen` are not on POSIX's strict
+// async-signal-safe list but are reentrant in practice for the synchronous
+// faults we care about (null derefs, bad casts, divide-by-zero). We
+// deliberately do not demangle. `__cxa_demangle` allocates, which is the one
+// operation that would actually risk a deadlock.
+//
+// Outside any anonymous namespace so `dladdr` reliably resolves the symbol
+// name across platforms. `extern "C"` inside an unnamed namespace does NOT
+// grant external linkage per C++11
+// NOLINTNEXTLINE(misc-definitions-in-headers)
 extern "C" __attribute__((visibility("default"))) auto
-crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
+sourcemeta_core_stacktrace_crash_handler(int signal_number,
+                                         siginfo_t * /*info*/, void *context)
+    -> void {
   const int file_descriptor{STDERR_FILENO};
   write_text(file_descriptor, "\n");
   write_text(file_descriptor, separator);
@@ -204,8 +219,6 @@ crash_handler(int signal_number, siginfo_t * /*info*/, void *context) -> void {
   ::raise(signal_number);
 }
 
-} // namespace
-
 namespace sourcemeta::core {
 
 // NOLINTNEXTLINE(misc-definitions-in-headers)
@@ -216,7 +229,7 @@ __attribute__((visibility("default"))) auto stacktrace_on_crash() -> void {
   }
 
   struct sigaction action{};
-  action.sa_sigaction = &crash_handler;
+  action.sa_sigaction = &sourcemeta_core_stacktrace_crash_handler;
   action.sa_flags = static_cast<int>(SA_SIGINFO | SA_RESETHAND | SA_NODEFER);
   sigemptyset(&action.sa_mask);
 
