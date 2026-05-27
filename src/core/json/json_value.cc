@@ -21,6 +21,25 @@ namespace sourcemeta::core {
 
 static constexpr auto TRIM_WHITESPACE = " \t\n\r\v\f";
 
+namespace {
+
+// Track depth across nested ~JSON calls. Recursive destruction is fast for
+// shallow trees (no heap allocation) but blows the stack for deep ones.
+// We recurse up to a conservative threshold and switch to the iterative
+// drain only when the depth approaches a stack-overflow risk
+thread_local int destruction_depth{0};
+constexpr int SAFE_DESTRUCTION_DEPTH{256};
+
+struct DestructionDepthGuard {
+  DestructionDepthGuard() noexcept { ++destruction_depth; }
+  ~DestructionDepthGuard() noexcept { --destruction_depth; }
+  DestructionDepthGuard(const DestructionDepthGuard &) = delete;
+  auto operator=(const DestructionDepthGuard &)
+      -> DestructionDepthGuard & = delete;
+};
+
+} // namespace
+
 JSON::JSON(const std::int64_t value) : current_type{Type::Integer} {
   this->data_integer = value;
 }
@@ -323,14 +342,21 @@ auto JSON::operator=(JSON &&other) noexcept -> JSON & {
 }
 
 JSON::~JSON() {
-  // Drain only nested container children iteratively so deeply nested values
-  // do not overflow the call stack. Scalar and empty children are left in
-  // place to be destroyed by maybe_destruct_union, which is non-recursive
-  // for non-container types. pending stays empty when no descendant has its
-  // own container children, so containers full of scalars cost no heap
-  // allocation. Allocation failures during destruction have no sensible
-  // recovery, so terminate
+  // For shallow container trees we recurse via `maybe_destruct_union`, which
+  // pays no heap allocation and matches the pre-iterative baseline. Once the
+  // recursion depth approaches a stack-overflow risk, switch to an iterative
+  // drain that moves nested container descendants into a heap work-list.
+  // Scalar children are left in place to be destroyed by
+  // `maybe_destruct_union` since their destructors are non-recursive.
+  // Allocation failures during destruction have no sensible recovery, so
+  // terminate
   if (this->current_type == Type::Array || this->current_type == Type::Object) {
+    DestructionDepthGuard guard;
+    if (destruction_depth < SAFE_DESTRUCTION_DEPTH) {
+      this->maybe_destruct_union();
+      return;
+    }
+
     try {
       std::vector<JSON> pending;
 
