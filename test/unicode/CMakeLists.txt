@@ -17,7 +17,9 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_canonical_decomposition_test.cc
     unicode_canonical_composition_test.cc
     unicode_nfc_test.cc
-    unicode_is_nfc_test.cc)
+    unicode_is_nfc_test.cc
+    unicode_is_ucschar_test.cc
+    unicode_is_iprivate_test.cc)
 
 target_link_libraries(sourcemeta_core_unicode_unit
   PRIVATE sourcemeta::core::unicode)

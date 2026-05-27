@@ -190,6 +190,70 @@ inline constexpr auto is_valid_codepoint(const char32_t codepoint) -> bool {
 }
 
 /// @ingroup unicode
+/// Check whether the given codepoint matches the `ucschar` production of
+/// RFC 3987 Section 2.2, the set of non-ASCII characters that an IRI may
+/// carry in components other than the scheme, host, and percent-encoded
+/// octets. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_ucschar(0x00A0));
+/// assert(sourcemeta::core::is_ucschar(0x4E2D));
+/// assert(!sourcemeta::core::is_ucschar(0x0041));
+/// assert(!sourcemeta::core::is_ucschar(0xE000));
+/// ```
+inline constexpr auto is_ucschar(const char32_t codepoint) -> bool {
+  if (codepoint >= 0xA0 && codepoint <= 0xD7FF) {
+    return true;
+  }
+  if (codepoint >= 0xF900 && codepoint <= 0xFDCF) {
+    return true;
+  }
+  if (codepoint >= 0xFDF0 && codepoint <= 0xFFEF) {
+    return true;
+  }
+  // Supplementary planes 1 through 14. Each plane allows 0..FFFD;
+  // FFFE and FFFF are noncharacters. Plane 14 starts at offset 0x1000
+  // rather than 0x0000.
+  if (codepoint < 0x10000 || codepoint > 0xEFFFD) {
+    return false;
+  }
+  if (codepoint >= 0xE0000 && codepoint < 0xE1000) {
+    return false;
+  }
+  return (codepoint & 0xFFFFU) <= 0xFFFDU;
+}
+
+/// @ingroup unicode
+/// Check whether the given codepoint matches the `iprivate` production of
+/// RFC 3987 Section 2.2, the set of private-use characters that an IRI
+/// may carry in the query component. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_iprivate(0xE000));
+/// assert(sourcemeta::core::is_iprivate(0xF0000));
+/// assert(!sourcemeta::core::is_iprivate(0x0041));
+/// assert(!sourcemeta::core::is_iprivate(0xF8FF + 1));
+/// ```
+inline constexpr auto is_iprivate(const char32_t codepoint) -> bool {
+  if (codepoint >= 0xE000 && codepoint <= 0xF8FF) {
+    return true;
+  }
+  if (codepoint >= 0xF0000 && codepoint <= 0xFFFFD) {
+    return true;
+  }
+  if (codepoint >= 0x100000 && codepoint <= 0x10FFFD) {
+    return true;
+  }
+  return false;
+}
+
+/// @ingroup unicode
 /// Determine the number of UTF-8 bytes that a codepoint encodes to per
 /// RFC 3629: 1 byte for U+0000-U+007F, 2 bytes for U+0080-U+07FF, 3 bytes
 /// for U+0800-U+FFFF, and 4 bytes for U+10000 and above. The caller is
