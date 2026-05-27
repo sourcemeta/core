@@ -230,6 +230,15 @@ enum class UnicodeScript : std::uint8_t {
   KatakanaOrHiragana = 175,
 };
 
+/// @ingroup unicode
+/// The NFC quick-check result for a Unicode codepoint per UAX #15.
+/// See https://www.unicode.org/reports/tr15/ for the property's definition.
+enum class NFCQuickCheck : std::uint8_t {
+  Yes = 0,
+  No = 1,
+  Maybe = 2,
+};
+
 } // namespace sourcemeta::core
 
 #endif

@@ -154,4 +154,13 @@ auto is_combining_mark(const char32_t codepoint) noexcept -> bool {
   return IS_COMBINING_MARK_STAGE2[(page << 10U) | (codepoint & 0x3FFU)] != 0;
 }
 
+auto nfc_quick_check(const char32_t codepoint) noexcept -> NFCQuickCheck {
+  if (codepoint > 0x10FFFF) {
+    return NFCQuickCheck::Yes;
+  }
+  const std::size_t page{NFC_QUICK_CHECK_STAGE1[codepoint >> 10U]};
+  return static_cast<NFCQuickCheck>(
+      NFC_QUICK_CHECK_STAGE2[(page << 10U) | (codepoint & 0x3FFU)]);
+}
+
 } // namespace sourcemeta::core
