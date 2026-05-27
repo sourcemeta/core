@@ -236,10 +236,12 @@ def parse_unicode_data(path):
 
 def parse_full_composition_exclusions(path):
     """Read DerivedNormalizationProps.txt and return the set of codepoints
-    for which Full_Composition_Exclusion=Yes."""
+    for which Full_Composition_Exclusion=Yes. Lines that match neither the
+    three-field nor the two-field property shape raise, so a file format
+    change cannot silently drop exclusion data."""
     result = set()
     with open(path) as source:
-        for line in source:
+        for line_number, line in enumerate(source, start=1):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
@@ -254,30 +256,36 @@ def parse_full_composition_exclusions(path):
                 continue
             data_only = stripped.split("#", 1)[0].strip()
             boolean_match = BOOLEAN_PROPERTY_LINE.fullmatch(data_only)
-            if boolean_match:
-                if boolean_match.group(3) != "Full_Composition_Exclusion":
-                    continue
-                first = int(boolean_match.group(1), 16)
-                last = (int(boolean_match.group(2), 16)
-                        if boolean_match.group(2) else first)
-                for codepoint in range(first, last + 1):
-                    result.add(codepoint)
+            if not boolean_match:
+                raise ValueError(
+                    f"{path}:{line_number}: unparseable line: {stripped!r}"
+                )
+            if boolean_match.group(3) != "Full_Composition_Exclusion":
+                continue
+            first = int(boolean_match.group(1), 16)
+            last = (int(boolean_match.group(2), 16)
+                    if boolean_match.group(2) else first)
+            for codepoint in range(first, last + 1):
+                result.add(codepoint)
     return result
 
 
-EXPLICIT_COMPOSITION_EXCLUSION_LINE = re.compile(r"^([0-9A-Fa-f]+)")
+EXPLICIT_COMPOSITION_EXCLUSION_LINE = re.compile(
+    r"^([0-9A-Fa-f]+)(?:\s+#.*)?$"
+)
 
 
 def parse_explicit_composition_exclusions(path):
     """Read the script-specific list from CompositionExclusions.txt. The
-    file has a flat `codepoint  # NAME` shape with no semicolons."""
+    file has a flat `codepoint  # NAME` shape with no semicolons. The full
+    line is anchored so prefix-only matches and trailing junk fail loud."""
     result = set()
     with open(path) as source:
         for line_number, line in enumerate(source, start=1):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
-            match = EXPLICIT_COMPOSITION_EXCLUSION_LINE.match(stripped)
+            match = EXPLICIT_COMPOSITION_EXCLUSION_LINE.fullmatch(stripped)
             if not match:
                 raise ValueError(
                     f"{path}:{line_number}: unparseable line: {stripped!r}"
