@@ -20,10 +20,11 @@ static constexpr auto is_idna_label_separator(const char32_t codepoint)
 }
 
 auto is_idn_hostname(const std::string_view value) -> bool {
-  // TODO: Add an end-to-end conformance pass over
-  // `vendor/unicodetools/IdnaTestV2.txt`. The current test corpus is
-  // hand-written, inspired by the JSON Schema idn-hostname format test
-  // suite plus dedicated cases for the RFC 5891 §4.1.2.A NFC requirement.
+  // No conformance pass against `vendor/unicodetools/IdnaTestV2.txt` is
+  // wired here. That corpus tests UTS #46, which prepends a mapping pass
+  // we deliberately do not implement, so strict IDNA 2008 validation
+  // rejects most of its successful rows. Enabling it would require
+  // shipping a UTS #46 mapping module first.
 
   if (value.empty()) {
     return false;
