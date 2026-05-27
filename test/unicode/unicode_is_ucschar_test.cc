@@ -49,11 +49,13 @@ TEST(Unicode_is_ucschar, before_surrogates) {
 }
 
 // Surrogates are excluded
-TEST(Unicode_is_ucschar, surrogate_low_excluded) {
+TEST(Unicode_is_ucschar, surrogate_high_excluded) {
+  // U+D800 is a high (leading) surrogate
   EXPECT_FALSE(sourcemeta::core::is_ucschar(0xD800));
 }
 
-TEST(Unicode_is_ucschar, surrogate_high_excluded) {
+TEST(Unicode_is_ucschar, surrogate_low_excluded) {
+  // U+DFFF is a low (trailing) surrogate
   EXPECT_FALSE(sourcemeta::core::is_ucschar(0xDFFF));
 }
 
