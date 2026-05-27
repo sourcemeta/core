@@ -19,6 +19,7 @@ add_custom_command(
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedGeneralCategory.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/DerivedNormalizationProps.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/UnicodeData.txt"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/CompositionExclusions.txt"
   DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/codegen.py"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/PropertyValueAliases.txt"
@@ -29,6 +30,7 @@ add_custom_command(
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/extracted/DerivedGeneralCategory.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/DerivedNormalizationProps.txt"
     "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/UnicodeData.txt"
+    "${SOURCEMETA_CORE_UNICODE_UCD_DIR}/CompositionExclusions.txt"
   COMMENT "Generating Unicode property tables"
   VERBATIM)
 

@@ -185,14 +185,17 @@ def parse_file(path, value_map, property_filter=None):
     return missing + data
 
 
-def parse_canonical_decompositions(path):
-    """Read UnicodeData.txt and return {codepoint: [decomposition codepoints]}
-    for canonical decompositions only. Compatibility decompositions (those
-    whose field 5 starts with a `<tag>` prefix per UAX #44) are excluded.
+def parse_unicode_data(path):
+    """Read UnicodeData.txt once and return (decompositions, ccc) where
+    decompositions is {codepoint: [decomposition codepoints]} for canonical
+    decompositions only (compatibility decompositions, those whose field 5
+    starts with a `<tag>` prefix per UAX #44, are excluded), and ccc is
+    {codepoint: canonical_combining_class} for codepoints with non-zero CCC.
 
     Raises if any canonical decomposition has more than two codepoints, which
     would indicate a format change in UnicodeData.txt."""
-    result = {}
+    decompositions = {}
+    ccc = {}
     with open(path) as source:
         for line_number, line in enumerate(source, start=1):
             stripped = line.strip()
@@ -203,15 +206,23 @@ def parse_canonical_decompositions(path):
                 raise ValueError(
                     f"{path}:{line_number}: too few fields: {stripped!r}"
                 )
-            decomp_field = fields[5].strip()
-            if not decomp_field or decomp_field.startswith("<"):
-                continue
             try:
                 codepoint = int(fields[0], 16)
             except ValueError as error:
                 raise ValueError(
                     f"{path}:{line_number}: invalid codepoint: {fields[0]!r}"
                 ) from error
+            try:
+                ccc_value = int(fields[3])
+            except ValueError as error:
+                raise ValueError(
+                    f"{path}:{line_number}: invalid CCC: {fields[3]!r}"
+                ) from error
+            if ccc_value != 0:
+                ccc[codepoint] = ccc_value
+            decomp_field = fields[5].strip()
+            if not decomp_field or decomp_field.startswith("<"):
+                continue
             decomposition = [int(token, 16) for token in decomp_field.split()]
             if len(decomposition) > 2:
                 raise ValueError(
@@ -219,8 +230,109 @@ def parse_canonical_decompositions(path):
                     f"U+{codepoint:04X} has {len(decomposition)} codepoints, "
                     f"expected 1 or 2"
                 )
-            result[codepoint] = decomposition
+            decompositions[codepoint] = decomposition
+    return decompositions, ccc
+
+
+def parse_full_composition_exclusions(path):
+    """Read DerivedNormalizationProps.txt and return the set of codepoints
+    for which Full_Composition_Exclusion=Yes."""
+    result = set()
+    with open(path) as source:
+        for line in source:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            match = MULTI_PROPERTY_LINE.match(stripped)
+            if match:
+                if match.group(3) != "Full_Composition_Exclusion":
+                    continue
+                first = int(match.group(1), 16)
+                last = int(match.group(2), 16) if match.group(2) else first
+                for codepoint in range(first, last + 1):
+                    result.add(codepoint)
+                continue
+            data_only = stripped.split("#", 1)[0].strip()
+            boolean_match = BOOLEAN_PROPERTY_LINE.fullmatch(data_only)
+            if boolean_match:
+                if boolean_match.group(3) != "Full_Composition_Exclusion":
+                    continue
+                first = int(boolean_match.group(1), 16)
+                last = (int(boolean_match.group(2), 16)
+                        if boolean_match.group(2) else first)
+                for codepoint in range(first, last + 1):
+                    result.add(codepoint)
     return result
+
+
+EXPLICIT_COMPOSITION_EXCLUSION_LINE = re.compile(r"^([0-9A-Fa-f]+)")
+
+
+def parse_explicit_composition_exclusions(path):
+    """Read the script-specific list from CompositionExclusions.txt. The
+    file has a flat `codepoint  # NAME` shape with no semicolons."""
+    result = set()
+    with open(path) as source:
+        for line_number, line in enumerate(source, start=1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            match = EXPLICIT_COMPOSITION_EXCLUSION_LINE.match(stripped)
+            if not match:
+                raise ValueError(
+                    f"{path}:{line_number}: unparseable line: {stripped!r}"
+                )
+            result.add(int(match.group(1), 16))
+    return result
+
+
+def build_canonical_compositions(decompositions, ccc, full_exclusions,
+                                  explicit_exclusions):
+    """Apply the UAX #15 §1.3 primary-composite filters and return a sorted
+    list of (starter, combining, composed) triples.
+
+    Raises if the explicit CompositionExclusions.txt list is not a subset of
+    the derived Full_Composition_Exclusion set in
+    DerivedNormalizationProps.txt, which would indicate the two data files
+    have drifted out of sync."""
+    missing = explicit_exclusions - full_exclusions
+    if missing:
+        raise ValueError(
+            "CompositionExclusions.txt entries missing from "
+            "Full_Composition_Exclusion: "
+            + ", ".join(f"U+{codepoint:04X}" for codepoint in sorted(missing))
+        )
+
+    triples = []
+    for composed, decomposition in decompositions.items():
+        if len(decomposition) != 2:
+            continue
+        if ccc.get(composed, 0) != 0:
+            continue
+        if ccc.get(decomposition[0], 0) != 0:
+            continue
+        if composed in full_exclusions:
+            continue
+        triples.append((decomposition[0], decomposition[1], composed))
+    triples.sort()
+    return triples
+
+
+def emit_canonical_composition(output, triples):
+    output.write("struct CanonicalCompositionEntry {\n")
+    output.write("  char32_t starter;\n")
+    output.write("  char32_t combining;\n")
+    output.write("  char32_t composed;\n")
+    output.write("};\n\n")
+    output.write(
+        f"constexpr CanonicalCompositionEntry "
+        f"CANONICAL_COMPOSITIONS[{len(triples)}] = {{\n"
+    )
+    for starter, combining, composed in triples:
+        output.write(
+            f"    {{0x{starter:X}, 0x{combining:X}, 0x{composed:X}}},\n"
+        )
+    output.write("};\n\n")
 
 
 # Packed per-codepoint entry: (length << OFFSET_BITS) | offset. A zero entry
@@ -325,7 +437,7 @@ def emit_property(output, prefix, stage1, unique_pages):
 
 
 def main():
-    if len(sys.argv) != 10:
+    if len(sys.argv) != 11:
         print(
             f"Usage: {sys.argv[0]} "
             "<output.h> "
@@ -336,13 +448,15 @@ def main():
             "<Scripts.txt> "
             "<DerivedGeneralCategory.txt> "
             "<DerivedNormalizationProps.txt> "
-            "<UnicodeData.txt>",
+            "<UnicodeData.txt> "
+            "<CompositionExclusions.txt>",
             file=sys.stderr,
         )
         sys.exit(1)
 
     output_path = sys.argv[1]
     aliases_path = sys.argv[2]
+    derived_normalization_props_path = sys.argv[8]
 
     properties = [
         ("COMBINING_CLASS", sys.argv[3], None,
@@ -355,13 +469,23 @@ def main():
          build_value_map(aliases_path, "sc", UNICODE_SCRIPT_ORDER)),
         ("IS_COMBINING_MARK", sys.argv[7], None,
          build_combining_mark_value_map(aliases_path)),
-        ("NFC_QUICK_CHECK", sys.argv[8], "NFC_QC",
+        ("NFC_QUICK_CHECK", derived_normalization_props_path, "NFC_QC",
          build_value_map(aliases_path, "NFC_QC", NFC_QUICK_CHECK_ORDER)),
     ]
 
     unicode_data_path = sys.argv[9]
+    composition_exclusions_path = sys.argv[10]
+
+    decompositions, ccc = parse_unicode_data(unicode_data_path)
+    full_exclusions = parse_full_composition_exclusions(
+        derived_normalization_props_path
+    )
+    explicit_exclusions = parse_explicit_composition_exclusions(
+        composition_exclusions_path
+    )
 
     with open(output_path, "w") as output:
+        output.write("#include <cstddef>\n")
         output.write("#include <cstdint>\n\n")
         output.write("namespace {\n\n")
         for prefix, input_path, property_filter, value_map in properties:
@@ -370,9 +494,13 @@ def main():
             )
             emit_property(output, prefix, stage1, pages)
         blob, stage1, pages = build_canonical_decomposition_pages(
-            parse_canonical_decompositions(unicode_data_path)
+            decompositions
         )
         emit_canonical_decomposition(output, blob, stage1, pages)
+        triples = build_canonical_compositions(
+            decompositions, ccc, full_exclusions, explicit_exclusions
+        )
+        emit_canonical_composition(output, triples)
         output.write("} // namespace\n")
 
 
