@@ -261,7 +261,10 @@ JSON::~JSON() {
       }
 
       while (!pending.empty()) {
-        JSON node{std::move(pending.back())};
+        // Use copy-init so the move constructor is selected. Direct-list-init
+        // would route through JSON(initializer_list<JSON>) on GCC and MSVC,
+        // whose single-element workaround invokes the recursive copy assign
+        JSON node = std::move(pending.back());
         pending.pop_back();
         if (node.current_type == Type::Array) {
           auto &elements{node.data_array.data};

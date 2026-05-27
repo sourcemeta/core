@@ -466,7 +466,7 @@ TEST(JSON_value, destructs_deeply_nested_array_without_stack_overflow) {
   deep.append(depth, '[');
   deep.push_back('0');
   deep.append(depth, ']');
-  auto document{sourcemeta::core::parse_json(deep)};
+  auto document = sourcemeta::core::parse_json(deep);
   EXPECT_TRUE(document.is_array());
 }
 
@@ -479,6 +479,6 @@ TEST(JSON_value, destructs_deeply_nested_object_without_stack_overflow) {
   }
   deep.push_back('0');
   deep.append(depth, '}');
-  auto document{sourcemeta::core::parse_json(deep)};
+  auto document = sourcemeta::core::parse_json(deep);
   EXPECT_TRUE(document.is_object());
 }
