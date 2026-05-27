@@ -309,6 +309,25 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto is_combining_mark(const char32_t codepoint) noexcept -> bool;
 
 /// @ingroup unicode
+/// Return the NFC quick-check property of a Unicode codepoint per UAX #15.
+/// See https://www.unicode.org/reports/tr15/ for the property's definition.
+/// For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::nfc_quick_check(U'A') ==
+///        sourcemeta::core::NFCQuickCheck::Yes);
+/// assert(sourcemeta::core::nfc_quick_check(U'\u2126') ==
+///        sourcemeta::core::NFCQuickCheck::No);
+/// assert(sourcemeta::core::nfc_quick_check(U'\u0300') ==
+///        sourcemeta::core::NFCQuickCheck::Maybe);
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto nfc_quick_check(const char32_t codepoint) noexcept -> NFCQuickCheck;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

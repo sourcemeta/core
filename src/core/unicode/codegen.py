@@ -4,6 +4,15 @@ import re
 import sys
 
 LINE = re.compile(r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)")
+MULTI_PROPERTY_LINE = re.compile(
+    r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)\s*;\s*(\S+)"
+)
+# Boolean-property rows in multi-property files use a two-field shape,
+# with no value column. Used to recognise the row instead of silently
+# skipping it.
+BOOLEAN_PROPERTY_LINE = re.compile(
+    r"^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)\s*$"
+)
 MISSING_PREFIX = re.compile(r"^#\s*@missing:\s*")
 
 TOTAL_CODEPOINTS = 0x110000
@@ -23,6 +32,8 @@ BIDI_CLASS_ORDER = [
     "B", "S", "WS", "ON", "LRE", "LRO", "RLE", "RLO", "PDF",
     "LRI", "RLI", "FSI", "PDI",
 ]
+
+NFC_QUICK_CHECK_ORDER = ["Y", "N", "M"]
 
 UNICODE_SCRIPT_ORDER = [
     "Adlam", "Ahom", "Anatolian_Hieroglyphs", "Arabic", "Armenian",
@@ -121,10 +132,16 @@ def build_value_map(aliases_path, property_short, canonical_order=None):
     return result
 
 
-def parse_file(path, value_map):
+def parse_file(path, value_map, property_filter=None):
     """Read a UCD file and return a list of (first, last, value) entries
     with @missing defaults first and data ranges second, so callers can
-    apply them in order regardless of where @missing appears in the file."""
+    apply them in order regardless of where @missing appears in the file.
+
+    With property_filter set, lines have shape `codepoint; property; value`
+    (as in DerivedNormalizationProps.txt) and only rows whose property
+    name matches are returned. Without it, lines have shape
+    `codepoint; value` and every row contributes."""
+    line_re = MULTI_PROPERTY_LINE if property_filter is not None else LINE
     missing = []
     data = []
     with open(path) as source:
@@ -139,14 +156,25 @@ def parse_file(path, value_map):
                     continue
                 stripped = stripped[prefix.end():]
                 target = missing
-            match = LINE.match(stripped)
+            match = line_re.match(stripped)
             if not match:
+                # Recognise the boolean-property shape used in multi-property
+                # files, but only for properties other than the one we are
+                # filtering for. A boolean-shape row that names our target
+                # property would be malformed data and must raise.
+                data_only = stripped.split("#", 1)[0].strip()
+                if property_filter is not None:
+                    boolean = BOOLEAN_PROPERTY_LINE.fullmatch(data_only)
+                    if boolean and boolean.group(3) != property_filter:
+                        continue
                 raise ValueError(
                     f"{path}:{line_number}: unparseable line: {stripped!r}"
                 )
+            if property_filter is not None and match.group(3) != property_filter:
+                continue
             first = int(match.group(1), 16)
             last = int(match.group(2), 16) if match.group(2) else first
-            raw_value = match.group(3)
+            raw_value = match.group(4 if property_filter is not None else 3)
             try:
                 value = value_map[raw_value]
             except KeyError as error:
@@ -196,7 +224,7 @@ def emit_property(output, prefix, stage1, unique_pages):
 
 
 def main():
-    if len(sys.argv) != 8:
+    if len(sys.argv) != 9:
         print(
             f"Usage: {sys.argv[0]} "
             "<output.h> "
@@ -205,7 +233,8 @@ def main():
             "<DerivedJoiningType.txt> "
             "<DerivedBidiClass.txt> "
             "<Scripts.txt> "
-            "<DerivedGeneralCategory.txt>",
+            "<DerivedGeneralCategory.txt> "
+            "<DerivedNormalizationProps.txt>",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -214,23 +243,27 @@ def main():
     aliases_path = sys.argv[2]
 
     properties = [
-        ("COMBINING_CLASS", sys.argv[3],
+        ("COMBINING_CLASS", sys.argv[3], None,
          build_value_map(aliases_path, "ccc")),
-        ("JOINING_TYPE", sys.argv[4],
+        ("JOINING_TYPE", sys.argv[4], None,
          build_value_map(aliases_path, "jt", JOINING_TYPE_ORDER)),
-        ("BIDI_CLASS", sys.argv[5],
+        ("BIDI_CLASS", sys.argv[5], None,
          build_value_map(aliases_path, "bc", BIDI_CLASS_ORDER)),
-        ("UNICODE_SCRIPT", sys.argv[6],
+        ("UNICODE_SCRIPT", sys.argv[6], None,
          build_value_map(aliases_path, "sc", UNICODE_SCRIPT_ORDER)),
-        ("IS_COMBINING_MARK", sys.argv[7],
+        ("IS_COMBINING_MARK", sys.argv[7], None,
          build_combining_mark_value_map(aliases_path)),
+        ("NFC_QUICK_CHECK", sys.argv[8], "NFC_QC",
+         build_value_map(aliases_path, "NFC_QC", NFC_QUICK_CHECK_ORDER)),
     ]
 
     with open(output_path, "w") as output:
         output.write("#include <cstdint>\n\n")
         output.write("namespace {\n\n")
-        for prefix, input_path, value_map in properties:
-            stage1, pages = build_pages(parse_file(input_path, value_map))
+        for prefix, input_path, property_filter, value_map in properties:
+            stage1, pages = build_pages(
+                parse_file(input_path, value_map, property_filter)
+            )
             emit_property(output, prefix, stage1, pages)
         output.write("} // namespace\n")
 
