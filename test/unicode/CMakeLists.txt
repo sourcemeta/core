@@ -21,3 +21,14 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME unicode
 
 target_link_libraries(sourcemeta_core_unicode_unit
   PRIVATE sourcemeta::core::unicode)
+
+# UAX #15 NormalizationTest.txt conformance pass
+sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core
+  NAME unicode_normalization_suite
+  SOURCES unicode_normalization_suite.cc)
+target_compile_definitions(sourcemeta_core_unicode_normalization_suite_unit
+  PRIVATE NORMALIZATIONTEST_PATH="${PROJECT_SOURCE_DIR}/vendor/unicodetools/unicodetools/data/ucd/dev/NormalizationTest.txt")
+target_link_libraries(sourcemeta_core_unicode_normalization_suite_unit
+  PRIVATE sourcemeta::core::unicode)
+target_link_libraries(sourcemeta_core_unicode_normalization_suite_unit
+  PRIVATE sourcemeta::core::io)
