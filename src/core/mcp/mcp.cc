@@ -88,21 +88,17 @@ auto mcp_make_resource_link(const MCPProtocolVersion version,
   if (!mcp_supports_resource_link_content(version)) {
     // Multi-line fallback is deliberate: the consumer is an LLM reading tool
     // output, not a human display surface, so a vertical layout keeps all three
-    // fields readable while sidestepping quoting issues, etc
+    // fields readable while sidestepping quoting issues, etc. The URI is the
+    // primary identifier and is always emitted, even when other fields are
+    // empty
     std::string text;
     if (!name.empty()) {
       text.append(name);
+      text.append("\n");
     }
-    if (!uri.empty()) {
-      if (!text.empty()) {
-        text.append("\n");
-      }
-      text.append(uri);
-    }
+    text.append(uri);
     if (!description.empty()) {
-      if (!text.empty()) {
-        text.append("\n");
-      }
+      text.append("\n");
       text.append(description);
     }
     return mcp_make_text_block(text);
