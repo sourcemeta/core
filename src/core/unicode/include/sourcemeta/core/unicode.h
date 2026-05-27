@@ -349,6 +349,28 @@ auto canonical_decomposition(const char32_t codepoint) noexcept
     -> std::u32string_view;
 
 /// @ingroup unicode
+/// Return the primary composite of a starter codepoint and a following
+/// codepoint per UAX #15, or std::nullopt if the pair does not form a
+/// primary composite. Hangul jamo composition is algorithmic per UAX #15
+/// §3.12 and is not included in this table. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::canonical_composition(U'A', U'\u0300') ==
+///        U'\u00C0');
+/// assert(sourcemeta::core::canonical_composition(U'u', U'\u0308') ==
+///        U'\u00FC');
+/// assert(sourcemeta::core::canonical_composition(U'A', U'B') ==
+///        std::nullopt);
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto canonical_composition(const char32_t starter,
+                           const char32_t combining) noexcept
+    -> std::optional<char32_t>;
+
+/// @ingroup unicode
 /// Determine the byte length of the valid UTF-8 codepoint starting at the
 /// given position within the input. Returns 1 for an ASCII byte, 2/3/4 for a
 /// valid multi-byte UTF-8 sequence (RFC 6532 Section 3.1, excluding overlong

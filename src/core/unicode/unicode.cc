@@ -176,4 +176,29 @@ auto canonical_decomposition(const char32_t codepoint) noexcept
   return std::u32string_view{CANONICAL_DECOMPOSITION_BLOB + offset, length};
 }
 
+auto canonical_composition(const char32_t starter,
+                           const char32_t combining) noexcept
+    -> std::optional<char32_t> {
+  std::size_t low{0};
+  std::size_t high{sizeof(CANONICAL_COMPOSITIONS) /
+                   sizeof(CANONICAL_COMPOSITIONS[0])};
+  while (low < high) {
+    const std::size_t middle{low + ((high - low) >> 1U)};
+    const auto &entry{CANONICAL_COMPOSITIONS[middle]};
+    if (entry.starter < starter ||
+        (entry.starter == starter && entry.combining < combining)) {
+      low = middle + 1;
+    } else {
+      high = middle;
+    }
+  }
+  const auto count{sizeof(CANONICAL_COMPOSITIONS) /
+                   sizeof(CANONICAL_COMPOSITIONS[0])};
+  if (low < count && CANONICAL_COMPOSITIONS[low].starter == starter &&
+      CANONICAL_COMPOSITIONS[low].combining == combining) {
+    return CANONICAL_COMPOSITIONS[low].composed;
+  }
+  return std::nullopt;
+}
+
 } // namespace sourcemeta::core
