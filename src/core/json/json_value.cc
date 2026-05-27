@@ -111,13 +111,44 @@ JSON::JSON(Decimal &&value) : current_type{Type::Decimal} {
 }
 
 JSON::JSON(const JSON &other) {
-  // Build the copy iteratively to avoid unbounded recursion on deeply nested
-  // values, which would otherwise overflow the call stack. Each task copies
-  // a single source-destination pair shallowly and queues children for
-  // containers. Pre-filling destination containers with Null placeholders
-  // gives stable addresses to queue child tasks against. current_type is set
-  // only after the matching union member is fully constructed, so a throw
-  // from the catch handler can safely destroy whatever state is present
+  // Fast path for non-container sources avoids the work-list allocation that
+  // would otherwise dominate the cost of copying a scalar value
+  switch (other.current_type) {
+    case Type::Null:
+      return;
+    case Type::Boolean:
+      this->data_boolean = other.data_boolean;
+      this->current_type = Type::Boolean;
+      return;
+    case Type::Integer:
+      this->data_integer = other.data_integer;
+      this->current_type = Type::Integer;
+      return;
+    case Type::Real:
+      this->data_real = other.data_real;
+      this->current_type = Type::Real;
+      return;
+    case Type::String:
+      std::construct_at(&this->data_string, other.data_string);
+      this->current_type = Type::String;
+      return;
+    case Type::Decimal:
+      this->data_decimal = new Decimal{*other.data_decimal};
+      this->current_type = Type::Decimal;
+      return;
+    case Type::Array:
+    case Type::Object:
+      break;
+  }
+
+  // Build the container copy iteratively to avoid unbounded recursion on
+  // deeply nested values, which would otherwise overflow the call stack. Each
+  // task copies a single source-destination pair shallowly and queues
+  // children for containers. Pre-filling destination containers with Null
+  // placeholders gives stable addresses to queue child tasks against.
+  // current_type is set only after the matching union member is fully
+  // constructed, so a throw from the catch handler can safely destroy
+  // whatever state is present
   struct CopyTask {
     const JSON *source;
     JSON *destination;
