@@ -312,7 +312,7 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_with_name) {
       "text/plain", "My File", "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
-    "text": "file:///foo (My File)"
+    "text": "My File\nfile:///foo\nA description"
   })JSON")};
   EXPECT_EQ(block, expected);
 }
@@ -323,7 +323,19 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_without_name) {
       "text/plain", {}, "A description")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
-    "text": "file:///foo"
+    "text": "file:///foo\nA description"
+  })JSON")};
+  EXPECT_EQ(block, expected);
+}
+
+TEST(MCP,
+     make_resource_link_2025_03_26_falls_back_to_text_without_description) {
+  const auto block{sourcemeta::core::mcp_make_resource_link(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
+      "text/plain", "My File")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "type": "text",
+    "text": "My File\nfile:///foo"
   })JSON")};
   EXPECT_EQ(block, expected);
 }
@@ -335,6 +347,54 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_uri_only) {
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
     "text": "file:///foo"
+  })JSON")};
+  EXPECT_EQ(block, expected);
+}
+
+TEST(MCP,
+     make_resource_link_2025_03_26_falls_back_handles_parentheses_in_name) {
+  const auto block{sourcemeta::core::mcp_make_resource_link(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
+      "https://example.com/schema", "application/schema+json",
+      "RFC 5322 Email Address (Addr-Spec)", "Validates email syntax")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "type": "text",
+    "text": "RFC 5322 Email Address (Addr-Spec)\nhttps://example.com/schema\nValidates email syntax"
+  })JSON")};
+  EXPECT_EQ(block, expected);
+}
+
+TEST(MCP,
+     make_resource_link_2025_03_26_falls_back_preserves_empty_uri_position) {
+  const auto block{sourcemeta::core::mcp_make_resource_link(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain",
+      "My File", "A description")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "type": "text",
+    "text": "My File\n\nA description"
+  })JSON")};
+  EXPECT_EQ(block, expected);
+}
+
+TEST(MCP,
+     make_resource_link_2025_03_26_falls_back_empty_uri_with_description_only) {
+  const auto block{sourcemeta::core::mcp_make_resource_link(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain", {},
+      "A description")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "type": "text",
+    "text": "\nA description"
+  })JSON")};
+  EXPECT_EQ(block, expected);
+}
+
+TEST(MCP, make_resource_link_2025_03_26_falls_back_empty_uri_with_name_only) {
+  const auto block{sourcemeta::core::mcp_make_resource_link(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain",
+      "My File")};
+  const auto expected{sourcemeta::core::parse_json(R"JSON({
+    "type": "text",
+    "text": "My File\n"
   })JSON")};
   EXPECT_EQ(block, expected);
 }
