@@ -482,3 +482,99 @@ TEST(JSON_value, destructs_deeply_nested_object_without_stack_overflow) {
   auto document = sourcemeta::core::parse_json(deep);
   EXPECT_TRUE(document.is_object());
 }
+
+TEST(JSON_value, copies_deeply_nested_array_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 2 + 1);
+  deep.append(depth, '[');
+  deep.push_back('0');
+  deep.append(depth, ']');
+  auto document = sourcemeta::core::parse_json(deep);
+  auto copy = document;
+  EXPECT_TRUE(copy.is_array());
+}
+
+TEST(JSON_value, copies_deeply_nested_object_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 6 + 1 + depth);
+  for (std::size_t index = 0; index < depth; ++index) {
+    deep.append("{\"x\":");
+  }
+  deep.push_back('0');
+  deep.append(depth, '}');
+  auto document = sourcemeta::core::parse_json(deep);
+  auto copy = document;
+  EXPECT_TRUE(copy.is_object());
+}
+
+TEST(JSON_value, copy_assigns_deeply_nested_array_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 2 + 1);
+  deep.append(depth, '[');
+  deep.push_back('0');
+  deep.append(depth, ']');
+  auto source = sourcemeta::core::parse_json(deep);
+  auto target = sourcemeta::core::parse_json(deep);
+  target = source;
+  EXPECT_TRUE(target.is_array());
+}
+
+TEST(JSON_value, copy_assigns_deeply_nested_object_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 6 + 1 + depth);
+  for (std::size_t index = 0; index < depth; ++index) {
+    deep.append("{\"x\":");
+  }
+  deep.push_back('0');
+  deep.append(depth, '}');
+  auto source = sourcemeta::core::parse_json(deep);
+  auto target = sourcemeta::core::parse_json(deep);
+  target = source;
+  EXPECT_TRUE(target.is_object());
+}
+
+TEST(JSON_value, move_assigns_deeply_nested_array_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 2 + 1);
+  deep.append(depth, '[');
+  deep.push_back('0');
+  deep.append(depth, ']');
+  auto source = sourcemeta::core::parse_json(deep);
+  auto target = sourcemeta::core::parse_json(deep);
+  target = std::move(source);
+  EXPECT_TRUE(target.is_array());
+}
+
+TEST(JSON_value, move_assigns_deeply_nested_object_without_stack_overflow) {
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 6 + 1 + depth);
+  for (std::size_t index = 0; index < depth; ++index) {
+    deep.append("{\"x\":");
+  }
+  deep.push_back('0');
+  deep.append(depth, '}');
+  auto source = sourcemeta::core::parse_json(deep);
+  auto target = sourcemeta::core::parse_json(deep);
+  target = std::move(source);
+  EXPECT_TRUE(target.is_object());
+}
+
+TEST(JSON_value, direct_list_inits_deeply_nested_array_without_stack_overflow) {
+  // On GCC and MSVC, JSON x{other} selects JSON(initializer_list<JSON>) whose
+  // single-element workaround invokes operator=(const JSON&)
+  constexpr std::size_t depth{100000};
+  std::string deep;
+  deep.reserve(depth * 2 + 1);
+  deep.append(depth, '[');
+  deep.push_back('0');
+  deep.append(depth, ']');
+  auto source = sourcemeta::core::parse_json(deep);
+  sourcemeta::core::JSON copy{source};
+  EXPECT_TRUE(copy.is_array());
+}
