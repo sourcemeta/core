@@ -249,6 +249,11 @@ auto build_alias_map(const std::filesystem::path &aliases_path,
     if (fields.empty() || fields.front() != property_short) {
       return;
     }
+    if (fields.size() < 2) {
+      throw std::runtime_error{std::string{
+          "PropertyValueAliases.txt: missing aliases for property: "}
+                                   .append(property_short)};
+    }
     const std::span<const std::string_view> aliases{fields.begin() + 1,
                                                     fields.end()};
     const auto value{value_fn(aliases)};
@@ -269,6 +274,10 @@ auto parse_unicode_data(const std::filesystem::path &input_path)
   auto stream{sourcemeta::core::read_file(input_path)};
   UnicodeData result;
   for_each_ucd_entry(stream, [&](const UCDEntry &entry) {
+    if (entry.first != entry.last) {
+      throw std::runtime_error{
+          "UnicodeData.txt: codepoint range not supported"};
+    }
     std::array<std::string_view, 5> rest{};
     std::size_t count{0};
     sourcemeta::core::split(entry.trailing, ';',
