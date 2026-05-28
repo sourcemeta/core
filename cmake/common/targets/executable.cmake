@@ -32,12 +32,9 @@ function(sourcemeta_executable)
   sourcemeta_add_default_options(PRIVATE ${TARGET_NAME})
 
   # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
-  # Position Independent Executable (PIE) for ASLR support
+  # PIE linker flags for ASLR support. The compile-time -fPIE is already
+  # enabled globally via CMAKE_POSITION_INDEPENDENT_CODE in defaults.cmake.
   if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
-    target_compile_options(${TARGET_NAME} PRIVATE
-      $<$<CONFIG:Release>:-fPIE>
-      $<$<CONFIG:RelWithDebInfo>:-fPIE>
-      $<$<CONFIG:MinSizeRel>:-fPIE>)
     target_link_options(${TARGET_NAME} PRIVATE
       $<$<CONFIG:Release>:-pie>
       $<$<CONFIG:RelWithDebInfo>:-pie>
