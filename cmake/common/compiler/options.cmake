@@ -154,7 +154,7 @@ function(sourcemeta_add_default_options visibility target)
 
     # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
     target_compile_options("${target}" ${visibility}
-      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks -ftrivial-auto-var-init=zero>
-      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks -ftrivial-auto-var-init=zero>)
+      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks;-ftrivial-auto-var-init=zero>
+      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks;-ftrivial-auto-var-init=zero>)
   endif()
 endfunction()
