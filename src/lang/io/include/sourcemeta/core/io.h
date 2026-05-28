@@ -222,8 +222,8 @@ inline auto read_stdin() -> std::string { return read_to_string(std::cin); }
 
 /// @ingroup io
 ///
-/// Iterate the lines of `stream`, invoking `callback` with each line. For
-/// example:
+/// Iterate the lines of `stream`, invoking `callback` with each line. The
+/// line view is only valid for the duration of the callback. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>
