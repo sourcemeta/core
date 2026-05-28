@@ -46,6 +46,14 @@ TEST(Regex_is_ecma, invalid_unclosed_class) {
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[abc"));
 }
 
+TEST(Regex_is_ecma, valid_empty_class) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[]"));
+}
+
+TEST(Regex_is_ecma, valid_empty_class_negated) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^]"));
+}
+
 TEST(Regex_is_ecma, valid_digit_escape) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\d"));
 }
