@@ -37,29 +37,29 @@ constexpr std::size_t DECOMPOSITION_OFFSET_BITS{14};
 constexpr std::size_t DECOMPOSITION_OFFSET_MASK{
     (1U << DECOMPOSITION_OFFSET_BITS) - 1U};
 
-constexpr std::array JOINING_TYPE_ORDER{
-#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) std::string_view{alias},
+constexpr auto JOINING_TYPE_ORDER{std::to_array<std::string_view>({
+#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) alias,
     SOURCEMETA_CORE_JOINING_TYPE_LIST(SOURCEMETA_CORE_UCD_ALIAS_ENTRY)
 #undef SOURCEMETA_CORE_UCD_ALIAS_ENTRY
-};
+})};
 
-constexpr std::array BIDI_CLASS_ORDER{
-#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) std::string_view{alias},
+constexpr auto BIDI_CLASS_ORDER{std::to_array<std::string_view>({
+#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) alias,
     SOURCEMETA_CORE_BIDI_CLASS_LIST(SOURCEMETA_CORE_UCD_ALIAS_ENTRY)
 #undef SOURCEMETA_CORE_UCD_ALIAS_ENTRY
-};
+})};
 
-constexpr std::array NFC_QUICK_CHECK_ORDER{
-#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) std::string_view{alias},
+constexpr auto NFC_QUICK_CHECK_ORDER{std::to_array<std::string_view>({
+#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) alias,
     SOURCEMETA_CORE_NFC_QUICK_CHECK_LIST(SOURCEMETA_CORE_UCD_ALIAS_ENTRY)
 #undef SOURCEMETA_CORE_UCD_ALIAS_ENTRY
-};
+})};
 
-constexpr std::array UNICODE_SCRIPT_ORDER{
-#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) std::string_view{alias},
+constexpr auto UNICODE_SCRIPT_ORDER{std::to_array<std::string_view>({
+#define SOURCEMETA_CORE_UCD_ALIAS_ENTRY(name, alias) alias,
     SOURCEMETA_CORE_UNICODE_SCRIPT_LIST(SOURCEMETA_CORE_UCD_ALIAS_ENTRY)
 #undef SOURCEMETA_CORE_UCD_ALIAS_ENTRY
-};
+})};
 
 using ValueMap = std::map<std::string, std::uint8_t, std::less<>>;
 
