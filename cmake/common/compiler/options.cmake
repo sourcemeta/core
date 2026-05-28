@@ -123,8 +123,7 @@ function(sourcemeta_add_default_options visibility target)
     # Prevent the compiler from deleting redundant null-pointer checks after
     # a dereference would normally prove them unreachable
     target_compile_options("${target}" ${visibility}
-      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks>
-      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks>)
+      $<$<NOT:$<CONFIG:Debug>>:-fno-delete-null-pointer-checks>)
   elseif(SOURCEMETA_COMPILER_GCC)
     target_compile_options("${target}" ${visibility}
       # Newer versions of GCC (i.e. 14) seem to print a lot of false-positives here
@@ -141,8 +140,7 @@ function(sourcemeta_add_default_options visibility target)
     # Prevent the compiler from deleting redundant null-pointer checks after
     # a dereference would normally prove them unreachable
     target_compile_options("${target}" ${visibility}
-      $<$<CONFIG:Release>:-fno-delete-null-pointer-checks>
-      $<$<CONFIG:RelWithDebInfo>:-fno-delete-null-pointer-checks>)
+      $<$<NOT:$<CONFIG:Debug>>:-fno-delete-null-pointer-checks>)
 
     # Prevent the compiler from assuming shared library symbols could be
     # interposed at runtime, enabling more inlining and devirtualization
