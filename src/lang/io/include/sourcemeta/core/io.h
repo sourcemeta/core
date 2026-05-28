@@ -222,6 +222,33 @@ inline auto read_stdin() -> std::string { return read_to_string(std::cin); }
 
 /// @ingroup io
 ///
+/// Invoke `callback` once per `\n`-separated line read from `stream`,
+/// passing each line as a `std::string_view`. Reuses a single
+/// `std::string` buffer across iterations so only one line is live at a
+/// time, making this suitable for large inputs. The view is invalidated
+/// when the callback returns. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/io.h>
+/// #include <iostream>
+/// #include <sstream>
+///
+/// std::istringstream stream{"alpha\nbeta\ngamma\n"};
+/// sourcemeta::core::for_each_line(stream,
+///     [](const std::string_view line) {
+///       std::cout << line << '\n';
+///     });
+/// ```
+template <typename Callback>
+auto for_each_line(std::istream &stream, Callback callback) -> void {
+  std::string line;
+  while (std::getline(stream, line)) {
+    callback(std::string_view{line});
+  }
+}
+
+/// @ingroup io
+///
 /// Recursively mirror a directory tree using hard links for regular files.
 /// Directories are created, regular files are hard-linked. Both paths must
 /// reside on the same filesystem. The destination must not be inside the
