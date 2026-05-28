@@ -40,21 +40,12 @@ struct TwoStageTable {
 
 auto property_from_token(const std::string_view token)
     -> sourcemeta::core::IDNAProperty {
-  if (token == "PVALID") {
-    return sourcemeta::core::IDNAProperty::PValid;
+#define SOURCEMETA_CORE_IDNA_PROPERTY_CASE(name, alias)                        \
+  if (token == alias) {                                                        \
+    return sourcemeta::core::IDNAProperty::name;                               \
   }
-  if (token == "CONTEXTJ") {
-    return sourcemeta::core::IDNAProperty::ContextJ;
-  }
-  if (token == "CONTEXTO") {
-    return sourcemeta::core::IDNAProperty::ContextO;
-  }
-  if (token == "DISALLOWED") {
-    return sourcemeta::core::IDNAProperty::Disallowed;
-  }
-  if (token == "UNASSIGNED") {
-    return sourcemeta::core::IDNAProperty::Unassigned;
-  }
+  SOURCEMETA_CORE_IDNA_PROPERTY_LIST(SOURCEMETA_CORE_IDNA_PROPERTY_CASE)
+#undef SOURCEMETA_CORE_IDNA_PROPERTY_CASE
   throw std::runtime_error{
       std::string{"Unknown IDNA property value: "}.append(token)};
 }

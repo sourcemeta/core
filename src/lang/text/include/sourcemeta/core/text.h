@@ -149,6 +149,35 @@ auto split_once(const std::string_view input,
 
 /// @ingroup text
 ///
+/// Iterate the parts of `input` separated by `delimiter`, invoking
+/// `callback` with each part. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <iostream>
+///
+/// sourcemeta::core::split("alpha;beta;gamma", ';',
+///     [](const std::string_view part) {
+///       std::cout << part << '\n';
+///     });
+/// ```
+template <typename Callback>
+auto split(const std::string_view input, const char delimiter,
+           Callback callback) -> void {
+  std::string_view rest{input};
+  while (true) {
+    const auto next{sourcemeta::core::split_once(rest, delimiter)};
+    if (!next.has_value()) {
+      callback(rest);
+      return;
+    }
+    callback(next->first);
+    rest = next->second;
+  }
+}
+
+/// @ingroup text
+///
 /// Stream each item of `items` to `stream`, separated by `separator`. For
 /// example:
 ///
