@@ -103,6 +103,11 @@ if(NOT PCRE2_FOUND)
     target_compile_options(sljit PRIVATE -Wno-conditional-uninitialized)
   endif()
 
+  if(SOURCEMETA_COMPILER_GCC)
+    target_compile_options(sljit PRIVATE -Wno-stringop-overflow)
+    target_compile_options(sljit PRIVATE -fstrict-flex-arrays=0)
+  endif()
+
   if(SOURCEMETA_COMPILER_MSVC)
     target_compile_options(sljit PRIVATE /sdl-)
     target_compile_options(sljit PRIVATE /wd4701)
@@ -138,6 +143,11 @@ if(NOT PCRE2_FOUND)
     target_compile_options(pcre2 PRIVATE -Wno-overlength-strings)
     target_compile_options(pcre2 PRIVATE -Wno-conversion)
     target_compile_options(pcre2 PRIVATE -Wno-type-limits)
+  endif()
+
+  if(SOURCEMETA_COMPILER_GCC)
+    target_compile_options(pcre2 PRIVATE -Wno-stringop-overflow)
+    target_compile_options(pcre2 PRIVATE -fstrict-flex-arrays=0)
   endif()
 
   if(SOURCEMETA_COMPILER_MSVC)
