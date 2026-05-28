@@ -10,13 +10,25 @@ TEST(CSS_css2_rgb_function, valid_int_no_spaces) {
   EXPECT_TRUE(sourcemeta::core::is_css2_rgb_function("rgb(255,0,128)"));
 }
 
-TEST(CSS_css2_rgb_function, valid_int_extra_whitespace) {
+TEST(CSS_css2_rgb_function, valid_int_internal_whitespace) {
   EXPECT_TRUE(
-      sourcemeta::core::is_css2_rgb_function("  rgb (  255 , 0 ,  128  )  "));
+      sourcemeta::core::is_css2_rgb_function("rgb(  255 , 0 ,  128  )"));
 }
 
 TEST(CSS_css2_rgb_function, valid_int_tabs_and_newlines) {
   EXPECT_TRUE(sourcemeta::core::is_css2_rgb_function("rgb(\t255,\n0,\r128)"));
+}
+
+TEST(CSS_css2_rgb_function, invalid_leading_whitespace) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function(" rgb(0,0,0)"));
+}
+
+TEST(CSS_css2_rgb_function, invalid_trailing_whitespace) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb(0,0,0) "));
+}
+
+TEST(CSS_css2_rgb_function, invalid_whitespace_between_rgb_and_paren) {
+  EXPECT_FALSE(sourcemeta::core::is_css2_rgb_function("rgb (0,0,0)"));
 }
 
 TEST(CSS_css2_rgb_function, valid_percentage_basic) {

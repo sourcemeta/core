@@ -3,6 +3,7 @@
 #include <sourcemeta/core/text.h>
 
 #include <array>   // std::array
+#include <cassert> // assert
 #include <cstdint> // std::uint8_t
 
 namespace {
@@ -15,6 +16,7 @@ constexpr auto is_css_whitespace(const char character) noexcept -> bool {
 
 constexpr auto equals_ascii_ci(const std::string_view left,
                                const std::string_view right) noexcept -> bool {
+  assert(left.size() == right.size());
   for (std::string_view::size_type position{0}; position < left.size();
        position += 1) {
     if (sourcemeta::core::to_lowercase(left[position]) != right[position]) {
@@ -171,13 +173,12 @@ auto is_css2_color_keyword(const std::string_view value) noexcept -> bool {
 auto is_css2_rgb_function(const std::string_view value) noexcept -> bool {
   std::string_view::size_type position{0};
 
-  skip_whitespace(value, position);
-
+  // Per CSS 2.1, the function-token is `IDENT(` with no whitespace between
+  // the identifier and the opening paren, and the `<color>` value itself
+  // does not include surrounding whitespace
   if (!match_literal_ci(value, position, "rgb")) {
     return false;
   }
-
-  skip_whitespace(value, position);
 
   if (!match_byte(value, position, '(')) {
     return false;
@@ -222,7 +223,6 @@ auto is_css2_rgb_function(const std::string_view value) noexcept -> bool {
   if (!match_byte(value, position, ')')) {
     return false;
   }
-  skip_whitespace(value, position);
 
   return position == value.size();
 }
