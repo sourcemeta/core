@@ -109,7 +109,8 @@ auto parse_property_file(const std::filesystem::path &input_path,
             sourcemeta::core::trim(sourcemeta::core::take_until(payload, '#'))};
         const auto first_split{sourcemeta::core::split_once(trimmed, ';')};
         if (!first_split.has_value()) {
-          return std::nullopt;
+          throw std::runtime_error{
+              std::string{"Unparseable line: "}.append(payload)};
         }
         const auto range_part{sourcemeta::core::trim(first_split->first)};
         const auto after_first{sourcemeta::core::trim(first_split->second)};
