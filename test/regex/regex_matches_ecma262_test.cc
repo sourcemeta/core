@@ -1069,12 +1069,6 @@ TEST(Regex_matches, ecma262_complex_char_class_with_escaped_chars) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
 }
 
-TEST(Regex_matches, ecma262_empty_char_class) {
-  const auto regex{sourcemeta::core::to_regex("[]")};
-  EXPECT_FALSE(regex.has_value());
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[]"));
-}
-
 TEST(Regex_matches, ecma262_incomplete_unicode_property) {
   const auto regex{sourcemeta::core::to_regex("\\p{Letter")};
   EXPECT_FALSE(regex.has_value());
@@ -1127,18 +1121,22 @@ TEST(Regex_matches, ecma262_right_bracket_as_first_char_in_class) {
   const auto regex{sourcemeta::core::to_regex("[]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[]]"));
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "]"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "["));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
 }
 
 TEST(Regex_matches, ecma262_right_bracket_negated_class) {
   const auto regex{sourcemeta::core::to_regex("[^]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^]]"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a]"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "x]"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]]"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "]"));
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "["));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
 }
 
 TEST(Regex_matches, ecma262_dollar_before_opening_paren) {
@@ -1284,12 +1282,6 @@ TEST(Regex_matches, ecma262_escaped_closing_bracket_in_class) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "c"));
-}
-
-TEST(Regex_matches, ecma262_negated_empty_class) {
-  const auto regex{sourcemeta::core::to_regex("[^]")};
-  EXPECT_FALSE(regex.has_value());
-  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("[^]"));
 }
 
 TEST(Regex_matches, ecma262_unicode_hex_too_large) {
@@ -3363,4 +3355,44 @@ TEST(Regex_matches, ecma262_datetime_range_pattern) {
       regex.value(), "(2023-04-28T10:10:10.10Z,2023-04-28T20:20:10.10Z]"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "hello"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "2023"));
+}
+
+TEST(Regex_matches, ecma262_empty_class) {
+  const auto regex{sourcemeta::core::to_regex("[]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\n"));
+}
+
+TEST(Regex_matches, ecma262_empty_class_negated) {
+  const auto regex{sourcemeta::core::to_regex("[^]")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^]"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "1"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\n"));
+}
+
+TEST(Regex_matches, ecma262_empty_class_negated_anchored) {
+  const auto regex{sourcemeta::core::to_regex("^[^]$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("^[^]$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\n"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(Regex_matches, ecma262_empty_class_negated_quantified) {
+  const auto regex{sourcemeta::core::to_regex("[^]+")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^]+"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
 }
