@@ -123,7 +123,15 @@ function(sourcemeta_add_default_options visibility target)
       # Disables runtime type information
       $<$<OR:$<COMPILE_LANGUAGE:CXX>,$<COMPILE_LANGUAGE:OBJCXX>>:-fno-rtti>
       # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
+      -Wtrampolines
+      -Wbidi-chars=any
       -fstack-clash-protection)
+
+    # Prevent the compiler from assuming shared library symbols could be
+    # interposed at runtime, enabling more inlining and devirtualization
+    if(BUILD_SHARED_LIBS)
+      target_compile_options("${target}" ${visibility} -fno-semantic-interposition)
+    endif()
 
     # _GLIBCXX_ASSERTIONS is libstdc++ (GNU) specific, not honored by libc++
     # (which the LLVM toolchain on Apple ships). Restrict to non-Apple GCC
