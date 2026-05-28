@@ -6,6 +6,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
     io_canonical_test.cc
     io_fileview_test.cc
     io_flush_test.cc
+    io_for_each_line_test.cc
     io_hardlink_directory_test.cc
     io_read_file_test.cc
     io_read_to_string_test.cc
