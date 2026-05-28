@@ -222,11 +222,8 @@ inline auto read_stdin() -> std::string { return read_to_string(std::cin); }
 
 /// @ingroup io
 ///
-/// Invoke `callback` once per `\n`-separated line read from `stream`,
-/// passing each line as a `std::string_view`. Reuses a single
-/// `std::string` buffer across iterations so only one line is live at a
-/// time, making this suitable for large inputs. The view is invalidated
-/// when the callback returns. For example:
+/// Iterate the lines of `stream`, invoking `callback` with each line. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/io.h>

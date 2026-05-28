@@ -76,10 +76,8 @@ auto truncate(std::string &input, const std::size_t maximum_length,
 
 /// @ingroup text
 ///
-/// Return `input` with leading and trailing ASCII whitespace removed.
-/// Whitespace characters are space, horizontal tab, line feed, vertical
-/// tab, form feed, and carriage return. The returned view references the
-/// same memory as `input`. For example:
+/// Return `input` with leading and trailing ASCII whitespace removed. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>
@@ -95,8 +93,7 @@ auto trim(const std::string_view input) noexcept -> std::string_view;
 /// @ingroup text
 ///
 /// Return the prefix of `input` up to (but excluding) the first occurrence
-/// of `marker`, or the full input when `marker` is absent. The returned
-/// view references the same memory as `input`. For example:
+/// of `marker`, or the full input when `marker` is absent. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>
@@ -112,10 +109,9 @@ auto take_until(const std::string_view input, const char marker) noexcept
 
 /// @ingroup text
 ///
-/// Split `input` at the first occurrence of `delimiter` and return
-/// `(before, after)`, with the delimiter consumed. Return `std::nullopt`
-/// when the delimiter is absent. The returned views reference the same
-/// memory as `input`. For example:
+/// Split `input` at the first occurrence of `delimiter`, returning the
+/// parts before and after it. Return `std::nullopt` when the delimiter is
+/// absent. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>
@@ -133,10 +129,9 @@ auto split_once(const std::string_view input, const char delimiter) noexcept
 
 /// @ingroup text
 ///
-/// Split `input` at the first occurrence of `delimiter` and return
-/// `(before, after)`, with the delimiter consumed. Return `std::nullopt`
-/// when the delimiter is absent or empty. The returned views reference the
-/// same memory as `input`. For example:
+/// Split `input` at the first occurrence of `delimiter`, returning the
+/// parts before and after it. Return `std::nullopt` when the delimiter is
+/// absent or empty. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>
@@ -154,9 +149,7 @@ auto split_once(const std::string_view input,
 
 /// @ingroup text
 ///
-/// Stream each item of `items` to `stream`, separated by `separator`.
-/// Items are streamed via `operator<<`, so callers wanting custom
-/// formatting can pipe `items` through `std::views::transform` first. For
+/// Stream each item of `items` to `stream`, separated by `separator`. For
 /// example:
 ///
 /// ```cpp
