@@ -78,7 +78,8 @@ function(sourcemeta_add_default_options visibility target)
       # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
       -Wformat
       -Wformat=2
-      -Werror=format-security)
+      -Werror=format-security
+      -fstrict-flex-arrays=3)
 
     # Hardware-assisted control-flow protection. The compiler emits these as
     # HINT-space instructions that are NOPs on CPUs without the feature, so
