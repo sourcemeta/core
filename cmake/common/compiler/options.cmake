@@ -79,6 +79,7 @@ function(sourcemeta_add_default_options visibility target)
       -Wformat
       -Wformat=2
       -Werror=format-security
+      -fstack-protector-strong
       -fstrict-flex-arrays=3)
 
     # Hardware-assisted control-flow protection. The compiler emits these as
