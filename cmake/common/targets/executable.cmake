@@ -32,7 +32,7 @@ function(sourcemeta_executable)
   sourcemeta_add_default_options(PRIVATE ${TARGET_NAME})
 
   # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
-  # PIE linker flags for ASLR support. The compile-time -fPIC is already
+  # PIE linker flags for ASLR support. The compile-time -fPIE is already
   # enabled globally via CMAKE_POSITION_INDEPENDENT_CODE in defaults.cmake.
   if(SOURCEMETA_COMPILER_LLVM OR SOURCEMETA_COMPILER_GCC)
     target_link_options(${TARGET_NAME} PRIVATE
