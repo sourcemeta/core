@@ -358,11 +358,11 @@ TEST(DNS_idn_hostname, invalid_first_char_enclosing_mark) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("\xd2\x88hello"));
 }
 
-// RFC 3492 §6.2: 'xn--X' has no Punycode body that decodes meaningfully.
-// RFC 1123 §2.1 ASCII LDH grammar accepts the literal form
+// RFC 3492 §6.2: 'xn--X' has no Punycode body that decodes meaningfully,
+// and RFC 5890 §2.3.2.1 routes the ACE prefix through A-label validation
 TEST(DNS_idn_hostname, invalid_punycode_xn_dash_dash_X) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--X"));
-  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--X"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--X"));
 }
 
 // RFC 5892 §2.6: PVALID exceptions ßς་〇 (LTR)

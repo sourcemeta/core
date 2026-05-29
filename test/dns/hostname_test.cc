@@ -123,13 +123,142 @@ TEST(DNS_hostname, valid_punycoded_draft4) {
   EXPECT_TRUE(sourcemeta::core::is_idn_hostname("xn--4gbwdl.xn--wgbh1c"));
 }
 
-// RFC 1123 §2.1 has no positions-3-4 rule, so the ASCII grammar accepts.
-// RFC 5891 §4.2.3.1 rejects: case-insensitive xn-- detection treats this as
-// an A-label whose Punycode body decodes to a U-label with "--" at the
-// forbidden positions
+// RFC 5891 §4.2.3.1: case-insensitive xn-- detection treats this as an
+// A-label whose Punycode body fails the IDNA 2008 validation
 TEST(DNS_hostname, xn_positions_34_both_hyphen) {
-  EXPECT_TRUE(sourcemeta::core::is_hostname("XN--aa---o47jg78q"));
+  EXPECT_FALSE(sourcemeta::core::is_hostname("XN--aa---o47jg78q"));
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--aa---o47jg78q"));
+}
+
+// RFC 5890 §2.3.2.1: empty Punycode body after the xn-- prefix
+TEST(DNS_hostname, xn_empty_punycode_body) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--X"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--X"));
+}
+
+// RFC 5891 §4.2.3.2: decoded A-label must not start with a Spacing
+// Combining Mark
+TEST(DNS_hostname, xn_leading_spacing_combining_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--hello-txk"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--hello-txk"));
+}
+
+// RFC 5891 §4.2.3.2: decoded A-label must not start with a Nonspacing Mark
+TEST(DNS_hostname, xn_leading_nonspacing_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--hello-zed"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--hello-zed"));
+}
+
+// RFC 5891 §4.2.3.2: decoded A-label must not start with an Enclosing Mark
+TEST(DNS_hostname, xn_leading_enclosing_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--hello-6bf"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--hello-6bf"));
+}
+
+// RFC 5892 §2.6: DISALLOWED code points (e.g. U+302E HANGUL SINGLE DOT
+// TONE MARK) must not appear in the decoded U-label
+TEST(DNS_hostname, xn_disallowed_codepoint_in_first_label) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--07jt112bpxg.xn--9t4b11yi5a"));
+  EXPECT_FALSE(
+      sourcemeta::core::is_idn_hostname("xn--07jt112bpxg.xn--9t4b11yi5a"));
+}
+
+// RFC 5892 §2.6: DISALLOWED right-to-left exception code point
+TEST(DNS_hostname, xn_disallowed_rtl_exception) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--chb89f"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--chb89f"));
+}
+
+// RFC 5892 §2.6: DISALLOWED combining marks in non-leading position
+TEST(DNS_hostname, xn_disallowed_non_leading_combining_marks) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--07jceefgh4c"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--07jceefgh4c"));
+}
+
+// RFC 5892 Appendix A.3: MIDDLE DOT must sit between two ASCII "l"
+TEST(DNS_hostname, xn_middle_dot_no_leading_l) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--al-0ea"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--al-0ea"));
+}
+
+TEST(DNS_hostname, xn_middle_dot_no_preceding_codepoint) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--l-fda"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--l-fda"));
+}
+
+TEST(DNS_hostname, xn_middle_dot_no_trailing_l) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--la-0ea"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--la-0ea"));
+}
+
+TEST(DNS_hostname, xn_middle_dot_no_following_codepoint) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--l-gda"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--l-gda"));
+}
+
+// RFC 5892 Appendix A.4: Greek KERAIA must be followed by a Greek code point
+TEST(DNS_hostname, xn_keraia_followed_by_non_greek) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--S-jib3p"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--S-jib3p"));
+}
+
+TEST(DNS_hostname, xn_keraia_at_end_of_label) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--wva3j"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--wva3j"));
+}
+
+// RFC 5892 Appendix A.5: Hebrew GERESH must be preceded by a Hebrew
+// code point
+TEST(DNS_hostname, xn_geresh_preceded_by_latin) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--A-2hc5h"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--A-2hc5h"));
+}
+
+TEST(DNS_hostname, xn_geresh_at_start_of_label) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--5db1e"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--5db1e"));
+}
+
+// RFC 5892 Appendix A.6: Hebrew GERSHAYIM must be preceded by a Hebrew
+// code point
+TEST(DNS_hostname, xn_gershayim_preceded_by_latin) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--A-2hc8h"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--A-2hc8h"));
+}
+
+TEST(DNS_hostname, xn_gershayim_at_start_of_label) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--5db3e"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--5db3e"));
+}
+
+// RFC 5892 Appendix A.7: KATAKANA MIDDLE DOT requires an adjacent
+// Hiragana, Katakana, or Han code point
+TEST(DNS_hostname, xn_katakana_middle_dot_only_latin_neighbours) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--defabc-k64e"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--defabc-k64e"));
+}
+
+TEST(DNS_hostname, xn_katakana_middle_dot_no_neighbours) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--vek"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--vek"));
+}
+
+// RFC 5892 Appendix A.8: Arabic-Indic digits and Extended Arabic-Indic
+// digits must not coexist in the same label
+TEST(DNS_hostname, xn_mixed_arabic_indic_digit_kinds) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--ngb6iyr"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--ngb6iyr"));
+}
+
+// RFC 5892 Appendix A.2: ZERO WIDTH JOINER must be preceded by a Virama
+TEST(DNS_hostname, xn_zwj_not_preceded_by_virama) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--11b2er09f"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--11b2er09f"));
+}
+
+TEST(DNS_hostname, xn_zwj_at_start_of_label) {
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--02b508i"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--02b508i"));
 }
 
 // RFC 952 §B: grammar has no rule against consecutive interior hyphens
