@@ -149,11 +149,11 @@ TEST(Text_to_lowercase, wide_just_after_lowercase_range_unchanged) {
 }
 
 TEST(Text_to_lowercase, wide_above_ascii_unchanged) {
-  EXPECT_EQ(sourcemeta::core::to_lowercase(L'À'), L'À');
+  EXPECT_EQ(sourcemeta::core::to_lowercase(L'\u00C0'), L'\u00C0');
 }
 
 TEST(Text_to_lowercase, wide_far_above_ascii_unchanged) {
-  EXPECT_EQ(sourcemeta::core::to_lowercase(L'☃'), L'☃');
+  EXPECT_EQ(sourcemeta::core::to_lowercase(L'\u2603'), L'\u2603');
 }
 
 TEST(Text_to_lowercase_string, empty) {
@@ -319,15 +319,15 @@ TEST(Text_to_lowercase_wstring, embedded_null_preserved) {
 }
 
 TEST(Text_to_lowercase_wstring, above_ascii_unchanged) {
-  std::wstring value{L"ÀÉÎ"};
+  std::wstring value{L"\u00C0\u00C9\u00CE"};
   sourcemeta::core::to_lowercase(value);
-  EXPECT_EQ(value, L"ÀÉÎ");
+  EXPECT_EQ(value, L"\u00C0\u00C9\u00CE");
 }
 
 TEST(Text_to_lowercase_wstring, mixed_ascii_and_above_ascii) {
-  std::wstring value{L"FOOÀBAR"};
+  std::wstring value{L"FOO\u00C0BAR"};
   sourcemeta::core::to_lowercase(value);
-  EXPECT_EQ(value, L"fooÀbar");
+  EXPECT_EQ(value, L"foo\u00C0bar");
 }
 
 TEST(Text_to_lowercase_wstring, size_unchanged) {
