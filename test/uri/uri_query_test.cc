@@ -589,3 +589,98 @@ TEST(URI_query, at_plus_sign_not_decoded_as_space) {
   ASSERT_TRUE(value.has_value());
   EXPECT_EQ(value.value(), "a+b");
 }
+
+TEST(URI_query, standalone_raw_preserves_input) {
+  const sourcemeta::core::URI::Query query{"foo=bar&baz=qux"};
+  EXPECT_EQ(query.raw(), "foo=bar&baz=qux");
+}
+
+TEST(URI_query, standalone_empty_input) {
+  const sourcemeta::core::URI::Query query{""};
+  EXPECT_EQ(query.raw(), "");
+  EXPECT_EQ(query.begin(), query.end());
+  EXPECT_FALSE(query.at("anything").has_value());
+}
+
+TEST(URI_query, standalone_at_single_match) {
+  const sourcemeta::core::URI::Query query{"foo=bar"};
+  const auto value{query.at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "bar");
+}
+
+TEST(URI_query, standalone_at_missing_key_returns_nullopt) {
+  const sourcemeta::core::URI::Query query{"foo=bar"};
+  EXPECT_FALSE(query.at("missing").has_value());
+}
+
+TEST(URI_query, standalone_at_first_wins_on_duplicates) {
+  const sourcemeta::core::URI::Query query{"foo=1&foo=2&foo=3"};
+  const auto value{query.at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "1");
+}
+
+TEST(URI_query, standalone_at_key_without_equals_returns_empty_string) {
+  const sourcemeta::core::URI::Query query{"foo"};
+  const auto value{query.at("foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "");
+}
+
+TEST(URI_query, standalone_iterator_single_pair) {
+  const sourcemeta::core::URI::Query query{"foo=bar"};
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 1);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "bar");
+}
+
+TEST(URI_query, standalone_iterator_two_pairs_in_order) {
+  const sourcemeta::core::URI::Query query{"foo=bar&baz=qux"};
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 2);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "bar");
+  EXPECT_EQ(pairs[1].first, "baz");
+  EXPECT_EQ(pairs[1].second, "qux");
+}
+
+TEST(URI_query, standalone_iterator_consecutive_ampersands) {
+  const sourcemeta::core::URI::Query query{"foo=bar&&baz=qux"};
+  std::vector<std::pair<std::string_view, std::string_view>> pairs;
+  for (const auto &pair : query) {
+    pairs.emplace_back(pair);
+  }
+  ASSERT_EQ(pairs.size(), 3);
+  EXPECT_EQ(pairs[0].first, "foo");
+  EXPECT_EQ(pairs[0].second, "bar");
+  EXPECT_EQ(pairs[1].first, "");
+  EXPECT_EQ(pairs[1].second, "");
+  EXPECT_EQ(pairs[2].first, "baz");
+  EXPECT_EQ(pairs[2].second, "qux");
+}
+
+TEST(URI_query, standalone_view_points_into_input_storage) {
+  const std::string_view raw{"foo=bar&baz=qux"};
+  const sourcemeta::core::URI::Query query{raw};
+  EXPECT_EQ(query.raw().data(), raw.data());
+  const auto value{query.at("baz")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value().data(), raw.data() + raw.find("qux"));
+}
+
+TEST(URI_query, standalone_no_question_mark_prefix_expected) {
+  const sourcemeta::core::URI::Query query{"?foo=bar"};
+  EXPECT_EQ(query.raw(), "?foo=bar");
+  const auto value{query.at("?foo")};
+  ASSERT_TRUE(value.has_value());
+  EXPECT_EQ(value.value(), "bar");
+  EXPECT_FALSE(query.at("foo").has_value());
+}
