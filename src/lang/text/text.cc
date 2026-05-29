@@ -19,17 +19,9 @@ auto is_ascii_whitespace(const char character) noexcept -> bool {
 
 namespace sourcemeta::core {
 
-auto to_lowercase(std::string &value) -> void {
-  for (auto &character : value) {
-    character = to_lowercase(character);
-  }
-}
-
 auto to_lowercase(std::filesystem::path &value) -> void {
   auto native{value.native()};
-  for (auto &character : native) {
-    character = to_lowercase(character);
-  }
+  to_lowercase(native);
   value = std::filesystem::path{std::move(native)};
 }
 

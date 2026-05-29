@@ -219,6 +219,90 @@ TEST(Text_to_lowercase_string, size_unchanged) {
   EXPECT_EQ(value.size(), 11);
 }
 
+TEST(Text_to_lowercase_wstring, empty) {
+  std::wstring value{L""};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"");
+}
+
+TEST(Text_to_lowercase_wstring, single_uppercase) {
+  std::wstring value{L"A"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"a");
+}
+
+TEST(Text_to_lowercase_wstring, single_lowercase_unchanged) {
+  std::wstring value{L"a"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"a");
+}
+
+TEST(Text_to_lowercase_wstring, single_digit_unchanged) {
+  std::wstring value{L"5"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"5");
+}
+
+TEST(Text_to_lowercase_wstring, all_uppercase) {
+  std::wstring value{L"HELLO"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"hello");
+}
+
+TEST(Text_to_lowercase_wstring, all_lowercase_unchanged) {
+  std::wstring value{L"hello"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"hello");
+}
+
+TEST(Text_to_lowercase_wstring, mixed_case) {
+  std::wstring value{L"Hello WORLD"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"hello world");
+}
+
+TEST(Text_to_lowercase_wstring, digits_and_letters) {
+  std::wstring value{L"ABC123xyz"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"abc123xyz");
+}
+
+TEST(Text_to_lowercase_wstring, punctuation_preserved) {
+  std::wstring value{L"Foo, BAR!"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"foo, bar!");
+}
+
+TEST(Text_to_lowercase_wstring, whitespace_preserved) {
+  std::wstring value{L"\tFOO\nBAR\r"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"\tfoo\nbar\r");
+}
+
+TEST(Text_to_lowercase_wstring, embedded_null_preserved) {
+  std::wstring value{L"AB\0CD", 5};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, std::wstring(L"ab\0cd", 5));
+}
+
+TEST(Text_to_lowercase_wstring, above_ascii_unchanged) {
+  std::wstring value{L"ÀÉÎ"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"ÀÉÎ");
+}
+
+TEST(Text_to_lowercase_wstring, mixed_ascii_and_above_ascii) {
+  std::wstring value{L"FOOÀBAR"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"fooÀbar");
+}
+
+TEST(Text_to_lowercase_wstring, size_unchanged) {
+  std::wstring value{L"HELLO_WORLD"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value.size(), 11);
+}
+
 TEST(Text_to_lowercase_path, empty) {
   std::filesystem::path value{""};
   sourcemeta::core::to_lowercase(value);

@@ -76,8 +76,13 @@ inline constexpr auto to_lowercase(const Character character) noexcept
 /// sourcemeta::core::to_lowercase(value);
 /// assert(value == "hello world");
 /// ```
-SOURCEMETA_CORE_TEXT_EXPORT
-auto to_lowercase(std::string &value) -> void;
+template <typename Character>
+  requires std::same_as<Character, char> || std::same_as<Character, wchar_t>
+inline auto to_lowercase(std::basic_string<Character> &value) -> void {
+  for (auto &character : value) {
+    character = to_lowercase(character);
+  }
+}
 
 /// @ingroup text
 ///
