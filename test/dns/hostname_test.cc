@@ -130,8 +130,9 @@ TEST(DNS_hostname, xn_positions_34_both_hyphen) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("XN--aa---o47jg78q"));
 }
 
-// RFC 5890 §2.3.2.1: empty Punycode body after the xn-- prefix
-TEST(DNS_hostname, xn_empty_punycode_body) {
+// RFC 5890 §2.3.2.1: a one-character Punycode body that does not decode to a
+// valid U-label cannot be a real A-label
+TEST(DNS_hostname, xn_undecodable_punycode_body) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("xn--X"));
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("xn--X"));
 }
