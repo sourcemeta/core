@@ -3,6 +3,7 @@
 #include <sourcemeta/core/text.h>
 
 #include <filesystem>
+#include <memory>
 #include <string>
 
 TEST(Text_to_lowercase, uppercase_a) {
@@ -64,6 +65,38 @@ TEST(Text_to_lowercase, non_ascii_byte_unchanged) {
 
 TEST(Text_to_lowercase, high_bit_byte_unchanged) {
   const char character{static_cast<char>(0xFF)};
+  EXPECT_EQ(sourcemeta::core::to_lowercase(character), character);
+}
+
+TEST(Text_to_lowercase, signed_char_uppercase) {
+  const signed char character{'A'};
+  EXPECT_EQ(sourcemeta::core::to_lowercase(character),
+            static_cast<signed char>('a'));
+}
+
+TEST(Text_to_lowercase, signed_char_digit_unchanged) {
+  const signed char character{'5'};
+  EXPECT_EQ(sourcemeta::core::to_lowercase(character), character);
+}
+
+TEST(Text_to_lowercase, signed_char_high_bit_unchanged) {
+  const signed char character{static_cast<signed char>(-1)};
+  EXPECT_EQ(sourcemeta::core::to_lowercase(character), character);
+}
+
+TEST(Text_to_lowercase, unsigned_char_uppercase) {
+  const unsigned char character{'A'};
+  EXPECT_EQ(sourcemeta::core::to_lowercase(character),
+            static_cast<unsigned char>('a'));
+}
+
+TEST(Text_to_lowercase, unsigned_char_digit_unchanged) {
+  const unsigned char character{'5'};
+  EXPECT_EQ(sourcemeta::core::to_lowercase(character), character);
+}
+
+TEST(Text_to_lowercase, unsigned_char_high_bit_unchanged) {
+  const unsigned char character{0xFFu};
   EXPECT_EQ(sourcemeta::core::to_lowercase(character), character);
 }
 
@@ -301,6 +334,27 @@ TEST(Text_to_lowercase_wstring, size_unchanged) {
   std::wstring value{L"HELLO_WORLD"};
   sourcemeta::core::to_lowercase(value);
   EXPECT_EQ(value.size(), 11);
+}
+
+TEST(Text_to_lowercase_basic_string, custom_allocator_char) {
+  std::basic_string<char, std::char_traits<char>, std::allocator<char>> value{
+      "Hello WORLD"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, "hello world");
+}
+
+TEST(Text_to_lowercase_basic_string, custom_allocator_wchar_t) {
+  std::basic_string<wchar_t, std::char_traits<wchar_t>, std::allocator<wchar_t>>
+      value{L"Hello WORLD"};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, L"hello world");
+}
+
+TEST(Text_to_lowercase_basic_string, unsigned_char_string) {
+  std::basic_string<unsigned char> value{
+      reinterpret_cast<const unsigned char *>("Hello WORLD")};
+  sourcemeta::core::to_lowercase(value);
+  EXPECT_EQ(value, reinterpret_cast<const unsigned char *>("hello world"));
 }
 
 TEST(Text_to_lowercase_path, empty) {

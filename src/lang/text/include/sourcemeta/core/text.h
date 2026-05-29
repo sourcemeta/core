@@ -55,7 +55,10 @@ auto to_title_case(std::string &value) -> void;
 /// assert(sourcemeta::core::to_lowercase('5') == '5');
 /// ```
 template <typename Character>
-  requires std::same_as<Character, char> || std::same_as<Character, wchar_t>
+  requires std::same_as<Character, char> ||
+           std::same_as<Character, signed char> ||
+           std::same_as<Character, unsigned char> ||
+           std::same_as<Character, wchar_t>
 inline constexpr auto to_lowercase(const Character character) noexcept
     -> Character {
   return (character >= 'A' && character <= 'Z')
@@ -76,9 +79,12 @@ inline constexpr auto to_lowercase(const Character character) noexcept
 /// sourcemeta::core::to_lowercase(value);
 /// assert(value == "hello world");
 /// ```
-template <typename Character>
-  requires std::same_as<Character, char> || std::same_as<Character, wchar_t>
-inline auto to_lowercase(std::basic_string<Character> &value) -> void {
+template <typename Character, typename Traits, typename Allocator>
+  requires requires(Character character) {
+    { to_lowercase(character) } -> std::same_as<Character>;
+  }
+inline auto to_lowercase(std::basic_string<Character, Traits, Allocator> &value)
+    -> void {
   for (auto &character : value) {
     character = to_lowercase(character);
   }
