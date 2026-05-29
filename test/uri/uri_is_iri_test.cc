@@ -139,6 +139,22 @@ TEST(URI_is_iri, overlong_two_byte_rejected) {
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
 }
 
+TEST(URI_is_iri, overlong_three_byte_for_ucschar_rejected) {
+  const std::string input{"https://example.com/\xE0\x82\xAF"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, overlong_four_byte_for_ucschar_rejected) {
+  const std::string input{"https://example.com/\xF0\x80\x82\xAF"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
 TEST(URI_is_iri, full_internationalised_iri) {
   const std::string input{
       "https://user\xE5\x90\x8D@\xE4\xBE\x8B\xE3\x81\x88.jp/"

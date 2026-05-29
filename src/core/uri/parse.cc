@@ -74,7 +74,9 @@ decode_utf8_codepoint(const std::string_view input,
     codepoint = (codepoint << 6) | static_cast<char32_t>(continuation & 0x3FU);
   }
 
-  if (!sourcemeta::core::is_valid_codepoint(codepoint)) [[unlikely]] {
+  if (!sourcemeta::core::is_valid_codepoint(codepoint) ||
+      sourcemeta::core::utf8_codepoint_byte_count(codepoint) != length)
+      [[unlikely]] {
     throw sourcemeta::core::URIParseError{
         static_cast<std::uint64_t>(position + 1)};
   }
