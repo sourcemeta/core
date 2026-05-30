@@ -548,8 +548,23 @@ auto URITemplateRouterView::match(
     const auto segment_length =
         static_cast<std::uint32_t>(position - segment_start);
 
-    // Empty segment (from double slash or trailing slash) doesn't match
     if (segment_length == 0) {
+      if (position >= path_end) {
+        const auto &node = nodes[current_node];
+        if (node.first_literal_child != NO_CHILD &&
+            node.first_literal_child < header->node_count &&
+            node.literal_child_count <=
+                header->node_count - node.first_literal_child) {
+          const auto empty_match = binary_search_literal_children(
+              nodes, string_table, string_table_size, node.first_literal_child,
+              node.literal_child_count, "", 0);
+          if (empty_match != NO_CHILD) {
+            return finalize_match(otherwise_context,
+                                  nodes[empty_match].identifier,
+                                  nodes[empty_match].context);
+          }
+        }
+      }
       return finalize_match(otherwise_context, 0, 0);
     }
 

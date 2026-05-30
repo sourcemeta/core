@@ -2531,3 +2531,193 @@ TEST(URITemplateRouter, operation_id_after_overwrite) {
   EXPECT_TRUE(router.operation_id(1).empty());
   EXPECT_EQ(router.operation_id(2), "list_users_v2");
 }
+
+TEST(URITemplateRouter, trailing_slash_distinct_from_bare_match_bare) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_700", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_distinct_from_bare_no_match_slashed) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_701", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo/", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_only_registration_matches_slashed) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/", "op_702", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo/", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_only_registration_no_match_bare) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/", "op_703", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_both_forms_registered_match_bare) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_704", 1);
+  router.add("/foo/", "op_705", 2);
+  EXPECT_ROUTER_MATCH(router, "/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_both_forms_registered_match_slashed) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_706", 1);
+  router.add("/foo/", "op_707", 2);
+  EXPECT_ROUTER_MATCH(router, "/foo/", 2, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_both_forms_registered_size_is_two) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_708", 1);
+  router.add("/foo/", "op_709", 2);
+  EXPECT_EQ(router.size(), 2);
+}
+
+TEST(URITemplateRouter,
+     trailing_slash_both_forms_registered_lookup_by_operation_id) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_710", 1);
+  router.add("/foo/", "op_711", 2);
+  const auto bare = router.operation("op_710");
+  const auto slashed = router.operation("op_711");
+  EXPECT_EQ(bare.first, 1);
+  EXPECT_EQ(slashed.first, 2);
+}
+
+TEST(URITemplateRouter,
+     trailing_slash_both_forms_registered_path_reconstruction) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo", "op_712", 1);
+  router.add("/foo/", "op_713", 2);
+  EXPECT_EQ(router.path(1), "/foo");
+  EXPECT_EQ(router.path(2), "/foo/");
+}
+
+TEST(URITemplateRouter, trailing_slash_multi_segment_match_slashed) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/bar/", "op_714", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo/bar/", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_multi_segment_no_match_bare) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/bar/", "op_715", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo/bar", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_after_variable_match_slashed) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}/", "op_716", 1);
+  EXPECT_ROUTER_MATCH(router, "/users/42/", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures, 0, "id", "42");
+}
+
+TEST(URITemplateRouter, trailing_slash_after_variable_no_match_bare) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}/", "op_717", 1);
+  EXPECT_ROUTER_MATCH(router, "/users/42", 0, 0, captures);
+}
+
+TEST(URITemplateRouter, trailing_slash_both_forms_with_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/{id}", "op_718", 1);
+  router.add("/users/{id}/", "op_719", 2);
+  EXPECT_ROUTER_MATCH(router, "/users/42", 1, 0, captures_bare);
+  EXPECT_EQ(captures_bare.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_bare, 0, "id", "42");
+  EXPECT_ROUTER_MATCH(router, "/users/42/", 2, 0, captures_slashed);
+  EXPECT_EQ(captures_slashed.size(), 1);
+  EXPECT_ROUTER_CAPTURE(captures_slashed, 0, "id", "42");
+}
+
+TEST(URITemplateRouter, trailing_slash_does_not_relax_internal_double_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/bar", "op_720", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo//bar", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_with_base_path_match_slashed) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("/foo/", "op_721", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/foo/", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_with_base_path_no_match_bare) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("/foo/", "op_722", 1);
+  EXPECT_ROUTER_MATCH(router, "/api/foo", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_with_base_path_both_forms) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("/foo", "op_723", 1);
+  router.add("/foo/", "op_724", 2);
+  EXPECT_ROUTER_MATCH(router, "/api/foo", 1, 0, captures_bare);
+  EXPECT_EQ(captures_bare.size(), 0);
+  EXPECT_ROUTER_MATCH(router, "/api/foo/", 2, 0, captures_slashed);
+  EXPECT_EQ(captures_slashed.size(), 0);
+}
+
+TEST(URITemplateRouter,
+     trailing_slash_multiple_trailing_slashes_in_template_collapse_to_one) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo///", "op_725", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo/", 1, 0, captures_one);
+  EXPECT_EQ(captures_one.size(), 0);
+  EXPECT_ROUTER_MATCH(router, "/foo", 0, 0, captures_bare);
+  EXPECT_EQ(captures_bare.size(), 0);
+}
+
+TEST(URITemplateRouter,
+     trailing_slash_multiple_trailing_slashes_in_request_no_match) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/", "op_726", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo//", 0, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, trailing_slash_both_forms_each_has_distinct_arguments) {
+  sourcemeta::core::URITemplateRouter router;
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> bare_args{
+      sourcemeta::core::URITemplateRouter::Argument{
+          "kind", sourcemeta::core::URITemplateRouter::ArgumentValue{
+                      std::string_view{"bare"}}}};
+  const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
+      slashed_args{sourcemeta::core::URITemplateRouter::Argument{
+          "kind", sourcemeta::core::URITemplateRouter::ArgumentValue{
+                      std::string_view{"slashed"}}}};
+  router.add("/foo", "op_727", 1, 0, bare_args);
+  router.add("/foo/", "op_728", 2, 0, slashed_args);
+  std::string bare_kind;
+  router.arguments(
+      1, [&bare_kind](const std::string_view name, const auto &value) {
+        if (name == "kind" && std::holds_alternative<std::string_view>(value)) {
+          bare_kind = std::get<std::string_view>(value);
+        }
+      });
+  std::string slashed_kind;
+  router.arguments(
+      2, [&slashed_kind](const std::string_view name, const auto &value) {
+        if (name == "kind" && std::holds_alternative<std::string_view>(value)) {
+          slashed_kind = std::get<std::string_view>(value);
+        }
+      });
+  EXPECT_EQ(bare_kind, "bare");
+  EXPECT_EQ(slashed_kind, "slashed");
+}

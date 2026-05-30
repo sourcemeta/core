@@ -491,6 +491,11 @@ auto URITemplateRouter::add(const std::string_view uri_template,
     current = &find_or_create_literal_child(literals, "");
   }
 
+  if (!absorbed && current != nullptr && current != base_path_end &&
+      uri_template.size() > 1 && uri_template.back() == '/') {
+    current = &find_or_create_literal_child(current->literals, "");
+  }
+
   if (!absorbed && current != nullptr) {
     const auto previous_identifier = current->identifier;
     if (previous_identifier == 0) {
@@ -586,8 +591,13 @@ auto URITemplateRouter::match(const std::string_view path,
     const std::string_view segment{
         segment_start, static_cast<std::size_t>(position - segment_start)};
 
-    // Empty segment (from double slash or trailing slash) doesn't match
     if (segment.empty()) {
+      if (position >= path_end) {
+        if (auto *empty_child = find_literal_child(*literal_children, "")) {
+          return finalize_match(this->otherwise_, empty_child->identifier,
+                                empty_child->context);
+        }
+      }
       return finalize_match(this->otherwise_, 0, 0);
     }
 
