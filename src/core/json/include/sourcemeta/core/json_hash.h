@@ -7,6 +7,29 @@
 #include <cstring>    // std::memcpy
 #include <functional> // std::reference_wrapper
 
+// -----------------------------------------------------------------------------
+// SIMD backend auto-detection for `PropertyHashJSON::perfect`.
+//
+// We use SIMD *only* for the size >= 16 case, where the caller has guaranteed
+// at least 16 contiguous readable bytes at `data`. For size < 16 we fall back
+// to scalar `std::memcpy`, which the compiler already inlines to optimal
+// fixed-size moves for these small sizes and is, crucially, free of any
+// out-of-bounds read.
+// -----------------------------------------------------------------------------
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+// NOLINTBEGIN(clang-diagnostic-error)
+// Some older clang-tidy versions choke when parsing newer Xcode/LLVM
+// `arm_neon.h` (e.g. unrecognized `__builtin_neon_*` symbols for bf16 and
+// complex-vector intrinsics). The header is correct, the diagnostic is a
+// clang-tidy bug; suppress it locally.
+#include <arm_neon.h>
+// NOLINTEND(clang-diagnostic-error)
+#define SOURCEMETA_HASH_SIMD_NEON 1
+#elif defined(__SSE2__) || defined(_M_X64) || defined(_M_AMD64)
+#include <emmintrin.h>
+#define SOURCEMETA_HASH_SIMD_SSE2 1
+#endif
+
 namespace sourcemeta::core {
 
 /// @ingroup json
@@ -42,6 +65,44 @@ template <typename T> struct PropertyHashJSON {
       -> hash_type {
     hash_type result;
     assert(size > 0);
+    assert(size <= 31);
+
+#if defined(SOURCEMETA_HASH_SIMD_NEON)
+    if (size >= 16) {
+      // Safe: caller guarantees at least 16 readable bytes at `data`.
+      auto *const dst = reinterpret_cast<std::uint8_t *>(&result) + 1;
+      const auto *const src = reinterpret_cast<const std::uint8_t *>(data);
+      const uint8x16_t v0 = vld1q_u8(src);
+      vst1q_u8(dst, v0);
+      if (size > 16) {
+        // Overlapping tail load aligned to the end of the string. The second
+        // store partially overwrites the first and produces the same byte
+        // coverage as `memcpy(dst, src, size)`, with no mask required.
+        const std::size_t tail_off = size - 16;
+        const uint8x16_t v1 = vld1q_u8(src + tail_off);
+        vst1q_u8(dst + tail_off, v1);
+      }
+      return result;
+    }
+#elif defined(SOURCEMETA_HASH_SIMD_SSE2)
+    if (size >= 16) {
+      auto *const dst = reinterpret_cast<std::uint8_t *>(&result) + 1;
+      const auto *const src = reinterpret_cast<const std::uint8_t *>(data);
+      const __m128i v0 =
+          _mm_loadu_si128(reinterpret_cast<const __m128i *>(src));
+      _mm_storeu_si128(reinterpret_cast<__m128i *>(dst), v0);
+      if (size > 16) {
+        const std::size_t tail_off = size - 16;
+        const __m128i v1 =
+            _mm_loadu_si128(reinterpret_cast<const __m128i *>(src + tail_off));
+        _mm_storeu_si128(reinterpret_cast<__m128i *>(dst + tail_off), v1);
+      }
+      return result;
+    }
+#endif
+
+    // Scalar path: also handles non-SIMD builds and the size < 16 case where
+    // a 16-byte SIMD load would over-read past the live string buffer.
     std::memcpy(reinterpret_cast<char *>(&result) + 1, data, size);
     return result;
   }
@@ -52,163 +113,34 @@ template <typename T> struct PropertyHashJSON {
 
   inline auto operator()(const T &value) const noexcept -> hash_type {
     const auto size{value.size()};
-    switch (size) {
-      case 0:
-        return {};
-      case 1:
-        return this->perfect(value.data(), 1);
-      case 2:
-        return this->perfect(value.data(), 2);
-      case 3:
-        return this->perfect(value.data(), 3);
-      case 4:
-        return this->perfect(value.data(), 4);
-      case 5:
-        return this->perfect(value.data(), 5);
-      case 6:
-        return this->perfect(value.data(), 6);
-      case 7:
-        return this->perfect(value.data(), 7);
-      case 8:
-        return this->perfect(value.data(), 8);
-      case 9:
-        return this->perfect(value.data(), 9);
-      case 10:
-        return this->perfect(value.data(), 10);
-      case 11:
-        return this->perfect(value.data(), 11);
-      case 12:
-        return this->perfect(value.data(), 12);
-      case 13:
-        return this->perfect(value.data(), 13);
-      case 14:
-        return this->perfect(value.data(), 14);
-      case 15:
-        return this->perfect(value.data(), 15);
-      case 16:
-        return this->perfect(value.data(), 16);
-      case 17:
-        return this->perfect(value.data(), 17);
-      case 18:
-        return this->perfect(value.data(), 18);
-      case 19:
-        return this->perfect(value.data(), 19);
-      case 20:
-        return this->perfect(value.data(), 20);
-      case 21:
-        return this->perfect(value.data(), 21);
-      case 22:
-        return this->perfect(value.data(), 22);
-      case 23:
-        return this->perfect(value.data(), 23);
-      case 24:
-        return this->perfect(value.data(), 24);
-      case 25:
-        return this->perfect(value.data(), 25);
-      case 26:
-        return this->perfect(value.data(), 26);
-      case 27:
-        return this->perfect(value.data(), 27);
-      case 28:
-        return this->perfect(value.data(), 28);
-      case 29:
-        return this->perfect(value.data(), 29);
-      case 30:
-        return this->perfect(value.data(), 30);
-      case 31:
-        return this->perfect(value.data(), 31);
-      default:
-        // This case is specifically designed to be constant with regards to
-        // string length, and to exploit the fact that most JSON objects don't
-        // have a lot of entries, so hash collision is not as common
-        auto hash = this->perfect(value.data(), 31);
-        hash.a |=
-            1 + (size + static_cast<typename hash_type::type>(value.front()) +
-                 static_cast<typename hash_type::type>(value.back())) %
-                    // Make sure the property hash can never exceed 8 bits
-                    255;
-        return hash;
+    if (size == 0) {
+      return {};
     }
+    if (size <= 31) {
+      return this->perfect(value.data(), size);
+    }
+    auto hash = this->perfect(value.data(), 31);
+    hash.a |= 1 + (size + static_cast<typename hash_type::type>(value.front()) +
+                   static_cast<typename hash_type::type>(value.back())) %
+                      // Make sure the property hash can never exceed 8 bits
+                      255;
+    return hash;
   }
 
   inline auto operator()(const char *data,
                          const std::size_t size) const noexcept -> hash_type {
-    switch (size) {
-      case 0:
-        return {};
-      case 1:
-        return this->perfect(data, 1);
-      case 2:
-        return this->perfect(data, 2);
-      case 3:
-        return this->perfect(data, 3);
-      case 4:
-        return this->perfect(data, 4);
-      case 5:
-        return this->perfect(data, 5);
-      case 6:
-        return this->perfect(data, 6);
-      case 7:
-        return this->perfect(data, 7);
-      case 8:
-        return this->perfect(data, 8);
-      case 9:
-        return this->perfect(data, 9);
-      case 10:
-        return this->perfect(data, 10);
-      case 11:
-        return this->perfect(data, 11);
-      case 12:
-        return this->perfect(data, 12);
-      case 13:
-        return this->perfect(data, 13);
-      case 14:
-        return this->perfect(data, 14);
-      case 15:
-        return this->perfect(data, 15);
-      case 16:
-        return this->perfect(data, 16);
-      case 17:
-        return this->perfect(data, 17);
-      case 18:
-        return this->perfect(data, 18);
-      case 19:
-        return this->perfect(data, 19);
-      case 20:
-        return this->perfect(data, 20);
-      case 21:
-        return this->perfect(data, 21);
-      case 22:
-        return this->perfect(data, 22);
-      case 23:
-        return this->perfect(data, 23);
-      case 24:
-        return this->perfect(data, 24);
-      case 25:
-        return this->perfect(data, 25);
-      case 26:
-        return this->perfect(data, 26);
-      case 27:
-        return this->perfect(data, 27);
-      case 28:
-        return this->perfect(data, 28);
-      case 29:
-        return this->perfect(data, 29);
-      case 30:
-        return this->perfect(data, 30);
-      case 31:
-        return this->perfect(data, 31);
-      default:
-        // This case is specifically designed to be constant with regards to
-        // string length, and to exploit the fact that most JSON objects don't
-        // have a lot of entries, so hash collision is not as common
-        auto hash = this->perfect(data, 31);
-        hash.a |= 1 + (size + static_cast<typename hash_type::type>(data[0]) +
-                       static_cast<typename hash_type::type>(data[size - 1])) %
-                          // Make sure the property hash can never exceed 8 bits
-                          255;
-        return hash;
+    if (size == 0) {
+      return {};
     }
+    if (size <= 31) {
+      return this->perfect(data, size);
+    }
+    auto hash = this->perfect(data, 31);
+    hash.a |= 1 + (size + static_cast<typename hash_type::type>(data[0]) +
+                   static_cast<typename hash_type::type>(data[size - 1])) %
+                      // Make sure the property hash can never exceed 8 bits
+                      255;
+    return hash;
   }
 
   [[nodiscard]]
