@@ -1118,6 +1118,30 @@ TEST(URITemplateRouter, base_path_with_empty_template) {
   EXPECT_EQ(captures.size(), 0);
 }
 
+TEST(URITemplateRouter, base_path_slash_only_is_no_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/"};
+  EXPECT_TRUE(router.base_path().empty());
+  router.add("/foo", "op_134", 1);
+  EXPECT_ROUTER_MATCH(router, "/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_trailing_slash_normalized) {
+  sourcemeta::core::URITemplateRouter router{"/prefix/"};
+  EXPECT_EQ(router.base_path(), "/prefix");
+  router.add("/foo", "op_135", 1);
+  EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST(URITemplateRouter, base_path_multiple_trailing_slashes_normalized) {
+  sourcemeta::core::URITemplateRouter router{"/prefix///"};
+  EXPECT_EQ(router.base_path(), "/prefix");
+  router.add("/foo", "op_136", 1);
+  EXPECT_ROUTER_MATCH(router, "/prefix/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
 TEST(URITemplateRouter, base_path_expansion) {
   sourcemeta::core::URITemplateRouter router{"/api"};
   EXPECT_EQ(router.base_path(), "/api");
@@ -1179,6 +1203,21 @@ TEST(URITemplateRouter, base_url_set_without_base_path) {
   sourcemeta::core::URITemplateRouter router{"", "https://api.example.com"};
   EXPECT_TRUE(router.base_path().empty());
   EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_trailing_slash_normalized) {
+  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com/"};
+  EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_multiple_trailing_slashes_normalized) {
+  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com///"};
+  EXPECT_EQ(router.base_url(), "https://api.example.com");
+}
+
+TEST(URITemplateRouter, base_url_only_slash_collapses_to_empty) {
+  sourcemeta::core::URITemplateRouter router{"", "/"};
+  EXPECT_TRUE(router.base_url().empty());
 }
 
 TEST(URITemplateRouter, base_url_not_used_for_matching) {
@@ -2737,38 +2776,6 @@ TEST(URITemplateRouter, strict_empty_template_still_special) {
   router.add("", "op_807", 1);
   EXPECT_ROUTER_MATCH(router, "", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
-}
-
-TEST(URITemplateRouter, strict_base_path_preserves_trailing_slash) {
-  sourcemeta::core::URITemplateRouter router{"/api/"};
-  EXPECT_EQ(router.base_path(), "/api/");
-}
-
-TEST(URITemplateRouter,
-     strict_base_path_with_trailing_slash_requires_empty_segment_in_request) {
-  sourcemeta::core::URITemplateRouter router{"/api/"};
-  router.add("/foo", "op_808", 1);
-  EXPECT_ROUTER_MATCH(router, "/api//foo", 1, 0, captures_strict);
-  EXPECT_EQ(captures_strict.size(), 0);
-  EXPECT_ROUTER_MATCH(router, "/api/foo", 0, 0, captures_lenient);
-}
-
-TEST(URITemplateRouter,
-     strict_base_path_without_trailing_slash_matches_canonical_request) {
-  sourcemeta::core::URITemplateRouter router{"/api"};
-  router.add("/foo", "op_809", 1);
-  EXPECT_ROUTER_MATCH(router, "/api/foo", 1, 0, captures);
-  EXPECT_EQ(captures.size(), 0);
-}
-
-TEST(URITemplateRouter, strict_base_url_preserves_trailing_slash) {
-  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com/"};
-  EXPECT_EQ(router.base_url(), "https://api.example.com/");
-}
-
-TEST(URITemplateRouter, strict_base_url_preserves_multiple_trailing_slashes) {
-  sourcemeta::core::URITemplateRouter router{"", "https://api.example.com///"};
-  EXPECT_EQ(router.base_url(), "https://api.example.com///");
 }
 
 TEST(URITemplateRouter, strict_internal_empty_then_literal) {

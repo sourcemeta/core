@@ -2124,6 +2124,33 @@ TEST_F(URITemplateRouterViewTest, base_path_expansion) {
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
 }
 
+TEST_F(URITemplateRouterViewTest, base_path_trailing_slash_normalized) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix/"};
+    router.add("/foo", "op_152", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
+  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       base_path_multiple_trailing_slashes_normalized) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix///"};
+    router.add("/foo", "op_153", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/prefix");
+  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, 0, captures);
+  EXPECT_EQ(captures.size(), 0);
+}
+
 TEST_F(URITemplateRouterViewTest, base_url_empty_by_default) {
   {
     sourcemeta::core::URITemplateRouter router;
@@ -2177,6 +2204,17 @@ TEST_F(URITemplateRouterViewTest, base_url_round_trip_without_base_path) {
   EXPECT_EQ(restored.base_url(), "https://api.example.com");
   EXPECT_ROUTER_MATCH(restored, "/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, base_url_trailing_slash_normalized) {
+  {
+    sourcemeta::core::URITemplateRouter router{"", "https://api.example.com/"};
+    router.add("/foo", "op_base_url_trailing", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_url(), "https://api.example.com");
 }
 
 TEST_F(URITemplateRouterViewTest, base_url_arguments_still_resolve) {
@@ -3622,19 +3660,6 @@ TEST_F(URITemplateRouterViewTest, strict_variable_does_not_bind_empty_segment) {
   }
   const sourcemeta::core::URITemplateRouterView restored{this->path};
   EXPECT_ROUTER_MATCH(restored, "/users/", 0, 0, captures);
-}
-
-TEST_F(URITemplateRouterViewTest, strict_base_path_preserves_trailing_slash) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/api/"};
-    router.add("/foo", "op_953", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.base_path(), "/api/");
-  EXPECT_ROUTER_MATCH(restored, "/api//foo", 1, 0, captures_strict);
-  EXPECT_EQ(captures_strict.size(), 0);
-  EXPECT_ROUTER_MATCH(restored, "/api/foo", 0, 0, captures_lenient);
 }
 
 TEST_F(URITemplateRouterViewTest, strict_path_reconstruction_preserves_input) {
