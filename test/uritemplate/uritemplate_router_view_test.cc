@@ -2124,33 +2124,6 @@ TEST_F(URITemplateRouterViewTest, base_path_expansion) {
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "a/b/c");
 }
 
-TEST_F(URITemplateRouterViewTest, base_path_trailing_slash_normalized) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/prefix/"};
-    router.add("/foo", "op_152", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.base_path(), "/prefix");
-  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, 0, captures);
-  EXPECT_EQ(captures.size(), 0);
-}
-
-TEST_F(URITemplateRouterViewTest,
-       base_path_multiple_trailing_slashes_normalized) {
-  {
-    sourcemeta::core::URITemplateRouter router{"/prefix///"};
-    router.add("/foo", "op_153", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.base_path(), "/prefix");
-  EXPECT_ROUTER_MATCH(restored, "/prefix/foo", 1, 0, captures);
-  EXPECT_EQ(captures.size(), 0);
-}
-
 TEST_F(URITemplateRouterViewTest, base_url_empty_by_default) {
   {
     sourcemeta::core::URITemplateRouter router;
@@ -2204,17 +2177,6 @@ TEST_F(URITemplateRouterViewTest, base_url_round_trip_without_base_path) {
   EXPECT_EQ(restored.base_url(), "https://api.example.com");
   EXPECT_ROUTER_MATCH(restored, "/foo", 1, 0, captures);
   EXPECT_EQ(captures.size(), 0);
-}
-
-TEST_F(URITemplateRouterViewTest, base_url_trailing_slash_normalized) {
-  {
-    sourcemeta::core::URITemplateRouter router{"", "https://api.example.com/"};
-    router.add("/foo", "op_base_url_trailing", 1);
-    sourcemeta::core::URITemplateRouterView::save(router, this->path);
-  }
-
-  const sourcemeta::core::URITemplateRouterView restored{this->path};
-  EXPECT_EQ(restored.base_url(), "https://api.example.com");
 }
 
 TEST_F(URITemplateRouterViewTest, base_url_arguments_still_resolve) {
@@ -3623,4 +3585,78 @@ TEST_F(URITemplateRouterViewTest, trailing_slash_size_is_two) {
   }
   const sourcemeta::core::URITemplateRouterView restored{this->path};
   EXPECT_EQ(restored.size(), 2);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       strict_internal_double_slash_matches_only_itself) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/foo//bar", "op_950", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/foo//bar", 1, 0, captures_verbatim);
+  EXPECT_EQ(captures_verbatim.size(), 0);
+  EXPECT_ROUTER_MATCH(restored, "/foo/bar", 0, 0, captures_canonical);
+}
+
+TEST_F(URITemplateRouterViewTest,
+       strict_only_slashes_template_matches_only_itself) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("////", "op_951", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "////", 1, 0, captures_match);
+  EXPECT_EQ(captures_match.size(), 0);
+  EXPECT_ROUTER_MATCH(restored, "///", 0, 0, captures_short);
+  EXPECT_ROUTER_MATCH(restored, "/////", 0, 0, captures_long);
+}
+
+TEST_F(URITemplateRouterViewTest, strict_variable_does_not_bind_empty_segment) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users/{id}", "op_952", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/users/", 0, 0, captures);
+}
+
+TEST_F(URITemplateRouterViewTest, strict_base_path_preserves_trailing_slash) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api/"};
+    router.add("/foo", "op_953", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.base_path(), "/api/");
+  EXPECT_ROUTER_MATCH(restored, "/api//foo", 1, 0, captures_strict);
+  EXPECT_EQ(captures_strict.size(), 0);
+  EXPECT_ROUTER_MATCH(restored, "/api/foo", 0, 0, captures_lenient);
+}
+
+TEST_F(URITemplateRouterViewTest, strict_path_reconstruction_preserves_input) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/foo//bar", "op_954", 1);
+    router.add("////", "op_955", 2);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_EQ(restored.path(1), "/foo//bar");
+  EXPECT_EQ(restored.path(2), "////");
+}
+
+TEST_F(URITemplateRouterViewTest, strict_root_template_still_works) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/", "op_956", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_ROUTER_MATCH(restored, "/", 1, 0, captures_match);
+  EXPECT_EQ(captures_match.size(), 0);
+  EXPECT_ROUTER_MATCH(restored, "//", 0, 0, captures_double);
 }
