@@ -321,13 +321,12 @@ auto mcp_make_tool_error(const sourcemeta::core::JSON &identifier,
 /// #include <cassert>
 ///
 /// const auto identifier{sourcemeta::core::JSON{3}};
-/// const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
-///     identifier, "file:///missing")};
+/// const auto envelope{
+///     sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
 /// assert(envelope.at("error").at("code").to_integer() == -32002);
 /// ```
 SOURCEMETA_CORE_MCP_EXPORT
-auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier,
-                                       const JSON::StringView uri)
+auto mcp_make_error_resource_not_found(const sourcemeta::core::JSON &identifier)
     -> sourcemeta::core::JSON;
 
 /// @ingroup mcp
