@@ -564,15 +564,14 @@ TEST(MCP, tool_error_with_null_id) {
 
 TEST(MCP, error_resource_not_found_with_integer_id) {
   const auto identifier{sourcemeta::core::JSON{3}};
-  const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
-      identifier, "file:///missing")};
+  const auto envelope{
+      sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 3,
     "error": {
       "code": -32002,
-      "message": "Resource not found",
-      "data": "file:///missing"
+      "message": "Resource not found"
     }
   })JSON")};
   EXPECT_EQ(envelope, expected);
@@ -580,15 +579,14 @@ TEST(MCP, error_resource_not_found_with_integer_id) {
 
 TEST(MCP, error_resource_not_found_with_string_id) {
   const auto identifier{sourcemeta::core::JSON{"req-7"}};
-  const auto envelope{sourcemeta::core::mcp_make_error_resource_not_found(
-      identifier, "file:///missing")};
+  const auto envelope{
+      sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": "req-7",
     "error": {
       "code": -32002,
-      "message": "Resource not found",
-      "data": "file:///missing"
+      "message": "Resource not found"
     }
   })JSON")};
   EXPECT_EQ(envelope, expected);
