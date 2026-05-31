@@ -438,7 +438,8 @@ auto URITemplateRouter::add(const std::string_view uri_template,
       ++position;
 
       const bool followed_by_path_operator =
-          position + 1 < end && *position == '{' && *(position + 1) == '/';
+          position < end && *position == '{' && position + 1 < end &&
+          *(position + 1) == '/';
 
       if (position < end && *position != '/' && !followed_by_path_operator) {
         throw URITemplateRouterInvalidSegmentError{

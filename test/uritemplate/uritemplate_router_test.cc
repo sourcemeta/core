@@ -2685,13 +2685,13 @@ TEST(URITemplateRouter,
 TEST(URITemplateRouter, trailing_slash_both_forms_each_has_distinct_arguments) {
   sourcemeta::core::URITemplateRouter router;
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1> bare_args{
-      sourcemeta::core::URITemplateRouter::Argument{
+      {sourcemeta::core::URITemplateRouter::Argument{
           "kind", sourcemeta::core::URITemplateRouter::ArgumentValue{
-                      std::string_view{"bare"}}}};
+                      std::string_view{"bare"}}}}};
   const std::array<sourcemeta::core::URITemplateRouter::Argument, 1>
-      slashed_args{sourcemeta::core::URITemplateRouter::Argument{
+      slashed_args{{sourcemeta::core::URITemplateRouter::Argument{
           "kind", sourcemeta::core::URITemplateRouter::ArgumentValue{
-                      std::string_view{"slashed"}}}};
+                      std::string_view{"slashed"}}}}};
   router.add("/foo", "op_727", 1, 0, bare_args);
   router.add("/foo/", "op_728", 2, 0, slashed_args);
   std::string bare_kind;
