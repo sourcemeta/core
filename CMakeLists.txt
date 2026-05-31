@@ -11,9 +11,19 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 # bumps its bundled clang or PyPI clang-tidy back-supports clang-17.
 # Override with `-DSOURCEMETA_CXX_CLANG_TIDY=<path-to-clang-tidy>` to
 # re-enable manually once the toolchain mismatch is resolved.
-if(APPLE AND NOT SOURCEMETA_CXX_CLANG_TIDY)
-  set(SOURCEMETA_CXX_CLANG_TIDY "/usr/bin/true"
-    CACHE STRING "CXX_CLANG_TIDY")
+if(APPLE)
+  if(NOT SOURCEMETA_CXX_CLANG_TIDY)
+    set(SOURCEMETA_CXX_CLANG_TIDY "/usr/bin/true"
+      CACHE STRING "CXX_CLANG_TIDY")
+  elseif(NOT SOURCEMETA_CXX_CLANG_TIDY STREQUAL "/usr/bin/true")
+    message(WARNING
+      "SOURCEMETA_CXX_CLANG_TIDY is set to '${SOURCEMETA_CXX_CLANG_TIDY}' "
+      "in the CMake cache. macOS clang-tidy is known-broken against "
+      "Xcode 16's arm_neon.h (parser version skew). If the build fails "
+      "with clang-tidy errors from arm_neon.h, delete the build directory "
+      "and reconfigure, or pass "
+      "`-DSOURCEMETA_CXX_CLANG_TIDY=/usr/bin/true` explicitly.")
+  endif()
 endif()
 
 # Options
