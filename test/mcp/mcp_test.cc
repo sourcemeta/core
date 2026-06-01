@@ -240,6 +240,21 @@ TEST(MCP, supports_implementation_website_url_2025_11_25) {
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
+TEST(MCP, supports_jsonrpc_batching_2025_03_26) {
+  EXPECT_TRUE(sourcemeta::core::mcp_supports_jsonrpc_batching(
+      sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
+}
+
+TEST(MCP, supports_jsonrpc_batching_2025_06_18) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_jsonrpc_batching(
+      sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
+}
+
+TEST(MCP, supports_jsonrpc_batching_2025_11_25) {
+  EXPECT_FALSE(sourcemeta::core::mcp_supports_jsonrpc_batching(
+      sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
+}
+
 TEST(MCP, make_text_block) {
   const auto block{sourcemeta::core::mcp_make_text_block("hello")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({

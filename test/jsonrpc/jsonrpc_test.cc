@@ -51,6 +51,70 @@ TEST(JSONRPC, is_server_error_positive_application_code) {
   EXPECT_FALSE(sourcemeta::core::jsonrpc_is_server_error(1));
 }
 
+TEST(JSONRPC, is_batch_empty_array) {
+  const auto payload{sourcemeta::core::parse_json(R"([])")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_batch(payload));
+}
+
+TEST(JSONRPC, is_batch_non_empty_array) {
+  const auto payload{sourcemeta::core::parse_json(
+      R"([ { "jsonrpc": "2.0", "method": "ping" } ])")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_batch(payload));
+}
+
+TEST(JSONRPC, is_batch_object) {
+  const auto payload{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": 1, "method": "ping" })")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_batch(payload));
+}
+
+TEST(JSONRPC, is_batch_string) {
+  const auto payload{sourcemeta::core::parse_json(R"("hello")")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_batch(payload));
+}
+
+TEST(JSONRPC, is_batch_null) {
+  const auto payload{sourcemeta::core::parse_json(R"(null)")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_batch(payload));
+}
+
+TEST(JSONRPC, is_batch_integer) {
+  const auto payload{sourcemeta::core::parse_json(R"(42)")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_batch(payload));
+}
+
+TEST(JSONRPC, is_valid_batch_non_empty_array) {
+  const auto payload{sourcemeta::core::parse_json(
+      R"([ { "jsonrpc": "2.0", "method": "ping" } ])")};
+  EXPECT_TRUE(sourcemeta::core::jsonrpc_is_valid_batch(payload));
+}
+
+TEST(JSONRPC, is_valid_batch_empty_array) {
+  const auto payload{sourcemeta::core::parse_json(R"([])")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_valid_batch(payload));
+}
+
+TEST(JSONRPC, is_valid_batch_object) {
+  const auto payload{sourcemeta::core::parse_json(
+      R"({ "jsonrpc": "2.0", "id": 1, "method": "ping" })")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_valid_batch(payload));
+}
+
+TEST(JSONRPC, is_valid_batch_string) {
+  const auto payload{sourcemeta::core::parse_json(R"("hello")")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_valid_batch(payload));
+}
+
+TEST(JSONRPC, is_valid_batch_null) {
+  const auto payload{sourcemeta::core::parse_json(R"(null)")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_valid_batch(payload));
+}
+
+TEST(JSONRPC, is_valid_batch_integer) {
+  const auto payload{sourcemeta::core::parse_json(R"(42)")};
+  EXPECT_FALSE(sourcemeta::core::jsonrpc_is_valid_batch(payload));
+}
+
 TEST(JSONRPC, request_id_integer) {
   const auto request{sourcemeta::core::parse_json(
       R"({ "jsonrpc": "2.0", "id": 7, "method": "ping" })")};
