@@ -20,8 +20,8 @@ constexpr auto FORMAT_RFC850_OUTPUT{"%A, %d-%b-%y %H:%M:%S GMT"};
 constexpr auto FORMAT_RFC850_NORMALISED_INPUT{"%d-%b-%Y %H:%M:%S GMT"};
 
 constexpr std::array<std::string_view, 7> RFC850_DAY_NAMES{
-    "Monday", "Tuesday",  "Wednesday", "Thursday",
-    "Friday", "Saturday", "Sunday"};
+    {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+     "Sunday"}};
 
 auto current_utc_year() noexcept -> std::optional<int> {
   const auto now{std::chrono::system_clock::now()};
