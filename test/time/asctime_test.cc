@@ -87,6 +87,31 @@ TEST(Time_asctime, format_round_trip) {
   EXPECT_EQ(sourcemeta::core::to_asctime(point), "Thu Jan  1 00:00:00 1970");
 }
 
+TEST(Time_asctime, parse_accepts_zero_padded_single_digit_day) {
+  EXPECT_TRUE(
+      sourcemeta::core::from_asctime("Sun Nov 06 08:49:37 1994").has_value());
+}
+
+TEST(Time_asctime, parse_rejects_trailing_newline) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 1994\n").has_value());
+}
+
+TEST(Time_asctime, parse_rejects_sign_prefix_in_day) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov +6 08:49:37 1994").has_value());
+}
+
+TEST(Time_asctime, format_output_length_is_24) {
+  const auto point{std::chrono::system_clock::from_time_t(0)};
+  EXPECT_EQ(sourcemeta::core::to_asctime(point).size(), 24u);
+}
+
+TEST(Time_asctime, format_output_has_no_trailing_newline) {
+  const auto point{std::chrono::system_clock::from_time_t(0)};
+  EXPECT_NE(sourcemeta::core::to_asctime(point).back(), '\n');
+}
+
 TEST(Time_asctime, format_two_digit_day) {
   std::tm parts = {};
   parts.tm_year = 115;

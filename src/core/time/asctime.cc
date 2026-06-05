@@ -1,9 +1,11 @@
 #include <sourcemeta/core/time.h>
 
 #include <cassert>     // assert
+#include <cctype>      // std::isdigit
 #include <chrono>      // std::chrono::system_clock
 #include <ctime>       // std::time_t, std::tm, timegm, gmtime_r, gmtime_s
 #include <iomanip>     // std::put_time, std::get_time
+#include <locale>      // std::locale
 #include <optional>    // std::optional, std::nullopt
 #include <sstream>     // std::ostringstream, std::istringstream
 #include <stdexcept>   // std::runtime_error
@@ -33,6 +35,7 @@ auto to_asctime(const std::chrono::system_clock::time_point time)
   std::tm *parts = &buffer;
   assert(parts);
   std::ostringstream stream;
+  stream.imbue(std::locale::classic());
   stream << std::put_time(parts, FORMAT_ASCTIME_OUTPUT);
   return stream.str();
 }
@@ -46,11 +49,27 @@ auto from_asctime(const std::string_view value) noexcept
       value[13] != ':' || value[16] != ':' || value[19] != ' ') {
     return std::nullopt;
   }
+  if ((value[8] != ' ' &&
+       !std::isdigit(static_cast<unsigned char>(value[8]))) ||
+      !std::isdigit(static_cast<unsigned char>(value[9])) ||
+      !std::isdigit(static_cast<unsigned char>(value[11])) ||
+      !std::isdigit(static_cast<unsigned char>(value[12])) ||
+      !std::isdigit(static_cast<unsigned char>(value[14])) ||
+      !std::isdigit(static_cast<unsigned char>(value[15])) ||
+      !std::isdigit(static_cast<unsigned char>(value[17])) ||
+      !std::isdigit(static_cast<unsigned char>(value[18])) ||
+      !std::isdigit(static_cast<unsigned char>(value[20])) ||
+      !std::isdigit(static_cast<unsigned char>(value[21])) ||
+      !std::isdigit(static_cast<unsigned char>(value[22])) ||
+      !std::isdigit(static_cast<unsigned char>(value[23]))) {
+    return std::nullopt;
+  }
   std::string normalised{value};
   if (normalised[8] == ' ') {
     normalised[8] = '0';
   }
   std::istringstream stream{normalised};
+  stream.imbue(std::locale::classic());
   std::tm parts = {};
   stream >> std::get_time(&parts, FORMAT_ASCTIME_NORMALISED_INPUT);
   if (stream.fail()) {

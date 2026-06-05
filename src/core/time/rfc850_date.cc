@@ -1,10 +1,13 @@
 #include <sourcemeta/core/time.h>
 
+#include <algorithm>   // std::ranges::find
+#include <array>       // std::array
 #include <cassert>     // assert
 #include <cctype>      // std::isdigit
 #include <chrono>      // std::chrono::system_clock
 #include <ctime>       // std::time_t, std::tm, timegm, gmtime_r, gmtime_s
 #include <iomanip>     // std::put_time, std::get_time
+#include <locale>      // std::locale
 #include <optional>    // std::optional, std::nullopt
 #include <sstream>     // std::ostringstream, std::istringstream
 #include <stdexcept>   // std::runtime_error
@@ -15,6 +18,10 @@ namespace {
 
 constexpr auto FORMAT_RFC850_OUTPUT{"%A, %d-%b-%y %H:%M:%S GMT"};
 constexpr auto FORMAT_RFC850_NORMALISED_INPUT{"%d-%b-%Y %H:%M:%S GMT"};
+
+constexpr std::array<std::string_view, 7> RFC850_DAY_NAMES{
+    "Monday", "Tuesday",  "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday"};
 
 auto current_utc_year() noexcept -> std::optional<int> {
   const auto now{std::chrono::system_clock::now()};
@@ -52,6 +59,7 @@ auto to_rfc850_date(const std::chrono::system_clock::time_point time)
   std::tm *parts = &buffer;
   assert(parts);
   std::ostringstream stream;
+  stream.imbue(std::locale::classic());
   stream << std::put_time(parts, FORMAT_RFC850_OUTPUT);
   return stream.str();
 }
@@ -62,13 +70,25 @@ auto from_rfc850_date(const std::string_view value) noexcept
   if (comma_position == std::string_view::npos) {
     return std::nullopt;
   }
+  const auto day_name{value.substr(0, comma_position)};
+  if (std::ranges::find(RFC850_DAY_NAMES, day_name) == RFC850_DAY_NAMES.end()) {
+    return std::nullopt;
+  }
   const auto rest{value.substr(comma_position + 1)};
   if (rest.size() != 23 || rest[0] != ' ' || rest[3] != '-' || rest[7] != '-' ||
       rest[10] != ' ' || rest.substr(19) != " GMT") {
     return std::nullopt;
   }
-  if (!std::isdigit(static_cast<unsigned char>(rest[8])) ||
-      !std::isdigit(static_cast<unsigned char>(rest[9]))) {
+  if (!std::isdigit(static_cast<unsigned char>(rest[1])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[2])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[8])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[9])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[11])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[12])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[14])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[15])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[17])) ||
+      !std::isdigit(static_cast<unsigned char>(rest[18]))) {
     return std::nullopt;
   }
   const int two_digit_year{(rest[8] - '0') * 10 + (rest[9] - '0')};
@@ -87,6 +107,7 @@ auto from_rfc850_date(const std::string_view value) noexcept
   normalised.append(std::to_string(full_year));
   normalised.append(rest.substr(10));
   std::istringstream stream{normalised};
+  stream.imbue(std::locale::classic());
   std::tm parts = {};
   stream >> std::get_time(&parts, FORMAT_RFC850_NORMALISED_INPUT);
   if (stream.fail()) {

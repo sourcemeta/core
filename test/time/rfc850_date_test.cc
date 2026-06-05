@@ -103,6 +103,106 @@ TEST(Time_rfc850_date, parse_garbage_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_rfc850_date("FOO").has_value());
 }
 
+TEST(Time_rfc850_date, parse_rejects_abbreviated_weekday) {
+  EXPECT_FALSE(sourcemeta::core::from_rfc850_date("Sun, 06-Nov-94 08:49:37 GMT")
+                   .has_value());
+}
+
+TEST(Time_rfc850_date, parse_rejects_unknown_weekday) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Xyzzy, 06-Nov-94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(Time_rfc850_date, parse_rejects_empty_weekday) {
+  EXPECT_FALSE(sourcemeta::core::from_rfc850_date(", 06-Nov-94 08:49:37 GMT")
+                   .has_value());
+}
+
+TEST(Time_rfc850_date, parse_rejects_leading_prefix) {
+  EXPECT_FALSE(sourcemeta::core::from_rfc850_date(
+                   "prefix Sunday, 06-Nov-94 08:49:37 GMT")
+                   .has_value());
+}
+
+TEST(Time_rfc850_date, parse_rejects_four_digit_year) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-1994 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(Time_rfc850_date, parse_rejects_lowercase_gmt) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:37 gmt")
+          .has_value());
+}
+
+TEST(Time_rfc850_date, parse_y2k_boundary_at_threshold) {
+  const auto point{
+      sourcemeta::core::from_rfc850_date("Friday, 01-Jan-76 00:00:00 GMT")};
+  ASSERT_TRUE(point.has_value());
+
+  std::tm parts = {};
+  parts.tm_year = 176;
+  parts.tm_mon = 0;
+  parts.tm_mday = 1;
+  parts.tm_hour = 0;
+  parts.tm_min = 0;
+  parts.tm_sec = 0;
+  parts.tm_isdst = 0;
+#if defined(_MSC_VER)
+  const auto expected{
+      std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
+#else
+  const auto expected{std::chrono::system_clock::from_time_t(timegm(&parts))};
+#endif
+  EXPECT_EQ(point.value(), expected);
+}
+
+TEST(Time_rfc850_date, parse_y2k_boundary_just_over) {
+  const auto point{
+      sourcemeta::core::from_rfc850_date("Tuesday, 01-Jan-77 00:00:00 GMT")};
+  ASSERT_TRUE(point.has_value());
+
+  std::tm parts = {};
+  parts.tm_year = 77;
+  parts.tm_mon = 0;
+  parts.tm_mday = 1;
+  parts.tm_hour = 0;
+  parts.tm_min = 0;
+  parts.tm_sec = 0;
+  parts.tm_isdst = 0;
+#if defined(_MSC_VER)
+  const auto expected{
+      std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
+#else
+  const auto expected{std::chrono::system_clock::from_time_t(timegm(&parts))};
+#endif
+  EXPECT_EQ(point.value(), expected);
+}
+
+TEST(Time_rfc850_date, parse_y2k_yy_zero) {
+  const auto point{
+      sourcemeta::core::from_rfc850_date("Saturday, 01-Jan-00 00:00:00 GMT")};
+  ASSERT_TRUE(point.has_value());
+
+  std::tm parts = {};
+  parts.tm_year = 100;
+  parts.tm_mon = 0;
+  parts.tm_mday = 1;
+  parts.tm_hour = 0;
+  parts.tm_min = 0;
+  parts.tm_sec = 0;
+  parts.tm_isdst = 0;
+#if defined(_MSC_VER)
+  const auto expected{
+      std::chrono::system_clock::from_time_t(_mkgmtime(&parts))};
+#else
+  const auto expected{std::chrono::system_clock::from_time_t(timegm(&parts))};
+#endif
+  EXPECT_EQ(point.value(), expected);
+}
+
 TEST(Time_rfc850_date, format_round_trip) {
   std::tm parts = {};
   parts.tm_year = 70;

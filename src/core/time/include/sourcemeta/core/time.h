@@ -26,7 +26,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup time
-/// Format a time point as an RFC 5322 IMF-fixdate string. For example:
+/// Format a time point as an RFC 9110 §5.6.7 IMF-fixdate string. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/time.h>
@@ -41,7 +41,7 @@ auto to_imf_fixdate(const std::chrono::system_clock::time_point time)
     -> std::string;
 
 /// @ingroup time
-/// Parse an RFC 5322 IMF-fixdate string into a time point. For example:
+/// Parse an RFC 9110 §5.6.7 IMF-fixdate string into a time point. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/time.h>
@@ -87,7 +87,9 @@ auto from_rfc850_date(const std::string_view value) noexcept
     -> std::optional<std::chrono::system_clock::time_point>;
 
 /// @ingroup time
-/// Format a time point as an ANSI C asctime() string. For example:
+/// Format a time point as an RFC 9110 §5.6.7 asctime-date string. The output
+/// matches the ANSI C `asctime()` field layout but omits the trailing newline
+/// that `asctime()` itself appends. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/time.h>
@@ -101,8 +103,8 @@ auto to_asctime(const std::chrono::system_clock::time_point time)
     -> std::string;
 
 /// @ingroup time
-/// Parse an ANSI C asctime() string into a time point. The string has no
-/// timezone token and is interpreted as GMT. For example:
+/// Parse an RFC 9110 §5.6.7 asctime-date string into a time point. The format
+/// has no timezone token and is interpreted as GMT. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/time.h>

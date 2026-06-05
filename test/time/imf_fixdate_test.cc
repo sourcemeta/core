@@ -115,3 +115,66 @@ TEST(Time_imf_fixdate, parse_with_string_view_subview) {
   EXPECT_EQ(sourcemeta::core::to_imf_fixdate(point.value()),
             "Wed, 21 Oct 2015 11:28:00 GMT");
 }
+
+TEST(Time_imf_fixdate, parse_rejects_lowercase_gmt) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 11:28:00 gmt")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_wrong_zone) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 11:28:00 UTC")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_missing_zone) {
+  EXPECT_FALSE(sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 11:28:00")
+                   .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_single_digit_day) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed, 1 Oct 2015 11:28:00 GMT")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_double_space_after_comma) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed,  21 Oct 2015 11:28:00 GMT")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_missing_space_after_comma) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed,21 Oct 2015 11:28:00 GMT")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_two_digit_year) {
+  EXPECT_FALSE(sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 15 11:28:00 GMT")
+                   .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_trailing_garbage) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 11:28:00 GMT extra")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_rfc850_shape) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Sunday, 06-Nov-94 08:49:37 GMT")
+          .has_value());
+}
+
+TEST(Time_imf_fixdate, parse_rejects_asctime_shape) {
+  EXPECT_FALSE(sourcemeta::core::from_imf_fixdate("Sun Nov  6 08:49:37 1994")
+                   .has_value());
+}
+
+TEST(Time_imf_fixdate, format_epoch) {
+  const auto point{std::chrono::system_clock::from_time_t(0)};
+  EXPECT_EQ(sourcemeta::core::to_imf_fixdate(point),
+            "Thu, 01 Jan 1970 00:00:00 GMT");
+}
