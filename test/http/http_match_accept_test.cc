@@ -277,7 +277,7 @@ TEST(HTTP_match_accept, quoted_string_with_comma_does_not_split_entry) {
 
 TEST(HTTP_match_accept, escaped_quote_inside_quoted_string_handled) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
-                R"(text/html;profile="a\"b,c", application/json;q=0.5)",
+                R"X(text/html;profile="a\"b,c", application/json;q=0.5)X",
                 {"text/html", "application/json"}),
             "text/html");
 }

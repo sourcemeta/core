@@ -141,7 +141,7 @@ TEST(HTTP_field_list_contains_any,
 
 TEST(HTTP_field_list_contains_any, escaped_quote_in_quoted_string_handled) {
   EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
-      R"("a\"b,c", "xyz")", {R"("a\"b,c")"}));
+      R"X("a\"b,c", "xyz")X", {R"X("a\"b,c")X"}));
 }
 
 TEST(HTTP_field_list_contains_any,
