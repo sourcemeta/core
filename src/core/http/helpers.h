@@ -12,6 +12,25 @@ inline auto http_is_ows(const char character) noexcept -> bool {
   return character == ' ' || character == '\t';
 }
 
+inline auto http_ascii_lower(const char character) noexcept -> char {
+  return (character >= 'A' && character <= 'Z')
+             ? static_cast<char>(character + ('a' - 'A'))
+             : character;
+}
+
+inline auto http_iequals_ascii(const std::string_view left,
+                               const std::string_view right) noexcept -> bool {
+  if (left.size() != right.size()) {
+    return false;
+  }
+  for (std::size_t index{0}; index < left.size(); ++index) {
+    if (http_ascii_lower(left[index]) != http_ascii_lower(right[index])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 inline auto http_trim_trailing_ows(const std::string_view value) noexcept
     -> std::string_view {
   std::size_t size{value.size()};

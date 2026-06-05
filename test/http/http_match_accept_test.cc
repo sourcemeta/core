@@ -173,3 +173,82 @@ TEST(HTTP_match_accept, whitespace_only_header_returns_first_candidate) {
   EXPECT_EQ(sourcemeta::core::http_match_accept("   ", {"text/html"}),
             "text/html");
 }
+
+TEST(HTTP_match_accept, case_insensitive_exact_match) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("Text/HTML", {"text/html"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, case_insensitive_uppercase_request) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "TEXT/HTML", {"text/html", "application/json"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, case_insensitive_type_wildcard) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("TEXT/*", {"text/html"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, case_insensitive_mixed_case_subtype) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("application/JSON, text/html;q=0.5",
+                                          {"text/html", "application/json"}),
+      "application/json");
+}
+
+TEST(HTTP_match_accept, q_value_boundary_at_zero_point_one) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.1, application/json;q=0.2",
+                {"text/html", "application/json"}),
+            "application/json");
+}
+
+TEST(HTTP_match_accept, q_value_three_decimal_digits) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.999, application/json;q=0.998",
+                {"text/html", "application/json"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, q_value_one_no_decimal) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=1, application/json;q=0.999",
+                {"text/html", "application/json"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, leading_and_trailing_comma_tolerated) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(",text/html,", {"text/html"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, many_empty_entries_tolerated) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept(", , text/html , ,", {"text/html"}),
+      "text/html");
+}
+
+TEST(HTTP_match_accept, charset_parameter_does_not_change_match) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;charset=UTF-8",
+                                                {"text/html"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, type_wildcard_specificity_beats_full_wildcard) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/*, */*", {"text/html"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, candidate_with_charset_in_name_treated_verbatim) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("image/png",
+                                                {"image/png", "image/jpeg"}),
+            "image/png");
+}
+
+TEST(HTTP_match_accept, parameter_after_q_is_ignored) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.5;extra=foo, application/json;q=0.4",
+                {"text/html", "application/json"}),
+            "text/html");
+}

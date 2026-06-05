@@ -15,11 +15,13 @@ auto language_specificity(const std::string_view range,
   if (range == "*") {
     return 1;
   }
-  if (range == candidate) {
+  if (sourcemeta::core::http_iequals_ascii(range, candidate)) {
     return candidate.size() + 1;
   }
-  if (range.size() > candidate.size() && range.starts_with(candidate) &&
-      range[candidate.size()] == '-') {
+  if (range.size() > candidate.size() && range[candidate.size()] == '-' &&
+      sourcemeta::core::http_iequals_ascii(
+          // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage)
+          std::string_view{range.data(), candidate.size()}, candidate)) {
     return candidate.size();
   }
   return 0;

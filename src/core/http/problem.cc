@@ -14,35 +14,36 @@ const auto HTTP_HASH_INSTANCE{sourcemeta::core::JSON::Object::hash("instance")};
 
 namespace sourcemeta::core {
 
-auto http_make_problem_details(const HTTPProblemDetails &fields)
+auto http_make_problem_details(const HTTPProblemDetails &problem)
     -> sourcemeta::core::JSON {
-  assert(fields.status.code >= 100 && fields.status.code <= 599);
-  assert(!fields.status.phrase.empty());
-  assert(fields.type.find_first_of("\r\n") == JSON::StringView::npos);
-  assert(fields.title.find_first_of("\r\n") == JSON::StringView::npos);
-  assert(fields.instance.find_first_of("\r\n") == JSON::StringView::npos);
+  assert(problem.status.code >= 100 && problem.status.code <= 599);
+  assert(!problem.status.phrase.empty());
+  assert(problem.type.find_first_of("\r\n") == JSON::StringView::npos);
+  assert(problem.title.find_first_of("\r\n") == JSON::StringView::npos);
+  assert(problem.instance.find_first_of("\r\n") == JSON::StringView::npos);
 
   auto object{sourcemeta::core::JSON::make_object()};
-  object.assign_assume_new(
-      "type",
-      sourcemeta::core::JSON{fields.type.empty() ? "about:blank" : fields.type},
-      HTTP_HASH_TYPE);
+  object.assign_assume_new("type",
+                           sourcemeta::core::JSON{problem.type.empty()
+                                                      ? "about:blank"
+                                                      : problem.type},
+                           HTTP_HASH_TYPE);
   object.assign_assume_new("title",
-                           sourcemeta::core::JSON{fields.title.empty()
-                                                      ? fields.status.phrase
-                                                      : fields.title},
+                           sourcemeta::core::JSON{problem.title.empty()
+                                                      ? problem.status.phrase
+                                                      : problem.title},
                            HTTP_HASH_TITLE);
   object.assign_assume_new(
       "status",
-      sourcemeta::core::JSON{static_cast<std::int64_t>(fields.status.code)},
+      sourcemeta::core::JSON{static_cast<std::int64_t>(problem.status.code)},
       HTTP_HASH_STATUS);
-  if (!fields.detail.empty()) {
-    object.assign_assume_new("detail", sourcemeta::core::JSON{fields.detail},
+  if (!problem.detail.empty()) {
+    object.assign_assume_new("detail", sourcemeta::core::JSON{problem.detail},
                              HTTP_HASH_DETAIL);
   }
-  if (!fields.instance.empty()) {
+  if (!problem.instance.empty()) {
     object.assign_assume_new("instance",
-                             sourcemeta::core::JSON{fields.instance},
+                             sourcemeta::core::JSON{problem.instance},
                              HTTP_HASH_INSTANCE);
   }
   return object;

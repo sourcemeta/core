@@ -42,7 +42,7 @@ struct HTTPProblemDetails {
 /// assert(body.at("title").to_string() == "Not Found");
 /// ```
 SOURCEMETA_CORE_HTTP_EXPORT
-auto http_make_problem_details(const HTTPProblemDetails &fields)
+auto http_make_problem_details(const HTTPProblemDetails &problem)
     -> sourcemeta::core::JSON;
 
 } // namespace sourcemeta::core

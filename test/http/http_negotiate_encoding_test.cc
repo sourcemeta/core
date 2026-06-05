@@ -143,3 +143,82 @@ TEST(HTTP_negotiate_encoding, gzip_explicit_zero_with_identity) {
   ASSERT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::Identity);
 }
+
+TEST(HTTP_negotiate_encoding, case_insensitive_uppercase_gzip) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "GZIP", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}
+
+TEST(HTTP_negotiate_encoding, case_insensitive_mixed_case_gzip) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "GzIp", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}
+
+TEST(HTTP_negotiate_encoding, case_insensitive_uppercase_identity) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "IDENTITY", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::Identity);
+}
+
+TEST(HTTP_negotiate_encoding, case_insensitive_uppercase_x_gzip) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "X-GZIP", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}
+
+TEST(HTTP_negotiate_encoding, wildcard_zero_then_wildcard_one_takes_higher_q) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "*;q=0, *;q=1", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}
+
+TEST(HTTP_negotiate_encoding, identity_zero_then_identity_one_takes_higher_q) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "identity;q=0, identity;q=1",
+      sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::Identity);
+}
+
+TEST(HTTP_negotiate_encoding, gzip_zero_with_wildcard_one_uses_wildcard) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "gzip;q=0, *;q=1", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::Identity);
+}
+
+TEST(HTTP_negotiate_encoding, q_value_one_no_decimal) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "gzip;q=1", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}
+
+TEST(HTTP_negotiate_encoding, q_value_zero_no_decimal_excludes) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "gzip;q=0", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::Identity);
+}
+
+TEST(HTTP_negotiate_encoding, q_value_three_decimal_digits) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      "gzip;q=0.999, identity;q=0.998",
+      sourcemeta::core::HTTPContentEncoding::Identity)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}
+
+TEST(HTTP_negotiate_encoding, leading_and_trailing_comma_tolerated) {
+  const auto result{sourcemeta::core::http_negotiate_encoding(
+      ",gzip,", sourcemeta::core::HTTPContentEncoding::GZIP)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+}

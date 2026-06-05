@@ -22,50 +22,38 @@ auto http_negotiate_encoding(
   bool gzip_listed{false};
   bool identity_listed{false};
   bool wildcard_listed{false};
-  bool wildcard_excluded{false};
-  bool identity_excluded{false};
 
   http_for_each_accept_entry(
       accept_encoding_header,
       [&](const std::string_view token, const float quality) {
-        if (token == "gzip" || token == "x-gzip") {
+        if (http_iequals_ascii(token, "gzip") ||
+            http_iequals_ascii(token, "x-gzip")) {
           gzip_listed = true;
           if (quality > gzip_quality) {
             gzip_quality = quality;
           }
-        } else if (token == "identity") {
+        } else if (http_iequals_ascii(token, "identity")) {
           identity_listed = true;
-          if (quality == 0.0f) {
-            identity_excluded = true;
-          }
           if (quality > identity_quality) {
             identity_quality = quality;
           }
         } else if (token == "*") {
           wildcard_listed = true;
-          if (quality == 0.0f) {
-            wildcard_excluded = true;
-          }
           if (quality > wildcard_quality) {
             wildcard_quality = quality;
           }
         }
       });
 
-  if (!gzip_listed) {
+  if (!gzip_listed && wildcard_listed) {
     gzip_quality = wildcard_quality;
   }
   if (!identity_listed) {
-    if (wildcard_excluded) {
-      identity_excluded = true;
-    } else if (wildcard_listed) {
+    if (wildcard_listed) {
       identity_quality = wildcard_quality;
     } else {
       identity_quality = 1.0f;
     }
-  }
-  if (identity_excluded) {
-    identity_quality = 0.0f;
   }
 
   const bool gzip_acceptable{gzip_quality > 0.0f};

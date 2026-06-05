@@ -13,7 +13,7 @@ namespace {
 auto media_specificity(const std::string_view range,
                        const std::string_view candidate) noexcept
     -> std::uint8_t {
-  if (range == candidate) {
+  if (sourcemeta::core::http_iequals_ascii(range, candidate)) {
     return 3;
   }
   if (range == "*/*") {
@@ -32,7 +32,8 @@ auto media_specificity(const std::string_view range,
     return 0;
   }
   for (std::size_t index{0}; index < range_slash; ++index) {
-    if (range[index] != candidate[index]) {
+    if (sourcemeta::core::http_ascii_lower(range[index]) !=
+        sourcemeta::core::http_ascii_lower(candidate[index])) {
       return 0;
     }
   }
