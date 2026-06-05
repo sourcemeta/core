@@ -127,3 +127,25 @@ TEST(HTTP_field_list_contains_any, cache_control_no_cache_predicate) {
   EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
       "no-cache, no-store, max-age=0", {"no-cache"}));
 }
+
+TEST(HTTP_field_list_contains_any, etag_with_comma_inside_quotes_kept_whole) {
+  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
+      R"("abc,def", "ghi")", {R"("abc,def")"}));
+}
+
+TEST(HTTP_field_list_contains_any,
+     etag_with_comma_inside_quotes_not_split_into_pieces) {
+  EXPECT_FALSE(sourcemeta::core::http_field_list_contains_any(R"("abc,def")",
+                                                              {R"("abc)"}));
+}
+
+TEST(HTTP_field_list_contains_any, escaped_quote_in_quoted_string_handled) {
+  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
+      R"("a\"b,c", "xyz")", {R"("a\"b,c")"}));
+}
+
+TEST(HTTP_field_list_contains_any,
+     weak_etag_with_comma_in_opaque_tag_kept_whole) {
+  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
+      R"(W/"abc,def", "ghi")", {R"(W/"abc,def")"}));
+}

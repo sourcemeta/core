@@ -252,3 +252,32 @@ TEST(HTTP_match_accept, parameter_after_q_is_ignored) {
                 {"text/html", "application/json"}),
             "text/html");
 }
+
+TEST(HTTP_match_accept,
+     more_specific_match_overrides_higher_q_wildcard_for_same_candidate) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept("text/html;q=0.5, text/*;q=1.0",
+                                                {"text/html", "text/plain"}),
+            "text/plain");
+}
+
+TEST(HTTP_match_accept,
+     specific_low_q_wins_over_wildcard_high_q_within_candidate) {
+  EXPECT_EQ(
+      sourcemeta::core::http_match_accept("text/html;q=0.5, */*;q=1.0",
+                                          {"text/html", "application/json"}),
+      "application/json");
+}
+
+TEST(HTTP_match_accept, quoted_string_with_comma_does_not_split_entry) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                R"(text/html;profile="urn:a,b", application/json;q=0.5)",
+                {"text/html", "application/json"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, escaped_quote_inside_quoted_string_handled) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                R"(text/html;profile="a\"b,c", application/json;q=0.5)",
+                {"text/html", "application/json"}),
+            "text/html");
+}

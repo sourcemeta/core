@@ -131,15 +131,15 @@ TEST(HTTP_make_problem_details, method_not_allowed_with_detail) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, payload_too_large_with_full_fields) {
+TEST(HTTP_make_problem_details, content_too_large_with_full_fields) {
   const auto body{sourcemeta::core::http_make_problem_details(
-      {.status = sourcemeta::core::HTTP_STATUS_PAYLOAD_TOO_LARGE,
-       .type = "sourcemeta:one/payload-too-large",
+      {.status = sourcemeta::core::HTTP_STATUS_CONTENT_TOO_LARGE,
+       .type = "sourcemeta:one/content-too-large",
        .detail = "The request body exceeded the maximum allowed size",
        .instance = "/requests/abc-123"})};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
-    "type": "sourcemeta:one/payload-too-large",
-    "title": "Payload Too Large",
+    "type": "sourcemeta:one/content-too-large",
+    "title": "Content Too Large",
     "status": 413,
     "detail": "The request body exceeded the maximum allowed size",
     "instance": "/requests/abc-123"

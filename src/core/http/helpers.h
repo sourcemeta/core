@@ -64,7 +64,20 @@ inline auto http_for_each_list_entry(const std::string_view header,
       ++position;
     }
     std::size_t end_position{position};
-    while (end_position < header.size() && header[end_position] != ',') {
+    bool in_quotes{false};
+    while (end_position < header.size()) {
+      const char current{header[end_position]};
+      if (in_quotes) {
+        if (current == '\\' && end_position + 1 < header.size()) {
+          ++end_position;
+        } else if (current == '"') {
+          in_quotes = false;
+        }
+      } else if (current == '"') {
+        in_quotes = true;
+      } else if (current == ',') {
+        break;
+      }
       ++end_position;
     }
     std::size_t entry_end{end_position};

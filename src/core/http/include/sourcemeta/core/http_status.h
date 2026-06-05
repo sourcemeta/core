@@ -219,11 +219,12 @@ inline constexpr HTTPStatus HTTP_STATUS_PRECONDITION_FAILED{
     .wire = "412 Precondition Failed"};
 
 /// @ingroup http
-/// RFC 9110 §15.5.14 (Client Error).
-inline constexpr HTTPStatus HTTP_STATUS_PAYLOAD_TOO_LARGE{
+/// RFC 9110 §15.5.14 (Client Error). RFC 9110 renamed this from "Payload
+/// Too Large" (RFC 7231) to "Content Too Large".
+inline constexpr HTTPStatus HTTP_STATUS_CONTENT_TOO_LARGE{
     .code = 413,
-    .phrase = "Payload Too Large",
-    .wire = "413 Payload Too Large"};
+    .phrase = "Content Too Large",
+    .wire = "413 Content Too Large"};
 
 /// @ingroup http
 /// RFC 9110 §15.5.15 (Client Error).

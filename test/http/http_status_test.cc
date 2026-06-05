@@ -61,12 +61,12 @@ TEST(HTTP_status, not_acceptable_fields) {
             "406 Not Acceptable");
 }
 
-TEST(HTTP_status, payload_too_large_fields) {
-  EXPECT_EQ(sourcemeta::core::HTTP_STATUS_PAYLOAD_TOO_LARGE.code, 413);
-  EXPECT_EQ(sourcemeta::core::HTTP_STATUS_PAYLOAD_TOO_LARGE.phrase,
-            "Payload Too Large");
-  EXPECT_EQ(sourcemeta::core::HTTP_STATUS_PAYLOAD_TOO_LARGE.wire,
-            "413 Payload Too Large");
+TEST(HTTP_status, content_too_large_fields) {
+  EXPECT_EQ(sourcemeta::core::HTTP_STATUS_CONTENT_TOO_LARGE.code, 413);
+  EXPECT_EQ(sourcemeta::core::HTTP_STATUS_CONTENT_TOO_LARGE.phrase,
+            "Content Too Large");
+  EXPECT_EQ(sourcemeta::core::HTTP_STATUS_CONTENT_TOO_LARGE.wire,
+            "413 Content Too Large");
 }
 
 TEST(HTTP_status, unsupported_media_type_fields) {

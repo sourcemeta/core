@@ -74,9 +74,9 @@ auto http_match_accept(const std::string_view accept_header,
           if (specificity == 0) {
             return;
           }
-          if (quality > candidate_quality ||
-              (quality == candidate_quality &&
-               specificity > candidate_specificity)) {
+          if (specificity > candidate_specificity ||
+              (specificity == candidate_specificity &&
+               quality > candidate_quality)) {
             candidate_quality = quality;
             candidate_specificity = specificity;
           }
