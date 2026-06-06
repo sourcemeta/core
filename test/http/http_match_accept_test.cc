@@ -282,3 +282,24 @@ TEST(HTTP_match_accept, escaped_quote_inside_quoted_string_handled) {
                 header, {"text/html", "application/json"}),
             "text/html");
 }
+
+TEST(HTTP_match_accept, q_value_zero_dot_no_digits_is_zero) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0., application/json;q=0.5",
+                {"text/html", "application/json"}),
+            "application/json");
+}
+
+TEST(HTTP_match_accept, q_value_one_dot_no_digits_is_one) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=1., application/json;q=0.5",
+                {"text/html", "application/json"}),
+            "text/html");
+}
+
+TEST(HTTP_match_accept, q_value_four_decimal_digits_treated_as_one) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;q=0.1234, application/json;q=0.5",
+                {"text/html", "application/json"}),
+            "text/html");
+}
