@@ -2,6 +2,7 @@
 #include <sourcemeta/core/css.h>
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/html.h>
+#include <sourcemeta/core/http.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/ip.h>
 #include <sourcemeta/core/json.h>
