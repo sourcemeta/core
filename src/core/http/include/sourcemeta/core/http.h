@@ -40,7 +40,8 @@ enum class HTTPContentEncoding : std::uint8_t {
 
 /// @ingroup http
 /// Pick the best media-type candidate against an `Accept` header per RFC 9110
-/// §12.5.1. For example:
+/// §12.5.1. Returns an empty value when no candidate is acceptable. The
+/// returned view borrows from `candidates`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -95,7 +96,9 @@ auto http_content_type_matches(const std::string_view content_type_header,
 
 /// @ingroup http
 /// Pick the best language-tag candidate against an `Accept-Language` header
-/// per RFC 9110 §12.5.4 using the RFC 4647 §3.4 Lookup scheme. For example:
+/// per RFC 9110 §12.5.4 using the RFC 4647 §3.4 Lookup scheme. Returns an
+/// empty value when no candidate is acceptable. The returned view borrows from
+/// `candidates`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>
@@ -148,7 +151,9 @@ auto http_from_date(const std::string_view value) noexcept
     -> std::optional<std::chrono::system_clock::time_point>;
 
 /// @ingroup http
-/// A typed RFC 8288 §3 link-value.
+/// A typed RFC 8288 §3 link-value. The caller owns the backing storage for
+/// every field, must URI-escape `target`, and must ensure parameter values are
+/// valid `quoted-string` content.
 struct HTTPLink {
   std::string_view target;
   std::string_view rel;

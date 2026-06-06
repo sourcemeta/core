@@ -27,7 +27,7 @@ auto http_match_accept(const std::string_view accept_header,
   std::size_t order{0};
   for (const auto candidate : candidates) {
     assert(!candidate.empty());
-    const auto candidate_slash{candidate.find('/')};
+    [[maybe_unused]] const auto candidate_slash{candidate.find('/')};
     assert(candidate_slash != std::string_view::npos);
     assert(candidate_slash > 0);
     assert(candidate_slash < candidate.size() - 1);

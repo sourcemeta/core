@@ -179,7 +179,7 @@ inline auto http_parse_qvalue(const std::string_view value) noexcept -> float {
   if (value.size() == 1) {
     return integer_part;
   }
-  if (value[1] != '.' || value.size() < 3 || value.size() > 5) {
+  if (value[1] != '.' || value.size() > 5) {
     return 1.0f;
   }
   std::uint16_t numerator{0};

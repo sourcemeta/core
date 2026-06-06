@@ -19,7 +19,7 @@ auto http_accept_includes_all(
   }
   for (const auto media_type : media_types) {
     assert(!media_type.empty());
-    const auto slash{media_type.find('/')};
+    [[maybe_unused]] const auto slash{media_type.find('/')};
     assert(slash != std::string_view::npos);
     assert(slash > 0);
     assert(slash < media_type.size() - 1);
