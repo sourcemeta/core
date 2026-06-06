@@ -276,8 +276,9 @@ TEST(HTTP_match_accept, quoted_string_with_comma_does_not_split_entry) {
 }
 
 TEST(HTTP_match_accept, escaped_quote_inside_quoted_string_handled) {
+  const std::string_view header{
+      "text/html;profile=\"a\\\"b,c\", application/json;q=0.5"};
   EXPECT_EQ(sourcemeta::core::http_match_accept(
-                R"X(text/html;profile="a\"b,c", application/json;q=0.5)X",
-                {"text/html", "application/json"}),
+                header, {"text/html", "application/json"}),
             "text/html");
 }

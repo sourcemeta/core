@@ -140,8 +140,9 @@ TEST(HTTP_field_list_contains_any,
 }
 
 TEST(HTTP_field_list_contains_any, escaped_quote_in_quoted_string_handled) {
-  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(
-      R"X("a\"b,c", "xyz")X", {R"X("a\"b,c")X"}));
+  const std::string_view header{"\"a\\\"b,c\", \"xyz\""};
+  const std::string_view token{"\"a\\\"b,c\""};
+  EXPECT_TRUE(sourcemeta::core::http_field_list_contains_any(header, {token}));
 }
 
 TEST(HTTP_field_list_contains_any,
