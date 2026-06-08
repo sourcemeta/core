@@ -53,7 +53,7 @@ public:
 class OutputByteStream : public std::ostringstream {
 public:
   SOURCEMETA_CORE_IO_EXPORT
-  [[nodiscard]] auto bytes() const -> std::vector<std::byte>;
+  auto bytes() const -> std::vector<std::byte>;
 };
 
 #if defined(_MSC_VER)
