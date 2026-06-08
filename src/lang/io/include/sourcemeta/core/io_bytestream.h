@@ -13,6 +13,13 @@
 
 namespace sourcemeta::core {
 
+// Exporting symbols that depend on the standard C++ library is considered
+// safe.
+// https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
+#if defined(_MSC_VER)
+#pragma warning(disable : 4251 4275)
+#endif
+
 /// @ingroup io
 /// An input stream constructed from an inline list of byte values. For
 /// example:
@@ -43,6 +50,10 @@ class SOURCEMETA_CORE_IO_EXPORT OutputByteStream : public std::ostringstream {
 public:
   [[nodiscard]] auto bytes() const -> std::vector<std::byte>;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(default : 4251 4275)
+#endif
 
 } // namespace sourcemeta::core
 

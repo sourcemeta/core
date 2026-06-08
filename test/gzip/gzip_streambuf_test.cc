@@ -768,6 +768,18 @@ TEST(GZIP_stream_buffer, header_with_fname_and_fcomment) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
+TEST(GZIP_stream_buffer, reserved_deflate_block_type_throws) {
+  // RFC 1951 section 3.2.3: BTYPE=11 is reserved and a compliant decoder
+  // must reject it. Deflate packs bits LSB-first, so BFINAL=1 + BTYPE=11
+  // is the byte 0b00000111 = 0x07
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x07,                   // BFINAL=1, BTYPE=11 (reserved/invalid)
+      0x00, 0x00, 0x00, 0x00, // arbitrary trailing bytes
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
 TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
   // RFC 1951 section 3.2.4: NLEN must be the one's complement of LEN
   sourcemeta::core::InputByteStream stream{
