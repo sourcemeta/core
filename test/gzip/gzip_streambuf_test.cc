@@ -792,9 +792,7 @@ TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
   EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
 }
 
-// TODO: Enable once the streaming decompressor supports multi-member gzip
-// streams as required by RFC 1952 section 2.2
-TEST(GZIP_stream_buffer, DISABLED_two_concatenated_members) {
+TEST(GZIP_stream_buffer, two_concatenated_members) {
   const std::string first{"hello"};
   const std::string second{" world"};
   const auto first_gzip{sourcemeta::core::gzip(
@@ -806,9 +804,7 @@ TEST(GZIP_stream_buffer, DISABLED_two_concatenated_members) {
   EXPECT_EQ(result, first + second);
 }
 
-// TODO: Enable once the streaming decompressor supports multi-member gzip
-// streams as required by RFC 1952 section 2.2
-TEST(GZIP_stream_buffer, DISABLED_three_concatenated_members_with_empty) {
+TEST(GZIP_stream_buffer, three_concatenated_members_with_empty) {
   const std::string first{"foo"};
   const std::string second;
   const std::string third{"baz"};
@@ -823,9 +819,7 @@ TEST(GZIP_stream_buffer, DISABLED_three_concatenated_members_with_empty) {
   EXPECT_EQ(result, first + second + third);
 }
 
-// TODO: Enable once the streaming decompressor rejects a member truncated
-// before its deflate body instead of silently returning empty output
-TEST(GZIP_stream_buffer, DISABLED_header_only_source_throws) {
+TEST(GZIP_stream_buffer, header_only_source_throws) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -833,9 +827,7 @@ TEST(GZIP_stream_buffer, DISABLED_header_only_source_throws) {
   EXPECT_THROW(decompress_via_stream(header_only), sourcemeta::core::GZIPError);
 }
 
-// TODO: Enable once the streaming decompressor rejects truncated optional
-// header fields per RFC 1952 section 2.3.1
-TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fname_throws) {
+TEST(GZIP_stream_buffer, truncated_mid_fname_throws) {
   // FLG.FNAME set but the source stream ends before the null terminator
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00,
@@ -843,9 +835,7 @@ TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fname_throws) {
   EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
 }
 
-// TODO: Enable once the streaming decompressor rejects truncated optional
-// header fields per RFC 1952 section 2.3.1
-TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fcomment_throws) {
+TEST(GZIP_stream_buffer, truncated_mid_fcomment_throws) {
   // FLG.FCOMMENT set but the source stream ends before the null terminator
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00,
@@ -853,9 +843,7 @@ TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fcomment_throws) {
   EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
 }
 
-// TODO: Enable once the streaming decompressor rejects truncated optional
-// header fields per RFC 1952 section 2.3.1
-TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fextra_throws) {
+TEST(GZIP_stream_buffer, truncated_mid_fextra_throws) {
   // FLG.FEXTRA with XLEN=10 but only 3 bytes of extra-field data present
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
@@ -864,11 +852,7 @@ TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fextra_throws) {
   EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
 }
 
-// TODO: Enable once the streaming decompressor stops treating an inflate
-// step that produced zero bytes as end-of-stream. FEXTRA larger than the
-// 16384-byte internal buffer is a valid RFC 1952 stream but currently
-// returns an empty result silently
-TEST(GZIP_stream_buffer, DISABLED_fextra_spans_internal_buffer) {
+TEST(GZIP_stream_buffer, fextra_spans_internal_buffer) {
   std::string compressed;
   compressed.append("\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff", 10);
   const std::size_t extra_size{20000};
