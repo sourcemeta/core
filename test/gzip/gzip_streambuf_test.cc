@@ -542,6 +542,244 @@ TEST(GZIP_stream_buffer, trailing_data_after_member_is_ignored) {
   EXPECT_EQ(result, input);
 }
 
+TEST(GZIP_stream_buffer, fhcrc_mismatch_throws) {
+  // RFC 1952 section 2.3.1.2: a compliant decoder must reject an FHCRC
+  // mismatch. The correct CRC16 over the preceding 10 header bytes is
+  // 0x90 0xc9, so flipping a bit must cause a hard failure
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b,             // ID1, ID2
+      0x08,                   // CM
+      0x02,                   // FLG = FHCRC
+      0x00, 0x00, 0x00, 0x00, // MTIME
+      0x00,                   // XFL
+      0xff,                   // OS
+      0x91, 0xc9,             // FHCRC corrupted (correct is 0x90 0xc9)
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',  'l',  'o',  ' ',  'w',
+      'o',  'r',  'l',  'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
+TEST(GZIP_stream_buffer, multiple_deflate_blocks) {
+  // RFC 1951 allows a deflate stream to contain multiple blocks. Only the
+  // last block has BFINAL set. This fixture splits "hello world" into two
+  // stored blocks
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      // Block 1 (non-final stored)
+      0x00,       // BFINAL=0, BTYPE=00 (stored)
+      0x05, 0x00, // LEN = 5
+      0xfa, 0xff, // NLEN = ~5
+      'h', 'e', 'l', 'l', 'o',
+      // Block 2 (final stored)
+      0x01,       // BFINAL=1, BTYPE=00
+      0x06, 0x00, // LEN = 6
+      0xf9, 0xff, // NLEN = ~6
+      ' ', 'w', 'o', 'r', 'l', 'd', 0x85, 0x11, 0x4a,
+      0x0d,                    // CRC32 little-endian
+      0x0b, 0x00, 0x00, 0x00}; // ISIZE
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, fextra_with_zero_xlen) {
+  // RFC 1952: XLEN=0 is a valid FEXTRA encoding (no extra-field bytes)
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0xff, 0x00, 0x00, // XLEN = 0
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',
+      'l',  'o',  ' ',  'w',  'o',  'r',  'l',  'd',
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, mtime_nonzero_is_accepted) {
+  // RFC 1952 section 2.3.1.2: MTIME is informational and any value, including
+  // non-zero, must be accepted
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x78, 0x56, 0x34, 0x12, // MTIME = 0x12345678
+                                                      // little-endian
+      0x00, 0xff, 0x01, 0x0b, 0x00, 0xf4, 0xff, 'h', 'e', 'l', 'l', 'o', ' ',
+      'w', 'o', 'r', 'l', 'd', 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, xfl_max_compression_is_accepted) {
+  // RFC 1952 section 2.3.1.2: XFL=2 indicates maximum compression
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x02, // XFL = 2 (max compression)
+      0xff, 0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',
+      'l',  'o',  ' ',  'w',  'o',  'r',  'l',  'd',  0x85,
+      0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, xfl_fastest_compression_is_accepted) {
+  // RFC 1952 section 2.3.1.2: XFL=4 indicates fastest compression
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x04, // XFL = 4 (fastest)
+      0xff, 0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',
+      'l',  'o',  ' ',  'w',  'o',  'r',  'l',  'd',  0x85,
+      0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, os_field_unix_is_accepted) {
+  // RFC 1952 section 2.3.1.2: OS=3 indicates Unix; decoders must accept any
+  // value
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x03, // OS = Unix
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',  'l',  'o',  ' ',  'w',
+      'o',  'r',  'l',  'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, fname_with_latin1_high_bytes) {
+  // RFC 1952 section 2.3.1.2: FNAME is ISO 8859-1 (Latin-1), so bytes in the
+  // 0x80 to 0xff range must be accepted
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xa9, 0xc6,
+      0xff, 0x00, // FNAME = three Latin-1 bytes + null terminator
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',  'l',  'o',  ' ',  'w',
+      'o',  'r',  'l',  'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, fcomment_with_latin1_high_bytes) {
+  // RFC 1952 section 2.3.1.2: FCOMMENT is ISO 8859-1
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc0, 0xc1,
+      0xfe, 0x00, // FCOMMENT with Latin-1 high bytes
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',  'l',  'o',  ' ',  'w',
+      'o',  'r',  'l',  'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, read_via_getline) {
+  const std::string input{"line one\nline two\nline three"};
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  std::istringstream stream{compressed};
+  sourcemeta::core::GZIPStreamBuffer buffer{stream};
+  std::istream decompressed{&buffer};
+
+  std::string first_line;
+  std::getline(decompressed, first_line);
+  EXPECT_EQ(first_line, "line one");
+  std::string second_line;
+  std::getline(decompressed, second_line);
+  EXPECT_EQ(second_line, "line two");
+  std::string third_line;
+  std::getline(decompressed, third_line);
+  EXPECT_EQ(third_line, "line three");
+}
+
+TEST(GZIP_stream_buffer, ignore_skips_bytes) {
+  const std::string input{"hello world"};
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  std::istringstream stream{compressed};
+  sourcemeta::core::GZIPStreamBuffer buffer{stream};
+  std::istream decompressed{&buffer};
+
+  decompressed.ignore(6);
+  std::string remaining;
+  remaining.assign(std::istreambuf_iterator<char>(decompressed),
+                   std::istreambuf_iterator<char>());
+  EXPECT_EQ(remaining, "world");
+}
+
+TEST(GZIP_stream_buffer, operator_in_extracts_tokens) {
+  const std::string input{"hello world"};
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  std::istringstream stream{compressed};
+  sourcemeta::core::GZIPStreamBuffer buffer{stream};
+  std::istream decompressed{&buffer};
+
+  std::string first;
+  std::string second;
+  decompressed >> first >> second;
+  EXPECT_EQ(first, "hello");
+  EXPECT_EQ(second, "world");
+}
+
+TEST(GZIP_stream_buffer, stored_block_with_empty_non_final_then_data) {
+  // RFC 1951 section 3.2.4: a stored block with LEN=0 is well-formed
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      // Non-final empty stored block
+      0x00,       // BFINAL=0, BTYPE=00
+      0x00, 0x00, // LEN = 0
+      0xff, 0xff, // NLEN = ~0
+      // Final stored block with the actual payload
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r',
+      'l', 'd', 0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, empty_payload_via_empty_final_stored_block) {
+  // Hand-crafted minimum valid gzip member encoding an empty payload
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x01,                    // BFINAL=1, BTYPE=00
+      0x00, 0x00,              // LEN = 0
+      0xff, 0xff,              // NLEN = ~0
+      0x00, 0x00, 0x00, 0x00,  // CRC32 of empty input
+      0x00, 0x00, 0x00, 0x00}; // ISIZE = 0
+  EXPECT_TRUE(decompress_via_stream(stream).empty());
+}
+
+TEST(GZIP_stream_buffer, header_with_fextra_and_fname) {
+  // RFC 1952 fixes the order: FEXTRA precedes FNAME
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x0c, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0xff, 0x03, 0x00,       // FEXTRA XLEN = 3
+      'x',  'y',  'z',              // FEXTRA data
+      'n',  'a',  'm',  'e',  0x00, // FNAME
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',
+      'l',  'o',  ' ',  'w',  'o',  'r',  'l',  'd',
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, header_with_fextra_and_fcomment) {
+  // RFC 1952 fixes the order: FEXTRA precedes FCOMMENT
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x14, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0xff, 0x02, 0x00, // FEXTRA XLEN = 2
+      'A',  'B',              // FEXTRA data
+      'h',  'i',  0x00,       // FCOMMENT
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',
+      'l',  'o',  ' ',  'w',  'o',  'r',  'l',  'd',
+      0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, header_with_fname_and_fcomment) {
+  // RFC 1952 fixes the order: FNAME precedes FCOMMENT
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 'a',  '.',
+      't',  'x',  't',  0x00, // FNAME
+      'c',  'm',  't',  0x00, // FCOMMENT
+      0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',  'l',  'o',  ' ',  'w',
+      'o',  'r',  'l',  'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_EQ(decompress_via_stream(stream), "hello world");
+}
+
+TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
+  // RFC 1951 section 3.2.4: NLEN must be the one's complement of LEN
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
+      0x01,       // BFINAL=1, BTYPE=00
+      0x0b, 0x00, // LEN = 11
+      0x00, 0x00, // NLEN corrupted (must be 0xf4 0xff)
+      'h',  'e',  'l',  'l',  'o',  ' ',  'w',  'o',  'r',  'l',
+      'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
 // TODO: Enable once the streaming decompressor supports multi-member gzip
 // streams as required by RFC 1952 section 2.2
 TEST(GZIP_stream_buffer, DISABLED_two_concatenated_members) {
@@ -581,4 +819,52 @@ TEST(GZIP_stream_buffer, DISABLED_header_only_source_throws) {
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   const std::string header_only{compressed.substr(0, 10)};
   EXPECT_THROW(decompress_via_stream(header_only), sourcemeta::core::GZIPError);
+}
+
+// TODO: Enable once the streaming decompressor rejects truncated optional
+// header fields per RFC 1952 section 2.3.1
+TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fname_throws) {
+  // FLG.FNAME set but the source stream ends before the null terminator
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0xff, 'd',  'a',  't'}; // no null terminator
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
+// TODO: Enable once the streaming decompressor rejects truncated optional
+// header fields per RFC 1952 section 2.3.1
+TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fcomment_throws) {
+  // FLG.FCOMMENT set but the source stream ends before the null terminator
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0xff, 'c',  'm',  't'}; // no null terminator
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
+// TODO: Enable once the streaming decompressor rejects truncated optional
+// header fields per RFC 1952 section 2.3.1
+TEST(GZIP_stream_buffer, DISABLED_truncated_mid_fextra_throws) {
+  // FLG.FEXTRA with XLEN=10 but only 3 bytes of extra-field data present
+  sourcemeta::core::InputByteStream stream{
+      0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0xff, 0x0a, 0x00, // XLEN = 10
+      'A',  'B',  'C'};                   // only 3 of 10 promised bytes present
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
+// TODO: Enable once the streaming decompressor stops treating an inflate
+// step that produced zero bytes as end-of-stream. FEXTRA larger than the
+// 16384-byte internal buffer is a valid RFC 1952 stream but currently
+// returns an empty result silently
+TEST(GZIP_stream_buffer, DISABLED_fextra_spans_internal_buffer) {
+  std::string compressed;
+  compressed.append("\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff", 10);
+  const std::size_t extra_size{20000};
+  compressed.push_back(static_cast<char>(extra_size & 0xff));
+  compressed.push_back(static_cast<char>((extra_size >> 8) & 0xff));
+  compressed.append(extra_size, '\0');
+  compressed.append("\x01\x0b\x00\xf4\xff", 5);
+  compressed.append("hello world", 11);
+  compressed.append("\x85\x11\x4a\x0d\x0b\x00\x00\x00", 8);
+  EXPECT_EQ(decompress_via_stream(compressed), "hello world");
 }
