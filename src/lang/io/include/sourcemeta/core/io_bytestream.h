@@ -13,8 +13,11 @@
 
 namespace sourcemeta::core {
 
-// Exporting symbols that depend on the standard C++ library is considered
-// safe.
+// Exporting individual members rather than the whole class avoids MSVC
+// instantiating std::basic_istringstream / std::basic_ostringstream vbase
+// destructors inside this DLL, which would otherwise clash at link time with
+// consumer translation units that use these iostream types directly
+// (LNK2005).
 // https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-2-c4275?view=msvc-170&redirectedfrom=MSDN
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251 4275)
@@ -29,8 +32,9 @@ namespace sourcemeta::core {
 ///
 /// sourcemeta::core::InputByteStream stream{0x1f, 0x8b, 0x08, 0x00};
 /// ```
-class SOURCEMETA_CORE_IO_EXPORT InputByteStream : public std::istringstream {
+class InputByteStream : public std::istringstream {
 public:
+  SOURCEMETA_CORE_IO_EXPORT
   InputByteStream(std::initializer_list<std::uint8_t> bytes);
 };
 
@@ -46,9 +50,10 @@ public:
 /// stream.put('A');
 /// assert(stream.bytes().size() == 1);
 /// ```
-class SOURCEMETA_CORE_IO_EXPORT OutputByteStream : public std::ostringstream {
+class OutputByteStream : public std::ostringstream {
 public:
-  [[nodiscard]] auto bytes() const -> std::vector<std::byte>;
+  SOURCEMETA_CORE_IO_EXPORT [[nodiscard]] auto bytes() const
+      -> std::vector<std::byte>;
 };
 
 #if defined(_MSC_VER)
