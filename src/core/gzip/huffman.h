@@ -30,8 +30,8 @@ public:
 
   auto build(const std::uint8_t *lengths, const std::size_t length_count)
       -> void {
-    std::ranges::fill(this->count_, 0);
-    std::ranges::fill(this->lut_, 0);
+    std::ranges::fill(this->count_, std::uint16_t{0});
+    std::ranges::fill(this->lut_, std::uint16_t{0});
 
     for (std::size_t symbol = 0; symbol < length_count; ++symbol) {
       if (lengths[symbol] > MAX_HUFFMAN_BITS) {

@@ -4,9 +4,9 @@
 #include <sourcemeta/core/gzip_error.h>
 
 #include <array>   // std::array
+#include <cassert> // assert
 #include <cstddef> // std::size_t
 #include <cstdint> // std::uint8_t, std::uint32_t, std::uint64_t
-#include <cstring> // std::memcpy
 #include <istream> // std::istream
 
 namespace sourcemeta::core {
@@ -22,6 +22,10 @@ public:
   }
 
   auto peek_bits(const unsigned int count) -> std::uint32_t {
+    // Callers in this module always pass count in [0, 32]; larger shifts
+    // would be undefined behaviour against the 64-bit accumulator. The
+    // assert documents the contract without paying a release-build cost
+    assert(count <= 32);
     if (this->bits_available_ < count) {
       this->refill_for(count);
     }
@@ -68,11 +72,21 @@ private:
 
   auto refill_for(const unsigned int count) -> void {
     // Fast path: if 4 bytes available in the input buffer and the
-    // accumulator has room for 32 more bits, load 4 bytes at once
+    // accumulator has room for 32 more bits, load 4 bytes at once.
+    // RFC 1951 packs bits LSB-first within each byte, so the first byte
+    // contributes the low 8 bits of the loaded word regardless of host
+    // endianness. Construct the 32-bit value explicitly to keep this
+    // portable on big-endian hosts
     if (this->bits_available_ <= 32 &&
         this->buffer_position_ + 4 <= this->buffer_size_) {
-      std::uint32_t four_bytes{0};
-      std::memcpy(&four_bytes, &this->buffer_[this->buffer_position_], 4);
+      const std::uint32_t four_bytes{
+          static_cast<std::uint32_t>(this->buffer_[this->buffer_position_]) |
+          (static_cast<std::uint32_t>(this->buffer_[this->buffer_position_ + 1])
+           << 8) |
+          (static_cast<std::uint32_t>(this->buffer_[this->buffer_position_ + 2])
+           << 16) |
+          (static_cast<std::uint32_t>(this->buffer_[this->buffer_position_ + 3])
+           << 24)};
       this->accumulator_ |= static_cast<std::uint64_t>(four_bytes)
                             << this->bits_available_;
       this->bits_available_ += 32;

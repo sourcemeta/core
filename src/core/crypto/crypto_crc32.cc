@@ -5,12 +5,14 @@
 #include <cstdint> // std::uint8_t, std::uint32_t, std::uint64_t, std::uintptr_t
 #include <cstring> // std::memcpy
 
-#if defined(__aarch64__)
+// Only enable the hardware CRC32 path when the target ISA explicitly promises
+// the optional ARMv8 CRC32 extension. Running these instructions on a CPU
+// without the extension would trap with SIGILL, so we gate on the standard
+// feature macro that the compiler sets when the right -march or -mcpu is in
+// effect
+#if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32)
 #include <arm_acle.h> // __crc32b, __crc32d
 #define SOURCEMETA_CORE_CRYPTO_CRC32_ARM 1
-#define SOURCEMETA_CORE_CRYPTO_CRC32_TARGET __attribute__((target("+crc")))
-#else
-#define SOURCEMETA_CORE_CRYPTO_CRC32_TARGET
 #endif
 
 #ifndef SOURCEMETA_CORE_CRYPTO_CRC32_ARM
@@ -55,7 +57,6 @@ auto crc32(const std::string_view input) -> std::uint32_t {
   return crc32_update(0u, input);
 }
 
-SOURCEMETA_CORE_CRYPTO_CRC32_TARGET
 auto crc32_update(const std::uint32_t previous, const std::string_view input)
     -> std::uint32_t {
   auto checksum{previous ^ 0xFFFFFFFFu};

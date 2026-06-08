@@ -92,6 +92,7 @@ public:
     this->pending_copy_length_ = 0;
     this->pending_copy_distance_ = 0;
     this->window_position_ = 0;
+    this->bytes_written_ = 0;
   }
 
 private:
@@ -257,6 +258,9 @@ private:
             static_cast<std::uint8_t>(symbol);
         this->window_position_ =
             (this->window_position_ + 1) & DEFLATE_WINDOW_MASK;
+        if (this->bytes_written_ < DEFLATE_WINDOW_SIZE) {
+          ++this->bytes_written_;
+        }
         output[produced++] = static_cast<std::uint8_t>(symbol);
       } else if (symbol == 256) {
         this->state_ = State::BlockHeader;
@@ -275,6 +279,9 @@ private:
             static_cast<std::size_t>(DEFLATE_DISTANCE_BASE[distance_symbol]) +
             static_cast<std::size_t>(this->reader_->read_bits(
                 DEFLATE_DISTANCE_EXTRA[distance_symbol]))};
+        if (distance > this->bytes_written_) {
+          throw GZIPError{"Backref distance exceeds bytes available"};
+        }
         this->pending_copy_length_ = length;
         this->pending_copy_distance_ = distance;
         this->copy_backref(output, output_size, produced);
@@ -332,6 +339,8 @@ private:
     produced += to_copy;
     this->window_position_ =
         (this->window_position_ + to_copy) & DEFLATE_WINDOW_MASK;
+    this->bytes_written_ =
+        std::min(this->bytes_written_ + to_copy, DEFLATE_WINDOW_SIZE);
     this->pending_copy_length_ -= to_copy;
   }
 
@@ -347,6 +356,9 @@ private:
       this->window_position_ =
           (this->window_position_ + 1) & DEFLATE_WINDOW_MASK;
       source_position = (source_position + 1) & DEFLATE_WINDOW_MASK;
+      if (this->bytes_written_ < DEFLATE_WINDOW_SIZE) {
+        ++this->bytes_written_;
+      }
       output[produced++] = byte;
       --this->pending_copy_length_;
     }
@@ -356,6 +368,9 @@ private:
             const std::size_t output_size, std::size_t &produced) -> bool {
     this->window_[this->window_position_] = byte;
     this->window_position_ = (this->window_position_ + 1) & DEFLATE_WINDOW_MASK;
+    if (this->bytes_written_ < DEFLATE_WINDOW_SIZE) {
+      ++this->bytes_written_;
+    }
     if (produced < output_size) {
       output[produced++] = byte;
       return true;
@@ -378,6 +393,10 @@ private:
 
   std::array<std::uint8_t, DEFLATE_WINDOW_SIZE> window_{};
   std::size_t window_position_{0};
+  // Bytes written into the sliding window since the last reset, capped at
+  // DEFLATE_WINDOW_SIZE. Used to reject back-references whose distance
+  // exceeds the data we have actually produced for the current member
+  std::size_t bytes_written_{0};
 };
 
 } // namespace sourcemeta::core
