@@ -6,13 +6,18 @@
 
 #include <sourcemeta/core/gzip_error.h>
 
-#include <array>   // std::array
-#include <cstddef> // std::size_t
-#include <cstdint> // std::uint8_t, std::uint16_t
+#include <algorithm> // std::min
+#include <array>     // std::array
+#include <cstddef>   // std::size_t
+#include <cstdint>   // std::uint8_t, std::uint16_t
+#include <cstring>   // std::memcpy
 
 namespace sourcemeta::core {
 
 inline constexpr std::size_t DEFLATE_WINDOW_SIZE{32768};
+inline constexpr std::size_t DEFLATE_WINDOW_MASK{DEFLATE_WINDOW_SIZE - 1};
+static_assert((DEFLATE_WINDOW_SIZE & DEFLATE_WINDOW_MASK) == 0,
+              "DEFLATE_WINDOW_SIZE must be a power of two");
 
 // RFC 1951 section 3.2.5 length codes 257-285
 inline constexpr std::array<std::uint16_t, 29> DEFLATE_LENGTH_BASE{
@@ -238,29 +243,27 @@ private:
   auto process_huffman_block(std::uint8_t *output,
                              const std::size_t output_size,
                              std::size_t &produced) -> void {
-    while (this->pending_copy_length_ > 0 && produced < output_size) {
-      const auto source_position{(this->window_position_ + DEFLATE_WINDOW_SIZE -
-                                  this->pending_copy_distance_) %
-                                 DEFLATE_WINDOW_SIZE};
-      const auto byte{this->window_[source_position]};
-      this->emit(byte, output, output_size, produced);
-      --this->pending_copy_length_;
-    }
     if (this->pending_copy_length_ > 0) {
-      return;
+      this->copy_backref(output, output_size, produced);
+      if (this->pending_copy_length_ > 0) {
+        return;
+      }
     }
 
     while (produced < output_size) {
       const auto symbol{this->literal_length_tree_.decode(*this->reader_)};
       if (symbol < 256) {
-        this->emit(static_cast<std::uint8_t>(symbol), output, output_size,
-                   produced);
+        this->window_[this->window_position_] =
+            static_cast<std::uint8_t>(symbol);
+        this->window_position_ =
+            (this->window_position_ + 1) & DEFLATE_WINDOW_MASK;
+        output[produced++] = static_cast<std::uint8_t>(symbol);
       } else if (symbol == 256) {
         this->state_ = State::BlockHeader;
         return;
       } else if (symbol <= 285) {
         const auto length_index{static_cast<std::size_t>(symbol - 257)};
-        const auto length{
+        const std::size_t length{
             static_cast<std::size_t>(DEFLATE_LENGTH_BASE[length_index]) +
             static_cast<std::size_t>(
                 this->reader_->read_bits(DEFLATE_LENGTH_EXTRA[length_index]))};
@@ -268,21 +271,13 @@ private:
         if (distance_symbol >= 30) {
           throw GZIPError{"Invalid distance code"};
         }
-        const auto distance{
+        const std::size_t distance{
             static_cast<std::size_t>(DEFLATE_DISTANCE_BASE[distance_symbol]) +
             static_cast<std::size_t>(this->reader_->read_bits(
                 DEFLATE_DISTANCE_EXTRA[distance_symbol]))};
         this->pending_copy_length_ = length;
         this->pending_copy_distance_ = distance;
-        while (this->pending_copy_length_ > 0 && produced < output_size) {
-          const auto source_position{(this->window_position_ +
-                                      DEFLATE_WINDOW_SIZE -
-                                      this->pending_copy_distance_) %
-                                     DEFLATE_WINDOW_SIZE};
-          const auto byte{this->window_[source_position]};
-          this->emit(byte, output, output_size, produced);
-          --this->pending_copy_length_;
-        }
+        this->copy_backref(output, output_size, produced);
         if (this->pending_copy_length_ > 0) {
           return;
         }
@@ -292,10 +287,75 @@ private:
     }
   }
 
+  auto copy_backref(std::uint8_t *output, const std::size_t output_size,
+                    std::size_t &produced) -> void {
+    const auto remaining{output_size - produced};
+    const auto to_copy{std::min(this->pending_copy_length_, remaining)};
+
+    if (this->pending_copy_distance_ >= this->pending_copy_length_) {
+      // Source range does not overlap with the bytes about to be written
+      this->copy_backref_non_overlapping(output, produced, to_copy);
+    } else {
+      // RLE-style overlap: must propagate byte by byte
+      this->copy_backref_overlapping(output, output_size, produced);
+    }
+  }
+
+  auto copy_backref_non_overlapping(std::uint8_t *output, std::size_t &produced,
+                                    const std::size_t to_copy) -> void {
+    const std::size_t source_position{(this->window_position_ +
+                                       DEFLATE_WINDOW_SIZE -
+                                       this->pending_copy_distance_) &
+                                      DEFLATE_WINDOW_MASK};
+
+    // Copy from circular window into linear output (one or two contiguous
+    // chunks depending on whether the source range wraps the window)
+    const std::size_t source_first{
+        std::min(to_copy, DEFLATE_WINDOW_SIZE - source_position)};
+    std::memcpy(output + produced, this->window_.data() + source_position,
+                source_first);
+    if (source_first < to_copy) {
+      std::memcpy(output + produced + source_first, this->window_.data(),
+                  to_copy - source_first);
+    }
+
+    // Mirror the freshly written bytes back into the circular window
+    const std::size_t dest_first{
+        std::min(to_copy, DEFLATE_WINDOW_SIZE - this->window_position_)};
+    std::memcpy(this->window_.data() + this->window_position_,
+                output + produced, dest_first);
+    if (dest_first < to_copy) {
+      std::memcpy(this->window_.data(), output + produced + dest_first,
+                  to_copy - dest_first);
+    }
+
+    produced += to_copy;
+    this->window_position_ =
+        (this->window_position_ + to_copy) & DEFLATE_WINDOW_MASK;
+    this->pending_copy_length_ -= to_copy;
+  }
+
+  auto copy_backref_overlapping(std::uint8_t *output,
+                                const std::size_t output_size,
+                                std::size_t &produced) -> void {
+    std::size_t source_position{(this->window_position_ + DEFLATE_WINDOW_SIZE -
+                                 this->pending_copy_distance_) &
+                                DEFLATE_WINDOW_MASK};
+    while (this->pending_copy_length_ > 0 && produced < output_size) {
+      const auto byte{this->window_[source_position]};
+      this->window_[this->window_position_] = byte;
+      this->window_position_ =
+          (this->window_position_ + 1) & DEFLATE_WINDOW_MASK;
+      source_position = (source_position + 1) & DEFLATE_WINDOW_MASK;
+      output[produced++] = byte;
+      --this->pending_copy_length_;
+    }
+  }
+
   auto emit(const std::uint8_t byte, std::uint8_t *output,
             const std::size_t output_size, std::size_t &produced) -> bool {
     this->window_[this->window_position_] = byte;
-    this->window_position_ = (this->window_position_ + 1) % DEFLATE_WINDOW_SIZE;
+    this->window_position_ = (this->window_position_ + 1) & DEFLATE_WINDOW_MASK;
     if (produced < output_size) {
       output[produced++] = byte;
       return true;
