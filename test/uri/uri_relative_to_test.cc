@@ -137,6 +137,27 @@ TEST(URI_relative_to, target_is_one_level_up_at_root) {
   EXPECT_EQ(uri.recompose(), "../foo");
 }
 
+TEST(URI_relative_to, target_is_root) {
+  const sourcemeta::core::URI base{"https://example.com/foo/bar"};
+  sourcemeta::core::URI uri{"https://example.com/"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../");
+}
+
+TEST(URI_relative_to, base_ends_with_slash) {
+  const sourcemeta::core::URI base{"https://example.com/foo/"};
+  sourcemeta::core::URI uri{"https://example.com/foo/bar"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "bar");
+}
+
+TEST(URI_relative_to, base_root_only) {
+  const sourcemeta::core::URI base{"https://example.com/"};
+  sourcemeta::core::URI uri{"https://example.com/foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "foo");
+}
+
 TEST(URI_relative_to, sibling_paths_same_directory) {
   const sourcemeta::core::URI base{"https://example.com/schemas/bar.json"};
   sourcemeta::core::URI uri{"https://example.com/schemas/foo.json"};

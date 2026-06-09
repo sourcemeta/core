@@ -102,6 +102,12 @@ auto URI::append_path(const std::string &path) -> URI & {
         "authority"};
   }
 
+  if (reference.query_.has_value() || reference.fragment_.has_value()) {
+    throw URIError{
+        "append_path argument must be a path, not a URI reference with a query "
+        "or fragment"};
+  }
+
   if (!reference.path_.has_value()) {
     return *this;
   }

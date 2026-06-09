@@ -389,10 +389,54 @@ TEST(URI_path, append_path_dot_dot_empty_base) {
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/meta/custom.json");
 }
 
-TEST(URI_path, append_path_with_fragment_argument_path_only) {
+TEST(URI_path, append_path_rejects_fragment) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  uri.append_path("bar#baz");
-  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+  EXPECT_THROW(uri.append_path("bar#baz"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_query) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar?x=1"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_fragment_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("#bar"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_query_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("?x=1"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_double_slash_in_argument_preserved) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  uri.append_path("..//bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080//bar");
+}
+
+TEST(URI_path, append_path_deep_dot_dot_chain) {
+  sourcemeta::core::URI uri{"http://example.com:8080/a/b/c/"};
+  uri.append_path("../../../d");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/d");
+}
+
+TEST(URI_path, append_path_dot_dot_past_root) {
+  sourcemeta::core::URI uri{"http://example.com:8080/a"};
+  uri.append_path("../../b");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/b");
+}
+
+TEST(URI_path, append_path_at_sign_in_segment_accepted) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("user@host");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/user@host");
+}
+
+TEST(URI_path, append_path_trailing_slash_on_segment_input) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("/");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/");
 }
 
 TEST(URI_path_getter, rfc3986_path_with_colon) {

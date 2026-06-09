@@ -467,8 +467,9 @@ public:
   [[nodiscard]] auto recompose() const -> std::string;
 
   /// Recompose the path, query, and fragment of a URI as an RFC 3986
-  /// Section 4.2 relative reference. Scheme and authority are omitted. For
-  /// example:
+  /// Section 4.2 relative reference. Scheme and authority are omitted. The
+  /// result only resolves back to the original URI when used against a base
+  /// that shares the same scheme and authority. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -566,14 +567,16 @@ public:
 
   /// Check whether two URIs share the same authority component. The authority
   /// is the user information, host, and port per RFC 3986 Section 3.2. The
-  /// scheme is not part of the authority and is not compared. For example:
+  /// scheme is not part of the authority and is not compared. Comparison is
+  /// byte-exact on the stored values, so call `canonicalize()` first if you
+  /// want host case-insensitivity or default-port elision. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
   /// #include <cassert>
   ///
   /// const sourcemeta::core::URI left{"https://example.com/foo"};
-  /// const sourcemeta::core::URI right{"http://example.com/bar"};
+  /// const sourcemeta::core::URI right{"https://example.com/bar"};
   /// assert(left.has_same_authority(right));
   /// ```
   [[nodiscard]] auto has_same_authority(const URI &other) const noexcept

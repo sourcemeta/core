@@ -75,3 +75,23 @@ TEST(URI_has_same_authority, default_port_vs_explicit) {
   const sourcemeta::core::URI right{"http://example.com/foo"};
   EXPECT_FALSE(left.has_same_authority(right));
 }
+
+TEST(URI_has_same_authority, default_port_vs_explicit_after_canonicalize) {
+  sourcemeta::core::URI left{"http://example.com:80/foo"};
+  sourcemeta::core::URI right{"http://example.com/foo"};
+  left.canonicalize();
+  right.canonicalize();
+  EXPECT_TRUE(left.has_same_authority(right));
+}
+
+TEST(URI_has_same_authority, ipv6_short_form_vs_long_form) {
+  const sourcemeta::core::URI left{"http://[::1]/foo"};
+  const sourcemeta::core::URI right{"http://[0:0:0:0:0:0:0:1]/foo"};
+  EXPECT_FALSE(left.has_same_authority(right));
+}
+
+TEST(URI_has_same_authority, ipv6_same_literal) {
+  const sourcemeta::core::URI left{"http://[::1]/foo"};
+  const sourcemeta::core::URI right{"http://[::1]/bar"};
+  EXPECT_TRUE(left.has_same_authority(right));
+}
