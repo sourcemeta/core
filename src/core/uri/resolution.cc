@@ -333,7 +333,7 @@ auto merge_new_base_path(std::optional<std::string> &target_path,
 
 } // namespace
 
-auto URI::rebase_from_uri(const URI &base, const URI &new_base) -> URI & {
+auto URI::rebase(const URI &base, const URI &new_base) -> URI & {
   this->relative_to(base);
   if (!this->is_relative()) {
     return *this;
@@ -358,7 +358,7 @@ auto URI::rebase_from_uri(const URI &base, const URI &new_base) -> URI & {
   return *this;
 }
 
-auto URI::rebase_from_uri(const URI &base, URI &&new_base) -> URI & {
+auto URI::rebase(const URI &base, URI &&new_base) -> URI & {
   this->relative_to(base);
   if (!this->is_relative()) {
     return *this;

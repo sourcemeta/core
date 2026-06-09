@@ -64,7 +64,7 @@ public:
   template <typename T>
     requires std::convertible_to<T, std::string_view> &&
              (!std::is_same_v<std::decay_t<T>, URI>)
-  URI(T &&input) {
+  explicit URI(T &&input) {
     this->parse(std::string_view{std::forward<T>(input)});
   }
 
@@ -277,7 +277,7 @@ public:
   /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   /// uri.append_path("bar/baz");
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
-  auto append_path(const std::string &path) -> URI &;
+  auto append_path(std::string_view path) -> URI &;
 
   /// Append a path to the existing URI from a parsed reference. The
   /// reference must contain only a path. A scheme, authority, query, or
@@ -291,11 +291,24 @@ public:
   /// const sourcemeta::core::URI reference{"bar/baz"};
   /// uri.append_path(reference);
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
-  template <typename T>
-    requires std::same_as<std::remove_cvref_t<T>, URI>
-  auto append_path(T &&reference) -> URI & {
-    return this->append_path_from_uri(std::forward<T>(reference));
-  }
+  auto append_path(const URI &reference) -> URI &;
+
+  /// Append a path to the existing URI from a parsed reference, moving the
+  /// path out of the reference rather than copying it. The reference must
+  /// contain only a path. A scheme, authority, query, or fragment throws
+  /// `URIError`. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <utility>
+  ///
+  /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
+  /// sourcemeta::core::URI reference{"bar/baz"};
+  /// uri.append_path(std::move(reference));
+  /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
+  /// ```
+  auto append_path(URI &&reference) -> URI &;
 
   /// If the URI has a path, this method sets or replace the extension in the
   /// path. For example:
@@ -583,11 +596,24 @@ public:
   /// uri.rebase(base, new_base);
   /// assert(uri.recompose() == "/qux/bar/baz");
   /// ```
-  template <typename N>
-    requires std::same_as<std::remove_cvref_t<N>, URI>
-  auto rebase(const URI &base, N &&new_base) -> URI & {
-    return this->rebase_from_uri(base, std::forward<N>(new_base));
-  }
+  auto rebase(const URI &base, const URI &new_base) -> URI &;
+
+  /// Attempt to change the base of a URI, moving components out of
+  /// `new_base` rather than copying them. If the URI is not relative to
+  /// the former base, leave the URI intact. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <utility>
+  ///
+  /// sourcemeta::core::URI uri{"https://example.com/foo/bar/baz"};
+  /// const sourcemeta::core::URI base{"https://example.com/foo"};
+  /// sourcemeta::core::URI new_base{"/qux"};
+  /// uri.rebase(base, std::move(new_base));
+  /// assert(uri.recompose() == "/qux/bar/baz");
+  /// ```
+  auto rebase(const URI &base, URI &&new_base) -> URI &;
 
   /// Check whether two URIs share the same authority component. The authority
   /// is the user information, host, and port per RFC 3986 Section 3.2. The
@@ -768,10 +794,6 @@ public:
 
 private:
   auto parse(std::string_view input) -> void;
-  auto append_path_from_uri(const URI &reference) -> URI &;
-  auto append_path_from_uri(URI &&reference) -> URI &;
-  auto rebase_from_uri(const URI &base, const URI &new_base) -> URI &;
-  auto rebase_from_uri(const URI &base, URI &&new_base) -> URI &;
 
 // Exporting symbols that depends on the standard C++ library is considered
 // safe.

@@ -128,7 +128,7 @@ auto merge_reference_path(std::optional<std::string> &current_path,
 
 } // namespace
 
-auto URI::append_path(const std::string &path) -> URI & {
+auto URI::append_path(std::string_view path) -> URI & {
   if (path.empty()) {
     return *this;
   }
@@ -189,7 +189,7 @@ auto validate_uri_reference_components(const URI &reference) -> void {
 
 } // namespace
 
-auto URI::append_path_from_uri(const URI &reference) -> URI & {
+auto URI::append_path(const URI &reference) -> URI & {
   validate_uri_reference_components(reference);
 
   if (!reference.path_.has_value()) {
@@ -205,7 +205,7 @@ auto URI::append_path_from_uri(const URI &reference) -> URI & {
   return *this;
 }
 
-auto URI::append_path_from_uri(URI &&reference) -> URI & {
+auto URI::append_path(URI &&reference) -> URI & {
   validate_uri_reference_components(reference);
 
   if (!reference.path_.has_value()) {

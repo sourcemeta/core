@@ -159,17 +159,17 @@ TEST(URI, from_string_literal) {
   EXPECT_EQ(uri.recompose(), "https://example.com/path");
 }
 
-TEST(URI, implicit_conversion_from_string) {
+TEST(URI, resolve_from_string_constructed_base) {
   const std::string base{"https://example.com"};
   sourcemeta::core::URI uri{"foo/bar"};
-  uri.resolve_from(base);
+  uri.resolve_from(sourcemeta::core::URI{base});
   EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
 }
 
-TEST(URI, implicit_conversion_from_string_view) {
+TEST(URI, resolve_from_string_view_constructed_base) {
   const std::string_view base{"https://example.com"};
   sourcemeta::core::URI uri{"foo/bar"};
-  uri.resolve_from(base);
+  uri.resolve_from(sourcemeta::core::URI{base});
   EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
 }
 
