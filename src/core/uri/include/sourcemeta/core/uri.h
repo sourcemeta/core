@@ -9,7 +9,7 @@
 #include <sourcemeta/core/uri_error.h>
 // NOLINTEND(misc-include-cleaner)
 
-#include <concepts>    // std::convertible_to
+#include <concepts>    // std::convertible_to, std::same_as
 #include <cstddef>     // std::size_t, std::ptrdiff_t
 #include <cstdint>     // std::uint32_t
 #include <filesystem>  // std::filesystem
@@ -20,8 +20,8 @@
 #include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <type_traits> // std::is_same_v
-#include <utility>     // std::pair
+#include <type_traits> // std::is_same_v, std::remove_cvref_t
+#include <utility>     // std::pair, std::forward
 #include <vector>      // std::vector
 
 /// @defgroup uri URI
@@ -266,7 +266,10 @@ public:
   auto path(std::string &&path) -> URI &;
 
   /// Append a path to the existing URI path or set a path if such component
-  /// does not exist in the URI. For example:
+  /// does not exist in the URI. The argument is treated as a path component
+  /// to merge in, so `:` is accepted in any segment. Authority prefixes
+  /// (`//`, `scheme://`) and `?` or `#` delimiters are rejected as a
+  /// programmer error. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -276,6 +279,26 @@ public:
   /// uri.append_path("bar/baz");
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
   auto append_path(const std::string &path) -> URI &;
+
+  /// Append a path to the existing URI from a parsed reference. Equivalent
+  /// to the string overload but skips the internal parse, which is useful
+  /// for callers that have already parsed the input (for example to check
+  /// `is_relative()` first). The reference must contain only a path: a
+  /// scheme, authority, query, or fragment throws `URIError`. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
+  /// const sourcemeta::core::URI reference{"bar/baz"};
+  /// uri.append_path(reference);
+  /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
+  template <typename T>
+    requires std::same_as<std::remove_cvref_t<T>, URI>
+  auto append_path(T &&reference) -> URI & {
+    return this->append_path_from_uri(std::forward<T>(reference));
+  }
 
   /// If the URI has a path, this method sets or replace the extension in the
   /// path. For example:
@@ -744,6 +767,8 @@ public:
 
 private:
   auto parse(std::string_view input) -> void;
+  auto append_path_from_uri(const URI &reference) -> URI &;
+  auto append_path_from_uri(URI &&reference) -> URI &;
 
 // Exporting symbols that depends on the standard C++ library is considered
 // safe.

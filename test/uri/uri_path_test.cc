@@ -360,9 +360,22 @@ TEST(URI_path, append_path_rejects_authority_only) {
                sourcemeta::core::URIError);
 }
 
-TEST(URI_path, append_path_rejects_scheme_only) {
+TEST(URI_path, append_path_colon_in_first_segment_accepted) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("bar:baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar:baz");
+}
+
+TEST(URI_path, append_path_urn_like_input_treated_as_path) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
-  EXPECT_THROW(uri.append_path("urn:example:foo"), sourcemeta::core::URIError);
+  uri.append_path("urn:example:foo");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/urn:example:foo");
+}
+
+TEST(URI_path, append_path_colon_in_non_first_segment_accepted) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  uri.append_path("foo/bar:baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar:baz");
 }
 
 TEST(URI_path, append_path_dot_dot_collapses) {
@@ -437,6 +450,78 @@ TEST(URI_path, append_path_trailing_slash_on_segment_input) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
   uri.append_path("/");
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/");
+}
+
+TEST(URI_path, append_path_uri_overload_relative_reference) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  const sourcemeta::core::URI reference{"bar/baz"};
+  uri.append_path(reference);
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
+}
+
+TEST(URI_path, append_path_uri_overload_with_leading_slash) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  const sourcemeta::core::URI reference{"/bar"};
+  uri.append_path(reference);
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+}
+
+TEST(URI_path, append_path_uri_overload_dot_dot_collapses) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  const sourcemeta::core::URI reference{"../bar"};
+  uri.append_path(reference);
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/bar");
+}
+
+TEST(URI_path, append_path_uri_overload_rejects_scheme) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  const sourcemeta::core::URI reference{"https://other.example.com/foo"};
+  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_uri_overload_rejects_urn) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  const sourcemeta::core::URI reference{"urn:example:foo"};
+  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_uri_overload_rejects_query) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  const sourcemeta::core::URI reference{"bar?x=1"};
+  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_uri_overload_rejects_fragment) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  const sourcemeta::core::URI reference{"bar#baz"};
+  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_uri_overload_rejects_authority) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  const sourcemeta::core::URI reference{"//other.example.com/foo"};
+  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_uri_overload_chain) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  const sourcemeta::core::URI bar{"bar"};
+  const sourcemeta::core::URI baz{"baz"};
+  uri.append_path(bar).append_path(baz);
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
+}
+
+TEST(URI_path, append_path_uri_overload_move) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  sourcemeta::core::URI reference{"bar/baz"};
+  uri.append_path(std::move(reference));
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
+}
+
+TEST(URI_path, append_path_uri_overload_move_temporary) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path(sourcemeta::core::URI{"bar/baz"});
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
 }
 
 TEST(URI_path_getter, rfc3986_path_with_colon) {

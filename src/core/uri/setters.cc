@@ -89,51 +89,26 @@ auto URI::path(std::string &&path) -> URI & {
   return *this;
 }
 
-auto URI::append_path(const std::string &path) -> URI & {
-  if (path.empty()) {
-    return *this;
-  }
+namespace {
 
-  const URI reference{path};
-  if (reference.scheme_.has_value() || reference.userinfo_.has_value() ||
-      reference.host_.has_value() || reference.port_.has_value()) {
-    throw URIError{
-        "append_path argument must be a path, not a URI with scheme or "
-        "authority"};
-  }
-
-  if (reference.query_.has_value() || reference.fragment_.has_value()) {
-    throw URIError{
-        "append_path argument must be a path, not a URI reference with a query "
-        "or fragment"};
-  }
-
-  if (!reference.path_.has_value()) {
-    return *this;
-  }
-
-  const auto &reference_path = reference.path_.value();
-
-  const auto needs_leading_slash =
-      (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
-       this->scheme_.has_value()) ||
-      this->port_.has_value() || this->host_.has_value();
-
+auto merge_reference_path(std::optional<std::string> &current_path,
+                          const bool needs_leading_slash,
+                          const std::string_view reference_path) -> void {
   std::string merged_path;
-  if (this->path_.has_value()) {
-    const auto &current_path = this->path_.value();
-    const auto current_ends_with_slash = current_path.ends_with('/');
+  if (current_path.has_value()) {
+    const auto &existing = current_path.value();
+    const auto current_ends_with_slash = existing.ends_with('/');
     const auto reference_starts_with_slash = reference_path.starts_with('/');
 
     if (current_ends_with_slash && reference_starts_with_slash) {
-      merged_path = current_path;
-      merged_path.append(reference_path, 1);
+      merged_path = existing;
+      merged_path.append(reference_path.substr(1));
     } else if (!current_ends_with_slash && !reference_starts_with_slash) {
-      merged_path = current_path;
+      merged_path = existing;
       merged_path += '/';
       merged_path += reference_path;
     } else {
-      merged_path = current_path;
+      merged_path = existing;
       merged_path += reference_path;
     }
   } else if (needs_leading_slash && !reference_path.starts_with('/')) {
@@ -143,12 +118,107 @@ auto URI::append_path(const std::string &path) -> URI & {
     merged_path = reference_path;
   }
 
-  normalize_path(merged_path);
+  sourcemeta::core::normalize_path(merged_path);
   if (merged_path.empty()) {
-    this->path_ = std::nullopt;
+    current_path = std::nullopt;
   } else {
-    this->path_ = std::move(merged_path);
+    current_path = std::move(merged_path);
   }
+}
+
+} // namespace
+
+auto URI::append_path(const std::string &path) -> URI & {
+  if (path.empty()) {
+    return *this;
+  }
+
+  // Raw string validation. The input is not parsed as a URI because that
+  // would misclassify ':' in the first segment as a scheme delimiter
+  // (RFC 3986 grammar ambiguity between path-noscheme and scheme), which
+  // would reject valid path appends like "foo:bar".
+  if (path.starts_with("//")) {
+    throw URIError{"append_path argument cannot include an authority"};
+  }
+  for (const char character : path) {
+    if (character == '?') {
+      throw URIError{"append_path argument cannot include a query"};
+    }
+    if (character == '#') {
+      throw URIError{"append_path argument cannot include a fragment"};
+    }
+  }
+  for (std::size_t index = 0; index < path.size(); ++index) {
+    if (path[index] == '/') {
+      break;
+    }
+    if (path[index] == ':') {
+      if (index + 2 < path.size() && path[index + 1] == '/' &&
+          path[index + 2] == '/') {
+        throw URIError{
+            "append_path argument cannot include a scheme with an authority"};
+      }
+      break;
+    }
+  }
+
+  const auto needs_leading_slash =
+      (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
+       this->scheme_.has_value()) ||
+      this->port_.has_value() || this->host_.has_value();
+  merge_reference_path(this->path_, needs_leading_slash, path);
+  return *this;
+}
+
+namespace {
+
+auto validate_uri_reference_components(const URI &reference) -> void {
+  if (reference.scheme().has_value() || reference.userinfo().has_value() ||
+      reference.host().has_value() || reference.port().has_value()) {
+    throw URIError{
+        "append_path argument must be a path, not a URI with scheme or "
+        "authority"};
+  }
+
+  if (reference.query().has_value() || reference.fragment().has_value()) {
+    throw URIError{
+        "append_path argument must be a path, not a URI reference with a "
+        "query or fragment"};
+  }
+}
+
+} // namespace
+
+auto URI::append_path_from_uri(const URI &reference) -> URI & {
+  validate_uri_reference_components(reference);
+
+  if (!reference.path_.has_value()) {
+    return *this;
+  }
+
+  const auto needs_leading_slash =
+      (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
+       this->scheme_.has_value()) ||
+      this->port_.has_value() || this->host_.has_value();
+  merge_reference_path(this->path_, needs_leading_slash,
+                       reference.path_.value());
+  return *this;
+}
+
+auto URI::append_path_from_uri(URI &&reference) -> URI & {
+  validate_uri_reference_components(reference);
+
+  if (!reference.path_.has_value()) {
+    return *this;
+  }
+
+  const auto needs_leading_slash =
+      (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
+       this->scheme_.has_value()) ||
+      this->port_.has_value() || this->host_.has_value();
+  std::string reference_path{std::move(reference.path_.value())};
+  reference.path_ = std::nullopt;
+  merge_reference_path(this->path_, needs_leading_slash, reference_path);
   return *this;
 }
 
