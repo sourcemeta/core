@@ -452,6 +452,53 @@ TEST(URI_path, append_path_trailing_slash_on_segment_input) {
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/");
 }
 
+TEST(URI_path, append_path_rejects_space) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar baz"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_control_character) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar\nbaz"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_square_brackets) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar[1]"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_non_ascii) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar\xE2\x86\x92"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_truncated_percent) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar%"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_partial_percent) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar%2"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_invalid_percent_digits) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  EXPECT_THROW(uri.append_path("bar%GZ"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_accepts_valid_percent_encoding) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("bar%20baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar%20baz");
+}
+
+TEST(URI_path, append_path_accepts_sub_delims) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("bar!$&'()*+,;=baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar!$&'()*+,;=baz");
+}
+
 TEST(URI_path, append_path_uri_overload_relative_reference) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
   const sourcemeta::core::URI reference{"bar/baz"};

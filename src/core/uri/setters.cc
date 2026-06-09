@@ -3,6 +3,8 @@
 #include "escaping.h"
 #include "normalize.h"
 
+#include <cctype>      // std::isxdigit
+#include <cstddef>     // std::size_t
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -138,15 +140,7 @@ auto URI::append_path(std::string_view path) -> URI & {
   // (RFC 3986 grammar ambiguity between path-noscheme and scheme), which
   // would reject valid path appends like "foo:bar".
   if (path.starts_with("//")) {
-    throw URIError{"append_path argument cannot include an authority"};
-  }
-  for (const char character : path) {
-    if (character == '?') {
-      throw URIError{"append_path argument cannot include a query"};
-    }
-    if (character == '#') {
-      throw URIError{"append_path argument cannot include a fragment"};
-    }
+    throw URIError{"Cannot append a URI as a path that contains an authority"};
   }
   for (std::size_t index = 0; index < path.size(); ++index) {
     if (path[index] == '/') {
@@ -156,10 +150,41 @@ auto URI::append_path(std::string_view path) -> URI & {
       if (index + 2 < path.size() && path[index + 1] == '/' &&
           path[index + 2] == '/') {
         throw URIError{
-            "append_path argument cannot include a scheme with an authority"};
+            "Cannot append a URI as a path that contains a scheme and "
+            "authority"};
       }
       break;
     }
+  }
+
+  // Per-character validation against the RFC 3986 Section 3.3 path
+  // productions: pchar = unreserved / pct-encoded / sub-delims / ":" / "@",
+  // plus '/' as segment separator.
+  for (std::size_t index = 0; index < path.size(); ++index) {
+    const char character = path[index];
+    if (character == '%') {
+      if (index + 2 >= path.size() ||
+          !std::isxdigit(static_cast<unsigned char>(path[index + 1])) ||
+          !std::isxdigit(static_cast<unsigned char>(path[index + 2]))) {
+        throw URIError{
+            "Cannot append a URI as a path that has an invalid percent-encoded "
+            "sequence"};
+      }
+      index += 2;
+      continue;
+    }
+    if (uri_is_unreserved(character) || uri_is_sub_delim(character) ||
+        character == ':' || character == '@' || character == '/') {
+      continue;
+    }
+    if (character == '?') {
+      throw URIError{"Cannot append a URI as a path that contains a query"};
+    }
+    if (character == '#') {
+      throw URIError{"Cannot append a URI as a path that contains a fragment"};
+    }
+    throw URIError{
+        "Cannot append a URI as a path that contains an invalid character"};
   }
 
   const auto needs_leading_slash =
@@ -176,14 +201,12 @@ auto validate_uri_reference_components(const URI &reference) -> void {
   if (reference.scheme().has_value() || reference.userinfo().has_value() ||
       reference.host().has_value() || reference.port().has_value()) {
     throw URIError{
-        "append_path argument must be a path, not a URI with scheme or "
-        "authority"};
+        "Cannot append a URI as a path that contains a scheme or authority"};
   }
 
   if (reference.query().has_value() || reference.fragment().has_value()) {
     throw URIError{
-        "append_path argument must be a path, not a URI reference with a "
-        "query or fragment"};
+        "Cannot append a URI as a path that contains a query or fragment"};
   }
 }
 
