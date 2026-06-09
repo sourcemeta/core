@@ -267,9 +267,8 @@ public:
 
   /// Append a path to the existing URI path or set a path if such component
   /// does not exist in the URI. The argument is treated as a path component
-  /// to merge in, so `:` is accepted in any segment. Authority prefixes
-  /// (`//`, `scheme://`) and `?` or `#` delimiters are rejected as a
-  /// programmer error. For example:
+  /// to merge in. Authority prefixes and `?` or `#` delimiters throw
+  /// `URIError`. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -280,11 +279,9 @@ public:
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
   auto append_path(const std::string &path) -> URI &;
 
-  /// Append a path to the existing URI from a parsed reference. Equivalent
-  /// to the string overload but skips the internal parse, which is useful
-  /// for callers that have already parsed the input (for example to check
-  /// `is_relative()` first). The reference must contain only a path: a
-  /// scheme, authority, query, or fragment throws `URIError`. For example:
+  /// Append a path to the existing URI from a parsed reference. The
+  /// reference must contain only a path. A scheme, authority, query, or
+  /// fragment throws `URIError`. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -573,8 +570,8 @@ public:
   /// ```
   auto relative_to(const URI &base) -> URI &;
 
-  /// Attempt to change the base of a URI . If the URI is not
-  /// relative to the former, leave the URI intact. For example:
+  /// Attempt to change the base of a URI. If the URI is not relative to
+  /// the former, leave the URI intact. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -586,7 +583,11 @@ public:
   /// uri.rebase(base, new_base);
   /// assert(uri.recompose() == "/qux/bar/baz");
   /// ```
-  auto rebase(const URI &base, const URI &new_base) -> URI &;
+  template <typename N>
+    requires std::same_as<std::remove_cvref_t<N>, URI>
+  auto rebase(const URI &base, N &&new_base) -> URI & {
+    return this->rebase_from_uri(base, std::forward<N>(new_base));
+  }
 
   /// Check whether two URIs share the same authority component. The authority
   /// is the user information, host, and port per RFC 3986 Section 3.2. The
@@ -769,6 +770,8 @@ private:
   auto parse(std::string_view input) -> void;
   auto append_path_from_uri(const URI &reference) -> URI &;
   auto append_path_from_uri(URI &&reference) -> URI &;
+  auto rebase_from_uri(const URI &base, const URI &new_base) -> URI &;
+  auto rebase_from_uri(const URI &base, URI &&new_base) -> URI &;
 
 // Exporting symbols that depends on the standard C++ library is considered
 // safe.
