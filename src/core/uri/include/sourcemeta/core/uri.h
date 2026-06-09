@@ -466,6 +466,20 @@ public:
   /// ```
   [[nodiscard]] auto recompose() const -> std::string;
 
+  /// Recompose the path, query, and fragment of a URI as an RFC 3986
+  /// Section 4.2 relative reference. Scheme and authority are omitted. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::URI
+  ///   uri{"https://www.sourcemeta.com/foo?x=1#bar"};
+  /// assert(uri.recompose_relative() == "/foo?x=1#bar");
+  /// ```
+  [[nodiscard]] auto recompose_relative() const -> std::string;
+
   /// Recompose a URI as established by RFC 3986, but without including the
   /// fragment component. The result is an optional to handle the case where the
   /// input URI only consists of a fragment. For example:
@@ -549,6 +563,21 @@ public:
   /// assert(uri.recompose() == "/qux/bar/baz");
   /// ```
   auto rebase(const URI &base, const URI &new_base) -> URI &;
+
+  /// Check whether two URIs share the same authority component. The authority
+  /// is the user information, host, and port per RFC 3986 Section 3.2. The
+  /// scheme is not part of the authority and is not compared. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::URI left{"https://example.com/foo"};
+  /// const sourcemeta::core::URI right{"http://example.com/bar"};
+  /// assert(left.has_same_authority(right));
+  /// ```
+  [[nodiscard]] auto has_same_authority(const URI &other) const noexcept
+      -> bool;
 
   /// Get the user information part of the URI, if any. For example:
   ///

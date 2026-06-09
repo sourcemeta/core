@@ -1,6 +1,7 @@
 #include <sourcemeta/core/uri.h>
 
 #include "escaping.h"
+#include "normalize.h"
 
 #include <optional>    // std::optional
 #include <string>      // std::string
@@ -93,23 +94,55 @@ auto URI::append_path(const std::string &path) -> URI & {
     return *this;
   }
 
-  if (!this->path_.has_value()) {
-    return this->path(path);
+  const URI reference{path};
+  if (reference.scheme_.has_value() || reference.userinfo_.has_value() ||
+      reference.host_.has_value() || reference.port_.has_value()) {
+    throw URIError{
+        "append_path argument must be a path, not a URI with scheme or "
+        "authority"};
   }
 
-  auto &current_path = this->path_.value();
-  const auto current_ends_with_slash = current_path.ends_with('/');
-  const auto path_starts_with_slash = path.starts_with('/');
+  if (!reference.path_.has_value()) {
+    return *this;
+  }
 
-  if (current_ends_with_slash && path_starts_with_slash) {
-    current_path += path.substr(1);
-  } else if (!current_ends_with_slash && !path_starts_with_slash) {
-    current_path += '/';
-    current_path += path;
+  const auto &reference_path = reference.path_.value();
+
+  const auto needs_leading_slash =
+      (!this->is_urn() && !this->is_tag() && !this->is_mailto() &&
+       this->scheme_.has_value()) ||
+      this->port_.has_value() || this->host_.has_value();
+
+  std::string merged_path;
+  if (this->path_.has_value()) {
+    const auto &current_path = this->path_.value();
+    const auto current_ends_with_slash = current_path.ends_with('/');
+    const auto reference_starts_with_slash = reference_path.starts_with('/');
+
+    if (current_ends_with_slash && reference_starts_with_slash) {
+      merged_path = current_path;
+      merged_path.append(reference_path, 1);
+    } else if (!current_ends_with_slash && !reference_starts_with_slash) {
+      merged_path = current_path;
+      merged_path += '/';
+      merged_path += reference_path;
+    } else {
+      merged_path = current_path;
+      merged_path += reference_path;
+    }
+  } else if (needs_leading_slash && !reference_path.starts_with('/')) {
+    merged_path = "/";
+    merged_path += reference_path;
   } else {
-    current_path += path;
+    merged_path = reference_path;
   }
 
+  normalize_path(merged_path);
+  if (merged_path.empty()) {
+    this->path_ = std::nullopt;
+  } else {
+    this->path_ = std::move(merged_path);
+  }
   return *this;
 }
 

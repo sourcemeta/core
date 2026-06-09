@@ -48,7 +48,7 @@ TEST(URI_relative_to, absolute_absolute_base_false_3) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://www.example.com/foo"};
   uri.relative_to(base);
-  EXPECT_EQ(uri.recompose(), "https://www.example.com/foo");
+  EXPECT_EQ(uri.recompose(), "../foo");
 }
 
 TEST(URI_relative_to, absolute_absolute_base_false_4) {
@@ -120,9 +120,21 @@ TEST(URI_relative_to, absolute_absolute_trailing_slash) {
   sourcemeta::core::URI uri{
       "https://github.com/apis-json/api-json/blob/develop/spec/"};
   uri.relative_to(base);
-  // This is the result in Node.js URI parser too
-  EXPECT_EQ(uri.recompose(),
-            "https://github.com/apis-json/api-json/blob/develop/spec/");
+  EXPECT_EQ(uri.recompose(), "spec/");
+}
+
+TEST(URI_relative_to, target_is_prefix_of_base_parent) {
+  const sourcemeta::core::URI base{"https://example.com/foo/bar/baz"};
+  sourcemeta::core::URI uri{"https://example.com/foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../../foo");
+}
+
+TEST(URI_relative_to, target_is_one_level_up_at_root) {
+  const sourcemeta::core::URI base{"https://example.com/foo/bar"};
+  sourcemeta::core::URI uri{"https://example.com/foo"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "../foo");
 }
 
 TEST(URI_relative_to, sibling_paths_same_directory) {

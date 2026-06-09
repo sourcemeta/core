@@ -101,6 +101,32 @@ auto URI::recompose() const -> std::string {
   return result;
 }
 
+auto URI::recompose_relative() const -> std::string {
+  std::string result;
+  result.reserve(128);
+
+  const auto result_path{this->path()};
+  if (result_path.has_value()) {
+    escape_component_to_string(result, result_path.value(),
+                               URIEscapeMode::Path);
+  }
+
+  const auto result_query{this->query()};
+  if (result_query.has_value()) {
+    result += '?';
+    escape_component_to_string(result, result_query.value().raw(),
+                               URIEscapeMode::Fragment);
+  }
+
+  if (this->fragment_.has_value()) {
+    result += '#';
+    escape_component_to_string(result, this->fragment_.value(),
+                               URIEscapeMode::Fragment);
+  }
+
+  return result;
+}
+
 auto URI::recompose_without_fragment() const -> std::optional<std::string> {
   std::string result;
   result.reserve(256);

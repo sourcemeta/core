@@ -264,14 +264,6 @@ auto URI::relative_to(const URI &base) -> URI & {
     if (this_path.starts_with(current_base_parent)) {
       const auto remainder{this_path.substr(current_base_parent.length())};
       if (!remainder.empty()) {
-        // Check if the target is just the base path plus a trailing slash
-        // e.g., base="/foo/bar" and target="/foo/bar/"
-        // These should stay absolute as they represent different resources
-        if (current_base_parent == base_parent &&
-            this_path == base_path + "/") {
-          return *this;
-        }
-
         relative_path += remainder;
       }
 
@@ -295,32 +287,18 @@ auto URI::relative_to(const URI &base) -> URI & {
     current_base_parent = current_base_parent.substr(0, parent_slash + 1);
   }
 
-  // If we reached the root, we can make it relative unless the target path
-  // is ambiguous (i.e., it's a prefix of the base parent directory)
-  // This handles: "/a/b/c.json" vs "/d.json" -> "../../d.json"
-  // And: "/foo/bar" vs "/baz/qux" -> "../../baz/qux"
-  // But NOT: "/foo/bar" vs "/foo" (ambiguous: is /foo a file or directory?)
   if (current_base_parent == "/" && this_path.starts_with('/')) {
-    // Check if target path is a prefix of the original base parent
-    // If so, it's ambiguous and we should stay absolute
-    const bool is_prefix_of_base_parent =
-        base_parent.starts_with(this_path) &&
-        base_parent.length() > this_path.length() &&
-        (base_parent[this_path.length()] == '/');
+    relative_path += this_path.substr(1);
 
-    if (!is_prefix_of_base_parent) {
-      relative_path += this_path.substr(1);
+    this->scheme_.reset();
+    this->userinfo_.reset();
+    this->host_.reset();
+    this->port_.reset();
+    this->path_ = relative_path.empty()
+                      ? std::nullopt
+                      : std::optional<std::string>{relative_path};
 
-      this->scheme_.reset();
-      this->userinfo_.reset();
-      this->host_.reset();
-      this->port_.reset();
-      this->path_ = relative_path.empty()
-                        ? std::nullopt
-                        : std::optional<std::string>{relative_path};
-
-      return *this;
-    }
+    return *this;
   }
 
   // If we can't make it relative, return unchanged

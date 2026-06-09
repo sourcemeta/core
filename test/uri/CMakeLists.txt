@@ -24,6 +24,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_strip_path_prefix_test.cc
     uri_recompose_test.cc
     uri_recompose_without_fragment_test.cc
+    uri_recompose_relative_test.cc
+    uri_has_same_authority_test.cc
     uri_canonicalize_test.cc
     uri_resolve_from_test.cc
     uri_relative_to_test.cc

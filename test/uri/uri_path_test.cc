@@ -348,6 +348,53 @@ TEST(URI_path, append_path_chain) {
   EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar/baz");
 }
 
+TEST(URI_path, append_path_rejects_scheme) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  EXPECT_THROW(uri.append_path("https://other.example.com/foo"),
+               sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_authority_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  EXPECT_THROW(uri.append_path("//other.example.com/foo"),
+               sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_rejects_scheme_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  EXPECT_THROW(uri.append_path("urn:example:foo"), sourcemeta::core::URIError);
+}
+
+TEST(URI_path, append_path_dot_dot_collapses) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  uri.append_path("../bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/bar");
+}
+
+TEST(URI_path, append_path_dot_dot_multiple) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/bar/"};
+  uri.append_path("../../baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/baz");
+}
+
+TEST(URI_path, append_path_dot_collapses) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo/"};
+  uri.append_path("./bar");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+}
+
+TEST(URI_path, append_path_dot_dot_empty_base) {
+  sourcemeta::core::URI uri{"http://example.com:8080"};
+  uri.append_path("../meta/custom.json");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/meta/custom.json");
+}
+
+TEST(URI_path, append_path_with_fragment_argument_path_only) {
+  sourcemeta::core::URI uri{"http://example.com:8080/foo"};
+  uri.append_path("bar#baz");
+  EXPECT_EQ(uri.recompose(), "http://example.com:8080/foo/bar");
+}
+
 TEST(URI_path_getter, rfc3986_path_with_colon) {
   const sourcemeta::core::URI uri{"http://example.com/path:with:colons"};
   EXPECT_TRUE(uri.path().has_value());
