@@ -265,6 +265,21 @@ TEST(Punycode_decode, error_non_basic_before_delimiter) {
                sourcemeta::core::PunycodeError);
 }
 
+TEST(Punycode_decode, error_leading_delimiter_only) {
+  EXPECT_THROW(sourcemeta::core::punycode_to_utf32("-"),
+               sourcemeta::core::PunycodeError);
+}
+
+TEST(Punycode_decode, error_leading_delimiter_with_body) {
+  EXPECT_THROW(sourcemeta::core::punycode_to_utf32("-abc"),
+               sourcemeta::core::PunycodeError);
+}
+
+TEST(Punycode_decode, trailing_delimiter_basic_only) {
+  const std::u32string expected{0x0061};
+  EXPECT_EQ(sourcemeta::core::punycode_to_utf32("a-"), expected);
+}
+
 TEST(Punycode_decode, case_insensitive_basic_portion_preserved) {
   // The basic portion (before delimiter) preserves original case
   const std::u32string expected_lower{0x0061, 0x0062, 0x0063};

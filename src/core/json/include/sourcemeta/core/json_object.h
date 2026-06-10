@@ -54,22 +54,45 @@ public:
   // We cannot default given that this class references
   // a JSON "value" as an incomplete type
 
+  // Ordering equal-size objects sorts temporary entry references, which can
+  // only fail by exhausting memory, in which case terminating is acceptable
+  // NOLINTNEXTLINE(bugprone-exception-escape)
   auto operator<(const JSONObject<Key, Value, Hash> &other) const noexcept
       -> bool {
-    // The `std::unordered_map` container, by definition, does not provide
-    // ordering. However, we still want some level of ordering to allow
-    // arrays of objects to be sorted.
-
-    // First try a size comparison
+    // Objects have no inherent order, but a deterministic ordering is needed so
+    // that collections of objects can be sorted. The result must be a strict
+    // weak ordering and independent of insertion order, so smaller objects come
+    // first and objects of equal size are compared as their entries taken in
+    // key order
     if (this->data.size() != other.data.size()) {
       return this->data.size() < other.data.size();
     }
 
-    // Otherwise do value comparison for common properties
-    for (const auto &entry : *this) {
-      const auto other_entry{other.find(entry.first)};
-      if (other_entry != other.cend() && entry.second < other_entry->second) {
-        return true;
+    std::vector<const Entry *> left;
+    std::vector<const Entry *> right;
+    left.reserve(this->data.size());
+    right.reserve(other.data.size());
+    for (const auto &entry : this->data) {
+      left.push_back(&entry);
+    }
+
+    for (const auto &entry : other.data) {
+      right.push_back(&entry);
+    }
+
+    const auto by_key{[](const Entry *const one, const Entry *const another) {
+      return one->first < another->first;
+    }};
+    std::sort(left.begin(), left.end(), by_key);
+    std::sort(right.begin(), right.end(), by_key);
+
+    for (size_type index = 0; index < left.size(); index++) {
+      if (left[index]->first != right[index]->first) {
+        return left[index]->first < right[index]->first;
+      }
+
+      if (left[index]->second != right[index]->second) {
+        return left[index]->second < right[index]->second;
       }
     }
 
@@ -78,15 +101,15 @@ public:
 
   auto operator<=(const JSONObject<Key, Value, Hash> &other) const noexcept
       -> bool {
-    return this->data <= other.data;
+    return !(other < *this);
   }
   auto operator>(const JSONObject<Key, Value, Hash> &other) const noexcept
       -> bool {
-    return this->data > other.data;
+    return other < *this;
   }
   auto operator>=(const JSONObject<Key, Value, Hash> &other) const noexcept
       -> bool {
-    return this->data >= other.data;
+    return !(*this < other);
   }
 
   auto operator==(const JSONObject<Key, Value, Hash> &other) const noexcept

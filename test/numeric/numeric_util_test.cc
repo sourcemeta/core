@@ -497,6 +497,21 @@ TEST(Numeric_util, count_multiples_negative_range) {
             std::uint64_t{3});
 }
 
+TEST(Numeric_util, count_multiples_minimum_is_int64_min) {
+  EXPECT_EQ(sourcemeta::core::count_multiples(
+                std::numeric_limits<std::int64_t>::min(),
+                std::numeric_limits<std::int64_t>::min(), std::int64_t{1}),
+            std::uint64_t{1});
+}
+
+TEST(Numeric_util, count_multiples_range_from_int64_min) {
+  // Multiples of 2 in [INT64_MIN, INT64_MIN + 5]: INT64_MIN, +2, +4 = 3
+  EXPECT_EQ(sourcemeta::core::count_multiples(
+                std::numeric_limits<std::int64_t>::min(),
+                std::numeric_limits<std::int64_t>::min() + 5, std::int64_t{2}),
+            std::uint64_t{3});
+}
+
 TEST(Numeric_util, count_multiples_mixed_range) {
   // Multiples of 3 in [-7, 5]: -6, -3, 0, 3 = 4
   EXPECT_EQ(sourcemeta::core::count_multiples(std::int64_t{-7}, std::int64_t{5},

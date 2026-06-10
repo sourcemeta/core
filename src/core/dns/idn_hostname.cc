@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/idna.h>
 #include <sourcemeta/core/punycode.h>
+#include <sourcemeta/core/punycode_error.h>
 #include <sourcemeta/core/unicode.h>
 
 #include <cstddef>     // std::size_t
@@ -68,7 +69,7 @@ auto is_idn_hostname(const std::string_view value) -> bool {
       try {
         const auto body{utf32_to_punycode(decoded)};
         a_label_octets = 4 + body.size();
-      } catch (...) {
+      } catch (const PunycodeError &) {
         return false;
       }
     } else if (*kind == IDNALabelKind::Ascii) {

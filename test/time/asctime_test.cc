@@ -102,6 +102,42 @@ TEST(Time_asctime, parse_rejects_sign_prefix_in_day) {
       sourcemeta::core::from_asctime("Sun Nov +6 08:49:37 1994").has_value());
 }
 
+// RFC 5322 §3.3: the day-of-month must be valid for the given month and year
+TEST(Time_asctime, parse_rejects_february_thirtieth) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Feb 30 08:49:37 2015").has_value());
+}
+
+// RFC 5322 §3.3: 2015 is not a leap year so February has only 28 days
+TEST(Time_asctime, parse_rejects_february_twenty_ninth_non_leap) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Feb 29 08:49:37 2015").has_value());
+}
+
+// RFC 5322 §3.3: the day-of-month must be at least one
+TEST(Time_asctime, parse_rejects_zero_day) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov 00 08:49:37 1994").has_value());
+}
+
+// RFC 5322 §3.3: the hour must be in the range 00-23
+TEST(Time_asctime, parse_rejects_hour_twenty_four) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 24:49:37 1994").has_value());
+}
+
+// RFC 5322 §3.3: the minute must be in the range 00-59
+TEST(Time_asctime, parse_rejects_minute_sixty) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:60:37 1994").has_value());
+}
+
+// RFC 5322 §3.3: the second must not exceed a leap second
+TEST(Time_asctime, parse_rejects_second_sixty_one) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun Nov  6 08:49:61 1994").has_value());
+}
+
 TEST(Time_asctime, format_output_length_is_24) {
   const auto point{std::chrono::system_clock::from_time_t(0)};
   EXPECT_EQ(sourcemeta::core::to_asctime(point).size(), 24u);

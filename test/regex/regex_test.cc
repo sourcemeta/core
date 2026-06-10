@@ -82,3 +82,10 @@ TEST(Regex, to_regex_default_string_view_does_not_invoke_ub) {
   const auto regex{sourcemeta::core::to_regex(pattern)};
   EXPECT_TRUE(regex.has_value());
 }
+
+TEST(Regex, catastrophic_backtracking_terminates) {
+  const auto regex{sourcemeta::core::to_regex("(a+)+$")};
+  EXPECT_TRUE(regex.has_value());
+  const std::string value{std::string(64, 'a') + "!"};
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), value));
+}

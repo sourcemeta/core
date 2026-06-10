@@ -127,15 +127,19 @@ auto try_traverse(const sourcemeta::core::JSON &document,
       return nullptr;
     } else {
       const auto index{token.to_index()};
-      if (index < current->size()) {
-        if (is_object) {
-          std::array<char, 20> buffer{};
-          const auto [end_pointer, error_code] = std::to_chars(
-              buffer.data(), buffer.data() + buffer.size(), index);
-          current = &current->at(std::string_view{buffer.data(), end_pointer});
+      if (is_object) {
+        std::array<char, 20> buffer{};
+        const auto [end_pointer, error_code] =
+            std::to_chars(buffer.data(), buffer.data() + buffer.size(), index);
+        const auto *json_value{
+            current->try_at(std::string_view{buffer.data(), end_pointer})};
+        if (json_value) {
+          current = json_value;
         } else {
-          current = &current->at(index);
+          return nullptr;
         }
+      } else if (index < current->size()) {
+        current = &current->at(index);
       } else {
         return nullptr;
       }
@@ -260,11 +264,19 @@ auto set(JSON &document, const Pointer &pointer, JSON &&value) -> void {
   // the (nonexistent) member after the last array element.
   // See https://www.rfc-editor.org/rfc/rfc6901#section-4
   if (current.is_array() && last.is_hyphen()) {
-    current.push_back(value);
+    current.push_back(std::move(value));
   } else if (last.is_property()) {
     current.at(last.to_property()).into(std::move(value));
   } else {
-    current.at(last.to_index()).into(std::move(value));
+    if (current.is_object()) {
+      std::array<char, 20> buffer{};
+      const auto [end_pointer, error_code] = std::to_chars(
+          buffer.data(), buffer.data() + buffer.size(), last.to_index());
+      current.at(std::string_view{buffer.data(), end_pointer})
+          .into(std::move(value));
+    } else {
+      current.at(last.to_index()).into(std::move(value));
+    }
   }
 }
 

@@ -34,46 +34,31 @@ auto URI::canonicalize() -> URI & {
     this->fragment_ = std::nullopt;
   }
 
-  // pchar = unreserved / pct-encoded / sub-delims / ":" / "@"
-  // See https://www.rfc-editor.org/rfc/rfc3986#appendix-A
-  const auto is_pchar = [](char character) -> bool {
-    return uri_is_unreserved(character) || uri_is_sub_delim(character) ||
-           character == URI_COLON || character == URI_AT;
-  };
-
+  // Only unreserved characters may be percent-decoded during normalization
+  // See https://www.rfc-editor.org/rfc/rfc3986#section-6.2.2.2
   if (this->path_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->path_.value());
-    uri_unescape_if_inplace(this->path_.value(), is_pchar);
+    uri_unescape_unreserved_inplace(this->path_.value());
   }
 
   if (this->query_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->query_.value());
-    uri_unescape_if_inplace(this->query_.value(), [&](char character) {
-      return is_pchar(character) || character == URI_SLASH ||
-             character == URI_QUESTION;
-    });
+    uri_unescape_unreserved_inplace(this->query_.value());
   }
 
   if (this->fragment_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->fragment_.value());
-    uri_unescape_if_inplace(this->fragment_.value(), [&](char character) {
-      return is_pchar(character) || character == URI_SLASH ||
-             character == URI_QUESTION;
-    });
+    uri_unescape_unreserved_inplace(this->fragment_.value());
   }
 
   if (this->userinfo_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->userinfo_.value());
-    uri_unescape_if_inplace(this->userinfo_.value(), [&](char character) {
-      return uri_is_sub_delim(character) || character == URI_COLON;
-    });
+    uri_unescape_unreserved_inplace(this->userinfo_.value());
   }
 
   if (this->host_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->host_.value());
-    uri_unescape_if_inplace(this->host_.value(), [](char character) {
-      return uri_is_sub_delim(character);
-    });
+    uri_unescape_unreserved_inplace(this->host_.value());
   }
 
   // Remove default ports (80 for http, 443 for https)

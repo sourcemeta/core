@@ -2,6 +2,8 @@
 
 #include <sourcemeta/core/idna.h>
 
+#include <string> // std::u32string
+
 TEST(IDNA_is_valid_u_label, ascii_letters) {
   EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(U"abc"));
 }
@@ -166,4 +168,18 @@ TEST(IDNA_is_valid_u_label, out_of_order_combining_marks_rejected) {
 // Hangul precomposed syllable is PVALID and already in NFC
 TEST(IDNA_is_valid_u_label, hangul_precomposed_syllable_accepted) {
   EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(U"\uAC00"));
+}
+
+// RFC 5890 \u00A72.3.2.1: the corresponding A-label must be at most 63 octets.
+// A pure-ASCII label of 58 "a" characters encodes to a 59-octet Punycode
+// body, which with the 4-octet "xn--" prefix is exactly 63 octets
+TEST(IDNA_is_valid_u_label, a_label_form_exactly_63_octets_accepted) {
+  const std::u32string label(58, U'a');
+  EXPECT_TRUE(sourcemeta::core::idna_is_valid_u_label(label));
+}
+
+// One additional character pushes the A-label form to 64 octets
+TEST(IDNA_is_valid_u_label, a_label_form_64_octets_rejected) {
+  const std::u32string label(59, U'a');
+  EXPECT_FALSE(sourcemeta::core::idna_is_valid_u_label(label));
 }

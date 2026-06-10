@@ -1114,23 +1114,39 @@ TEST(JSON_decimal, divisible_by_large_decimal_decimal_0_001_true) {
 
 TEST(JSON_decimal, fast_hash_positive) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"3.14"}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  const sourcemeta::core::JSON real{3.14};
+  EXPECT_EQ(document.fast_hash(), real.fast_hash());
 }
 
 TEST(JSON_decimal, fast_hash_negative) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"-3.14"}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  const sourcemeta::core::JSON real{-3.14};
+  EXPECT_EQ(document.fast_hash(), real.fast_hash());
 }
 
 TEST(JSON_decimal, fast_hash_zero) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{0}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  const sourcemeta::core::JSON integer{0};
+  const sourcemeta::core::JSON real{0.0};
+  EXPECT_EQ(document.fast_hash(), 4);
+  EXPECT_EQ(document.fast_hash(), integer.fast_hash());
+  EXPECT_EQ(document.fast_hash(), real.fast_hash());
 }
 
 TEST(JSON_decimal, fast_hash_large) {
   const sourcemeta::core::JSON document{
       sourcemeta::core::Decimal{"123456789012345678901234567890"}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  const sourcemeta::core::JSON again{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  EXPECT_EQ(document.fast_hash(), again.fast_hash());
+}
+
+TEST(JSON_decimal, fast_hash_integral_matches_integer_and_real) {
+  const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"300"}};
+  const sourcemeta::core::JSON integer{300};
+  const sourcemeta::core::JSON real{300.0};
+  EXPECT_EQ(document.fast_hash(), integer.fast_hash());
+  EXPECT_EQ(document.fast_hash(), real.fast_hash());
 }
 
 TEST(JSON_decimal, lexical_bignum_integer) {

@@ -864,3 +864,25 @@ TEST(GZIP_stream_buffer, fextra_spans_internal_buffer) {
   compressed.append("\x85\x11\x4a\x0d\x0b\x00\x00\x00", 8);
   EXPECT_EQ(decompress_via_stream(compressed), "hello world");
 }
+
+TEST(GZIP_stream_buffer, dynamic_block_hlit_above_286_throws) {
+  // RFC 1951 section 3.2.7 caps the literal/length alphabet at 286 symbols.
+  // The deflate payload starts a dynamic block with HLIT encoding 288 codes
+  // (BFINAL=1, BTYPE=10, HLIT field = 31 so 31 + 257 = 288)
+  sourcemeta::core::InputByteStream stream{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00, 0xff,
+                                           0xfd, 0x00, 0x00};
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}
+
+TEST(GZIP_stream_buffer, dynamic_block_incomplete_code_throws) {
+  // RFC 1951 forbids incomplete Huffman codes outside the single-code case.
+  // The deflate payload starts a dynamic block whose code-length code tree
+  // assigns length two to two symbols, leaving the alphabet incomplete
+  // (BFINAL=1, BTYPE=10, HLIT=0, HDIST=0, HCLEN=0, code-length lengths for
+  // symbols 16 and 17 set to two)
+  sourcemeta::core::InputByteStream stream{0x1f, 0x8b, 0x08, 0x00, 0x00,
+                                           0x00, 0x00, 0x00, 0x00, 0xff,
+                                           0x05, 0x00, 0x24, 0x00};
+  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+}

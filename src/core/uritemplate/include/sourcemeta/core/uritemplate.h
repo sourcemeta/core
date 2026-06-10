@@ -103,16 +103,23 @@ public:
   template <typename Container,
             typename = std::void_t<typename Container::key_type>>
   [[nodiscard]] auto expand(const Container &variables) const -> std::string {
-    return this->expand([&variables](
-                            const std::string_view name) -> URITemplateValue {
-      const auto iterator{variables.find(typename Container::key_type{name})};
-      if (iterator == variables.end()) {
-        return std::nullopt;
-      } else {
-        return std::make_tuple(std::string_view{iterator->second}, std::nullopt,
-                               false);
-      }
-    });
+    return this->expand(
+        [&variables](const std::string_view name) -> URITemplateValue {
+          // Prefer a heterogeneous lookup to avoid materializing the key
+          const auto iterator{[&] {
+            if constexpr (requires { variables.find(name); }) {
+              return variables.find(name);
+            } else {
+              return variables.find(typename Container::key_type{name});
+            }
+          }()};
+          if (iterator == variables.end()) {
+            return std::nullopt;
+          } else {
+            return std::make_tuple(std::string_view{iterator->second},
+                                   std::nullopt, false);
+          }
+        });
   }
 
 private:

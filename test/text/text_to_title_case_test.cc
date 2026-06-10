@@ -177,3 +177,14 @@ TEST(Text_to_title_case, space_in_input_is_not_a_separator) {
   sourcemeta::core::to_title_case(value);
   EXPECT_EQ(value, "Hello world");
 }
+
+TEST(Text_to_title_case, non_ascii_byte_is_not_uppercased) {
+  std::string value{};
+  value.push_back(static_cast<char>(0xE9));
+  value.append("hello");
+  sourcemeta::core::to_title_case(value);
+  std::string expected{};
+  expected.push_back(static_cast<char>(0xE9));
+  expected.append("Hello");
+  EXPECT_EQ(value, expected);
+}

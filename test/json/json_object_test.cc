@@ -872,6 +872,36 @@ TEST(JSON_object, merge_deep_object) {
   EXPECT_EQ(document, expected);
 }
 
+TEST(JSON_object, merge_with_own_object) {
+  auto document{
+      sourcemeta::core::parse_json(R"JSON({ "foo": 1, "bar": 2 })JSON")};
+  document.merge(document.as_object());
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at("foo").to_integer(), 1);
+  EXPECT_EQ(document.at("bar").to_integer(), 2);
+}
+
+TEST(JSON_object, copy_assignment_from_own_member) {
+  auto document{
+      sourcemeta::core::parse_json(R"JSON({ "foo": { "bar": 42 } })JSON")};
+  document = document.at("foo");
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_TRUE(document.defines("bar"));
+  EXPECT_EQ(document.at("bar").to_integer(), 42);
+}
+
+TEST(JSON_object, ordering_is_asymmetric) {
+  const auto left{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 9 })JSON")};
+  const auto right{
+      sourcemeta::core::parse_json(R"JSON({ "a": 9, "b": 1 })JSON")};
+  EXPECT_NE(left, right);
+  EXPECT_TRUE(left < right);
+  EXPECT_FALSE(right < left);
+  EXPECT_NE(left < right, right < left);
+}
+
 TEST(JSON_object, at_or_defined) {
   const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
                                         {"bar", sourcemeta::core::JSON{1}}};

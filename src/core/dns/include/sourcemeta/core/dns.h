@@ -34,9 +34,12 @@ namespace sourcemeta::core {
 /// assert(!sourcemeta::core::is_hostname("example."));
 /// ```
 ///
-/// This function implements RFC 1123 §2.1 (ASCII only). It does not
-/// perform A-label or Punycode decoding. For internationalized host
-/// names see `is_idn_hostname`.
+/// This function operates on ASCII input only and caps the total length at
+/// 255 octets. Labels matching the case-insensitive "xn--" ACE prefix are
+/// additionally validated as RFC 5890 A-labels, so the Punycode body must
+/// decode and round-trip. For internationalized presentation host names see
+/// `is_idn_hostname`, which caps the total length at 253 octets in A-label
+/// form. The two limits differ on purpose and are not reconciled here.
 SOURCEMETA_CORE_DNS_EXPORT
 auto is_hostname(const std::string_view value) -> bool;
 
@@ -45,7 +48,9 @@ auto is_hostname(const std::string_view value) -> bool;
 /// RFC 5891 Section 4. Each label is validated as an RFC 5890 A-label or
 /// U-label (with RFC 5892 ContextJ and ContextO contextual rules and the
 /// RFC 5891 §4.1.2.A NFC requirement), and the RFC 5893 Bidi rule is
-/// enforced on every label of a Bidi domain name. For example:
+/// enforced on every label of a Bidi domain name. The total length is capped
+/// at 253 octets in A-label form, which is stricter than the 255-octet cap of
+/// `is_hostname`. The two limits differ on purpose. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/dns.h>

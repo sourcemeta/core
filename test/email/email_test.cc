@@ -768,11 +768,23 @@ TEST(Email, invalid_ipv4_five_octets) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[1.2.3.4.5]"));
 }
 
-// RFC 5321 §4.1.3: Snum = 1*3DIGIT, leading zero in multi-digit Snum is
-// rejected by is_ipv4
-TEST(Email, invalid_ipv4_leading_zero) {
-  EXPECT_FALSE(sourcemeta::core::is_email("a@[01.2.3.4]"));
-  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[01.2.3.4]"));
+// RFC 5321 §4.1.3: Snum = 1*3DIGIT, leading zeros are permitted
+TEST(Email, valid_ipv4_leading_zero) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[01.2.3.4]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[01.2.3.4]"));
+}
+
+// RFC 5321 §4.1.3: Snum = 1*3DIGIT, a fully zero-padded octet is permitted
+TEST(Email, valid_ipv4_padded_octets) {
+  EXPECT_TRUE(sourcemeta::core::is_email("a@[001.002.003.004]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("a@[001.002.003.004]"));
+}
+
+// RFC 5321 §4.1.3: Snum = 1*3DIGIT, an octet wider than three digits is
+// rejected
+TEST(Email, invalid_ipv4_four_digit_octet) {
+  EXPECT_FALSE(sourcemeta::core::is_email("a@[0001.2.3.4]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[0001.2.3.4]"));
 }
 
 // RFC 5321 §4.1.3: IPv4-address-literal cannot end with a "."

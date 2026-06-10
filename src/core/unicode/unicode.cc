@@ -1,8 +1,8 @@
 #include <sourcemeta/core/unicode.h>
 
 #include <cassert> // assert
+#include <cstddef> // std::size_t
 #include <cstdint> // std::uint8_t
-#include <sstream> // std::istringstream, std::ostringstream
 
 #include "unicode_data.h"
 
@@ -105,10 +105,58 @@ auto utf8_to_utf32(std::istream &input) -> std::optional<std::u32string> {
 
 auto utf8_to_utf32(const std::string_view input)
     -> std::optional<std::u32string> {
-  // TODO: Replace std::istringstream with std::ispanstream once libc++
-  // supports it (__cpp_lib_spanstream), to avoid copying the input string
-  std::istringstream stream{std::string{input}};
-  return utf8_to_utf32(stream);
+  std::u32string result;
+  result.reserve(input.size());
+
+  std::size_t position{0};
+  while (position < input.size()) {
+    const auto byte{static_cast<std::uint8_t>(input[position])};
+    const auto size{utf8_lead_byte_size(byte)};
+    if (size == 0) {
+      return std::nullopt;
+    }
+    if (size == 1) {
+      result.push_back(byte);
+      position += 1;
+      continue;
+    }
+
+    if (position + size > input.size()) {
+      return std::nullopt;
+    }
+
+    char32_t code_point{0};
+    char32_t minimum{0};
+    if (size == 2) {
+      code_point = byte & 0x1F;
+      minimum = 0x80;
+    } else if (size == 3) {
+      code_point = byte & 0x0F;
+      minimum = 0x800;
+    } else {
+      code_point = byte & 0x07;
+      minimum = 0x10000;
+    }
+
+    for (std::uint8_t index{1}; index < size; ++index) {
+      const auto continuation{
+          static_cast<std::uint8_t>(input[position + index])};
+      if (!is_utf8_continuation(continuation)) {
+        return std::nullopt;
+      }
+
+      code_point = (code_point << 6) | (continuation & 0x3F);
+    }
+
+    if (code_point < minimum || !is_valid_codepoint(code_point)) {
+      return std::nullopt;
+    }
+
+    result.push_back(code_point);
+    position += size;
+  }
+
+  return result;
 }
 
 auto combining_class(const char32_t codepoint) noexcept -> std::uint8_t {

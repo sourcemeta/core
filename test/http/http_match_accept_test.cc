@@ -143,10 +143,20 @@ TEST(HTTP_match_accept, three_candidates_picks_best_q) {
             "application/json");
 }
 
-TEST(HTTP_match_accept, malformed_q_treated_as_one) {
+// RFC 9110 §12.4.2: a malformed weight is a fail-safe refusal, treated as 0
+TEST(HTTP_match_accept, malformed_q_treated_as_zero) {
   EXPECT_EQ(
       sourcemeta::core::http_match_accept("text/html;q=abc", {"text/html"}),
-      "text/html");
+      "");
+}
+
+// RFC 9110 §5.6.6: a semicolon inside a quoted string does not separate
+// parameters, so the quoted content does not synthesise a phantom q parameter
+TEST(HTTP_match_accept, quoted_parameter_semicolon_not_split) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept(
+                "text/html;foo=\"a;q=0.1\", application/json;q=0.5",
+                {"text/html", "application/json"}),
+            "text/html");
 }
 
 TEST(HTTP_match_accept, html_or_json_returns_html_for_html_accept) {
@@ -297,9 +307,11 @@ TEST(HTTP_match_accept, q_value_one_dot_no_digits_is_one) {
             "text/html");
 }
 
-TEST(HTTP_match_accept, q_value_four_decimal_digits_treated_as_one) {
+// RFC 9110 §12.4.2: qvalue allows at most three fractional digits, so a
+// four-digit fraction is malformed and is a fail-safe refusal treated as 0
+TEST(HTTP_match_accept, q_value_four_decimal_digits_treated_as_zero) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(
                 "text/html;q=0.1234, application/json;q=0.5",
                 {"text/html", "application/json"}),
-            "text/html");
+            "application/json");
 }

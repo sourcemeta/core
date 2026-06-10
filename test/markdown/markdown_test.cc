@@ -46,6 +46,18 @@ TEST(Markdown_to_html, simple_paragraph) {
   EXPECT_EQ(result, "<p>Hello world</p>\n");
 }
 
+TEST(Markdown_to_html, safe_mode_renders_plain_content) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("Hello **world**", true)};
+  EXPECT_EQ(result, "<p>Hello <strong>world</strong></p>\n");
+}
+
+TEST(Markdown_to_html, safe_mode_omits_raw_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div onclick=\"x\">hi</div>", true)};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
 TEST(Markdown_to_html, multiple_paragraphs) {
   const auto result{sourcemeta::core::markdown_to_html(
       "First paragraph\n\nSecond paragraph")};

@@ -108,11 +108,13 @@ TEST(HTTP_negotiate_encoding, identity_excluded_via_wildcard_no_explicit_gzip) {
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(HTTP_negotiate_encoding, garbage_q_treated_as_one) {
+// RFC 9110 §12.4.2: a malformed weight is a fail-safe refusal, treated as 0,
+// so gzip is refused and the implicit identity encoding is selected
+TEST(HTTP_negotiate_encoding, garbage_q_treated_as_zero) {
   const auto result{sourcemeta::core::http_negotiate_encoding(
       "gzip;q=abc", sourcemeta::core::HTTPContentEncoding::GZIP)};
   ASSERT_TRUE(result.has_value());
-  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::GZIP);
+  EXPECT_EQ(result.value(), sourcemeta::core::HTTPContentEncoding::Identity);
 }
 
 TEST(HTTP_negotiate_encoding, multiple_gzip_entries_take_max_q) {

@@ -284,7 +284,8 @@ TEST(URI_canonicalize, complex_case) {
 TEST(URI_canonicalize, component_aware_decode) {
   sourcemeta::core::URI uri{"http://example.com/%3a%3b%2f?foo%3dbar#baz%2fqux"};
   uri.canonicalize();
-  EXPECT_EQ(uri.recompose(), "http://example.com/:;%2F?foo=bar#baz/qux");
+  EXPECT_EQ(uri.recompose(),
+            "http://example.com/%3A%3B%2F?foo%3Dbar#baz%2Fqux");
 }
 
 TEST(URI_canonicalize, fragment_encoded_colon) {
@@ -293,7 +294,7 @@ TEST(URI_canonicalize, fragment_encoded_colon) {
   uri.canonicalize();
   EXPECT_EQ(
       uri.recompose(),
-      "https://www.example.com#/$defs/https:~1~1example.com~1schema/type");
+      "https://www.example.com#/$defs/https%3A~1~1example.com~1schema/type");
 }
 
 TEST(URI_canonicalize, relative_path_no_canonicalize) {
