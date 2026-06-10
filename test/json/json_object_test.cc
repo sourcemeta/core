@@ -902,6 +902,26 @@ TEST(JSON_object, ordering_is_asymmetric) {
   EXPECT_NE(left < right, right < left);
 }
 
+TEST(JSON_object, ordering_with_distinct_keys) {
+  const auto left{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "b": 1 })JSON")};
+  const auto right{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "c": 1 })JSON")};
+  EXPECT_NE(left, right);
+  EXPECT_TRUE(left < right);
+  EXPECT_FALSE(right < left);
+}
+
+TEST(JSON_object, ordering_key_difference_outranks_value_difference) {
+  const auto left{
+      sourcemeta::core::parse_json(R"JSON({ "a": 9, "b": 1 })JSON")};
+  const auto right{
+      sourcemeta::core::parse_json(R"JSON({ "a": 1, "c": 1 })JSON")};
+  EXPECT_NE(left, right);
+  EXPECT_FALSE(left < right);
+  EXPECT_TRUE(right < left);
+}
+
 TEST(JSON_object, at_or_defined) {
   const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{true}},
                                         {"bar", sourcemeta::core::JSON{1}}};

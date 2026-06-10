@@ -54,51 +54,39 @@ public:
   // We cannot default given that this class references
   // a JSON "value" as an incomplete type
 
-  static auto entry_key_less(const Entry *const left,
-                             const Entry *const right) noexcept -> bool {
-    return left->first < right->first;
-  }
-
-  // Ordering equal-size objects sorts temporary entry references, which can
-  // only fail by exhausting memory, in which case terminating is acceptable
-  // NOLINTNEXTLINE(bugprone-exception-escape)
   auto operator<(const JSONObject<Key, Value, Hash> &other) const noexcept
       -> bool {
-    // Objects have no inherent order, but a deterministic ordering is needed so
-    // that collections of objects can be sorted. The result must be a strict
-    // weak ordering and independent of insertion order, so smaller objects come
-    // first and objects of equal size are compared as their entries taken in
-    // key order
+    // Objects have no inherent order, but a deterministic strict weak ordering
+    // independent of insertion order is needed so that collections of objects
+    // can be sorted. Smaller objects come first, and objects of equal size are
+    // ordered as their entries would compare in key order. That outcome is
+    // decided entirely by the smallest key at which the two objects differ,
+    // which is found by scanning the entries in place to avoid allocating
     if (this->data.size() != other.data.size()) {
       return this->data.size() < other.data.size();
     }
 
-    std::vector<const Entry *> left;
-    std::vector<const Entry *> right;
-    left.reserve(this->data.size());
-    right.reserve(other.data.size());
+    const Key *decisive_key{nullptr};
+    bool decision{false};
     for (const auto &entry : this->data) {
-      left.push_back(&entry);
+      const auto match{other.find(entry.first)};
+      const bool differs{match == other.cend() ||
+                         !(entry.second == match->second)};
+      if (differs && (decisive_key == nullptr || entry.first < *decisive_key)) {
+        decisive_key = &entry.first;
+        decision = match == other.cend() || entry.second < match->second;
+      }
     }
 
     for (const auto &entry : other.data) {
-      right.push_back(&entry);
-    }
-
-    std::sort(left.begin(), left.end(), entry_key_less);
-    std::sort(right.begin(), right.end(), entry_key_less);
-
-    for (size_type index = 0; index < left.size(); index++) {
-      if (left[index]->first != right[index]->first) {
-        return left[index]->first < right[index]->first;
-      }
-
-      if (left[index]->second != right[index]->second) {
-        return left[index]->second < right[index]->second;
+      if (this->find(entry.first) == this->cend() &&
+          (decisive_key == nullptr || entry.first < *decisive_key)) {
+        decisive_key = &entry.first;
+        decision = false;
       }
     }
 
-    return false;
+    return decision;
   }
 
   auto operator<=(const JSONObject<Key, Value, Hash> &other) const noexcept
