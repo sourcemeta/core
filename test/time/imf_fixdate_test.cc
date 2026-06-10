@@ -173,56 +173,56 @@ TEST(Time_imf_fixdate, parse_rejects_asctime_shape) {
                    .has_value());
 }
 
-// RFC 5322 §3.3: the day-of-month must be valid for the given month and year
+// RFC 9110 §5.6.7: the day-of-month must be valid for the given month and year
 TEST(Time_imf_fixdate, parse_rejects_february_thirtieth) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Mon, 30 Feb 2015 11:28:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: April has only 30 days
+// RFC 9110 §5.6.7: April has only 30 days
 TEST(Time_imf_fixdate, parse_rejects_april_thirty_first) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Wed, 31 Apr 2015 11:28:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: 2015 is not a leap year so February has only 28 days
+// RFC 9110 §5.6.7: 2015 is not a leap year so February has only 28 days
 TEST(Time_imf_fixdate, parse_rejects_february_twenty_ninth_non_leap) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Sun, 29 Feb 2015 11:28:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: 2020 is a leap year so February has 29 days
+// RFC 9110 §5.6.7: 2020 is a leap year so February has 29 days
 TEST(Time_imf_fixdate, parse_accepts_february_twenty_ninth_leap) {
   EXPECT_TRUE(
       sourcemeta::core::from_imf_fixdate("Sat, 29 Feb 2020 11:28:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: the day-of-month must be at least one
+// RFC 9110 §5.6.7: the day-of-month must be at least one
 TEST(Time_imf_fixdate, parse_rejects_zero_day) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Wed, 00 Oct 2015 11:28:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: the hour must be in the range 00-23
+// RFC 9110 §5.6.7: the hour must be in the range 00-23
 TEST(Time_imf_fixdate, parse_rejects_hour_twenty_four) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 24:28:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: the minute must be in the range 00-59
+// RFC 9110 §5.6.7: the minute must be in the range 00-59
 TEST(Time_imf_fixdate, parse_rejects_minute_sixty) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 11:60:00 GMT")
           .has_value());
 }
 
-// RFC 5322 §3.3: the second must not exceed a leap second
+// RFC 9110 §5.6.7: the second must not exceed a leap second
 TEST(Time_imf_fixdate, parse_rejects_second_sixty_one) {
   EXPECT_FALSE(
       sourcemeta::core::from_imf_fixdate("Wed, 21 Oct 2015 11:28:61 GMT")
