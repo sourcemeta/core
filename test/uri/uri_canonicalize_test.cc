@@ -55,6 +55,13 @@ TEST(URI_canonicalize, example_8) {
   EXPECT_EQ(uri.recompose(), "http://example.com/case-insensitive-host");
 }
 
+// A percent-encoded uppercase letter in the host folds to lowercase
+TEST(URI_canonicalize, percent_encoded_uppercase_host_letter) {
+  sourcemeta::core::URI uri{"http://%41EXAMPLE.com/path"};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "http://aexample.com/path");
+}
+
 // Paths are case sensitive
 TEST(URI_canonicalize, example_9) {
   sourcemeta::core::URI uri{"hTtP://exAmpLe.com/case-SENSITIVE-path"};

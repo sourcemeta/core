@@ -17,6 +17,12 @@ namespace {
 
 auto make_bounded_match_context() -> pcre2_match_context * {
   pcre2_match_context *context{pcre2_match_context_create(nullptr)};
+  // A null context is a valid argument to the matcher and selects the default
+  // limits, so an allocation failure degrades safely rather than crashing
+  if (context == nullptr) {
+    return nullptr;
+  }
+
   pcre2_set_match_limit(context, 1000000);
   pcre2_set_depth_limit(context, 1000);
   return context;

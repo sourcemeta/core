@@ -1,12 +1,53 @@
 #include <sourcemeta/core/unicode.h>
 
-#include <cassert> // assert
-#include <cstddef> // std::size_t
-#include <cstdint> // std::uint8_t
+#include <array>    // std::array
+#include <cassert>  // assert
+#include <cstddef>  // std::size_t
+#include <cstdint>  // std::uint8_t
+#include <optional> // std::optional, std::nullopt
 
 #include "unicode_data.h"
 
 namespace sourcemeta::core {
+
+namespace {
+
+// Decode the code point of a multi-byte sequence from its lead byte and the
+// continuation bytes that follow it, rejecting invalid continuation bytes,
+// overlong encodings, and code points that are not valid scalar values
+auto utf8_decode_sequence(const std::uint8_t lead, const std::uint8_t size,
+                          const std::uint8_t *continuations)
+    -> std::optional<char32_t> {
+  char32_t code_point{0};
+  char32_t minimum{0};
+  if (size == 2) {
+    code_point = lead & 0x1F;
+    minimum = 0x80;
+  } else if (size == 3) {
+    code_point = lead & 0x0F;
+    minimum = 0x800;
+  } else {
+    code_point = lead & 0x07;
+    minimum = 0x10000;
+  }
+
+  for (std::uint8_t index{0}; index < size - 1; ++index) {
+    const auto continuation{continuations[index]};
+    if (!is_utf8_continuation(continuation)) {
+      return std::nullopt;
+    }
+
+    code_point = (code_point << 6) | (continuation & 0x3F);
+  }
+
+  if (code_point < minimum || !is_valid_codepoint(code_point)) {
+    return std::nullopt;
+  }
+
+  return code_point;
+}
+
+} // namespace
 
 auto codepoint_to_utf8(const char32_t codepoint, std::ostream &output) -> void {
   assert(is_valid_codepoint(codepoint));
@@ -66,34 +107,20 @@ auto utf8_to_utf32(std::istream &input) -> std::optional<std::u32string> {
       continue;
     }
 
-    char32_t code_point{0};
-    char32_t minimum{0};
-    if (size == 2) {
-      code_point = byte & 0x1F;
-      minimum = 0x80;
-    } else if (size == 3) {
-      code_point = byte & 0x0F;
-      minimum = 0x800;
-    } else {
-      code_point = byte & 0x07;
-      minimum = 0x10000;
-    }
-
-    for (std::uint8_t index{1}; index < size; ++index) {
-      std::uint8_t continuation{0};
-      if (!input.read(reinterpret_cast<char *>(&continuation), 1) ||
-          !is_utf8_continuation(continuation)) {
+    std::array<std::uint8_t, 3> continuations{};
+    for (std::uint8_t index{0}; index < size - 1; ++index) {
+      if (!input.read(reinterpret_cast<char *>(&continuations[index]), 1)) {
         return std::nullopt;
       }
-
-      code_point = (code_point << 6) | (continuation & 0x3F);
     }
 
-    if (code_point < minimum || !is_valid_codepoint(code_point)) {
+    const auto code_point{
+        utf8_decode_sequence(byte, size, continuations.data())};
+    if (!code_point.has_value()) {
       return std::nullopt;
     }
 
-    result.push_back(code_point);
+    result.push_back(code_point.value());
   }
 
   if (!input.eof()) {
@@ -121,38 +148,18 @@ auto utf8_to_utf32(const std::string_view input)
       continue;
     }
 
-    if (position + size > input.size()) {
+    if (input.size() - position < size) {
       return std::nullopt;
     }
 
-    char32_t code_point{0};
-    char32_t minimum{0};
-    if (size == 2) {
-      code_point = byte & 0x1F;
-      minimum = 0x80;
-    } else if (size == 3) {
-      code_point = byte & 0x0F;
-      minimum = 0x800;
-    } else {
-      code_point = byte & 0x07;
-      minimum = 0x10000;
-    }
-
-    for (std::uint8_t index{1}; index < size; ++index) {
-      const auto continuation{
-          static_cast<std::uint8_t>(input[position + index])};
-      if (!is_utf8_continuation(continuation)) {
-        return std::nullopt;
-      }
-
-      code_point = (code_point << 6) | (continuation & 0x3F);
-    }
-
-    if (code_point < minimum || !is_valid_codepoint(code_point)) {
+    const auto code_point{utf8_decode_sequence(
+        byte, size,
+        reinterpret_cast<const std::uint8_t *>(input.data() + position + 1))};
+    if (!code_point.has_value()) {
       return std::nullopt;
     }
 
-    result.push_back(code_point);
+    result.push_back(code_point.value());
     position += size;
   }
 

@@ -15,11 +15,6 @@ auto URI::canonicalize() -> URI & {
     sourcemeta::core::to_lowercase(this->scheme_.value());
   }
 
-  // Lowercase host (hostnames are case-insensitive per RFC 3986)
-  if (this->host_.has_value()) {
-    sourcemeta::core::to_lowercase(this->host_.value());
-  }
-
   // Canonicalize path by removing "." and ".." segments
   if (this->path_.has_value() && !this->path_.value().empty()) {
     auto &current_path{this->path_.value()};
@@ -56,9 +51,12 @@ auto URI::canonicalize() -> URI & {
     uri_unescape_unreserved_inplace(this->userinfo_.value());
   }
 
+  // Hostnames are case-insensitive per RFC 3986, and the lowercasing must come
+  // after decoding so that a percent-encoded uppercase letter is also folded
   if (this->host_.has_value()) {
     uri_normalize_percent_encoding_inplace(this->host_.value());
     uri_unescape_unreserved_inplace(this->host_.value());
+    sourcemeta::core::to_lowercase(this->host_.value());
   }
 
   // Remove default ports (80 for http, 443 for https)
