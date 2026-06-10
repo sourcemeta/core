@@ -54,6 +54,11 @@ public:
   // We cannot default given that this class references
   // a JSON "value" as an incomplete type
 
+  static auto entry_key_less(const Entry *const left,
+                             const Entry *const right) noexcept -> bool {
+    return left->first < right->first;
+  }
+
   // Ordering equal-size objects sorts temporary entry references, which can
   // only fail by exhausting memory, in which case terminating is acceptable
   // NOLINTNEXTLINE(bugprone-exception-escape)
@@ -80,11 +85,8 @@ public:
       right.push_back(&entry);
     }
 
-    const auto by_key{[](const Entry *const one, const Entry *const another) {
-      return one->first < another->first;
-    }};
-    std::sort(left.begin(), left.end(), by_key);
-    std::sort(right.begin(), right.end(), by_key);
+    std::sort(left.begin(), left.end(), entry_key_less);
+    std::sort(right.begin(), right.end(), entry_key_less);
 
     for (size_type index = 0; index < left.size(); index++) {
       if (left[index]->first != right[index]->first) {

@@ -223,28 +223,7 @@ public:
   }
 
 private:
-  static constexpr std::size_t maximum_recursion_depth{1000};
   static constexpr std::size_t maximum_expanded_nodes{10000000};
-
-  struct RecursionGuard {
-    RecursionGuard(Parser &parser) : parser_{parser} {
-      if (this->parser_.recursion_depth_ >= maximum_recursion_depth)
-          [[unlikely]] {
-        throw YAMLParseError{this->parser_.lexer_->line(),
-                             this->parser_.lexer_->column(),
-                             "Maximum YAML nesting depth exceeded"};
-      }
-      this->parser_.recursion_depth_++;
-    }
-    ~RecursionGuard() { this->parser_.recursion_depth_--; }
-    RecursionGuard(const RecursionGuard &) = delete;
-    auto operator=(const RecursionGuard &) -> RecursionGuard & = delete;
-    RecursionGuard(RecursionGuard &&) = delete;
-    auto operator=(RecursionGuard &&) -> RecursionGuard & = delete;
-
-  private:
-    Parser &parser_;
-  };
 
   auto count_expanded_nodes(const JSON &value) -> std::size_t {
     std::size_t total{1};
@@ -407,8 +386,6 @@ private:
                    const std::size_t index, const std::string &property,
                    const std::uint64_t key_line = 0,
                    const std::uint64_t key_column = 0) -> JSON {
-    const RecursionGuard recursion_guard{*this};
-
     if (this->roundtrip_) {
       if (context == JSON::ParseContext::Property) {
         this->pointer_stack_.push_back(std::string{property});
@@ -1998,7 +1975,6 @@ private:
   std::unordered_map<std::string, AnchoredValue> anchors_;
   bool recording_anchor_{false};
   bool indent_width_detected_{false};
-  std::size_t recursion_depth_{0};
   std::size_t expanded_nodes_{0};
   std::vector<CallbackRecord> current_anchor_callbacks_;
   std::deque<Token> pending_tokens_;

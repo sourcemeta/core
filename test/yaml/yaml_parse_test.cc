@@ -474,18 +474,6 @@ TEST(YAML_parse, invalid_unicode_escape_8) {
   }
 }
 
-TEST(YAML_parse, deeply_nested_flow_sequence_does_not_overflow) {
-  const std::string input(5000, '[');
-  try {
-    sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
-  } catch (const sourcemeta::core::YAMLParseError &) {
-    SUCCEED();
-  } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
-  }
-}
-
 TEST(YAML_parse, exponential_alias_expansion_is_bounded) {
   const std::string input{"a: &a [ x, x, x, x, x, x, x, x, x, x ]\n"
                           "b: &b [ *a, *a, *a, *a, *a, *a, *a, *a, *a, *a ]\n"

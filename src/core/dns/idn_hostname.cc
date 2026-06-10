@@ -2,7 +2,6 @@
 
 #include <sourcemeta/core/idna.h>
 #include <sourcemeta/core/punycode.h>
-#include <sourcemeta/core/punycode_error.h>
 #include <sourcemeta/core/unicode.h>
 
 #include <cstddef>     // std::size_t

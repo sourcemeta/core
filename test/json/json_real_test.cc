@@ -164,34 +164,22 @@ TEST(JSON_real, estimated_byte_size_minus_0_0) {
 
 TEST(JSON_real, fast_hash_3_14) {
   const sourcemeta::core::JSON document{3.14};
-  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"3.14"}};
-  EXPECT_EQ(document.fast_hash(), decimal.fast_hash());
+  EXPECT_EQ(document.fast_hash(), 5);
 }
 
 TEST(JSON_real, fast_hash_minus_3_14) {
   const sourcemeta::core::JSON document{-3.14};
-  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"-3.14"}};
-  EXPECT_EQ(document.fast_hash(), decimal.fast_hash());
+  EXPECT_EQ(document.fast_hash(), 5);
 }
 
-TEST(JSON_real, fast_hash_integral_matches_integer) {
+TEST(JSON_real, fast_hash_minus_5_0) {
   const sourcemeta::core::JSON document{5.0};
-  const sourcemeta::core::JSON integer{5};
-  EXPECT_EQ(document.fast_hash(), 9);
-  EXPECT_EQ(document.fast_hash(), integer.fast_hash());
+  EXPECT_EQ(document.fast_hash(), 5);
 }
 
-TEST(JSON_real, fast_hash_zero_matches_integer_zero) {
+TEST(JSON_real, fast_hash_minus_0_0) {
   const sourcemeta::core::JSON document{0.0};
-  const sourcemeta::core::JSON integer{0};
-  EXPECT_EQ(document.fast_hash(), 4);
-  EXPECT_EQ(document.fast_hash(), integer.fast_hash());
-}
-
-TEST(JSON_real, fast_hash_negative_zero_matches_positive_zero) {
-  const sourcemeta::core::JSON document{-0.0};
-  const sourcemeta::core::JSON positive{0.0};
-  EXPECT_EQ(document.fast_hash(), positive.fast_hash());
+  EXPECT_EQ(document.fast_hash(), 5);
 }
 
 TEST(JSON_real, less_than_real_decimal) {

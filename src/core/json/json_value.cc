@@ -2,9 +2,8 @@
 #include <sourcemeta/core/json_value.h>
 
 #include <algorithm>        // std::ranges::contains, std::ranges::fold_left
-#include <bit>              // std::bit_cast
 #include <cassert>          // assert
-#include <cmath>            // std::isinf, std::isnan, std::modf, std::floor
+#include <cmath>            // std::isinf, std::isnan, std::modf
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::int64_t
 #include <exception>        // std::terminate
@@ -653,30 +652,9 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
     case Type::Boolean:
       return this->to_boolean() ? 1 : 0;
     case Type::Integer:
+      return 4 + (static_cast<std::uint64_t>(this->to_integer()) % 256);
     case Type::Real:
-    case Type::Decimal: {
-      // Numbers that compare equal across the integer, real, and decimal forms
-      // must hash equally, so each is reduced to its real value with negative
-      // zero folded onto zero. Values that are exactly an integer within the
-      // range doubles represent without loss keep a compact hash, while the
-      // rest are distinguished by the bit pattern of that real value
-      auto value{this->current_type == Type::Decimal
-                     ? this->data_decimal->to_double()
-                     : this->as_real()};
-      if (value == 0.0) {
-        value = 0.0;
-      }
-
-      constexpr double exact_integer_limit{9007199254740992.0};
-      if (value == std::floor(value) && value > -exact_integer_limit &&
-          value < exact_integer_limit) {
-        return 4 +
-               (static_cast<std::uint64_t>(static_cast<std::int64_t>(value)) %
-                256);
-      }
-
-      return std::bit_cast<std::uint64_t>(value);
-    }
+      return 5;
     case Type::String:
       return 3 + this->byte_size();
     case Type::Array:
@@ -693,6 +671,8 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
             return accumulator + 1 + pair.first.size() +
                    pair.second.fast_hash();
           });
+    case Type::Decimal:
+      return 8;
     default:
       assert(false);
       return 0;

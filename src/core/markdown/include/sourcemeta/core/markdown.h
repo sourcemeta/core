@@ -25,9 +25,8 @@ namespace sourcemeta::core {
 /// Markdown (GFM) with all standard extensions enabled (tables, autolinks,
 /// strikethrough, tag filtering, and task lists). Raw HTML and dangerous
 /// links in the input pass through unchanged by default, so the result is not
-/// safe to render from untrusted input unless `safe` is set to `true`, in
-/// which case raw HTML is suppressed and unsafe links are stripped. For
-/// example:
+/// safe to render from untrusted input. Enabling safe mode suppresses raw HTML
+/// and strips unsafe links. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/markdown.h>

@@ -485,7 +485,7 @@ public:
     // magnitude rather than returning a result that is too large by a power of
     // ten
     while (exponent < 0) {
-      value /= 10;
+      value = value / 10;
       exponent++;
     }
 

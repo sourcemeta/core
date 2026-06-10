@@ -21,9 +21,8 @@ auto is_hostname(const std::string_view value) -> bool {
   }
 
   // RFC 1123 §2.1: SHOULD handle host names of up to 255 characters. This is
-  // intentionally looser than the 253-octet A-label cap of `is_idn_hostname`,
-  // so a 254-octet ASCII name passes here but fails there. The asymmetry is
-  // deliberate and not reconciled.
+  // intentionally looser than the stricter 253-octet cap applied to the
+  // internationalized form
   if (value.size() > 255) {
     return false;
   }

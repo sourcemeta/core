@@ -36,6 +36,27 @@ inline unsigned __stdcall parallel_for_each_windows_thread_start(
   return 0;
 }
 #endif
+
+// If thread creation fails after some workers have already started, those
+// workers keep referencing the stack locals of the spawning frame, so unwinding
+// past them must be avoided. Drain the remaining tasks so the running workers
+// stop pulling new work and exit, then join every already-created worker before
+// propagating the failure
+template <typename Iterator>
+inline auto parallel_for_each_drain_and_join(std::queue<Iterator> &tasks,
+                                             std::mutex &queue_mutex,
+                                             std::vector<std::thread> &workers)
+    -> void {
+  {
+    std::lock_guard<std::mutex> lock{queue_mutex};
+    std::queue<Iterator> empty;
+    tasks.swap(empty);
+  }
+
+  for (auto &worker_thread : workers) {
+    worker_thread.join();
+  }
+}
 #endif
 
 /// @ingroup parallel
@@ -144,23 +165,6 @@ auto parallel_for_each(
     }
   };
 
-  // If thread creation fails after some workers have already started, those
-  // workers keep referencing the stack locals of this frame, so we must not
-  // unwind past them. Drain the remaining tasks so the running workers stop
-  // pulling new work and exit, then join every already-created worker before
-  // propagating the failure
-  auto drain_and_join = [&tasks, &queue_mutex, &workers] {
-    {
-      std::lock_guard<std::mutex> lock{queue_mutex};
-      std::queue<Iterator> empty;
-      tasks.swap(empty);
-    }
-
-    for (auto &worker_thread : workers) {
-      worker_thread.join();
-    }
-  };
-
   // TODO: Replace std::function with std::move_only_function once
   // Apple Clang ships libc++ 19+ (__cpp_lib_move_only_function)
 #if defined(_WIN32)
@@ -168,7 +172,7 @@ auto parallel_for_each(
     auto *heap_function = new std::function<void()>(worker_callable);
     if (stack_size_bytes > static_cast<std::size_t>(UINT_MAX)) {
       delete heap_function;
-      drain_and_join();
+      parallel_for_each_drain_and_join(tasks, queue_mutex, workers);
       throw std::runtime_error(
           "The requested stack size is too large for this platform");
     }
@@ -178,7 +182,7 @@ auto parallel_for_each(
         &parallel_for_each_windows_thread_start, heap_function, 0, nullptr);
     if (raw_handle == 0) {
       delete heap_function;
-      drain_and_join();
+      parallel_for_each_drain_and_join(tasks, queue_mutex, workers);
       throw std::runtime_error("Could not create thread");
     }
 
@@ -212,7 +216,7 @@ auto parallel_for_each(
     if (raw_handle != 0) {
       pthread_attr_destroy(&attr);
       delete heap_function;
-      drain_and_join();
+      parallel_for_each_drain_and_join(tasks, queue_mutex, workers);
       throw std::runtime_error("Could not create thread");
     }
     workers.emplace_back(
