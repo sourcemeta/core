@@ -137,6 +137,41 @@ TEST(Time_rfc850_date, parse_rejects_lowercase_gmt) {
           .has_value());
 }
 
+// RFC 9110 §5.6.7: the day-of-month must be valid for the given month and year
+TEST(Time_rfc850_date, parse_rejects_february_thirtieth) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Monday, 30-Feb-15 11:28:00 GMT")
+          .has_value());
+}
+
+// RFC 9110 §5.6.7: 2015 is not a leap year so February has only 28 days
+TEST(Time_rfc850_date, parse_rejects_february_twenty_ninth_non_leap) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 29-Feb-15 11:28:00 GMT")
+          .has_value());
+}
+
+// RFC 9110 §5.6.7: the hour must be in the range 00-23
+TEST(Time_rfc850_date, parse_rejects_hour_twenty_four) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 24:49:37 GMT")
+          .has_value());
+}
+
+// RFC 9110 §5.6.7: the minute must be in the range 00-59
+TEST(Time_rfc850_date, parse_rejects_minute_sixty) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:60:37 GMT")
+          .has_value());
+}
+
+// RFC 9110 §5.6.7: the second must not exceed a leap second
+TEST(Time_rfc850_date, parse_rejects_second_sixty_one) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-Nov-94 08:49:61 GMT")
+          .has_value());
+}
+
 TEST(Time_rfc850_date, parse_y2k_boundary_at_threshold) {
   const auto point{
       sourcemeta::core::from_rfc850_date("Friday, 01-Jan-76 00:00:00 GMT")};

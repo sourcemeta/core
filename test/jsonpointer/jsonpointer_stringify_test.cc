@@ -149,224 +149,224 @@ TEST(JSONPointer_stringify, escape_00) {
   const sourcemeta::core::Pointer pointer{"foo\0bar"s};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0000bar");
+  EXPECT_EQ(stream.str(), "/foo\0bar"s);
 }
 
 TEST(JSONPointer_stringify, escape_01) {
   const sourcemeta::core::Pointer pointer{"foo\u0001bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0001bar");
+  EXPECT_EQ(stream.str(), "/foo\u0001bar");
 }
 
 TEST(JSONPointer_stringify, escape_02) {
   const sourcemeta::core::Pointer pointer{"foo\u0002bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0002bar");
+  EXPECT_EQ(stream.str(), "/foo\u0002bar");
 }
 
 TEST(JSONPointer_stringify, escape_03) {
   const sourcemeta::core::Pointer pointer{"foo\u0003bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0003bar");
+  EXPECT_EQ(stream.str(), "/foo\u0003bar");
 }
 
 TEST(JSONPointer_stringify, escape_04) {
   const sourcemeta::core::Pointer pointer{"foo\u0004bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0004bar");
+  EXPECT_EQ(stream.str(), "/foo\u0004bar");
 }
 
 TEST(JSONPointer_stringify, escape_05) {
   const sourcemeta::core::Pointer pointer{"foo\u0005bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0005bar");
+  EXPECT_EQ(stream.str(), "/foo\u0005bar");
 }
 
 TEST(JSONPointer_stringify, escape_06) {
   const sourcemeta::core::Pointer pointer{"foo\u0006bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0006bar");
+  EXPECT_EQ(stream.str(), "/foo\u0006bar");
 }
 
 TEST(JSONPointer_stringify, escape_07) {
   const sourcemeta::core::Pointer pointer{"foo\u0007bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0007bar");
+  EXPECT_EQ(stream.str(), "/foo\u0007bar");
 }
 
 TEST(JSONPointer_stringify, escape_08) {
   const sourcemeta::core::Pointer pointer{"foo\u0008bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\bbar");
+  EXPECT_EQ(stream.str(), "/foo\u0008bar");
 }
 
 TEST(JSONPointer_stringify, escape_09) {
   const sourcemeta::core::Pointer pointer{"foo\u0009bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\tbar");
+  EXPECT_EQ(stream.str(), "/foo\u0009bar");
 }
 
 TEST(JSONPointer_stringify, escape_0A) {
   const sourcemeta::core::Pointer pointer{"foo\u000abar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\nbar");
+  EXPECT_EQ(stream.str(), "/foo\u000Abar");
 }
 
 TEST(JSONPointer_stringify, escape_0B) {
   const sourcemeta::core::Pointer pointer{"foo\u000bbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u000Bbar");
+  EXPECT_EQ(stream.str(), "/foo\u000Bbar");
 }
 
 TEST(JSONPointer_stringify, escape_0C) {
   const sourcemeta::core::Pointer pointer{"foo\u000cbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\fbar");
+  EXPECT_EQ(stream.str(), "/foo\u000Cbar");
 }
 
 TEST(JSONPointer_stringify, escape_0D) {
   const sourcemeta::core::Pointer pointer{"foo\u000dbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\rbar");
+  EXPECT_EQ(stream.str(), "/foo\u000Dbar");
 }
 
 TEST(JSONPointer_stringify, escape_0E) {
   const sourcemeta::core::Pointer pointer{"foo\u000ebar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u000Ebar");
+  EXPECT_EQ(stream.str(), "/foo\u000Ebar");
 }
 
 TEST(JSONPointer_stringify, escape_0F) {
   const sourcemeta::core::Pointer pointer{"foo\u000fbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u000Fbar");
+  EXPECT_EQ(stream.str(), "/foo\u000Fbar");
 }
 
 TEST(JSONPointer_stringify, escape_10) {
   const sourcemeta::core::Pointer pointer{"foo\u0010bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0010bar");
+  EXPECT_EQ(stream.str(), "/foo\u0010bar");
 }
 
 TEST(JSONPointer_stringify, escape_11) {
   const sourcemeta::core::Pointer pointer{"foo\u0011bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0011bar");
+  EXPECT_EQ(stream.str(), "/foo\u0011bar");
 }
 
 TEST(JSONPointer_stringify, escape_12) {
   const sourcemeta::core::Pointer pointer{"foo\u0012bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0012bar");
+  EXPECT_EQ(stream.str(), "/foo\u0012bar");
 }
 
 TEST(JSONPointer_stringify, escape_13) {
   const sourcemeta::core::Pointer pointer{"foo\u0013bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0013bar");
+  EXPECT_EQ(stream.str(), "/foo\u0013bar");
 }
 
 TEST(JSONPointer_stringify, escape_14) {
   const sourcemeta::core::Pointer pointer{"foo\u0014bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0014bar");
+  EXPECT_EQ(stream.str(), "/foo\u0014bar");
 }
 
 TEST(JSONPointer_stringify, escape_15) {
   const sourcemeta::core::Pointer pointer{"foo\u0015bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0015bar");
+  EXPECT_EQ(stream.str(), "/foo\u0015bar");
 }
 
 TEST(JSONPointer_stringify, escape_16) {
   const sourcemeta::core::Pointer pointer{"foo\u0016bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0016bar");
+  EXPECT_EQ(stream.str(), "/foo\u0016bar");
 }
 
 TEST(JSONPointer_stringify, escape_17) {
   const sourcemeta::core::Pointer pointer{"foo\u0017bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0017bar");
+  EXPECT_EQ(stream.str(), "/foo\u0017bar");
 }
 
 TEST(JSONPointer_stringify, escape_18) {
   const sourcemeta::core::Pointer pointer{"foo\u0018bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0018bar");
+  EXPECT_EQ(stream.str(), "/foo\u0018bar");
 }
 
 TEST(JSONPointer_stringify, escape_19) {
   const sourcemeta::core::Pointer pointer{"foo\u0019bar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u0019bar");
+  EXPECT_EQ(stream.str(), "/foo\u0019bar");
 }
 
 TEST(JSONPointer_stringify, escape_1A) {
   const sourcemeta::core::Pointer pointer{"foo\u001abar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u001Abar");
+  EXPECT_EQ(stream.str(), "/foo\u001Abar");
 }
 
 TEST(JSONPointer_stringify, escape_1B) {
   const sourcemeta::core::Pointer pointer{"foo\u001bbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u001Bbar");
+  EXPECT_EQ(stream.str(), "/foo\u001Bbar");
 }
 
 TEST(JSONPointer_stringify, escape_1C) {
   const sourcemeta::core::Pointer pointer{"foo\u001cbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u001Cbar");
+  EXPECT_EQ(stream.str(), "/foo\u001Cbar");
 }
 
 TEST(JSONPointer_stringify, escape_1D) {
   const sourcemeta::core::Pointer pointer{"foo\u001dbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u001Dbar");
+  EXPECT_EQ(stream.str(), "/foo\u001Dbar");
 }
 
 TEST(JSONPointer_stringify, escape_1E) {
   const sourcemeta::core::Pointer pointer{"foo\u001ebar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u001Ebar");
+  EXPECT_EQ(stream.str(), "/foo\u001Ebar");
 }
 
 TEST(JSONPointer_stringify, escape_1F) {
   const sourcemeta::core::Pointer pointer{"foo\u001fbar"};
   std::ostringstream stream;
   sourcemeta::core::stringify(pointer, stream);
-  EXPECT_EQ(stream.str(), "/foo\\u001Fbar");
+  EXPECT_EQ(stream.str(), "/foo\u001Fbar");
 }
 
 TEST(JSONPointer_stringify, no_uri_escape) {

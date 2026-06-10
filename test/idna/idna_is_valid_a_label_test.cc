@@ -2,6 +2,8 @@
 
 #include <sourcemeta/core/idna.h>
 
+#include <string> // std::string
+
 TEST(IDNA_is_valid_a_label, munich_german) {
   // xn--mnchen-3ya decodes to "M\u00FCnchen"
   EXPECT_TRUE(sourcemeta::core::idna_is_valid_a_label("xn--mnchen-3ya"));
@@ -53,4 +55,12 @@ TEST(IDNA_is_valid_a_label, uppercase_in_body) {
   // An uppercase letter in the Punycode body is not the canonical
   // representation, so the round-trip check rejects it.
   EXPECT_FALSE(sourcemeta::core::idna_is_valid_a_label("xn--MNCHEN-3ya"));
+}
+
+// RFC 5890 §2.3.2.1: a label in A-label form is at most 63 octets. A 64-octet
+// input is rejected on length alone, before any Punycode decoding
+TEST(IDNA_is_valid_a_label, exceeds_63_octets) {
+  const std::string label{"xn--" + std::string(60, 'a')};
+  EXPECT_EQ(label.size(), 64);
+  EXPECT_FALSE(sourcemeta::core::idna_is_valid_a_label(label));
 }

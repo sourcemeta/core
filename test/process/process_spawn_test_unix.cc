@@ -58,6 +58,21 @@ TEST(Process_spawn, echo_with_arguments) {
   EXPECT_EQ(exit_code, 0);
 }
 
+TEST(Process_spawn, argument_with_spaces_is_a_single_argument) {
+  const int exit_code{sourcemeta::core::spawn(
+      "/bin/sh",
+      {"-c", "test \"$#\" -eq 1 && test \"$1\" = \"alpha beta gamma\"", "sh",
+       "alpha beta gamma"})};
+  EXPECT_EQ(exit_code, 0);
+}
+
+TEST(Process_spawn, empty_argument_is_preserved) {
+  const int exit_code{sourcemeta::core::spawn(
+      "/bin/sh",
+      {"-c", "test \"$#\" -eq 2 && test -z \"$1\"", "sh", "", "second"})};
+  EXPECT_EQ(exit_code, 0);
+}
+
 TEST(Process_spawn, pwd_with_custom_directory) {
   const int exit_code{
       sourcemeta::core::spawn("pwd", {}, std::filesystem::path{"/tmp"})};

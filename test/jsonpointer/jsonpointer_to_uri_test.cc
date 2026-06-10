@@ -67,224 +67,224 @@ TEST(JSONPointer_to_uri, escape_00) {
   using namespace std::string_literals;
   const sourcemeta::core::Pointer pointer{"foo\0bar"s};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0000bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%00bar");
 }
 
 TEST(JSONPointer_to_uri, escape_01) {
   const sourcemeta::core::Pointer pointer{"foo\u0001bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0001bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%01bar");
 }
 
 TEST(JSONPointer_to_uri, escape_02) {
   const sourcemeta::core::Pointer pointer{"foo\u0002bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0002bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%02bar");
 }
 
 TEST(JSONPointer_to_uri, escape_03) {
   const sourcemeta::core::Pointer pointer{"foo\u0003bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0003bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%03bar");
 }
 
 TEST(JSONPointer_to_uri, escape_04) {
   const sourcemeta::core::Pointer pointer{"foo\u0004bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0004bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%04bar");
 }
 
 TEST(JSONPointer_to_uri, escape_05) {
   const sourcemeta::core::Pointer pointer{"foo\u0005bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0005bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%05bar");
 }
 
 TEST(JSONPointer_to_uri, escape_06) {
   const sourcemeta::core::Pointer pointer{"foo\u0006bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0006bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%06bar");
 }
 
 TEST(JSONPointer_to_uri, escape_07) {
   const sourcemeta::core::Pointer pointer{"foo\u0007bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0007bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%07bar");
 }
 
 TEST(JSONPointer_to_uri, escape_08) {
   const sourcemeta::core::Pointer pointer{"foo\u0008bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cbbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%08bar");
 }
 
 TEST(JSONPointer_to_uri, escape_09) {
   const sourcemeta::core::Pointer pointer{"foo\u0009bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Ctbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%09bar");
 }
 
 TEST(JSONPointer_to_uri, escape_0A) {
   const sourcemeta::core::Pointer pointer{"foo\u000abar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cnbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%0Abar");
 }
 
 TEST(JSONPointer_to_uri, escape_0B) {
   const sourcemeta::core::Pointer pointer{"foo\u000bbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu000Bbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%0Bbar");
 }
 
 TEST(JSONPointer_to_uri, escape_0C) {
   const sourcemeta::core::Pointer pointer{"foo\u000cbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cfbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%0Cbar");
 }
 
 TEST(JSONPointer_to_uri, escape_0D) {
   const sourcemeta::core::Pointer pointer{"foo\u000dbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Crbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%0Dbar");
 }
 
 TEST(JSONPointer_to_uri, escape_0E) {
   const sourcemeta::core::Pointer pointer{"foo\u000ebar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu000Ebar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%0Ebar");
 }
 
 TEST(JSONPointer_to_uri, escape_0F) {
   const sourcemeta::core::Pointer pointer{"foo\u000fbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu000Fbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%0Fbar");
 }
 
 TEST(JSONPointer_to_uri, escape_10) {
   const sourcemeta::core::Pointer pointer{"foo\u0010bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0010bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%10bar");
 }
 
 TEST(JSONPointer_to_uri, escape_11) {
   const sourcemeta::core::Pointer pointer{"foo\u0011bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0011bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%11bar");
 }
 
 TEST(JSONPointer_to_uri, escape_12) {
   const sourcemeta::core::Pointer pointer{"foo\u0012bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0012bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%12bar");
 }
 
 TEST(JSONPointer_to_uri, escape_13) {
   const sourcemeta::core::Pointer pointer{"foo\u0013bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0013bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%13bar");
 }
 
 TEST(JSONPointer_to_uri, escape_14) {
   const sourcemeta::core::Pointer pointer{"foo\u0014bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0014bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%14bar");
 }
 
 TEST(JSONPointer_to_uri, escape_15) {
   const sourcemeta::core::Pointer pointer{"foo\u0015bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0015bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%15bar");
 }
 
 TEST(JSONPointer_to_uri, escape_16) {
   const sourcemeta::core::Pointer pointer{"foo\u0016bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0016bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%16bar");
 }
 
 TEST(JSONPointer_to_uri, escape_17) {
   const sourcemeta::core::Pointer pointer{"foo\u0017bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0017bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%17bar");
 }
 
 TEST(JSONPointer_to_uri, escape_18) {
   const sourcemeta::core::Pointer pointer{"foo\u0018bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0018bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%18bar");
 }
 
 TEST(JSONPointer_to_uri, escape_19) {
   const sourcemeta::core::Pointer pointer{"foo\u0019bar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu0019bar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%19bar");
 }
 
 TEST(JSONPointer_to_uri, escape_1A) {
   const sourcemeta::core::Pointer pointer{"foo\u001abar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu001Abar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%1Abar");
 }
 
 TEST(JSONPointer_to_uri, escape_1B) {
   const sourcemeta::core::Pointer pointer{"foo\u001bbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu001Bbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%1Bbar");
 }
 
 TEST(JSONPointer_to_uri, escape_1C) {
   const sourcemeta::core::Pointer pointer{"foo\u001cbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu001Cbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%1Cbar");
 }
 
 TEST(JSONPointer_to_uri, escape_1D) {
   const sourcemeta::core::Pointer pointer{"foo\u001dbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu001Dbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%1Dbar");
 }
 
 TEST(JSONPointer_to_uri, escape_1E) {
   const sourcemeta::core::Pointer pointer{"foo\u001ebar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu001Ebar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%1Ebar");
 }
 
 TEST(JSONPointer_to_uri, escape_1F) {
   const sourcemeta::core::Pointer pointer{"foo\u001fbar"};
   std::ostringstream stream;
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer)};
-  EXPECT_EQ(fragment.recompose(), "#/foo%5Cu001Fbar");
+  EXPECT_EQ(fragment.recompose(), "#/foo%1Fbar");
 }
 
 TEST(JSONPointer_to_uri, with_absolute_base) {

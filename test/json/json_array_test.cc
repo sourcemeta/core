@@ -281,6 +281,31 @@ TEST(JSON_array, int_standard_sort) {
   EXPECT_EQ(document.at(2).to_integer(), 3);
 }
 
+TEST(JSON_array, object_standard_sort) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json(
+      R"JSON([{"a":9,"b":1},{"a":1,"b":9},{"a":5,"b":5},{"a":1,"b":1}])JSON");
+  std::sort(document.as_array().begin(), document.as_array().end());
+  EXPECT_EQ(document.size(), 4);
+  EXPECT_EQ(document.at(0).at("a").to_integer(), 1);
+  EXPECT_EQ(document.at(0).at("b").to_integer(), 1);
+  EXPECT_EQ(document.at(1).at("a").to_integer(), 1);
+  EXPECT_EQ(document.at(1).at("b").to_integer(), 9);
+  EXPECT_EQ(document.at(2).at("a").to_integer(), 5);
+  EXPECT_EQ(document.at(2).at("b").to_integer(), 5);
+  EXPECT_EQ(document.at(3).at("a").to_integer(), 9);
+  EXPECT_EQ(document.at(3).at("b").to_integer(), 1);
+}
+
+TEST(JSON_array, move_assignment_from_own_element) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("[[1,2,3]]");
+  document = std::move(document.at(0));
+  EXPECT_TRUE(document.is_array());
+  EXPECT_EQ(document.size(), 3);
+  EXPECT_EQ(document.at(0).to_integer(), 1);
+  EXPECT_EQ(document.at(1).to_integer(), 2);
+  EXPECT_EQ(document.at(2).to_integer(), 3);
+}
+
 TEST(JSON_array, erase_many_full) {
   sourcemeta::core::JSON document = sourcemeta::core::parse_json("[1,2,3]");
   EXPECT_TRUE(document.is_array());

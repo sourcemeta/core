@@ -245,6 +245,18 @@ TEST(Punycode_encode, long_string_non_ascii) {
   EXPECT_EQ(sourcemeta::core::utf32_to_punycode(input), "fiqaaaa8796ababbb");
 }
 
+TEST(Punycode_encode, error_surrogate_code_point) {
+  const std::u32string input{0xD800};
+  EXPECT_THROW(sourcemeta::core::utf32_to_punycode(input),
+               sourcemeta::core::PunycodeError);
+}
+
+TEST(Punycode_encode, error_code_point_above_maximum) {
+  const std::u32string input{0x110000};
+  EXPECT_THROW(sourcemeta::core::utf32_to_punycode(input),
+               sourcemeta::core::PunycodeError);
+}
+
 TEST(Punycode_encode, error_utf8_bad_start_byte) {
   // 0xFF is never valid as a UTF-8 start byte
   EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xFF"),

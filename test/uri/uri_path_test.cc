@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/uri.h>
 
+#include <string>
 #include <string_view>
 
 // Getter
@@ -171,40 +172,30 @@ TEST(URI_path_setter, set_relative_path) {
 TEST(URI_path_setter, set_path_with_query) {
   sourcemeta::core::URI uri{"https://example.com"};
 
-  uri.path("/foo%20bar?query=value#fragment");
-  EXPECT_EQ(uri.path().value(), "/foo%20bar");
-  EXPECT_EQ(uri.recompose(), "https://example.com/foo%20bar");
+  EXPECT_THROW(uri.path("/foo%20bar?query=value#fragment"),
+               sourcemeta::core::URIError);
 
   std::string path{"/fooz%20bar?query=value#fragment"};
-  uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "/fooz%20bar");
-  EXPECT_EQ(uri.recompose(), "https://example.com/fooz%20bar");
+  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
 }
 
 TEST(URI_path_setter, set_path_with_fragment) {
   sourcemeta::core::URI uri{"https://example.com"};
 
-  uri.path("/foo%20bar#fragment");
-  EXPECT_EQ(uri.path().value(), "/foo%20bar");
-  EXPECT_EQ(uri.recompose(), "https://example.com/foo%20bar");
+  EXPECT_THROW(uri.path("/foo%20bar#fragment"), sourcemeta::core::URIError);
 
   std::string path{"/fooz%20bar#fragment"};
-  uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "/fooz%20bar");
-  EXPECT_EQ(uri.recompose(), "https://example.com/fooz%20bar");
+  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
 }
 
 TEST(URI_path_setter, set_path_with_query_and_fragment) {
   sourcemeta::core::URI uri{"https://example.com/old?query=value#fragment"};
 
-  uri.path("/new?query=value#fragment");
-  EXPECT_EQ(uri.path().value(), "/new");
-  EXPECT_EQ(uri.recompose(), "https://example.com/new?query=value#fragment");
+  EXPECT_THROW(uri.path("/new?query=value#fragment"),
+               sourcemeta::core::URIError);
 
   std::string path{"/newer?query=value#fragment"};
-  uri.path(std::move(path));
-  EXPECT_EQ(uri.path().value(), "/newer");
-  EXPECT_EQ(uri.recompose(), "https://example.com/newer?query=value#fragment");
+  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
 }
 
 TEST(URI_path_setter_no_scheme, set_path_on_host_only) {
@@ -690,7 +681,7 @@ TEST(URI_path_setter, getter_setter_invariant_relative_with_leading_slash) {
   EXPECT_EQ(uri.path().value(), "/test/no-serve/schema");
   EXPECT_EQ(uri.recompose(), "/test/no-serve/schema");
 
-  const auto original_path{uri.path().value()};
+  const std::string original_path{uri.path().value()};
   const auto original_recompose{uri.recompose()};
   uri.path(original_path);
 
@@ -704,7 +695,7 @@ TEST(URI_path_setter, getter_setter_invariant_relative_without_leading_slash) {
   EXPECT_EQ(uri.path().value(), "test/no-serve/schema");
   EXPECT_EQ(uri.recompose(), "test/no-serve/schema");
 
-  const auto original_path{uri.path().value()};
+  const std::string original_path{uri.path().value()};
   const auto original_recompose{uri.recompose()};
   uri.path(original_path);
 
@@ -718,7 +709,7 @@ TEST(URI_path_setter, getter_setter_invariant_absolute_uri) {
   EXPECT_EQ(uri.path().value(), "/foo/bar");
   EXPECT_EQ(uri.recompose(), "http://example.com/foo/bar");
 
-  const auto original_path{uri.path().value()};
+  const std::string original_path{uri.path().value()};
   const auto original_recompose{uri.recompose()};
   uri.path(original_path);
 
@@ -732,7 +723,7 @@ TEST(URI_path_setter, getter_setter_invariant_relative_dotdot) {
   EXPECT_EQ(uri.path().value(), "../foo/bar");
   EXPECT_EQ(uri.recompose(), "../foo/bar");
 
-  const auto original_path{uri.path().value()};
+  const std::string original_path{uri.path().value()};
   const auto original_recompose{uri.recompose()};
   uri.path(original_path);
 

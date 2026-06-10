@@ -2,7 +2,9 @@
 
 #include <sourcemeta/core/io.h>
 
-#include <cstdint> // std::uint32_t
+#include <cstdint>     // std::uint32_t
+#include <filesystem>  // std::filesystem
+#include <string_view> // std::string_view
 
 TEST(IO_FileView, size) {
   const sourcemeta::core::FileView view{std::filesystem::path{STUBS_DIRECTORY} /
@@ -44,4 +46,14 @@ TEST(IO_FileView, file_not_found) {
   EXPECT_THROW(sourcemeta::core::FileView(
                    std::filesystem::path{STUBS_DIRECTORY} / "nonexistent.bin"),
                sourcemeta::core::FileViewError);
+}
+
+TEST(IO_FileView, empty_file_does_not_throw) {
+  const sourcemeta::core::TemporaryDirectory directory{
+      std::filesystem::temp_directory_path(), ".fileview-"};
+  const auto path{directory.path() / "empty.bin"};
+  sourcemeta::core::write_file(path, std::string_view{""});
+
+  const sourcemeta::core::FileView view{path};
+  EXPECT_EQ(view.size(), 0);
 }

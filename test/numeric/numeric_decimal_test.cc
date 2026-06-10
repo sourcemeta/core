@@ -3698,3 +3698,35 @@ TEST(Numeric_decimal, is_integer_implies_is_integral) {
   EXPECT_TRUE(value.is_integer());
   EXPECT_TRUE(value.is_integral());
 }
+
+TEST(Numeric_decimal, parse_digit_string_longer_than_inline_buffer) {
+  const std::string digits(1100, '9');
+  const sourcemeta::core::Decimal value{digits};
+  EXPECT_EQ(value.to_string(), digits);
+  const sourcemeta::core::Decimal again{value.to_string()};
+  EXPECT_EQ(value, again);
+}
+
+TEST(Numeric_decimal, big_integral_with_negative_exponent_to_uint64) {
+  const sourcemeta::core::Decimal value{"10000000000000000000e-1"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_TRUE(value.is_uint64());
+  EXPECT_EQ(value.to_uint64(), 1000000000000000000ULL);
+}
+
+TEST(Numeric_decimal, big_integral_with_negative_exponent_to_int64) {
+  const sourcemeta::core::Decimal value{"-10000000000000000000e-1"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_EQ(value.to_int64(), -1000000000000000000LL);
+}
+
+TEST(Numeric_decimal, nan_with_payload_longer_than_storage_saturates) {
+  const sourcemeta::core::Decimal value{"NaN99999999999999999999999"};
+  EXPECT_TRUE(value.is_nan());
+  EXPECT_EQ(value.nan_payload(), std::numeric_limits<std::int64_t>::max());
+}
+
+TEST(Numeric_decimal, parse_extreme_negative_exponent_does_not_overflow) {
+  const sourcemeta::core::Decimal value{"1.5e-2147483648"};
+  EXPECT_TRUE(value.is_finite());
+}
