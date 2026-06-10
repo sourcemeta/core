@@ -5,9 +5,11 @@
 
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/numeric.h>
 
-#include <filesystem> // std::filesystem
-#include <sstream>    // std::ostringstream
+#include <cstddef>     // std::size_t
+#include <filesystem>  // std::filesystem
+#include <string_view> // std::string_view
 
 static void JSON_Array_Of_Objects_Unique(benchmark::State &state) {
   // From Unreal Engine `uproject` files
@@ -327,15 +329,111 @@ static void JSON_Parse_Decimal(benchmark::State &state) {
 }
 
 static void JSON_Parse_Schema_ISO_Language(benchmark::State &state) {
-  auto stream{sourcemeta::core::read_file(
+  const auto schema{sourcemeta::core::read_file_to_string(
       std::filesystem::path{CURRENT_DIRECTORY} / "files" /
       "2020_12_iso_language_2023_set_3.json")};
-  std::ostringstream buffer;
-  buffer << stream.rdbuf();
-  const auto schema{buffer.str()};
   for (auto _ : state) {
     auto result{sourcemeta::core::parse_json(schema)};
     assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Integer(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "integer_array.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_String_NonSSO_Plain(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "string_array_plain.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_String_SSO_Plain(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "string_array_short.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_String_Escape_Heavy(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "string_array_escaped.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Object_Short_Keys(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "object_short_keys.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Object_Scalar_Properties(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "object_scalar_properties.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Object_Array_Properties(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "object_array_properties.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Object_Object_Properties(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "object_object_properties.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_object());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Parse_Nested_Containers(benchmark::State &state) {
+  const auto document{sourcemeta::core::read_file_to_string(
+      std::filesystem::path{CURRENT_DIRECTORY} / "files" /
+      "nested_containers.json")};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::parse_json(document)};
+    assert(result.is_array());
     benchmark::DoNotOptimize(result);
   }
 }
@@ -557,6 +655,48 @@ static void JSON_Object_Defines_Miss_Too_Large(benchmark::State &state) {
   }
 }
 
+static void JSON_From_String_Copy(benchmark::State &state) {
+  const sourcemeta::core::JSON::String value(48, 'x');
+  for (auto _ : state) {
+    sourcemeta::core::JSON document{value};
+    benchmark::DoNotOptimize(document);
+  }
+}
+
+static void JSON_From_String_Temporary(benchmark::State &state) {
+  for (auto _ : state) {
+    sourcemeta::core::JSON document{sourcemeta::core::JSON::String(48, 'x')};
+    benchmark::DoNotOptimize(document);
+  }
+}
+
+static void JSON_Number_To_Double(benchmark::State &state) {
+  const std::string_view input{"-273.150123"};
+  for (auto _ : state) {
+    auto result{sourcemeta::core::to_double(input)};
+    assert(result.has_value());
+    benchmark::DoNotOptimize(result);
+  }
+}
+
+static void JSON_Object_At_Last_Key(benchmark::State &state) {
+  const auto property_count{static_cast<std::size_t>(state.range(0))};
+  auto document{sourcemeta::core::JSON::make_object()};
+  sourcemeta::core::JSON::String last_key;
+  for (std::size_t index = 0; index < property_count; index++) {
+    last_key = "key" + std::to_string(index + 1000);
+    document.assign(last_key, sourcemeta::core::JSON{1});
+  }
+
+  const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
+      hasher;
+  const auto key_hash{hasher(last_key)};
+  for (auto _ : state) {
+    auto &value{document.at(last_key, key_hash)};
+    benchmark::DoNotOptimize(value);
+  }
+}
+
 static void JSON_Divisible_By_Decimal(benchmark::State &state) {
   const auto value_1{
       sourcemeta::core::parse_json("123456789012345678901234567890")};
@@ -586,6 +726,19 @@ BENCHMARK(JSON_Parse_1);
 BENCHMARK(JSON_Parse_Real);
 BENCHMARK(JSON_Parse_Decimal);
 BENCHMARK(JSON_Parse_Schema_ISO_Language);
+BENCHMARK(JSON_Parse_Integer);
+BENCHMARK(JSON_Parse_String_NonSSO_Plain);
+BENCHMARK(JSON_Parse_String_SSO_Plain);
+BENCHMARK(JSON_Parse_String_Escape_Heavy);
+BENCHMARK(JSON_Parse_Object_Short_Keys);
+BENCHMARK(JSON_Parse_Object_Scalar_Properties);
+BENCHMARK(JSON_Parse_Object_Array_Properties);
+BENCHMARK(JSON_Parse_Object_Object_Properties);
+BENCHMARK(JSON_Parse_Nested_Containers);
+BENCHMARK(JSON_From_String_Copy);
+BENCHMARK(JSON_From_String_Temporary);
+BENCHMARK(JSON_Number_To_Double);
+BENCHMARK(JSON_Object_At_Last_Key)->Arg(8)->Arg(32)->Arg(128)->Arg(512);
 BENCHMARK(JSON_Fast_Hash_Helm_Chart_Lock);
 BENCHMARK(JSON_Equality_Helm_Chart_Lock);
 BENCHMARK(JSON_Divisible_By_Decimal);
