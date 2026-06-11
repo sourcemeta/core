@@ -4,6 +4,7 @@
 #include <sourcemeta/core/json.h>
 
 #include <sstream>
+#include <string>
 
 TEST(JSON_parse, true) {
   std::istringstream input{"true"};
@@ -752,6 +753,30 @@ TEST(JSON_parse, negative_real) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1.5);
+}
+
+TEST(JSON_parse, real_long_small_decimal) {
+  std::istringstream input{
+      "0.00000000000000000000000000000000000000000000000000000000000000000000"
+      "1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 1e-69);
+}
+
+TEST(JSON_parse, real_subnormal_decimal) {
+  std::istringstream input{"0." + std::string(309, '0') + "5"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_real());
+  EXPECT_EQ(document.to_real(), 5e-310);
+}
+
+TEST(JSON_parse, decimal_underflowing_decimal) {
+  std::istringstream input{"0." + std::string(400, '0') + "1"};
+  const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
+  EXPECT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.to_decimal(),
+            sourcemeta::core::Decimal{"0." + std::string(400, '0') + "1"});
 }
 
 TEST(JSON_parse, real_leading_decimal_zero) {
