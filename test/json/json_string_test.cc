@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 
 TEST(JSON_string, foo_value_string) {
   const std::string value{"foo"};
@@ -18,6 +19,20 @@ TEST(JSON_string, foo_value_string_view) {
   const sourcemeta::core::JSON document{value};
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.to_string(), "foo");
+}
+
+TEST(JSON_string, foo_value_string_move) {
+  std::string value{"foo"};
+  const sourcemeta::core::JSON document{std::move(value)};
+  EXPECT_TRUE(document.is_string());
+  EXPECT_EQ(document.to_string(), "foo");
+}
+
+TEST(JSON_string, long_value_string_move) {
+  std::string value(64, 'x');
+  const sourcemeta::core::JSON document{std::move(value)};
+  EXPECT_TRUE(document.is_string());
+  EXPECT_EQ(document.to_string(), std::string(64, 'x'));
 }
 
 TEST(JSON_string, type) {

@@ -56,6 +56,10 @@ JSON::JSON(const String &value) : current_type{Type::String} {
   std::construct_at(&this->data_string, value);
 }
 
+JSON::JSON(String &&value) : current_type{Type::String} {
+  std::construct_at(&this->data_string, std::move(value));
+}
+
 JSON::JSON(const std::basic_string_view<Char, CharTraits> &value)
     : current_type{Type::String} {
   std::construct_at(&this->data_string, value);

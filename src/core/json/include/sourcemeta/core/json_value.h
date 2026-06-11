@@ -179,6 +179,16 @@ public:
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
   ///
+  /// sourcemeta::core::JSON::String value{"foo"};
+  /// const sourcemeta::core::JSON my_string{std::move(value)};
+  /// ```
+  explicit JSON(String &&value);
+
+  /// This constructor creates a JSON document from a string type. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  ///
   /// const sourcemeta::core::JSON my_string{"foo"};
   /// ```
   explicit JSON(const std::basic_string_view<Char, CharTraits> &value);
