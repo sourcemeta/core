@@ -7,6 +7,7 @@
 #include <set>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 TEST(JSON_object, general_traits) {
   EXPECT_TRUE(
@@ -421,6 +422,66 @@ TEST(JSON_object, long_key_assign) {
   EXPECT_TRUE(value.to_boolean());
 }
 
+TEST(JSON_object, long_key_assign_rvalue) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+  EXPECT_EQ(document.object_size(), 0);
+  const std::string key(32, 'x');
+  document.assign(key, sourcemeta::core::JSON{"value"});
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_EQ(document.object_size(), 1);
+  EXPECT_TRUE(document.defines(key));
+  EXPECT_TRUE(document.at(key).is_string());
+  EXPECT_EQ(document.at(key).to_string(), "value");
+}
+
+TEST(JSON_object, long_key_move_assignment_same_type) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  const std::string key(32, 'x');
+  document.assign(key, sourcemeta::core::JSON{"before"});
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_EQ(document.object_size(), 1);
+  EXPECT_TRUE(document.defines(key));
+  EXPECT_TRUE(document.at(key).is_string());
+  EXPECT_EQ(document.at(key).to_string(), "before");
+
+  sourcemeta::core::JSON value{"after"};
+  document.assign(key, std::move(value));
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_EQ(document.object_size(), 1);
+  EXPECT_TRUE(document.defines(key));
+  EXPECT_TRUE(document.at(key).is_string());
+  EXPECT_EQ(document.at(key).to_string(), "after");
+}
+
+TEST(JSON_object, long_key_move_assignment_hash_collision) {
+  const std::string prefix(31, 'x');
+  const std::string first_key{prefix + "ay"};
+  const std::string second_key{prefix + "by"};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(first_key),
+            sourcemeta::core::JSON::Object::hash(second_key));
+
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+  document.assign(first_key, sourcemeta::core::JSON{1});
+  document.assign(second_key, sourcemeta::core::JSON{2});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.object_size(), 2);
+  EXPECT_TRUE(document.defines(first_key));
+  EXPECT_TRUE(document.defines(second_key));
+  EXPECT_EQ(document.at(first_key).to_integer(), 1);
+  EXPECT_EQ(document.at(second_key).to_integer(), 2);
+
+  document.assign(second_key, sourcemeta::core::JSON{3});
+
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.object_size(), 2);
+  EXPECT_EQ(document.at(first_key).to_integer(), 1);
+  EXPECT_EQ(document.at(second_key).to_integer(), 3);
+}
+
 TEST(JSON_object, clear_except_one_key_initializer_list) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":true,\"bar\":false}");
@@ -655,6 +716,30 @@ TEST(JSON_object, assign_assume_new_multiple_types) {
   EXPECT_EQ(document.at("integer").to_integer(), 123);
   EXPECT_TRUE(document.at("boolean").to_boolean());
   EXPECT_TRUE(document.at("null").is_null());
+}
+
+TEST(JSON_object, assign_assume_new_rvalue_key_with_hash) {
+  sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
+
+  EXPECT_TRUE(document.is_object());
+  EXPECT_EQ(document.size(), 0);
+
+  std::string key{"foo"};
+  const auto key_hash{sourcemeta::core::JSON::Object::hash(key)};
+  auto &inserted{document.assign_assume_new(
+      std::move(key), sourcemeta::core::JSON::make_object(), key_hash)};
+
+  EXPECT_EQ(document.size(), 1);
+  EXPECT_EQ(document.object_size(), 1);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(inserted.is_object());
+  EXPECT_EQ(&inserted, &document.at("foo"));
+
+  inserted.assign("bar", sourcemeta::core::JSON{42});
+
+  EXPECT_EQ(document.at("foo").object_size(), 1);
+  EXPECT_TRUE(document.at("foo").defines("bar"));
+  EXPECT_EQ(document.at("foo").at("bar").to_integer(), 42);
 }
 
 TEST(JSON_object, estimated_byte_size_integers) {
