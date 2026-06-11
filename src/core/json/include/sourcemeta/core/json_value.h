@@ -637,9 +637,9 @@ public:
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto to_decimal() const noexcept
       -> const Decimal & {
     assert(this->is_decimal());
-    assert(this->data_decimal->is_finite());
-    assert(!this->data_decimal->is_nan());
-    return *this->data_decimal;
+    assert(this->data_decimal.is_finite());
+    assert(!this->data_decimal.is_nan());
+    return this->data_decimal;
   }
 
   /// Convert a JSON instance into a standard string value. The result of this
@@ -2213,11 +2213,12 @@ private:
     String data_string;
     Array data_array;
     Object data_object;
-    // Move Decimal to the heap to reduce the size of the JSON class.
-    // Dealing with arbitrary precision numbers is not common, so we pay the
-    // indirection cost only when needed.
-    Decimal *data_decimal;
+    Decimal data_decimal;
   };
+
+  // Storing the decimal inline must not grow the union beyond its existing
+  // footprint
+  static_assert(sizeof(Decimal) <= sizeof(String));
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

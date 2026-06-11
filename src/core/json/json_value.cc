@@ -103,7 +103,7 @@ JSON::JSON(const Decimal &value) : current_type{Type::Decimal} {
     throw std::invalid_argument("JSON does not support Infinity or NaN");
   }
 
-  this->data_decimal = new Decimal{value};
+  std::construct_at(&this->data_decimal, value);
 }
 
 JSON::JSON(Decimal &&value) : current_type{Type::Decimal} {
@@ -111,7 +111,7 @@ JSON::JSON(Decimal &&value) : current_type{Type::Decimal} {
     throw std::invalid_argument("JSON does not support Infinity or NaN");
   }
 
-  this->data_decimal = new Decimal{std::move(value)};
+  std::construct_at(&this->data_decimal, std::move(value));
 }
 
 JSON::JSON(const JSON &other) {
@@ -137,7 +137,7 @@ JSON::JSON(const JSON &other) {
       this->current_type = Type::String;
       return;
     case Type::Decimal:
-      this->data_decimal = new Decimal{*other.data_decimal};
+      std::construct_at(&this->data_decimal, other.data_decimal);
       this->current_type = Type::Decimal;
       return;
     case Type::Array:
@@ -187,7 +187,7 @@ JSON::JSON(const JSON &other) {
           destination.current_type = Type::String;
           break;
         case Type::Decimal:
-          destination.data_decimal = new Decimal{*source.data_decimal};
+          std::construct_at(&destination.data_decimal, source.data_decimal);
           destination.current_type = Type::Decimal;
           break;
         case Type::Array: {
@@ -255,7 +255,12 @@ JSON::JSON(JSON &&other) noexcept : current_type{other.current_type} {
       other.current_type = Type::Null;
       break;
     case Type::Decimal:
-      this->data_decimal = std::exchange(other.data_decimal, nullptr);
+      std::construct_at(&this->data_decimal, std::move(other.data_decimal));
+      // Marking the source as empty means its destructor will never visit
+      // the decimal member again, so end that member's lifetime here. The
+      // moved-from state owns no heap coefficient, making this a no-op
+      // branch rather than a deallocation
+      other.data_decimal.~Decimal();
       other.current_type = Type::Null;
       break;
     default:
@@ -307,9 +312,9 @@ auto JSON::operator=(const JSON &other) -> JSON & {
       return *this;
     }
     case Type::Decimal: {
-      auto *value{new Decimal{*other.data_decimal}};
+      Decimal value{other.data_decimal};
       this->~JSON();
-      this->data_decimal = value;
+      std::construct_at(&this->data_decimal, std::move(value));
       this->current_type = Type::Decimal;
       return *this;
     }
@@ -515,7 +520,7 @@ auto JSON::operator==(const JSON &other) const noexcept -> bool {
     case Type::Real:
       return this->data_real == other.data_real;
     case Type::Decimal:
-      return *this->data_decimal == *other.data_decimal;
+      return this->data_decimal == other.data_decimal;
     case Type::String:
       return this->data_string == other.data_string;
     case Type::Array:
@@ -1004,7 +1009,7 @@ auto JSON::maybe_destruct_union() -> void {
       this->data_object.~JSONObject();
       break;
     case Type::Decimal:
-      delete this->data_decimal;
+      this->data_decimal.~Decimal();
       break;
     default:
       break;
