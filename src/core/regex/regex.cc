@@ -13,33 +13,6 @@
 #include <system_error> // std::errc
 #include <utility>      // std::unreachable
 
-namespace {
-
-auto make_bounded_match_context() -> pcre2_match_context * {
-  pcre2_match_context *context{pcre2_match_context_create(nullptr)};
-  // A null context is a valid argument to the matcher and selects the default
-  // limits, so an allocation failure degrades safely rather than crashing
-  if (context == nullptr) {
-    return nullptr;
-  }
-
-  pcre2_set_match_limit(context, 1000000);
-  pcre2_set_depth_limit(context, 1000);
-  return context;
-}
-
-// Cap the work the matcher may perform so that pathological patterns applied
-// to adversarial inputs terminate instead of running unbounded. The context is
-// created once per process and shared across every thread, keeping the
-// matching hot path free from any per-call initialisation guard. Sharing is
-// safe because nothing mutates the context after creation. According to "man
-// pcre2api" (section "Multithreading"), "if the parameters in a context are
-// values that are never changed, the same context can be used by all the
-// threads"
-pcre2_match_context *const BOUNDED_MATCH_CONTEXT{make_bounded_match_context()};
-
-} // namespace
-
 namespace sourcemeta::core {
 
 auto to_regex(const std::string_view pattern) -> std::optional<Regex> {
@@ -122,14 +95,31 @@ auto matches(const Regex &regex, const std::string_view value) -> bool {
     case RegexIndex::PCRE2: {
       const RegexTypePCRE2 *pcre2_regex{std::get_if<RegexTypePCRE2>(&regex)};
       auto *pcre2_code_ptr{static_cast<pcre2_code *>(pcre2_regex->code.get())};
-      // This is intentionally never freed as it lives for the lifetime of
-      // the thread and reusing it avoids allocating on every call
+      // Allocated once per thread and reused across calls to avoid
+      // allocating every time. It is intentionally never freed, as
+      // releasing it on thread exit would make matching unsafe during the
+      // destruction of other objects with thread storage duration
       thread_local pcre2_match_data *match_data{
           pcre2_match_data_create(1, nullptr)};
-      const int match_result{pcre2_match(
+      // A null context selects the built-in default limits, which guarantee
+      // that pathological patterns applied to adversarial inputs terminate
+      // while remaining generous enough to not reject legitimate matches
+      // against long values, unlike stricter custom limits
+      int match_result{pcre2_match(
           pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.data()),
-          value.size(), 0, PCRE2_NO_UTF_CHECK, match_data,
-          BOUNDED_MATCH_CONTEXT)};
+          value.size(), 0, PCRE2_NO_UTF_CHECK, match_data, nullptr)};
+      // The fast path runs on a small fixed-size machine stack that long
+      // values with backtracking can exhaust, in which case there is no
+      // automatic fallback. Retrying through the interpreter, which keeps
+      // its backtracking frames on the heap, avoids misreporting such
+      // matches as failures
+      if (match_result == PCRE2_ERROR_JIT_STACKLIMIT) {
+        match_result = pcre2_match(
+            pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.data()),
+            value.size(), 0, PCRE2_NO_UTF_CHECK | PCRE2_NO_JIT, match_data,
+            nullptr);
+      }
+
       return match_result >= 0;
     }
     case RegexIndex::Noop:
