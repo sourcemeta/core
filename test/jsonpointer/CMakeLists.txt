@@ -17,6 +17,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
     jsonpointer_walker_test.cc
     jsonpointer_to_string_test.cc
     jsonpointer_to_uri_test.cc
+    jsonpointer_fragment_to_pointer_test.cc
     jsonpointer_concat_test.cc
     jsonpointer_starts_with_test.cc
     jsonpointer_starts_with_initial_test.cc
