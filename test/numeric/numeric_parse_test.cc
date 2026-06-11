@@ -123,6 +123,103 @@ TEST(Numeric_parse, to_double_invalid_trailing_whitespace) {
   EXPECT_FALSE(result.has_value());
 }
 
+TEST(Numeric_parse, to_double_invalid_leading_whitespace) {
+  const std::string input{" 42"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_leading_plus) {
+  const std::string input{"+1"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_leading_plus_decimal) {
+  const std::string input{"+1.5"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_hexadecimal) {
+  const std::string input{"0x10"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_infinity_lowercase) {
+  const std::string input{"inf"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_infinity_negative) {
+  const std::string input{"-infinity"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_not_a_number) {
+  const std::string input{"nan"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_invalid_incomplete_exponent) {
+  const std::string input{"1e"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_exponent_with_explicit_plus) {
+  const std::string input{"1e+10"};
+  const auto result{sourcemeta::core::to_double(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_DOUBLE_EQ(result.value(), 1e10);
+}
+
+TEST(Numeric_parse, to_double_out_of_range_underflow_to_zero) {
+  const std::string input{"1e-400"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_out_of_range_negative_underflow_to_zero) {
+  const std::string input{"-1e-400"};
+  const auto result{sourcemeta::core::to_double(input)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(Numeric_parse, to_double_smallest_subnormal) {
+  const std::string input{"5e-324"};
+  const auto result{sourcemeta::core::to_double(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 5e-324);
+}
+
+TEST(Numeric_parse, to_double_subnormal) {
+  const std::string input{"1e-310"};
+  const auto result{sourcemeta::core::to_double(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_DOUBLE_EQ(result.value(), 1e-310);
+}
+
+TEST(Numeric_parse, to_double_smallest_normal) {
+  const std::string input{"2.2250738585072014e-308"};
+  const auto result{sourcemeta::core::to_double(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_DOUBLE_EQ(result.value(), 2.2250738585072014e-308);
+}
+
+TEST(Numeric_parse, to_double_long_input) {
+  const std::string input{
+      "0.00000000000000000000000000000000000000000000000000000000000000000000"
+      "1"};
+  const auto result{sourcemeta::core::to_double(input)};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_DOUBLE_EQ(result.value(), 1e-69);
+}
+
 TEST(Numeric_parse, to_int64_t_positive) {
   const std::string input{"123456"};
   const auto result{sourcemeta::core::to_int64_t(input)};

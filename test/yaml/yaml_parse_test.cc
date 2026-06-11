@@ -306,6 +306,53 @@ TEST(YAML_parse, decimal_in_array) {
   EXPECT_TRUE(result.at(1).is_decimal());
 }
 
+TEST(YAML_parse, integer_with_leading_plus) {
+  const std::string input{"+42"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{42};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_integer());
+}
+
+TEST(YAML_parse, real_with_leading_plus) {
+  const std::string input{"+1.5"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{1.5};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_real());
+}
+
+TEST(YAML_parse, exponent_with_leading_plus) {
+  const std::string input{"+2E0"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{sourcemeta::core::Decimal{"2E0"}};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_decimal());
+}
+
+TEST(YAML_parse, real_long_small_decimal) {
+  const std::string input{
+      "0.00000000000000000000000000000000000000000000000000000000000000000000"
+      "1"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 1e-69);
+}
+
+TEST(YAML_parse, real_subnormal_decimal) {
+  const std::string input{"0." + std::string(309, '0') + "5"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 5e-310);
+}
+
+TEST(YAML_parse, decimal_underflowing_decimal) {
+  const std::string input{"0." + std::string(400, '0') + "1"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_EQ(result.to_decimal(), sourcemeta::core::Decimal{input});
+}
+
 TEST(YAML_parse, scientific_constant_planck) {
   const std::string input{"6.62607E-34"};
   const auto result{sourcemeta::core::parse_yaml(input)};

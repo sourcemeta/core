@@ -6,6 +6,7 @@
 #if defined(__APPLE__)
 #include <array>   // std::array
 #include <cerrno>  // errno, ERANGE
+#include <cmath>   // HUGE_VAL
 #include <cstring> // std::memcpy
 #include <string>  // std::string
 #include <xlocale.h>
@@ -13,7 +14,6 @@
 
 namespace sourcemeta::core {
 
-// NOLINTNEXTLINE(bugprone-exception-escape)
 auto to_double(const std::string_view input) noexcept -> std::optional<double> {
   if (input.empty() || input.front() == '+') {
     return std::nullopt;
@@ -46,14 +46,28 @@ auto to_double(const std::string_view input) noexcept -> std::optional<double> {
     buffer[input.size()] = '\0';
     start = buffer.data();
   } else {
-    overflow.assign(input);
+    try {
+      overflow.assign(input);
+    } catch (...) {
+      return std::nullopt;
+    }
+
     start = overflow.c_str();
   }
 
   errno = 0;
   char *end{nullptr};
   const auto value{strtod_l(start, &end, c_locale)};
-  if (end != start + input.size() || errno == ERANGE) {
+  if (end != start + input.size()) {
+    return std::nullopt;
+  }
+
+  // The C library may report a range error for subnormal results, which are
+  // representable and accepted by std::from_chars on other platforms, so a
+  // range error only counts when the result overflows to infinity or
+  // underflows all the way to zero
+  if (errno == ERANGE &&
+      (value == HUGE_VAL || value == -HUGE_VAL || value == 0.0)) {
     return std::nullopt;
   }
 
