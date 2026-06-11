@@ -1818,9 +1818,10 @@ public:
   /// ```
   auto assign_assume_new(String &&key, JSON &&value) -> void;
 
-  /// This method sets an object key with a pre-computed hash
+  /// This method sets an object key with a pre-computed hash, returning the
+  /// inserted value
   auto assign_assume_new(String &&key, JSON &&value, Object::hash_type hash)
-      -> void;
+      -> JSON &;
 
   /// This method deletes an object key. For example:
   ///
