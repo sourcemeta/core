@@ -28,6 +28,16 @@ auto make_bounded_match_context() -> pcre2_match_context * {
   return context;
 }
 
+// Cap the work the matcher may perform so that pathological patterns applied
+// to adversarial inputs terminate instead of running unbounded. The context is
+// created once per process and shared across every thread, keeping the
+// matching hot path free from any per-call initialisation guard. Sharing is
+// safe because nothing mutates the context after creation. According to "man
+// pcre2api" (section "Multithreading"), "if the parameters in a context are
+// values that are never changed, the same context can be used by all the
+// threads"
+pcre2_match_context *const BOUNDED_MATCH_CONTEXT{make_bounded_match_context()};
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -112,17 +122,14 @@ auto matches(const Regex &regex, const std::string_view value) -> bool {
     case RegexIndex::PCRE2: {
       const RegexTypePCRE2 *pcre2_regex{std::get_if<RegexTypePCRE2>(&regex)};
       auto *pcre2_code_ptr{static_cast<pcre2_code *>(pcre2_regex->code.get())};
-      // These are intentionally never freed as they live for the lifetime of
-      // the thread and reusing them avoids allocating on every call
+      // This is intentionally never freed as it lives for the lifetime of
+      // the thread and reusing it avoids allocating on every call
       thread_local pcre2_match_data *match_data{
           pcre2_match_data_create(1, nullptr)};
-      // Cap the work the matcher may perform so that pathological patterns
-      // applied to adversarial inputs terminate instead of running unbounded
-      thread_local pcre2_match_context *match_context{
-          make_bounded_match_context()};
       const int match_result{pcre2_match(
           pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.data()),
-          value.size(), 0, PCRE2_NO_UTF_CHECK, match_data, match_context)};
+          value.size(), 0, PCRE2_NO_UTF_CHECK, match_data,
+          BOUNDED_MATCH_CONTEXT)};
       return match_result >= 0;
     }
     case RegexIndex::Noop:
