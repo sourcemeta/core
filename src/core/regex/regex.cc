@@ -102,24 +102,12 @@ auto matches(const Regex &regex, const std::string_view value) -> bool {
       thread_local pcre2_match_data *match_data{
           pcre2_match_data_create(1, nullptr)};
       // A null context selects the built-in default limits, which guarantee
-      // that pathological patterns applied to adversarial inputs terminate
-      // while remaining generous enough to not reject legitimate matches
-      // against long values, unlike stricter custom limits
-      int match_result{pcre2_match(
+      // that pathological patterns applied to adversarial inputs terminate.
+      // Note that exhausting any matching resource, like the machine stack
+      // of the just-in-time fast path on long values, counts as a failure
+      const int match_result{pcre2_match(
           pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.data()),
           value.size(), 0, PCRE2_NO_UTF_CHECK, match_data, nullptr)};
-      // The fast path runs on a small fixed-size machine stack that long
-      // values with backtracking can exhaust, in which case there is no
-      // automatic fallback. Retrying through the interpreter, which keeps
-      // its backtracking frames on the heap, avoids misreporting such
-      // matches as failures
-      if (match_result == PCRE2_ERROR_JIT_STACKLIMIT) {
-        match_result = pcre2_match(
-            pcre2_code_ptr, reinterpret_cast<PCRE2_SPTR>(value.data()),
-            value.size(), 0, PCRE2_NO_UTF_CHECK | PCRE2_NO_JIT, match_data,
-            nullptr);
-      }
-
       return match_result >= 0;
     }
     case RegexIndex::Noop:

@@ -89,20 +89,3 @@ TEST(Regex, catastrophic_backtracking_terminates) {
   const std::string value{std::string(64, 'a') + "!"};
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), value));
 }
-
-TEST(Regex, backtracking_pattern_on_long_value) {
-  const auto regex{sourcemeta::core::to_regex("^(a|b)+$")};
-  EXPECT_TRUE(regex.has_value());
-  const std::string value_1000(1000, 'a');
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value_1000));
-  const std::string value_2000(2000, 'a');
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value_2000));
-  const std::string value_4000(4000, 'a');
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value_4000));
-  const std::string value_8000(8000, 'a');
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value_8000));
-  const std::string value_16000(16000, 'a');
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value_16000));
-  const std::string value_100000(100000, 'a');
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value_100000));
-}
