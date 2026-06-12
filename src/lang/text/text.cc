@@ -1,6 +1,7 @@
 #include <sourcemeta/core/text.h>
 
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::int8_t
 #include <filesystem>  // std::filesystem::path
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -23,6 +24,18 @@ auto to_ascii_uppercase(const char character) noexcept -> char {
   return (character >= 'a' && character <= 'z')
              ? static_cast<char>(character - ('a' - 'A'))
              : character;
+}
+
+auto hex_digit_value(const char character) noexcept -> std::int8_t {
+  if (character >= '0' && character <= '9') {
+    return static_cast<std::int8_t>(character - '0');
+  } else if (character >= 'a' && character <= 'f') {
+    return static_cast<std::int8_t>(character - 'a' + 10);
+  } else if (character >= 'A' && character <= 'F') {
+    return static_cast<std::int8_t>(character - 'A' + 10);
+  } else {
+    return -1;
+  }
 }
 
 } // namespace
@@ -150,6 +163,26 @@ auto remove_suffix_ignore_case(const std::string_view input,
 
   std::string_view result{input};
   result.remove_suffix(suffix.size());
+  return result;
+}
+
+auto hex_to_bytes(const std::string_view input) -> std::optional<std::string> {
+  if (input.size() % 2 != 0) {
+    return std::nullopt;
+  }
+
+  std::string result;
+  result.reserve(input.size() / 2);
+  for (std::size_t index{0}; index < input.size(); index += 2) {
+    const auto high{hex_digit_value(input[index])};
+    const auto low{hex_digit_value(input[index + 1])};
+    if (high < 0 || low < 0) {
+      return std::nullopt;
+    }
+
+    result.push_back(static_cast<char>((high << 4) | low));
+  }
+
   return result;
 }
 

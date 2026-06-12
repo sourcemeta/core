@@ -319,6 +319,23 @@ auto join_to(std::ostream &stream, const Range &items,
 
 /// @ingroup text
 ///
+/// Decode a hexadecimal string into its raw bytes, returning no value when
+/// the input has an odd length or contains a character outside the
+/// hexadecimal alphabet. Both letter cases are accepted. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// const auto bytes{sourcemeta::core::hex_to_bytes("666f6f")};
+/// assert(bytes.has_value());
+/// assert(bytes.value() == "foo");
+/// ```
+SOURCEMETA_CORE_TEXT_EXPORT
+auto hex_to_bytes(const std::string_view input) -> std::optional<std::string>;
+
+/// @ingroup text
+///
 /// Return `input` with `suffix` removed from the end under ASCII
 /// case-insensitive comparison, or `input` unchanged when the suffix does
 /// not match. For example:
