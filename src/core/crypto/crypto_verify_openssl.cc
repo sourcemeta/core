@@ -5,10 +5,23 @@
 #include <openssl/evp.h>         // EVP_*
 #include <openssl/param_build.h> // OSSL_PARAM_*
 
+#include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
 
 namespace {
+
+// Matching the reference backend so that every backend accepts the same
+// key sizes
+constexpr std::size_t MAXIMUM_KEY_BYTES{512};
+
+auto strip_leading_zeros(std::string_view value) -> std::string_view {
+  while (!value.empty() && value.front() == '\x00') {
+    value.remove_prefix(1);
+  }
+
+  return value;
+}
 
 auto to_message_digest(
     const sourcemeta::core::SignatureHashFunction hash) noexcept
@@ -72,7 +85,15 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
                              const std::string_view exponent,
                              const std::string_view message,
                              const std::string_view signature) -> bool {
-  auto *key{make_rsa_public_key(modulus, exponent)};
+  const auto stripped_modulus{strip_leading_zeros(modulus)};
+  const auto stripped_exponent{strip_leading_zeros(exponent)};
+  if (stripped_modulus.empty() || stripped_exponent.empty() ||
+      stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
+      stripped_exponent.size() > MAXIMUM_KEY_BYTES) {
+    return false;
+  }
+
+  auto *key{make_rsa_public_key(stripped_modulus, stripped_exponent)};
   if (key == nullptr) {
     return false;
   }

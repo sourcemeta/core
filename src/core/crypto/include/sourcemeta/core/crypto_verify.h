@@ -18,7 +18,7 @@ enum class SignatureHashFunction : std::uint8_t { SHA256, SHA384, SHA512 };
 /// Verify an RSASSA-PKCS1-v1_5 signature (RFC 8017 Section 8.2.2) over a
 /// message, given the public key as raw big-endian modulus and exponent
 /// bytes. The signature is invalid rather than an error if any input is
-/// malformed. For example:
+/// malformed, including keys beyond 4096 bits. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>

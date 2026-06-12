@@ -174,3 +174,28 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_empty_message) {
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), "",
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
+
+TEST(Crypto_rsassa_pkcs1_v15, verify_modulus_with_leading_zeros) {
+  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      sourcemeta::core::SignatureHashFunction::SHA256,
+      sourcemeta::core::hex_to_bytes("0000" + MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
+      sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
+}
+
+TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_oversized_modulus) {
+  const std::string modulus(520, '\xFF');
+  const std::string signature(520, '\x01');
+  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      sourcemeta::core::SignatureHashFunction::SHA256, modulus,
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
+      signature));
+}
+
+TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_oversized_exponent) {
+  const std::string exponent(520, '\xFF');
+  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+      sourcemeta::core::SignatureHashFunction::SHA256,
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(), exponent, MESSAGE,
+      sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
+}

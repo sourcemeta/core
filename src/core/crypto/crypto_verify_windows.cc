@@ -19,6 +19,10 @@
 
 namespace {
 
+// Matching the reference backend so that every backend accepts the same
+// key sizes
+constexpr std::size_t MAXIMUM_KEY_BYTES{512};
+
 auto to_cng_algorithm(
     const sourcemeta::core::SignatureHashFunction hash) noexcept -> LPCWSTR {
   switch (hash) {
@@ -72,7 +76,9 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
                              const std::string_view signature) -> bool {
   const auto stripped_modulus{strip_leading_zeros(modulus)};
   const auto stripped_exponent{strip_leading_zeros(exponent)};
-  if (stripped_modulus.empty() || stripped_exponent.empty()) {
+  if (stripped_modulus.empty() || stripped_exponent.empty() ||
+      stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
+      stripped_exponent.size() > MAXIMUM_KEY_BYTES) {
     return false;
   }
 
