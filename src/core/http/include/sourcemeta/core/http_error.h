@@ -6,6 +6,7 @@
 #endif
 
 #include <sourcemeta/core/http_method.h>
+#include <sourcemeta/core/http_status.h>
 
 #include <stdexcept> // std::runtime_error
 #include <string>    // std::string
@@ -53,6 +54,34 @@ public:
 private:
   HTTPMethod method_;
   std::string url_;
+};
+
+/// @ingroup http
+/// An error for a response with an unsuccessful status code. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// const sourcemeta::core::HTTPStatusError error{
+///     sourcemeta::core::HTTPMethod::GET,
+///     "https://example.com", sourcemeta::core::HTTP_STATUS_NOT_FOUND};
+/// assert(error.status() == sourcemeta::core::HTTP_STATUS_NOT_FOUND);
+/// ```
+class SOURCEMETA_CORE_HTTP_EXPORT HTTPStatusError : public HTTPError {
+public:
+  HTTPStatusError(const HTTPMethod method, std::string url,
+                  const HTTPStatus status)
+      : HTTPError{method, std::move(url), "Unsuccessful HTTP response"},
+        status_{status} {}
+
+  /// Get the response status that triggered the failure
+  [[nodiscard]] auto status() const noexcept -> const HTTPStatus & {
+    return this->status_;
+  }
+
+private:
+  HTTPStatus status_;
 };
 
 #if defined(_MSC_VER)
