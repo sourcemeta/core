@@ -15,6 +15,8 @@
 #include <sourcemeta/core/crypto_fnv128.h>
 #include <sourcemeta/core/crypto_sha1.h>
 #include <sourcemeta/core/crypto_sha256.h>
+#include <sourcemeta/core/crypto_sha384.h>
+#include <sourcemeta/core/crypto_sha512.h>
 #include <sourcemeta/core/crypto_uuid.h>
 
 #endif
