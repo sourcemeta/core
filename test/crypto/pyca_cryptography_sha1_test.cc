@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/text.h>
 
 #include <cstdint>    // std::uint64_t
 #include <filesystem> // std::filesystem
@@ -12,17 +13,6 @@ static auto strip_cr(std::string &value) -> void {
   if (!value.empty() && value.back() == '\r') {
     value.pop_back();
   }
-}
-
-static auto hex_to_bytes(const std::string &hex) -> std::string {
-  std::string result;
-  result.reserve(hex.size() / 2);
-  for (std::string::size_type index = 0; index + 1 < hex.size(); index += 2) {
-    result.push_back(static_cast<char>(static_cast<unsigned char>(
-        std::stoi(hex.substr(index, 2), nullptr, 16))));
-  }
-
-  return result;
 }
 
 static auto sha1_hex(const std::string &input) -> std::string {
@@ -67,8 +57,9 @@ public:
     auto md_1 = this->seed;
     auto md_2 = this->seed;
     for (std::uint64_t iteration = 3; iteration <= 1002; ++iteration) {
-      const auto message =
-          hex_to_bytes(md_0) + hex_to_bytes(md_1) + hex_to_bytes(md_2);
+      const auto message = sourcemeta::core::hex_to_bytes(md_0).value() +
+                           sourcemeta::core::hex_to_bytes(md_1).value() +
+                           sourcemeta::core::hex_to_bytes(md_2).value();
       const auto digest = sha1_hex(message);
       md_0 = md_1;
       md_1 = md_2;
@@ -104,9 +95,10 @@ static auto register_msg_tests(const std::filesystem::path &file_path,
       current_message_hex = line.substr(6);
     } else if (line.starts_with("MD = ")) {
       const auto expected_digest{line.substr(5)};
-      const auto message{current_length_bits == 0
-                             ? std::string{}
-                             : hex_to_bytes(current_message_hex)};
+      const auto message{
+          current_length_bits == 0
+              ? std::string{}
+              : sourcemeta::core::hex_to_bytes(current_message_hex).value()};
 
       const auto test_name{"len_" + std::to_string(current_length_bits)};
       testing::RegisterTest(
