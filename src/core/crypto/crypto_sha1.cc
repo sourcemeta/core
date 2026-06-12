@@ -3,9 +3,24 @@
 #include <array>   // std::array
 #include <cstdint> // std::uint32_t, std::uint64_t
 
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
+#if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
 #include <openssl/evp.h> // EVP_MD_CTX_new, EVP_DigestInit_ex, EVP_sha1, EVP_DigestUpdate, EVP_DigestFinal_ex, EVP_MD_CTX_free
 #include <stdexcept>     // std::runtime_error
+#elif defined(__APPLE__)
+#include <CommonCrypto/CommonDigest.h> // CC_SHA1*, CC_LONG
+
+#include <cstddef> // std::size_t
+#include <limits>  // std::numeric_limits
+#elif defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h> // ULONG
+
+#include <bcrypt.h> // BCrypt*, BCRYPT_*
+
+#include <cstddef>   // std::size_t
+#include <limits>    // std::numeric_limits
+#include <stdexcept> // std::runtime_error
 #else
 #include <cstring> // std::memcpy
 #endif
@@ -16,7 +31,7 @@ constexpr std::array<char, 17> HEX_DIGITS{{'0', '1', '2', '3', '4', '5', '6',
                                            'e', 'f', '\0'}};
 } // namespace
 
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
+#if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
 
 namespace sourcemeta::core {
 
@@ -51,9 +66,105 @@ auto sha1(const std::string_view input) -> std::string {
   return result;
 }
 
-auto sha1(const std::string_view input, std::ostream &output) -> void {
-  const auto result = sha1(input);
-  output.write(result.data(), static_cast<std::streamsize>(result.size()));
+} // namespace sourcemeta::core
+
+#elif defined(__APPLE__)
+
+namespace sourcemeta::core {
+
+auto sha1(const std::string_view input) -> std::string {
+  // The platform marks its SHA-1 interfaces as deprecated because the
+  // algorithm is cryptographically broken, but this module keeps exposing
+  // SHA-1 for non-security use cases
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  CC_SHA1_CTX context;
+  CC_SHA1_Init(&context);
+
+  // The platform update interface takes a 32-bit length, so larger
+  // inputs must be fed in chunks
+  const auto *remaining_data{input.data()};
+  auto remaining_size{input.size()};
+  constexpr std::size_t maximum_chunk{std::numeric_limits<CC_LONG>::max()};
+  while (remaining_size > 0) {
+    const auto chunk_size{remaining_size > maximum_chunk ? maximum_chunk
+                                                         : remaining_size};
+    CC_SHA1_Update(&context, remaining_data, static_cast<CC_LONG>(chunk_size));
+    remaining_data += chunk_size;
+    remaining_size -= chunk_size;
+  }
+
+  std::array<unsigned char, CC_SHA1_DIGEST_LENGTH> digest{};
+  CC_SHA1_Final(digest.data(), &context);
+#pragma clang diagnostic pop
+
+  std::string result;
+  result.reserve(40);
+  for (std::uint64_t index = 0; index < 20u; ++index) {
+    result.push_back(HEX_DIGITS[(digest[index] >> 4u) & 0x0fu]);
+    result.push_back(HEX_DIGITS[digest[index] & 0x0fu]);
+  }
+
+  return result;
+}
+
+} // namespace sourcemeta::core
+
+#elif defined(_WIN32)
+
+namespace sourcemeta::core {
+
+auto sha1(const std::string_view input) -> std::string {
+  BCRYPT_ALG_HANDLE algorithm{nullptr};
+  if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(
+          &algorithm, BCRYPT_SHA1_ALGORITHM, nullptr, 0))) {
+    throw std::runtime_error("Could not open the CNG SHA-1 provider");
+  }
+
+  BCRYPT_HASH_HANDLE hash{nullptr};
+  if (!BCRYPT_SUCCESS(
+          BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0))) {
+    BCryptCloseAlgorithmProvider(algorithm, 0);
+    throw std::runtime_error("Could not create the CNG SHA-1 hash");
+  }
+
+  // The data interface is not const-qualified but never writes through
+  // the pointer, and it takes a 32-bit length, so larger inputs must be
+  // fed in chunks
+  auto *remaining_data{
+      reinterpret_cast<unsigned char *>(const_cast<char *>(input.data()))};
+  auto remaining_size{input.size()};
+  constexpr std::size_t maximum_chunk{std::numeric_limits<ULONG>::max()};
+  auto success{true};
+  while (remaining_size > 0 && success) {
+    const auto chunk_size{remaining_size > maximum_chunk ? maximum_chunk
+                                                         : remaining_size};
+    success = BCRYPT_SUCCESS(BCryptHashData(hash, remaining_data,
+                                            static_cast<ULONG>(chunk_size), 0));
+    remaining_data += chunk_size;
+    remaining_size -= chunk_size;
+  }
+
+  std::array<unsigned char, 20> digest{};
+  if (success) {
+    success = BCRYPT_SUCCESS(BCryptFinishHash(
+        hash, digest.data(), static_cast<ULONG>(digest.size()), 0));
+  }
+
+  BCryptDestroyHash(hash);
+  BCryptCloseAlgorithmProvider(algorithm, 0);
+  if (!success) {
+    throw std::runtime_error("Could not compute the CNG SHA-1 digest");
+  }
+
+  std::string result;
+  result.reserve(40);
+  for (std::uint64_t index = 0; index < 20u; ++index) {
+    result.push_back(HEX_DIGITS[(digest[index] >> 4u) & 0x0fu]);
+    result.push_back(HEX_DIGITS[digest[index] & 0x0fu]);
+  }
+
+  return result;
 }
 
 } // namespace sourcemeta::core
@@ -213,11 +324,15 @@ auto sha1(const std::string_view input) -> std::string {
   return result;
 }
 
+} // namespace sourcemeta::core
+
+#endif
+
+namespace sourcemeta::core {
+
 auto sha1(const std::string_view input, std::ostream &output) -> void {
   const auto result = sha1(input);
   output.write(result.data(), static_cast<std::streamsize>(result.size()));
 }
 
 } // namespace sourcemeta::core
-
-#endif

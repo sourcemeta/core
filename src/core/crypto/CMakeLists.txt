@@ -7,6 +7,10 @@ if(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
   target_compile_definitions(sourcemeta_core_crypto
     PRIVATE SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
+elseif(APPLE)
+  target_link_libraries(sourcemeta_core_crypto PRIVATE "-framework Security")
+elseif(WIN32)
+  target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
 endif()
 
 if(SOURCEMETA_CORE_INSTALL)

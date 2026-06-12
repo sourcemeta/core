@@ -4,6 +4,27 @@
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
 
+#if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
+#include <openssl/rand.h> // RAND_bytes
+
+#include <stdexcept> // std::runtime_error
+#elif defined(__APPLE__)
+#include <Security/SecBase.h>   // errSecSuccess
+#include <Security/SecRandom.h> // SecRandomCopyBytes, kSecRandomDefault
+
+#include <stdexcept> // std::runtime_error
+#elif defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h> // ULONG
+
+#include <bcrypt.h> // BCrypt*, BCRYPT_*
+
+#include <stdexcept> // std::runtime_error
+#else
+#include <random> // std::random_device, std::mt19937, std::uniform_int_distribution
+#endif
+
 namespace {
 
 constexpr auto is_hex_digit(const char character) -> bool {
@@ -12,14 +33,36 @@ constexpr auto is_hex_digit(const char character) -> bool {
          (character >= 'A' && character <= 'F');
 }
 
-} // namespace
-
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
-#include <openssl/rand.h> // RAND_bytes
-#include <stdexcept>      // std::runtime_error
+auto fill_random_bytes(std::array<unsigned char, 16> &bytes) -> void {
+#if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
+  if (RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1) {
+    throw std::runtime_error("Could not generate random bytes with OpenSSL");
+  }
+#elif defined(__APPLE__)
+  if (SecRandomCopyBytes(kSecRandomDefault, bytes.size(), bytes.data()) !=
+      errSecSuccess) {
+    throw std::runtime_error(
+        "Could not generate random bytes with the Security framework");
+  }
+#elif defined(_WIN32)
+  if (!BCRYPT_SUCCESS(BCryptGenRandom(nullptr, bytes.data(),
+                                      static_cast<ULONG>(bytes.size()),
+                                      BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
+    throw std::runtime_error("Could not generate random bytes with CNG");
+  }
 #else
-#include <random> // std::random_device, std::mt19937, std::uniform_int_distribution
+  // Not a cryptographically secure generator. This fallback only exists to
+  // keep the module buildable on platforms without a system provider
+  thread_local std::random_device device;
+  thread_local std::mt19937 generator{device()};
+  std::uniform_int_distribution<unsigned int> distribution{0, 255};
+  for (auto &byte : bytes) {
+    byte = static_cast<unsigned char>(distribution(generator));
+  }
 #endif
+}
+
+} // namespace
 
 namespace sourcemeta::core {
 
@@ -33,20 +76,8 @@ auto uuidv4() -> std::string {
       {false, false, false, false, true, false, true, false, true, false, true,
        false, false, false, false, false}};
 
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
   std::array<unsigned char, 16> random_bytes{};
-  if (RAND_bytes(random_bytes.data(), static_cast<int>(random_bytes.size())) !=
-      1) {
-    throw std::runtime_error("Could not generate random bytes with OpenSSL");
-  }
-#else
-  thread_local std::random_device device;
-  thread_local std::mt19937 generator{device()};
-  std::uniform_int_distribution<decltype(digits)::size_type> distribution(0,
-                                                                          15);
-  std::uniform_int_distribution<decltype(variant_digits)::size_type>
-      variant_distribution(0, 3);
-#endif
+  fill_random_bytes(random_bytes);
 
   std::string result;
   result.reserve(36);
@@ -55,34 +86,20 @@ auto uuidv4() -> std::string {
       result += '-';
     }
 
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
     const auto high_nibble = (random_bytes[index] >> 4u) & 0x0fu;
     const auto low_nibble = random_bytes[index] & 0x0fu;
-#endif
 
     // RFC 9562 Section 5.4: version bits (48-51) must be 0b0100
     if (index == 6) {
       result += '4';
       // RFC 9562 Section 5.4: variant bits (64-65) must be 0b10
     } else if (index == 8) {
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
       result += variant_digits[high_nibble & 0x03u];
-#else
-      result += variant_digits[variant_distribution(generator)];
-#endif
     } else {
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
       result += digits[high_nibble];
-#else
-      result += digits[distribution(generator)];
-#endif
     }
 
-#ifdef SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL
     result += digits[low_nibble];
-#else
-    result += digits[distribution(generator)];
-#endif
   }
 
   return result;
