@@ -1,7 +1,7 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
-  PRIVATE_HEADERS sha256.h sha1.h fnv128.h uuid.h crc32.h
+  PRIVATE_HEADERS sha256.h sha1.h fnv128.h uuid.h crc32.h base64.h
   SOURCES crypto_sha256.cc crypto_sha1.cc crypto_fnv128.cc
-    crypto_uuid.cc crypto_crc32.cc)
+    crypto_uuid.cc crypto_crc32.cc crypto_base64.cc)
 
 if(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
   target_compile_definitions(sourcemeta_core_crypto

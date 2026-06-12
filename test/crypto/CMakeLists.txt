@@ -4,7 +4,9 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_sha1_test.cc
     crypto_fnv128_test.cc
     crypto_uuid_test.cc
-    crypto_crc32_test.cc)
+    crypto_crc32_test.cc
+    crypto_base64_test.cc
+    crypto_base64url_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto)
