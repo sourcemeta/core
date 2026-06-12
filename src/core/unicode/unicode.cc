@@ -10,6 +10,7 @@
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #define WIN32_LEAN_AND_MEAN
+#include <limits>    // std::numeric_limits
 #include <windows.h> // MultiByteToWideChar, WideCharToMultiByte, CP_UTF8
 #endif
 
@@ -179,6 +180,8 @@ auto utf8_to_wide(const std::string_view input) -> std::wstring {
   }
 
 #if defined(_WIN32) || defined(__CYGWIN__)
+  assert(input.size() <=
+         static_cast<std::size_t>(std::numeric_limits<int>::max()));
   const auto size{MultiByteToWideChar(
       CP_UTF8, 0, input.data(), static_cast<int>(input.size()), nullptr, 0)};
   std::wstring result(static_cast<std::size_t>(size), L'\0');
@@ -188,6 +191,8 @@ auto utf8_to_wide(const std::string_view input) -> std::wstring {
 #else
   // Outside of Windows, a wide character holds an entire codepoint, so the
   // result never has more characters than the input has bytes
+  static_assert(sizeof(wchar_t) >= 4,
+                "a wide character must hold an entire codepoint");
   std::wstring result(input.size(), L'\0');
   std::size_t write{0};
   std::size_t read{0};
@@ -228,6 +233,8 @@ auto wide_to_utf8(const std::wstring_view input) -> std::string {
   }
 
 #if defined(_WIN32) || defined(__CYGWIN__)
+  assert(input.size() <=
+         static_cast<std::size_t>(std::numeric_limits<int>::max()));
   const auto size{WideCharToMultiByte(CP_UTF8, 0, input.data(),
                                       static_cast<int>(input.size()), nullptr,
                                       0, nullptr, nullptr)};
@@ -236,6 +243,8 @@ auto wide_to_utf8(const std::wstring_view input) -> std::string {
                       result.data(), size, nullptr, nullptr);
   return result;
 #else
+  static_assert(sizeof(wchar_t) >= 4,
+                "a wide character must hold an entire codepoint");
   std::size_t size{0};
   for (const auto character : input) {
     size += utf8_codepoint_byte_count(static_cast<char32_t>(character));
