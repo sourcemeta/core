@@ -12,6 +12,8 @@
 
 namespace sourcemeta::core {
 
+// The count must be between 1 and 63, as the complementary shift is
+// undefined otherwise
 inline constexpr auto sha2_64_rotate_right(std::uint64_t value,
                                            std::uint64_t count) noexcept
     -> std::uint64_t {
@@ -164,21 +166,28 @@ inline auto sha2_64_hash(const std::string_view input,
   final_block[remaining_bytes] = 0x80u;
 
   // Append length in bits as a big-endian 128-bit value at the end of the
-  // padding (FIPS 180-4 Section 5.1.2). Inputs cannot exceed 2^61 bytes,
-  // so the upper 64 bits stay zero
-  const std::uint64_t message_length_bits =
-      static_cast<std::uint64_t>(input_length) * 8ull;
+  // padding (FIPS 180-4 Section 5.1.2). The bit length of any input is at
+  // most 67 bits wide, so the upper word carries the bits that the 8x
+  // multiplication would otherwise overflow
+  const std::uint64_t message_length_bits_high =
+      static_cast<std::uint64_t>(input_length) >> 61u;
+  const std::uint64_t message_length_bits_low =
+      static_cast<std::uint64_t>(input_length) << 3u;
 
   if (remaining_bytes < 112u) {
     for (std::uint64_t index = 0u; index < 8u; ++index) {
+      final_block[112u + index] = static_cast<std::uint8_t>(
+          (message_length_bits_high >> (8u * (7u - index))) & 0xffu);
       final_block[120u + index] = static_cast<std::uint8_t>(
-          (message_length_bits >> (8u * (7u - index))) & 0xffu);
+          (message_length_bits_low >> (8u * (7u - index))) & 0xffu);
     }
     sha2_64_process_block(final_block.data(), state);
   } else {
     for (std::uint64_t index = 0u; index < 8u; ++index) {
+      final_block[128u + 112u + index] = static_cast<std::uint8_t>(
+          (message_length_bits_high >> (8u * (7u - index))) & 0xffu);
       final_block[128u + 120u + index] = static_cast<std::uint8_t>(
-          (message_length_bits >> (8u * (7u - index))) & 0xffu);
+          (message_length_bits_low >> (8u * (7u - index))) & 0xffu);
     }
 
     sha2_64_process_block(final_block.data(), state);
