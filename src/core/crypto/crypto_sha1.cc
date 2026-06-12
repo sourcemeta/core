@@ -4,7 +4,7 @@
 #include <cstdint> // std::uint32_t, std::uint64_t
 
 #if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
-#include <openssl/evp.h> // EVP_MD_CTX_new, EVP_DigestInit_ex, EVP_sha1, EVP_DigestUpdate, EVP_DigestFinal_ex, EVP_MD_CTX_free
+#include <openssl/evp.h> // EVP_*
 #include <stdexcept>     // std::runtime_error
 #elif defined(__APPLE__)
 #include <CommonCrypto/CommonDigest.h> // CC_SHA1*, CC_LONG

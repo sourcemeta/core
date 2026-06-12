@@ -4,7 +4,7 @@
 #include <cstdint> // std::uint32_t, std::uint64_t
 
 #if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
-#include <openssl/evp.h> // EVP_MD_CTX_new, EVP_DigestInit_ex, EVP_sha256, EVP_DigestUpdate, EVP_DigestFinal_ex, EVP_MD_CTX_free
+#include <openssl/evp.h> // EVP_*
 #include <stdexcept>     // std::runtime_error
 #elif defined(__APPLE__)
 #include <CommonCrypto/CommonDigest.h> // CC_SHA256*, CC_LONG
@@ -22,6 +22,7 @@
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
 #else
+#include <cstddef> // std::size_t
 #include <cstring> // std::memcpy
 #endif
 
@@ -35,7 +36,8 @@ constexpr std::array<char, 17> HEX_DIGITS{{'0', '1', '2', '3', '4', '5', '6',
 
 namespace sourcemeta::core {
 
-auto sha256(const std::string_view input) -> std::string {
+auto sha256_digest(const std::string_view input)
+    -> std::array<std::uint8_t, 32> {
   auto *context = EVP_MD_CTX_new();
   if (context == nullptr) {
     throw std::runtime_error("Could not allocate OpenSSL digest context");
@@ -47,7 +49,7 @@ auto sha256(const std::string_view input) -> std::string {
     throw std::runtime_error("Could not compute SHA-256 digest");
   }
 
-  std::array<unsigned char, 32> digest{};
+  std::array<std::uint8_t, 32> digest{};
   unsigned int length = 0;
   if (EVP_DigestFinal_ex(context, digest.data(), &length) != 1) {
     EVP_MD_CTX_free(context);
@@ -55,15 +57,7 @@ auto sha256(const std::string_view input) -> std::string {
   }
 
   EVP_MD_CTX_free(context);
-
-  std::string result;
-  result.reserve(64);
-  for (std::uint64_t index = 0; index < 32u; ++index) {
-    result.push_back(HEX_DIGITS[(digest[index] >> 4u) & 0x0fu]);
-    result.push_back(HEX_DIGITS[digest[index] & 0x0fu]);
-  }
-
-  return result;
+  return digest;
 }
 
 } // namespace sourcemeta::core
@@ -72,7 +66,8 @@ auto sha256(const std::string_view input) -> std::string {
 
 namespace sourcemeta::core {
 
-auto sha256(const std::string_view input) -> std::string {
+auto sha256_digest(const std::string_view input)
+    -> std::array<std::uint8_t, 32> {
   CC_SHA256_CTX context;
   CC_SHA256_Init(&context);
 
@@ -90,17 +85,9 @@ auto sha256(const std::string_view input) -> std::string {
     remaining_size -= chunk_size;
   }
 
-  std::array<unsigned char, CC_SHA256_DIGEST_LENGTH> digest{};
+  std::array<std::uint8_t, CC_SHA256_DIGEST_LENGTH> digest{};
   CC_SHA256_Final(digest.data(), &context);
-
-  std::string result;
-  result.reserve(64);
-  for (std::uint64_t index = 0; index < 32u; ++index) {
-    result.push_back(HEX_DIGITS[(digest[index] >> 4u) & 0x0fu]);
-    result.push_back(HEX_DIGITS[digest[index] & 0x0fu]);
-  }
-
-  return result;
+  return digest;
 }
 
 } // namespace sourcemeta::core
@@ -109,7 +96,8 @@ auto sha256(const std::string_view input) -> std::string {
 
 namespace sourcemeta::core {
 
-auto sha256(const std::string_view input) -> std::string {
+auto sha256_digest(const std::string_view input)
+    -> std::array<std::uint8_t, 32> {
   BCRYPT_ALG_HANDLE algorithm{nullptr};
   if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(
           &algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0))) {
@@ -140,7 +128,7 @@ auto sha256(const std::string_view input) -> std::string {
     remaining_size -= chunk_size;
   }
 
-  std::array<unsigned char, 32> digest{};
+  std::array<std::uint8_t, 32> digest{};
   if (success) {
     success = BCRYPT_SUCCESS(BCryptFinishHash(
         hash, digest.data(), static_cast<ULONG>(digest.size()), 0));
@@ -152,14 +140,7 @@ auto sha256(const std::string_view input) -> std::string {
     throw std::runtime_error("Could not compute the CNG SHA-256 digest");
   }
 
-  std::string result;
-  result.reserve(64);
-  for (std::uint64_t index = 0; index < 32u; ++index) {
-    result.push_back(HEX_DIGITS[(digest[index] >> 4u) & 0x0fu]);
-    result.push_back(HEX_DIGITS[digest[index] & 0x0fu]);
-  }
-
-  return result;
+  return digest;
 }
 
 } // namespace sourcemeta::core
@@ -276,7 +257,8 @@ inline auto sha256_process_block(const unsigned char *block,
 
 namespace sourcemeta::core {
 
-auto sha256(const std::string_view input) -> std::string {
+auto sha256_digest(const std::string_view input)
+    -> std::array<std::uint8_t, 32> {
   // Initial hash values: first 32 bits of the fractional parts of the
   // square roots of the first 8 primes (FIPS 180-4 Section 5.3.3)
   std::array<std::uint32_t, 8> state{};
@@ -331,17 +313,15 @@ auto sha256(const std::string_view input) -> std::string {
     sha256_process_block(final_block.data() + 64u, state);
   }
 
-  std::string result;
-  result.reserve(64);
-  for (std::uint64_t state_index = 0u; state_index < 8u; ++state_index) {
-    const auto value = state[state_index];
-    for (std::uint64_t nibble = 0u; nibble < 8u; ++nibble) {
-      const auto shift = 28u - nibble * 4u;
-      result.push_back(HEX_DIGITS[(value >> shift) & 0x0fu]);
+  std::array<std::uint8_t, 32> digest{};
+  for (std::size_t word_index = 0u; word_index < 8u; ++word_index) {
+    for (std::size_t byte_index = 0u; byte_index < 4u; ++byte_index) {
+      digest[(word_index * 4u) + byte_index] = static_cast<std::uint8_t>(
+          (state[word_index] >> (8u * (3u - byte_index))) & 0xffu);
     }
   }
 
-  return result;
+  return digest;
 }
 
 } // namespace sourcemeta::core
@@ -349,6 +329,18 @@ auto sha256(const std::string_view input) -> std::string {
 #endif
 
 namespace sourcemeta::core {
+
+auto sha256(const std::string_view input) -> std::string {
+  const auto digest{sha256_digest(input)};
+  std::string result;
+  result.reserve(64);
+  for (const auto byte : digest) {
+    result.push_back(HEX_DIGITS[(byte >> 4u) & 0x0fu]);
+    result.push_back(HEX_DIGITS[byte & 0x0fu]);
+  }
+
+  return result;
+}
 
 auto sha256(const std::string_view input, std::ostream &output) -> void {
   const auto result = sha256(input);
