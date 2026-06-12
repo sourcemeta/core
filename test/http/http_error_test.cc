@@ -4,7 +4,9 @@
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_status.h>
 
+#include <optional>  // std::optional
 #include <stdexcept> // std::runtime_error
+#include <string>    // std::string
 
 TEST(HTTP_error, message) {
   const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::GET,
@@ -68,4 +70,20 @@ TEST(HTTP_error, status_error_catchable_as_http_error) {
                    sourcemeta::core::HTTPMethod::GET, "https://example.com",
                    sourcemeta::core::HTTP_STATUS_NOT_FOUND),
                sourcemeta::core::HTTPError);
+}
+
+TEST(HTTP_error, status_error_owns_status_data) {
+  std::optional<sourcemeta::core::HTTPStatusError> error;
+  {
+    const std::string phrase{"Custom Experimental Phrase"};
+    const std::string wire{"599 Custom Experimental Phrase"};
+    const sourcemeta::core::HTTPStatus status{
+        .code = 599, .phrase = phrase, .wire = wire};
+    error.emplace(sourcemeta::core::HTTPMethod::GET, "https://example.com",
+                  status);
+  }
+
+  EXPECT_EQ(error.value().status().code, 599);
+  EXPECT_EQ(error.value().status().phrase, "Custom Experimental Phrase");
+  EXPECT_EQ(error.value().status().wire, "599 Custom Experimental Phrase");
 }
