@@ -10,7 +10,7 @@ namespace sourcemeta::core {
 /// A typed HTTP status code per RFC 9110 §15. For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_status.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 ///
 /// assert(sourcemeta::core::HTTP_STATUS_OK.code == 200);
@@ -391,7 +391,7 @@ inline constexpr HTTPStatus HTTP_STATUS_NETWORK_AUTHENTICATION_REQUIRED{
 /// codes resolving to an empty reason phrase. For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_status.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 ///
 /// assert(sourcemeta::core::http_status_from_code(200) ==

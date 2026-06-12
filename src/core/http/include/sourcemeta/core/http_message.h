@@ -17,7 +17,7 @@ namespace sourcemeta::core {
 /// For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_message.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 ///
 /// assert(sourcemeta::core::http_is_status_line("HTTP/1.1 200 OK"));
@@ -38,7 +38,7 @@ inline constexpr auto http_is_status_line(const std::string_view line) noexcept
 /// example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_message.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 /// #include <string>
 ///
@@ -72,7 +72,7 @@ inline auto http_accumulate_header_line(Buffer &buffer,
 /// allocates, as both are views into the input. For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_message.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 /// #include <string_view>
 ///
@@ -153,7 +153,7 @@ inline auto http_parse_headers(const std::string_view input, Callback callback)
 /// joining deprecated line folding per RFC 9112 §5.2. For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_message.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 /// #include <string>
 /// #include <utility>
@@ -200,7 +200,7 @@ inline auto http_parse_headers(const std::string_view input, Container &headers)
 /// CRLF-delimited field lines per RFC 9112 §5. For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_message.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 /// #include <string>
 /// #include <utility>
@@ -239,7 +239,7 @@ inline auto http_serialize_headers(const Headers &headers) -> std::string {
 /// example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_message.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 /// #include <string>
 /// #include <utility>
@@ -254,13 +254,25 @@ template <typename Headers>
 inline auto http_header_find(const Headers &headers,
                              const std::string_view name)
     -> std::optional<std::string_view> {
-  for (const auto &[header_name, header_value] : headers) {
-    if (header_name == name) {
-      return std::string_view{header_value};
+  // Prefer the container's own lookup when it supports searching by the
+  // given name without converting it, as associative containers do it in
+  // logarithmic or constant time instead of a linear scan
+  if constexpr (requires { headers.find(name) != headers.end(); }) {
+    const auto match{headers.find(name)};
+    if (match != headers.end()) {
+      return std::string_view{match->second};
     }
-  }
 
-  return std::nullopt;
+    return std::nullopt;
+  } else {
+    for (const auto &[header_name, header_value] : headers) {
+      if (header_name == name) {
+        return std::string_view{header_value};
+      }
+    }
+
+    return std::nullopt;
+  }
 }
 
 } // namespace sourcemeta::core

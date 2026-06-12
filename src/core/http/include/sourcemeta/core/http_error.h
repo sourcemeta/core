@@ -25,8 +25,7 @@ namespace sourcemeta::core {
 /// failure, a name resolution failure, or a TLS failure. For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_error.h>
-/// #include <sourcemeta/core/http_method.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 ///
 /// const sourcemeta::core::HTTPError error{

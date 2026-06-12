@@ -3,6 +3,7 @@
 
 #include <cstdint>     // std::uint8_t
 #include <string_view> // std::string_view
+#include <utility>     // std::unreachable
 
 namespace sourcemeta::core {
 
@@ -25,7 +26,7 @@ enum class HTTPMethod : std::uint8_t {
 /// For example:
 ///
 /// ```cpp
-/// #include <sourcemeta/core/http_method.h>
+/// #include <sourcemeta/core/http.h>
 /// #include <cassert>
 ///
 /// assert(sourcemeta::core::http_method_string(
@@ -34,6 +35,8 @@ enum class HTTPMethod : std::uint8_t {
 inline constexpr auto http_method_string(const HTTPMethod method) noexcept
     -> std::string_view {
   switch (method) {
+    case HTTPMethod::GET:
+      return "GET";
     case HTTPMethod::HEAD:
       return "HEAD";
     case HTTPMethod::POST:
@@ -50,10 +53,9 @@ inline constexpr auto http_method_string(const HTTPMethod method) noexcept
       return "TRACE";
     case HTTPMethod::PATCH:
       return "PATCH";
-    case HTTPMethod::GET:
-    default:
-      return "GET";
   }
+
+  std::unreachable();
 }
 
 } // namespace sourcemeta::core
