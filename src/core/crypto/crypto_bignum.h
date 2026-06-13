@@ -74,8 +74,17 @@ inline auto bignum_from_hex(const std::string_view hex) noexcept -> Bignum {
   }};
 
   std::string bytes;
-  bytes.reserve(hex.size() / 2);
-  for (std::size_t index = 0; index + 1 < hex.size(); index += 2) {
+  bytes.reserve((hex.size() + 1) / 2);
+
+  // An odd length means the leading nibble forms a byte on its own, as if a
+  // zero had been prepended
+  std::size_t index{0};
+  if (hex.size() % 2 != 0) {
+    bytes.push_back(static_cast<char>(nibble(hex[0])));
+    index = 1;
+  }
+
+  for (; index + 1 < hex.size(); index += 2) {
     bytes.push_back(
         static_cast<char>((nibble(hex[index]) << 4u) | nibble(hex[index + 1])));
   }

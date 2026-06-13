@@ -161,3 +161,21 @@ TEST(Crypto_ecdsa, verify_rejects_empty_coordinate) {
       sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
       sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
+
+TEST(Crypto_ecdsa, verify_accepts_leading_zero_padded_coordinates) {
+  EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::SignatureHashFunction::SHA256,
+      sourcemeta::core::hex_to_bytes("0000" + P256_QX).value(),
+      sourcemeta::core::hex_to_bytes("0000" + P256_QY).value(), MESSAGE,
+      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+}
+
+TEST(Crypto_ecdsa, verify_rejects_oversized_coordinate) {
+  const std::string coordinate(40, '\xFF');
+  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::SignatureHashFunction::SHA256, coordinate,
+      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
+      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+}

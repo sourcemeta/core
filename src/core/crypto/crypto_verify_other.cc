@@ -340,8 +340,16 @@ auto ecdsa_verify(const EllipticCurve curve, const SignatureHashFunction hash,
     return false;
   }
 
-  const auto public_x{bignum_from_bytes(coordinate_x)};
-  const auto public_y{bignum_from_bytes(coordinate_y)};
+  // Reject coordinates wider than the field, matching the platform backends
+  // and preventing an oversized input from being truncated into a valid key
+  const auto stripped_x{strip_leading_zeros(coordinate_x)};
+  const auto stripped_y{strip_leading_zeros(coordinate_y)};
+  if (stripped_x.size() > field_bytes || stripped_y.size() > field_bytes) {
+    return false;
+  }
+
+  const auto public_x{bignum_from_bytes(stripped_x)};
+  const auto public_y{bignum_from_bytes(stripped_y)};
 
   // The public key must be a valid point: coordinates below the field prime
   // and satisfying the curve equation

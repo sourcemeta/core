@@ -136,7 +136,9 @@ auto make_ec_public_key(const sourcemeta::core::EllipticCurve curve,
                         const std::string_view coordinate_x,
                         const std::string_view coordinate_y) -> SecKeyRef {
   const auto width{curve_field_bytes(curve)};
-  if (coordinate_x.size() > width || coordinate_y.size() > width) {
+  const auto stripped_x{strip_leading_zeros(coordinate_x)};
+  const auto stripped_y{strip_leading_zeros(coordinate_y)};
+  if (stripped_x.size() > width || stripped_y.size() > width) {
     return nullptr;
   }
 
@@ -144,8 +146,8 @@ auto make_ec_public_key(const sourcemeta::core::EllipticCurve curve,
   // 0x04 lead byte followed by the two fixed-width coordinates
   std::string point;
   point.push_back('\x04');
-  point.append(left_pad(coordinate_x, width));
-  point.append(left_pad(coordinate_y, width));
+  point.append(left_pad(stripped_x, width));
+  point.append(left_pad(stripped_y, width));
 
   auto key_data{make_data(point)};
   if (key_data == nullptr) {

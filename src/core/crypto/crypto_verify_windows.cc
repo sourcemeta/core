@@ -223,8 +223,10 @@ auto ecdsa_verify(const EllipticCurve curve, const SignatureHashFunction hash,
                   const std::string_view message,
                   const std::string_view signature) -> bool {
   const auto width{curve_field_bytes(curve)};
-  if (signature.size() != width * 2 || coordinate_x.size() > width ||
-      coordinate_y.size() > width) {
+  const auto stripped_x{strip_leading_zeros(coordinate_x)};
+  const auto stripped_y{strip_leading_zeros(coordinate_y)};
+  if (signature.size() != width * 2 || stripped_x.size() > width ||
+      stripped_y.size() > width) {
     return false;
   }
 
@@ -237,8 +239,8 @@ auto ecdsa_verify(const EllipticCurve curve, const SignatureHashFunction hash,
   std::string blob;
   blob.resize(sizeof(header));
   std::memcpy(blob.data(), &header, sizeof(header));
-  blob.append(left_pad(coordinate_x, width));
-  blob.append(left_pad(coordinate_y, width));
+  blob.append(left_pad(stripped_x, width));
+  blob.append(left_pad(stripped_y, width));
 
   BCRYPT_ALG_HANDLE algorithm{nullptr};
   if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(
