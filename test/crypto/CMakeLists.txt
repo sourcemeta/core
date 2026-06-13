@@ -9,7 +9,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_crc32_test.cc
     crypto_base64_test.cc
     crypto_base64url_test.cc
-    crypto_rsassa_pkcs1_v15_test.cc)
+    crypto_rsassa_pkcs1_v15_test.cc
+    crypto_rsassa_pss_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto sourcemeta::core::text)
@@ -57,4 +58,13 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_r
 target_compile_definitions(sourcemeta_core_pyca_cryptography_rsa_sigver15_unit
   PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
 target_link_libraries(sourcemeta_core_pyca_cryptography_rsa_sigver15_unit
+  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
+
+# pyca/cryptography RSASSA-PSS Verification Test Vectors
+# See https://github.com/pyca/cryptography
+sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_rsa_sigverpss
+  SOURCES pyca_cryptography_rsa_sigverpss_test.cc)
+target_compile_definitions(sourcemeta_core_pyca_cryptography_rsa_sigverpss_unit
+  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
+target_link_libraries(sourcemeta_core_pyca_cryptography_rsa_sigverpss_unit
   PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)

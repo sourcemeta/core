@@ -65,15 +65,12 @@ auto digest_message(const sourcemeta::core::SignatureHashFunction hash,
   std::unreachable();
 }
 
-} // namespace
-
-namespace sourcemeta::core {
-
-auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
-                             const std::string_view modulus,
-                             const std::string_view exponent,
-                             const std::string_view message,
-                             const std::string_view signature) -> bool {
+auto verify_rsa_signature(const sourcemeta::core::SignatureHashFunction hash,
+                          const std::string_view modulus,
+                          const std::string_view exponent,
+                          const std::string_view message,
+                          const std::string_view signature,
+                          const bool probabilistic) -> bool {
   const auto stripped_modulus{strip_leading_zeros(modulus)};
   const auto stripped_exponent{strip_leading_zeros(exponent)};
   if (stripped_modulus.empty() || stripped_exponent.empty() ||
@@ -118,20 +115,55 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
 
   const auto digest{digest_message(hash, message)};
 
-  BCRYPT_PKCS1_PADDING_INFO padding{};
-  padding.pszAlgId = to_cng_algorithm(hash);
-
   // The signature parameter is not const-qualified but is input only
-  const auto result{BCRYPT_SUCCESS(BCryptVerifySignature(
-      key, &padding,
-      reinterpret_cast<unsigned char *>(const_cast<char *>(digest.data())),
-      static_cast<ULONG>(digest.size()),
-      reinterpret_cast<unsigned char *>(const_cast<char *>(signature.data())),
-      static_cast<ULONG>(signature.size()), BCRYPT_PAD_PKCS1))};
+  auto result{false};
+  if (probabilistic) {
+    // The digest-length salt is what RFC 7518 Section 3.5 requires
+    BCRYPT_PSS_PADDING_INFO padding{};
+    padding.pszAlgId = to_cng_algorithm(hash);
+    padding.cbSalt = static_cast<ULONG>(digest.size());
+    result = BCRYPT_SUCCESS(BCryptVerifySignature(
+        key, &padding,
+        reinterpret_cast<unsigned char *>(const_cast<char *>(digest.data())),
+        static_cast<ULONG>(digest.size()),
+        reinterpret_cast<unsigned char *>(const_cast<char *>(signature.data())),
+        static_cast<ULONG>(signature.size()), BCRYPT_PAD_PSS));
+  } else {
+    BCRYPT_PKCS1_PADDING_INFO padding{};
+    padding.pszAlgId = to_cng_algorithm(hash);
+    result = BCRYPT_SUCCESS(BCryptVerifySignature(
+        key, &padding,
+        reinterpret_cast<unsigned char *>(const_cast<char *>(digest.data())),
+        static_cast<ULONG>(digest.size()),
+        reinterpret_cast<unsigned char *>(const_cast<char *>(signature.data())),
+        static_cast<ULONG>(signature.size()), BCRYPT_PAD_PKCS1));
+  }
 
   BCryptDestroyKey(key);
   BCryptCloseAlgorithmProvider(algorithm, 0);
   return result;
+}
+
+} // namespace
+
+namespace sourcemeta::core {
+
+auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
+                             const std::string_view modulus,
+                             const std::string_view exponent,
+                             const std::string_view message,
+                             const std::string_view signature) -> bool {
+  return verify_rsa_signature(hash, modulus, exponent, message, signature,
+                              false);
+}
+
+auto rsassa_pss_verify(const SignatureHashFunction hash,
+                       const std::string_view modulus,
+                       const std::string_view exponent,
+                       const std::string_view message,
+                       const std::string_view signature) -> bool {
+  return verify_rsa_signature(hash, modulus, exponent, message, signature,
+                              true);
 }
 
 } // namespace sourcemeta::core

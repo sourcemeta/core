@@ -7,7 +7,7 @@
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
-#include <cstdint>     // std::uint8_t
+#include <cstdint>     // std::uint8_t, std::uint32_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -100,6 +100,97 @@ auto build_encoded_message(const sourcemeta::core::SignatureHashFunction hash,
   return result;
 }
 
+// MGF1 mask generation (RFC 8017 Appendix B.2.1)
+auto mask_generation(const sourcemeta::core::SignatureHashFunction hash,
+                     const std::string_view seed, const std::size_t length)
+    -> std::string {
+  std::string result;
+  result.reserve(length + 64);
+  std::uint32_t counter{0};
+  while (result.size() < length) {
+    std::string block{seed};
+    block.push_back(static_cast<char>((counter >> 24u) & 0xffu));
+    block.push_back(static_cast<char>((counter >> 16u) & 0xffu));
+    block.push_back(static_cast<char>((counter >> 8u) & 0xffu));
+    block.push_back(static_cast<char>(counter & 0xffu));
+    result.append(digest_message(hash, block));
+    counter += 1;
+  }
+
+  result.resize(length);
+  return result;
+}
+
+// EMSA-PSS verification (RFC 8017 Section 9.1.2), with the salt length
+// fixed to the hash function output as RFC 7518 Section 3.5 requires
+auto emsa_pss_verify(const sourcemeta::core::SignatureHashFunction hash,
+                     const std::string_view message,
+                     const std::string_view encoded_message,
+                     const std::size_t encoded_bits) -> bool {
+  const auto digest{digest_message(hash, message)};
+  const auto hash_length{digest.size()};
+  const auto salt_length{hash_length};
+  const auto encoded_length{encoded_message.size()};
+
+  // RFC 8017 Section 9.1.2 step 3: "If emLen < hLen + sLen + 2, output
+  // 'inconsistent'"
+  if (encoded_length < hash_length + salt_length + 2) {
+    return false;
+  }
+
+  // RFC 8017 Section 9.1.2 step 4: "If the rightmost octet of EM does not
+  // have hexadecimal value 0xbc, output 'inconsistent'"
+  if (static_cast<std::uint8_t>(encoded_message.back()) != 0xbc) {
+    return false;
+  }
+
+  const auto database_length{encoded_length - hash_length - 1};
+  const auto masked_database{encoded_message.substr(0, database_length)};
+  const auto hash_value{encoded_message.substr(database_length, hash_length)};
+
+  // RFC 8017 Section 9.1.2 step 6: "If the leftmost 8emLen - emBits bits of
+  // the leftmost octet in maskedDB are not all equal to zero, output
+  // 'inconsistent'"
+  const auto unused_bits{(8 * encoded_length) - encoded_bits};
+  const auto unused_mask{
+      static_cast<std::uint8_t>((0xff00u >> unused_bits) & 0xffu)};
+  if ((static_cast<std::uint8_t>(masked_database.front()) & unused_mask) != 0) {
+    return false;
+  }
+
+  auto database{mask_generation(hash, hash_value, database_length)};
+  for (std::size_t index = 0; index < database_length; ++index) {
+    database[index] =
+        static_cast<char>(database[index] ^ masked_database[index]);
+  }
+
+  database[0] = static_cast<char>(static_cast<std::uint8_t>(database[0]) &
+                                  static_cast<std::uint8_t>(~unused_mask));
+
+  // RFC 8017 Section 9.1.2 step 10: "If the emLen - hLen - sLen - 2
+  // leftmost octets of DB are not zero or if the octet at position
+  // emLen - hLen - sLen - 1 does not have hexadecimal value 0x01, output
+  // 'inconsistent'"
+  const auto padding_length{encoded_length - hash_length - salt_length - 2};
+  for (std::size_t index = 0; index < padding_length; ++index) {
+    if (database[index] != '\x00') {
+      return false;
+    }
+  }
+
+  if (static_cast<std::uint8_t>(database[padding_length]) != 0x01) {
+    return false;
+  }
+
+  // RFC 8017 Section 9.1.2 steps 12 and 13: hash the concatenation of eight
+  // zero octets, the message digest, and the recovered salt
+  std::string verification_input(8, '\x00');
+  verification_input.append(digest);
+  verification_input.append(database.substr(database_length - salt_length));
+  const auto expected{digest_message(hash, verification_input)};
+  return expected == hash_value;
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -140,6 +231,58 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
       bignum_to_bytes(message_representative, key_length)};
   const auto expected{build_encoded_message(hash, message, key_length)};
   return expected.has_value() && encoded_message == expected.value();
+}
+
+auto rsassa_pss_verify(const SignatureHashFunction hash,
+                       const std::string_view modulus,
+                       const std::string_view exponent,
+                       const std::string_view message,
+                       const std::string_view signature) -> bool {
+  const auto stripped_modulus{strip_leading_zeros(modulus)};
+  const auto stripped_exponent{strip_leading_zeros(exponent)};
+  if (stripped_modulus.empty() || stripped_exponent.empty() ||
+      stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
+      stripped_exponent.size() > MAXIMUM_KEY_BYTES) {
+    return false;
+  }
+
+  // RFC 8017 Section 8.1.2 step 1: "If the length of the signature S is not
+  // k octets, output 'invalid signature'"
+  const auto key_length{stripped_modulus.size()};
+  if (signature.size() != key_length) {
+    return false;
+  }
+
+  const auto modulus_number{bignum_from_bytes(stripped_modulus)};
+  const auto signature_number{bignum_from_bytes(signature)};
+
+  // RFC 8017 Section 5.2.2: "If the signature representative s is not
+  // between 0 and n - 1, output 'signature representative out of range'"
+  if (bignum_compare(signature_number, modulus_number) >= 0) {
+    return false;
+  }
+
+  const auto exponent_number{bignum_from_bytes(stripped_exponent)};
+  const auto message_representative{
+      bignum_mod_exp(signature_number, exponent_number, modulus_number)};
+
+  // RFC 8017 Section 8.1.2 step 2c: the encoded message is emLen octets
+  // long, where emLen equals the byte length of emBits = modBits - 1 bits,
+  // which is one octet less than k when the modulus bit length is congruent
+  // to one modulo eight
+  const auto encoded_bits{bignum_bit_length(modulus_number) - 1};
+  const auto encoded_length{(encoded_bits + 7) / 8};
+  const auto full_representative{
+      bignum_to_bytes(message_representative, key_length)};
+  for (std::size_t index = 0; index < key_length - encoded_length; ++index) {
+    if (full_representative[index] != '\x00') {
+      return false;
+    }
+  }
+
+  const auto encoded_message{std::string_view{full_representative}.substr(
+      key_length - encoded_length)};
+  return emsa_pss_verify(hash, message, encoded_message, encoded_bits);
 }
 
 } // namespace sourcemeta::core
