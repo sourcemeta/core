@@ -52,6 +52,37 @@ inline auto bignum_from_bytes(const std::string_view input) noexcept -> Bignum {
   return result;
 }
 
+inline auto bignum_from_u64(const std::uint64_t value) noexcept -> Bignum {
+  Bignum result;
+  if (value > 0) {
+    result.words[0] = value;
+    result.size = 1;
+  }
+
+  return result;
+}
+
+inline auto bignum_from_hex(const std::string_view hex) noexcept -> Bignum {
+  const auto nibble{[](const char character) noexcept -> std::uint8_t {
+    if (character >= '0' && character <= '9') {
+      return static_cast<std::uint8_t>(character - '0');
+    } else if (character >= 'a' && character <= 'f') {
+      return static_cast<std::uint8_t>(character - 'a' + 10);
+    } else {
+      return static_cast<std::uint8_t>(character - 'A' + 10);
+    }
+  }};
+
+  std::string bytes;
+  bytes.reserve(hex.size() / 2);
+  for (std::size_t index = 0; index + 1 < hex.size(); index += 2) {
+    bytes.push_back(
+        static_cast<char>((nibble(hex[index]) << 4u) | nibble(hex[index + 1])));
+  }
+
+  return bignum_from_bytes(bytes);
+}
+
 inline auto bignum_is_zero(const Bignum &value) noexcept -> bool {
   return value.size == 0;
 }
@@ -204,6 +235,94 @@ inline auto bignum_mod_exp(const Bignum &base, const Bignum &exponent,
   }
 
   return result;
+}
+
+inline auto bignum_add(const Bignum &left, const Bignum &right) noexcept
+    -> Bignum {
+  Bignum result;
+  const auto larger{left.size > right.size ? left.size : right.size};
+  std::uint64_t carry{0};
+  for (std::size_t index = 0; index < larger; ++index) {
+    const auto first{index < left.size ? left.words[index] : 0};
+    const auto second{index < right.size ? right.words[index] : 0};
+    const auto sum{static_cast<BignumDoubleWord>(first) + second + carry};
+    result.words[index] = static_cast<std::uint64_t>(sum);
+    carry = static_cast<std::uint64_t>(sum >> 64u);
+  }
+
+  result.size = larger;
+  if (carry > 0 && larger < Bignum::capacity) {
+    result.words[larger] = carry;
+    result.size = larger + 1;
+  }
+
+  bignum_normalize(result);
+  return result;
+}
+
+inline auto bignum_shift_right(const Bignum &value,
+                               const std::size_t bits) noexcept -> Bignum {
+  Bignum result;
+  const auto word_shift{bits / 64};
+  const auto bit_shift{bits % 64};
+  if (word_shift >= value.size) {
+    return result;
+  }
+
+  result.size = value.size - word_shift;
+  for (std::size_t index = 0; index < result.size; ++index) {
+    auto word{value.words[index + word_shift] >> bit_shift};
+    if (bit_shift > 0 && index + word_shift + 1 < value.size) {
+      word |= value.words[index + word_shift + 1] << (64u - bit_shift);
+    }
+
+    result.words[index] = word;
+  }
+
+  bignum_normalize(result);
+  return result;
+}
+
+// All modular helpers below assume their operands are already reduced to
+// less than the modulus, as the elliptic curve routines guarantee
+
+inline auto bignum_mod_add(const Bignum &left, const Bignum &right,
+                           const Bignum &modulus) noexcept -> Bignum {
+  auto result{bignum_add(left, right)};
+  if (bignum_compare(result, modulus) >= 0) {
+    bignum_subtract_in_place(result, modulus);
+  }
+
+  return result;
+}
+
+inline auto bignum_mod_subtract(const Bignum &left, const Bignum &right,
+                                const Bignum &modulus) noexcept -> Bignum {
+  if (bignum_compare(left, right) >= 0) {
+    auto result{left};
+    bignum_subtract_in_place(result, right);
+    return result;
+  }
+
+  auto result{bignum_add(left, modulus)};
+  bignum_subtract_in_place(result, right);
+  return result;
+}
+
+inline auto bignum_mod_multiply(const Bignum &left, const Bignum &right,
+                                const Bignum &modulus) noexcept -> Bignum {
+  auto result{bignum_multiply(left, right)};
+  bignum_reduce(result, modulus);
+  return result;
+}
+
+// The modulus must be prime, so that Fermat's little theorem gives the
+// inverse as the modulus-minus-two power
+inline auto bignum_mod_inverse(const Bignum &value,
+                               const Bignum &modulus) noexcept -> Bignum {
+  auto exponent{modulus};
+  bignum_subtract_in_place(exponent, bignum_from_u64(2));
+  return bignum_mod_exp(value, exponent, modulus);
 }
 
 inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)

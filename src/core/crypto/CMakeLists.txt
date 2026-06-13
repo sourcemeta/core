@@ -22,7 +22,7 @@ else()
   message(WARNING "Building the reference signature verification
     backend, instead of the OpenSSL recommended production one")
   target_sources(sourcemeta_core_crypto PRIVATE
-    crypto_verify_other.cc crypto_bignum.h)
+    crypto_verify_other.cc crypto_bignum.h crypto_ecc.h)
 endif()
 
 if(SOURCEMETA_CORE_INSTALL)
