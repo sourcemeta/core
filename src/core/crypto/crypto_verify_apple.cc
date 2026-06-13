@@ -56,7 +56,7 @@ auto der_append_unsigned_integer(std::string &output, std::string_view value)
   output.append(value);
 }
 
-auto to_sec_key_algorithm(
+auto to_sec_key_pkcs1_v15_algorithm(
     const sourcemeta::core::SignatureHashFunction hash) noexcept
     -> SecKeyAlgorithm {
   switch (hash) {
@@ -66,6 +66,23 @@ auto to_sec_key_algorithm(
       return kSecKeyAlgorithmRSASignatureMessagePKCS1v15SHA384;
     case sourcemeta::core::SignatureHashFunction::SHA512:
       return kSecKeyAlgorithmRSASignatureMessagePKCS1v15SHA512;
+  }
+
+  std::unreachable();
+}
+
+// These algorithm variants fix the salt length to the hash function
+// output, which is exactly what RFC 7518 Section 3.5 requires
+auto to_sec_key_pss_algorithm(
+    const sourcemeta::core::SignatureHashFunction hash) noexcept
+    -> SecKeyAlgorithm {
+  switch (hash) {
+    case sourcemeta::core::SignatureHashFunction::SHA256:
+      return kSecKeyAlgorithmRSASignatureMessagePSSSHA256;
+    case sourcemeta::core::SignatureHashFunction::SHA384:
+      return kSecKeyAlgorithmRSASignatureMessagePSSSHA384;
+    case sourcemeta::core::SignatureHashFunction::SHA512:
+      return kSecKeyAlgorithmRSASignatureMessagePSSSHA512;
   }
 
   std::unreachable();
@@ -113,15 +130,11 @@ auto make_rsa_public_key(const std::string_view modulus,
   return key;
 }
 
-} // namespace
-
-namespace sourcemeta::core {
-
-auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
-                             const std::string_view modulus,
-                             const std::string_view exponent,
-                             const std::string_view message,
-                             const std::string_view signature) -> bool {
+auto verify_rsa_signature(const SecKeyAlgorithm algorithm,
+                          const std::string_view modulus,
+                          const std::string_view exponent,
+                          const std::string_view message,
+                          const std::string_view signature) -> bool {
   const auto stripped_modulus{strip_leading_zeros(modulus)};
   const auto stripped_exponent{strip_leading_zeros(exponent)};
   if (stripped_modulus.empty() || stripped_exponent.empty() ||
@@ -139,9 +152,8 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
   auto signature_data{make_data(signature)};
   auto result{false};
   if (message_data != nullptr && signature_data != nullptr) {
-    result =
-        SecKeyVerifySignature(key, to_sec_key_algorithm(hash), message_data,
-                              signature_data, nullptr) == true;
+    result = SecKeyVerifySignature(key, algorithm, message_data, signature_data,
+                                   nullptr) == true;
   }
 
   if (signature_data != nullptr) {
@@ -154,6 +166,28 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
 
   CFRelease(key);
   return result;
+}
+
+} // namespace
+
+namespace sourcemeta::core {
+
+auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
+                             const std::string_view modulus,
+                             const std::string_view exponent,
+                             const std::string_view message,
+                             const std::string_view signature) -> bool {
+  return verify_rsa_signature(to_sec_key_pkcs1_v15_algorithm(hash), modulus,
+                              exponent, message, signature);
+}
+
+auto rsassa_pss_verify(const SignatureHashFunction hash,
+                       const std::string_view modulus,
+                       const std::string_view exponent,
+                       const std::string_view message,
+                       const std::string_view signature) -> bool {
+  return verify_rsa_signature(to_sec_key_pss_algorithm(hash), modulus, exponent,
+                              message, signature);
 }
 
 } // namespace sourcemeta::core

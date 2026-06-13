@@ -4,6 +4,7 @@
 #include <openssl/core_names.h>  // OSSL_PKEY_PARAM_*
 #include <openssl/evp.h>         // EVP_*
 #include <openssl/param_build.h> // OSSL_PARAM_*
+#include <openssl/rsa.h> // RSA_PKCS1_PSS_PADDING, RSA_PSS_SALTLEN_DIGEST
 
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
@@ -76,15 +77,12 @@ auto make_rsa_public_key(const std::string_view modulus,
   return result;
 }
 
-} // namespace
-
-namespace sourcemeta::core {
-
-auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
-                             const std::string_view modulus,
-                             const std::string_view exponent,
-                             const std::string_view message,
-                             const std::string_view signature) -> bool {
+auto verify_rsa_signature(const sourcemeta::core::SignatureHashFunction hash,
+                          const std::string_view modulus,
+                          const std::string_view exponent,
+                          const std::string_view message,
+                          const std::string_view signature,
+                          const bool probabilistic) -> bool {
   const auto stripped_modulus{strip_leading_zeros(modulus)};
   const auto stripped_exponent{strip_leading_zeros(exponent)};
   if (stripped_modulus.empty() || stripped_exponent.empty() ||
@@ -101,8 +99,21 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
   auto result{false};
   auto *context{EVP_MD_CTX_new()};
   if (context != nullptr) {
-    if (EVP_DigestVerifyInit(context, nullptr, to_message_digest(hash), nullptr,
-                             key) == 1) {
+    EVP_PKEY_CTX *key_context{nullptr};
+    auto ready{EVP_DigestVerifyInit(context, &key_context,
+                                    to_message_digest(hash), nullptr,
+                                    key) == 1};
+    if (ready && probabilistic) {
+      // Requesting the digest-length salt that RFC 7518 Section 3.5
+      // requires makes verification reject signatures carrying any other
+      // salt length
+      ready = EVP_PKEY_CTX_set_rsa_padding(key_context,
+                                           RSA_PKCS1_PSS_PADDING) == 1 &&
+              EVP_PKEY_CTX_set_rsa_pss_saltlen(key_context,
+                                               RSA_PSS_SALTLEN_DIGEST) == 1;
+    }
+
+    if (ready) {
       result = EVP_DigestVerify(
                    context,
                    reinterpret_cast<const unsigned char *>(signature.data()),
@@ -116,6 +127,28 @@ auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
 
   EVP_PKEY_free(key);
   return result;
+}
+
+} // namespace
+
+namespace sourcemeta::core {
+
+auto rsassa_pkcs1_v15_verify(const SignatureHashFunction hash,
+                             const std::string_view modulus,
+                             const std::string_view exponent,
+                             const std::string_view message,
+                             const std::string_view signature) -> bool {
+  return verify_rsa_signature(hash, modulus, exponent, message, signature,
+                              false);
+}
+
+auto rsassa_pss_verify(const SignatureHashFunction hash,
+                       const std::string_view modulus,
+                       const std::string_view exponent,
+                       const std::string_view message,
+                       const std::string_view signature) -> bool {
+  return verify_rsa_signature(hash, modulus, exponent, message, signature,
+                              true);
 }
 
 } // namespace sourcemeta::core
