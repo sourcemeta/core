@@ -21,7 +21,8 @@ vectors/cryptography_vectors/asymmetric/DH/
 vectors/cryptography_vectors/asymmetric/DSA/
 vectors/cryptography_vectors/asymmetric/EC/
 vectors/cryptography_vectors/asymmetric/ECDH/
-vectors/cryptography_vectors/asymmetric/ECDSA/
+vectors/cryptography_vectors/asymmetric/ECDSA/FIPS_186-2/
+vectors/cryptography_vectors/asymmetric/ECDSA/SECP256K1/
 vectors/cryptography_vectors/asymmetric/Ed25519/
 vectors/cryptography_vectors/asymmetric/Ed448/
 vectors/cryptography_vectors/asymmetric/OpenSSH/
