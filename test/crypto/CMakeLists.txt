@@ -16,65 +16,11 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto sourcemeta::core::text)
 
-# pyca/cryptography SHA-256 Test Vectors
+# pyca/cryptography Test Vectors
 # See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_sha256
-  SOURCES pyca_cryptography_sha256_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_sha256_unit
+sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography
+  SOURCES pyca_cryptography_test.cc)
+target_compile_definitions(sourcemeta_core_pyca_cryptography_unit
   PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_sha256_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
-
-# pyca/cryptography SHA-384 Test Vectors
-# See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_sha384
-  SOURCES pyca_cryptography_sha384_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_sha384_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_sha384_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
-
-# pyca/cryptography SHA-512 Test Vectors
-# See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_sha512
-  SOURCES pyca_cryptography_sha512_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_sha512_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_sha512_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
-
-# pyca/cryptography SHA-1 Test Vectors
-# See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_sha1
-  SOURCES pyca_cryptography_sha1_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_sha1_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_sha1_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
-
-# pyca/cryptography RSASSA-PKCS1-v1_5 Verification Test Vectors
-# See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_rsa_sigver15
-  SOURCES pyca_cryptography_rsa_sigver15_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_rsa_sigver15_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_rsa_sigver15_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
-
-# pyca/cryptography RSASSA-PSS Verification Test Vectors
-# See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_rsa_sigverpss
-  SOURCES pyca_cryptography_rsa_sigverpss_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_rsa_sigverpss_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_rsa_sigverpss_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
-
-# pyca/cryptography ECDSA Verification Test Vectors
-# See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography_ecdsa_sigver
-  SOURCES pyca_cryptography_ecdsa_sigver_test.cc)
-target_compile_definitions(sourcemeta_core_pyca_cryptography_ecdsa_sigver_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
-target_link_libraries(sourcemeta_core_pyca_cryptography_ecdsa_sigver_unit
+target_link_libraries(sourcemeta_core_pyca_cryptography_unit
   PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)

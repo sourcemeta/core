@@ -1,68 +1,12 @@
 #include <sourcemeta/core/crypto_uuid.h>
+#include <sourcemeta/core/numeric.h> // is_hex_digit
+
+#include "crypto_random.h"
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
+#include <string>      // std::string
 #include <string_view> // std::string_view
-
-#if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
-#include <openssl/rand.h> // RAND_bytes
-
-#include <stdexcept> // std::runtime_error
-#elif defined(__APPLE__)
-#include <Security/SecBase.h>   // errSecSuccess
-#include <Security/SecRandom.h> // SecRandomCopyBytes, kSecRandomDefault
-
-#include <stdexcept> // std::runtime_error
-#elif defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <windows.h> // ULONG
-
-#include <bcrypt.h> // BCrypt*, BCRYPT_*
-
-#include <stdexcept> // std::runtime_error
-#else
-#include <random> // std::random_device, std::mt19937, std::uniform_int_distribution
-#endif
-
-namespace {
-
-constexpr auto is_hex_digit(const char character) -> bool {
-  return (character >= '0' && character <= '9') ||
-         (character >= 'a' && character <= 'f') ||
-         (character >= 'A' && character <= 'F');
-}
-
-auto fill_random_bytes(std::array<unsigned char, 16> &bytes) -> void {
-#if defined(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
-  if (RAND_bytes(bytes.data(), static_cast<int>(bytes.size())) != 1) {
-    throw std::runtime_error("Could not generate random bytes with OpenSSL");
-  }
-#elif defined(__APPLE__)
-  if (SecRandomCopyBytes(kSecRandomDefault, bytes.size(), bytes.data()) !=
-      errSecSuccess) {
-    throw std::runtime_error(
-        "Could not generate random bytes with the Security framework");
-  }
-#elif defined(_WIN32)
-  if (!BCRYPT_SUCCESS(BCryptGenRandom(nullptr, bytes.data(),
-                                      static_cast<ULONG>(bytes.size()),
-                                      BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
-    throw std::runtime_error("Could not generate random bytes with CNG");
-  }
-#else
-  // Not a cryptographically secure generator. This fallback only exists to
-  // keep the module buildable on platforms without a system provider
-  thread_local std::random_device device;
-  thread_local std::mt19937 generator{device()};
-  std::uniform_int_distribution<unsigned int> distribution{0, 255};
-  for (auto &byte : bytes) {
-    byte = static_cast<unsigned char>(distribution(generator));
-  }
-#endif
-}
-
-} // namespace
 
 namespace sourcemeta::core {
 

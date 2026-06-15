@@ -106,6 +106,33 @@ auto trim(const std::string_view input) noexcept -> std::string_view {
   return result;
 }
 
+auto strip_left(const std::string_view input, const char character) noexcept
+    -> std::string_view {
+  std::string_view result{input};
+  while (!result.empty() && result.front() == character) {
+    result.remove_prefix(1);
+  }
+  return result;
+}
+
+auto strip_right(const std::string_view input, const char character) noexcept
+    -> std::string_view {
+  std::string_view result{input};
+  while (!result.empty() && result.back() == character) {
+    result.remove_suffix(1);
+  }
+  return result;
+}
+
+auto pad_left(const std::string_view input, const std::size_t width,
+              const char character) -> std::string {
+  if (input.size() >= width) {
+    return std::string{input};
+  }
+
+  return std::string(width - input.size(), character) + std::string{input};
+}
+
 auto take_until(const std::string_view input, const char marker) noexcept
     -> std::string_view {
   const auto position{input.find(marker)};
@@ -166,14 +193,28 @@ auto remove_suffix_ignore_case(const std::string_view input,
   return result;
 }
 
-auto hex_to_bytes(const std::string_view input) -> std::optional<std::string> {
-  if (input.size() % 2 != 0) {
+auto hex_to_bytes(const std::string_view input, const bool allow_odd_length)
+    -> std::optional<std::string> {
+  const auto odd_length{input.size() % 2 != 0};
+  if (odd_length && !allow_odd_length) {
     return std::nullopt;
   }
 
   std::string result;
-  result.reserve(input.size() / 2);
-  for (std::size_t index{0}; index < input.size(); index += 2) {
+  result.reserve(input.size() / 2 + 1);
+
+  std::size_t index{0};
+  if (odd_length) {
+    const auto nibble{hex_digit_value(input[0])};
+    if (nibble < 0) {
+      return std::nullopt;
+    }
+
+    result.push_back(static_cast<char>(nibble));
+    index = 1;
+  }
+
+  for (; index < input.size(); index += 2) {
     const auto high{hex_digit_value(input[index])};
     const auto low{hex_digit_value(input[index + 1])};
     if (high < 0 || low < 0) {
@@ -181,6 +222,19 @@ auto hex_to_bytes(const std::string_view input) -> std::optional<std::string> {
     }
 
     result.push_back(static_cast<char>((high << 4) | low));
+  }
+
+  return result;
+}
+
+auto bytes_to_hex(const std::string_view input) -> std::string {
+  static constexpr std::string_view digits{"0123456789abcdef"};
+  std::string result;
+  result.reserve(input.size() * 2);
+  for (const auto character : input) {
+    const auto byte{static_cast<unsigned char>(character)};
+    result.push_back(digits[byte >> 4u]);
+    result.push_back(digits[byte & 0x0fu]);
   }
 
   return result;
