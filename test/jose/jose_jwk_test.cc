@@ -324,3 +324,29 @@ TEST(JOSE_JWK, tolerates_unsupported_algorithm) {
   ASSERT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().algorithm().has_value());
 }
+
+TEST(JOSE_JWK, stores_algorithm_matching_curve) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "EC", "crv": "P-256",
+           "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+           "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+           "alg": "ES256" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  ASSERT_TRUE(key.has_value());
+  ASSERT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::ES256);
+}
+
+TEST(JOSE_JWK, ignores_algorithm_not_matching_curve) {
+  // ES512 is defined over P-521, so the hint is not actionable for a P-256
+  // key and is dropped while the key still parses
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "EC", "crv": "P-256",
+           "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+           "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+           "alg": "ES512" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_FALSE(key.value().algorithm().has_value());
+}

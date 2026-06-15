@@ -25,7 +25,11 @@ const auto HASH_DQ{sourcemeta::core::JSON::Object::hash("dq")};
 const auto HASH_QI{sourcemeta::core::JSON::Object::hash("qi")};
 const auto HASH_OTH{sourcemeta::core::JSON::Object::hash("oth")};
 
-auto is_rsa_algorithm(const sourcemeta::core::JWSAlgorithm algorithm) -> bool {
+// The RSA algorithms only require an RSA key, while each ECDSA algorithm is
+// tied to a specific curve (RFC 7518 Section 3.1)
+auto algorithm_matches_key(const sourcemeta::core::JWSAlgorithm algorithm,
+                           const sourcemeta::core::JWK::Type type,
+                           const std::string_view curve) -> bool {
   switch (algorithm) {
     case sourcemeta::core::JWSAlgorithm::RS256:
     case sourcemeta::core::JWSAlgorithm::RS384:
@@ -33,11 +37,16 @@ auto is_rsa_algorithm(const sourcemeta::core::JWSAlgorithm algorithm) -> bool {
     case sourcemeta::core::JWSAlgorithm::PS256:
     case sourcemeta::core::JWSAlgorithm::PS384:
     case sourcemeta::core::JWSAlgorithm::PS512:
-      return true;
+      return type == sourcemeta::core::JWK::Type::RSA;
     case sourcemeta::core::JWSAlgorithm::ES256:
+      return type == sourcemeta::core::JWK::Type::EllipticCurve &&
+             curve == "P-256";
     case sourcemeta::core::JWSAlgorithm::ES384:
+      return type == sourcemeta::core::JWK::Type::EllipticCurve &&
+             curve == "P-384";
     case sourcemeta::core::JWSAlgorithm::ES512:
-      return false;
+      return type == sourcemeta::core::JWK::Type::EllipticCurve &&
+             curve == "P-521";
   }
 
   std::unreachable();
@@ -160,7 +169,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     // and otherwise leave it unset rather than rejecting an otherwise valid key
     const auto parsed{to_jws_algorithm(algorithm->to_string())};
     if (parsed.has_value() &&
-        is_rsa_algorithm(parsed.value()) == (result.type_ == Type::RSA)) {
+        algorithm_matches_key(parsed.value(), result.type_, result.curve_)) {
       result.algorithm_ = parsed;
     }
   }
