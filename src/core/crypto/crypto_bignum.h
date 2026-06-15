@@ -6,6 +6,8 @@
 // and their double-width products. Performance and constant-time
 // execution are non-goals, verification consumes only public inputs
 
+#include <sourcemeta/core/numeric.h>
+
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint64_t
@@ -14,10 +16,7 @@
 
 namespace sourcemeta::core {
 
-// The double-width word is a compiler extension, though one that every
-// compiler this backend ever compiles under provides. The extension marker
-// keeps pedantic diagnostics quiet about it
-__extension__ typedef unsigned __int128 BignumDoubleWord;
+using BignumDoubleWord = uint128_t;
 
 struct Bignum {
   // Enough words for an 8192-bit product plus shifting headroom
