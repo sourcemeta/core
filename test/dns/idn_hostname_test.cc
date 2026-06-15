@@ -594,9 +594,6 @@ TEST(DNS_idn_hostname, label_with_out_of_order_combining_marks_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("a\xcc\x81\xcc\x96"));
 }
 
-// --- additional coverage: subtle cases (whole-name Bidi, A-label
-// re-validation, non-canonical Punycode, per-occurrence ContextJ) ---
-
 // RFC 5893 sec 2: a digit-first label is invalid in a Bidi domain name
 // (whole-name rule)
 TEST(DNS_idn_hostname, invalid_bidi_digit_first_in_bidi_domain) {
