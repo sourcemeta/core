@@ -67,6 +67,26 @@ TEST(IO_for_each_line, view_references_per_iteration_buffer) {
   EXPECT_EQ(sizes.at(1), 4);
 }
 
+TEST(IO_for_each_line, strips_trailing_carriage_return) {
+  std::istringstream stream{"alpha\r\nbeta\r\n"};
+  std::vector<std::string> lines;
+  sourcemeta::core::for_each_line(
+      stream, [&](const std::string_view line) { lines.emplace_back(line); });
+  ASSERT_EQ(lines.size(), 2);
+  EXPECT_EQ(lines.at(0), "alpha");
+  EXPECT_EQ(lines.at(1), "beta");
+}
+
+TEST(IO_for_each_line, carriage_return_only_line_becomes_empty) {
+  std::istringstream stream{"\r\nfoo\r\n"};
+  std::vector<std::string> lines;
+  sourcemeta::core::for_each_line(
+      stream, [&](const std::string_view line) { lines.emplace_back(line); });
+  ASSERT_EQ(lines.size(), 2);
+  EXPECT_EQ(lines.at(0), "");
+  EXPECT_EQ(lines.at(1), "foo");
+}
+
 TEST(IO_for_each_line, only_newlines) {
   std::istringstream stream{"\n\n\n"};
   std::size_t count{0};

@@ -62,6 +62,28 @@ TEST(Text_hex_to_bytes, rejects_single_character) {
   EXPECT_FALSE(sourcemeta::core::hex_to_bytes("a").has_value());
 }
 
+TEST(Text_hex_to_bytes, odd_length_allowed_single_character) {
+  const auto result{sourcemeta::core::hex_to_bytes("a", true)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "\x0A");
+}
+
+TEST(Text_hex_to_bytes, odd_length_allowed_assumes_leading_zero) {
+  const auto result{sourcemeta::core::hex_to_bytes("abc", true)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "\x0A\xBC");
+}
+
+TEST(Text_hex_to_bytes, even_length_allowed_is_unchanged) {
+  const auto result{sourcemeta::core::hex_to_bytes("abcd", true)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "\xAB\xCD");
+}
+
+TEST(Text_hex_to_bytes, odd_length_allowed_rejects_non_hexadecimal) {
+  EXPECT_FALSE(sourcemeta::core::hex_to_bytes("xbc", true).has_value());
+}
+
 TEST(Text_hex_to_bytes, rejects_non_hexadecimal_letter) {
   EXPECT_FALSE(sourcemeta::core::hex_to_bytes("zz").has_value());
 }
