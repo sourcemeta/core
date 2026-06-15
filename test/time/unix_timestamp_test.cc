@@ -24,7 +24,10 @@ TEST(Time_unix_timestamp, from_negative_integer) {
   const auto point{
       sourcemeta::core::from_unix_timestamp(std::chrono::duration<double>{-1})};
   ASSERT_TRUE(point.has_value());
-  EXPECT_EQ(point.value(), std::chrono::system_clock::from_time_t(-1));
+  // Expressed without `from_time_t(-1)`, as `time_t` is not guaranteed to be
+  // signed
+  EXPECT_EQ(point.value(), std::chrono::system_clock::from_time_t(0) -
+                               std::chrono::seconds{1});
 }
 
 TEST(Time_unix_timestamp, from_fractional) {

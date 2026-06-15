@@ -121,7 +121,9 @@ auto from_asctime(const std::string_view value) noexcept
 /// @ingroup time
 /// Convert a POSIX timestamp, the number of seconds since the Unix epoch
 /// ignoring leap seconds and possibly fractional, into a time point, returning
-/// no value when the timestamp is not representable. For example:
+/// no value when the timestamp is not representable. Fractional seconds finer
+/// than the time point's tick resolution are truncated towards zero. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/time.h>
