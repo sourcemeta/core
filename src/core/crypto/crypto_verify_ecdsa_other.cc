@@ -3,7 +3,7 @@
 
 #include "crypto_bignum.h"
 #include "crypto_ecc.h"
-#include "crypto_verify_util.h"
+#include "crypto_helpers.h"
 
 #include <cstddef>     // std::size_t
 #include <string>      // std::string

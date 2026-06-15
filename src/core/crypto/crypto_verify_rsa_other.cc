@@ -2,7 +2,7 @@
 #include <sourcemeta/core/text.h>
 
 #include "crypto_bignum.h"
-#include "crypto_verify_util.h"
+#include "crypto_helpers.h"
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t

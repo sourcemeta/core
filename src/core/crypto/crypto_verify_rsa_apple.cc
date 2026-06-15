@@ -1,51 +1,17 @@
 #include <sourcemeta/core/crypto_verify.h>
 #include <sourcemeta/core/text.h>
 
-#include "crypto_verify_util.h"
+#include "crypto_helpers.h"
 
 #include <CoreFoundation/CoreFoundation.h> // CF*, kCF*
 #include <Security/Security.h>             // Sec*, kSec*
 
 #include <array>       // std::array
-#include <cstddef>     // std::size_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
 
 namespace {
-
-auto der_append_length(std::string &output, const std::size_t length) -> void {
-  if (length < 128) {
-    output.push_back(static_cast<char>(length));
-  } else if (length < 256) {
-    output.push_back('\x81');
-    output.push_back(static_cast<char>(length));
-  } else {
-    output.push_back('\x82');
-    output.push_back(static_cast<char>((length >> 8u) & 0xffu));
-    output.push_back(static_cast<char>(length & 0xffu));
-  }
-}
-
-auto der_append_unsigned_integer(std::string &output, std::string_view value)
-    -> void {
-  while (!value.empty() && value.front() == '\x00') {
-    value.remove_prefix(1);
-  }
-
-  // A leading zero byte keeps the value positive when its high bit is set,
-  // and represents the value zero when nothing remains
-  const auto needs_zero_prefix{
-      value.empty() ||
-      (static_cast<unsigned char>(value.front()) & 0x80u) != 0};
-  output.push_back('\x02');
-  der_append_length(output, value.size() + (needs_zero_prefix ? 1 : 0));
-  if (needs_zero_prefix) {
-    output.push_back('\x00');
-  }
-
-  output.append(value);
-}
 
 auto to_sec_key_pkcs1_v15_algorithm(
     const sourcemeta::core::SignatureHashFunction hash) noexcept
@@ -90,11 +56,11 @@ auto make_rsa_public_key(const std::string_view modulus,
   // The platform expects the PKCS#1 RSAPublicKey structure, a DER sequence
   // of the modulus and exponent integers (RFC 8017 Appendix A.1.1)
   std::string body;
-  der_append_unsigned_integer(body, modulus);
-  der_append_unsigned_integer(body, exponent);
+  sourcemeta::core::der_append_unsigned_integer(body, modulus);
+  sourcemeta::core::der_append_unsigned_integer(body, exponent);
   std::string der;
   der.push_back('\x30');
-  der_append_length(der, body.size());
+  sourcemeta::core::der_append_length(der, body.size());
   der.append(body);
 
   auto key_data{make_data(der)};

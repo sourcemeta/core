@@ -1,7 +1,7 @@
 #include <sourcemeta/core/crypto_verify.h>
 #include <sourcemeta/core/text.h>
 
-#include "crypto_verify_util.h"
+#include "crypto_helpers.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

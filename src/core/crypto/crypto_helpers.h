@@ -1,8 +1,5 @@
-#ifndef SOURCEMETA_CORE_CRYPTO_VERIFY_UTIL_H_
-#define SOURCEMETA_CORE_CRYPTO_VERIFY_UTIL_H_
-
-// Helpers shared by the signature verification backends, exactly one of
-// which is compiled per build
+#ifndef SOURCEMETA_CORE_CRYPTO_HELPERS_H_
+#define SOURCEMETA_CORE_CRYPTO_HELPERS_H_
 
 #include <sourcemeta/core/crypto_sha256.h>
 #include <sourcemeta/core/crypto_sha384.h>
@@ -52,6 +49,40 @@ inline auto digest_message(const SignatureHashFunction hash,
   }
 
   std::unreachable();
+}
+
+inline auto der_append_length(std::string &output, const std::size_t length)
+    -> void {
+  if (length < 128) {
+    output.push_back(static_cast<char>(length));
+  } else if (length < 256) {
+    output.push_back('\x81');
+    output.push_back(static_cast<char>(length));
+  } else {
+    output.push_back('\x82');
+    output.push_back(static_cast<char>((length >> 8u) & 0xffu));
+    output.push_back(static_cast<char>(length & 0xffu));
+  }
+}
+
+inline auto der_append_unsigned_integer(std::string &output,
+                                        std::string_view value) -> void {
+  while (!value.empty() && value.front() == '\x00') {
+    value.remove_prefix(1);
+  }
+
+  // A leading zero byte keeps the value positive when its high bit is set,
+  // and represents the value zero when nothing remains
+  const auto needs_zero_prefix{
+      value.empty() ||
+      (static_cast<unsigned char>(value.front()) & 0x80u) != 0};
+  output.push_back('\x02');
+  der_append_length(output, value.size() + (needs_zero_prefix ? 1 : 0));
+  if (needs_zero_prefix) {
+    output.push_back('\x00');
+  }
+
+  output.append(value);
 }
 
 } // namespace sourcemeta::core
