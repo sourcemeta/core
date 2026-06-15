@@ -41,33 +41,36 @@ static auto internal_parse_json(const char *&cursor, const char *end,
 
   std::vector<TapeEntry> tape;
   tape.reserve(static_cast<std::size_t>(end - cursor) / 8);
-  if (callback || track_positions) {
-    if constexpr (should_throw) {
+
+  if constexpr (should_throw) {
+    if (callback || track_positions) {
       scan_json<true>(cursor, end, buffer_start, line, column, tape);
     } else {
+      // Re-scan with position tracking on failure for a precise error message
       try {
-        scan_json<true>(cursor, end, buffer_start, line, column, tape);
+        scan_json<false>(cursor, end, buffer_start, line, column, tape);
       } catch (const JSONParseError &) {
-        return false;
-      }
-    }
-  } else {
-    try {
-      scan_json<false>(cursor, end, buffer_start, line, column, tape);
-    } catch (const JSONParseError &) {
-      if constexpr (should_throw) {
         cursor = buffer_start;
         tape.clear();
         line = 1;
         column = 0;
         scan_json<true>(cursor, end, buffer_start, line, column, tape);
-      } else {
-        return false;
       }
     }
-  }
-  construct_json(buffer_start, tape, callback, output);
-  if constexpr (!should_throw) {
+    construct_json(buffer_start, tape, callback, output);
+  } else {
+    // Both the scanning and the construction phases signal failure by throwing,
+    // so a single boundary around them reports either as no value
+    try {
+      if (callback || track_positions) {
+        scan_json<true>(cursor, end, buffer_start, line, column, tape);
+      } else {
+        scan_json<false>(cursor, end, buffer_start, line, column, tape);
+      }
+      construct_json(buffer_start, tape, callback, output);
+    } catch (const JSONParseError &) {
+      return false;
+    }
     return true;
   }
 }
