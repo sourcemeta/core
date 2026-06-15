@@ -7,7 +7,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME http
           http_method_test.cc http_status_from_code_test.cc
           http_is_status_line_test.cc http_accumulate_header_line_test.cc
           http_parse_headers_test.cc http_serialize_headers_test.cc
-          http_header_find_test.cc http_error_test.cc)
+          http_header_find_test.cc http_error_test.cc
+          http_parse_bearer_test.cc)
 
 target_link_libraries(sourcemeta_core_http_unit
   PRIVATE sourcemeta::core::http)
