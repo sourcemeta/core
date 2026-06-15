@@ -593,3 +593,60 @@ TEST(DNS_idn_hostname, label_with_out_of_order_combining_marks_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("a\xcc\x81\xcc\x96"));
   EXPECT_FALSE(sourcemeta::core::is_hostname("a\xcc\x81\xcc\x96"));
 }
+
+// RFC 5893 sec 2: a digit-first label is invalid in a Bidi domain name
+// (whole-name rule)
+TEST(DNS_idn_hostname, invalid_bidi_digit_first_in_bidi_domain) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\x30\x61\x2e\xd7\x90"));
+}
+
+// RFC 5893 sec 2 cond 1: label must start with L, R or AL
+TEST(DNS_idn_hostname, invalid_bidi_single_label_digit_then_rtl) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\x30\xd8\xa7"));
+}
+
+// RFC 5893 sec 2 cond 5: an LTR label may not contain an RTL letter
+TEST(DNS_idn_hostname, invalid_bidi_ltr_label_with_rtl_letter) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\x61\xd7\x90"));
+}
+
+// RFC 5890 sec 2.3.2.1 + 5892 sec 2.6: decodes to U+00A1 (DISALLOWED)
+TEST(DNS_idn_hostname, invalid_a_label_decodes_to_disallowed) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\x78\x6e\x2d\x2d\x37\x61"));
+}
+
+// RFC 5890 sec 2.3.2.1: A-label decodes to the all-ASCII label example
+TEST(DNS_idn_hostname, invalid_a_label_decodes_to_ascii_only) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\x78\x6e\x2d\x2d\x65\x78\x61\x6d\x70\x6c\x65\x2d"));
+}
+
+// RFC 5890 sec 2.3.2.1 + 5893: decodes to a-grave + Hebrew aleph
+TEST(DNS_idn_hostname, invalid_a_label_decodes_to_bidi_violation) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\x78\x6e\x2d\x2d\x30\x63\x61\x32\x34\x77"));
+}
+
+// RFC 5891 sec 5.4: non-canonical Punycode; canonical form is xn--9uc
+TEST(DNS_idn_hostname, invalid_noncanonical_punycode) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_idn_hostname("\x78\x6e\x2d\x2d\x2d\x39\x75\x63"));
+}
+
+// RFC 5892 sec 2.6: fullwidth digits U+FF11..U+FF13 are DISALLOWED
+TEST(DNS_idn_hostname, invalid_fullwidth_digits) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\xef\xbc\x91\xef\xbc\x92\xef\xbc\x93"));
+}
+
+// RFC 5892 sec 2.6: U+200B (ZERO WIDTH SPACE) is DISALLOWED
+TEST(DNS_idn_hostname, invalid_zero_width_space) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("\x61\xe2\x80\x8b\x62"));
+}
+
+// RFC 5892 appendix A.1 (errata 3312): the ZWNJ rule must hold at every
+// occurrence
+TEST(DNS_idn_hostname, invalid_zwnj_failing_at_one_occurrence) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname(
+      "\xe0\xa4\x95\xe0\xa5\x8d\xe2\x80\x8c\xe0\xa4\xb7\x78\xe2\x80\x8c\x79"));
+}
