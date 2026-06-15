@@ -157,20 +157,18 @@ static auto register_sha_monte_tests(const std::filesystem::path &file_path,
         //   M[i] = MD[i-3] || MD[i-2] || MD[i-1]
         //   MD[i] = SHA(M[i])
         // Output MD[1002]
-        auto md_0{current_seed};
-        auto md_1{current_seed};
-        auto md_2{current_seed};
+        auto md_0{sourcemeta::core::hex_to_bytes(current_seed).value()};
+        auto md_1{md_0};
+        auto md_2{md_0};
         for (std::uint64_t iteration{3}; iteration <= 1002; ++iteration) {
-          const auto message{sourcemeta::core::hex_to_bytes(md_0).value() +
-                             sourcemeta::core::hex_to_bytes(md_1).value() +
-                             sourcemeta::core::hex_to_bytes(md_2).value()};
-          auto next{digest(message)};
+          auto next{sourcemeta::core::hex_to_bytes(digest(md_0 + md_1 + md_2))
+                        .value()};
           md_0 = std::move(md_1);
           md_1 = std::move(md_2);
           md_2 = std::move(next);
         }
 
-        EXPECT_EQ(md_2, expected_digest);
+        EXPECT_EQ(sourcemeta::core::bytes_to_hex(md_2), expected_digest);
       });
 
       // The output becomes the seed for the next checkpoint
