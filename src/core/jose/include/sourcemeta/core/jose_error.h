@@ -22,6 +22,15 @@ public:
   }
 };
 
+/// @ingroup jose
+/// An error that occurs when parsing an invalid JSON Web Key Set.
+class SOURCEMETA_CORE_JOSE_EXPORT JWKSParseError : public std::exception {
+public:
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return "The input is not a valid JSON Web Key Set";
+  }
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif
