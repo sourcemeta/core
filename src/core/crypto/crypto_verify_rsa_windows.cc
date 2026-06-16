@@ -47,6 +47,12 @@ auto verify_rsa_signature(const sourcemeta::core::SignatureHashFunction hash,
     return false;
   }
 
+  // RFC 8017 Section 5.2.2: a signature representative not between 0 and n - 1
+  // is out of range, which the platform verifier does not reject
+  if (!sourcemeta::core::rsa_signature_in_range(signature, stripped_modulus)) {
+    return false;
+  }
+
   const auto modulus_bit_length{
       (stripped_modulus.size() * 8u) -
       static_cast<std::size_t>(std::countl_zero(
