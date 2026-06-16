@@ -37,16 +37,11 @@ jobs:
             shell: sh
             benchmark: linux/llvm
           - os: ubuntu-latest
-            cc: clang
-            cxx: clang++
-            type: static
-            shell: sh
-            options: -DSOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL:BOOL=ON
-          - os: ubuntu-latest
             cc: gcc
             cxx: g++
             type: static
             shell: sh
+            options: -DSOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL:BOOL=ON
             benchmark: linux/gcc
           - os: ubuntu-latest
             cc: clang
