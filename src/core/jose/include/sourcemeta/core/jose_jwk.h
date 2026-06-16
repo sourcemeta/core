@@ -37,7 +37,7 @@ namespace sourcemeta::core {
 /// ```
 class SOURCEMETA_CORE_JOSE_EXPORT JWK {
 public:
-  enum class Type : std::uint8_t { RSA, EllipticCurve };
+  enum class Type : std::uint8_t { RSA, EllipticCurve, OctetKeyPair };
 
   /// Parse a JSON Web Key from a JSON value, throwing on invalid input.
   explicit JWK(const JSON &value);
@@ -77,7 +77,9 @@ public:
     return this->exponent_;
   }
 
-  // Elliptic curve keys (RFC 7518 Section 6.2): curve name and coordinates
+  // Elliptic curve keys (RFC 7518 Section 6.2) and octet key pairs (RFC 8037
+  // Section 2) share the curve name. An octet key pair has no second
+  // coordinate, so its single encoded public key is exposed through the first
   [[nodiscard]] auto curve() const noexcept -> std::string_view {
     return this->curve_;
   }

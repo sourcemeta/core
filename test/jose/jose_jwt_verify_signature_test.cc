@@ -68,6 +68,20 @@ constexpr std::string_view ES512_TOKEN{
     "cCUUxtYG8qH09toBV2xQiMKPRLYp4O2RvpXZKYItp0dE-zaduwY6o_Z9wNoNJ"};
 constexpr std::string_view ES512_JWK{
     R"JSON({ "kty": "EC", "crv": "P-521", "x": "ASTBdxhoeBK4-OqrpidcXbsz_Gsd-TRgqkZGD9ROv7r_kBHW1_is2HDctAOVBWC3ywSUS5MZJIl17xJuYCyZA-Rg", "y": "AOQCwwmrhHkVTm9BgloMWDc7T3hw5yQM5Z-YhVumpCYyFIGuyrziD5iqsH8uQvsNXGqnMKhOJ26X8ADhvP20RIAW" })JSON"};
+constexpr std::string_view EDDSA_ED25519_TOKEN{
+    "eyJhbGciOiJFZERTQSJ9."
+    "eyJpc3MiOiJhY21lIiwiYXVkIjoiY2xpZW50IiwiZXhwIjoyMDAwMDAwMDAwfQ."
+    "NXpOKGRYG6ftFqlmEnDhPkbuX4Q7WXTjAjF4_"
+    "Ltuzgak4sT3ytrTY2SywMAkffchdDNKOlhKvWSkO-KvFwL2DQ"};
+constexpr std::string_view EDDSA_ED25519_JWK{
+    R"JSON({ "kty": "OKP", "crv": "Ed25519", "x": "6L5CYp-b45wSnsCo-PdL4lZ1sXl7C0DG0iF2g_UXsh8" })JSON"};
+constexpr std::string_view EDDSA_ED448_TOKEN{
+    "eyJhbGciOiJFZERTQSJ9."
+    "eyJpc3MiOiJhY21lIiwiYXVkIjoiY2xpZW50IiwiZXhwIjoyMDAwMDAwMDAwfQ.6cGhapIP_"
+    "Yppjzb66QUyfKuTtFbVv3eQ2RQnHpOf5NqwlAXvSqMxIoExnPqjW6BrMOLQSJ-Wbz-Aqa2_"
+    "cK08tlqWEaWx_T5YduhDo3oqdLmKmrupiW_h2XM1ZLVbrZCKgp74CxYvOETEDq5qoaJfvQ4A"};
+constexpr std::string_view EDDSA_ED448_JWK{
+    R"JSON({ "kty": "OKP", "crv": "Ed448", "x": "E35kUtHOEUbcTPAayux0atDpqzE8jD1lGIdbrhR5I79Gm1bDz6JMUvrGk7zVusKM8FEDCWzJMjcA" })JSON"};
 } // namespace
 
 TEST(JOSE_jwt_verify_signature, rs256_valid) {
@@ -196,6 +210,28 @@ TEST(JOSE_jwt_verify_signature, es512_valid) {
   ASSERT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(ES512_JWK))};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(
+      sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
+}
+
+// Self-signed with OpenSSL, since no RFC worked example provides an EdDSA token
+// with a JSON object payload (RFC 8037 signs plain text)
+TEST(JOSE_jwt_verify_signature, eddsa_ed25519) {
+  const auto token{sourcemeta::core::JWT::from(EDDSA_ED25519_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(EDDSA_ED25519_JWK))};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(
+      sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
+}
+
+TEST(JOSE_jwt_verify_signature, eddsa_ed448) {
+  const auto token{sourcemeta::core::JWT::from(EDDSA_ED448_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+  const auto key{sourcemeta::core::JWK::from(
+      sourcemeta::core::parse_json(EDDSA_ED448_JWK))};
   ASSERT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));

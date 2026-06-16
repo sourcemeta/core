@@ -25,8 +25,9 @@ const auto HASH_DQ{sourcemeta::core::JSON::Object::hash("dq")};
 const auto HASH_QI{sourcemeta::core::JSON::Object::hash("qi")};
 const auto HASH_OTH{sourcemeta::core::JSON::Object::hash("oth")};
 
-// The RSA algorithms only require an RSA key, while each ECDSA algorithm is
-// tied to a specific curve (RFC 7518 Section 3.1)
+// The RSA algorithms only require an RSA key, each ECDSA algorithm is tied to a
+// specific curve (RFC 7518 Section 3.1), and the Edwards-curve algorithm
+// requires an octet key pair of either curve (RFC 8037 Section 3.1)
 auto algorithm_matches_key(const sourcemeta::core::JWSAlgorithm algorithm,
                            const sourcemeta::core::JWK::Type type,
                            const std::string_view curve) -> bool {
@@ -47,6 +48,8 @@ auto algorithm_matches_key(const sourcemeta::core::JWSAlgorithm algorithm,
     case sourcemeta::core::JWSAlgorithm::ES512:
       return type == sourcemeta::core::JWK::Type::EllipticCurve &&
              curve == "P-521";
+    case sourcemeta::core::JWSAlgorithm::EdDSA:
+      return type == sourcemeta::core::JWK::Type::OctetKeyPair;
   }
 
   std::unreachable();
@@ -61,6 +64,18 @@ auto ec_coordinate_bytes(const std::string_view curve)
     return 48;
   } else if (curve == "P-521") {
     return 66;
+  } else {
+    return std::nullopt;
+  }
+}
+
+// The public key octet length is fixed per Edwards curve (RFC 8032 Sections
+// 5.1.5 and 5.2.5)
+auto okp_key_bytes(const std::string_view curve) -> std::optional<std::size_t> {
+  if (curve == "Ed25519") {
+    return 32;
+  } else if (curve == "Ed448") {
+    return 57;
   } else {
     return std::nullopt;
   }
@@ -145,6 +160,33 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     result.curve_ = curve->to_string();
     result.coordinate_x_ = std::move(decoded_x).value();
     result.coordinate_y_ = std::move(decoded_y).value();
+  } else if (key_type_value == "OKP") {
+    // A public key must not carry the private parameter (RFC 8037 Section 2)
+    if (value.try_at("d", HASH_D) != nullptr) {
+      return false;
+    }
+
+    const auto *curve{value.try_at("crv", HASH_CRV)};
+    const auto *public_key{value.try_at("x", HASH_X)};
+    if (curve == nullptr || !curve->is_string() || public_key == nullptr ||
+        !public_key->is_string()) {
+      return false;
+    }
+
+    const auto key_bytes{okp_key_bytes(curve->to_string())};
+    if (!key_bytes.has_value()) {
+      return false;
+    }
+
+    auto decoded_public_key{base64url_decode(public_key->to_string())};
+    if (!decoded_public_key.has_value() ||
+        decoded_public_key.value().size() != key_bytes.value()) {
+      return false;
+    }
+
+    result.type_ = Type::OctetKeyPair;
+    result.curve_ = curve->to_string();
+    result.coordinate_x_ = std::move(decoded_public_key).value();
   } else {
     return false;
   }

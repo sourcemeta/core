@@ -25,6 +25,9 @@ auto hash_for(const sourcemeta::core::JWSAlgorithm algorithm)
     case JWSAlgorithm::PS512:
     case JWSAlgorithm::ES512:
       return SignatureHashFunction::SHA512;
+    // The Edwards-curve algorithm fixes its own hash, so it never reaches here
+    case JWSAlgorithm::EdDSA:
+      break;
   }
 
   std::unreachable();
@@ -80,6 +83,25 @@ auto jws_verify_signature(const std::optional<JWSAlgorithm> algorithm,
              ecdsa_verify(EllipticCurve::P521, SignatureHashFunction::SHA512,
                           key.coordinate_x(), key.coordinate_y(), signing_input,
                           signature);
+    // The Edwards-curve algorithm names one of two curves through the key
+    // rather than the algorithm (RFC 8037 Section 3.1), and the public key is a
+    // single encoded point exposed as the first coordinate
+    case JWSAlgorithm::EdDSA:
+      if (key.type() != JWK::Type::OctetKeyPair) {
+        return false;
+      }
+
+      if (key.curve() == "Ed25519") {
+        return eddsa_verify(EdwardsCurve::Ed25519, key.coordinate_x(),
+                            signing_input, signature);
+      }
+
+      if (key.curve() == "Ed448") {
+        return eddsa_verify(EdwardsCurve::Ed448, key.coordinate_x(),
+                            signing_input, signature);
+      }
+
+      return false;
   }
 
   std::unreachable();
