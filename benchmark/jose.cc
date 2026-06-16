@@ -39,6 +39,8 @@ static void JOSE_VerifySignature_RS256(benchmark::State &state) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RS256_JWK))};
+  assert(token.has_value());
+  assert(key.has_value());
   for (auto _ : state) {
     auto result{
         sourcemeta::core::jwt_verify_signature(token.value(), key.value())};
@@ -51,6 +53,8 @@ static void JOSE_VerifySignature_ES512(benchmark::State &state) {
   const auto token{sourcemeta::core::JWT::from(ES512_TOKEN)};
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(ES512_JWK))};
+  assert(token.has_value());
+  assert(key.has_value());
   for (auto _ : state) {
     auto result{
         sourcemeta::core::jwt_verify_signature(token.value(), key.value())};
@@ -65,8 +69,10 @@ static void JOSE_Verify_RS256(benchmark::State &state) {
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  assert(keys.has_value());
   for (auto _ : state) {
     const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
+    assert(token.has_value());
     auto result{sourcemeta::core::jwt_verify(token.value(), keys.value(),
                                              allowed, "acme", "client", now)};
     assert(!result.has_value());
@@ -80,8 +86,10 @@ static void JOSE_Verify_ES512(benchmark::State &state) {
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::ES512}};
   const auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  assert(keys.has_value());
   for (auto _ : state) {
     const auto token{sourcemeta::core::JWT::from(ES512_TOKEN)};
+    assert(token.has_value());
     auto result{sourcemeta::core::jwt_verify(token.value(), keys.value(),
                                              allowed, "acme", "client", now)};
     assert(!result.has_value());
