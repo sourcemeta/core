@@ -21,8 +21,8 @@
 namespace sourcemeta::core {
 
 /// @ingroup jose
-/// The claim validation errors that `jwt_check_claims` can return, one per
-/// check it performs rather than an exhaustive list of registered claims.
+/// The claim validation errors that claim checking can return, one per check
+/// performed rather than an exhaustive list of registered claims.
 enum class JWTClaimError : std::uint8_t {
   Issuer,
   Subject,
@@ -65,6 +65,32 @@ auto jwt_check_claims(
     -> std::optional<JWTClaimError>;
 
 /// @ingroup jose
+/// Verify a JSON Web Signature given its algorithm, its signing input, and its
+/// decoded signature against a JSON Web Key, returning false rather than
+/// throwing for an unrecognized algorithm, a key whose type or curve cannot
+/// serve the algorithm, a key declaring a contradicting algorithm, or a
+/// signature that does not verify. The signing input is the exact bytes the
+/// signature was computed over, which carry no constraint on their content. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jose.h>
+/// #include <cassert>
+///
+/// const auto key{sourcemeta::core::JWK::from(sourcemeta::core::parse_json(
+///     R"JSON({ "kty": "RSA", "n": "", "e": "" })JSON"))};
+/// assert(!key.has_value() ||
+///        !sourcemeta::core::jws_verify_signature(
+///            sourcemeta::core::JWSAlgorithm::RS256, "header.payload",
+///            "signature", key.value()));
+/// ```
+SOURCEMETA_CORE_JOSE_EXPORT
+auto jws_verify_signature(const std::optional<JWSAlgorithm> algorithm,
+                          const std::string_view signing_input,
+                          const std::string_view signature, const JWK &key)
+    -> bool;
+
+/// @ingroup jose
 /// Verify the signature of a JSON Web Token against a JSON Web Key, returning
 /// false rather than throwing whenever the token does not carry a confirmed
 /// valid signature for the key. This includes an unrecognized algorithm, a key
@@ -91,7 +117,8 @@ SOURCEMETA_CORE_JOSE_EXPORT
 auto jwt_verify_signature(const JWT &token, const JWK &key) -> bool;
 
 /// @ingroup jose
-/// The steps that `jwt_verify` can fail, in the order it evaluates them.
+/// The steps of full token verification that can fail, in the order they are
+/// evaluated.
 enum class JWTVerificationError : std::uint8_t {
   AlgorithmNotAllowed,
   UnknownKey,
