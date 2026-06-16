@@ -215,11 +215,11 @@ auto main(int argc, char **argv) -> int {
   const auto vectors{base / "testvectors_v1"};
 
   constexpr std::array<std::string_view, 9> rsa_pkcs1{
-      "rsa_signature_2048_sha256_test", "rsa_signature_2048_sha384_test",
-      "rsa_signature_2048_sha512_test", "rsa_signature_3072_sha256_test",
-      "rsa_signature_3072_sha384_test", "rsa_signature_3072_sha512_test",
-      "rsa_signature_4096_sha256_test", "rsa_signature_4096_sha384_test",
-      "rsa_signature_4096_sha512_test"};
+      {"rsa_signature_2048_sha256_test", "rsa_signature_2048_sha384_test",
+       "rsa_signature_2048_sha512_test", "rsa_signature_3072_sha256_test",
+       "rsa_signature_3072_sha384_test", "rsa_signature_3072_sha512_test",
+       "rsa_signature_4096_sha256_test", "rsa_signature_4096_sha384_test",
+       "rsa_signature_4096_sha512_test"}};
   for (const auto name : rsa_pkcs1) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
                        "Wycheproof_RSA_PKCS1",
@@ -227,9 +227,9 @@ auto main(int argc, char **argv) -> int {
   }
 
   constexpr std::array<std::string_view, 6> rsa_pss{
-      "rsa_pss_2048_sha256_mgf1_32_test", "rsa_pss_2048_sha384_mgf1_48_test",
-      "rsa_pss_3072_sha256_mgf1_32_test", "rsa_pss_4096_sha256_mgf1_32_test",
-      "rsa_pss_4096_sha384_mgf1_48_test", "rsa_pss_4096_sha512_mgf1_64_test"};
+      {"rsa_pss_2048_sha256_mgf1_32_test", "rsa_pss_2048_sha384_mgf1_48_test",
+       "rsa_pss_3072_sha256_mgf1_32_test", "rsa_pss_4096_sha256_mgf1_32_test",
+       "rsa_pss_4096_sha384_mgf1_48_test", "rsa_pss_4096_sha512_mgf1_64_test"}};
   for (const auto name : rsa_pss) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
                        "Wycheproof_RSA_PSS",
@@ -237,9 +237,9 @@ auto main(int argc, char **argv) -> int {
   }
 
   constexpr std::array<std::string_view, 5> ecdsa{
-      "ecdsa_secp256r1_sha256_p1363_test", "ecdsa_secp256r1_sha512_p1363_test",
-      "ecdsa_secp384r1_sha384_p1363_test", "ecdsa_secp384r1_sha512_p1363_test",
-      "ecdsa_secp521r1_sha512_p1363_test"};
+      {"ecdsa_secp256r1_sha256_p1363_test", "ecdsa_secp256r1_sha512_p1363_test",
+       "ecdsa_secp384r1_sha384_p1363_test", "ecdsa_secp384r1_sha512_p1363_test",
+       "ecdsa_secp521r1_sha512_p1363_test"}};
   for (const auto name : ecdsa) {
     register_ecdsa_tests(vectors / (std::string{name} + ".json"),
                          "Wycheproof_ECDSA");
