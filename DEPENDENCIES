@@ -9,3 +9,4 @@ googletest https://github.com/google/googletest a7f443b80b105f940225332ed3c31f27
 googlebenchmark https://github.com/google/benchmark 378fe693a1ef51500db21b11ff05a8018c5f0e55
 libdeflate https://github.com/ebiggers/libdeflate v1.25
 unicodetools https://github.com/unicode-org/unicodetools final-17.0-20250910
+jose-cookbook https://github.com/ietf-jose/cookbook 13692b68bfc18b99557a5b1ed311fd5077bfff04
