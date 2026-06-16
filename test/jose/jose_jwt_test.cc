@@ -168,6 +168,38 @@ TEST(JOSE_JWT, not_before_and_issued_at) {
             std::chrono::system_clock::from_time_t(1699999999));
 }
 
+TEST(JOSE_JWT, expires_at_exponent_form) {
+  // Exponent notation parses to a decimal-backed number, which must still
+  // yield the correct timestamp (1e9 seconds since the epoch)
+  const auto input{
+      make_token(R"({ "alg": "RS256" })", R"({ "exp": 1e9 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  ASSERT_TRUE(token.value().expires_at().has_value());
+  EXPECT_EQ(token.value().expires_at().value(),
+            std::chrono::system_clock::from_time_t(1000000000));
+}
+
+TEST(JOSE_JWT, expires_at_high_precision_decimal) {
+  // More than fifteen significant digits parses to a decimal-backed number
+  const auto input{make_token(R"({ "alg": "RS256" })",
+                              R"({ "exp": 1700000000.000000001 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  ASSERT_TRUE(token.value().expires_at().has_value());
+  EXPECT_EQ(token.value().expires_at().value(),
+            std::chrono::system_clock::from_time_t(1700000000));
+}
+
+TEST(JOSE_JWT, expires_at_out_of_range_decimal_is_absent) {
+  // A decimal beyond the range of a double cannot represent a timestamp
+  const auto input{
+      make_token(R"({ "alg": "RS256" })", R"({ "exp": 1e400 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  EXPECT_FALSE(token.value().expires_at().has_value());
+}
+
 TEST(JOSE_JWT, absent_date_claim) {
   const auto input{make_token(R"({ "alg": "RS256" })", R"({})", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};

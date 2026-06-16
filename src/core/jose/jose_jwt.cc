@@ -6,6 +6,7 @@
 
 #include <chrono>      // std::chrono::duration, std::chrono::system_clock
 #include <optional>    // std::optional, std::nullopt
+#include <stdexcept>   // std::out_of_range
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 
@@ -44,9 +45,26 @@ auto date_claim(const sourcemeta::core::JSON &object,
   }
 
   // A NumericDate is the number of seconds since the Unix epoch, possibly
-  // non-integer (RFC 7519 Section 2)
+  // non-integer (RFC 7519 Section 2). A number can be backed by an integer, a
+  // real, or a decimal (such as the exponent form "1e9"), each of which must
+  // be read through its own accessor
+  double seconds{0};
+  if (member->is_integer()) {
+    seconds = static_cast<double>(member->to_integer());
+  } else if (member->is_real()) {
+    seconds = member->to_real();
+  } else {
+    // A decimal whose magnitude exceeds the range of a double cannot stand for
+    // a usable timestamp
+    try {
+      seconds = member->to_decimal().to_double();
+    } catch (const std::out_of_range &) {
+      return std::nullopt;
+    }
+  }
+
   return sourcemeta::core::from_unix_timestamp(
-      std::chrono::duration<double>{member->as_real()});
+      std::chrono::duration<double>{seconds});
 }
 
 } // namespace
@@ -164,17 +182,17 @@ auto JWT::has_audience(const std::string_view audience) const noexcept -> bool {
   return false;
 }
 
-auto JWT::expires_at() const noexcept
+auto JWT::expires_at() const
     -> std::optional<std::chrono::system_clock::time_point> {
   return date_claim(this->payload_, "exp", HASH_EXP);
 }
 
-auto JWT::not_before() const noexcept
+auto JWT::not_before() const
     -> std::optional<std::chrono::system_clock::time_point> {
   return date_claim(this->payload_, "nbf", HASH_NBF);
 }
 
-auto JWT::issued_at() const noexcept
+auto JWT::issued_at() const
     -> std::optional<std::chrono::system_clock::time_point> {
   return date_claim(this->payload_, "iat", HASH_IAT);
 }

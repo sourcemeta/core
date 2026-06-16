@@ -68,13 +68,13 @@ public:
   [[nodiscard]] auto
   has_audience(const std::string_view audience) const noexcept -> bool;
 
-  [[nodiscard]] auto expires_at() const noexcept
+  [[nodiscard]] auto expires_at() const
       -> std::optional<std::chrono::system_clock::time_point>;
 
-  [[nodiscard]] auto not_before() const noexcept
+  [[nodiscard]] auto not_before() const
       -> std::optional<std::chrono::system_clock::time_point>;
 
-  [[nodiscard]] auto issued_at() const noexcept
+  [[nodiscard]] auto issued_at() const
       -> std::optional<std::chrono::system_clock::time_point>;
 
   [[nodiscard]] auto token_id() const noexcept
