@@ -19,6 +19,10 @@ enum class SignatureHashFunction : std::uint8_t { SHA256, SHA384, SHA512 };
 enum class EllipticCurve : std::uint8_t { P256, P384, P521 };
 
 /// @ingroup crypto
+/// The Edwards curves supported by signature verification.
+enum class EdwardsCurve : std::uint8_t { Ed25519, Ed448 };
+
+/// @ingroup crypto
 /// Verify an RSASSA-PKCS1-v1_5 signature (RFC 8017 Section 8.2.2) over a
 /// message, given the public key as raw big-endian modulus and exponent
 /// bytes. The signature is invalid rather than an error if any input is
@@ -77,6 +81,26 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT rsassa_pss_verify(
 auto SOURCEMETA_CORE_CRYPTO_EXPORT ecdsa_verify(
     const EllipticCurve curve, const SignatureHashFunction hash,
     const std::string_view coordinate_x, const std::string_view coordinate_y,
+    const std::string_view message, const std::string_view signature) -> bool;
+
+/// @ingroup crypto
+/// Verify an EdDSA signature (RFC 8032) over a message, given the public key
+/// as the raw encoded curve point. There is no separate hash function, as the
+/// curve fixes it, and the key is a single encoded point rather than a
+/// coordinate pair. The signature is invalid rather than an error if any input
+/// is malformed, including a key or signature of the wrong length for the
+/// curve. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// assert(!sourcemeta::core::eddsa_verify(
+///     sourcemeta::core::EdwardsCurve::Ed25519,
+///     "", "message", "signature"));
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT eddsa_verify(
+    const EdwardsCurve curve, const std::string_view public_key,
     const std::string_view message, const std::string_view signature) -> bool;
 
 } // namespace sourcemeta::core

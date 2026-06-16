@@ -31,6 +31,32 @@ inline auto curve_field_bytes(const EllipticCurve curve) noexcept
   std::unreachable();
 }
 
+// The public key and signature octet lengths are fixed per curve (RFC 8032
+// Section 5.1.2 and Section 5.1.6)
+inline auto eddsa_public_key_bytes(const EdwardsCurve curve) noexcept
+    -> std::size_t {
+  switch (curve) {
+    case EdwardsCurve::Ed25519:
+      return 32;
+    case EdwardsCurve::Ed448:
+      return 57;
+  }
+
+  std::unreachable();
+}
+
+inline auto eddsa_signature_bytes(const EdwardsCurve curve) noexcept
+    -> std::size_t {
+  switch (curve) {
+    case EdwardsCurve::Ed25519:
+      return 64;
+    case EdwardsCurve::Ed448:
+      return 114;
+  }
+
+  std::unreachable();
+}
+
 inline auto digest_message(const SignatureHashFunction hash,
                            const std::string_view message) -> std::string {
   switch (hash) {

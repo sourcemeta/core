@@ -61,7 +61,7 @@ inline auto bignum_from_u64(const std::uint64_t value) noexcept -> Bignum {
   return result;
 }
 
-inline auto bignum_from_hex(const std::string_view hex) noexcept -> Bignum {
+inline auto bignum_from_hex(const std::string_view hex) -> Bignum {
   const auto nibble{[](const char character) noexcept -> std::uint8_t {
     if (character >= '0' && character <= '9') {
       return static_cast<std::uint8_t>(character - '0');

@@ -384,6 +384,102 @@ static auto register_ecdsa_sigver_tests(const std::filesystem::path &file_path)
   });
 }
 
+static auto register_eddsa_25519_tests(const std::filesystem::path &file_path)
+    -> void {
+  std::uint64_t case_count{0};
+
+  for_each_vector_line(file_path, [&](const std::string_view line) {
+    // Each line is colon-separated: the secret (seed concatenated with the
+    // public key), the public key, the message, and the signature
+    // concatenated with the message (RFC 8032 reference format)
+    const auto first{sourcemeta::core::split_once(line, ':')};
+    if (!first.has_value()) {
+      return;
+    }
+
+    const auto second{sourcemeta::core::split_once(first->second, ':')};
+    if (!second.has_value()) {
+      return;
+    }
+
+    const auto third{sourcemeta::core::split_once(second->second, ':')};
+    if (!third.has_value()) {
+      return;
+    }
+
+    const std::string public_key_hex{second->first};
+    const std::string message_hex{third->first};
+    const std::string signature_hex{third->second.substr(0, 128)};
+    case_count += 1;
+    register_case("PyCA_Cryptography_Ed25519_SigVer",
+                  "case_" + std::to_string(case_count), [=]() {
+                    EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+                        sourcemeta::core::EdwardsCurve::Ed25519,
+                        sourcemeta::core::hex_to_bytes(public_key_hex).value(),
+                        sourcemeta::core::hex_to_bytes(message_hex).value(),
+                        sourcemeta::core::hex_to_bytes(signature_hex).value()));
+                  });
+  });
+}
+
+static auto register_eddsa_448_tests(const std::filesystem::path &file_path)
+    -> void {
+  std::string current_count;
+  std::string public_key_hex;
+  std::string message_hex;
+  std::string signature_hex;
+  bool has_context{false};
+
+  for_each_vector_line(file_path, [&](const std::string_view line) {
+    // The records are "Key = Value", but the message value may be empty, so
+    // split on the first '=' and trim the surrounding spaces by hand
+    const auto separator{line.find('=')};
+    if (separator == std::string_view::npos) {
+      return;
+    }
+
+    auto key{line.substr(0, separator)};
+    while (!key.empty() && key.back() == ' ') {
+      key.remove_suffix(1);
+    }
+
+    auto value{line.substr(separator + 1)};
+    while (!value.empty() && value.front() == ' ') {
+      value.remove_prefix(1);
+    }
+
+    if (key == "COUNT") {
+      current_count = value;
+      has_context = false;
+    } else if (key == "PUBLIC") {
+      public_key_hex = value;
+    } else if (key == "MESSAGE") {
+      message_hex = value;
+    } else if (key == "CONTEXT") {
+      // JWS uses Ed448 with an empty context (RFC 8037 Section 3.1), so the
+      // contextful vectors are not applicable
+      has_context = !value.empty();
+    } else if (key == "SIGNATURE") {
+      signature_hex = value;
+      if (has_context) {
+        return;
+      }
+
+      const auto public_key{public_key_hex};
+      const auto message{message_hex};
+      const auto signature{signature_hex};
+      register_case("PyCA_Cryptography_Ed448_SigVer", "count_" + current_count,
+                    [=]() {
+                      EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+                          sourcemeta::core::EdwardsCurve::Ed448,
+                          sourcemeta::core::hex_to_bytes(public_key).value(),
+                          sourcemeta::core::hex_to_bytes(message).value(),
+                          sourcemeta::core::hex_to_bytes(signature).value()));
+                    });
+    }
+  });
+}
+
 auto main(int argc, char **argv) -> int {
   testing::InitGoogleTest(&argc, argv);
   const std::filesystem::path suite_path{PYCA_CRYPTOGRAPHY_PATH};
@@ -404,6 +500,11 @@ auto main(int argc, char **argv) -> int {
 
   register_ecdsa_sigver_tests(suite_path / "asymmetric" / "ECDSA" /
                               "FIPS_186-3" / "SigVer.rsp");
+
+  register_eddsa_25519_tests(suite_path / "asymmetric" / "Ed25519" /
+                             "sign.input");
+
+  register_eddsa_448_tests(suite_path / "asymmetric" / "Ed448" / "rfc8032.txt");
 
   return RUN_ALL_TESTS();
 }
