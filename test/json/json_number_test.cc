@@ -2,6 +2,8 @@
 
 #include <sourcemeta/core/json.h>
 
+#include <stdexcept> // std::out_of_range
+
 TEST(JSON_number, is_number_zero) {
   const sourcemeta::core::JSON document{0};
   EXPECT_TRUE(document.is_number());
@@ -586,7 +588,20 @@ TEST(JSON_number, as_real_integer) {
   EXPECT_DOUBLE_EQ(document.as_real(), 4.0);
 }
 
-TEST(JSON_value, compare_int_real_equal) {
+TEST(JSON_number, as_real_decimal) {
+  const auto document{sourcemeta::core::parse_json("1e9")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_DOUBLE_EQ(document.as_real(), 1e9);
+}
+
+TEST(JSON_number, as_real_decimal_out_of_range_throws) {
+  const auto document{sourcemeta::core::parse_json("1e400")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_THROW([[maybe_unused]] const auto value = document.as_real(),
+               std::out_of_range);
+}
+
+TEST(JSON_number, compare_int_real_equal) {
   const sourcemeta::core::JSON left{300};
   const sourcemeta::core::JSON right{300.0};
   EXPECT_TRUE(left.is_integer());
@@ -638,6 +653,32 @@ TEST(JSON_number, as_integer_integer_real) {
 TEST(JSON_number, as_integer_non_integer_real) {
   const sourcemeta::core::JSON document{5.5};
   EXPECT_EQ(document.as_integer(), 5);
+}
+
+TEST(JSON_number, as_integer_decimal) {
+  const auto document{sourcemeta::core::parse_json("1e9")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.as_integer(), 1000000000);
+}
+
+TEST(JSON_number, as_integer_decimal_fractional) {
+  const auto document{sourcemeta::core::parse_json("1700000000.000000001")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.as_integer(), 1700000000);
+}
+
+TEST(JSON_number, as_integer_decimal_out_of_range_throws) {
+  const auto document{sourcemeta::core::parse_json("10000000000000000000")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_THROW([[maybe_unused]] const auto value = document.as_integer(),
+               std::out_of_range);
+}
+
+TEST(JSON_number, as_integer_real_out_of_range_throws) {
+  const sourcemeta::core::JSON document{1e300};
+  ASSERT_TRUE(document.is_real());
+  EXPECT_THROW([[maybe_unused]] const auto value = document.as_integer(),
+               std::out_of_range);
 }
 
 TEST(JSON_number, is_integer_int_storage) {
