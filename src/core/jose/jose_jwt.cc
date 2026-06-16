@@ -15,6 +15,7 @@ namespace {
 const auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg")};
 const auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit")};
 const auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid")};
+const auto HASH_TYP{sourcemeta::core::JSON::Object::hash("typ")};
 const auto HASH_ISS{sourcemeta::core::JSON::Object::hash("iss")};
 const auto HASH_SUB{sourcemeta::core::JSON::Object::hash("sub")};
 const auto HASH_AUD{sourcemeta::core::JSON::Object::hash("aud")};
@@ -137,6 +138,10 @@ auto JWT::from(const std::string_view input) -> std::optional<JWT> {
 
 auto JWT::key_id() const noexcept -> std::optional<std::string_view> {
   return string_claim(this->header_, "kid", HASH_KID);
+}
+
+auto JWT::type() const noexcept -> std::optional<std::string_view> {
+  return string_claim(this->header_, "typ", HASH_TYP);
 }
 
 auto JWT::issuer() const noexcept -> std::optional<std::string_view> {
