@@ -136,13 +136,13 @@ TEST(Numeric_uint128, modulo_assignment) {
   EXPECT_EQ(static_cast<std::uint64_t>(value), 2);
 }
 
-TEST(Numeric_uint128, modulo_assignment_large_value) {
-  // (10^18 * 7 + 3) % 7 == 3, exercising the high word in the dividend
-  const auto product = sourcemeta::core::uint128_t{1000000000000000000ULL} *
-                       sourcemeta::core::uint128_t{7};
-  sourcemeta::core::uint128_t value{product + sourcemeta::core::uint128_t{3}};
+TEST(Numeric_uint128, modulo_assignment_high_word) {
+  // 2^64 + 3 has a non-zero high word, exercising the high-word division path.
+  // 2^64 mod 7 == 2 (since 2^3 == 1 mod 7 and 64 == 1 mod 3), so the result is 5
+  sourcemeta::core::uint128_t value{(sourcemeta::core::uint128_t{1} << 64) +
+                                    sourcemeta::core::uint128_t{3}};
   value %= static_cast<std::uint64_t>(7);
-  EXPECT_EQ(static_cast<std::uint64_t>(value), 3);
+  EXPECT_EQ(static_cast<std::uint64_t>(value), 5);
 }
 
 TEST(Numeric_uint128, equal) {
