@@ -2,6 +2,8 @@
 
 #include <sourcemeta/core/json.h>
 
+#include <stdexcept> // std::out_of_range
+
 TEST(JSON_number, is_number_zero) {
   const sourcemeta::core::JSON document{0};
   EXPECT_TRUE(document.is_number());
@@ -586,7 +588,20 @@ TEST(JSON_number, as_real_integer) {
   EXPECT_DOUBLE_EQ(document.as_real(), 4.0);
 }
 
-TEST(JSON_value, compare_int_real_equal) {
+TEST(JSON_number, as_real_decimal) {
+  const auto document{sourcemeta::core::parse_json("1e9")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_DOUBLE_EQ(document.as_real(), 1e9);
+}
+
+TEST(JSON_number, as_real_decimal_out_of_range_throws) {
+  const auto document{sourcemeta::core::parse_json("1e400")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_THROW([[maybe_unused]] const auto value = document.as_real(),
+               std::out_of_range);
+}
+
+TEST(JSON_number, compare_int_real_equal) {
   const sourcemeta::core::JSON left{300};
   const sourcemeta::core::JSON right{300.0};
   EXPECT_TRUE(left.is_integer());

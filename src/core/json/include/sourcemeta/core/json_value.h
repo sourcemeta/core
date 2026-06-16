@@ -774,7 +774,9 @@ public:
   }
 
   /// Get the JSON numeric document as a real number if it is not one already.
-  /// For example:
+  /// A decimal whose magnitude does not fit in a double throws
+  /// `std::out_of_range`, matching the behaviour of converting that decimal
+  /// directly. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/json.h>
@@ -783,11 +785,15 @@ public:
   /// const sourcemeta::core::JSON document{5};
   /// assert(document.as_real() == 5.0);
   /// ```
-  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_real() const noexcept
-      -> Real {
+  [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto as_real() const -> Real {
     assert(this->is_number());
-    return this->is_real() ? this->to_real()
-                           : static_cast<Real>(this->to_integer());
+    if (this->is_real()) {
+      return this->to_real();
+    } else if (this->is_integer()) {
+      return static_cast<Real>(this->to_integer());
+    } else {
+      return this->to_decimal().to_double();
+    }
   }
 
   /// Get the JSON numeric document as an integer number if it is not one

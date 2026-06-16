@@ -45,22 +45,14 @@ auto date_claim(const sourcemeta::core::JSON &object,
   }
 
   // A NumericDate is the number of seconds since the Unix epoch, possibly
-  // non-integer (RFC 7519 Section 2). A number can be backed by an integer, a
-  // real, or a decimal (such as the exponent form "1e9"), each of which must
-  // be read through its own accessor
+  // non-integer (RFC 7519 Section 2). A decimal-backed number (such as the
+  // exponent form "1e9") whose magnitude exceeds the range of a double cannot
+  // stand for a usable timestamp, and untrusted input must not abort
   double seconds{0};
-  if (member->is_integer()) {
-    seconds = static_cast<double>(member->to_integer());
-  } else if (member->is_real()) {
-    seconds = member->to_real();
-  } else {
-    // A decimal whose magnitude exceeds the range of a double cannot stand for
-    // a usable timestamp
-    try {
-      seconds = member->to_decimal().to_double();
-    } catch (const std::out_of_range &) {
-      return std::nullopt;
-    }
+  try {
+    seconds = member->as_real();
+  } catch (const std::out_of_range &) {
+    return std::nullopt;
   }
 
   return sourcemeta::core::from_unix_timestamp(
