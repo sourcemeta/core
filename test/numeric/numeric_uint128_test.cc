@@ -79,6 +79,32 @@ TEST(Numeric_uint128, addition_assignment) {
   EXPECT_EQ(static_cast<std::uint64_t>(value), 150);
 }
 
+TEST(Numeric_uint128, subtraction) {
+  const sourcemeta::core::uint128_t left{300};
+  const sourcemeta::core::uint128_t right{100};
+  const auto result = left - right;
+  EXPECT_EQ(static_cast<std::uint64_t>(result), 200);
+}
+
+TEST(Numeric_uint128, subtraction_assignment) {
+  sourcemeta::core::uint128_t value{150};
+  value -= sourcemeta::core::uint128_t{50};
+  EXPECT_EQ(static_cast<std::uint64_t>(value), 100);
+}
+
+TEST(Numeric_uint128, subtraction_borrow_from_high_bits) {
+  // 2^64 - 1 borrows from the high word, leaving all ones in the low word
+  const auto value = sourcemeta::core::uint128_t{1} << 64;
+  const auto result = value - sourcemeta::core::uint128_t{1};
+  EXPECT_EQ(static_cast<std::uint64_t>(result), UINT64_MAX);
+  EXPECT_EQ(static_cast<std::uint64_t>(result >> 64), 0);
+}
+
+TEST(Numeric_uint128, subtraction_to_zero) {
+  const sourcemeta::core::uint128_t value{42};
+  EXPECT_FALSE(static_cast<bool>(value - value));
+}
+
 TEST(Numeric_uint128, multiplication) {
   const sourcemeta::core::uint128_t left{1000};
   const sourcemeta::core::uint128_t right{2000};
@@ -102,6 +128,21 @@ TEST(Numeric_uint128, modulo_by_uint64) {
   const sourcemeta::core::uint128_t dividend{17};
   const auto result = dividend % static_cast<std::uint64_t>(5);
   EXPECT_EQ(static_cast<std::uint64_t>(result), 2);
+}
+
+TEST(Numeric_uint128, modulo_assignment) {
+  sourcemeta::core::uint128_t value{17};
+  value %= sourcemeta::core::uint128_t{5};
+  EXPECT_EQ(static_cast<std::uint64_t>(value), 2);
+}
+
+TEST(Numeric_uint128, modulo_assignment_large_value) {
+  // (10^18 * 7 + 3) % 7 == 3, exercising the high word in the dividend
+  const auto product = sourcemeta::core::uint128_t{1000000000000000000ULL} *
+                       sourcemeta::core::uint128_t{7};
+  sourcemeta::core::uint128_t value{product + sourcemeta::core::uint128_t{3}};
+  value %= static_cast<std::uint64_t>(7);
+  EXPECT_EQ(static_cast<std::uint64_t>(value), 3);
 }
 
 TEST(Numeric_uint128, equal) {
