@@ -812,8 +812,10 @@ public:
     assert(this->is_number());
     if (this->is_integer()) {
       return this->to_integer();
-    } else {
+    } else if (this->is_real()) {
       return static_cast<Integer>(std::trunc(this->to_real()));
+    } else {
+      return this->to_decimal().to_integral().to_int64();
     }
   }
 

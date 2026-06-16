@@ -655,6 +655,18 @@ TEST(JSON_number, as_integer_non_integer_real) {
   EXPECT_EQ(document.as_integer(), 5);
 }
 
+TEST(JSON_number, as_integer_decimal) {
+  const auto document{sourcemeta::core::parse_json("1e9")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.as_integer(), 1000000000);
+}
+
+TEST(JSON_number, as_integer_decimal_fractional) {
+  const auto document{sourcemeta::core::parse_json("1700000000.000000001")};
+  ASSERT_TRUE(document.is_decimal());
+  EXPECT_EQ(document.as_integer(), 1700000000);
+}
+
 TEST(JSON_number, is_integer_int_storage) {
   const sourcemeta::core::JSON document{5};
   EXPECT_TRUE(document.is_integer());
