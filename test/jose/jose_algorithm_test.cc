@@ -20,6 +20,12 @@ TEST(JOSE_algorithm, es512) {
   EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::ES512);
 }
 
+TEST(JOSE_algorithm, eddsa) {
+  const auto result{sourcemeta::core::to_jws_algorithm("EdDSA")};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::EdDSA);
+}
+
 TEST(JOSE_algorithm, rejects_none) {
   EXPECT_FALSE(sourcemeta::core::to_jws_algorithm("none").has_value());
 }

@@ -42,6 +42,13 @@ constexpr std::string_view RSA_JWK_OTHER_ALGORITHM{
     R"JSON({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS384" })JSON"};
 constexpr std::string_view EC_JWK{
     R"JSON({ "kty": "EC", "crv": "P-256", "x": "uEMPr85yIqQEqUAOF7f-jpo0LA9tnUXj1q6HzanBnJs", "y": "JHRc8vYEaVwcjH20LqwKfehDU2JGg43Sx56GcEgfbXY" })JSON"};
+constexpr std::string_view EDDSA_SIGNING_INPUT{
+    "eyJhbGciOiJFZERTQSJ9.RXhhbXBsZSBvZiBFZDI1NTE5IHNpZ25pbmc"};
+constexpr std::string_view EDDSA_SIGNATURE{
+    "hgyY0il_MGCjP0JzlnLWG1PPOt7-09PGcvMg3AIbQR6dWbhijcNR4ki4iylGjg5BhVsPt9g7sV"
+    "vpAr_MuM0KAg"};
+constexpr std::string_view OKP_JWK{
+    R"JSON({ "kty": "OKP", "crv": "Ed25519", "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })JSON"};
 } // namespace
 
 TEST(JOSE_jws_verify_signature, rs256_valid) {
@@ -133,4 +140,41 @@ TEST(JOSE_jws_verify_signature, tampered_signature) {
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT, tampered,
       key.value()));
+}
+
+// The Ed25519 signature is the worked example from RFC 8037 Appendix A.4
+TEST(JOSE_jws_verify_signature, eddsa_ed25519_valid) {
+  const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
+  ASSERT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OKP_JWK))};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(JOSE_jws_verify_signature, eddsa_tampered_signature) {
+  const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
+  ASSERT_TRUE(signature.has_value());
+  std::string tampered{signature.value()};
+  tampered.front() =
+      static_cast<char>(static_cast<unsigned char>(tampered.front()) ^ 0x80U);
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OKP_JWK))};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT, tampered,
+      key.value()));
+}
+
+TEST(JOSE_jws_verify_signature, eddsa_key_type_mismatch) {
+  const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
+  ASSERT_TRUE(signature.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT,
+      signature.value(), key.value()));
 }

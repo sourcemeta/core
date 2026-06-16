@@ -90,6 +90,62 @@ TEST(JOSE_JWK, rejects_elliptic_curve_private_key) {
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
+// The Ed25519 key is the public key from RFC 8037 Appendix A.2
+TEST(JOSE_JWK, octet_key_pair_ed25519_public_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "Ed25519",
+           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::OctetKeyPair);
+  EXPECT_EQ(key.value().curve(), "Ed25519");
+  EXPECT_EQ(key.value().coordinate_x().size(), 32);
+}
+
+TEST(JOSE_JWK, octet_key_pair_ed448_public_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "Ed448",
+           "x": "E35kUtHOEUbcTPAayux0atDpqzE8jD1lGIdbrhR5I79Gm1bDz6JMUvrGk7zVusKM8FEDCWzJMjcA" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  ASSERT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::OctetKeyPair);
+  EXPECT_EQ(key.value().curve(), "Ed448");
+  EXPECT_EQ(key.value().coordinate_x().size(), 57);
+}
+
+TEST(JOSE_JWK, octet_key_pair_algorithm_eddsa) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "Ed25519",
+           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+           "alg": "EdDSA" })")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  ASSERT_TRUE(key.has_value());
+  ASSERT_TRUE(key.value().algorithm().has_value());
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::EdDSA);
+}
+
+TEST(JOSE_JWK, rejects_octet_key_pair_private_key) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "Ed25519",
+           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+           "d": "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A" })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(JOSE_JWK, rejects_octet_key_pair_unsupported_curve) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "X25519",
+           "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(JOSE_JWK, rejects_octet_key_pair_wrong_public_key_length) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "kty": "OKP", "crv": "Ed25519", "x": "dGVzdA" })")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
 TEST(JOSE_JWK, rejects_missing_rsa_modulus) {
   const auto document{
       sourcemeta::core::parse_json(R"({ "kty": "RSA", "e": "AQAB" })")};
