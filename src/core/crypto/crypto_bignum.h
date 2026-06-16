@@ -61,7 +61,7 @@ inline auto bignum_from_u64(const std::uint64_t value) noexcept -> Bignum {
   return result;
 }
 
-inline auto bignum_from_hex(const std::string_view hex) noexcept -> Bignum {
+inline auto bignum_from_hex(const std::string_view hex) -> Bignum {
   const auto nibble{[](const char character) noexcept -> std::uint8_t {
     if (character >= '0' && character <= '9') {
       return static_cast<std::uint8_t>(character - '0');
@@ -173,20 +173,118 @@ inline auto bignum_subtract_in_place(Bignum &left, const Bignum &right) noexcept
   bignum_normalize(left);
 }
 
+inline auto bignum_shift_right(const Bignum &value,
+                               const std::size_t bits) noexcept -> Bignum;
+
+// Reduce a value modulo the modulus with Knuth's Algorithm D (TAOCP Volume 2,
+// Section 4.3.1), the schoolbook long division that estimates one quotient
+// word per step rather than one bit, so the cost is quadratic in the number of
+// words rather than the number of bits
 inline auto bignum_reduce(Bignum &value, const Bignum &modulus) noexcept
     -> void {
-  const auto modulus_bits{bignum_bit_length(modulus)};
-  while (bignum_compare(value, modulus) >= 0) {
-    const auto value_bits{bignum_bit_length(value)};
-    auto shift{value_bits - modulus_bits};
-    auto shifted{bignum_shift_left(modulus, shift)};
-    if (bignum_compare(shifted, value) > 0) {
-      shift -= 1;
-      shifted = bignum_shift_left(modulus, shift);
+  if (bignum_compare(value, modulus) < 0) {
+    return;
+  }
+
+  const auto divisor_words{modulus.size};
+
+  // A single-word divisor folds the value down word by word
+  if (divisor_words == 1) {
+    const auto divisor{modulus.words[0]};
+    BignumDoubleWord remainder{0};
+    for (std::size_t index = value.size; index > 0; --index) {
+      remainder = (remainder << 64u) | value.words[index - 1];
+      remainder %= divisor;
     }
 
-    bignum_subtract_in_place(value, shifted);
+    value = bignum_from_u64(static_cast<std::uint64_t>(remainder));
+    return;
   }
+
+  // Normalize so the divisor's top word has its high bit set, which bounds the
+  // error of each quotient word estimate to at most two
+  const auto shift{static_cast<std::size_t>(
+      (64u - (bignum_bit_length(modulus) % 64u)) % 64u)};
+  const auto divisor{shift > 0 ? bignum_shift_left(modulus, shift) : modulus};
+  auto dividend{shift > 0 ? bignum_shift_left(value, shift) : value};
+  const auto dividend_words{dividend.size};
+  const auto quotient_words{dividend_words - divisor_words};
+  const auto top{divisor.words[divisor_words - 1]};
+  const auto next{divisor.words[divisor_words - 2]};
+  const BignumDoubleWord base{static_cast<BignumDoubleWord>(1) << 64u};
+
+  for (std::size_t step = quotient_words + 1; step > 0; --step) {
+    const auto offset{step - 1};
+
+    // Estimate the quotient word from the top two words of the running value
+    const auto numerator{
+        (static_cast<BignumDoubleWord>(dividend.words[offset + divisor_words])
+         << 64u) |
+        dividend.words[offset + divisor_words - 1]};
+    auto estimate{numerator / top};
+    auto estimate_remainder{numerator % top};
+    while (estimate >= base ||
+           estimate * next > (estimate_remainder << 64u) +
+                                 dividend.words[offset + divisor_words - 2]) {
+      estimate -= 1;
+      estimate_remainder += top;
+      if (estimate_remainder >= base) {
+        break;
+      }
+    }
+
+    // Multiply the divisor by the estimate and subtract from the running value
+    const auto quotient_word{static_cast<std::uint64_t>(estimate)};
+    BignumDoubleWord carry{0};
+    std::uint64_t borrow{0};
+    for (std::size_t index = 0; index < divisor_words; ++index) {
+      const auto product{static_cast<BignumDoubleWord>(quotient_word) *
+                             divisor.words[index] +
+                         carry};
+      carry = product >> 64u;
+      const auto subtrahend{static_cast<std::uint64_t>(product)};
+      const auto current{dividend.words[offset + index]};
+      const auto without_subtrahend{current - subtrahend};
+      auto next_borrow{current < subtrahend ? 1u : 0u};
+      const auto result_word{without_subtrahend - borrow};
+      if (without_subtrahend < borrow) {
+        next_borrow += 1u;
+      }
+
+      dividend.words[offset + index] = result_word;
+      borrow = next_borrow;
+    }
+
+    const auto current{dividend.words[offset + divisor_words]};
+    const auto subtrahend{static_cast<std::uint64_t>(carry)};
+    const auto without_subtrahend{current - subtrahend};
+    auto next_borrow{current < subtrahend ? 1u : 0u};
+    dividend.words[offset + divisor_words] = without_subtrahend - borrow;
+    if (without_subtrahend < borrow) {
+      next_borrow += 1u;
+    }
+
+    // The estimate was at most one too large, so add the divisor back when the
+    // subtraction borrowed past the top
+    if (next_borrow != 0) {
+      BignumDoubleWord add_carry{0};
+      for (std::size_t index = 0; index < divisor_words; ++index) {
+        const auto sum{
+            static_cast<BignumDoubleWord>(dividend.words[offset + index]) +
+            divisor.words[index] + add_carry};
+        dividend.words[offset + index] = static_cast<std::uint64_t>(sum);
+        add_carry = sum >> 64u;
+      }
+
+      dividend.words[offset + divisor_words] +=
+          static_cast<std::uint64_t>(add_carry);
+    }
+  }
+
+  // The remainder occupies the low words, still scaled by the normalization
+  dividend.size = divisor_words;
+  bignum_normalize(dividend);
+  value = shift > 0 ? bignum_shift_right(dividend, shift) : dividend;
 }
 
 // Assumes both operands fit in half the capacity
