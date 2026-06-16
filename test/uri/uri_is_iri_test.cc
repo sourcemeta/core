@@ -283,3 +283,251 @@ TEST(URI_is_iri, fragment_with_backslash_rejected) {
   EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
 }
+
+TEST(URI_is_iri, ucschar_before_surrogate_gap_in_path) {
+  const std::string input{"https://example.com/\xED\x9F\xBF"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ucschar_after_private_use_gap_in_path) {
+  const std::string input{"https://example.com/\xEF\xA4\x80"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ucschar_before_noncharacter_block_in_path) {
+  const std::string input{"https://example.com/\xEF\xB7\x8F"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, noncharacter_fdd0_in_path_rejected) {
+  const std::string input{"https://example.com/\xEF\xB7\x90"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, noncharacter_fdef_in_path_rejected) {
+  const std::string input{"https://example.com/\xEF\xB7\xAF"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ucschar_after_noncharacter_block_in_path) {
+  const std::string input{"https://example.com/\xEF\xB7\xB0"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ucschar_upper_bmp_bound_in_path) {
+  const std::string input{"https://example.com/\xEF\xBF\xAF"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, replacement_character_in_path_rejected) {
+  const std::string input{"https://example.com/\xEF\xBF\xBD"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, noncharacter_fffe_in_path_rejected) {
+  const std::string input{"https://example.com/\xEF\xBF\xBE"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, noncharacter_ffff_in_path_rejected) {
+  const std::string input{"https://example.com/\xEF\xBF\xBF"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, plane_fourteen_below_ucschar_in_path_rejected) {
+  const std::string input{"https://example.com/\xF3\xA0\xBF\xBF"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, plane_fourteen_ucschar_in_path) {
+  const std::string input{"https://example.com/\xF3\xA1\x80\x80"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, astral_ucschar_in_path) {
+  const std::string input{"https://example.com/\xF0\x90\x80\x80"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, astral_ucschar_upper_bound_in_path) {
+  const std::string input{"https://example.com/\xF0\x9F\xBF\xBD"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, astral_noncharacter_in_path_rejected) {
+  const std::string input{"https://example.com/\xF0\x9F\xBF\xBE"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, astral_plane_two_ucschar_in_path) {
+  const std::string input{"https://example.com/\xF0\xA0\x80\x80"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, userinfo_with_iprivate_rejected) {
+  const std::string input{"https://u\xEE\x80\x80@example.com/"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, port_with_iprivate_rejected) {
+  const std::string input{"https://example.com:\xEE\x80\x80/"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, supplementary_iprivate_in_query) {
+  const std::string input{"https://example.com/?q=\xF3\xB0\x80\x80"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, supplementary_iprivate_in_path_rejected) {
+  const std::string input{"https://example.com/\xF3\xB0\x80\x80"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, plane_sixteen_iprivate_in_query) {
+  const std::string input{"https://example.com/?q=\xF4\x80\x80\x80"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, iprivate_upper_bound_in_query) {
+  const std::string input{"https://example.com/?q=\xF4\x8F\xBF\xBD"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ipv4_host) {
+  const std::string input{"http://192.168.0.1/p"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ipvfuture_host_lowercase) {
+  const std::string input{"http://[v1.fe]/"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ipvfuture_host_uppercase) {
+  const std::string input{"http://[V1.fe]/"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, ipvfuture_host_non_hex_version_rejected) {
+  const std::string input{"http://[vG.fe]/"};
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, opaque_path_with_scheme) {
+  const std::string input{"urn:example:resource"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, absolute_path_with_scheme) {
+  const std::string input{"file:/etc/hosts"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, explicit_port) {
+  const std::string input{"http://example.com:8080/p"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, scheme_with_empty_path) {
+  const std::string input{"http:"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
+
+TEST(URI_is_iri, scheme_with_empty_authority) {
+  const std::string input{"http://"};
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_iri_reference(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri(input));
+  EXPECT_TRUE(sourcemeta::core::URI::is_uri_reference(input));
+}
