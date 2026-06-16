@@ -23,10 +23,10 @@ TEST(JOSE_jwt_check_claims, valid) {
                  R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
 }
 
 TEST(JOSE_jwt_check_claims, missing_issuer) {
@@ -34,11 +34,11 @@ TEST(JOSE_jwt_check_claims, missing_issuer) {
                               R"({ "aud": "client", "exp": 2000 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Issuer);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Issuer);
 }
 
 TEST(JOSE_jwt_check_claims, wrong_issuer) {
@@ -47,11 +47,11 @@ TEST(JOSE_jwt_check_claims, wrong_issuer) {
                  R"({ "iss": "evil", "aud": "client", "exp": 2000 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Issuer);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Issuer);
 }
 
 TEST(JOSE_jwt_check_claims, missing_audience) {
@@ -59,11 +59,11 @@ TEST(JOSE_jwt_check_claims, missing_audience) {
                               R"({ "iss": "acme", "exp": 2000 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Audience);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
 }
 
 TEST(JOSE_jwt_check_claims, wrong_audience) {
@@ -72,11 +72,11 @@ TEST(JOSE_jwt_check_claims, wrong_audience) {
                  R"({ "iss": "acme", "aud": "other", "exp": 2000 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Audience);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
 }
 
 TEST(JOSE_jwt_check_claims, audience_array_contains) {
@@ -86,10 +86,66 @@ TEST(JOSE_jwt_check_claims, audience_array_contains) {
       "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(JOSE_jwt_check_claims, valid_with_subject) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "sub": "user", "aud": "client", "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{0},
+      "user")};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(JOSE_jwt_check_claims, wrong_subject) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "sub": "user", "aud": "client", "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{0},
+      "other")};
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Subject);
+}
+
+TEST(JOSE_jwt_check_claims, missing_subject_when_expected) {
+  const auto input{
+      make_token(R"({ "alg": "RS256" })",
+                 R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{0},
+      "user")};
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Subject);
+}
+
+TEST(JOSE_jwt_check_claims, subject_ignored_when_not_pinned) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "sub": "user", "aud": "client", "exp": 2000 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000))};
+  EXPECT_FALSE(error.has_value());
 }
 
 TEST(JOSE_jwt_check_claims, missing_expiration) {
@@ -97,11 +153,11 @@ TEST(JOSE_jwt_check_claims, missing_expiration) {
                               R"({ "iss": "acme", "aud": "client" })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Expiration);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Expiration);
 }
 
 TEST(JOSE_jwt_check_claims, malformed_expiration) {
@@ -110,11 +166,11 @@ TEST(JOSE_jwt_check_claims, malformed_expiration) {
       R"({ "iss": "acme", "aud": "client", "exp": "soon" })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Expiration);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Expiration);
 }
 
 TEST(JOSE_jwt_check_claims, expired) {
@@ -123,11 +179,11 @@ TEST(JOSE_jwt_check_claims, expired) {
                  R"({ "iss": "acme", "aud": "client", "exp": 500 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Expiration);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Expiration);
 }
 
 TEST(JOSE_jwt_check_claims, expired_within_skew) {
@@ -136,10 +192,10 @@ TEST(JOSE_jwt_check_claims, expired_within_skew) {
                  R"({ "iss": "acme", "aud": "client", "exp": 900 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{200})};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
 }
 
 TEST(JOSE_jwt_check_claims, expired_beyond_skew) {
@@ -148,11 +204,11 @@ TEST(JOSE_jwt_check_claims, expired_beyond_skew) {
                  R"({ "iss": "acme", "aud": "client", "exp": 900 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{50})};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Expiration);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Expiration);
 }
 
 TEST(JOSE_jwt_check_claims, not_before_satisfied) {
@@ -161,10 +217,10 @@ TEST(JOSE_jwt_check_claims, not_before_satisfied) {
       R"({ "iss": "acme", "aud": "client", "exp": 2000, "nbf": 500 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
 }
 
 TEST(JOSE_jwt_check_claims, not_yet_valid) {
@@ -174,11 +230,11 @@ TEST(JOSE_jwt_check_claims, not_yet_valid) {
       "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::NotBefore);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::NotBefore);
 }
 
 TEST(JOSE_jwt_check_claims, not_yet_valid_within_skew) {
@@ -188,10 +244,27 @@ TEST(JOSE_jwt_check_claims, not_yet_valid_within_skew) {
       "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{200})};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
+}
+
+// A present but malformed not-before fails closed rather than being ignored.
+// Borrowed in spirit from jwt-cpp's claim handling
+// (https://github.com/Thalhammer/jwt-cpp)
+TEST(JOSE_jwt_check_claims, malformed_not_before) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "exp": 2000, "nbf": "soon" })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000))};
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::NotBefore);
 }
 
 TEST(JOSE_jwt_check_claims, issued_in_the_past) {
@@ -200,10 +273,10 @@ TEST(JOSE_jwt_check_claims, issued_in_the_past) {
       R"({ "iss": "acme", "aud": "client", "exp": 2000, "iat": 500 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
 }
 
 TEST(JOSE_jwt_check_claims, issued_in_the_future) {
@@ -213,11 +286,11 @@ TEST(JOSE_jwt_check_claims, issued_in_the_future) {
       "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::IssuedAt);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::IssuedAt);
 }
 
 TEST(JOSE_jwt_check_claims, issued_in_the_future_within_skew) {
@@ -227,10 +300,24 @@ TEST(JOSE_jwt_check_claims, issued_in_the_future_within_skew) {
       "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{200})};
-  EXPECT_TRUE(result.has_value());
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(JOSE_jwt_check_claims, malformed_issued_at) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "exp": 2000, "iat": "soon" })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000))};
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::IssuedAt);
 }
 
 TEST(JOSE_jwt_check_claims, issuer_checked_before_audience) {
@@ -239,11 +326,11 @@ TEST(JOSE_jwt_check_claims, issuer_checked_before_audience) {
                  R"({ "iss": "evil", "aud": "other", "exp": 2000 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Issuer);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Issuer);
 }
 
 TEST(JOSE_jwt_check_claims, audience_checked_before_expiration) {
@@ -252,9 +339,9 @@ TEST(JOSE_jwt_check_claims, audience_checked_before_expiration) {
                  R"({ "iss": "acme", "aud": "other", "exp": 500 })", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   ASSERT_TRUE(token.has_value());
-  const auto result{sourcemeta::core::jwt_check_claims(
+  const auto error{sourcemeta::core::jwt_check_claims(
       token.value(), "acme", "client",
       std::chrono::system_clock::from_time_t(1000))};
-  ASSERT_FALSE(result.has_value());
-  EXPECT_EQ(result.error(), sourcemeta::core::JWTClaimError::Audience);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
 }
