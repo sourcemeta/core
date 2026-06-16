@@ -6,6 +6,7 @@
 #include <sourcemeta/core/json.h>
 
 #include <filesystem>  // std::filesystem::path
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 // The IETF JOSE cookbook (RFC 7520) signs a plain text payload that is not a
@@ -21,21 +22,28 @@ static auto verify_cookbook_signature(const std::string_view filename) -> bool {
 
   const auto &compact{document.at("output").at("compact").to_string()};
   const auto separator{compact.rfind('.')};
+  if (separator == std::string::npos) {
+    return false;
+  }
+
   const std::string_view signing_input{
       std::string_view{compact}.substr(0, separator)};
   const auto signature{sourcemeta::core::base64url_decode(
       std::string_view{compact}.substr(separator + 1))};
 
   const auto &source_key{document.at("input").at("key")};
+  const auto &type{source_key.at("kty").to_string()};
   auto key{sourcemeta::core::JSON::make_object()};
   key.assign("kty", source_key.at("kty"));
-  if (source_key.at("kty").to_string() == "RSA") {
+  if (type == "RSA") {
     key.assign("n", source_key.at("n"));
     key.assign("e", source_key.at("e"));
-  } else {
+  } else if (type == "EC") {
     key.assign("crv", source_key.at("crv"));
     key.assign("x", source_key.at("x"));
     key.assign("y", source_key.at("y"));
+  } else {
+    return false;
   }
 
   const auto parsed_key{sourcemeta::core::JWK::from(key)};
