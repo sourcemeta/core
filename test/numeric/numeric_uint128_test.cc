@@ -138,7 +138,8 @@ TEST(Numeric_uint128, modulo_assignment) {
 
 TEST(Numeric_uint128, modulo_assignment_high_word) {
   // 2^64 + 3 has a non-zero high word, exercising the high-word division path.
-  // 2^64 mod 7 == 2 (since 2^3 == 1 mod 7 and 64 == 1 mod 3), so the result is 5
+  // 2^64 mod 7 == 2 (since 2^3 == 1 mod 7 and 64 == 1 mod 3), so the result is
+  // 5
   sourcemeta::core::uint128_t value{(sourcemeta::core::uint128_t{1} << 64) +
                                     sourcemeta::core::uint128_t{3}};
   value %= static_cast<std::uint64_t>(7);
