@@ -63,6 +63,22 @@ TEST(JOSE_JWT, absent_key_id) {
   EXPECT_FALSE(token.value().key_id().has_value());
 }
 
+TEST(JOSE_JWT, type) {
+  const auto input{
+      make_token(R"({ "alg": "RS256", "typ": "at+jwt" })", R"({})", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  ASSERT_TRUE(token.value().type().has_value());
+  EXPECT_EQ(token.value().type().value(), "at+jwt");
+}
+
+TEST(JOSE_JWT, absent_type) {
+  const auto input{make_token(R"({ "alg": "RS256" })", R"({})", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  ASSERT_TRUE(token.has_value());
+  EXPECT_FALSE(token.value().type().has_value());
+}
+
 TEST(JOSE_JWT, issuer) {
   const auto input{
       make_token(R"({ "alg": "RS256" })", R"({ "iss": "acme" })", "sig")};

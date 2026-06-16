@@ -54,6 +54,8 @@ public:
 
   [[nodiscard]] auto key_id() const noexcept -> std::optional<std::string_view>;
 
+  [[nodiscard]] auto type() const noexcept -> std::optional<std::string_view>;
+
   [[nodiscard]] auto header() const noexcept -> const JSON & {
     return this->header_;
   }
