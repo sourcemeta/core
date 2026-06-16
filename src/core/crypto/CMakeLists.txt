@@ -113,8 +113,10 @@ elseif(APPLE)
   target_link_libraries(sourcemeta_core_crypto PRIVATE "-framework CryptoKit")
   target_link_libraries(sourcemeta_core_crypto PRIVATE "-framework Foundation")
 
-  # Resolve the Swift runtime that the shim autolinks, both at link and at load
-  target_link_options(sourcemeta_core_crypto INTERFACE
+  # Resolve the Swift runtime that the shim autolinks, both at link and at load.
+  # PUBLIC rather than INTERFACE so that a shared build of this library, which
+  # has its own link step pulling in the Swift object, also gets the flags
+  target_link_options(sourcemeta_core_crypto PUBLIC
     "SHELL:-L ${CRYPTOKIT_SDK}/usr/lib/swift"
     "SHELL:-L ${CRYPTOKIT_RUNTIME_LIB}"
     "SHELL:-Xlinker -rpath -Xlinker /usr/lib/swift")

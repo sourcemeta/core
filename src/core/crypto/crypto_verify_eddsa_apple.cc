@@ -2,6 +2,7 @@
 
 #include "crypto_eddsa.h"
 #include "crypto_eddsa_apple.h"
+#include "crypto_helpers.h"
 
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
@@ -16,6 +17,13 @@ namespace sourcemeta::core {
 auto eddsa_verify(const EdwardsCurve curve, const std::string_view public_key,
                   const std::string_view message,
                   const std::string_view signature) -> bool {
+  // Reject a key or signature of the wrong length before touching the backend,
+  // as the other backends do
+  if (public_key.size() != eddsa_public_key_bytes(curve) ||
+      signature.size() != eddsa_signature_bytes(curve)) {
+    return false;
+  }
+
   switch (curve) {
     case EdwardsCurve::Ed25519:
       return sourcemeta_core_eddsa_ed25519_verify_cryptokit(
