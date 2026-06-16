@@ -397,3 +397,135 @@ TEST(IdnEmail, invalid_domain_total_too_long) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a@" + domain));
   EXPECT_FALSE(sourcemeta::core::is_email("a@" + domain));
 }
+
+// RFC 6531 §3.3 extends the local-part with UTF8-non-ascii but, unlike the
+// domain U-label (RFC 5890 §2.3.2.1), imposes no NFC requirement on it. So
+// "cafe" + U+0301 COMBINING ACUTE (NFD, bytes 63 61 66 65 CC 81) is a valid
+// local-part even though it is not in NFC.
+TEST(IdnEmail, valid_local_non_nfc) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("cafe\xcc\x81@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("cafe\xcc\x81@example.com"));
+}
+
+// RFC 5890 §2.3.2.1: a domain U-label MUST be in NFC. The same "cafe" +
+// U+0301 (NFD) sequence that is valid in the local-part is invalid as a
+// domain label.
+TEST(IdnEmail, invalid_domain_non_nfc) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@cafe\xcc\x81.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@cafe\xcc\x81.com"));
+}
+
+// RFC 5321 §4.1.2: SP is not atext and is only allowed inside a quoted
+// string, so an unquoted space in the local-part is invalid.
+TEST(IdnEmail, invalid_local_unquoted_space) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("a b@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("a b@example.com"));
+}
+
+// RFC 5321 §4.1.2: quoted-pairSMTP = %d92 %d32-126, so the octet after a
+// backslash must be ASCII. A backslash followed by UTF8-non-ascii (U+03B1,
+// bytes CE B1) is invalid even under RFC 6531.
+TEST(IdnEmail, invalid_quoted_pair_non_ascii) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("\"\\\xce\xb1\"@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\\\xce\xb1\"@example.com"));
+}
+
+// RFC 6531 §3.3 delegates the domain to IDNA (is_idn_hostname). Fullwidth
+// digits U+FF11 U+FF12 U+FF13 (bytes EF BC 91 EF BC 92 EF BC 93) are
+// DISALLOWED by RFC 5892 §2.6, so the domain - and the whole address - is
+// invalid.
+TEST(IdnEmail, invalid_domain_idna_disallowed_codepoint) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email(
+      "user@\xef\xbc\x91\xef\xbc\x92\xef\xbc\x93.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email(
+      "user@\xef\xbc\x91\xef\xbc\x92\xef\xbc\x93.com"));
+}
+
+// RFC 5321 §4.1.2: Quoted-string = DQUOTE *QcontentSMTP DQUOTE, so zero quoted
+// content is permitted - an empty quoted string is a valid local-part.
+TEST(IdnEmail, valid_quoted_empty) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\"@example.com"));
+  EXPECT_TRUE(sourcemeta::core::is_email("\"\"@example.com"));
+}
+
+// RFC 5321 §4.1.2: "@" (%d64) is qtextSMTP, so it is ordinary content inside a
+// quoted string and does not start the domain - the address has one @
+// separator.
+TEST(IdnEmail, valid_quoted_local_with_at) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"a@b\"@example.com"));
+  EXPECT_TRUE(sourcemeta::core::is_email("\"a@b\"@example.com"));
+}
+
+// RFC 5321 §4.1.2: "." (%d46) is qtextSMTP, so the Dot-string rules (no
+// leading, trailing, or consecutive dots) do not apply inside a quoted string.
+TEST(IdnEmail, valid_quoted_local_consecutive_dots) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"a..b\"@example.com"));
+  EXPECT_TRUE(sourcemeta::core::is_email("\"a..b\"@example.com"));
+}
+
+// RFC 6531 §3.3: atext =/ UTF8-non-ascii puts no IDNA codepoint restriction on
+// the local-part, so U+2665 BLACK HEART (bytes E2 99 A5) is a valid local atom
+// even though it is DISALLOWED (RFC 5892 §2.6) in a domain U-label.
+TEST(IdnEmail, valid_local_symbol_codepoint) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xe2\x99\xa5@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xe2\x99\xa5@example.com"));
+}
+
+// RFC 6531 §3.3: the local-part has no Bidi constraint (unlike a domain
+// U-label, RFC 5893), so a right-to-left character U+05D0 HEBREW ALEF (bytes D7
+// 90) is a valid local atom.
+TEST(IdnEmail, valid_local_rtl_codepoint) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xd7\x90@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xd7\x90@example.com"));
+}
+
+// RFC 6531 §3.3: the local-part has no leading-combining-mark rule (unlike a
+// domain U-label, RFC 5891 §4.2.3.2), so a lone U+0301 COMBINING ACUTE (bytes
+// CC 81) is a valid local atom.
+TEST(IdnEmail, valid_local_combining_mark) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xcc\x81@example.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xcc\x81@example.com"));
+}
+
+// RFC 5893 §2: in a domain that has a right-to-left label, every label must
+// satisfy the Bidi rule. The LTR label "0a" (starts with EN digit U+0030) in a
+// name that also has the RTL label U+05D0 (bytes D7 90) violates it.
+TEST(IdnEmail, invalid_domain_bidi_rule) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@0a.\xd7\x90"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@0a.\xd7\x90"));
+}
+
+// RFC 5892 §2.6: U+200B ZERO WIDTH SPACE (bytes E2 80 8B) is DISALLOWED, so a
+// domain label containing it is invalid (lenient processors silently strip it).
+TEST(IdnEmail, invalid_domain_zero_width) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@a\xe2\x80\x8b"
+                                              "b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@a\xe2\x80\x8b"
+                                          "b.com"));
+}
+
+// RFC 5891 §4.2.3.2: a domain U-label MUST NOT begin with a combining mark. A
+// leading U+0301 COMBINING ACUTE (bytes CC 81) is invalid in the domain - the
+// mirror of valid_local_combining_mark, where the same mark is fine in the
+// local.
+TEST(IdnEmail, invalid_domain_leading_combining_mark) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@\xcc\x81"
+                                              "a.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("user@\xcc\x81"
+                                          "a.com"));
+}
+
+// RFC 6531 §3.3: a quoted non-ASCII local-part with a U-label domain. Local
+// U+03B1 GREEK ALPHA (CE B1) inside quotes; domain "m" + U+00FC (C3 BC) +
+// "nchen.de".
+TEST(IdnEmail, valid_quoted_local_and_ulabel_domain) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\"\xce\xb1\"@m\xc3\xbcnchen.de"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\"\xce\xb1\"@m\xc3\xbcnchen.de"));
+}
+
+// RFC 6531 §3.3 + RFC 5890 §2.3.2.1: a U-label local-part (U+03B1 GREEK ALPHA,
+// CE B1) combined with a valid A-label domain (xn--nxasmq6b).
+TEST(IdnEmail, valid_ulabel_local_and_alabel_domain) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("\xce\xb1@xn--nxasmq6b.com"));
+  EXPECT_FALSE(sourcemeta::core::is_email("\xce\xb1@xn--nxasmq6b.com"));
+}
