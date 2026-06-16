@@ -42,6 +42,18 @@ constexpr std::string_view RSA_KEYS_KEY_ID_OTHER{
     R"JSON({ "keys": [ { "kty": "RSA", "n": "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddxHmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMsD1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSHSXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdVMTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ", "e": "AQAB", "kid": "other" } ] })JSON"};
 constexpr std::string_view ELLIPTIC_CURVE_KEYS{
     R"JSON({ "keys": [ { "kty": "EC", "crv": "P-256", "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU", "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0" } ] })JSON"};
+constexpr std::string_view SIGNED_TOKEN{
+    "eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCJ9."
+    "eyJpc3MiOiJhY21lIiwiYXVkIjoiY2xpZW50IiwiZXhwIjoyMDAwMDAwMDAwfQ."
+    "U3ZBo7MvSW0U099gJ_"
+    "vIA5T8HJ2XnKSzYmqkx7SDxgxQfmxQyu3QZIeKT68AAH7wQjWRvNWQ7f3Es57UUNUQAMs-"
+    "z5TWlVBKtYZf5ZcbYqc4KrQ-ApwpjoFGJxurnd1R_"
+    "tz02WssnvrZNKnxNPuGoYIkJKNCl59yLFJwRLf3nK_Jcxs-"
+    "1m2MvKsm647PuXqhYOKlZkHOvkIV0RV8cLJ56_gDVjj7TlKQgwbTdW_"
+    "71QLwLWRFGftU2EAWuqayTSpPeUA6kB4sfn7JNsweqDs7uev30m6y8BE9uzwzHuuovaN1cZz0o"
+    "TAGXcx64sfbPs6HEMp5_FoU0SccxArAbnHSjA"};
+constexpr std::string_view SIGNED_KEYS{
+    R"JSON({ "keys": [ { "kty": "RSA", "n": "oHTpl-jfNfBuXmBp58sW8s_77UP6j2jA0mjjKjhDkxhp7Agk-xLNGgfPCS_bjdZ6YU6FGeab8uVjkSgo9_0OCJUaF4vzEGwXmNuGawANxnZtiYjWvbJlq-2mn_L7rsqGQcSkMmyM0g4aX7dF8wB6DVrXShJ78fcrNtpeoU72YGEdjehA8qVclDFwBdpCGynxxnWJePk72lQb6gkVMqKMc3jBF8GkWf8oP_sjss-fpOjSUMR1c8_0JlTYWO46KWOZa0EO2t8H1V3imMyzbhoxRd_qZHmo46gJkG-ZdebjX0vGQllaCwu0z4kLcXIfAZhqPEkdssDGhC_txwJuhaPDFQ", "e": "AQAB" } ] })JSON"};
 } // namespace
 
 TEST(JOSE_jwt_verify, algorithm_not_allowed) {
@@ -147,6 +159,69 @@ TEST(JOSE_jwt_verify, type_required_but_absent) {
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000),
       std::chrono::seconds{0}, std::nullopt, "at+jwt")};
+  ASSERT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
+}
+
+// The signed token below is generated locally with OpenSSL (RS256, header
+// typ "at+jwt", unexpired issuer and audience claims), since no RFC worked
+// example pairs a valid signature with verifiable claims and an explicit type
+TEST(JOSE_jwt_verify, valid) {
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
+  ASSERT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::RS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1000000000))};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(JOSE_jwt_verify, type_compact_form_matches) {
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
+  ASSERT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::RS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1000000000),
+      std::chrono::seconds{0}, std::nullopt, "at+jwt")};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(JOSE_jwt_verify, type_application_prefix_matches) {
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
+  ASSERT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::RS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1000000000),
+      std::chrono::seconds{0}, std::nullopt, "application/at+jwt")};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(JOSE_jwt_verify, type_mismatch) {
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
+  ASSERT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::RS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1000000000),
+      std::chrono::seconds{0}, std::nullopt, "application/example")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
 }
