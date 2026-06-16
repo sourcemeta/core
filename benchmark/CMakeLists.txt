@@ -28,6 +28,10 @@ if(SOURCEMETA_CORE_GZIP)
   list(APPEND BENCHMARK_SOURCES gzip.cc)
 endif()
 
+if(SOURCEMETA_CORE_JOSE)
+  list(APPEND BENCHMARK_SOURCES jose.cc)
+endif()
+
 if(BENCHMARK_SOURCES)
   sourcemeta_googlebenchmark(NAMESPACE sourcemeta PROJECT core
     SOURCES ${BENCHMARK_SOURCES})
@@ -67,6 +71,12 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_GZIP)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::gzip sourcemeta::core::io)
+  endif()
+
+  if(SOURCEMETA_CORE_JOSE)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jose sourcemeta::core::crypto
+              sourcemeta::core::json)
   endif()
 
   add_custom_target(benchmark_all
