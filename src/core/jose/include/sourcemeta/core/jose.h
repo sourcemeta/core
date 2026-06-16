@@ -11,6 +11,7 @@
 #include <sourcemeta/core/jose_jwk.h>
 #include <sourcemeta/core/jose_jwks.h>
 #include <sourcemeta/core/jose_jwt.h>
+#include <sourcemeta/core/jose_verify.h>
 // NOLINTEND(misc-include-cleaner)
 
 /// @defgroup jose JOSE

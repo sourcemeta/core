@@ -1,6 +1,7 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME jose
-  PRIVATE_HEADERS algorithm.h error.h jwk.h jwks.h jwt.h
-  SOURCES jose_algorithm.cc jose_jwk.cc jose_jwks.cc jose_jwt.cc)
+  PRIVATE_HEADERS algorithm.h error.h jwk.h jwks.h jwt.h verify.h
+  SOURCES jose_algorithm.cc jose_jwk.cc jose_jwks.cc jose_jwt.cc
+          jose_verify.cc)
 
 target_link_libraries(sourcemeta_core_jose
   PUBLIC sourcemeta::core::json)
