@@ -100,6 +100,12 @@ auto verify_rsa_signature(const SecKeyAlgorithm algorithm,
     return false;
   }
 
+  // RFC 8017 Section 5.2.2: a signature representative not between 0 and n - 1
+  // is out of range, which the platform verifier does not reject
+  if (!sourcemeta::core::rsa_signature_in_range(signature, stripped_modulus)) {
+    return false;
+  }
+
   auto key{make_rsa_public_key(stripped_modulus, stripped_exponent)};
   if (key == nullptr) {
     return false;

@@ -15,7 +15,9 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_eddsa_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::text)
+  PRIVATE sourcemeta::core::crypto)
+target_link_libraries(sourcemeta_core_crypto_unit
+  PRIVATE sourcemeta::core::text)
 
 # pyca/cryptography Test Vectors
 # See https://github.com/pyca/cryptography
@@ -24,4 +26,23 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography
 target_compile_definitions(sourcemeta_core_pyca_cryptography_unit
   PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
 target_link_libraries(sourcemeta_core_pyca_cryptography_unit
-  PRIVATE sourcemeta::core::crypto sourcemeta::core::io sourcemeta::core::text)
+  PRIVATE sourcemeta::core::crypto)
+target_link_libraries(sourcemeta_core_pyca_cryptography_unit
+  PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_pyca_cryptography_unit
+  PRIVATE sourcemeta::core::text)
+
+# Project Wycheproof Test Vectors
+# See https://github.com/C2SP/wycheproof
+sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME wycheproof
+  SOURCES wycheproof_test.cc)
+target_compile_definitions(sourcemeta_core_wycheproof_unit
+  PRIVATE WYCHEPROOF_PATH="${PROJECT_SOURCE_DIR}/vendor/wycheproof")
+target_link_libraries(sourcemeta_core_wycheproof_unit
+  PRIVATE sourcemeta::core::crypto)
+target_link_libraries(sourcemeta_core_wycheproof_unit
+  PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_wycheproof_unit
+  PRIVATE sourcemeta::core::json)
+target_link_libraries(sourcemeta_core_wycheproof_unit
+  PRIVATE sourcemeta::core::text)
