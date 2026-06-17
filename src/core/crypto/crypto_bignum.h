@@ -127,7 +127,12 @@ inline auto bignum_bit_length(const Bignum &value) noexcept -> std::size_t {
 
 inline auto bignum_get_bit(const Bignum &value, const std::size_t bit) noexcept
     -> bool {
-  return ((value.words[bit / 64] >> (bit % 64)) & 1u) != 0;
+  const auto word{bit / 64};
+  if (word >= value.size) {
+    return false;
+  }
+
+  return ((value.words[word] >> (bit % 64)) & 1u) != 0;
 }
 
 // Assumes the result fits in the capacity
