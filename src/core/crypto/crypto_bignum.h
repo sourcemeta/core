@@ -3,8 +3,8 @@
 
 // Fixed-capacity unsigned big integer arithmetic for the reference
 // signature verification backend. Capacity fits 4096-bit RSA operands
-// and their double-width products. Performance and constant-time
-// execution are non-goals, verification consumes only public inputs
+// and their double-width products. Constant-time execution is not
+// required, since verification consumes only public inputs
 
 #include <sourcemeta/core/numeric.h>
 
@@ -127,7 +127,12 @@ inline auto bignum_bit_length(const Bignum &value) noexcept -> std::size_t {
 
 inline auto bignum_get_bit(const Bignum &value, const std::size_t bit) noexcept
     -> bool {
-  return ((value.words[bit / 64] >> (bit % 64)) & 1u) != 0;
+  const auto word{bit / 64};
+  if (word >= value.size) {
+    return false;
+  }
+
+  return ((value.words[word] >> (bit % 64)) & 1u) != 0;
 }
 
 // Assumes the result fits in the capacity
@@ -422,13 +427,62 @@ inline auto bignum_mod_multiply(const Bignum &left, const Bignum &right,
   return result;
 }
 
-// The modulus must be prime, so that Fermat's little theorem gives the
-// inverse as the modulus-minus-two power
+// Halve a value modulo an odd modulus: an even value shifts down, an odd one
+// becomes even by adding the modulus first, so the result stays an integer
+inline auto bignum_mod_halve(const Bignum &value,
+                             const Bignum &modulus) noexcept -> Bignum {
+  if ((value.words[0] & 1u) == 0) {
+    return bignum_shift_right(value, 1);
+  }
+
+  return bignum_shift_right(bignum_add(value, modulus), 1);
+}
+
+// Modular inverse by the binary extended Euclidean algorithm, which needs only
+// halving, subtraction, and comparison rather than the modular exponentiation
+// a Fermat inverse over a prime modulus would spend. The modulus must be odd.
+// Returns zero when the value has no inverse, which is when it shares a factor
+// with the modulus or reduces to zero
 inline auto bignum_mod_inverse(const Bignum &value,
                                const Bignum &modulus) noexcept -> Bignum {
-  auto exponent{modulus};
-  bignum_subtract_in_place(exponent, bignum_from_u64(2));
-  return bignum_mod_exp(value, exponent, modulus);
+  const auto one{bignum_from_u64(1)};
+  auto first{value};
+  bignum_reduce(first, modulus);
+  auto second{modulus};
+  auto first_coefficient{one};
+  Bignum second_coefficient;
+
+  while (bignum_compare(first, one) != 0 && bignum_compare(second, one) != 0) {
+    // A side reaching zero means the greatest common divisor exceeds one, so no
+    // inverse exists. Stopping here also keeps the halving below from spinning
+    // forever on a zero value
+    if (bignum_is_zero(first) || bignum_is_zero(second)) {
+      return {};
+    }
+
+    while ((first.words[0] & 1u) == 0) {
+      first = bignum_shift_right(first, 1);
+      first_coefficient = bignum_mod_halve(first_coefficient, modulus);
+    }
+
+    while ((second.words[0] & 1u) == 0) {
+      second = bignum_shift_right(second, 1);
+      second_coefficient = bignum_mod_halve(second_coefficient, modulus);
+    }
+
+    if (bignum_compare(first, second) >= 0) {
+      bignum_subtract_in_place(first, second);
+      first_coefficient =
+          bignum_mod_subtract(first_coefficient, second_coefficient, modulus);
+    } else {
+      bignum_subtract_in_place(second, first);
+      second_coefficient =
+          bignum_mod_subtract(second_coefficient, first_coefficient, modulus);
+    }
+  }
+
+  return bignum_compare(first, one) == 0 ? first_coefficient
+                                         : second_coefficient;
 }
 
 inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)
