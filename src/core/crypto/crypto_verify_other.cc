@@ -396,8 +396,9 @@ auto make_ec_public_key(const EllipticCurve curve,
                         const std::string_view coordinate_y)
     -> std::optional<PublicKey> {
   const auto width{curve_field_bytes(curve)};
-  if (strip_left(coordinate_x, '\x00').size() > width ||
-      strip_left(coordinate_y, '\x00').size() > width) {
+  const auto stripped_x{strip_left(coordinate_x, '\x00')};
+  const auto stripped_y{strip_left(coordinate_y, '\x00')};
+  if (stripped_x.size() > width || stripped_y.size() > width) {
     return std::nullopt;
   }
 
@@ -405,8 +406,8 @@ auto make_ec_public_key(const EllipticCurve curve,
       new PublicKey::Internal{.kind = PublicKey::Type::EllipticCurve,
                               .modulus = {},
                               .exponent = {},
-                              .coordinate_x = std::string{coordinate_x},
-                              .coordinate_y = std::string{coordinate_y},
+                              .coordinate_x = std::string{stripped_x},
+                              .coordinate_y = std::string{stripped_y},
                               .elliptic_curve = curve,
                               .edwards_curve = {}}};
 }
@@ -433,7 +434,7 @@ auto rsassa_pkcs1_v15_verify(const PublicKey &key,
                              const std::string_view message,
                              const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  return internal->kind == PublicKey::Type::RSA &&
+  return internal != nullptr && internal->kind == PublicKey::Type::RSA &&
          verify_pkcs1(hash, internal->modulus, internal->exponent, message,
                       signature);
 }
@@ -442,7 +443,7 @@ auto rsassa_pss_verify(const PublicKey &key, const SignatureHashFunction hash,
                        const std::string_view message,
                        const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  return internal->kind == PublicKey::Type::RSA &&
+  return internal != nullptr && internal->kind == PublicKey::Type::RSA &&
          verify_pss(hash, internal->modulus, internal->exponent, message,
                     signature);
 }
@@ -451,7 +452,8 @@ auto ecdsa_verify(const PublicKey &key, const SignatureHashFunction hash,
                   const std::string_view message,
                   const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  return internal->kind == PublicKey::Type::EllipticCurve &&
+  return internal != nullptr &&
+         internal->kind == PublicKey::Type::EllipticCurve &&
          verify_ecdsa(internal->elliptic_curve, hash, internal->coordinate_x,
                       internal->coordinate_y, message, signature);
 }
@@ -459,7 +461,7 @@ auto ecdsa_verify(const PublicKey &key, const SignatureHashFunction hash,
 auto eddsa_verify(const PublicKey &key, const std::string_view message,
                   const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  if (internal->kind != PublicKey::Type::Edwards) {
+  if (internal == nullptr || internal->kind != PublicKey::Type::Edwards) {
     return false;
   }
 

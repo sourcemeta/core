@@ -305,7 +305,7 @@ auto rsassa_pkcs1_v15_verify(const PublicKey &key,
                              const std::string_view message,
                              const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  if (internal->kind != PublicKey::Type::RSA ||
+  if (internal == nullptr || internal->kind != PublicKey::Type::RSA ||
       !rsa_signature_in_range(signature, internal->modulus)) {
     return false;
   }
@@ -318,7 +318,7 @@ auto rsassa_pss_verify(const PublicKey &key, const SignatureHashFunction hash,
                        const std::string_view message,
                        const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  if (internal->kind != PublicKey::Type::RSA ||
+  if (internal == nullptr || internal->kind != PublicKey::Type::RSA ||
       !rsa_signature_in_range(signature, internal->modulus)) {
     return false;
   }
@@ -331,7 +331,7 @@ auto ecdsa_verify(const PublicKey &key, const SignatureHashFunction hash,
                   const std::string_view message,
                   const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  if (internal->kind != PublicKey::Type::EllipticCurve ||
+  if (internal == nullptr || internal->kind != PublicKey::Type::EllipticCurve ||
       signature.size() != internal->field_bytes * 2) {
     return false;
   }
@@ -343,7 +343,7 @@ auto ecdsa_verify(const PublicKey &key, const SignatureHashFunction hash,
 auto eddsa_verify(const PublicKey &key, const std::string_view message,
                   const std::string_view signature) -> bool {
   const auto *internal{key.internal()};
-  if (internal->kind != PublicKey::Type::Edwards ||
+  if (internal == nullptr || internal->kind != PublicKey::Type::Edwards ||
       signature.size() != eddsa_signature_bytes(internal->edwards_curve)) {
     return false;
   }
