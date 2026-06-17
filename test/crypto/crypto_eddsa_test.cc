@@ -3,6 +3,9 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/text.h>
 
+#include <optional>    // std::optional
+#include <string_view> // std::string_view
+
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 
@@ -40,50 +43,61 @@ static const std::string TEST_ABC_SIGNATURE{
     "dc2a4459e7369633a52b1bf277839a00201009a3efbf3ecb69bea2186c26b58909"
     "351fc9ac90b3ecfdfbc7c66431e0303dca179c138ac17ad9bef1177331a704"};
 
+namespace {
+auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
+                  const std::string_view public_key,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_eddsa_public_key(curve, public_key)};
+  return key.has_value() &&
+         sourcemeta::core::eddsa_verify(key.value(), message, signature);
+}
+} // namespace
+
 TEST(Crypto_eddsa, verify_ed25519_empty_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(),
-      sourcemeta::core::hex_to_bytes(TEST1_MESSAGE).value(),
-      sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));
+  EXPECT_TRUE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(),
+                   sourcemeta::core::hex_to_bytes(TEST1_MESSAGE).value(),
+                   sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_ed25519_one_byte_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST2_PUBLIC_KEY).value(),
-      sourcemeta::core::hex_to_bytes(TEST2_MESSAGE).value(),
-      sourcemeta::core::hex_to_bytes(TEST2_SIGNATURE).value()));
+  EXPECT_TRUE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST2_PUBLIC_KEY).value(),
+                   sourcemeta::core::hex_to_bytes(TEST2_MESSAGE).value(),
+                   sourcemeta::core::hex_to_bytes(TEST2_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_ed25519_two_byte_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
-      sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(),
-      sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()));
+  EXPECT_TRUE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
+                   sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(),
+                   sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_ed25519_sha512_abc_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST_ABC_PUBLIC_KEY).value(),
-      sourcemeta::core::hex_to_bytes(TEST_ABC_MESSAGE).value(),
-      sourcemeta::core::hex_to_bytes(TEST_ABC_SIGNATURE).value()));
+  EXPECT_TRUE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST_ABC_PUBLIC_KEY).value(),
+                   sourcemeta::core::hex_to_bytes(TEST_ABC_MESSAGE).value(),
+                   sourcemeta::core::hex_to_bytes(TEST_ABC_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_rejects_different_message) {
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
-      sourcemeta::core::hex_to_bytes("af83").value(),
-      sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()));
+  EXPECT_FALSE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
+                   sourcemeta::core::hex_to_bytes("af83").value(),
+                   sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_rejects_tampered_point) {
   auto signature{sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()};
   signature[0] = static_cast<char>(signature[0] ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed25519,
       sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(), signature));
@@ -92,42 +106,42 @@ TEST(Crypto_eddsa, verify_rejects_tampered_point) {
 TEST(Crypto_eddsa, verify_rejects_tampered_scalar) {
   auto signature{sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()};
   signature.back() = static_cast<char>(signature.back() ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed25519,
       sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(), signature));
 }
 
 TEST(Crypto_eddsa, verify_rejects_wrong_public_key) {
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST2_PUBLIC_KEY).value(),
-      sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(),
-      sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()));
+  EXPECT_FALSE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST2_PUBLIC_KEY).value(),
+                   sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(),
+                   sourcemeta::core::hex_to_bytes(TEST3_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_rejects_truncated_signature) {
   auto signature{sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()};
   signature.pop_back();
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(), TEST1_MESSAGE,
-      signature));
+  EXPECT_FALSE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(),
+                   TEST1_MESSAGE, signature));
 }
 
 TEST(Crypto_eddsa, verify_rejects_empty_signature) {
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(), TEST1_MESSAGE,
-      ""));
+  EXPECT_FALSE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(),
+                   TEST1_MESSAGE, ""));
 }
 
 TEST(Crypto_eddsa, verify_rejects_zero_signature) {
   const std::string signature(64, '\x00');
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519,
-      sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(), TEST1_MESSAGE,
-      signature));
+  EXPECT_FALSE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519,
+                   sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(),
+                   TEST1_MESSAGE, signature));
 }
 
 TEST(Crypto_eddsa, verify_rejects_scalar_above_order) {
@@ -138,7 +152,7 @@ TEST(Crypto_eddsa, verify_rejects_scalar_above_order) {
     signature[index] = static_cast<char>(0xff);
   }
 
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed25519,
       sourcemeta::core::hex_to_bytes(TEST3_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(TEST3_MESSAGE).value(), signature));
@@ -147,15 +161,15 @@ TEST(Crypto_eddsa, verify_rejects_scalar_above_order) {
 TEST(Crypto_eddsa, verify_rejects_wrong_length_public_key) {
   auto public_key{sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value()};
   public_key.pop_back();
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed25519, public_key, TEST1_MESSAGE,
       sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));
 }
 
 TEST(Crypto_eddsa, verify_rejects_empty_public_key) {
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
-      sourcemeta::core::EdwardsCurve::Ed25519, "", TEST1_MESSAGE,
-      sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));
+  EXPECT_FALSE(
+      verify_eddsa(sourcemeta::core::EdwardsCurve::Ed25519, "", TEST1_MESSAGE,
+                   sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));
 }
 
 // Public keys, messages, and signatures from the Ed448 test vectors of RFC
@@ -177,7 +191,7 @@ static const std::string ED448_ELEVEN_BYTE_SIGNATURE{"1f0a8888ce25e8d458a2113087
 // clang-format on
 
 TEST(Crypto_eddsa, verify_ed448_empty_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+  EXPECT_TRUE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(ED448_BLANK_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(ED448_BLANK_MESSAGE).value(),
@@ -185,7 +199,7 @@ TEST(Crypto_eddsa, verify_ed448_empty_message) {
 }
 
 TEST(Crypto_eddsa, verify_ed448_one_byte_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+  EXPECT_TRUE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(ED448_ONE_BYTE_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(ED448_ONE_BYTE_MESSAGE).value(),
@@ -193,7 +207,7 @@ TEST(Crypto_eddsa, verify_ed448_one_byte_message) {
 }
 
 TEST(Crypto_eddsa, verify_ed448_eleven_byte_message) {
-  EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+  EXPECT_TRUE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(ED448_ELEVEN_BYTE_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(ED448_ELEVEN_BYTE_MESSAGE).value(),
@@ -201,7 +215,7 @@ TEST(Crypto_eddsa, verify_ed448_eleven_byte_message) {
 }
 
 TEST(Crypto_eddsa, verify_ed448_rejects_different_message) {
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(ED448_ELEVEN_BYTE_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes("0c3e544074ec63b0265e0d").value(),
@@ -212,7 +226,7 @@ TEST(Crypto_eddsa, verify_ed448_rejects_tampered_scalar) {
   auto signature{
       sourcemeta::core::hex_to_bytes(ED448_ONE_BYTE_SIGNATURE).value()};
   signature.back() = static_cast<char>(signature.back() ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(ED448_ONE_BYTE_PUBLIC_KEY).value(),
       sourcemeta::core::hex_to_bytes(ED448_ONE_BYTE_MESSAGE).value(),
@@ -221,7 +235,7 @@ TEST(Crypto_eddsa, verify_ed448_rejects_tampered_scalar) {
 
 TEST(Crypto_eddsa, verify_ed448_rejects_wrong_length_signature) {
   // A 64-byte signature is valid for Ed25519 but not for Ed448
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(ED448_BLANK_PUBLIC_KEY).value(),
       ED448_BLANK_MESSAGE,
@@ -230,7 +244,7 @@ TEST(Crypto_eddsa, verify_ed448_rejects_wrong_length_signature) {
 
 TEST(Crypto_eddsa, verify_ed448_rejects_ed25519_inputs) {
   // Ed25519-sized key and signature must not verify under Ed448
-  EXPECT_FALSE(sourcemeta::core::eddsa_verify(
+  EXPECT_FALSE(verify_eddsa(
       sourcemeta::core::EdwardsCurve::Ed448,
       sourcemeta::core::hex_to_bytes(TEST1_PUBLIC_KEY).value(), TEST1_MESSAGE,
       sourcemeta::core::hex_to_bytes(TEST1_SIGNATURE).value()));

@@ -81,6 +81,27 @@ auto okp_key_bytes(const std::string_view curve) -> std::optional<std::size_t> {
   }
 }
 
+// Both mappings are only reached after the curve has been validated above
+auto to_elliptic_curve(const std::string_view curve) noexcept
+    -> sourcemeta::core::EllipticCurve {
+  if (curve == "P-256") {
+    return sourcemeta::core::EllipticCurve::P256;
+  } else if (curve == "P-384") {
+    return sourcemeta::core::EllipticCurve::P384;
+  } else {
+    return sourcemeta::core::EllipticCurve::P521;
+  }
+}
+
+auto to_edwards_curve(const std::string_view curve) noexcept
+    -> sourcemeta::core::EdwardsCurve {
+  if (curve == "Ed25519") {
+    return sourcemeta::core::EdwardsCurve::Ed25519;
+  } else {
+    return sourcemeta::core::EdwardsCurve::Ed448;
+  }
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -96,6 +117,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
   }
 
   const auto &key_type_value{key_type->to_string()};
+  std::optional<PublicKey> parsed_key;
   if (key_type_value == "RSA") {
     // A public key must not carry the private parameters (RFC 7518 Section
     // 6.3.2), and rejecting them early surfaces dangerous misconfigurations
@@ -124,8 +146,8 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     }
 
     result.type_ = Type::RSA;
-    result.modulus_ = std::move(decoded_modulus).value();
-    result.exponent_ = std::move(decoded_exponent).value();
+    parsed_key =
+        make_rsa_public_key(decoded_modulus.value(), decoded_exponent.value());
   } else if (key_type_value == "EC") {
     // A public key must not carry the private parameter (RFC 7518 Section
     // 6.2.2)
@@ -158,8 +180,8 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
 
     result.type_ = Type::EllipticCurve;
     result.curve_ = curve->to_string();
-    result.coordinate_x_ = std::move(decoded_x).value();
-    result.coordinate_y_ = std::move(decoded_y).value();
+    parsed_key = make_ec_public_key(to_elliptic_curve(result.curve_),
+                                    decoded_x.value(), decoded_y.value());
   } else if (key_type_value == "OKP") {
     // A public key must not carry the private parameter (RFC 8037 Section 2)
     if (value.try_at("d", HASH_D) != nullptr) {
@@ -186,7 +208,8 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
 
     result.type_ = Type::OctetKeyPair;
     result.curve_ = curve->to_string();
-    result.coordinate_x_ = std::move(decoded_public_key).value();
+    parsed_key = make_eddsa_public_key(to_edwards_curve(result.curve_),
+                                       decoded_public_key.value());
   } else {
     return false;
   }
@@ -216,6 +239,10 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     }
   }
 
+  // The platform key is built once when the material is decoded, so
+  // verification reuses it. A key that cannot be turned into one stays null and
+  // simply fails to verify
+  result.public_key_ = std::move(parsed_key);
   return true;
 }
 

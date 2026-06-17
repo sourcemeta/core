@@ -19,8 +19,6 @@ TEST(JOSE_JWKS, parses_single_key) {
   const auto *key{keys.value().find("rsa-1")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());
@@ -43,8 +41,6 @@ TEST(JOSE_JWKS, parses_multiple_keys) {
   const auto *rsa{keys.value().find("rsa-1")};
   ASSERT_NE(rsa, nullptr);
   EXPECT_EQ(rsa->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(rsa->modulus(), "test");
-  EXPECT_EQ(rsa->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(rsa->algorithm().has_value());
   EXPECT_EQ(rsa->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(rsa->key_id().has_value());
@@ -54,8 +50,6 @@ TEST(JOSE_JWKS, parses_multiple_keys) {
   ASSERT_NE(ec, nullptr);
   EXPECT_EQ(ec->type(), sourcemeta::core::JWK::Type::EllipticCurve);
   EXPECT_EQ(ec->curve(), "P-256");
-  EXPECT_EQ(ec->coordinate_x().size(), 32);
-  EXPECT_EQ(ec->coordinate_y().size(), 32);
   ASSERT_TRUE(ec->algorithm().has_value());
   EXPECT_EQ(ec->algorithm().value(), sourcemeta::core::JWSAlgorithm::ES256);
   ASSERT_TRUE(ec->key_id().has_value());
@@ -75,8 +69,6 @@ TEST(JOSE_JWKS, skips_unsupported_key) {
   const auto *key{keys.value().find("good")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());
@@ -97,8 +89,6 @@ TEST(JOSE_JWKS, skips_structurally_invalid_key) {
   const auto *key{keys.value().find("good")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());
@@ -117,8 +107,6 @@ TEST(JOSE_JWKS, skips_non_object_entries) {
   const auto *key{keys.value().find("good")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());
@@ -163,8 +151,6 @@ TEST(JOSE_JWKS, find_returns_null_for_unknown_key_id) {
   const auto *key{keys.value().find("present")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());
@@ -182,8 +168,6 @@ TEST(JOSE_JWKS, find_ignores_keys_without_key_id) {
 
   const auto &key{*keys.value().begin()};
   EXPECT_EQ(key.type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key.modulus(), "test");
-  EXPECT_EQ(key.exponent(), std::string("\x01\x00\x01", 3));
   EXPECT_FALSE(key.algorithm().has_value());
   EXPECT_FALSE(key.key_id().has_value());
 }
@@ -203,8 +187,6 @@ TEST(JOSE_JWKS, iterates_in_order) {
   auto iterator{keys.value().begin()};
   ASSERT_NE(iterator, keys.value().end());
   EXPECT_EQ(iterator->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(iterator->modulus(), "test");
-  EXPECT_EQ(iterator->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(iterator->algorithm().has_value());
   EXPECT_EQ(iterator->algorithm().value(),
             sourcemeta::core::JWSAlgorithm::RS256);
@@ -215,8 +197,6 @@ TEST(JOSE_JWKS, iterates_in_order) {
   ASSERT_NE(iterator, keys.value().end());
   EXPECT_EQ(iterator->type(), sourcemeta::core::JWK::Type::EllipticCurve);
   EXPECT_EQ(iterator->curve(), "P-256");
-  EXPECT_EQ(iterator->coordinate_x().size(), 32);
-  EXPECT_EQ(iterator->coordinate_y().size(), 32);
   ASSERT_TRUE(iterator->algorithm().has_value());
   EXPECT_EQ(iterator->algorithm().value(),
             sourcemeta::core::JWSAlgorithm::ES256);
@@ -238,8 +218,6 @@ TEST(JOSE_JWKS, from_accepts_rvalue) {
   const auto *key{keys.value().find("rsa-1")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());
@@ -265,8 +243,6 @@ TEST(JOSE_JWKS, owns_keys_after_source_destroyed) {
   const auto *key{keys.value().find("scoped")};
   ASSERT_NE(key, nullptr);
   EXPECT_EQ(key->type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key->modulus(), "test");
-  EXPECT_EQ(key->exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key->algorithm().has_value());
   EXPECT_EQ(key->algorithm().value(), sourcemeta::core::JWSAlgorithm::RS256);
   ASSERT_TRUE(key->key_id().has_value());

@@ -14,8 +14,6 @@ TEST(JOSE_JWK, rsa_public_key) {
   const auto key{sourcemeta::core::JWK::from(document)};
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key.value().modulus(), "test");
-  EXPECT_EQ(key.value().exponent(), std::string("\x01\x00\x01", 3));
   ASSERT_TRUE(key.value().key_id().has_value());
   EXPECT_EQ(key.value().key_id().value(), "key-1");
   ASSERT_TRUE(key.value().algorithm().has_value());
@@ -43,8 +41,6 @@ TEST(JOSE_JWK, elliptic_curve_public_key) {
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::EllipticCurve);
   EXPECT_EQ(key.value().curve(), "P-256");
-  EXPECT_EQ(key.value().coordinate_x().size(), 32);
-  EXPECT_EQ(key.value().coordinate_y().size(), 32);
   ASSERT_TRUE(key.value().key_id().has_value());
   EXPECT_EQ(key.value().key_id().value(), "1");
   EXPECT_FALSE(key.value().algorithm().has_value());
@@ -99,7 +95,6 @@ TEST(JOSE_JWK, octet_key_pair_ed25519_public_key) {
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::OctetKeyPair);
   EXPECT_EQ(key.value().curve(), "Ed25519");
-  EXPECT_EQ(key.value().coordinate_x().size(), 32);
 }
 
 TEST(JOSE_JWK, octet_key_pair_ed448_public_key) {
@@ -110,7 +105,6 @@ TEST(JOSE_JWK, octet_key_pair_ed448_public_key) {
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::OctetKeyPair);
   EXPECT_EQ(key.value().curve(), "Ed448");
-  EXPECT_EQ(key.value().coordinate_x().size(), 57);
 }
 
 TEST(JOSE_JWK, octet_key_pair_algorithm_eddsa) {
@@ -170,7 +164,6 @@ TEST(JOSE_JWK, from_accepts_rvalue) {
   const auto key{sourcemeta::core::JWK::from(std::move(document))};
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::RSA);
-  EXPECT_EQ(key.value().modulus(), "test");
 }
 
 TEST(JOSE_JWK, constructor_accepts_rvalue) {
@@ -192,7 +185,6 @@ TEST(JOSE_JWK, owns_material_after_source_destroyed) {
   }
 
   ASSERT_TRUE(key.has_value());
-  EXPECT_EQ(key.value().modulus(), "test");
   ASSERT_TRUE(key.value().key_id().has_value());
   EXPECT_EQ(key.value().key_id().value(), "scoped");
 }
@@ -270,8 +262,6 @@ TEST(JOSE_JWK, accepts_ec_p384) {
   const auto key{sourcemeta::core::JWK::from(document)};
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().curve(), "P-384");
-  EXPECT_EQ(key.value().coordinate_x().size(), 48);
-  EXPECT_EQ(key.value().coordinate_y().size(), 48);
 }
 
 TEST(JOSE_JWK, accepts_ec_p521) {
@@ -285,8 +275,6 @@ TEST(JOSE_JWK, accepts_ec_p521) {
   const auto key{sourcemeta::core::JWK::from(document)};
   ASSERT_TRUE(key.has_value());
   EXPECT_EQ(key.value().curve(), "P-521");
-  EXPECT_EQ(key.value().coordinate_x().size(), 66);
-  EXPECT_EQ(key.value().coordinate_y().size(), 66);
 }
 
 TEST(JOSE_JWK, rejects_missing_rsa_exponent) {

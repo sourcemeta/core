@@ -74,6 +74,47 @@ static auto load(const std::filesystem::path &path) -> sourcemeta::core::JSON {
   return sourcemeta::core::parse_json(stream);
 }
 
+static auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
+                         const std::string_view modulus,
+                         const std::string_view exponent,
+                         const std::string_view message,
+                         const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
+  return key.has_value() && sourcemeta::core::rsassa_pkcs1_v15_verify(
+                                key.value(), hash, message, signature);
+}
+
+static auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
+                       const std::string_view modulus,
+                       const std::string_view exponent,
+                       const std::string_view message,
+                       const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
+  return key.has_value() && sourcemeta::core::rsassa_pss_verify(
+                                key.value(), hash, message, signature);
+}
+
+static auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
+                         const sourcemeta::core::SignatureHashFunction hash,
+                         const std::string_view coordinate_x,
+                         const std::string_view coordinate_y,
+                         const std::string_view message,
+                         const std::string_view signature) -> bool {
+  const auto key{
+      sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
+  return key.has_value() &&
+         sourcemeta::core::ecdsa_verify(key.value(), hash, message, signature);
+}
+
+static auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
+                         const std::string_view public_key,
+                         const std::string_view message,
+                         const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_eddsa_public_key(curve, public_key)};
+  return key.has_value() &&
+         sourcemeta::core::eddsa_verify(key.value(), message, signature);
+}
+
 using RsaVerify = auto (*)(const sourcemeta::core::SignatureHashFunction,
                            const std::string_view, const std::string_view,
                            const std::string_view, const std::string_view)
@@ -162,7 +203,7 @@ static auto register_ecdsa_tests(const std::filesystem::path &path,
             const auto got{
                 point.has_value() && point.value().size() == 1 + (2 * width) &&
                 message.has_value() && signature.has_value() &&
-                sourcemeta::core::ecdsa_verify(
+                verify_ecdsa(
                     curve_identifier, hash_function,
                     std::string_view{point.value()}.substr(1, width),
                     std::string_view{point.value()}.substr(1 + width, width),
@@ -200,9 +241,8 @@ static auto register_eddsa_tests(const std::filesystem::path &path,
             const auto signature{sourcemeta::core::hex_to_bytes(signature_hex)};
             const auto got{public_key.has_value() && message.has_value() &&
                            signature.has_value() &&
-                           sourcemeta::core::eddsa_verify(
-                               curve, public_key.value(), message.value(),
-                               signature.value())};
+                           verify_eddsa(curve, public_key.value(),
+                                        message.value(), signature.value())};
             EXPECT_EQ(got, expected);
           });
     }
@@ -222,8 +262,7 @@ auto main(int argc, char **argv) -> int {
        "rsa_signature_4096_sha512_test"}};
   for (const auto name : rsa_pkcs1) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
-                       "Wycheproof_RSA_PKCS1",
-                       sourcemeta::core::rsassa_pkcs1_v15_verify);
+                       "Wycheproof_RSA_PKCS1", verify_pkcs1);
   }
 
   constexpr std::array<std::string_view, 6> rsa_pss{
@@ -232,8 +271,7 @@ auto main(int argc, char **argv) -> int {
        "rsa_pss_4096_sha384_mgf1_48_test", "rsa_pss_4096_sha512_mgf1_64_test"}};
   for (const auto name : rsa_pss) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
-                       "Wycheproof_RSA_PSS",
-                       sourcemeta::core::rsassa_pss_verify);
+                       "Wycheproof_RSA_PSS", verify_pss);
   }
 
   constexpr std::array<std::string_view, 5> ecdsa{
