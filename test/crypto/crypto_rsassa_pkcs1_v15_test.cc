@@ -3,7 +3,9 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/text.h>
 
-#include <string> // std::string
+#include <optional>    // std::optional
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // A 2048-bit test key with the usual public exponent, along with
 // signatures over the message below, one per supported hash function
@@ -51,8 +53,20 @@ static const std::string SIGNATURE_SHA512_HEX{
     "0a3d8f7bf7cd5fc1e129b1008c9a2e9383c1b7057d436309ff0aff64242e80f5"
     "1aa161d0bef0b7db16332277d2db938886e94c1d81fdb71bcbef35a3514ca6e8"};
 
+namespace {
+auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
+                  const std::string_view modulus,
+                  const std::string_view exponent,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
+  return key.has_value() && sourcemeta::core::rsassa_pkcs1_v15_verify(
+                                key.value(), hash, message, signature);
+}
+} // namespace
+
 TEST(Crypto_rsassa_pkcs1_v15, verify_sha256_valid_signature) {
-  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
@@ -60,7 +74,7 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_sha256_valid_signature) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_sha384_valid_signature) {
-  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA384,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
@@ -68,7 +82,7 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_sha384_valid_signature) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_sha512_valid_signature) {
-  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA512,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
@@ -76,7 +90,7 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_sha512_valid_signature) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_exponent_with_leading_zeros) {
-  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes("00000000" + EXPONENT_HEX).value(),
@@ -84,7 +98,7 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_exponent_with_leading_zeros) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_different_message) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
@@ -95,15 +109,15 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_different_message) {
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_tampered_signature) {
   auto signature{sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()};
   signature[0] = static_cast<char>(signature[0] ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-      signature));
+  EXPECT_FALSE(
+      verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256,
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   MESSAGE, signature));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_hash_function_mismatch) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA384,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
@@ -113,25 +127,25 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_hash_function_mismatch) {
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_truncated_signature) {
   auto signature{sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()};
   signature.pop_back();
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-      signature));
+  EXPECT_FALSE(
+      verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256,
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   MESSAGE, signature));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_extended_signature) {
   auto signature{sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()};
   signature.push_back('\x00');
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-      signature));
+  EXPECT_FALSE(
+      verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256,
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   MESSAGE, signature));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_signature_equal_to_modulus) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
@@ -139,7 +153,7 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_signature_equal_to_modulus) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_wrong_exponent) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes("03").value(), MESSAGE,
@@ -147,28 +161,28 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_wrong_exponent) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_empty_signature) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE, ""));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_empty_modulus) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256, "",
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_empty_exponent) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(), "", MESSAGE,
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_empty_message) {
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), "",
@@ -176,7 +190,7 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_empty_message) {
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_modulus_with_leading_zeros) {
-  EXPECT_TRUE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_TRUE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes("0000" + MODULUS_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
@@ -186,15 +200,15 @@ TEST(Crypto_rsassa_pkcs1_v15, verify_modulus_with_leading_zeros) {
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_oversized_modulus) {
   const std::string modulus(520, '\xFF');
   const std::string signature(520, '\x01');
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
-      sourcemeta::core::SignatureHashFunction::SHA256, modulus,
-      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
-      signature));
+  EXPECT_FALSE(
+      verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256, modulus,
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   MESSAGE, signature));
 }
 
 TEST(Crypto_rsassa_pkcs1_v15, verify_rejects_oversized_exponent) {
   const std::string exponent(520, '\xFF');
-  EXPECT_FALSE(sourcemeta::core::rsassa_pkcs1_v15_verify(
+  EXPECT_FALSE(verify_pkcs1(
       sourcemeta::core::SignatureHashFunction::SHA256,
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(), exponent, MESSAGE,
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));

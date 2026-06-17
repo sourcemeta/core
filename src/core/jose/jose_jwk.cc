@@ -3,6 +3,7 @@
 #include <sourcemeta/core/crypto.h>
 
 #include <cstddef>     // std::size_t
+#include <memory>      // std::make_shared
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::unreachable
@@ -78,6 +79,27 @@ auto okp_key_bytes(const std::string_view curve) -> std::optional<std::size_t> {
     return 57;
   } else {
     return std::nullopt;
+  }
+}
+
+// Both mappings are only reached after the curve has been validated above
+auto to_elliptic_curve(const std::string_view curve) noexcept
+    -> sourcemeta::core::EllipticCurve {
+  if (curve == "P-256") {
+    return sourcemeta::core::EllipticCurve::P256;
+  } else if (curve == "P-384") {
+    return sourcemeta::core::EllipticCurve::P384;
+  } else {
+    return sourcemeta::core::EllipticCurve::P521;
+  }
+}
+
+auto to_edwards_curve(const std::string_view curve) noexcept
+    -> sourcemeta::core::EdwardsCurve {
+  if (curve == "Ed25519") {
+    return sourcemeta::core::EdwardsCurve::Ed25519;
+  } else {
+    return sourcemeta::core::EdwardsCurve::Ed448;
   }
 }
 
@@ -214,6 +236,29 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
         algorithm_matches_key(parsed.value(), result.type_, result.curve_)) {
       result.algorithm_ = parsed;
     }
+  }
+
+  // Build the platform key once, so verification reuses it. A key that cannot
+  // be turned into one stays null and simply fails to verify
+  std::optional<PublicKey> public_key;
+  switch (result.type_) {
+    case Type::RSA:
+      public_key = make_rsa_public_key(result.modulus_, result.exponent_);
+      break;
+    case Type::EllipticCurve:
+      public_key =
+          make_ec_public_key(to_elliptic_curve(result.curve_),
+                             result.coordinate_x_, result.coordinate_y_);
+      break;
+    case Type::OctetKeyPair:
+      public_key = make_eddsa_public_key(to_edwards_curve(result.curve_),
+                                         result.coordinate_x_);
+      break;
+  }
+
+  if (public_key.has_value()) {
+    result.public_key_ =
+        std::make_shared<const PublicKey>(std::move(public_key).value());
   }
 
   return true;

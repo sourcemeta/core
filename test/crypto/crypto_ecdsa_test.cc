@@ -3,7 +3,9 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/text.h>
 
-#include <string> // std::string
+#include <optional>    // std::optional
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // Test keys and signatures over the message below, one per supported curve,
 // generated with OpenSSL using the curve's matching hash function
@@ -43,139 +45,153 @@ static const std::string P521_SIG{
     "03f3165be805564f612a5e228207b3007258023bbfe33014bbe759aaef96f28c"
     "56018df4"};
 
+namespace {
+auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
+                  const sourcemeta::core::SignatureHashFunction hash,
+                  const std::string_view coordinate_x,
+                  const std::string_view coordinate_y,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
+  const auto key{
+      sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
+  return key.has_value() &&
+         sourcemeta::core::ecdsa_verify(key.value(), hash, message, signature);
+}
+} // namespace
+
 TEST(Crypto_ecdsa, verify_p256_sha256_valid_signature) {
-  EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_TRUE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                           sourcemeta::core::SignatureHashFunction::SHA256,
+                           sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                           sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                           MESSAGE,
+                           sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_p384_sha384_valid_signature) {
-  EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P384,
-      sourcemeta::core::SignatureHashFunction::SHA384,
-      sourcemeta::core::hex_to_bytes(P384_QX).value(),
-      sourcemeta::core::hex_to_bytes(P384_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P384_SIG).value()));
+  EXPECT_TRUE(verify_ecdsa(sourcemeta::core::EllipticCurve::P384,
+                           sourcemeta::core::SignatureHashFunction::SHA384,
+                           sourcemeta::core::hex_to_bytes(P384_QX).value(),
+                           sourcemeta::core::hex_to_bytes(P384_QY).value(),
+                           MESSAGE,
+                           sourcemeta::core::hex_to_bytes(P384_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_p521_sha512_valid_signature) {
-  EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P521,
-      sourcemeta::core::SignatureHashFunction::SHA512,
-      sourcemeta::core::hex_to_bytes(P521_QX).value(),
-      sourcemeta::core::hex_to_bytes(P521_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P521_SIG).value()));
+  EXPECT_TRUE(verify_ecdsa(sourcemeta::core::EllipticCurve::P521,
+                           sourcemeta::core::SignatureHashFunction::SHA512,
+                           sourcemeta::core::hex_to_bytes(P521_QX).value(),
+                           sourcemeta::core::hex_to_bytes(P521_QY).value(),
+                           MESSAGE,
+                           sourcemeta::core::hex_to_bytes(P521_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_different_message) {
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), "a different message",
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            "a different message",
+                            sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_tampered_r) {
   auto signature{sourcemeta::core::hex_to_bytes(P256_SIG).value()};
   signature[0] = static_cast<char>(signature[0] ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE, signature));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE, signature));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_tampered_s) {
   auto signature{sourcemeta::core::hex_to_bytes(P256_SIG).value()};
   signature.back() = static_cast<char>(signature.back() ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE, signature));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE, signature));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_curve_mismatch) {
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P384,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P384,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE,
+                            sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_hash_function_mismatch) {
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA384,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA384,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE,
+                            sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_truncated_signature) {
   auto signature{sourcemeta::core::hex_to_bytes(P256_SIG).value()};
   signature.pop_back();
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE, signature));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE, signature));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_zero_signature) {
   const std::string signature(64, '\x00');
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE, signature));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE, signature));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_point_not_on_curve) {
   auto coordinate_y{sourcemeta::core::hex_to_bytes(P256_QY).value()};
   coordinate_y.back() = static_cast<char>(coordinate_y.back() ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(), coordinate_y, MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            coordinate_y, MESSAGE,
+                            sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_empty_signature) {
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes(P256_QX).value(),
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE, ""));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256,
+                            sourcemeta::core::hex_to_bytes(P256_QX).value(),
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE, ""));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_empty_coordinate) {
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256, "",
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_FALSE(verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                            sourcemeta::core::SignatureHashFunction::SHA256, "",
+                            sourcemeta::core::hex_to_bytes(P256_QY).value(),
+                            MESSAGE,
+                            sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_accepts_leading_zero_padded_coordinates) {
-  EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256,
-      sourcemeta::core::hex_to_bytes("0000" + P256_QX).value(),
-      sourcemeta::core::hex_to_bytes("0000" + P256_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_TRUE(
+      verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                   sourcemeta::core::SignatureHashFunction::SHA256,
+                   sourcemeta::core::hex_to_bytes("0000" + P256_QX).value(),
+                   sourcemeta::core::hex_to_bytes("0000" + P256_QY).value(),
+                   MESSAGE, sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }
 
 TEST(Crypto_ecdsa, verify_rejects_oversized_coordinate) {
   const std::string coordinate(40, '\xFF');
-  EXPECT_FALSE(sourcemeta::core::ecdsa_verify(
-      sourcemeta::core::EllipticCurve::P256,
-      sourcemeta::core::SignatureHashFunction::SHA256, coordinate,
-      sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
-      sourcemeta::core::hex_to_bytes(P256_SIG).value()));
+  EXPECT_FALSE(
+      verify_ecdsa(sourcemeta::core::EllipticCurve::P256,
+                   sourcemeta::core::SignatureHashFunction::SHA256, coordinate,
+                   sourcemeta::core::hex_to_bytes(P256_QY).value(), MESSAGE,
+                   sourcemeta::core::hex_to_bytes(P256_SIG).value()));
 }

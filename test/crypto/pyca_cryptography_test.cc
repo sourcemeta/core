@@ -78,6 +78,47 @@ private:
   const std::function<void()> assertion;
 };
 
+static auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
+                         const std::string_view modulus,
+                         const std::string_view exponent,
+                         const std::string_view message,
+                         const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
+  return key.has_value() && sourcemeta::core::rsassa_pkcs1_v15_verify(
+                                key.value(), hash, message, signature);
+}
+
+static auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
+                       const std::string_view modulus,
+                       const std::string_view exponent,
+                       const std::string_view message,
+                       const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
+  return key.has_value() && sourcemeta::core::rsassa_pss_verify(
+                                key.value(), hash, message, signature);
+}
+
+static auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
+                         const sourcemeta::core::SignatureHashFunction hash,
+                         const std::string_view coordinate_x,
+                         const std::string_view coordinate_y,
+                         const std::string_view message,
+                         const std::string_view signature) -> bool {
+  const auto key{
+      sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
+  return key.has_value() &&
+         sourcemeta::core::ecdsa_verify(key.value(), hash, message, signature);
+}
+
+static auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
+                         const std::string_view public_key,
+                         const std::string_view message,
+                         const std::string_view signature) -> bool {
+  const auto key{sourcemeta::core::make_eddsa_public_key(curve, public_key)};
+  return key.has_value() &&
+         sourcemeta::core::eddsa_verify(key.value(), message, signature);
+}
+
 static auto register_case(const std::string &suite_name,
                           const std::string &test_name,
                           std::function<void()> assertion) -> void {
@@ -259,7 +300,7 @@ static auto register_rsa_sigver15_tests(const std::filesystem::path &file_path)
         "PyCA_Cryptography_RSA_SigVer15", test_name,
         [vector, hash_function, expected]() {
           EXPECT_EQ(
-              sourcemeta::core::rsassa_pkcs1_v15_verify(
+              verify_pkcs1(
                   hash_function,
                   sourcemeta::core::hex_to_bytes(vector.modulus_hex).value(),
                   sourcemeta::core::hex_to_bytes(vector.exponent_hex).value(),
@@ -293,7 +334,7 @@ static auto register_rsa_sigverpss_tests(const std::filesystem::path &file_path)
     register_case(
         "PyCA_Cryptography_RSA_SigVerPSS", test_name,
         [vector, hash_function]() {
-          EXPECT_FALSE(sourcemeta::core::rsassa_pss_verify(
+          EXPECT_FALSE(verify_pss(
               hash_function,
               sourcemeta::core::hex_to_bytes(vector.modulus_hex).value(),
               sourcemeta::core::hex_to_bytes(vector.exponent_hex).value(),
@@ -375,9 +416,8 @@ static auto register_ecdsa_sigver_tests(const std::filesystem::path &file_path)
             sourcemeta::core::pad_left(
                 sourcemeta::core::hex_to_bytes(s_hex, true).value(), width,
                 '\x00')};
-        EXPECT_EQ(sourcemeta::core::ecdsa_verify(curve, hash, coordinate_x,
-                                                 coordinate_y, message,
-                                                 signature),
+        EXPECT_EQ(verify_ecdsa(curve, hash, coordinate_x, coordinate_y, message,
+                               signature),
                   expected);
       });
     }
@@ -413,7 +453,7 @@ static auto register_eddsa_25519_tests(const std::filesystem::path &file_path)
     case_count += 1;
     register_case("PyCA_Cryptography_Ed25519_SigVer",
                   "case_" + std::to_string(case_count), [=]() {
-                    EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+                    EXPECT_TRUE(verify_eddsa(
                         sourcemeta::core::EdwardsCurve::Ed25519,
                         sourcemeta::core::hex_to_bytes(public_key_hex).value(),
                         sourcemeta::core::hex_to_bytes(message_hex).value(),
@@ -470,7 +510,7 @@ static auto register_eddsa_448_tests(const std::filesystem::path &file_path)
       const auto signature{signature_hex};
       register_case("PyCA_Cryptography_Ed448_SigVer", "count_" + current_count,
                     [=]() {
-                      EXPECT_TRUE(sourcemeta::core::eddsa_verify(
+                      EXPECT_TRUE(verify_eddsa(
                           sourcemeta::core::EdwardsCurve::Ed448,
                           sourcemeta::core::hex_to_bytes(public_key).value(),
                           sourcemeta::core::hex_to_bytes(message).value(),

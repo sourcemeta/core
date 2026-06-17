@@ -10,9 +10,11 @@
 #include <sourcemeta/core/jose_error.h>
 // NOLINTEND(misc-include-cleaner)
 
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
 
 #include <cstdint>     // std::uint8_t
+#include <memory>      // std::shared_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -92,6 +94,13 @@ public:
     return this->coordinate_y_;
   }
 
+  // The parsed platform key, built once from the decoded material so that
+  // verification reuses it rather than reconstructing it per signature. It is
+  // null when the material could not be turned into a key
+  [[nodiscard]] auto public_key() const noexcept -> const PublicKey * {
+    return this->public_key_.get();
+  }
+
 private:
   JWK() = default;
   static auto parse(const JSON &value, JWK &result) -> bool;
@@ -107,6 +116,7 @@ private:
   std::string curve_;
   std::string coordinate_x_;
   std::string coordinate_y_;
+  std::shared_ptr<const PublicKey> public_key_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif
