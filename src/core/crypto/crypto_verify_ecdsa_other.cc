@@ -96,12 +96,13 @@ auto ecdsa_verify(const EllipticCurve curve, const SignatureHashFunction hash,
       bignum_mod_multiply(digest_integer, s_inverse, parameters.order)};
   const auto u2{bignum_mod_multiply(r, s_inverse, parameters.order)};
 
-  const JacobianPoint generator{parameters.generator_x, parameters.generator_y,
-                                bignum_from_u64(1)};
-  const JacobianPoint public_point{public_x, public_y, bignum_from_u64(1)};
-  const auto point{point_add(
-      point_scalar_multiply(u1, generator, parameters),
-      point_scalar_multiply(u2, public_point, parameters), parameters)};
+  const JacobianPoint generator{.x = parameters.generator_x,
+                                .y = parameters.generator_y,
+                                .z = bignum_from_u64(1)};
+  const JacobianPoint public_point{
+      .x = public_x, .y = public_y, .z = bignum_from_u64(1)};
+  const auto point{point_double_scalar_multiply(u1, generator, u2, public_point,
+                                                parameters)};
 
   // FIPS 186-4 Section 6.4.2 step 6: reject when the combination is the
   // point at infinity
