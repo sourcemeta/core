@@ -36,12 +36,11 @@ static void JOSE_VerifySignature_RS256(benchmark::State &state) {
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RS256_JWK))};
   assert(token.has_value());
   assert(key.has_value());
-  const auto public_key{sourcemeta::core::make_rsa_public_key(
-      key.value().modulus(), key.value().exponent())};
-  assert(public_key.has_value());
+  const auto *public_key{key.value().public_key()};
+  assert(public_key != nullptr);
   for (auto _ : state) {
     auto result{sourcemeta::core::rsassa_pkcs1_v15_verify(
-        public_key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+        *public_key, sourcemeta::core::SignatureHashFunction::SHA256,
         token.value().signing_input(), token.value().signature())};
     assert(result);
     benchmark::DoNotOptimize(result);
@@ -54,13 +53,11 @@ static void JOSE_VerifySignature_ES512(benchmark::State &state) {
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(ES512_JWK))};
   assert(token.has_value());
   assert(key.has_value());
-  const auto public_key{sourcemeta::core::make_ec_public_key(
-      sourcemeta::core::EllipticCurve::P521, key.value().coordinate_x(),
-      key.value().coordinate_y())};
-  assert(public_key.has_value());
+  const auto *public_key{key.value().public_key()};
+  assert(public_key != nullptr);
   for (auto _ : state) {
     auto result{sourcemeta::core::ecdsa_verify(
-        public_key.value(), sourcemeta::core::SignatureHashFunction::SHA512,
+        *public_key, sourcemeta::core::SignatureHashFunction::SHA512,
         token.value().signing_input(), token.value().signature())};
     assert(result);
     benchmark::DoNotOptimize(result);

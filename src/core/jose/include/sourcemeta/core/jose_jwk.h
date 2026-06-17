@@ -75,28 +75,11 @@ public:
     return this->algorithm_;
   }
 
-  // RSA keys (RFC 7518 Section 6.3): big-endian modulus and exponent
-  [[nodiscard]] auto modulus() const noexcept -> std::string_view {
-    return this->modulus_;
-  }
-
-  [[nodiscard]] auto exponent() const noexcept -> std::string_view {
-    return this->exponent_;
-  }
-
   // Elliptic curve keys (RFC 7518 Section 6.2) and octet key pairs (RFC 8037
-  // Section 2) share the curve name. An octet key pair has no second
-  // coordinate, so its single encoded public key is exposed through the first
+  // Section 2) carry a curve name, which the elliptic curve algorithms pin to
+  // exactly one curve
   [[nodiscard]] auto curve() const noexcept -> std::string_view {
     return this->curve_;
-  }
-
-  [[nodiscard]] auto coordinate_x() const noexcept -> std::string_view {
-    return this->coordinate_x_;
-  }
-
-  [[nodiscard]] auto coordinate_y() const noexcept -> std::string_view {
-    return this->coordinate_y_;
   }
 
   // The parsed platform key, built once from the decoded material so that
@@ -116,11 +99,7 @@ private:
   Type type_{Type::RSA};
   std::optional<std::string> key_id_;
   std::optional<JWSAlgorithm> algorithm_;
-  std::string modulus_;
-  std::string exponent_;
   std::string curve_;
-  std::string coordinate_x_;
-  std::string coordinate_y_;
   std::optional<PublicKey> public_key_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)

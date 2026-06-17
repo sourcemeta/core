@@ -117,6 +117,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
   }
 
   const auto &key_type_value{key_type->to_string()};
+  std::optional<PublicKey> parsed_key;
   if (key_type_value == "RSA") {
     // A public key must not carry the private parameters (RFC 7518 Section
     // 6.3.2), and rejecting them early surfaces dangerous misconfigurations
@@ -145,8 +146,8 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     }
 
     result.type_ = Type::RSA;
-    result.modulus_ = std::move(decoded_modulus).value();
-    result.exponent_ = std::move(decoded_exponent).value();
+    parsed_key =
+        make_rsa_public_key(decoded_modulus.value(), decoded_exponent.value());
   } else if (key_type_value == "EC") {
     // A public key must not carry the private parameter (RFC 7518 Section
     // 6.2.2)
@@ -179,8 +180,8 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
 
     result.type_ = Type::EllipticCurve;
     result.curve_ = curve->to_string();
-    result.coordinate_x_ = std::move(decoded_x).value();
-    result.coordinate_y_ = std::move(decoded_y).value();
+    parsed_key = make_ec_public_key(to_elliptic_curve(result.curve_),
+                                    decoded_x.value(), decoded_y.value());
   } else if (key_type_value == "OKP") {
     // A public key must not carry the private parameter (RFC 8037 Section 2)
     if (value.try_at("d", HASH_D) != nullptr) {
@@ -207,7 +208,8 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
 
     result.type_ = Type::OctetKeyPair;
     result.curve_ = curve->to_string();
-    result.coordinate_x_ = std::move(decoded_public_key).value();
+    parsed_key = make_eddsa_public_key(to_edwards_curve(result.curve_),
+                                       decoded_public_key.value());
   } else {
     return false;
   }
@@ -237,25 +239,10 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     }
   }
 
-  // Build the platform key once, so verification reuses it. A key that cannot
-  // be turned into one stays null and simply fails to verify
-  std::optional<PublicKey> public_key;
-  switch (result.type_) {
-    case Type::RSA:
-      public_key = make_rsa_public_key(result.modulus_, result.exponent_);
-      break;
-    case Type::EllipticCurve:
-      public_key =
-          make_ec_public_key(to_elliptic_curve(result.curve_),
-                             result.coordinate_x_, result.coordinate_y_);
-      break;
-    case Type::OctetKeyPair:
-      public_key = make_eddsa_public_key(to_edwards_curve(result.curve_),
-                                         result.coordinate_x_);
-      break;
-  }
-
-  result.public_key_ = std::move(public_key);
+  // The platform key is built once when the material is decoded, so
+  // verification reuses it. A key that cannot be turned into one stays null and
+  // simply fails to verify
+  result.public_key_ = std::move(parsed_key);
   return true;
 }
 
