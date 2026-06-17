@@ -4,8 +4,8 @@
 // Edwards-curve signature verification (Ed25519 and Ed448, RFC 8032 Section 5,
 // the pure variants) for the backends without a native EdDSA primitive. Points
 // are kept in extended Edwards coordinates, so that the group law is a single
-// set of complete formulas shared by both curves. Performance and constant
-// time execution are non-goals, verification consumes only public inputs
+// set of complete formulas shared by both curves. Constant time execution is
+// not required, since verification consumes only public inputs
 
 #include <sourcemeta/core/crypto_sha512.h>
 

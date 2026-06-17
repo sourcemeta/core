@@ -435,7 +435,9 @@ inline auto bignum_mod_halve(const Bignum &value,
 
 // Modular inverse by the binary extended Euclidean algorithm, which needs only
 // halving, subtraction, and comparison rather than the modular exponentiation
-// a Fermat inverse over a prime modulus would spend. The modulus must be odd
+// a Fermat inverse over a prime modulus would spend. The modulus must be odd.
+// Returns zero when the value has no inverse, which is when it shares a factor
+// with the modulus or reduces to zero
 inline auto bignum_mod_inverse(const Bignum &value,
                                const Bignum &modulus) noexcept -> Bignum {
   const auto one{bignum_from_u64(1)};
@@ -446,6 +448,13 @@ inline auto bignum_mod_inverse(const Bignum &value,
   Bignum second_coefficient;
 
   while (bignum_compare(first, one) != 0 && bignum_compare(second, one) != 0) {
+    // A side reaching zero means the greatest common divisor exceeds one, so no
+    // inverse exists. Stopping here also keeps the halving below from spinning
+    // forever on a zero value
+    if (bignum_is_zero(first) || bignum_is_zero(second)) {
+      return {};
+    }
+
     while ((first.words[0] & 1u) == 0) {
       first = bignum_shift_right(first, 1);
       first_coefficient = bignum_mod_halve(first_coefficient, modulus);
