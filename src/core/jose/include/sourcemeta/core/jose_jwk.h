@@ -14,7 +14,6 @@
 #include <sourcemeta/core/json.h>
 
 #include <cstdint>     // std::uint8_t
-#include <memory>      // std::shared_ptr
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -46,6 +45,12 @@ public:
 
   /// Parse a JSON Web Key from a JSON value, throwing on invalid input.
   explicit JWK(JSON &&value);
+
+  /// A key exclusively owns its parsed public key, so it is move-only.
+  JWK(JWK &&other) noexcept = default;
+  auto operator=(JWK &&other) noexcept -> JWK & = default;
+  JWK(const JWK &) = delete;
+  auto operator=(const JWK &) -> JWK & = delete;
 
   /// Parse a JSON Web Key from a JSON value, returning no value on invalid
   /// input.
@@ -98,7 +103,7 @@ public:
   // verification reuses it rather than reconstructing it per signature. It is
   // null when the material could not be turned into a key
   [[nodiscard]] auto public_key() const noexcept -> const PublicKey * {
-    return this->public_key_.get();
+    return this->public_key_.has_value() ? &*this->public_key_ : nullptr;
   }
 
 private:
@@ -116,7 +121,7 @@ private:
   std::string curve_;
   std::string coordinate_x_;
   std::string coordinate_y_;
-  std::shared_ptr<const PublicKey> public_key_;
+  std::optional<PublicKey> public_key_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

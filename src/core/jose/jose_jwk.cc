@@ -3,7 +3,6 @@
 #include <sourcemeta/core/crypto.h>
 
 #include <cstddef>     // std::size_t
-#include <memory>      // std::make_shared
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::unreachable
@@ -256,11 +255,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
       break;
   }
 
-  if (public_key.has_value()) {
-    result.public_key_ =
-        std::make_shared<const PublicKey>(std::move(public_key).value());
-  }
-
+  result.public_key_ = std::move(public_key);
   return true;
 }
 
