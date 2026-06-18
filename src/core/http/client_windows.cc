@@ -32,12 +32,13 @@ namespace {
 constexpr std::string_view HTTP_RESPONSE_TOO_LARGE_MESSAGE{
     "The response exceeds the maximum allowed size"};
 
-// WinHttpSetTimeouts takes signed millisecond counts, so clamp the wider
-// duration into range to avoid a narrowing wrap, where zero would request no
-// timeout and a negative value would be rejected
+// WinHttpSetTimeouts takes signed millisecond counts where zero requests no
+// timeout. Floor non-positive durations to the smallest bound so a misused
+// value cannot become an unbounded wait, and saturate large ones to avoid a
+// narrowing wrap
 auto to_winhttp_timeout(const std::chrono::milliseconds value) -> int {
   if (value.count() <= 0) {
-    return 0;
+    return 1;
   }
 
   if (value.count() > std::numeric_limits<int>::max()) {
