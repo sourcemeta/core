@@ -41,7 +41,7 @@ jobs:
             cxx: g++
             type: static
             shell: sh
-            options: -DSOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL:BOOL=ON
+            options: -DSOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL:BOOL=ON -DSOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL:BOOL=ON
             benchmark: linux/gcc
           - os: ubuntu-latest
             cc: clang
@@ -93,6 +93,7 @@ jobs:
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
           -DSOURCEMETA_CORE_TESTS:BOOL=ON
+          -DSOURCEMETA_CORE_TESTS_CI:BOOL=ON
           -DSOURCEMETA_CORE_BENCHMARK:BOOL=ON
           -DSOURCEMETA_CORE_DOCS:BOOL=OFF
           -DBUILD_SHARED_LIBS:BOOL=OFF
@@ -104,6 +105,7 @@ jobs:
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
           -DSOURCEMETA_CORE_TESTS:BOOL=ON
+          -DSOURCEMETA_CORE_TESTS_CI:BOOL=ON
           -DSOURCEMETA_CORE_BENCHMARK:BOOL=ON
           -DSOURCEMETA_CORE_DOCS:BOOL=OFF
           -DBUILD_SHARED_LIBS:BOOL=ON
