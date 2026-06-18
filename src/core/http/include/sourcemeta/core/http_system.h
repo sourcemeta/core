@@ -148,8 +148,8 @@ public:
     return *this;
   }
 
-  /// Set the connection phase timeout, falling back to the backend default
-  /// when unset
+  /// Set a best-effort timeout for establishing the connection, applied as
+  /// each backend allows and falling back to the backend default when unset
   auto connect_timeout(const std::chrono::milliseconds value)
       -> HTTPSystemRequest & {
     this->connect_timeout_ = value;

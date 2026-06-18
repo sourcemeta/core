@@ -154,16 +154,17 @@ struct BodyContext {
 auto body_callback(char *data, std::size_t size, std::size_t count,
                    void *user_data) -> std::size_t {
   auto *context{static_cast<BodyContext *>(user_data)};
+  const std::size_t chunk{size * count};
   if (context->maximum_size.has_value() &&
-      context->output->size() + (size * count) >
-          context->maximum_size.value()) {
+      (context->output->size() > context->maximum_size.value() ||
+       chunk > context->maximum_size.value() - context->output->size())) {
     context->maximum_size_exceeded = true;
     // Returning a smaller count than given aborts the transfer
     return 0;
   }
 
-  context->output->append(data, size * count);
-  return size * count;
+  context->output->append(data, chunk);
+  return chunk;
 }
 
 auto header_callback(char *data, std::size_t size, std::size_t count,

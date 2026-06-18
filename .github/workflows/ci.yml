@@ -42,6 +42,7 @@ jobs:
             type: static
             shell: sh
             options: -DSOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL:BOOL=ON -DSOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL:BOOL=ON
+            apt: libcurl4-openssl-dev
             benchmark: linux/gcc
           - os: ubuntu-latest
             cc: clang
@@ -85,6 +86,9 @@ jobs:
         env:
           HOMEBREW_NO_ANALYTICS: 1
           HOMEBREW_NO_AUTO_UPDATE: 1
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux' && matrix.platform.apt
+        run: sudo apt-get update && sudo apt-get install --yes ${{ matrix.platform.apt }}
 
       - run: cmake --version
       - name: Configure (static)

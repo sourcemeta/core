@@ -157,13 +157,21 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
                      &policy, sizeof(policy));
   }
 
-  const auto total_timeout{static_cast<int>(this->timeout_.count())};
-  const auto connect_timeout{
-      this->connect_timeout_.has_value()
-          ? static_cast<int>(this->connect_timeout_.value().count())
-          : total_timeout};
-  WinHttpSetTimeouts(request_handle.get(), connect_timeout, connect_timeout,
-                     total_timeout, total_timeout);
+  DWORD total_timeout{static_cast<DWORD>(this->timeout_.count())};
+  WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_SEND_TIMEOUT,
+                   &total_timeout, sizeof(total_timeout));
+  WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_RECEIVE_TIMEOUT,
+                   &total_timeout, sizeof(total_timeout));
+  // Only constrain the resolution and connection phases when a connect
+  // timeout is set, leaving the platform defaults in place otherwise
+  if (this->connect_timeout_.has_value()) {
+    DWORD connect_timeout{
+        static_cast<DWORD>(this->connect_timeout_.value().count())};
+    WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_RESOLVE_TIMEOUT,
+                     &connect_timeout, sizeof(connect_timeout));
+    WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_CONNECT_TIMEOUT,
+                     &connect_timeout, sizeof(connect_timeout));
+  }
 
   DWORD decompression{WINHTTP_DECOMPRESSION_FLAG_ALL};
   WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_DECOMPRESSION,
@@ -230,8 +238,9 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
     }
 
     if (this->maximum_response_size_.has_value() &&
-        response.body.size() + available >
-            this->maximum_response_size_.value()) {
+        (response.body.size() > this->maximum_response_size_.value() ||
+         available >
+             this->maximum_response_size_.value() - response.body.size())) {
       throw HTTPError{this->method_, this->url_,
                       std::string{HTTP_RESPONSE_TOO_LARGE_MESSAGE}};
     }

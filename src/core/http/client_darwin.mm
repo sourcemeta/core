@@ -68,7 +68,9 @@ auto to_nsstring(const std::string_view input) -> NSString * {
     didReceiveData:(NSData *)data {
   auto *body{&self.response->body};
   if (self.hasMaximumResponseSize &&
-      body->size() + data.length > self.maximumResponseSize) {
+      (body->size() > self.maximumResponseSize ||
+       static_cast<std::size_t>(data.length) >
+           self.maximumResponseSize - body->size())) {
     self.failure->assign(HTTP_RESPONSE_TOO_LARGE_MESSAGE);
     [dataTask cancel];
     return;
