@@ -157,21 +157,16 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
                      &policy, sizeof(policy));
   }
 
-  DWORD total_timeout{static_cast<DWORD>(this->timeout_.count())};
-  WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_SEND_TIMEOUT,
-                   &total_timeout, sizeof(total_timeout));
-  WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_RECEIVE_TIMEOUT,
-                   &total_timeout, sizeof(total_timeout));
-  // Only constrain the resolution and connection phases when a connect
-  // timeout is set, leaving the platform defaults in place otherwise
-  if (this->connect_timeout_.has_value()) {
-    DWORD connect_timeout{
-        static_cast<DWORD>(this->connect_timeout_.value().count())};
-    WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_RESOLVE_TIMEOUT,
-                     &connect_timeout, sizeof(connect_timeout));
-    WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_CONNECT_TIMEOUT,
-                     &connect_timeout, sizeof(connect_timeout));
-  }
+  // The total timeout bounds sending the request and receiving the response,
+  // and also caps the resolution and connection phases unless a narrower
+  // connect timeout is given, so it acts as an overall ceiling
+  const auto total_timeout{static_cast<int>(this->timeout_.count())};
+  const auto connect_timeout{
+      this->connect_timeout_.has_value()
+          ? static_cast<int>(this->connect_timeout_.value().count())
+          : total_timeout};
+  WinHttpSetTimeouts(request_handle.get(), connect_timeout, connect_timeout,
+                     total_timeout, total_timeout);
 
   DWORD decompression{WINHTTP_DECOMPRESSION_FLAG_ALL};
   WinHttpSetOption(request_handle.get(), WINHTTP_OPTION_DECOMPRESSION,

@@ -106,10 +106,12 @@ TEST(HTTP_SystemRequest, no_follow_redirect_returns_redirect) {
   EXPECT_LT(response.status.code, 400);
 }
 
-TEST(HTTP_SystemRequest, total_timeout_too_small_throws) {
-  sourcemeta::core::HTTPSystemRequest request{
-      "https://schemas.sourcemeta.com/self/v1/health"};
-  request.timeout(std::chrono::milliseconds{1});
+TEST(HTTP_SystemRequest, timeout_against_unreachable_host_throws) {
+  // A non-routable RFC 5737 TEST-NET-1 address never completes the request,
+  // so a bounded timeout reliably surfaces an error rather than racing the
+  // sub-millisecond timer granularity of some backends
+  sourcemeta::core::HTTPSystemRequest request{"https://192.0.2.1/"};
+  request.timeout(std::chrono::milliseconds{1000});
   EXPECT_THROW(
       { [[maybe_unused]] const auto response{request.send()}; },
       sourcemeta::core::HTTPError);
