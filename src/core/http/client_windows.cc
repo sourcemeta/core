@@ -18,6 +18,7 @@
 
 #include <sourcemeta/core/unicode.h>
 
+#include <chrono>      // std::chrono::milliseconds
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint16_t
 #include <limits>      // std::numeric_limits
@@ -30,6 +31,21 @@ namespace {
 
 constexpr std::string_view HTTP_RESPONSE_TOO_LARGE_MESSAGE{
     "The response exceeds the maximum allowed size"};
+
+// WinHttpSetTimeouts takes signed millisecond counts, so clamp the wider
+// duration into range to avoid a narrowing wrap, where zero would request no
+// timeout and a negative value would be rejected
+auto to_winhttp_timeout(const std::chrono::milliseconds value) -> int {
+  if (value.count() <= 0) {
+    return 0;
+  }
+
+  if (value.count() > std::numeric_limits<int>::max()) {
+    return std::numeric_limits<int>::max();
+  }
+
+  return static_cast<int>(value.count());
+}
 
 class WinHTTPHandle {
 public:
@@ -160,10 +176,10 @@ auto HTTPSystemRequest::send() const -> HTTPResponse {
   // The total timeout bounds sending the request and receiving the response,
   // and also caps the resolution and connection phases unless a narrower
   // connect timeout is given, so it acts as an overall ceiling
-  const auto total_timeout{static_cast<int>(this->timeout_.count())};
+  const auto total_timeout{to_winhttp_timeout(this->timeout_)};
   const auto connect_timeout{
       this->connect_timeout_.has_value()
-          ? static_cast<int>(this->connect_timeout_.value().count())
+          ? to_winhttp_timeout(this->connect_timeout_.value())
           : total_timeout};
   WinHttpSetTimeouts(request_handle.get(), connect_timeout, connect_timeout,
                      total_timeout, total_timeout);
