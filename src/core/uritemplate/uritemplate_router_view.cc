@@ -690,7 +690,13 @@ auto URITemplateRouterView::describes(
       if (node.variable_child >= node_count) {
         return false;
       }
-      if (is_expansion_type(nodes[node.variable_child].type)) {
+      const auto &variable_node = nodes[node.variable_child];
+      if (variable_node.string_offset > string_table_size ||
+          variable_node.string_length >
+              string_table_size - variable_node.string_offset) {
+        return false;
+      }
+      if (is_expansion_type(variable_node.type)) {
         return true;
       }
       current_node = node.variable_child;
