@@ -3685,3 +3685,215 @@ TEST_F(URITemplateRouterViewTest, strict_root_template_still_works) {
   EXPECT_EQ(captures_match.size(), 0);
   EXPECT_ROUTER_MATCH(restored, "//", 0, 0, captures_double);
 }
+
+TEST_F(URITemplateRouterViewTest, describes_worked_example_table) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/api/schemas/health/{+schema}", "op_957", 1);
+    router.add("/self/v1/api/{+any}", "op_958", 2);
+    router.add("/self/v1/mcp", "op_959", 3);
+    router.add("/self/v1/health", "op_960", 4);
+    router.add("/self/v1/static/{+path}", "op_961", 5);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/self/v1/api"));
+  EXPECT_TRUE(restored.describes("/self/v1/api/schemas/health"));
+  EXPECT_TRUE(restored.describes("/self/v1/api/schemas/health/acme"));
+  EXPECT_TRUE(restored.describes("/self/v1/mcp"));
+  EXPECT_TRUE(restored.describes("/self/v1/static/css/app.css"));
+  EXPECT_TRUE(restored.describes("/self/v1"));
+  EXPECT_FALSE(restored.describes("/self/v1/mpc"));
+  EXPECT_FALSE(restored.describes("/self/v1/healthz"));
+  EXPECT_FALSE(restored.describes("/acme/foo"));
+  EXPECT_TRUE(restored.describes("/"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_intermediate_prefixes) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/mcp", "op_962", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/self"));
+  EXPECT_TRUE(restored.describes("/self/v1"));
+  EXPECT_TRUE(restored.describes("/self/v1/mcp"));
+  EXPECT_FALSE(restored.describes("/self/v1/mcp/extra"));
+  EXPECT_FALSE(restored.describes("/self/v2"));
+  EXPECT_FALSE(restored.describes("/other"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_expansion_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+path}", "op_963", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/files"));
+  EXPECT_TRUE(restored.describes("/files/a"));
+  EXPECT_TRUE(restored.describes("/files/a/b/c"));
+  EXPECT_FALSE(restored.describes("/file"));
+  EXPECT_FALSE(restored.describes("/filesx"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_optional_expansion_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/docs/{/rest*}", "op_964", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/docs"));
+  EXPECT_TRUE(restored.describes("/docs/a"));
+  EXPECT_TRUE(restored.describes("/docs/a/b/c"));
+  EXPECT_FALSE(restored.describes("/doc"));
+  EXPECT_FALSE(restored.describes("/docsx"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_single_segment_variable_does_not_over_absorb) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/foo/{bar}/baz", "op_965", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/foo"));
+  EXPECT_TRUE(restored.describes("/foo/anything"));
+  EXPECT_TRUE(restored.describes("/foo/anything/baz"));
+  EXPECT_FALSE(restored.describes("/foo/anything/qux"));
+  EXPECT_FALSE(restored.describes("/foo/anything/baz/extra"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_whole_segment_discipline) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/internalish", "op_966", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/internalish"));
+  EXPECT_FALSE(restored.describes("/internal"));
+  EXPECT_FALSE(restored.describes("/internalisher"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_excludes_otherwise_fallback) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/known", "op_967", 1);
+    router.otherwise(7);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/known"));
+  EXPECT_FALSE(restored.describes("/unknown"));
+  EXPECT_FALSE(restored.describes("/known/deeper"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_empty_router_describes_nothing) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.otherwise(3);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("/"));
+  EXPECT_FALSE(restored.describes(""));
+  EXPECT_FALSE(restored.describes("/anything"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_root_and_empty_path) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_968", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/"));
+  EXPECT_TRUE(restored.describes(""));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_requires_leading_slash) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_969", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("users"));
+  EXPECT_FALSE(restored.describes("users/list"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_with_base_path) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/api"};
+    router.add("/foo", "op_970", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/api/foo"));
+  EXPECT_TRUE(restored.describes("/api"));
+  EXPECT_FALSE(restored.describes("/foo"));
+  EXPECT_FALSE(restored.describes("/api/bar"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_literal_preferred_over_variable) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users/me", "op_971", 1);
+    router.add("/users/{id}/posts", "op_972", 2);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/users/me"));
+  EXPECT_TRUE(restored.describes("/users/42"));
+  EXPECT_TRUE(restored.describes("/users/42/posts"));
+  EXPECT_FALSE(restored.describes("/users/42/comments"));
+  EXPECT_FALSE(restored.describes("/users/me/posts"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_empty_template_root_route) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("", "op_973", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes(""));
+  EXPECT_TRUE(restored.describes("/"));
+  EXPECT_FALSE(restored.describes("/foo"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_on_corrupt_buffer) {
+  std::array<std::uint8_t, 4> buffer{};
+  const sourcemeta::core::URITemplateRouterView view{buffer.data(),
+                                                     buffer.size()};
+  EXPECT_FALSE(view.describes("/anything"));
+  EXPECT_FALSE(view.describes("/"));
+}
