@@ -2806,3 +2806,155 @@ TEST(URITemplateRouter, strict_path_reconstruction_preserves_input) {
   EXPECT_EQ(router.path(1), "/foo//bar");
   EXPECT_EQ(router.path(2), "////");
 }
+
+TEST(URITemplateRouter, describes_worked_example_table) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/self/v1/api/schemas/health/{+schema}", "op_815", 1);
+  router.add("/self/v1/api/{+any}", "op_816", 2);
+  router.add("/self/v1/mcp", "op_817", 3);
+  router.add("/self/v1/health", "op_818", 4);
+  router.add("/self/v1/static/{+path}", "op_819", 5);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/self/v1/api"));
+  EXPECT_TRUE(router.describes("/self/v1/api/schemas/health"));
+  EXPECT_TRUE(router.describes("/self/v1/api/schemas/health/acme"));
+  EXPECT_TRUE(router.describes("/self/v1/mcp"));
+  EXPECT_TRUE(router.describes("/self/v1/static/css/app.css"));
+  EXPECT_TRUE(router.describes("/self/v1"));
+  EXPECT_FALSE(router.describes("/self/v1/mpc"));
+  EXPECT_FALSE(router.describes("/self/v1/healthz"));
+  EXPECT_FALSE(router.describes("/acme/foo"));
+  EXPECT_TRUE(router.describes("/"));
+}
+
+TEST(URITemplateRouter, describes_intermediate_prefixes) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/self/v1/mcp", "op_820", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/self"));
+  EXPECT_TRUE(router.describes("/self/v1"));
+  EXPECT_TRUE(router.describes("/self/v1/mcp"));
+  EXPECT_FALSE(router.describes("/self/v1/mcp/extra"));
+  EXPECT_FALSE(router.describes("/self/v2"));
+  EXPECT_FALSE(router.describes("/other"));
+}
+
+TEST(URITemplateRouter, describes_expansion_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/files/{+path}", "op_821", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/files"));
+  EXPECT_TRUE(router.describes("/files/a"));
+  EXPECT_TRUE(router.describes("/files/a/b/c"));
+  EXPECT_FALSE(router.describes("/file"));
+  EXPECT_FALSE(router.describes("/filesx"));
+}
+
+TEST(URITemplateRouter, describes_optional_expansion_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/docs/{/rest*}", "op_822", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/docs"));
+  EXPECT_TRUE(router.describes("/docs/a"));
+  EXPECT_TRUE(router.describes("/docs/a/b/c"));
+  EXPECT_FALSE(router.describes("/doc"));
+  EXPECT_FALSE(router.describes("/docsx"));
+}
+
+TEST(URITemplateRouter,
+     describes_single_segment_variable_does_not_over_absorb) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/foo/{bar}/baz", "op_823", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/foo"));
+  EXPECT_TRUE(router.describes("/foo/anything"));
+  EXPECT_TRUE(router.describes("/foo/anything/baz"));
+  EXPECT_FALSE(router.describes("/foo/anything/qux"));
+  EXPECT_FALSE(router.describes("/foo/anything/baz/extra"));
+}
+
+TEST(URITemplateRouter, describes_whole_segment_discipline) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/internalish", "op_824", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/internalish"));
+  EXPECT_FALSE(router.describes("/internal"));
+  EXPECT_FALSE(router.describes("/internalisher"));
+}
+
+TEST(URITemplateRouter, describes_excludes_otherwise_fallback) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/known", "op_825", 1);
+  router.otherwise(7);
+
+  EXPECT_TRUE(router.describes("/known"));
+  EXPECT_FALSE(router.describes("/unknown"));
+  EXPECT_FALSE(router.describes("/known/deeper"));
+}
+
+TEST(URITemplateRouter, describes_empty_router_describes_nothing) {
+  sourcemeta::core::URITemplateRouter router;
+  router.otherwise(3);
+
+  EXPECT_FALSE(router.describes("/"));
+  EXPECT_FALSE(router.describes(""));
+  EXPECT_FALSE(router.describes("/anything"));
+}
+
+TEST(URITemplateRouter, describes_root_and_empty_path) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_826", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/"));
+  EXPECT_TRUE(router.describes(""));
+}
+
+TEST(URITemplateRouter, describes_requires_leading_slash) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users", "op_827", 1);
+  router.otherwise(0);
+
+  EXPECT_FALSE(router.describes("users"));
+  EXPECT_FALSE(router.describes("users/list"));
+}
+
+TEST(URITemplateRouter, describes_with_base_path) {
+  sourcemeta::core::URITemplateRouter router{"/api"};
+  router.add("/foo", "op_828", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/api/foo"));
+  EXPECT_TRUE(router.describes("/api"));
+  EXPECT_FALSE(router.describes("/foo"));
+  EXPECT_FALSE(router.describes("/api/bar"));
+}
+
+TEST(URITemplateRouter, describes_literal_preferred_over_variable) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/users/me", "op_829", 1);
+  router.add("/users/{id}/posts", "op_830", 2);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/users/me"));
+  EXPECT_TRUE(router.describes("/users/42"));
+  EXPECT_TRUE(router.describes("/users/42/posts"));
+  EXPECT_FALSE(router.describes("/users/42/comments"));
+  EXPECT_FALSE(router.describes("/users/me/posts"));
+}
+
+TEST(URITemplateRouter, describes_empty_template_root_route) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("", "op_831", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes(""));
+  EXPECT_TRUE(router.describes("/"));
+  EXPECT_FALSE(router.describes("/foo"));
+}
