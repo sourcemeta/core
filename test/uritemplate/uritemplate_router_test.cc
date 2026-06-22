@@ -2958,3 +2958,66 @@ TEST(URITemplateRouter, describes_empty_template_root_route) {
   EXPECT_TRUE(router.describes("/"));
   EXPECT_FALSE(router.describes("/foo"));
 }
+
+TEST(URITemplateRouter, describes_with_base_argument_equivalent_to_concat) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/self/v1/api/{+any}", "op_832", 1);
+  router.add("/self/v1/mcp", "op_833", 2);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/api", "/self/v1"));
+  EXPECT_TRUE(router.describes("/self/v1/api"));
+  EXPECT_TRUE(router.describes("/api/foo", "/self/v1"));
+  EXPECT_TRUE(router.describes("/mcp", "/self/v1"));
+  EXPECT_FALSE(router.describes("/mpc", "/self/v1"));
+  EXPECT_FALSE(router.describes("/api", "/self/v2"));
+}
+
+TEST(URITemplateRouter, describes_with_base_argument_prefix_and_capture) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/files/{+path}", "op_834", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/files", ""));
+  EXPECT_TRUE(router.describes("/files/a/b", ""));
+  EXPECT_TRUE(router.describes("", "/files"));
+  EXPECT_TRUE(router.describes("/", "/files"));
+  EXPECT_TRUE(router.describes("/a/b", "/files"));
+  EXPECT_FALSE(router.describes("/a/b", "/file"));
+}
+
+TEST(URITemplateRouter, describes_with_base_argument_captured_in_base) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/files/{+path}", "op_835", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/anything", "/files/already"));
+}
+
+TEST(URITemplateRouter, describes_with_base_argument_base_mismatch) {
+  sourcemeta::core::URITemplateRouter router;
+  router.add("/self/v1/mcp", "op_836", 1);
+  router.otherwise(0);
+
+  EXPECT_FALSE(router.describes("/mcp", "/other"));
+  EXPECT_FALSE(router.describes("/mcp", "/self/v2"));
+}
+
+TEST(URITemplateRouter, describes_with_router_base_path_split_argument) {
+  sourcemeta::core::URITemplateRouter router{"/prefix"};
+  router.add("/foo", "op_837", 1);
+  router.otherwise(0);
+
+  EXPECT_TRUE(router.describes("/foo", "/prefix"));
+  EXPECT_TRUE(router.describes("/prefix/foo"));
+  EXPECT_TRUE(router.describes("", "/prefix"));
+  EXPECT_FALSE(router.describes("/bar", "/prefix"));
+}
+
+TEST(URITemplateRouter, describes_with_base_argument_empty_router) {
+  sourcemeta::core::URITemplateRouter router;
+  router.otherwise(0);
+
+  EXPECT_FALSE(router.describes("/foo", "/bar"));
+  EXPECT_FALSE(router.describes("", "/bar"));
+}

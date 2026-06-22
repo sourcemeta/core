@@ -3897,3 +3897,94 @@ TEST_F(URITemplateRouterViewTest, describes_on_corrupt_buffer) {
   EXPECT_FALSE(view.describes("/anything"));
   EXPECT_FALSE(view.describes("/"));
 }
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_base_argument_equivalent_to_concat) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/api/{+any}", "op_974", 1);
+    router.add("/self/v1/mcp", "op_975", 2);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/api", "/self/v1"));
+  EXPECT_TRUE(restored.describes("/self/v1/api"));
+  EXPECT_TRUE(restored.describes("/api/foo", "/self/v1"));
+  EXPECT_TRUE(restored.describes("/mcp", "/self/v1"));
+  EXPECT_FALSE(restored.describes("/mpc", "/self/v1"));
+  EXPECT_FALSE(restored.describes("/api", "/self/v2"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_base_argument_prefix_and_capture) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+path}", "op_976", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/files", ""));
+  EXPECT_TRUE(restored.describes("/files/a/b", ""));
+  EXPECT_TRUE(restored.describes("", "/files"));
+  EXPECT_TRUE(restored.describes("/", "/files"));
+  EXPECT_TRUE(restored.describes("/a/b", "/files"));
+  EXPECT_FALSE(restored.describes("/a/b", "/file"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_base_argument_captured_in_base) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/files/{+path}", "op_977", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/anything", "/files/already"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_with_base_argument_base_mismatch) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/self/v1/mcp", "op_978", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("/mcp", "/other"));
+  EXPECT_FALSE(restored.describes("/mcp", "/self/v2"));
+}
+
+TEST_F(URITemplateRouterViewTest,
+       describes_with_router_base_path_split_argument) {
+  {
+    sourcemeta::core::URITemplateRouter router{"/prefix"};
+    router.add("/foo", "op_979", 1);
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_TRUE(restored.describes("/foo", "/prefix"));
+  EXPECT_TRUE(restored.describes("/prefix/foo"));
+  EXPECT_TRUE(restored.describes("", "/prefix"));
+  EXPECT_FALSE(restored.describes("/bar", "/prefix"));
+}
+
+TEST_F(URITemplateRouterViewTest, describes_with_base_argument_empty_router) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.otherwise(0);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  const sourcemeta::core::URITemplateRouterView restored{this->path};
+  EXPECT_FALSE(restored.describes("/foo", "/bar"));
+  EXPECT_FALSE(restored.describes("", "/bar"));
+}
