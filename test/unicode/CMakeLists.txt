@@ -5,6 +5,7 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME unicode
     unicode_utf8_to_wide_test.cc
     unicode_wide_to_utf8_test.cc
     unicode_utf8_codepoint_length_test.cc
+    unicode_utf8_decode_test.cc
     unicode_utf8_lead_byte_size_test.cc
     unicode_utf8_codepoint_byte_count_test.cc
     unicode_is_utf8_continuation_test.cc
