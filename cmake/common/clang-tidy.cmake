@@ -67,12 +67,20 @@ function(sourcemeta_clang_tidy_attempt_install)
   file(MAKE_DIRECTORY "${CLANG_TIDY_BINARY_EXTRACT_DIR}")
   file(ARCHIVE_EXTRACT INPUT "${CLANG_TIDY_BINARY_WHEEL}" DESTINATION "${CLANG_TIDY_BINARY_EXTRACT_DIR}")
 
-  # Install the binary
+  # Install the binary alongside the resource directory that ships in the
+  # wheel, replicating the upstream `bin` and `lib` layout so that clang-tidy
+  # discovers its own matching built-in headers. Otherwise it falls back to the
+  # system compiler resource directory, which breaks whenever that compiler is
+  # newer than the clang-tidy front-end
   file(MAKE_DIRECTORY "${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_INSTALL_OUTPUT_DIRECTORY}")
   file(COPY "${CLANG_TIDY_BINARY_EXTRACT_DIR}/clang_tidy/data/bin/${CLANG_TIDY_BINARY_NAME}"
        DESTINATION "${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_INSTALL_OUTPUT_DIRECTORY}")
   file(CHMOD "${CLANG_TIDY_BINARY_OUTPUT}" PERMISSIONS
        OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+  get_filename_component(CLANG_TIDY_BINARY_ROOT
+       "${SOURCEMETA_TARGET_CLANG_TIDY_ATTEMPT_INSTALL_OUTPUT_DIRECTORY}" DIRECTORY)
+  file(COPY "${CLANG_TIDY_BINARY_EXTRACT_DIR}/clang_tidy/data/lib"
+       DESTINATION "${CLANG_TIDY_BINARY_ROOT}")
   message(STATUS "Installed `clang-tidy` pre-built binary to ${CLANG_TIDY_BINARY_OUTPUT}")
 endfunction()
 
@@ -102,13 +110,10 @@ function(sourcemeta_clang_tidy_attempt_enable)
     set(CLANG_TIDY_CONFIG "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/clang-tidy.json")
     execute_process(COMMAND xcrun --show-sdk-path
         OUTPUT_VARIABLE MACOSX_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
-    execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
-        OUTPUT_VARIABLE MACOSX_RESOURCE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
     set(SOURCEMETA_CXX_CLANG_TIDY
         "${CLANG_TIDY_BIN};--config-file=${CLANG_TIDY_CONFIG};-header-filter=${PROJECT_SOURCE_DIR}/src/*"
         "--extra-arg=-isysroot"
         "--extra-arg=${MACOSX_SDK_PATH}"
-        "--extra-arg=-resource-dir=${MACOSX_RESOURCE_PATH}"
         CACHE STRING "CXX_CLANG_TIDY")
   endif()
 
