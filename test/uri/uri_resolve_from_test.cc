@@ -480,3 +480,13 @@ TEST(URI_resolve_from, iri_rfc3986_normal_example_query) {
   reference.resolve_from(base);
   EXPECT_EQ(reference.recompose(), "http://a/b/c/d;p?y");
 }
+
+TEST(URI_resolve_from, iri_reference_against_plain_uri_base) {
+  // An IRI reference resolved against a plain URI base keeps its non-ASCII
+  // characters literal
+  const sourcemeta::core::URI base{"https://example.com/dir/"};
+  auto reference{sourcemeta::core::URI::from_iri("caf\xC3\xA9")};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "https://example.com/dir/caf\xC3\xA9");
+  EXPECT_TRUE(reference.is_internationalized());
+}

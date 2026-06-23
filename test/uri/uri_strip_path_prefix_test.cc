@@ -541,3 +541,10 @@ TEST(URI_strip_path_prefix, iri_unicode_segments) {
   ASSERT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), "page");
 }
+
+TEST(URI_strip_path_prefix, iri_rejects_invalid_utf8) {
+  // An invalid UTF-8 byte sequence in the path is not a valid path
+  const auto result{
+      sourcemeta::core::URI::strip_path_prefix("/caf\xC3/page", "/")};
+  EXPECT_FALSE(result.has_value());
+}

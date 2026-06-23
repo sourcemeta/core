@@ -228,3 +228,17 @@ TEST(URI_recompose, iri_all_components) {
       "\xE8\xB7\xAF\xE5\xBE\x84?q=caf\xC3\xA9#section-\xCE\xB1"};
   EXPECT_EQ(sourcemeta::core::URI::from_iri(input).recompose(), input);
 }
+
+TEST(URI_recompose, iri_four_byte_ucschar) {
+  // A 4-byte UTF-8 character (here U+1F600) must be preserved literally
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/\xF0\x9F\x98\x80")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/\xF0\x9F\x98\x80");
+}
+
+TEST(URI_recompose, iri_lower_boundary_ucschar) {
+  // U+00A0 is the lowest non-ASCII character an IRI may carry
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/\xC2\xA0")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/\xC2\xA0");
+}

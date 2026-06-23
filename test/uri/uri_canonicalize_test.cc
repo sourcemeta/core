@@ -466,3 +466,27 @@ TEST(URI_canonicalize, static_rejects_non_ascii) {
       sourcemeta::core::URI::canonicalize("https://example.com/caf\xC3\xA9"),
       sourcemeta::core::URIParseError);
 }
+
+TEST(URI_canonicalize, iri_decodes_percent_encoded_lower_boundary) {
+  // U+00A0 is the lowest non-ASCII character an IRI may carry unencoded; its
+  // percent-encoded form must decode to its literal bytes
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C2%A0")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/\xC2\xA0");
+}
+
+TEST(URI_canonicalize, iri_leaves_noncharacter_percent_encoded) {
+  // U+FFFF is a valid codepoint but not one an IRI may carry unencoded, so it
+  // must stay percent-encoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%EF%BF%BF")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%EF%BF%BF");
+}
+
+TEST(URI_canonicalize, iri_leaves_incomplete_percent_sequence_encoded) {
+  // A percent-encoded lead byte not followed by its continuation is not a valid
+  // character and must remain encoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3x")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3x");
+}
