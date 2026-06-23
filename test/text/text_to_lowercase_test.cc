@@ -452,8 +452,10 @@ TEST(Text_to_lowercase_basic_string, custom_allocator_wchar_t) {
 
 // This exercises the conversion over a string of a non-standard character
 // type, whose traits some standard libraries now mark deprecated
+#if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 TEST(Text_to_lowercase_basic_string, unsigned_char_string) {
   std::basic_string<unsigned char> value{
       reinterpret_cast<const unsigned char *>("Hello WORLD")};
@@ -461,7 +463,9 @@ TEST(Text_to_lowercase_basic_string, unsigned_char_string) {
   EXPECT_EQ(value, reinterpret_cast<const unsigned char *>("hello world"));
   EXPECT_TRUE(sourcemeta::core::is_lowercase(value));
 }
+#if defined(__GNUC__)
 #pragma GCC diagnostic pop
+#endif
 
 TEST(Text_to_lowercase_path, empty) {
   std::filesystem::path value{""};
