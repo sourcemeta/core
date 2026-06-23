@@ -6,7 +6,7 @@
 
 #include <array>   // std::array
 #include <cstdlib> // std::free
-#include <mutex>   // std::mutex, std::lock_guard
+#include <mutex>   // std::mutex, std::scoped_lock
 #include <string>  // std::string
 
 namespace sourcemeta::core {
@@ -20,7 +20,7 @@ auto markdown_to_html(const std::string_view input, const bool safe)
   // extensions are attached and detached, so parser construction through
   // teardown cannot run concurrently
   static std::mutex cmark_mutex;
-  const std::lock_guard<std::mutex> lock{cmark_mutex};
+  const std::scoped_lock lock{cmark_mutex};
 
   static constexpr auto base_options{
       CMARK_OPT_VALIDATE_UTF8 | CMARK_OPT_FOOTNOTES |
