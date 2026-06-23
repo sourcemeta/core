@@ -102,3 +102,9 @@ TEST(URI_is_absolute, rfc3986_scheme_with_fragment) {
   const sourcemeta::core::URI uri{"http://example.com/path#fragment"};
   EXPECT_TRUE(uri.is_absolute());
 }
+
+TEST(URI_is_absolute, iri_absolute) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
+  EXPECT_TRUE(uri.is_absolute());
+}

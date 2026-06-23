@@ -80,3 +80,11 @@ TEST(URI_recompose_without_fragment, preserves_scheme_and_host_case) {
   EXPECT_TRUE(uri.recompose_without_fragment().has_value());
   EXPECT_EQ(uri.recompose_without_fragment().value(), "HtTp://ExAmPlE.CoM/foo");
 }
+
+TEST(URI_recompose_without_fragment, iri_preserves_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9#frag")};
+  const auto result{uri.recompose_without_fragment()};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "https://example.com/caf\xC3\xA9");
+}

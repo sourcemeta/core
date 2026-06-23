@@ -423,3 +423,70 @@ TEST(URI_canonicalize, ipv6_hex_uppercase_to_lowercase) {
   uri.canonicalize();
   EXPECT_EQ(uri.recompose(), "http://[2010:836b:4179::836b:4179]");
 }
+
+TEST(URI_canonicalize, iri_preserves_literal_ucschar) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9");
+}
+
+TEST(URI_canonicalize, iri_decodes_percent_encoded_ucschar) {
+  // RFC 3987 Section 5.3.2.3: percent-encoded octets that form characters an
+  // IRI may carry unencoded are decoded to their literal form
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/caf%C3%A9")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9");
+}
+
+TEST(URI_canonicalize, iri_removes_dot_segments_preserving_ucschar) {
+  auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/a/../caf\xC3\xA9")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9");
+}
+
+TEST(URI_canonicalize, iri_leaves_private_use_percent_encoded) {
+  // Private-use characters are not among those an IRI may carry unencoded, so
+  // they must stay percent-encoded even though allowed literally in the query
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/?x=%EE%80%80")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/?x=%EE%80%80");
+}
+
+TEST(URI_canonicalize, iri_removes_default_port_preserving_host_ucschar) {
+  auto uri{sourcemeta::core::URI::from_iri(
+      "https://\xE4\xBE\x8B\xE3\x81\x88.jp:443/")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://\xE4\xBE\x8B\xE3\x81\x88.jp/");
+}
+
+TEST(URI_canonicalize, static_rejects_non_ascii) {
+  // The static entry point parses as a plain URI, so IRI input is rejected
+  EXPECT_THROW(
+      sourcemeta::core::URI::canonicalize("https://example.com/caf\xC3\xA9"),
+      sourcemeta::core::URIParseError);
+}
+
+TEST(URI_canonicalize, iri_decodes_percent_encoded_lower_boundary) {
+  // U+00A0 is the lowest non-ASCII character an IRI may carry unencoded; its
+  // percent-encoded form must decode to its literal bytes
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C2%A0")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/\xC2\xA0");
+}
+
+TEST(URI_canonicalize, iri_leaves_noncharacter_percent_encoded) {
+  // U+FFFF is a valid codepoint but not one an IRI may carry unencoded, so it
+  // must stay percent-encoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%EF%BF%BF")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%EF%BF%BF");
+}
+
+TEST(URI_canonicalize, iri_leaves_incomplete_percent_sequence_encoded) {
+  // A percent-encoded lead byte not followed by its continuation is not a valid
+  // character and must remain encoded
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/%C3x")};
+  uri.canonicalize();
+  EXPECT_EQ(uri.recompose(), "https://example.com/%C3x");
+}

@@ -279,3 +279,11 @@ TEST(URI_relative_to, file_windows_with_fragment) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "other.json#/defs/foo");
 }
+
+TEST(URI_relative_to, iri_preserves_ucschar) {
+  const auto base{sourcemeta::core::URI::from_iri("https://example.com/dir/")};
+  auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/dir/caf\xC3\xA9")};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "caf\xC3\xA9");
+}

@@ -31,3 +31,8 @@ TEST(URI_is_file, windows_drive_absolute) {
   const sourcemeta::core::URI uri{"file:///C:/Program%20Files/Test"};
   EXPECT_TRUE(uri.is_file());
 }
+
+TEST(URI_is_file, iri_file) {
+  const auto uri{sourcemeta::core::URI::from_iri("file:///caf\xC3\xA9.txt")};
+  EXPECT_TRUE(uri.is_file());
+}

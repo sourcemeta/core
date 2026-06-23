@@ -92,3 +92,9 @@ TEST(URI_recompose_relative, path_absolute_first_segment_colon_preserved) {
   const sourcemeta::core::URI uri{"https://example.com/foo:bar"};
   EXPECT_EQ(uri.recompose_relative(), "/foo:bar");
 }
+
+TEST(URI_recompose_relative, iri_preserves_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("caf\xC3\xA9/page?q=\xCE\xB1")};
+  EXPECT_EQ(uri.recompose_relative(), "caf\xC3\xA9/page?q=\xCE\xB1");
+}

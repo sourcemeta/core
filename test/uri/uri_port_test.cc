@@ -85,3 +85,10 @@ TEST(URI_port, rfc3986_no_port_ftp) {
   const sourcemeta::core::URI uri{"ftp://ftp.example.com/file.txt"};
   EXPECT_FALSE(uri.port().has_value());
 }
+
+TEST(URI_port, iri_host_with_port) {
+  const auto uri{sourcemeta::core::URI::from_iri(
+      "https://\xE4\xBE\x8B\xE3\x81\x88.jp:8443/")};
+  ASSERT_TRUE(uri.port().has_value());
+  EXPECT_EQ(uri.port().value(), 8443U);
+}

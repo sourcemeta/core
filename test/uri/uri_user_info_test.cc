@@ -165,3 +165,10 @@ TEST(URI_user_info_setter, recompose_roundtrip_after_at_sign_encoded) {
   EXPECT_TRUE(parsed.userinfo().has_value());
   EXPECT_EQ(parsed.userinfo().value(), "user%40domain");
 }
+
+TEST(URI_user_info, iri_unicode_userinfo) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://user\xE5\x90\x8D@example.com/")};
+  ASSERT_TRUE(uri.userinfo().has_value());
+  EXPECT_EQ(uri.userinfo().value(), "user\xE5\x90\x8D");
+}

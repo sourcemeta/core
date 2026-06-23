@@ -83,3 +83,9 @@ TEST(URI_is_ipv4, not_ipv4_invalid_octet_in_hostname) {
   const sourcemeta::core::URI uri{"http://999.999.999.999/"};
   EXPECT_FALSE(uri.is_ipv4());
 }
+
+TEST(URI_is_ipv4, iri_unicode_host_not_ipv4) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
+  EXPECT_FALSE(uri.is_ipv4());
+}

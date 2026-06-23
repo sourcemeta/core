@@ -202,3 +202,17 @@ TEST(URI_rebase_path, new_prefix_with_only_slash_empty_suffix) {
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), "/");
 }
+
+TEST(URI_rebase_path, iri_unicode_segments) {
+  const auto result{sourcemeta::core::URI::rebase_path(
+      "/caf\xC3\xA9/page", "/caf\xC3\xA9", "/menu")};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "/menu/page");
+}
+
+TEST(URI_rebase_path, iri_rejects_invalid_utf8) {
+  // An invalid UTF-8 byte sequence in the path is not a valid path
+  const auto result{sourcemeta::core::URI::rebase_path(
+      "/caf\xC3/page", "/caf\xC3/page", "/menu")};
+  EXPECT_FALSE(result.has_value());
+}

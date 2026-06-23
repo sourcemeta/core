@@ -42,3 +42,8 @@ TEST(URI_is_relative, scheme_with_dot_only_is_not_relative) {
   EXPECT_TRUE(uri.is_absolute());
   EXPECT_FALSE(uri.is_relative());
 }
+
+TEST(URI_is_relative, iri_relative_reference) {
+  const auto uri{sourcemeta::core::URI::from_iri("caf\xC3\xA9/page")};
+  EXPECT_TRUE(uri.is_relative());
+}

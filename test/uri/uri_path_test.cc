@@ -730,3 +730,10 @@ TEST(URI_path_setter, getter_setter_invariant_relative_dotdot) {
   EXPECT_EQ(uri.path().value(), original_path);
   EXPECT_EQ(uri.recompose(), original_recompose);
 }
+
+TEST(URI_path, iri_unicode_path) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
+  ASSERT_TRUE(uri.path().has_value());
+  EXPECT_EQ(uri.path().value(), "/caf\xC3\xA9");
+}

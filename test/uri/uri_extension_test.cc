@@ -105,3 +105,9 @@ TEST(URI_extension, path_ending_with_dot_in_directory) {
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo./bar.json");
 }
+
+TEST(URI_extension, iri_unicode_path) {
+  auto uri{sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
+  uri.extension("json");
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9.json");
+}
