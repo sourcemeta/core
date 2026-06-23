@@ -8,15 +8,13 @@
 #include <cstdlib> // std::free
 #include <string>  // std::string
 
-namespace {
-const bool cmark_initialized =
-    (cmark_gfm_core_extensions_ensure_registered(), true);
-}
-
 namespace sourcemeta::core {
 
 auto markdown_to_html(const std::string_view input, const bool safe)
     -> std::string {
+  [[maybe_unused]] static const bool cmark_initialized{
+      (cmark_gfm_core_extensions_ensure_registered(), true)};
+
   static constexpr auto base_options{
       CMARK_OPT_VALIDATE_UTF8 | CMARK_OPT_FOOTNOTES |
       CMARK_OPT_STRIKETHROUGH_DOUBLE_TILDE | CMARK_OPT_GITHUB_PRE_LANG};
