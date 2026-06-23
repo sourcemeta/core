@@ -47,3 +47,13 @@ TEST(URI_rebase, rvalue_new_base_with_scheme_and_authority) {
   uri.rebase(base, sourcemeta::core::URI{"https://other.example.com/qux"});
   EXPECT_EQ(uri.recompose(), "https://other.example.com/qux/bar/baz");
 }
+
+TEST(URI_rebase, iri_flag_propagates_from_new_base) {
+  const auto base{sourcemeta::core::URI::from_iri("https://example.com/dir/")};
+  const auto new_base{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9/")};
+  sourcemeta::core::URI uri{"https://example.com/dir/file"};
+  uri.rebase(base, new_base);
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9/file");
+  EXPECT_TRUE(uri.is_internationalized());
+}

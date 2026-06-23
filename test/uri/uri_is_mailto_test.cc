@@ -21,3 +21,9 @@ TEST(URI_is_mailto, tag) {
   const sourcemeta::core::URI uri{"tag:yaml.org,2002:int"};
   EXPECT_FALSE(uri.is_mailto());
 }
+
+TEST(URI_is_mailto, iri_mailto) {
+  const auto uri{sourcemeta::core::URI::from_iri(
+      "mailto:user@\xE4\xBE\x8B\xE3\x81\x88.jp")};
+  EXPECT_TRUE(uri.is_mailto());
+}

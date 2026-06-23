@@ -121,3 +121,9 @@ TEST(URI_is_ipv6, ipvfuture_with_colon) {
   EXPECT_FALSE(uri.is_ipv4());
   EXPECT_EQ(uri.host().value(), "vFF.a:b");
 }
+
+TEST(URI_is_ipv6, iri_unicode_host_not_ipv6) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
+  EXPECT_FALSE(uri.is_ipv6());
+}

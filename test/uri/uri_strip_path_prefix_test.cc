@@ -534,3 +534,10 @@ TEST(URI_strip_path_prefix, encoded_dot_segment_resolved_at_root_collapses) {
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), "foo");
 }
+
+TEST(URI_strip_path_prefix, iri_unicode_segments) {
+  const auto result{sourcemeta::core::URI::strip_path_prefix(
+      "/caf\xC3\xA9/page", "/caf\xC3\xA9")};
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "page");
+}

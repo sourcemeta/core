@@ -436,3 +436,47 @@ TEST(URI_resolve_from, query_replaces_base_query) {
   reference.resolve_from(base);
   EXPECT_EQ(reference.recompose(), "http://example.com/path?newquery");
 }
+
+TEST(URI_resolve_from, iri_relative_reference_with_ucschar) {
+  const auto base{sourcemeta::core::URI::from_iri("https://example.com/dir/")};
+  auto relative{sourcemeta::core::URI::from_iri("caf\xC3\xA9")};
+  relative.resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "https://example.com/dir/caf\xC3\xA9");
+}
+
+TEST(URI_resolve_from, iri_preserves_base_ucschar) {
+  const auto base{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9/page")};
+  auto relative{sourcemeta::core::URI::from_iri("other")};
+  relative.resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "https://example.com/caf\xC3\xA9/other");
+}
+
+TEST(URI_resolve_from, iri_flag_propagates_from_base) {
+  const auto base{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9/page")};
+  sourcemeta::core::URI relative{"other"};
+  relative.resolve_from(base);
+  EXPECT_EQ(relative.recompose(), "https://example.com/caf\xC3\xA9/other");
+  EXPECT_TRUE(relative.is_internationalized());
+}
+
+TEST(URI_resolve_from, iri_rfc3986_normal_example_path) {
+  // RFC 3986 Section 5.4.1 "Normal Examples", confirmed to resolve identically
+  // when base and reference are parsed as IRIs.
+  // https://www.rfc-editor.org/rfc/rfc3986#section-5.4.1
+  const auto base{sourcemeta::core::URI::from_iri("http://a/b/c/d;p?q")};
+  auto reference{sourcemeta::core::URI::from_iri("g")};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://a/b/c/g");
+}
+
+TEST(URI_resolve_from, iri_rfc3986_normal_example_query) {
+  // RFC 3986 Section 5.4.1 "Normal Examples", confirmed to resolve identically
+  // when base and reference are parsed as IRIs.
+  // https://www.rfc-editor.org/rfc/rfc3986#section-5.4.1
+  const auto base{sourcemeta::core::URI::from_iri("http://a/b/c/d;p?q")};
+  auto reference{sourcemeta::core::URI::from_iri("?y")};
+  reference.resolve_from(base);
+  EXPECT_EQ(reference.recompose(), "http://a/b/c/d;p?y");
+}

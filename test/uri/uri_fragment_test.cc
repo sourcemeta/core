@@ -277,3 +277,10 @@ TEST(URI_fragment, getter_setter_invariant_empty) {
   EXPECT_EQ(uri.fragment().value(), original_fragment);
   EXPECT_EQ(uri.recompose(), original_recompose);
 }
+
+TEST(URI_fragment, iri_unicode_fragment) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/#section-\xCE\xB1")};
+  ASSERT_TRUE(uri.fragment().has_value());
+  EXPECT_EQ(uri.fragment().value(), "section-\xCE\xB1");
+}

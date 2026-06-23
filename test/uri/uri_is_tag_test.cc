@@ -21,3 +21,9 @@ TEST(URI_is_tag, relative) {
   const sourcemeta::core::URI uri{"../foo"};
   EXPECT_FALSE(uri.is_tag());
 }
+
+TEST(URI_is_tag, iri_tag) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("tag:example.com,2024:caf\xC3\xA9")};
+  EXPECT_TRUE(uri.is_tag());
+}

@@ -21,3 +21,8 @@ TEST(URI_is_urn, tag) {
   const sourcemeta::core::URI uri{"tag:yaml.org,2002:int"};
   EXPECT_FALSE(uri.is_urn());
 }
+
+TEST(URI_is_urn, iri_urn) {
+  const auto uri{sourcemeta::core::URI::from_iri("urn:example:caf\xC3\xA9")};
+  EXPECT_TRUE(uri.is_urn());
+}

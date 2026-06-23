@@ -684,3 +684,10 @@ TEST(URI_query, standalone_no_question_mark_prefix_expected) {
   EXPECT_EQ(value.value(), "bar");
   EXPECT_FALSE(query.at("foo").has_value());
 }
+
+TEST(URI_query, iri_unicode_query) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/?key=caf\xC3\xA9")};
+  ASSERT_TRUE(uri.query().has_value());
+  EXPECT_EQ(uri.query().value().raw(), "key=caf\xC3\xA9");
+}

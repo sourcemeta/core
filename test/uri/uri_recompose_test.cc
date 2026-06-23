@@ -170,3 +170,61 @@ TEST(URI_recompose, ipvfuture_with_colon_in_content) {
   EXPECT_EQ(uri.host().value(), "vFF.a:b");
   EXPECT_EQ(uri.recompose(), "http://[vFF.a:b]/");
 }
+
+TEST(URI_recompose, iri_ascii_recomposes_like_uri) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/path?q=1#f")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/path?q=1#f");
+}
+
+TEST(URI_recompose, iri_path_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9");
+}
+
+TEST(URI_recompose, iri_host_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
+  EXPECT_EQ(uri.recompose(), "https://\xE4\xBE\x8B\xE3\x81\x88.jp/");
+}
+
+TEST(URI_recompose, iri_query_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/?key=caf\xC3\xA9")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/?key=caf\xC3\xA9");
+}
+
+TEST(URI_recompose, iri_fragment_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/#section-\xCE\xB1")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/#section-\xCE\xB1");
+}
+
+TEST(URI_recompose, iri_userinfo_ucschar) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://user\xE5\x90\x8D@example.com/")};
+  EXPECT_EQ(uri.recompose(), "https://user\xE5\x90\x8D@example.com/");
+}
+
+TEST(URI_recompose, iri_query_private_use) {
+  // RFC 3987 permits private-use characters only in the query, where they must
+  // round trip rather than being percent-encoded
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/?\xEE\x80\x80")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/?\xEE\x80\x80");
+}
+
+TEST(URI_recompose, iri_existing_percent_encoding_preserved) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/%25/caf\xC3\xA9")};
+  EXPECT_EQ(uri.recompose(), "https://example.com/%25/caf\xC3\xA9");
+}
+
+TEST(URI_recompose, iri_all_components) {
+  // Borrowed from the existing IRI syntax tests in this suite.
+  const std::string input{
+      "https://user\xE5\x90\x8D@\xE4\xBE\x8B\xE3\x81\x88.jp/"
+      "\xE8\xB7\xAF\xE5\xBE\x84?q=caf\xC3\xA9#section-\xCE\xB1"};
+  EXPECT_EQ(sourcemeta::core::URI::from_iri(input).recompose(), input);
+}

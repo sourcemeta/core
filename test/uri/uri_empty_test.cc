@@ -41,3 +41,9 @@ TEST(URI_empty, urn_path) {
   const sourcemeta::core::URI uri{"urn:example:animal:ferret:nose"};
   EXPECT_FALSE(uri.empty());
 }
+
+TEST(URI_empty, iri_not_empty) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
+  EXPECT_FALSE(uri.empty());
+}

@@ -808,3 +808,9 @@ TEST(URI_parse, rfc3986_empty_path_with_fragment) {
   EXPECT_FALSE(uri.path().has_value());
   EXPECT_EQ(uri.fragment().value(), "fragment");
 }
+
+TEST(URI_parse, uri_constructor_rejects_non_ascii) {
+  // The plain URI constructor does not accept IRI characters
+  EXPECT_THROW(sourcemeta::core::URI{"https://example.com/caf\xC3\xA9"},
+               sourcemeta::core::URIParseError);
+}

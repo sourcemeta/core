@@ -110,3 +110,10 @@ TEST(URI_host, rfc3986_percent_encoded_host) {
   EXPECT_TRUE(uri.host().has_value());
   EXPECT_EQ(uri.host().value(), "example.com");
 }
+
+TEST(URI_host, iri_unicode_host) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
+  ASSERT_TRUE(uri.host().has_value());
+  EXPECT_EQ(uri.host().value(), "\xE4\xBE\x8B\xE3\x81\x88.jp");
+}

@@ -95,3 +95,11 @@ TEST(URI_has_same_authority, ipv6_same_literal) {
   const sourcemeta::core::URI right{"http://[::1]/bar"};
   EXPECT_TRUE(left.has_same_authority(right));
 }
+
+TEST(URI_has_same_authority, iri_same_unicode_host) {
+  const auto left{sourcemeta::core::URI::from_iri(
+      "https://\xE4\xBE\x8B\xE3\x81\x88.jp/foo")};
+  const auto right{sourcemeta::core::URI::from_iri(
+      "https://\xE4\xBE\x8B\xE3\x81\x88.jp/bar")};
+  EXPECT_TRUE(left.has_same_authority(right));
+}

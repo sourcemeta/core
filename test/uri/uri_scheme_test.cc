@@ -105,3 +105,10 @@ TEST(URI_scheme, rfc3986_tag_scheme) {
   EXPECT_TRUE(uri.scheme().has_value());
   EXPECT_EQ(uri.scheme().value(), "tag");
 }
+
+TEST(URI_scheme, iri_scheme) {
+  const auto uri{
+      sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
+  ASSERT_TRUE(uri.scheme().has_value());
+  EXPECT_EQ(uri.scheme().value(), "https");
+}
