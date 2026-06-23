@@ -8,7 +8,7 @@
 
 TEST(JSONPointer_pointer, general_traits) {
   EXPECT_TRUE(std::is_default_constructible<sourcemeta::core::Pointer>::value);
-  EXPECT_FALSE(
+  EXPECT_TRUE(
       std::is_nothrow_default_constructible<sourcemeta::core::Pointer>::value);
   EXPECT_TRUE(std::is_destructible<sourcemeta::core::Pointer>::value);
   EXPECT_TRUE(std::is_nothrow_destructible<sourcemeta::core::Pointer>::value);

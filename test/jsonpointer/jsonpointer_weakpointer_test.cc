@@ -17,8 +17,8 @@ static const std::string qux = "qux";
 TEST(JSONWeakPointer_pointer, general_traits) {
   EXPECT_TRUE(
       std::is_default_constructible<sourcemeta::core::WeakPointer>::value);
-  EXPECT_FALSE(std::is_nothrow_default_constructible<
-               sourcemeta::core::WeakPointer>::value);
+  EXPECT_TRUE(std::is_nothrow_default_constructible<
+              sourcemeta::core::WeakPointer>::value);
   EXPECT_TRUE(std::is_destructible<sourcemeta::core::WeakPointer>::value);
   EXPECT_TRUE(
       std::is_nothrow_destructible<sourcemeta::core::WeakPointer>::value);

@@ -106,7 +106,8 @@ auto validate_dot_separated(const std::string_view input) -> bool {
       dot_position = input.size();
     }
 
-    if (!validator(input.substr(start, dot_position - start))) {
+    if (!validator(
+            std::string_view{input.data() + start, dot_position - start})) {
       return false;
     }
 
@@ -342,7 +343,9 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
       ++position;
     }
 
-    pre_release = input.substr(start, position - start);
+    // The scan above keeps the bounds within the input, so build the view
+    // directly to keep this path non-throwing
+    pre_release = std::string_view{input.data() + start, position - start};
     if (!validate_dot_separated<validate_pre_release_identifier>(pre_release)) {
       if constexpr (should_throw) {
         throw sourcemeta::core::SemVerParseError(start + 1);
@@ -357,7 +360,7 @@ auto parse_semver(const std::string_view input, std::uint64_t &major,
     const auto start = position;
     position = input.size();
 
-    build = input.substr(start, position - start);
+    build = std::string_view{input.data() + start, position - start};
     if (!validate_dot_separated<validate_build_identifier>(build)) {
       if constexpr (should_throw) {
         throw sourcemeta::core::SemVerParseError(start + 1);
