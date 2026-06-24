@@ -45,3 +45,5 @@ vendor/openapi.mask
 vendor/unicodetools.mask
 vendor/unicodetools/unicodetools/data/ucd/dev/NormalizationTest.txt
 vendor/unicodetools/unicodetools/data/idna/dev/IdnaTestV2.txt
+vendor/w3c-json-ld
+vendor/w3c-json-ld.mask
