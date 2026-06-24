@@ -32,3 +32,19 @@ TEST(Text_is_alpha, ascii_boundaries) {
   EXPECT_FALSE(sourcemeta::core::is_alpha('`'));
   EXPECT_FALSE(sourcemeta::core::is_alpha('{'));
 }
+
+TEST(Text_is_alpha, string_all_letters) {
+  EXPECT_TRUE(sourcemeta::core::is_alpha("abcXYZ"));
+}
+
+TEST(Text_is_alpha, string_with_digit) {
+  EXPECT_FALSE(sourcemeta::core::is_alpha("abc1"));
+}
+
+TEST(Text_is_alpha, string_with_punctuation) {
+  EXPECT_FALSE(sourcemeta::core::is_alpha("ab-cd"));
+}
+
+TEST(Text_is_alpha, empty_string) {
+  EXPECT_FALSE(sourcemeta::core::is_alpha(""));
+}

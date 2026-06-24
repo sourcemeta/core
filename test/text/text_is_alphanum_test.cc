@@ -18,3 +18,15 @@ TEST(Text_is_alphanum, punctuation) {
   EXPECT_FALSE(sourcemeta::core::is_alphanum('.'));
   EXPECT_FALSE(sourcemeta::core::is_alphanum(' '));
 }
+
+TEST(Text_is_alphanum, string_letters_and_digits) {
+  EXPECT_TRUE(sourcemeta::core::is_alphanum("abc123XYZ"));
+}
+
+TEST(Text_is_alphanum, string_with_punctuation) {
+  EXPECT_FALSE(sourcemeta::core::is_alphanum("abc-123"));
+}
+
+TEST(Text_is_alphanum, empty_string) {
+  EXPECT_FALSE(sourcemeta::core::is_alphanum(""));
+}
