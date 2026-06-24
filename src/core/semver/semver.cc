@@ -1,4 +1,5 @@
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/text.h>
 
 #include <array>    // std::array
 #include <charconv> // std::to_chars
@@ -8,17 +9,8 @@
 
 namespace {
 
-auto is_digit(const char character) -> bool {
-  return character >= '0' && character <= '9';
-}
-
-auto is_letter(const char character) -> bool {
-  return (character >= 'A' && character <= 'Z') ||
-         (character >= 'a' && character <= 'z');
-}
-
 auto is_identifier_character(const char character) -> bool {
-  return is_digit(character) || is_letter(character) || character == '-';
+  return sourcemeta::core::is_alphanum(character) || character == '-';
 }
 
 constexpr auto UINT64_MAX_VALUE = std::numeric_limits<std::uint64_t>::max();
@@ -30,17 +22,19 @@ enum class NumericParseResult : std::uint8_t { success, invalid, overflow };
 auto parse_numeric_identifier(const std::string_view input,
                               std::size_t &position, std::uint64_t &result)
     -> NumericParseResult {
-  if (position >= input.size() || !is_digit(input[position])) {
+  if (position >= input.size() ||
+      !sourcemeta::core::is_digit(input[position])) {
     return NumericParseResult::invalid;
   }
 
   if (input[position] == '0' && position + 1 < input.size() &&
-      is_digit(input[position + 1])) {
+      sourcemeta::core::is_digit(input[position + 1])) {
     return NumericParseResult::invalid;
   }
 
   std::uint64_t value = 0;
-  while (position < input.size() && is_digit(input[position])) {
+  while (position < input.size() &&
+         sourcemeta::core::is_digit(input[position])) {
     const auto digit = static_cast<std::uint64_t>(input[position] - '0');
     if (value > UINT64_MAX_DIV_10 ||
         (value == UINT64_MAX_DIV_10 && digit > UINT64_MAX_MOD_10)) {
@@ -67,7 +61,7 @@ auto validate_pre_release_identifier(const std::string_view identifier)
       return false;
     }
 
-    if (!is_digit(character)) {
+    if (!sourcemeta::core::is_digit(character)) {
       has_non_digit = true;
     }
   }
@@ -130,7 +124,7 @@ auto classify_identifier(const std::string_view identifier) noexcept
     -> IdentifierInfo {
   std::uint64_t value = 0;
   for (const auto character : identifier) {
-    if (!is_digit(character)) {
+    if (!sourcemeta::core::is_digit(character)) {
       return {.is_numeric = false, .overflowed = false, .numeric_value = 0};
     }
 
