@@ -22,6 +22,7 @@ option(SOURCEMETA_CORE_IP "Build the Sourcemeta Core IP library" ON)
 option(SOURCEMETA_CORE_IDNA "Build the Sourcemeta Core IDNA library" ON)
 option(SOURCEMETA_CORE_DNS "Build the Sourcemeta Core DNS library" ON)
 option(SOURCEMETA_CORE_EMAIL "Build the Sourcemeta Core Email library" ON)
+option(SOURCEMETA_CORE_LANGTAG "Build the Sourcemeta Core LangTag library" ON)
 option(SOURCEMETA_CORE_URI "Build the Sourcemeta Core URI library" ON)
 option(SOURCEMETA_CORE_URITEMPLATE "Build the Sourcemeta Core URI Template library" ON)
 option(SOURCEMETA_CORE_JSON "Build the Sourcemeta Core JSON library" ON)
@@ -148,6 +149,10 @@ endif()
 
 if(SOURCEMETA_CORE_EMAIL)
   add_subdirectory(src/core/email)
+endif()
+
+if(SOURCEMETA_CORE_LANGTAG)
+  add_subdirectory(src/core/langtag)
 endif()
 
 if(SOURCEMETA_CORE_URI)
@@ -311,6 +316,10 @@ if(SOURCEMETA_CORE_TESTS)
 
   if(SOURCEMETA_CORE_EMAIL)
     add_subdirectory(test/email)
+  endif()
+
+  if(SOURCEMETA_CORE_LANGTAG)
+    add_subdirectory(test/langtag)
   endif()
 
   if(SOURCEMETA_CORE_URI)
