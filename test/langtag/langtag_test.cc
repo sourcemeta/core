@@ -117,10 +117,21 @@ TEST(LangTag, language_four_letters_reserved) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("aaaa"));
 }
 
+// RFC 5646 Section 2.2.1: a four-letter primary language takes no extended
+// language but still admits a script and region
+TEST(LangTag, language_four_letters_with_script_region) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("aaaa-Latn-US"));
+}
+
 // RFC 5646 Section 2.2.1: registered primary language of five to eight letters
 TEST(LangTag, language_five_to_eight_letters) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("abcde"));
   EXPECT_TRUE(sourcemeta::core::is_langtag("abcdefgh"));
+}
+
+// RFC 5646 Section 2.2.1: a long primary language still admits a region
+TEST(LangTag, language_five_to_eight_letters_with_region) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("abcde-US"));
 }
 
 // RFC 5646 Section 2.2.1: a single-letter primary language is not allowed
@@ -169,6 +180,12 @@ TEST(LangTag, script_after_extlang) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("zh-yue-Hant-CN"));
 }
 
+// RFC 5646 Section 2.1: extlang, script, region, variant, extension and
+// private use all present in a single tag
+TEST(LangTag, full_langtag) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("zh-yue-Hant-CN-1994-a-bbb-x-foo"));
+}
+
 // RFC 5646 Section 2.2.3: at most one script subtag
 TEST(LangTag, two_scripts_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("zh-Hant-Latn"));
@@ -210,6 +227,12 @@ TEST(LangTag, digit_led_four_character_variant) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("de-1234"));
 }
 
+// RFC 5646 Section 2.2.5: a digit-led four-character variant may mix letters
+TEST(LangTag, digit_led_four_character_variant_with_letters) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("de-1abc"));
+  EXPECT_TRUE(sourcemeta::core::is_langtag("de-1a2b"));
+}
+
 // RFC 5646 Section 2.2.5: a four-character subtag must begin with a digit
 TEST(LangTag, four_character_non_digit_led_rejected) {
   // A four-character subtag is only a variant when it begins with a digit
@@ -247,6 +270,14 @@ TEST(LangTag, multiple_extensions) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("en-a-bbb-c-ddd"));
 }
 
+// RFC 5646 Section 2.2.6: every letter except "x" is a valid singleton,
+// including the letters bordering the reserved "x"
+TEST(LangTag, extension_singleton_letter_boundaries) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("en-w-aa"));
+  EXPECT_TRUE(sourcemeta::core::is_langtag("en-y-aa"));
+  EXPECT_TRUE(sourcemeta::core::is_langtag("en-z-aa"));
+}
+
 // RFC 5646 Section 2.2.6: a singleton must be followed by a subtag
 TEST(LangTag, bare_extension_singleton_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("en-a"));
@@ -260,6 +291,11 @@ TEST(LangTag, adjacent_singletons_rejected) {
 // RFC 5646 Section 2.2.6: an extension subtag is at most eight characters
 TEST(LangTag, extension_subtag_too_long_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("en-a-123456789"));
+}
+
+// RFC 5646 Section 2.2.6: an eight-character extension subtag is allowed
+TEST(LangTag, extension_subtag_eight_characters) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("en-a-abcd1234"));
 }
 
 // RFC 5646 Section 2.2.6: an extension subtag is at least two characters
@@ -277,6 +313,11 @@ TEST(LangTag, duplicate_singleton_case_insensitive_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("en-a-bbb-A-ccc"));
 }
 
+// RFC 5646 Section 2.2.6: a digit singleton must not appear more than once
+TEST(LangTag, duplicate_digit_singleton_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("en-0-aaa-0-bbb"));
+}
+
 // RFC 5646 Section 2.2.7: a private use tag with a single subtag
 TEST(LangTag, private_use_only_single_subtag) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("x-foo"));
@@ -292,9 +333,21 @@ TEST(LangTag, private_use_single_character_subtag) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("x-a"));
 }
 
+// RFC 5646 Section 2.2.7: a single-character private use subtag is allowed
+// after a language, where an extension subtag could never be that short
+TEST(LangTag, private_use_single_character_subtag_after_language) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("en-x-c"));
+}
+
 // RFC 5646 Section 2.2.7: the private use singleton is case insensitive
 TEST(LangTag, private_use_uppercase_singleton) {
   EXPECT_TRUE(sourcemeta::core::is_langtag("X-foo"));
+}
+
+// RFC 5646 Section 2.2.7: an uppercase "X" introduces private use after a
+// language and is never treated as an extension singleton
+TEST(LangTag, private_use_uppercase_singleton_after_language) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("en-X-foo"));
 }
 
 // RFC 5646 Section 2.2.7: a private use sequence after an extension
@@ -311,6 +364,11 @@ TEST(LangTag, bare_private_use_singleton_rejected) {
 // RFC 5646 Section 2.2.7: a private use subtag is at most eight characters
 TEST(LangTag, private_use_subtag_too_long_rejected) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("x-123456789"));
+}
+
+// RFC 5646 Section 2.2.7: an eight-character private use subtag is allowed
+TEST(LangTag, private_use_subtag_eight_characters) {
+  EXPECT_TRUE(sourcemeta::core::is_langtag("x-abcd1234"));
 }
 
 // RFC 5646 Section 2.2.8: the irregular grandfathered tags
@@ -394,6 +452,12 @@ TEST(LangTag, non_alphanumeric_character) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("en_US"));
   EXPECT_FALSE(sourcemeta::core::is_langtag("en-US!"));
   EXPECT_FALSE(sourcemeta::core::is_langtag("en.US"));
+}
+
+// RFC 5646 Section 2.1: subtags are limited to ASCII letters and digits
+TEST(LangTag, non_ascii_character) {
+  EXPECT_FALSE(sourcemeta::core::is_langtag("én"));
+  EXPECT_FALSE(sourcemeta::core::is_langtag("en-café"));
 }
 
 // RFC 5646 Section 2.1: whitespace is not part of the grammar
