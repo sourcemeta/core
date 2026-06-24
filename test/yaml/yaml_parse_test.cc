@@ -216,6 +216,20 @@ TEST(YAML_parse, yaml_or_json_file_not_exists) {
                sourcemeta::core::IOFileNotFoundError);
 }
 
+TEST(YAML_parse, read_yaml_invalid_carries_path) {
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "invalid.yaml");
+    FAIL() << "Expected YAMLFileParseError to be thrown";
+  } catch (const sourcemeta::core::YAMLFileParseError &error) {
+    EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 15);
+  } catch (...) {
+    FAIL() << "The parse function was expected to throw a file parse error";
+  }
+}
+
 TEST(YAML_parse, istringstream) {
   std::istringstream stream{"hello: world\nfoo: 1\nbar: true"};
   const auto result{sourcemeta::core::parse_yaml(stream)};
