@@ -3,9 +3,31 @@
 
 #include <sourcemeta/core/numeric.h>
 
+#include <array>      // std::array
 #include <cassert>    // assert
 #include <cstring>    // std::memcpy
 #include <functional> // std::reference_wrapper
+
+// Hybrid threshold dispatch for PropertyHashJSON::perfect, ASAN-safe.
+//   size 1..7  : scalar `memcpy` (compiler emits per-size single-register move
+//                via the existing 31-case switch in `operator()`)
+//   size 8..15 : SIMD via 16-byte zero-padded bounce buffer
+//   size 16..31: direct SIMD with overlapping tail load (no over-read)
+// All branches in `perfect` collapse at compile time when the caller is the
+// switch dispatcher, because each case calls with a compile-time-known size.
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+// Some older clang-tidy versions choke when parsing newer Xcode/LLVM
+// `arm_neon.h` (unrecognized bf16 and complex-vector intrinsics). The header
+// is correct, the diagnostic is a clang-tidy bug; suppress all clang-tidy
+// checks across the include.
+// NOLINTBEGIN
+#include <arm_neon.h>
+// NOLINTEND
+#define SOURCEMETA_HASH_SIMD_NEON 1
+#elif defined(__SSE2__) || defined(_M_X64) || defined(_M_AMD64)
+#include <emmintrin.h>
+#define SOURCEMETA_HASH_SIMD_SSE2 1
+#endif
 
 namespace sourcemeta::core {
 
@@ -42,8 +64,51 @@ template <typename T> struct PropertyHashJSON {
       -> hash_type {
     hash_type result;
     assert(size > 0);
-    std::memcpy(reinterpret_cast<char *>(&result) + 1, data, size);
+    assert(size <= 31);
+
+    auto *const dst = reinterpret_cast<std::uint8_t *>(&result) + 1;
+    const auto *const src = reinterpret_cast<const std::uint8_t *>(data);
+
+    if (size <= 7) {
+      std::memcpy(dst, src, size);
+      return result;
+    }
+
+#if defined(SOURCEMETA_HASH_SIMD_NEON)
+    if (size < 16) {
+      alignas(16) std::array<std::uint8_t, 16> buf{};
+      std::memcpy(buf.data(), src, size);
+      vst1q_u8(dst, vld1q_u8(buf.data()));
+      return result;
+    }
+    vst1q_u8(dst, vld1q_u8(src));
+    if (size > 16) {
+      const std::size_t tail_off = size - 16;
+      vst1q_u8(dst + tail_off, vld1q_u8(src + tail_off));
+    }
     return result;
+#elif defined(SOURCEMETA_HASH_SIMD_SSE2)
+    if (size < 16) {
+      alignas(16) std::array<std::uint8_t, 16> buf{};
+      std::memcpy(buf.data(), src, size);
+      _mm_storeu_si128(
+          reinterpret_cast<__m128i *>(dst),
+          _mm_load_si128(reinterpret_cast<const __m128i *>(buf.data())));
+      return result;
+    }
+    _mm_storeu_si128(reinterpret_cast<__m128i *>(dst),
+                     _mm_loadu_si128(reinterpret_cast<const __m128i *>(src)));
+    if (size > 16) {
+      const std::size_t tail_off = size - 16;
+      _mm_storeu_si128(
+          reinterpret_cast<__m128i *>(dst + tail_off),
+          _mm_loadu_si128(reinterpret_cast<const __m128i *>(src + tail_off)));
+    }
+    return result;
+#else
+    std::memcpy(dst, src, size);
+    return result;
+#endif
   }
 
   // GCC does not optimise well across implicit type conversions such as
@@ -199,9 +264,6 @@ template <typename T> struct PropertyHashJSON {
       case 31:
         return this->perfect(data, 31);
       default:
-        // This case is specifically designed to be constant with regards to
-        // string length, and to exploit the fact that most JSON objects don't
-        // have a lot of entries, so hash collision is not as common
         auto hash = this->perfect(data, 31);
         hash.a |= 1 + (size + static_cast<typename hash_type::type>(data[0]) +
                        static_cast<typename hash_type::type>(data[size - 1])) %

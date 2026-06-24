@@ -2,6 +2,30 @@ cmake_minimum_required(VERSION 3.24)
 project(core VERSION 0.0.0 LANGUAGES C CXX ASM_MASM DESCRIPTION "Sourcemeta Core")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+# Xcode 16.4 ships `arm_neon.h` written against clang-17 builtin signatures
+# (the bf16 / `vcmla_f64` intrinsics). The bundled clang-tidy 20.1.x parser
+# (built against clang-20) rejects those as undeclared at parse time, even
+# though Apple-Clang itself compiles the header fine. clang-tidy is only
+# enabled on APPLE+LLVM by `cmake/common/clang-tidy.cmake`, so disabling
+# it on macOS effectively pauses lint-as-error in CI until either Xcode
+# bumps its bundled clang or PyPI clang-tidy back-supports clang-17.
+# Override with `-DSOURCEMETA_CXX_CLANG_TIDY=<path-to-clang-tidy>` to
+# re-enable manually once the toolchain mismatch is resolved.
+if(APPLE)
+  if(NOT SOURCEMETA_CXX_CLANG_TIDY)
+    set(SOURCEMETA_CXX_CLANG_TIDY "/usr/bin/true"
+      CACHE STRING "CXX_CLANG_TIDY")
+  elseif(NOT SOURCEMETA_CXX_CLANG_TIDY STREQUAL "/usr/bin/true")
+    message(WARNING
+      "SOURCEMETA_CXX_CLANG_TIDY is set to '${SOURCEMETA_CXX_CLANG_TIDY}' "
+      "in the CMake cache. macOS clang-tidy is known-broken against "
+      "Xcode 16's arm_neon.h (parser version skew). If the build fails "
+      "with clang-tidy errors from arm_neon.h, delete the build directory "
+      "and reconfigure, or pass "
+      "`-DSOURCEMETA_CXX_CLANG_TIDY=/usr/bin/true` explicitly.")
+  endif()
+endif()
+
 # Options
 option(SOURCEMETA_CORE_LANG_PREPROCESSOR "Build the Sourcemeta Core language preprocessor library" ON)
 option(SOURCEMETA_CORE_LANG_IO "Build the Sourcemeta Core language I/O library" ON)
