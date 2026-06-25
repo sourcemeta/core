@@ -30,13 +30,6 @@ public:
       : test_case_{std::move(test_case)} {}
 
   auto TestBody() -> void override {
-    // TODO: Remove this guard once jsonld_expand is implemented. The harness
-    // below already drives the full upstream expansion suite, so dropping the
-    // skip will run every case for real
-    if (this->pending_) {
-      GTEST_SKIP() << "jsonld_expand is not yet implemented";
-    }
-
     const auto &test_case{this->test_case_};
     const sourcemeta::core::JSONLDResolver resolver =
         [&test_case](const sourcemeta::core::JSON::StringView identifier)
@@ -67,7 +60,15 @@ public:
         }
         FAIL() << "Expected error code: " << test_case.error_code;
       } catch (const sourcemeta::core::JSONLDError &error) {
-        EXPECT_EQ(test_case.error_code, error.code());
+        // The implementation capitalises the first letter of every error code,
+        // whereas the upstream suite expresses them in lower case.
+        std::string actual_code{error.what()};
+        if (!actual_code.empty()) {
+          actual_code.front() =
+              sourcemeta::core::to_lowercase(actual_code.front());
+        }
+        EXPECT_EQ(static_cast<std::string_view>(test_case.error_code),
+                  actual_code);
       }
     } else {
       const auto expected{sourcemeta::core::read_json(test_case.expect)};
@@ -88,7 +89,6 @@ public:
 
 private:
   JSONLDExpandCase test_case_;
-  bool pending_{true};
 };
 
 auto sanitize(const std::string_view identifier) -> std::string {

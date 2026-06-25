@@ -5,9 +5,12 @@
 #include <sourcemeta/core/jsonld_export.h>
 #endif
 
-#include <exception>   // std::exception
-#include <string>      // std::string
-#include <string_view> // std::string_view
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonpointer.h>
+
+#include <exception>        // std::exception
+#include <initializer_list> // std::initializer_list
+#include <utility>          // std::move
 
 namespace sourcemeta::core {
 
@@ -20,26 +23,40 @@ namespace sourcemeta::core {
 
 /// @ingroup jsonld
 /// An error that represents a JSON-LD processing failure. The message is one of
-/// the error codes defined by the JSON-LD 1.1 API specification, such as
-/// `invalid @id value` or `cyclic IRI mapping`
+/// the error codes defined by the JSON-LD 1.1 API specification, and the
+/// pointer locates the offending position in the input document
 class SOURCEMETA_CORE_JSONLD_EXPORT JSONLDError : public std::exception {
 public:
-  JSONLDError(const char *code) : code_{code} {}
-  JSONLDError(std::string code) = delete;
-  JSONLDError(std::string &&code) = delete;
-  JSONLDError(std::string_view code) = delete;
+  JSONLDError(const char *code, Pointer pointer)
+      : code_{code}, pointer_{std::move(pointer)} {}
+
+  // Locate the error at a weak pointer, materialising an owned pointer.
+  JSONLDError(const char *code, const WeakPointer &pointer)
+      : code_{code}, pointer_{to_pointer(pointer)} {}
+
+  // Locate the error at a weak pointer extended with the given trailing
+  // property tokens.
+  JSONLDError(const char *code, const WeakPointer &pointer,
+              const std::initializer_list<JSON::StringView> children)
+      : code_{code}, pointer_{to_pointer(pointer)} {
+    for (const auto child : children) {
+      this->pointer_.push_back(JSON::String{child});
+    }
+  }
 
   [[nodiscard]] auto what() const noexcept -> const char * override {
     return this->code_;
   }
 
-  /// Get the JSON-LD error code
-  [[nodiscard]] auto code() const noexcept -> const char * {
-    return this->code_;
+  /// Get the JSON Pointer to the position in the input document that caused the
+  /// error
+  [[nodiscard]] auto pointer() const noexcept -> const Pointer & {
+    return this->pointer_;
   }
 
 private:
   const char *code_;
+  Pointer pointer_;
 };
 
 #if defined(_MSC_VER)

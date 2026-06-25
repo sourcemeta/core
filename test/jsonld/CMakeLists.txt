@@ -1,10 +1,12 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonld
-  SOURCES jsonld_expand_test.cc)
+  SOURCES jsonld_expand_test.cc jsonld_expand_error_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonld_unit
   PRIVATE sourcemeta::core::jsonld)
 target_link_libraries(sourcemeta_core_jsonld_unit
   PRIVATE sourcemeta::core::json)
+target_link_libraries(sourcemeta_core_jsonld_unit
+  PRIVATE sourcemeta::core::jsonpointer)
 
 # W3C JSON-LD Test Suite
 # See https://github.com/w3c/json-ld-api

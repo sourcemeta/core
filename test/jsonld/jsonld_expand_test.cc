@@ -3,11 +3,228 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
 
-// TODO: Remove this placeholder and replace it with real unit tests once
-// jsonld_expand is implemented
-TEST(JSONLD_expand, returns_empty_array_for_now) {
-  const auto document{
-      sourcemeta::core::parse_json(R"({ "@id": "https://example.com" })")};
-  const auto result{sourcemeta::core::jsonld_expand(document)};
-  EXPECT_EQ(result, sourcemeta::core::JSON::make_array());
+TEST(JSONLD_expand, empty_object) {
+  const auto input = sourcemeta::core::parse_json("{}");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, absolute_iri_property_with_string_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/foo": "bar"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/foo": [ { "@value": "bar" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, node_with_id_and_property) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/a",
+    "http://example.com/foo": "bar"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/foo": [ { "@value": "bar" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, type_is_made_an_array) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/a",
+    "@type": "http://example.com/T",
+    "http://example.com/foo": "bar"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "@type": [ "http://example.com/T" ],
+      "http://example.com/foo": [ { "@value": "bar" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, multiple_values_preserve_order) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/foo": [ "a", "b" ]
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/foo": [ { "@value": "a" }, { "@value": "b" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, numeric_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/foo": 1
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/foo": [ { "@value": 1 } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, boolean_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/foo": true
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/foo": [ { "@value": true } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, undefined_term_without_context_is_dropped) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "foo": "bar"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, term_maps_to_iri) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "name": "http://example.com/name" },
+    "name": "John"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/name": [ { "@value": "John" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, vocabulary_mapping) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@vocab": "http://example.com/" },
+    "name": "John"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/name": [ { "@value": "John" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, compact_iri_via_prefix) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "ex": "http://example.com/" },
+    "ex:name": "John"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/name": [ { "@value": "John" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, type_coercion_to_id) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "knows": { "@id": "http://example.com/knows", "@type": "@id" }
+    },
+    "knows": "http://example.com/jane"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/knows": [ { "@id": "http://example.com/jane" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, type_coercion_to_datatype) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "born": {
+        "@id": "http://example.com/born",
+        "@type": "http://www.w3.org/2001/XMLSchema#date"
+      }
+    },
+    "born": "1990-01-01"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/born": [
+        {
+          "@value": "1990-01-01",
+          "@type": "http://www.w3.org/2001/XMLSchema#date"
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, default_language) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@language": "en", "name": "http://example.com/name" },
+    "name": "John"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/name": [ { "@value": "John", "@language": "en" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, list_keyword) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "http://example.com/foo": { "@list": [ "a", "b" ] }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/foo": [
+        { "@list": [ { "@value": "a" }, { "@value": "b" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
