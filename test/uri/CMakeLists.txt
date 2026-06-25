@@ -10,6 +10,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_parse_test.cc
     uri_port_test.cc
     uri_scheme_test.cc
+    uri_is_scheme_test.cc
+    uri_is_gen_delim_test.cc
     uri_query_test.cc
     uri_is_absolute_test.cc
     uri_is_relative_test.cc
