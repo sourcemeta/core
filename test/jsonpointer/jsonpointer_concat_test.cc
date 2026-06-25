@@ -36,3 +36,15 @@ TEST(JSONPointer_concat, empty_empty) {
   const sourcemeta::core::Pointer result;
   EXPECT_EQ(left.concat(right), result);
 }
+
+TEST(JSONPointer_concat, single_property_token) {
+  const sourcemeta::core::Pointer pointer{"foo"};
+  const sourcemeta::core::Pointer result{"foo", "bar"};
+  EXPECT_EQ(pointer.concat("bar"), result);
+}
+
+TEST(JSONPointer_concat, single_index_token) {
+  const sourcemeta::core::Pointer pointer{"foo"};
+  const sourcemeta::core::Pointer result{"foo", 0};
+  EXPECT_EQ(pointer.concat(0), result);
+}

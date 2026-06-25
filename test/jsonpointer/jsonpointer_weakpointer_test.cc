@@ -4,6 +4,8 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/uri.h>
 
+#include <functional>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
@@ -636,4 +638,16 @@ TEST(JSONWeakPointer_to_uri, with_relative_base_string_view) {
   const std::string_view base{"../baz"};
   const sourcemeta::core::URI fragment{sourcemeta::core::to_uri(pointer, base)};
   EXPECT_EQ(fragment.recompose(), "../baz#/foo/bar");
+}
+
+TEST(JSONWeakPointer_concat, single_property_token) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::WeakPointer result{std::cref(foo), std::cref(bar)};
+  EXPECT_EQ(pointer.concat(std::cref(bar)), result);
+}
+
+TEST(JSONWeakPointer_concat, single_index_token) {
+  const sourcemeta::core::WeakPointer pointer{std::cref(foo)};
+  const sourcemeta::core::WeakPointer result{std::cref(foo), 1};
+  EXPECT_EQ(pointer.concat(1), result);
 }
