@@ -5,9 +5,7 @@
 
 TEST(JSONLD_expand, empty_object) {
   const auto input = sourcemeta::core::parse_json("{}");
-
   const auto expected = sourcemeta::core::parse_json("[]");
-
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
@@ -328,5 +326,11 @@ TEST(JSONLD_expand, non_expandable_type_value_is_omitted) {
     }
   ])");
 
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, graph_value_expanding_to_null_yields_no_element) {
+  const auto input = sourcemeta::core::parse_json(R"({ "@graph": "scalar" })");
+  const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }

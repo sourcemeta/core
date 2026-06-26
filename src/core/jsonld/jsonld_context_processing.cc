@@ -156,8 +156,12 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
                           {KEYWORD_IMPORT});
       }
       const auto document{(*state.resolver)(reference)};
+      if (!document.has_value()) {
+        throw JSONLDError("Loading remote context failed", location,
+                          {KEYWORD_IMPORT});
+      }
       const auto *imported_context{
-          document.has_value() && document->is_object()
+          document->is_object()
               ? document->try_at(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)
               : nullptr};
       if (imported_context == nullptr || !imported_context->is_object()) {

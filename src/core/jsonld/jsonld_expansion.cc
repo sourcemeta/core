@@ -409,10 +409,13 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (name == KEYWORD_GRAPH) {
-      merge(
-          result, KEYWORD_GRAPH,
-          into_array(expand(state, active_context, JSON::String{KEYWORD_GRAPH},
-                            entry.second, entry_pointer)));
+      // @graph expands to an array of node objects, so a value that expands to
+      // null contributes no element rather than a null one.
+      auto graph{expand(state, active_context, JSON::String{KEYWORD_GRAPH},
+                        entry.second, entry_pointer)};
+      merge(result, KEYWORD_GRAPH,
+            graph.is_null() ? JSON::make_array()
+                            : into_array(std::move(graph)));
       continue;
     }
 
