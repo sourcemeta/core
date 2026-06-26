@@ -175,6 +175,24 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
     result.assign(KEYWORD_TYPE, into_array(JSON{*type_entry}));
   }
 
+  // A set or list object may only carry an @index entry besides, and this is
+  // validated before any value is dropped.
+  if (result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
+      result.defines(KEYWORD_SET, KEYWORD_SET_HASH)) {
+    for (const auto &entry : result.as_object()) {
+      const auto &name{entry.first};
+      if (name != KEYWORD_LIST && name != KEYWORD_SET &&
+          name != KEYWORD_INDEX) {
+        throw JSONLDError("Invalid set or list object", pointer);
+      }
+    }
+  }
+
+  // A bare @set collapses to its array.
+  if (const auto *set{result.try_at(KEYWORD_SET, KEYWORD_SET_HASH)}) {
+    return *set;
+  }
+
   // Drop an incomplete value object that has a language or direction but no
   // value.
   if (!result.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) &&
@@ -202,22 +220,6 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
          result.defines(KEYWORD_ID, KEYWORD_ID_HASH))) {
       return JSON{nullptr};
     }
-  }
-
-  if (result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
-      result.defines(KEYWORD_SET, KEYWORD_SET_HASH)) {
-    for (const auto &entry : result.as_object()) {
-      const auto &name{entry.first};
-      if (name != KEYWORD_LIST && name != KEYWORD_SET &&
-          name != KEYWORD_INDEX) {
-        throw JSONLDError("Invalid set or list object", pointer);
-      }
-    }
-  }
-
-  // A bare @set collapses to its array.
-  if (const auto *set{result.try_at(KEYWORD_SET, KEYWORD_SET_HASH)}) {
-    return *set;
   }
 
   return result;
@@ -503,23 +505,20 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
     ActiveContext &value_context{scoped ? scoped_context : active_context};
 
-    // A term coerced to @json keeps its value verbatim.
+    JSON expanded_value{nullptr};
     if (definition != nullptr && definition->type_mapping.has_value() &&
         definition->type_mapping.value() == KEYWORD_JSON) {
+      // A term coerced to @json keeps its value verbatim.
       auto json_value{JSON::make_object()};
       json_value.assign_assume_new(JSON::String{KEYWORD_VALUE},
                                    JSON{entry.second}, KEYWORD_VALUE_HASH);
       json_value.assign_assume_new(JSON::String{KEYWORD_TYPE},
                                    JSON{KEYWORD_JSON}, KEYWORD_TYPE_HASH);
-      merge(result, name, into_array(std::move(json_value)));
-      continue;
-    }
-
-    JSON expanded_value{nullptr};
-    if (entry.second.is_object() &&
-        container_includes(definition, KEYWORD_GRAPH) &&
-        (container_includes(definition, KEYWORD_ID) ||
-         container_includes(definition, KEYWORD_INDEX))) {
+      expanded_value = std::move(json_value);
+    } else if (entry.second.is_object() &&
+               container_includes(definition, KEYWORD_GRAPH) &&
+               (container_includes(definition, KEYWORD_ID) ||
+                container_includes(definition, KEYWORD_INDEX))) {
       const bool by_id{container_includes(definition, KEYWORD_ID)};
       const bool property_valued{definition->index.has_value() &&
                                  definition->index.value() != KEYWORD_INDEX};
@@ -775,24 +774,27 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         expanded_value =
             expand(state, value_context, property, entry.second, entry_pointer);
       }
-      if (container_includes(definition, KEYWORD_LIST) &&
-          !expanded_value.is_null() &&
-          !(expanded_value.is_object() &&
-            expanded_value.defines(KEYWORD_LIST, KEYWORD_LIST_HASH))) {
-        expanded_value = into_array(std::move(expanded_value));
-        if (state.processing_1_0) {
-          for (const auto &item : expanded_value.as_array()) {
-            if (item.is_object() &&
-                item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH)) {
-              throw JSONLDError("List of lists", entry_pointer);
-            }
+    }
+
+    // A @list container wraps the expanded value, including a @json-coerced
+    // one.
+    if (container_includes(definition, KEYWORD_LIST) &&
+        !expanded_value.is_null() &&
+        !(expanded_value.is_object() &&
+          expanded_value.defines(KEYWORD_LIST, KEYWORD_LIST_HASH))) {
+      expanded_value = into_array(std::move(expanded_value));
+      if (state.processing_1_0) {
+        for (const auto &item : expanded_value.as_array()) {
+          if (item.is_object() &&
+              item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH)) {
+            throw JSONLDError("List of lists", entry_pointer);
           }
         }
-        auto wrapper{JSON::make_object()};
-        wrapper.assign_assume_new(JSON::String{KEYWORD_LIST},
-                                  std::move(expanded_value), KEYWORD_LIST_HASH);
-        expanded_value = std::move(wrapper);
       }
+      auto wrapper{JSON::make_object()};
+      wrapper.assign_assume_new(JSON::String{KEYWORD_LIST},
+                                std::move(expanded_value), KEYWORD_LIST_HASH);
+      expanded_value = std::move(wrapper);
     }
 
     if (expanded_value.is_null()) {

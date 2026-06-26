@@ -277,3 +277,26 @@ TEST(JSONLD_expand, nest_term_whose_scoped_context_redefines_itself) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(JSONLD_expand, json_typed_value_in_list_container) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "e": {
+        "@id": "http://example.com/e",
+        "@type": "@json",
+        "@container": "@list"
+      }
+    },
+    "e": 42
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/e": [
+        { "@list": [ { "@value": 42, "@type": "@json" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
