@@ -92,7 +92,7 @@ auto create_term_definition(ExpansionState &state,
           type_definition.is_protected = entry.second.to_boolean();
         } else if (name == KEYWORD_CONTAINER && entry.second.is_string()) {
           const auto &container{entry.second.to_string()};
-          if (container == KEYWORD_SET || container == KEYWORD_ID) {
+          if (container == KEYWORD_SET) {
             type_definition.container.push_back(container);
             has_container = true;
           } else {
@@ -141,6 +141,22 @@ auto create_term_definition(ExpansionState &state,
   if (value.is_null() || (id_entry != nullptr && id_entry->is_null())) {
     TermDefinition empty;
     empty.is_protected = state.context_protected;
+    // @protected is processed before the null @id is handled, so an explicitly
+    // protected term that maps to null stays protected.
+    if (id_entry != nullptr) {
+      if (const auto *protected_entry{
+              value.try_at(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)}) {
+        if (!protected_entry->is_boolean()) {
+          throw JSONLDError("Invalid @protected value", term_pointer,
+                            {KEYWORD_PROTECTED});
+        }
+        if (state.processing_1_0) {
+          throw JSONLDError("Invalid term definition", term_pointer,
+                            {KEYWORD_PROTECTED});
+        }
+        empty.is_protected = protected_entry->to_boolean();
+      }
+    }
     finalize_definition(state, active_context, defined, term, term_pointer,
                         previous, std::move(empty));
     return;
@@ -341,10 +357,10 @@ auto create_term_definition(ExpansionState &state,
         }
       } else if (container.is_string()) {
         const auto &container_string{container.to_string()};
-        // In 1.0, only @list, @set and @index are permitted.
-        if (state.processing_1_0 && container_string != KEYWORD_LIST &&
-            container_string != KEYWORD_SET &&
-            container_string != KEYWORD_INDEX) {
+        // In 1.0, the @graph, @id and @type containers are not permitted.
+        if (state.processing_1_0 && (container_string == KEYWORD_GRAPH ||
+                                     container_string == KEYWORD_ID ||
+                                     container_string == KEYWORD_TYPE)) {
           throw JSONLDError("Invalid container mapping", term_pointer,
                             {KEYWORD_CONTAINER});
         }
@@ -365,21 +381,46 @@ auto create_term_definition(ExpansionState &state,
           }
         }
       }
-      bool has_list{false};
-      bool has_type{false};
+      bool container_graph{false};
+      bool container_id{false};
+      bool container_index{false};
+      bool container_language{false};
+      bool container_list{false};
+      bool container_set{false};
+      bool container_type{false};
       for (const auto &item : definition.container) {
-        if (item == KEYWORD_LIST) {
-          has_list = true;
+        if (item == KEYWORD_GRAPH) {
+          container_graph = true;
+        } else if (item == KEYWORD_ID) {
+          container_id = true;
+        } else if (item == KEYWORD_INDEX) {
+          container_index = true;
+        } else if (item == KEYWORD_LANGUAGE) {
+          container_language = true;
+        } else if (item == KEYWORD_LIST) {
+          container_list = true;
+        } else if (item == KEYWORD_SET) {
+          container_set = true;
         } else if (item == KEYWORD_TYPE) {
-          has_type = true;
+          container_type = true;
         }
       }
-      if (has_list && definition.container.size() > 1) {
-        throw JSONLDError("Invalid container mapping", term_pointer,
-                          {KEYWORD_CONTAINER});
+      // Valid array combinations (JSON-LD 1.1 API Section 5.1.1 step 19.1): a
+      // single keyword, or @graph with exactly one of @id or @index optionally
+      // with @set, or @set combined with any of @index, @graph, @id, @type, or
+      // @language.
+      if (definition.container.size() != 1) {
+        const bool graph_form{
+            container_graph && (container_id != container_index) &&
+            !container_list && !container_type && !container_language};
+        const bool set_form{container_set && !container_list};
+        if (!graph_form && !set_form) {
+          throw JSONLDError("Invalid container mapping", term_pointer,
+                            {KEYWORD_CONTAINER});
+        }
       }
       // A type-map container may only coerce its keys to identifiers.
-      if (has_type && definition.type_mapping.has_value() &&
+      if (container_type && definition.type_mapping.has_value() &&
           definition.type_mapping.value() != KEYWORD_ID &&
           definition.type_mapping.value() != KEYWORD_VOCAB) {
         throw JSONLDError("Invalid type mapping", term_pointer, {KEYWORD_TYPE});
@@ -406,6 +447,12 @@ auto create_term_definition(ExpansionState &state,
         direction_entry != nullptr &&
         !value.defines(KEYWORD_TYPE, KEYWORD_TYPE_HASH)) {
       const auto &direction{*direction_entry};
+      if (!direction.is_null() &&
+          (!direction.is_string() || (direction.to_string() != "ltr" &&
+                                      direction.to_string() != "rtl"))) {
+        throw JSONLDError("Invalid base direction", term_pointer,
+                          {KEYWORD_DIRECTION});
+      }
       definition.has_direction = true;
       if (direction.is_string()) {
         definition.direction = direction.to_string();
@@ -445,16 +492,16 @@ auto create_term_definition(ExpansionState &state,
 
     if (const auto *prefix_entry{
             value.try_at(KEYWORD_PREFIX, KEYWORD_PREFIX_HASH)}) {
+      if (state.processing_1_0 || term.find(':') != JSON::String::npos ||
+          term.find('/') != JSON::String::npos) {
+        throw JSONLDError("Invalid term definition", term_pointer,
+                          {KEYWORD_PREFIX});
+      }
       if (!prefix_entry->is_boolean()) {
         throw JSONLDError("Invalid @prefix value", term_pointer,
                           {KEYWORD_PREFIX});
       }
       definition.prefix = prefix_entry->to_boolean();
-      if (definition.prefix && (term.find(':') != JSON::String::npos ||
-                                term.find('/') != JSON::String::npos)) {
-        throw JSONLDError("Invalid term definition", term_pointer,
-                          {KEYWORD_PREFIX});
-      }
       if (definition.prefix && definition.iri.has_value() &&
           is_keyword(definition.iri.value())) {
         throw JSONLDError("Invalid term definition", term_pointer,
@@ -463,6 +510,10 @@ auto create_term_definition(ExpansionState &state,
     }
 
     if (const auto *nest_entry{value.try_at(KEYWORD_NEST, KEYWORD_NEST_HASH)}) {
+      if (state.processing_1_0) {
+        throw JSONLDError("Invalid term definition", term_pointer,
+                          {KEYWORD_NEST});
+      }
       const auto &nest{*nest_entry};
       if (!nest.is_string()) {
         throw JSONLDError("Invalid @nest value", term_pointer, {KEYWORD_NEST});
@@ -507,7 +558,25 @@ auto create_term_definition(ExpansionState &state,
         throw JSONLDError("Invalid @protected value", term_pointer,
                           {KEYWORD_PROTECTED});
       }
+      if (state.processing_1_0) {
+        throw JSONLDError("Invalid term definition", term_pointer,
+                          {KEYWORD_PROTECTED});
+      }
       definition.is_protected = protected_entry->to_boolean();
+    }
+
+    // A term definition may not contain any entry other than the keywords
+    // recognised above.
+    for (const auto &entry : value.as_object()) {
+      const JSON::StringView key{entry.first};
+      if (key != KEYWORD_ID && key != KEYWORD_REVERSE &&
+          key != KEYWORD_CONTAINER && key != KEYWORD_CONTEXT &&
+          key != KEYWORD_DIRECTION && key != KEYWORD_INDEX &&
+          key != KEYWORD_LANGUAGE && key != KEYWORD_NEST &&
+          key != KEYWORD_PREFIX && key != KEYWORD_PROTECTED &&
+          key != KEYWORD_TYPE) {
+        throw JSONLDError("Invalid term definition", term_pointer);
+      }
     }
   } else {
     throw JSONLDError("Invalid term definition", term_pointer);

@@ -25,6 +25,23 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
     contexts.emplace_back(&local_context, pointer);
   }
 
+  // The @propagate flag is read once from a top-level map context, before the
+  // contexts are processed (JSON-LD 1.1 API Section 5.1 steps 2 and 3). A
+  // non-boolean value is reported per entry by the loop below.
+  bool effective_propagate{propagate};
+  if (local_context.is_object()) {
+    if (const auto *propagate_entry{
+            local_context.try_at(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)};
+        propagate_entry != nullptr && propagate_entry->is_boolean()) {
+      effective_propagate = propagate_entry->to_boolean();
+    }
+  }
+  if (!effective_propagate && !active_context.previous) {
+    auto snapshot{std::make_shared<ActiveContext>(active_context)};
+    snapshot->previous = nullptr;
+    active_context.previous = snapshot;
+  }
+
   for (const auto &[entry_pointer, location] : contexts) {
     const auto &context{*entry_pointer};
     if (context.is_null()) {
@@ -71,8 +88,8 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       }
       state.remote_context_chain.push_back(reference);
       try {
-        process_context(state, active_context, *context_entry, location,
-                        propagate);
+        // A loaded remote context is processed with the default propagation.
+        process_context(state, active_context, *context_entry, location);
       } catch (...) {
         state.remote_context_chain.pop_back();
         throw;
@@ -85,16 +102,16 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       throw JSONLDError("Invalid local context", location);
     }
 
-    if (state.processing_1_0 &&
-        context.defines(KEYWORD_VERSION, KEYWORD_VERSION_HASH)) {
-      throw JSONLDError("Processing mode conflict", location,
-                        {KEYWORD_VERSION});
-    }
     if (const auto *version{
             context.try_at(KEYWORD_VERSION, KEYWORD_VERSION_HASH)};
         version != nullptr &&
         (!version->is_real() || version->to_real() != 1.1)) {
       throw JSONLDError("Invalid @version value", location, {KEYWORD_VERSION});
+    }
+    if (state.processing_1_0 &&
+        context.defines(KEYWORD_VERSION, KEYWORD_VERSION_HASH)) {
+      throw JSONLDError("Processing mode conflict", location,
+                        {KEYWORD_VERSION});
     }
     if (state.processing_1_0 &&
         (context.defines(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH) ||
@@ -103,19 +120,11 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       throw JSONLDError("Invalid context entry", location);
     }
 
-    bool effective_propagate{propagate};
     if (const auto *propagate_entry{
-            context.try_at(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)}) {
-      if (!propagate_entry->is_boolean()) {
-        throw JSONLDError("Invalid @propagate value", location,
-                          {KEYWORD_PROPAGATE});
-      }
-      effective_propagate = propagate_entry->to_boolean();
-    }
-    if (!effective_propagate && !active_context.previous) {
-      auto snapshot{std::make_shared<ActiveContext>(active_context)};
-      snapshot->previous = nullptr;
-      active_context.previous = snapshot;
+            context.try_at(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH)};
+        propagate_entry != nullptr && !propagate_entry->is_boolean()) {
+      throw JSONLDError("Invalid @propagate value", location,
+                        {KEYWORD_PROPAGATE});
     }
 
     // @protected applies to imported terms too, so it is set before @import.
@@ -177,13 +186,18 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
         active_context.base = std::nullopt;
       } else if (!base.is_string()) {
         throw JSONLDError("Invalid base IRI", location, {KEYWORD_BASE});
-      } else if (active_context.base.has_value()) {
-        active_context.base =
-            URI::from_iri(base.to_string())
-                .resolve_from(URI::from_iri(active_context.base.value()))
-                .recompose();
       } else {
-        active_context.base = base.to_string();
+        const auto &base_string{base.to_string()};
+        if (active_context.base.has_value()) {
+          active_context.base =
+              URI::from_iri(base_string)
+                  .resolve_from(URI::from_iri(active_context.base.value()))
+                  .recompose();
+        } else if (URI::from_iri(base_string).is_absolute()) {
+          active_context.base = base_string;
+        } else {
+          throw JSONLDError("Invalid base IRI", location, {KEYWORD_BASE});
+        }
       }
     }
 

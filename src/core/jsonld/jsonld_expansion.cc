@@ -768,7 +768,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       if (scoped && value_context.previous && entry.second.is_object() &&
           !entry.second.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH)) {
         // A non-propagating property-scoped context applies to the immediate
-        // node; nested nodes revert to the previous context.
+        // node, while nested nodes revert to the previous context.
         expanded_value = expand_object(state, value_context, property,
                                        entry.second, entry_pointer);
       } else {

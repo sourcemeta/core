@@ -40,8 +40,9 @@ auto expand_iri(ExpansionState &state, ActiveContext &active_context,
     return term->second.iri;
   }
 
-  const auto colon{value.find(':', 1)};
-  if (colon != JSON::String::npos) {
+  if (value.find(':', 1) != JSON::String::npos) {
+    // The term has the form of a compact IRI, so split at the first colon.
+    const auto colon{value.find(':')};
     const auto prefix{value.substr(0, colon)};
     const auto suffix{value.substr(colon + 1)};
     if (prefix == "_" || suffix.starts_with("//")) {

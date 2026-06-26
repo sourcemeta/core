@@ -471,3 +471,110 @@ TEST(JSONLD_expand_error, invalid_language_tagged_string_without_value) {
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid language-tagged string", "/p/@language");
 }
+
+TEST(JSONLD_expand_error, protected_in_term_definition_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": "http://example.com/a", "@protected": true } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid term definition", "/@context/a/@protected");
+}
+
+TEST(JSONLD_expand_error, nest_in_term_definition_in_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": "http://example.com/a", "@nest": "@nest" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid term definition", "/@context/a/@nest");
+}
+
+TEST(JSONLD_expand_error, prefix_on_compact_iri_term) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "ex": "http://example.com/",
+      "ex:foo": { "@id": "http://example.com/foo", "@prefix": true }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid term definition",
+                             "/@context/ex:foo/@prefix");
+}
+
+TEST(JSONLD_expand_error, invalid_base_direction_in_term_definition) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": "http://example.com/a", "@direction": "up" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid base direction",
+                             "/@context/a/@direction");
+}
+
+TEST(JSONLD_expand_error, invalid_container_array_combination) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "a": { "@id": "http://example.com/a", "@container": [ "@id", "@language" ] }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid container mapping",
+                             "/@context/a/@container");
+}
+
+TEST(JSONLD_expand_error, unknown_entry_in_term_definition) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "a": { "@id": "http://example.com/a", "@bogus": true } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid term definition", "/@context/a");
+}
+
+TEST(JSONLD_expand_error, type_keyword_container_id) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@type": { "@container": "@id" } }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Keyword redefinition", "/@context/@type");
+}
+
+TEST(JSONLD_expand_error, invalid_version_precedes_mode_conflict) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "@version": 1.5 }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Invalid @version value", "/@context/@version");
+}
+
+TEST(JSONLD_expand_error, relative_base_without_base) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [ { "@base": null }, { "@base": "relative/path" } ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid base IRI", "/@context/1/@base");
+}
+
+TEST(JSONLD_expand_error, protected_null_term_redefinition) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": [
+      { "term": { "@id": null, "@protected": true } },
+      { "term": "http://example.com/x" }
+    ]
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Protected term redefinition", "/@context/1/term");
+}
