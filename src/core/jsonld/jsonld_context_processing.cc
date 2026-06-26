@@ -184,7 +184,9 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (const auto *base_entry{
-            context.try_at(KEYWORD_BASE, KEYWORD_BASE_HASH)}) {
+            state.remote_context_chain.empty()
+                ? context.try_at(KEYWORD_BASE, KEYWORD_BASE_HASH)
+                : nullptr}) {
       const auto &base{*base_entry};
       if (base.is_null()) {
         active_context.base = std::nullopt;

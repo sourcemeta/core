@@ -3,6 +3,8 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
 
+#include <optional> // std::optional, std::nullopt
+
 TEST(JSONLD_expand, empty_object) {
   const auto input = sourcemeta::core::parse_json("{}");
   const auto expected = sourcemeta::core::parse_json("[]");
@@ -333,4 +335,33 @@ TEST(JSONLD_expand, graph_value_expanding_to_null_yields_no_element) {
   const auto input = sourcemeta::core::parse_json(R"({ "@graph": "scalar" })");
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, base_in_remote_context_is_ignored) {
+  const sourcemeta::core::JSONLDResolver resolver =
+      [](const sourcemeta::core::JSON::StringView identifier)
+      -> std::optional<sourcemeta::core::JSON> {
+    if (identifier == "https://example.com/remote-base") {
+      return sourcemeta::core::parse_json(
+          R"({ "@context": { "@base": "http://remote.example/" } })");
+    }
+    return std::nullopt;
+  };
+
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": "https://example.com/remote-base",
+    "@id": "relative-node",
+    "http://example.com/p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://doc.example/relative-node",
+      "http://example.com/p": [ { "@value": "v" } ]
+    }
+  ])");
+
+  EXPECT_EQ(
+      sourcemeta::core::jsonld_expand(input, "http://doc.example/", resolver),
+      expected);
 }
