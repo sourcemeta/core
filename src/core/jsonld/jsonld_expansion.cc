@@ -323,7 +323,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       if (result.defines(KEYWORD_TYPE, KEYWORD_TYPE_HASH)) {
         auto merged{
             into_array(std::move(result.at(KEYWORD_TYPE, KEYWORD_TYPE_HASH)))};
-        for (auto &item : into_array(std::move(expanded_type)).as_array()) {
+        auto expanded_type_array{into_array(std::move(expanded_type))};
+        for (auto &item : expanded_type_array.as_array()) {
           merged.push_back(item);
         }
         result.assign(KEYWORD_TYPE, std::move(merged));
@@ -436,8 +437,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
           } else if (is_keyword(reverse_property, reverse_entry.hash)) {
             throw JSONLDError("Invalid reverse property map", entry_pointer);
           } else {
-            for (const auto &item :
-                 into_array(JSON{reverse_entry.second}).as_array()) {
+            const auto reverse_values{into_array(JSON{reverse_entry.second})};
+            for (const auto &item : reverse_values.as_array()) {
               if (item.is_object() &&
                   (item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
                    item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH))) {
@@ -521,10 +522,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                                                  empty_weak_pointer)};
         const bool none_key{expanded_key.has_value() &&
                             expanded_key.value() == KEYWORD_NONE};
-        for (auto &item :
-             into_array(expand(state, value_context, property, *graph_value,
-                               entry_pointer.concat(index)))
-                 .as_array()) {
+        auto graph_items{
+            into_array(expand(state, value_context, property, *graph_value,
+                              entry_pointer.concat(index)))};
+        for (auto &item : graph_items.as_array()) {
           // Wrap the item in a graph object, unless it is already one.
           JSON graph{nullptr};
           if (item.is_object() &&
@@ -573,7 +574,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         const bool is_none{language == KEYWORD_NONE ||
                            (expanded_language.has_value() &&
                             expanded_language.value() == KEYWORD_NONE)};
-        for (auto &item : into_array(JSON{*language_value}).as_array()) {
+        auto language_items{into_array(JSON{*language_value})};
+        for (auto &item : language_items.as_array()) {
           if (item.is_null()) {
             continue;
           }
@@ -613,10 +615,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       for (const auto &[index_key, index_value] :
            sorted_entries(entry.second)) {
         const JSON::String &index{*index_key};
-        for (auto &item :
-             into_array(expand(state, value_context, property, *index_value,
-                               entry_pointer.concat(index)))
-                 .as_array()) {
+        auto index_items{
+            into_array(expand(state, value_context, property, *index_value,
+                              entry_pointer.concat(index)))};
+        for (auto &item : index_items.as_array()) {
           if (index != KEYWORD_NONE) {
             if (property_valued) {
               if (item.is_object() &&
@@ -682,7 +684,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         }
         // String values in a type map are node references.
         auto entries{JSON::make_array()};
-        for (auto &raw : into_array(JSON{*map_value}).as_array()) {
+        auto raw_values{into_array(JSON{*map_value})};
+        for (auto &raw : raw_values.as_array()) {
           if (raw.is_string() && !by_id) {
             auto reference{JSON::make_object()};
             const bool reference_vocab{definition->type_mapping.has_value() &&
@@ -697,10 +700,10 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                                         KEYWORD_ID_HASH);
             entries.push_back(std::move(reference));
           } else {
-            for (auto &expanded :
-                 into_array(expand(state, entry_context, property, raw,
-                                   entry_pointer.concat(index)))
-                     .as_array()) {
+            auto expanded_items{
+                into_array(expand(state, entry_context, property, raw,
+                                  entry_pointer.concat(index)))};
+            for (auto &expanded : expanded_items.as_array()) {
               entries.push_back(expanded);
             }
           }
@@ -717,10 +720,9 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
               auto types{JSON::make_array()};
               types.push_back(JSON{expanded_index.value()});
               if (item.defines(KEYWORD_TYPE, KEYWORD_TYPE_HASH)) {
-                for (auto &existing :
-                     into_array(
-                         std::move(item.at(KEYWORD_TYPE, KEYWORD_TYPE_HASH)))
-                         .as_array()) {
+                auto existing_types{into_array(
+                    std::move(item.at(KEYWORD_TYPE, KEYWORD_TYPE_HASH)))};
+                for (auto &existing : existing_types.as_array()) {
                   types.push_back(existing);
                 }
               }
@@ -732,9 +734,9 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       }
     } else if (container_includes(definition, KEYWORD_GRAPH)) {
       expanded_value = JSON::make_array();
-      for (auto &item : into_array(expand(state, value_context, property,
-                                          entry.second, entry_pointer))
-                            .as_array()) {
+      auto graph_items{into_array(
+          expand(state, value_context, property, entry.second, entry_pointer))};
+      for (auto &item : graph_items.as_array()) {
         auto graph{JSON::make_object()};
         graph.assign_assume_new(JSON::String{KEYWORD_GRAPH},
                                 into_array(std::move(item)),
@@ -777,7 +779,8 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (definition != nullptr && definition->reverse) {
-      for (const auto &item : into_array(JSON{expanded_value}).as_array()) {
+      const auto reverse_items{into_array(JSON{expanded_value})};
+      for (const auto &item : reverse_items.as_array()) {
         if (item.is_object() &&
             (item.defines(KEYWORD_VALUE, KEYWORD_VALUE_HASH) ||
              item.defines(KEYWORD_LIST, KEYWORD_LIST_HASH))) {
