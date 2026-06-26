@@ -365,3 +365,26 @@ TEST(JSONLD_expand, base_in_remote_context_is_ignored) {
       sourcemeta::core::jsonld_expand(input, "http://doc.example/", resolver),
       expected);
 }
+
+TEST(JSONLD_expand, language_map_direction_uses_property_scoped_context) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "p": {
+        "@id": "http://example.com/p",
+        "@container": "@language",
+        "@context": { "@direction": "rtl" }
+      }
+    },
+    "p": { "en": "hello" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "http://example.com/p": [
+        { "@value": "hello", "@language": "en", "@direction": "rtl" }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

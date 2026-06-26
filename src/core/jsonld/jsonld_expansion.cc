@@ -621,7 +621,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
           }
           const auto direction{definition->has_direction
                                    ? definition->direction
-                                   : active_context.default_direction};
+                                   : value_context.default_direction};
           if (direction.has_value()) {
             value.assign_assume_new(JSON::String{KEYWORD_DIRECTION},
                                     JSON{direction.value()},

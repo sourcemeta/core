@@ -21,8 +21,8 @@ auto expand_iri(ExpansionState &state, ActiveContext &active_context,
     return std::nullopt;
   }
 
-  if (local_context != nullptr && local_context->is_object() &&
-      local_context->defines(value)) {
+  if (local_context != nullptr && defined != nullptr &&
+      local_context->is_object() && local_context->defines(value)) {
     const auto iterator{defined->find(value)};
     if (iterator == defined->cend() || !iterator->second) {
       create_term_definition(state, active_context, *local_context, value,
@@ -49,8 +49,8 @@ auto expand_iri(ExpansionState &state, ActiveContext &active_context,
       return value;
     }
 
-    if (local_context != nullptr && local_context->is_object() &&
-        local_context->defines(prefix)) {
+    if (local_context != nullptr && defined != nullptr &&
+        local_context->is_object() && local_context->defines(prefix)) {
       const auto iterator{defined->find(prefix)};
       if (iterator == defined->cend() || !iterator->second) {
         create_term_definition(state, active_context, *local_context, prefix,
