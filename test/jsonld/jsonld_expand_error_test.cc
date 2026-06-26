@@ -332,7 +332,7 @@ TEST(JSONLD_expand_error, invalid_language_tagged_string) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid language-tagged string",
-                             "/http:~1~1example.com~1p");
+                             "/http:~1~1example.com~1p/@language");
 }
 
 TEST(JSONLD_expand_error, invalid_language_tagged_value) {
@@ -437,4 +437,37 @@ TEST(JSONLD_expand_error, invalid_base_direction_in_value_object) {
 
   EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
                              "Invalid base direction", "/p/@direction");
+}
+
+TEST(JSONLD_expand_error, keyword_alias_dropped_inside_reverse_map) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "none": "@none" },
+    "@reverse": { "none": "x" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid reverse property map", "/@reverse/none");
+}
+
+TEST(JSONLD_expand_error, colliding_type_in_json_ld_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "type": "@type" },
+    "@type": "http://example.com/A",
+    "type": "http://example.com/B"
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(
+      sourcemeta::core::jsonld_expand(input, "", {},
+                                      sourcemeta::core::JSONLDVersion::V1_0),
+      "Colliding keywords", "/type");
+}
+
+TEST(JSONLD_expand_error, invalid_language_tagged_string_without_value) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@language": 42 }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid language-tagged string", "/p/@language");
 }

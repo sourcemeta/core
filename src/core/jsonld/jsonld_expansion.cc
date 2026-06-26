@@ -156,14 +156,9 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
     if (content.is_null() && !is_json) {
       return JSON{nullptr};
     }
-    if (const auto *language{
-            result.try_at(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH)}) {
-      if (!language->is_string()) {
-        throw JSONLDError("Invalid language-tagged string", pointer);
-      }
-      if (!content.is_string()) {
-        throw JSONLDError("Invalid language-tagged value", pointer);
-      }
+    if (result.defines(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) &&
+        !content.is_string()) {
+      throw JSONLDError("Invalid language-tagged value", pointer);
     }
     if (has_type && (type_string == nullptr || type_string->starts_with("_:") ||
                      type_string->find(' ') != JSON::String::npos)) {
@@ -276,8 +271,16 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       continue;
     }
 
-    if (is_keyword(name) && name != KEYWORD_TYPE && name != KEYWORD_INCLUDED &&
-        result.defines(name)) {
+    if (is_keyword(name) && active_property.has_value() &&
+        active_property.value() == KEYWORD_REVERSE) {
+      throw JSONLDError("Invalid reverse property map", entry_pointer);
+    }
+
+    // The @type and @included exemption from colliding keywords does not apply
+    // in json-ld-1.0.
+    if (is_keyword(name) && result.defines(name) &&
+        (state.processing_1_0 ||
+         (name != KEYWORD_TYPE && name != KEYWORD_INCLUDED))) {
       throw JSONLDError("Colliding keywords", entry_pointer);
     }
 
@@ -342,6 +345,9 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (name == KEYWORD_LANGUAGE) {
+      if (!entry.second.is_string()) {
+        throw JSONLDError("Invalid language-tagged string", entry_pointer);
+      }
       result.assign_assume_new(JSON::String{KEYWORD_LANGUAGE},
                                JSON{entry.second}, KEYWORD_LANGUAGE_HASH);
       continue;
