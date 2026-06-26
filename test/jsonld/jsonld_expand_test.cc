@@ -228,3 +228,52 @@ TEST(JSONLD_expand, list_keyword) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(JSONLD_expand, direction_dropped_in_json_ld_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@value": "v", "@direction": "rtl" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(JSONLD_expand, included_dropped_in_json_ld_1_0) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": "v",
+    "@included": { "@id": "http://example.com/other" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@value": "v" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(
+                input, "", {}, sourcemeta::core::JSONLDVersion::V1_0),
+            expected);
+}
+
+TEST(JSONLD_expand, nest_term_whose_scoped_context_redefines_itself) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "nest": {
+        "@id": "@nest",
+        "@context": { "nest": { "@id": "http://example.com/nest" } }
+      }
+    },
+    "nest": { "http://example.com/foo": "bar" }
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/foo": [ { "@value": "bar" } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

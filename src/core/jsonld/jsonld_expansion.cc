@@ -348,6 +348,13 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (name == KEYWORD_DIRECTION) {
+      if (state.processing_1_0) {
+        continue;
+      }
+      if (!entry.second.is_string() || (entry.second.to_string() != "ltr" &&
+                                        entry.second.to_string() != "rtl")) {
+        throw JSONLDError("Invalid base direction", entry_pointer);
+      }
       result.assign_assume_new(JSON::String{KEYWORD_DIRECTION},
                                JSON{entry.second}, KEYWORD_DIRECTION_HASH);
       continue;
@@ -393,6 +400,9 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (name == KEYWORD_INCLUDED) {
+      if (state.processing_1_0) {
+        continue;
+      }
       auto included{into_array(expand(state, active_context, std::nullopt,
                                       entry.second, entry_pointer))};
       for (const auto &item : included.as_array()) {
@@ -456,7 +466,9 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     }
 
     if (is_keyword(name)) {
-      // TODO: @direction, @json, @nest
+      // Keywords with no property-level handler (such as @vocab or @none
+      // reached through an alias) carry no expanded value, so the Expansion
+      // algorithm adds nothing to the result for them.
       continue;
     }
 
@@ -666,12 +678,15 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
         // Type-scoped contexts do not propagate, so the values are resolved
         // against the context that preceded the containing type-scoped
         // context, with only this key's context layered on top.
-        ActiveContext entry_context{value_context.previous && !by_id
-                                        ? *value_context.previous
-                                        : value_context};
+        const ActiveContext &base_context{value_context.previous && !by_id
+                                              ? *value_context.previous
+                                              : value_context};
+        ActiveContext entry_context{base_context};
         if (!by_id) {
-          const auto type_definition{entry_context.terms.find(index)};
-          if (type_definition != entry_context.terms.cend() &&
+          // Resolve the type term against the context the copy was made from,
+          // which outlives the copy being mutated below.
+          const auto type_definition{base_context.terms.find(index)};
+          if (type_definition != base_context.terms.cend() &&
               type_definition->second.context.has_value()) {
             const auto saved_base{state.context_base_override};
             state.context_base_override = type_definition->second.context_base;
@@ -805,18 +820,19 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
     const auto definition{active_context.terms.find(*nest_property)};
     if (definition != active_context.terms.cend() &&
         definition->second.context.has_value()) {
-      const ActiveContext saved{active_context};
+      // Process the scoped context into a copy so the term that owns it is not
+      // freed while it is being read.
+      ActiveContext nested{active_context};
       const auto saved_base{state.context_base_override};
       state.context_base_override = definition->second.context_base;
       state.protected_override = true;
-      process_context(state, active_context, definition->second.context.value(),
+      process_context(state, nested, definition->second.context.value(),
                       nest_pointer);
       state.protected_override = false;
       state.context_base_override = saved_base;
-      active_context.previous = nullptr;
-      expand_entries(state, active_context, type_context, result,
-                     active_property, *nest, nest_pointer);
-      active_context = saved;
+      nested.previous = nullptr;
+      expand_entries(state, nested, type_context, result, active_property,
+                     *nest, nest_pointer);
     } else {
       expand_entries(state, active_context, type_context, result,
                      active_property, *nest, nest_pointer);

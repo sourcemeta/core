@@ -428,3 +428,13 @@ TEST(JSONLD_expand_error, list_of_lists) {
                                       sourcemeta::core::JSONLDVersion::V1_0),
       "List of lists", "/http:~1~1example.com~1p/@list");
 }
+
+TEST(JSONLD_expand_error, invalid_base_direction_in_value_object) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": "http://example.com/p" },
+    "p": { "@value": "v", "@direction": "up" }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid base direction", "/p/@direction");
+}
