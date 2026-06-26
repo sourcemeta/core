@@ -40,6 +40,20 @@ auto run_expansion(ExpansionState &state, ActiveContext &active_context,
   return expanded;
 }
 
+// Set up the shared expansion state and initial active context from the public
+// entry-point arguments.
+auto initialise_expansion(const JSONLDResolver &resolver,
+                          const JSON::StringView base_iri,
+                          const JSONLDVersion version, ExpansionState &state,
+                          ActiveContext &active_context) -> void {
+  state.resolver = &resolver;
+  state.processing_1_0 = version == JSONLDVersion::V1_0;
+  if (!base_iri.empty()) {
+    active_context.base = JSON::String{base_iri};
+    state.document_base = JSON::String{base_iri};
+  }
+}
+
 } // namespace sourcemeta::core
 
 namespace sourcemeta::core {
@@ -48,13 +62,8 @@ auto jsonld_expand(const JSON &input, const JSON::StringView base_iri,
                    const JSONLDResolver &resolver, const JSONLDVersion version)
     -> JSON {
   ExpansionState state;
-  state.resolver = &resolver;
-  state.processing_1_0 = version == JSONLDVersion::V1_0;
   ActiveContext active_context;
-  if (!base_iri.empty()) {
-    active_context.base = JSON::String{base_iri};
-    state.document_base = JSON::String{base_iri};
-  }
+  initialise_expansion(resolver, base_iri, version, state, active_context);
   return run_expansion(state, active_context, input);
 }
 
@@ -63,13 +72,8 @@ auto jsonld_expand(const JSON &input, const JSON &expand_context,
                    const JSONLDResolver &resolver, const JSONLDVersion version)
     -> JSON {
   ExpansionState state;
-  state.resolver = &resolver;
-  state.processing_1_0 = version == JSONLDVersion::V1_0;
   ActiveContext active_context;
-  if (!base_iri.empty()) {
-    active_context.base = JSON::String{base_iri};
-    state.document_base = JSON::String{base_iri};
-  }
+  initialise_expansion(resolver, base_iri, version, state, active_context);
   const auto &context{
       expand_context.is_object() &&
               expand_context.defines(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)

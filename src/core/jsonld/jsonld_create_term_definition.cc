@@ -31,7 +31,8 @@ auto same_definition(const TermDefinition &left, const TermDefinition &right)
          left.has_language == right.has_language &&
          left.direction == right.direction &&
          left.has_direction == right.has_direction &&
-         left.context == right.context && left.index == right.index &&
+         left.context == right.context &&
+         left.context_base == right.context_base && left.index == right.index &&
          left.reverse == right.reverse && left.prefix == right.prefix;
 }
 
@@ -469,6 +470,7 @@ auto create_term_definition(ExpansionState &state,
       // the term is never used. Remote scoped contexts (including recursive
       // ones) are validated lazily when the term is used instead.
       const bool saved_override{state.protected_override};
+      const bool saved_context_protected{state.context_protected};
       try {
         // The error raised here is always discarded below, so its location does
         // not matter.
@@ -476,8 +478,10 @@ auto create_term_definition(ExpansionState &state,
         state.protected_override = true;
         process_context(state, probe, *context_entry, empty_weak_pointer);
         state.protected_override = saved_override;
+        state.context_protected = saved_context_protected;
       } catch (const JSONLDError &error) {
         state.protected_override = saved_override;
+        state.context_protected = saved_context_protected;
         const JSON::StringView code{error.what()};
         if (code != "Loading remote context failed" &&
             code != "Recursive context inclusion" &&

@@ -25,7 +25,9 @@ auto expand_value(ExpansionState &state, ActiveContext &active_context,
                                        true, false, nullptr, nullptr,
                                        empty_weak_pointer)};
       result.assign_assume_new(JSON::String{KEYWORD_ID},
-                               JSON{identifier.value_or("")}, KEYWORD_ID_HASH);
+                               identifier.has_value() ? JSON{identifier.value()}
+                                                      : JSON{nullptr},
+                               KEYWORD_ID_HASH);
       return result;
     }
     if (definition->type_mapping.value() == KEYWORD_VOCAB) {
@@ -34,7 +36,9 @@ auto expand_value(ExpansionState &state, ActiveContext &active_context,
                                        true, true, nullptr, nullptr,
                                        empty_weak_pointer)};
       result.assign_assume_new(JSON::String{KEYWORD_ID},
-                               JSON{identifier.value_or("")}, KEYWORD_ID_HASH);
+                               identifier.has_value() ? JSON{identifier.value()}
+                                                      : JSON{nullptr},
+                               KEYWORD_ID_HASH);
       return result;
     }
   }

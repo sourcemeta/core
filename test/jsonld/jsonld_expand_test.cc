@@ -300,3 +300,33 @@ TEST(JSONLD_expand, json_typed_value_in_list_container) {
 
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
+
+TEST(JSONLD_expand, id_typed_keyword_form_value_expands_to_null) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": { "p": { "@id": "http://example.com/p", "@type": "@id" } },
+    "p": "@foo"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@id": null } ] }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}
+
+TEST(JSONLD_expand, non_expandable_type_value_is_omitted) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.com/n",
+    "@type": "@foo",
+    "http://example.com/p": "v"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/n",
+      "http://example.com/p": [ { "@value": "v" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
+}

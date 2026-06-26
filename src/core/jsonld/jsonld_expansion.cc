@@ -320,10 +320,19 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       if (entry.second.is_array()) {
         expanded_type = JSON::make_array();
         for (const auto &item : entry.second.as_array()) {
-          expanded_type.push_back(expand_type(state, type_context, item));
+          // A value that does not expand to an IRI is omitted, so @type stays
+          // an array of strings.
+          auto type{expand_type(state, type_context, item)};
+          if (!type.is_null()) {
+            expanded_type.push_back(std::move(type));
+          }
         }
       } else {
         expanded_type = expand_type(state, type_context, entry.second);
+      }
+      // A lone @type value that does not expand to an IRI carries nothing.
+      if (expanded_type.is_null()) {
+        continue;
       }
       if (result.defines(KEYWORD_TYPE, KEYWORD_TYPE_HASH)) {
         auto merged{
