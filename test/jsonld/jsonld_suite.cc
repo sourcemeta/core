@@ -21,8 +21,24 @@ struct JSONLDExpandCase {
   sourcemeta::core::JSON::String base_iri;
   sourcemeta::core::JSONLDVersion version;
   bool negative;
+  bool valid_expanded_output;
   std::optional<std::filesystem::path> expand_context;
 };
+
+// A few expand fixtures are correct expansion output yet not valid expanded
+// documents, because expansion builds IRIs by concatenation without validation
+// (JSON-LD 1.1 API Section 5.2). Their output still matches the fixture, but
+// the validator must reject it rather than accept it as expanded form.
+auto produces_valid_expanded_output(const std::string_view identifier) -> bool {
+  // A property IRI with a second "#" inside the fragment, which is not a valid
+  // IRI
+  return identifier != "#t0111" &&
+         // The same pathological property IRI with a relative vocabulary base
+         identifier != "#t0112" &&
+         // A keyword-form IRI is ignored, leaving a null @id (the manifest
+         // entry is non-normative and documents this)
+         identifier != "#t0122";
+}
 
 class JSONLDExpandTest : public testing::Test {
 public:
@@ -74,17 +90,25 @@ public:
       }
     } else {
       const auto expected{sourcemeta::core::read_json(test_case.expect)};
-      if (test_case.expand_context.has_value()) {
-        const auto context{
-            sourcemeta::core::read_json(test_case.expand_context.value())};
-        EXPECT_EQ(sourcemeta::core::jsonld_expand(input, context,
-                                                  test_case.base_iri, resolver,
-                                                  test_case.version),
-                  expected);
+      const auto actual{
+          test_case.expand_context.has_value()
+              ? sourcemeta::core::jsonld_expand(
+                    input,
+                    sourcemeta::core::read_json(
+                        test_case.expand_context.value()),
+                    test_case.base_iri, resolver, test_case.version)
+              : sourcemeta::core::jsonld_expand(input, test_case.base_iri,
+                                                resolver, test_case.version)};
+      EXPECT_EQ(actual, expected);
+      // Every expansion output, and every expected fixture, is by definition a
+      // valid expanded document, save for the few that are correct output yet
+      // not valid documents, which the validator must reject instead.
+      if (test_case.valid_expanded_output) {
+        EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(actual));
+        EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(expected));
       } else {
-        EXPECT_EQ(sourcemeta::core::jsonld_expand(input, test_case.base_iri,
-                                                  resolver, test_case.version),
-                  expected);
+        EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(actual));
+        EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(expected));
       }
     }
   }
@@ -123,6 +147,8 @@ auto register_case(const sourcemeta::core::JSON &entry,
   test_case.base_iri = base_prefix + input_relative;
   test_case.version = sourcemeta::core::JSONLDVersion::V1_1;
   test_case.negative = negative;
+  test_case.valid_expanded_output =
+      produces_valid_expanded_output(entry.at("@id").to_string());
 
   if (entry.defines("option")) {
     const auto &option{entry.at("option")};

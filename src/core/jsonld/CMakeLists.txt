@@ -3,6 +3,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME jsonld
   SOURCES jsonld.cc
     jsonld_iri_expansion.cc jsonld_create_term_definition.cc
     jsonld_context_processing.cc jsonld_value_expansion.cc jsonld_expansion.cc
+    jsonld_is_expanded.cc
     jsonld_algorithms.h jsonld_keywords.h)
 
 if(SOURCEMETA_CORE_INSTALL)

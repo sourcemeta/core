@@ -85,6 +85,26 @@ auto jsonld_expand(const JSON &input, const JSON &expand_context,
                    const JSONLDResolver &resolver = {},
                    const JSONLDVersion version = JSONLDVersion::V1_1) -> JSON;
 
+/// @ingroup jsonld
+///
+/// Determine whether a document is in the JSON-LD 1.1 expanded document form:
+/// an array of node objects that carries no context and whose keys are all
+/// absolute IRIs, blank node identifiers, or keywords. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonld.h>
+/// #include <cassert>
+///
+/// const auto document{sourcemeta::core::parse_json(R"([
+///   { "http://schema.org/name": [ { "@value": "Sourcemeta" } ] }
+/// ])")};
+///
+/// assert(sourcemeta::core::jsonld_is_expanded(document));
+/// ```
+SOURCEMETA_CORE_JSONLD_EXPORT
+auto jsonld_is_expanded(const JSON &document) -> bool;
+
 } // namespace sourcemeta::core
 
 #endif
