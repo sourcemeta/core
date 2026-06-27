@@ -45,7 +45,7 @@ public:
   }
 
   [[nodiscard]] auto what() const noexcept -> const char * override {
-    return this->code_;
+    return this->code_.c_str();
   }
 
   /// Get the JSON Pointer to the position in the input document that caused the
@@ -55,7 +55,7 @@ public:
   }
 
 private:
-  const char *code_;
+  JSON::String code_;
   Pointer pointer_;
 };
 

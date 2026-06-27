@@ -354,6 +354,13 @@ auto create_term_definition(ExpansionState &state,
             throw JSONLDError("Invalid container mapping", term_pointer,
                               {KEYWORD_CONTAINER});
           }
+          // A keyword may not appear more than once in the container array.
+          for (const auto &seen : definition.container) {
+            if (seen == item_string) {
+              throw JSONLDError("Invalid container mapping", term_pointer,
+                                {KEYWORD_CONTAINER});
+            }
+          }
           definition.container.push_back(item_string);
         }
       } else if (container.is_string()) {

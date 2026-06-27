@@ -5,6 +5,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 
 #include <optional> // std::optional, std::nullopt
+#include <string>   // std::string
 
 #define EXPECT_JSONLD_EXPAND_ERROR(expression, expected_code,                  \
                                    expected_pointer)                           \
@@ -596,4 +597,25 @@ TEST(JSONLD_expand_error, import_loading_failed) {
   EXPECT_JSONLD_EXPAND_ERROR(
       sourcemeta::core::jsonld_expand(input, "", remote_resolver()),
       "Loading remote context failed", "/@context/@import");
+}
+
+TEST(JSONLD_expand_error, duplicate_container_keyword) {
+  const auto input = sourcemeta::core::parse_json(R"({
+    "@context": {
+      "a": { "@id": "http://example.com/a", "@container": [ "@set", "@set" ] }
+    }
+  })");
+
+  EXPECT_JSONLD_EXPAND_ERROR(sourcemeta::core::jsonld_expand(input),
+                             "Invalid container mapping",
+                             "/@context/a/@container");
+}
+
+TEST(JSONLD_expand_error, error_code_value_is_owned) {
+  std::string code{"A custom error code longer than small string optimization"};
+  const sourcemeta::core::JSONLDError error{code.c_str(),
+                                            sourcemeta::core::Pointer{}};
+  code = std::string{};
+  EXPECT_STREQ(error.what(),
+               "A custom error code longer than small string optimization");
 }

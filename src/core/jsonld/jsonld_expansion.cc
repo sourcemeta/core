@@ -507,13 +507,14 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       // inherit an enclosing type-scoped revert. It may, however, set its
       // own revert when it specifies @propagate: false.
       scoped_context.previous = nullptr;
+      const auto saved_override{state.protected_override};
       state.protected_override = true;
       const auto saved_base{state.context_base_override};
       state.context_base_override = definition->context_base;
       process_context(state, scoped_context, definition->context.value(),
                       entry_pointer);
       state.context_base_override = saved_base;
-      state.protected_override = false;
+      state.protected_override = saved_override;
     }
     ActiveContext &value_context{scoped ? scoped_context : active_context};
 
@@ -845,10 +846,11 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
       ActiveContext nested{active_context};
       const auto saved_base{state.context_base_override};
       state.context_base_override = definition->second.context_base;
+      const auto saved_override{state.protected_override};
       state.protected_override = true;
       process_context(state, nested, definition->second.context.value(),
                       nest_pointer);
-      state.protected_override = false;
+      state.protected_override = saved_override;
       state.context_base_override = saved_base;
       nested.previous = nullptr;
       expand_entries(state, nested, type_context, result, active_property,
