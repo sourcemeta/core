@@ -174,7 +174,7 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
       // overriding, and process the result as a single context.
       auto merged{JSON{*imported_context}};
       for (const auto &entry : context.as_object()) {
-        if (JSON::StringView{entry.first} != KEYWORD_IMPORT) {
+        if (!entry.key_equals(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH)) {
           merged.assign(entry.first, entry.second);
         }
       }
@@ -261,10 +261,14 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
     DefinedTerms defined;
     for (const auto &entry : context.as_object()) {
       const auto &name{entry.first};
-      if (name == KEYWORD_BASE || name == KEYWORD_VOCAB ||
-          name == KEYWORD_LANGUAGE || name == KEYWORD_VERSION ||
-          name == KEYWORD_DIRECTION || name == KEYWORD_IMPORT ||
-          name == KEYWORD_PROPAGATE || name == KEYWORD_PROTECTED) {
+      if (entry.key_equals(KEYWORD_BASE, KEYWORD_BASE_HASH) ||
+          entry.key_equals(KEYWORD_VOCAB, KEYWORD_VOCAB_HASH) ||
+          entry.key_equals(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) ||
+          entry.key_equals(KEYWORD_VERSION, KEYWORD_VERSION_HASH) ||
+          entry.key_equals(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH) ||
+          entry.key_equals(KEYWORD_IMPORT, KEYWORD_IMPORT_HASH) ||
+          entry.key_equals(KEYWORD_PROPAGATE, KEYWORD_PROPAGATE_HASH) ||
+          entry.key_equals(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)) {
         continue;
       }
       create_term_definition(state, active_context, context, name, defined,

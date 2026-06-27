@@ -84,14 +84,15 @@ auto create_term_definition(ExpansionState &state,
       bool has_container{false};
       bool invalid_entry{false};
       for (const auto &entry : value.as_object()) {
-        const auto &name{entry.first};
-        if (name == KEYWORD_PROTECTED) {
+        if (entry.key_equals(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH)) {
           if (!entry.second.is_boolean()) {
             throw JSONLDError("Invalid @protected value", term_pointer,
                               {KEYWORD_PROTECTED});
           }
           type_definition.is_protected = entry.second.to_boolean();
-        } else if (name == KEYWORD_CONTAINER && entry.second.is_string()) {
+        } else if (entry.key_equals(KEYWORD_CONTAINER,
+                                    KEYWORD_CONTAINER_HASH) &&
+                   entry.second.is_string()) {
           const auto &container{entry.second.to_string()};
           if (container == KEYWORD_SET) {
             type_definition.container.push_back(container);
@@ -579,13 +580,17 @@ auto create_term_definition(ExpansionState &state,
     // A term definition may not contain any entry other than the keywords
     // recognised above.
     for (const auto &entry : value.as_object()) {
-      const JSON::StringView key{entry.first};
-      if (key != KEYWORD_ID && key != KEYWORD_REVERSE &&
-          key != KEYWORD_CONTAINER && key != KEYWORD_CONTEXT &&
-          key != KEYWORD_DIRECTION && key != KEYWORD_INDEX &&
-          key != KEYWORD_LANGUAGE && key != KEYWORD_NEST &&
-          key != KEYWORD_PREFIX && key != KEYWORD_PROTECTED &&
-          key != KEYWORD_TYPE) {
+      if (!entry.key_equals(KEYWORD_ID, KEYWORD_ID_HASH) &&
+          !entry.key_equals(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH) &&
+          !entry.key_equals(KEYWORD_CONTAINER, KEYWORD_CONTAINER_HASH) &&
+          !entry.key_equals(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH) &&
+          !entry.key_equals(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH) &&
+          !entry.key_equals(KEYWORD_INDEX, KEYWORD_INDEX_HASH) &&
+          !entry.key_equals(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) &&
+          !entry.key_equals(KEYWORD_NEST, KEYWORD_NEST_HASH) &&
+          !entry.key_equals(KEYWORD_PREFIX, KEYWORD_PREFIX_HASH) &&
+          !entry.key_equals(KEYWORD_PROTECTED, KEYWORD_PROTECTED_HASH) &&
+          !entry.key_equals(KEYWORD_TYPE, KEYWORD_TYPE_HASH)) {
         throw JSONLDError("Invalid term definition", term_pointer);
       }
     }
