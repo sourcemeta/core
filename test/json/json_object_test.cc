@@ -1478,3 +1478,39 @@ TEST(JSON_object, assign_if_missing_with_string_view) {
   EXPECT_EQ(document.at("foo").to_integer(), 1);
   EXPECT_EQ(document.at("bar").to_integer(), 2);
 }
+
+TEST(JSON_object, entry_key_equals_perfect_match) {
+  const auto document{sourcemeta::core::parse_json(R"({ "foo": 1 })")};
+  const auto &entry{*document.as_object().cbegin()};
+  EXPECT_TRUE(
+      entry.key_equals("foo", sourcemeta::core::JSON::Object::hash("foo")));
+}
+
+TEST(JSON_object, entry_key_equals_perfect_mismatch) {
+  const auto document{sourcemeta::core::parse_json(R"({ "foo": 1 })")};
+  const auto &entry{*document.as_object().cbegin()};
+  EXPECT_FALSE(
+      entry.key_equals("bar", sourcemeta::core::JSON::Object::hash("bar")));
+}
+
+TEST(JSON_object, entry_key_equals_imperfect_match) {
+  const std::string key(40, 'a');
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::make_object()};
+  document.assign(key, sourcemeta::core::JSON{1});
+  const auto &entry{*document.as_object().cbegin()};
+  EXPECT_FALSE(document.as_object().hash(key) ==
+               sourcemeta::core::JSON::Object::hash("a"));
+  EXPECT_TRUE(entry.key_equals(key, sourcemeta::core::JSON::Object::hash(key)));
+}
+
+TEST(JSON_object, entry_key_equals_imperfect_collision_is_rejected) {
+  const std::string stored{std::string(31, 'a') + "11111110" + "z"};
+  const std::string other{std::string(31, 'a') + "22222220" + "z"};
+  sourcemeta::core::JSON document{sourcemeta::core::JSON::make_object()};
+  document.assign(stored, sourcemeta::core::JSON{1});
+  const auto &entry{*document.as_object().cbegin()};
+  EXPECT_EQ(sourcemeta::core::JSON::Object::hash(stored),
+            sourcemeta::core::JSON::Object::hash(other));
+  EXPECT_FALSE(
+      entry.key_equals(other, sourcemeta::core::JSON::Object::hash(other)));
+}
