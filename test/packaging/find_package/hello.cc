@@ -12,6 +12,7 @@
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonl.h>
+#include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/jsonrpc.h>
 #include <sourcemeta/core/langtag.h>
