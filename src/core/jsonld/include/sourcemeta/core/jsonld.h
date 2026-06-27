@@ -49,6 +49,7 @@ enum class JSONLDVersion : std::uint8_t { V1_0, V1_1 };
 ///   "@context": { "name": "https://schema.org/name" },
 ///   "name": "Sourcemeta"
 /// })")};
+///
 /// const auto expanded{sourcemeta::core::jsonld_expand(document)};
 /// sourcemeta::core::prettify(expanded, std::cout);
 /// std::cout << std::endl;
@@ -73,6 +74,7 @@ auto jsonld_expand(const JSON &input, const JSON::StringView base_iri = "",
 ///     R"({ "name": "Sourcemeta" })")};
 /// const auto context{sourcemeta::core::parse_json(
 ///     R"({ "name": "https://schema.org/name" })")};
+///
 /// const auto expanded{sourcemeta::core::jsonld_expand(document, context)};
 /// sourcemeta::core::prettify(expanded, std::cout);
 /// std::cout << std::endl;

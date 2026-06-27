@@ -142,13 +142,16 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
         type != nullptr && type->is_string() ? &type->to_string() : nullptr};
     const bool is_json{type_string != nullptr && *type_string == KEYWORD_JSON};
     for (const auto &entry : result.as_object()) {
-      const auto &name{entry.first};
-      if (name != KEYWORD_VALUE && name != KEYWORD_TYPE &&
-          name != KEYWORD_LANGUAGE && name != KEYWORD_INDEX &&
-          name != KEYWORD_DIRECTION) {
+      if (!entry.key_equals(KEYWORD_VALUE, KEYWORD_VALUE_HASH) &&
+          !entry.key_equals(KEYWORD_TYPE, KEYWORD_TYPE_HASH) &&
+          !entry.key_equals(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) &&
+          !entry.key_equals(KEYWORD_INDEX, KEYWORD_INDEX_HASH) &&
+          !entry.key_equals(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH)) {
         throw JSONLDError("Invalid value object", pointer);
       }
-      if ((name == KEYWORD_LANGUAGE || name == KEYWORD_DIRECTION) && has_type) {
+      if ((entry.key_equals(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) ||
+           entry.key_equals(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH)) &&
+          has_type) {
         throw JSONLDError("Invalid value object", pointer);
       }
     }
@@ -180,9 +183,9 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
   if (result.defines(KEYWORD_LIST, KEYWORD_LIST_HASH) ||
       result.defines(KEYWORD_SET, KEYWORD_SET_HASH)) {
     for (const auto &entry : result.as_object()) {
-      const auto &name{entry.first};
-      if (name != KEYWORD_LIST && name != KEYWORD_SET &&
-          name != KEYWORD_INDEX) {
+      if (!entry.key_equals(KEYWORD_LIST, KEYWORD_LIST_HASH) &&
+          !entry.key_equals(KEYWORD_SET, KEYWORD_SET_HASH) &&
+          !entry.key_equals(KEYWORD_INDEX, KEYWORD_INDEX_HASH)) {
         throw JSONLDError("Invalid set or list object", pointer);
       }
     }
@@ -200,9 +203,9 @@ auto expand_object(ExpansionState &state, ActiveContext active_context,
        result.defines(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH))) {
     bool only_value_keys{true};
     for (const auto &entry : result.as_object()) {
-      const auto &name{entry.first};
-      if (name != KEYWORD_LANGUAGE && name != KEYWORD_DIRECTION &&
-          name != KEYWORD_INDEX) {
+      if (!entry.key_equals(KEYWORD_LANGUAGE, KEYWORD_LANGUAGE_HASH) &&
+          !entry.key_equals(KEYWORD_DIRECTION, KEYWORD_DIRECTION_HASH) &&
+          !entry.key_equals(KEYWORD_INDEX, KEYWORD_INDEX_HASH)) {
         only_value_keys = false;
       }
     }
@@ -459,7 +462,7 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
                                                      : JSON::make_object()};
         for (const auto &reverse_entry : reversed.as_object()) {
           const auto &reverse_property{reverse_entry.first};
-          if (reverse_entry.hash == KEYWORD_REVERSE_HASH) {
+          if (reverse_entry.key_equals(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)) {
             for (auto &forward : reverse_entry.second.as_object()) {
               merge(result, JSON::StringView{forward.first},
                     into_array(JSON{forward.second}));
