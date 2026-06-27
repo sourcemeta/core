@@ -37,8 +37,10 @@ public:
       if (!identifier.starts_with(test_case.base_prefix)) {
         return std::nullopt;
       }
+      // Dereferencing a context IRI ignores any fragment or query component.
+      const auto suffix{identifier.substr(test_case.base_prefix.size())};
       const auto path{test_case.suite_root /
-                      identifier.substr(test_case.base_prefix.size())};
+                      suffix.substr(0, suffix.find_first_of("#?"))};
       if (!std::filesystem::exists(path)) {
         return std::nullopt;
       }
