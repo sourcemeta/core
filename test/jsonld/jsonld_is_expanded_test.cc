@@ -140,6 +140,20 @@ TEST(JSONLD_is_expanded, blank_node_property_key) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(document));
 }
 
+TEST(JSONLD_is_expanded, empty_blank_node_identifier) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "@id": "_:" }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
+TEST(JSONLD_is_expanded, empty_blank_node_property_key) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "_:": [ { "@value": "x" } ] }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
 TEST(JSONLD_is_expanded, top_level_object) {
   const auto document = sourcemeta::core::parse_json(R"({
     "@id": "http://example.com/a"
