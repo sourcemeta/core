@@ -1,0 +1,177 @@
+#include <gtest/gtest.h>
+
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonld.h>
+
+TEST(JSONLD_flatten, nested_anonymous_node_gets_blank_node_identifier) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "http://example.com/q": [ { "@value": "x" } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "_:b0",
+      "http://example.com/q": [ { "@value": "x" } ]
+    },
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [ { "@id": "_:b0" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, named_graph_is_folded_into_graph_entry) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/g",
+      "@graph": [
+        {
+          "@id": "http://example.com/a",
+          "http://example.com/p": [ { "@value": "x" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/g",
+      "@graph": [
+        {
+          "@id": "http://example.com/a",
+          "http://example.com/p": [ { "@value": "x" } ]
+        }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, reverse_property_becomes_forward_edge) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "@reverse": {
+        "http://example.com/p": [ { "@id": "http://example.com/b" } ]
+      }
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/b",
+      "http://example.com/p": [ { "@id": "http://example.com/a" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, list_value_is_preserved) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@list": [ { "@value": "x" }, { "@value": "y" } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@list": [ { "@value": "x" }, { "@value": "y" } ] }
+      ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, set_object_items_are_unwrapped) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@set": [ { "@value": "x" }, { "@value": "y" } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [ { "@value": "x" }, { "@value": "y" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, set_object_wrapping_anonymous_node) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@set": [ { "http://example.com/q": [ { "@value": "z" } ] } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "_:b0",
+      "http://example.com/q": [ { "@value": "z" } ]
+    },
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [ { "@id": "_:b0" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, conflicting_indexes_are_rejected) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "@id": "http://example.com/a", "@index": "1" },
+    { "@id": "http://example.com/a", "@index": "2" }
+  ])");
+
+  EXPECT_THROW(sourcemeta::core::jsonld_flatten(input),
+               sourcemeta::core::JSONLDError);
+}
+
+TEST(JSONLD_flatten, flatten_and_compact_against_context) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "http://example.com/q": [ { "@value": "x" } ] }
+      ]
+    }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json(R"({
+    "@vocab": "http://example.com/"
+  })");
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@graph": [
+      { "@id": "_:b0", "q": "x" },
+      { "@id": "http://example.com/a", "p": { "@id": "_:b0" } }
+    ],
+    "@context": { "@vocab": "http://example.com/" }
+  })");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input, context), expected);
+}

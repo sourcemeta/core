@@ -325,6 +325,135 @@ auto register_compact_case(const sourcemeta::core::JSON &entry,
       });
 }
 
+struct JSONLDFlattenCase {
+  std::filesystem::path suite_root;
+  sourcemeta::core::JSON::String base_prefix;
+  std::filesystem::path input;
+  std::filesystem::path expect;
+  std::filesystem::path context;
+  bool has_context;
+  sourcemeta::core::JSON::String error_code;
+  sourcemeta::core::JSON::String base_iri;
+  sourcemeta::core::JSONLDVersion version;
+  bool negative;
+  bool compact_arrays;
+};
+
+// Flatten the already expanded input, compacting it against the test context
+// when one is given.
+auto run_flatten(const JSONLDFlattenCase &test_case,
+                 const sourcemeta::core::JSON &expanded,
+                 const sourcemeta::core::JSONLDResolver &resolver)
+    -> sourcemeta::core::JSON {
+  if (test_case.has_context) {
+    const auto context{sourcemeta::core::read_json(test_case.context)};
+    return sourcemeta::core::jsonld_flatten(
+        expanded, context, test_case.base_iri, resolver, test_case.version,
+        test_case.compact_arrays);
+  }
+  return sourcemeta::core::jsonld_flatten(expanded);
+}
+
+class JSONLDFlattenTest : public testing::Test {
+public:
+  explicit JSONLDFlattenTest(JSONLDFlattenCase test_case)
+      : test_case_{std::move(test_case)} {}
+
+  auto TestBody() -> void override {
+    const auto &test_case{this->test_case_};
+    const auto resolver{
+        suite_resolver(test_case.suite_root, test_case.base_prefix)};
+
+    const auto input{sourcemeta::core::read_json(test_case.input)};
+    const auto expanded{sourcemeta::core::jsonld_expand(
+        input, test_case.base_iri, resolver, test_case.version)};
+
+    if (test_case.negative) {
+      try {
+        [[maybe_unused]] const auto result{
+            run_flatten(test_case, expanded, resolver)};
+        FAIL() << "Expected error code: " << test_case.error_code;
+      } catch (const sourcemeta::core::JSONLDError &error) {
+        std::string actual_code{error.what()};
+        sourcemeta::core::to_lowercase(actual_code);
+        std::string expected_code{test_case.error_code};
+        sourcemeta::core::to_lowercase(expected_code);
+        EXPECT_EQ(expected_code, actual_code);
+      }
+    } else {
+      const auto expected{sourcemeta::core::read_json(test_case.expect)};
+      EXPECT_EQ(run_flatten(test_case, expanded, resolver), expected);
+    }
+  }
+
+private:
+  JSONLDFlattenCase test_case_;
+};
+
+auto register_flatten_case(const sourcemeta::core::JSON &entry,
+                           const std::filesystem::path &suite_root,
+                           const sourcemeta::core::JSON::String &base_prefix)
+    -> void {
+  // A document declared as JSON-LD 1.0 exercises behaviour that changed for a
+  // 1.1 processor, per the JSON-LD 1.0 Errata. The reference implementations
+  // skip these tests when run as a 1.1 processor, so neither do we:
+  //
+  //   https://github.com/digitalbazaar/jsonld.js/blob/main/tests/test.js
+  //   https://github.com/digitalbazaar/pyld/blob/master/tests/runtests.py
+  if (entry.defines("option") && entry.at("option").defines("specVersion") &&
+      entry.at("option").at("specVersion").to_string() == "json-ld-1.0") {
+    return;
+  }
+
+  bool negative{false};
+  for (const auto &type : entry.at("@type").as_array()) {
+    if (type.to_string() == "jld:NegativeEvaluationTest") {
+      negative = true;
+    }
+  }
+
+  const auto &input_relative{entry.at("input").to_string()};
+
+  JSONLDFlattenCase test_case;
+  test_case.suite_root = suite_root;
+  test_case.base_prefix = base_prefix;
+  test_case.input = suite_root / input_relative;
+  test_case.base_iri = base_prefix + input_relative;
+  test_case.version = sourcemeta::core::JSONLDVersion::V1_1;
+  test_case.negative = negative;
+  test_case.compact_arrays = true;
+  test_case.has_context = entry.defines("context");
+  if (test_case.has_context) {
+    test_case.context = suite_root / entry.at("context").to_string();
+  }
+
+  if (entry.defines("option")) {
+    const auto &option{entry.at("option")};
+    if (option.defines("base")) {
+      test_case.base_iri = option.at("base").to_string();
+    }
+    if (option.defines("processingMode") &&
+        option.at("processingMode").to_string() == "json-ld-1.0") {
+      test_case.version = sourcemeta::core::JSONLDVersion::V1_0;
+    }
+    if (option.defines("compactArrays")) {
+      test_case.compact_arrays = option.at("compactArrays").to_boolean();
+    }
+  }
+
+  if (negative) {
+    test_case.error_code = entry.at("expectErrorCode").to_string();
+  } else {
+    test_case.expect = suite_root / entry.at("expect").to_string();
+  }
+
+  testing::RegisterTest(
+      "JSONLD_flatten", suite_test_name(entry.at("@id").to_string()).c_str(),
+      nullptr, nullptr, __FILE__, __LINE__, [test_case]() -> testing::Test * {
+        return new JSONLDFlattenTest(test_case);
+      });
+}
+
 auto register_suite(const std::filesystem::path &suite_root,
                     const std::string_view manifest,
                     void (*callback)(const sourcemeta::core::JSON &,
@@ -346,6 +475,7 @@ auto main(int argc, char **argv) -> int {
   const std::filesystem::path suite_root{JSONLD_SUITE_PATH};
   register_suite(suite_root, "expand-manifest.jsonld", register_expand_case);
   register_suite(suite_root, "compact-manifest.jsonld", register_compact_case);
+  register_suite(suite_root, "flatten-manifest.jsonld", register_flatten_case);
 
   return RUN_ALL_TESTS();
 }

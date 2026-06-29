@@ -180,6 +180,13 @@ TEST(JSONLD_is_expanded, top_level_list_object) {
   EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
 }
 
+TEST(JSONLD_is_expanded, top_level_set_object) {
+  const auto document = sourcemeta::core::parse_json(R"([
+    { "@set": [ { "@value": "x" } ] }
+  ])");
+  EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(document));
+}
+
 TEST(JSONLD_is_expanded, context_present) {
   const auto document = sourcemeta::core::parse_json(R"([
     { "@context": {}, "@id": "http://example.com/a" }
