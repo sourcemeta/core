@@ -158,8 +158,11 @@ auto URI::relative_to(const URI &base) -> URI & {
 
   // Both URIs share the same path and differ only in their query or fragment,
   // so the relative reference needs no path, just the differing query and
-  // fragment.
-  if (this->path_ == base.path_) {
+  // fragment. An empty path inherits the base's query on resolution, so this is
+  // only safe when this URI carries its own query or the base has none.
+  // Otherwise a trailing path segment is needed to override the base's query.
+  if (this->path_ == base.path_ &&
+      (this->query_.has_value() || !base.query_.has_value())) {
     this->scheme_.reset();
     this->userinfo_.reset();
     this->host_.reset();
