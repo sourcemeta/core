@@ -500,13 +500,16 @@ auto compact(ExpansionState &state, const ActiveContext &active_context,
             if (values.is_array() && !values.empty() &&
                 values.front().is_string()) {
               key = values.front().to_string();
-              if (values.size() > 2) {
-                values.erase(values.as_array().cbegin());
-              } else if (values.size() == 2) {
-                auto remaining{values.at(1)};
-                values = std::move(remaining);
-              } else {
+              if (values.size() == 1) {
                 compacted.erase(container_key);
+              } else {
+                values.erase(values.as_array().cbegin());
+                // A lone remaining value collapses to a scalar only when arrays
+                // are being compacted.
+                if (compact_arrays && values.size() == 1) {
+                  auto remaining{values.front()};
+                  values = std::move(remaining);
+                }
               }
             } else if (!values.is_array() && values.is_string()) {
               key = values.to_string();
@@ -571,13 +574,16 @@ auto compact(ExpansionState &state, const ActiveContext &active_context,
                                             true, false)};
           if (compacted.defines(type_alias)) {
             auto &types{compacted.at(type_alias)};
-            if (types.is_array() && types.size() > 2) {
-              types.erase(types.as_array().cbegin());
-            } else if (types.is_array() && types.size() == 2) {
-              auto remaining{types.at(1)};
-              types = std::move(remaining);
-            } else {
+            if (!types.is_array() || types.size() <= 1) {
               compacted.erase(type_alias);
+            } else {
+              types.erase(types.as_array().cbegin());
+              // A lone remaining type collapses to a scalar only when arrays
+              // are being compacted.
+              if (compact_arrays && types.size() == 1) {
+                auto remaining{types.front()};
+                types = std::move(remaining);
+              }
             }
           }
           // A node left with only an @id reduces to that identifier, compacted
