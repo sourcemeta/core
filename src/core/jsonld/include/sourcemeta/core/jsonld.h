@@ -133,7 +133,8 @@ auto jsonld_compact(const JSON &input, const JSON &context,
                     const JSON::StringView base_iri = "",
                     const JSONLDResolver &resolver = {},
                     const JSONLDVersion version = JSONLDVersion::V1_1,
-                    const bool compact_arrays = true) -> JSON;
+                    const bool compact_arrays = true,
+                    const bool compact_to_relative = true) -> JSON;
 
 } // namespace sourcemeta::core
 

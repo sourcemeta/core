@@ -376,7 +376,8 @@ auto compact_iri(const ActiveContext &active_context,
   }
 
   // Relativise an absolute IRI against the base IRI.
-  if (!vocabulary && active_context.base.has_value() && URI::is_iri(variable)) {
+  if (!vocabulary && active_context.compact_to_relative &&
+      active_context.base.has_value() && URI::is_iri(variable)) {
     return relativize(variable, active_context.base.value());
   }
 

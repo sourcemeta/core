@@ -38,6 +38,8 @@ struct ActiveContext {
   std::optional<JSON::String> default_language;
   std::optional<JSON::String> default_direction;
   std::shared_ptr<ActiveContext> previous;
+  // Whether compaction may relativise absolute IRIs against the base IRI.
+  bool compact_to_relative{true};
 };
 
 // The mutable state shared by the expansion algorithms for the duration of a

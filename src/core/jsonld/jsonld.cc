@@ -89,7 +89,8 @@ auto jsonld_expand(const JSON &input, const JSON &expand_context,
 auto jsonld_compact(const JSON &input, const JSON &context,
                     const JSON::StringView base_iri,
                     const JSONLDResolver &resolver, const JSONLDVersion version,
-                    const bool compact_arrays) -> JSON {
+                    const bool compact_arrays, const bool compact_to_relative)
+    -> JSON {
   // Compaction operates on input already in expanded document form. Callers
   // that hold a non-expanded document expand it first.
   assert(jsonld_is_expanded(input));
@@ -97,6 +98,7 @@ auto jsonld_compact(const JSON &input, const JSON &context,
   ExpansionState state;
   ActiveContext active_context;
   initialise_expansion(resolver, base_iri, version, state, active_context);
+  active_context.compact_to_relative = compact_to_relative;
   const auto &local_context{
       context.is_object() &&
               context.defines(KEYWORD_CONTEXT, KEYWORD_CONTEXT_HASH)

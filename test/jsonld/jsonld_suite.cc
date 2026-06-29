@@ -201,6 +201,7 @@ struct JSONLDCompactCase {
   sourcemeta::core::JSONLDVersion version;
   bool negative;
   bool compact_arrays;
+  bool compact_to_relative;
 };
 
 class JSONLDCompactTest : public testing::Test {
@@ -222,7 +223,7 @@ public:
             input, test_case.base_iri, resolver, test_case.version)};
         [[maybe_unused]] const auto result{sourcemeta::core::jsonld_compact(
             expanded, context, test_case.base_iri, resolver, test_case.version,
-            test_case.compact_arrays)};
+            test_case.compact_arrays, test_case.compact_to_relative)};
         FAIL() << "Expected error code: " << test_case.error_code;
       } catch (const sourcemeta::core::JSONLDError &error) {
         std::string actual_code{error.what()};
@@ -237,7 +238,8 @@ public:
       const auto expected{sourcemeta::core::read_json(test_case.expect)};
       EXPECT_EQ(sourcemeta::core::jsonld_compact(
                     expanded, context, test_case.base_iri, resolver,
-                    test_case.version, test_case.compact_arrays),
+                    test_case.version, test_case.compact_arrays,
+                    test_case.compact_to_relative),
                 expected);
     }
   }
@@ -290,6 +292,7 @@ auto register_compact_case(const sourcemeta::core::JSON &entry,
   test_case.version = sourcemeta::core::JSONLDVersion::V1_1;
   test_case.negative = negative;
   test_case.compact_arrays = true;
+  test_case.compact_to_relative = true;
 
   if (entry.defines("option")) {
     const auto &option{entry.at("option")};
@@ -302,6 +305,10 @@ auto register_compact_case(const sourcemeta::core::JSON &entry,
     }
     if (option.defines("compactArrays")) {
       test_case.compact_arrays = option.at("compactArrays").to_boolean();
+    }
+    if (option.defines("compactToRelative")) {
+      test_case.compact_to_relative =
+          option.at("compactToRelative").to_boolean();
     }
   }
 
