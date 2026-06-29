@@ -97,6 +97,50 @@ TEST(JSONLD_flatten, list_value_is_preserved) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
+TEST(JSONLD_flatten, set_object_items_are_unwrapped) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@set": [ { "@value": "x" }, { "@value": "y" } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [ { "@value": "x" }, { "@value": "y" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
+TEST(JSONLD_flatten, set_object_wrapping_anonymous_node) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [
+        { "@set": [ { "http://example.com/q": [ { "@value": "z" } ] } ] }
+      ]
+    }
+  ])");
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "_:b0",
+      "http://example.com/q": [ { "@value": "z" } ]
+    },
+    {
+      "@id": "http://example.com/a",
+      "http://example.com/p": [ { "@id": "_:b0" } ]
+    }
+  ])");
+
+  EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
+}
+
 TEST(JSONLD_flatten, conflicting_indexes_are_rejected) {
   const auto input = sourcemeta::core::parse_json(R"([
     { "@id": "http://example.com/a", "@index": "1" },

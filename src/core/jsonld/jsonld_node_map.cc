@@ -112,6 +112,16 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
     return;
   }
 
+  // A set object is a transparent wrapper around its items, which are processed
+  // against the same subject and property. Expansion never emits one, but the
+  // expanded form predicate accepts it.
+  if (working.defines(KEYWORD_SET, KEYWORD_SET_HASH)) {
+    generate_node_map(state, node_map,
+                      working.at(KEYWORD_SET, KEYWORD_SET_HASH), active_graph,
+                      active_subject, active_property, list);
+    return;
+  }
+
   // A list object recurses into a fresh list accumulator.
   if (working.defines(KEYWORD_LIST, KEYWORD_LIST_HASH)) {
     auto result{JSON::make_object()};
