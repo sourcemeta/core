@@ -156,6 +156,18 @@ auto URI::relative_to(const URI &base) -> URI & {
     return *this;
   }
 
+  // Both URIs share the same path and differ only in their query or fragment,
+  // so the relative reference needs no path, just the differing query and
+  // fragment.
+  if (this->path_ == base.path_) {
+    this->scheme_.reset();
+    this->userinfo_.reset();
+    this->host_.reset();
+    this->port_.reset();
+    this->path_.reset();
+    return *this;
+  }
+
   // If this URI doesn't have a path, we can't make it relative
   if (!this->path_.has_value()) {
     return *this;

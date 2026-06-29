@@ -287,3 +287,24 @@ TEST(URI_relative_to, iri_preserves_ucschar) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "caf\xC3\xA9");
 }
+
+TEST(URI_relative_to, same_path_only_query_differs) {
+  const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
+  sourcemeta::core::URI uri{"https://www.example.com/foo/bar?q=1"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "?q=1");
+}
+
+TEST(URI_relative_to, same_path_only_fragment_differs) {
+  const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
+  sourcemeta::core::URI uri{"https://www.example.com/foo/bar#baz"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "#baz");
+}
+
+TEST(URI_relative_to, same_path_query_and_fragment_differ) {
+  const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
+  sourcemeta::core::URI uri{"https://www.example.com/foo/bar?q=1#baz"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "?q=1#baz");
+}
