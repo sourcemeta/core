@@ -135,4 +135,22 @@ auto jsonld_compact(const JSON &input, const JSON &context,
   return result;
 }
 
+auto jsonld_flatten(const JSON &input) -> JSON {
+  // Flattening operates on input already in expanded document form. Callers
+  // that hold a non-expanded document expand it first.
+  assert(jsonld_is_expanded(input));
+
+  BlankNodeState state;
+  return flatten(state, input);
+}
+
+auto jsonld_flatten(const JSON &input, const JSON &context,
+                    const JSON::StringView base_iri,
+                    const JSONLDResolver &resolver, const JSONLDVersion version,
+                    const bool compact_arrays) -> JSON {
+  // The flattened expanded output is compacted against the given context.
+  return jsonld_compact(jsonld_flatten(input), context, base_iri, resolver,
+                        version, compact_arrays);
+}
+
 } // namespace sourcemeta::core

@@ -136,6 +136,61 @@ auto jsonld_compact(const JSON &input, const JSON &context,
                     const bool compact_arrays = true,
                     const bool compact_to_relative = true) -> JSON;
 
+/// @ingroup jsonld
+///
+/// Flatten a JSON-LD document in expanded form, collecting the properties of
+/// each node into a single node object and labelling blank nodes. The input
+/// must already be expanded. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonld.h>
+/// #include <iostream>
+///
+/// const auto document{sourcemeta::core::parse_json(R"([
+///   {
+///     "@id": "http://example.com/a",
+///     "http://example.com/b": [ { "@id": "http://example.com/c" } ]
+///   }
+/// ])")};
+///
+/// const auto flattened{sourcemeta::core::jsonld_flatten(document)};
+/// sourcemeta::core::prettify(flattened, std::cout);
+/// std::cout << std::endl;
+/// ```
+SOURCEMETA_CORE_JSONLD_EXPORT
+auto jsonld_flatten(const JSON &input) -> JSON;
+
+/// @ingroup jsonld
+///
+/// Flatten a JSON-LD document in expanded form and compact the result against
+/// the given context. The input must already be expanded, and the result
+/// carries the given context. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonld.h>
+/// #include <iostream>
+///
+/// const auto document{sourcemeta::core::parse_json(R"([
+///   { "http://schema.org/name": [ { "@value": "Sourcemeta" } ] }
+/// ])")};
+///
+/// const auto context{sourcemeta::core::parse_json(R"({
+///   "name": "http://schema.org/name"
+/// })")};
+///
+/// const auto flattened{sourcemeta::core::jsonld_flatten(document, context)};
+/// sourcemeta::core::prettify(flattened, std::cout);
+/// std::cout << std::endl;
+/// ```
+SOURCEMETA_CORE_JSONLD_EXPORT
+auto jsonld_flatten(const JSON &input, const JSON &context,
+                    const JSON::StringView base_iri = "",
+                    const JSONLDResolver &resolver = {},
+                    const JSONLDVersion version = JSONLDVersion::V1_1,
+                    const bool compact_arrays = true) -> JSON;
+
 } // namespace sourcemeta::core
 
 #endif

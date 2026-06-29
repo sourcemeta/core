@@ -5,6 +5,7 @@
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/jsonpointer.h>
 
+#include <cstddef>    // std::size_t
 #include <functional> // std::less
 #include <map>        // std::map
 #include <memory>     // std::shared_ptr
@@ -110,24 +111,53 @@ auto expand(ExpansionState &state, ActiveContext &active_context,
 // is represented as a JSON map of IRI to container to type/language to term.
 auto create_inverse_context(const ActiveContext &active_context) -> JSON;
 
-// IRI Compaction (JSON-LD 1.1 API Section 5.2.1). A null value is signalled by
+// IRI Compaction (JSON-LD 1.1 API Section 6.2). A null value is signalled by
 // a null pointer.
 auto compact_iri(const ActiveContext &active_context,
                  const JSON &inverse_context, const JSON::String &variable,
                  const JSON *const value, const bool vocabulary,
                  const bool reverse) -> JSON::String;
 
-// Value Compaction (JSON-LD 1.1 API Section 7.2)
+// Value Compaction (JSON-LD 1.1 API Section 6.3)
 auto compact_value(const ActiveContext &active_context,
                    const JSON &inverse_context,
                    const std::optional<JSON::String> &active_property,
                    const JSON &value) -> JSON;
 
-// Compaction (JSON-LD 1.1 API Section 7.1)
+// Compaction (JSON-LD 1.1 API Section 6.1)
 auto compact(ExpansionState &state, const ActiveContext &active_context,
              const JSON &inverse_context,
              const std::optional<JSON::String> &active_property,
              const JSON &element, const bool compact_arrays) -> JSON;
+
+// Holds the running state for blank node identifier generation, so that
+// identifiers in the source are consistently relabelled without collisions.
+struct BlankNodeState {
+  std::size_t counter{0};
+  std::map<JSON::String, JSON::String, std::less<>> identifiers;
+};
+
+// Generate Blank Node Identifier (JSON-LD 1.1 API Section 7.4). A null value is
+// signalled by an empty optional.
+auto generate_blank_node_identifier(
+    BlankNodeState &state, const std::optional<JSON::String> &identifier)
+    -> JSON::String;
+
+// Node Map Generation (JSON-LD 1.1 API Section 7.2). The node map is a JSON map
+// of graph name to a map of subject identifier to node object. The active
+// subject is a subject identifier string, or a node object when a reverse
+// property relationship is being processed, or a null pointer. A null active
+// property is signalled by an empty optional, and the list accumulator by a
+// null pointer.
+auto generate_node_map(BlankNodeState &state, JSON &node_map,
+                       const JSON &element, const JSON::StringView active_graph,
+                       const JSON *active_subject,
+                       const std::optional<JSON::String> &active_property,
+                       JSON *list) -> void;
+
+// Flattening (JSON-LD 1.1 API Section 7.1). Returns the flattened document in
+// expanded form.
+auto flatten(BlankNodeState &state, const JSON &element) -> JSON;
 
 } // namespace sourcemeta::core
 

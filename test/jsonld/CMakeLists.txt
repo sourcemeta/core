@@ -1,6 +1,6 @@
 sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonld
   SOURCES jsonld_expand_test.cc jsonld_expand_error_test.cc
-    jsonld_is_expanded_test.cc jsonld_compact_test.cc)
+    jsonld_is_expanded_test.cc jsonld_compact_test.cc jsonld_flatten_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonld_unit
   PRIVATE sourcemeta::core::jsonld)

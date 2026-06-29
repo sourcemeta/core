@@ -12,6 +12,7 @@ namespace sourcemeta::core {
 inline constexpr JSON::StringView KEYWORD_BASE{"@base"};
 inline constexpr JSON::StringView KEYWORD_CONTAINER{"@container"};
 inline constexpr JSON::StringView KEYWORD_CONTEXT{"@context"};
+inline constexpr JSON::StringView KEYWORD_DEFAULT{"@default"};
 inline constexpr JSON::StringView KEYWORD_DIRECTION{"@direction"};
 inline constexpr JSON::StringView KEYWORD_GRAPH{"@graph"};
 inline constexpr JSON::StringView KEYWORD_ID{"@id"};
