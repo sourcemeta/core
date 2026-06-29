@@ -25,9 +25,10 @@ namespace sourcemeta::core {
 /// A stateful, thread-safe resolver that owns a key set URL and verifies tokens
 /// against it, fetching and refreshing the keys internally. It adds caching, a
 /// freshness-aware refresh, a guarded refetch on rotation, and serving of the
-/// previously held keys through a transient outage. The current time is passed
-/// in rather than read internally, so a caller can drive expiry, rotation, and
-/// the refetch cooldown deterministically.
+/// previously held keys through a transient outage. The current time is read
+/// internally from an injectable clock, so a caller never deals with it and
+/// tests can drive expiry, rotation, and the refetch cooldown
+/// deterministically.
 class SOURCEMETA_CORE_JOSE_EXPORT JWKSProvider {
 public:
   /// The outcome of one key set retrieval. The freshness hint is kept separate
@@ -47,18 +48,26 @@ public:
   using Fetcher =
       std::function<std::optional<FetchResult>(std::string_view url)>;
 
-  /// Tunables for the caching and refetch policy.
+  /// A source of the current time. It defaults to the system clock and exists
+  /// as an injection point so that expiry, rotation, and the refetch cooldown
+  /// can be driven deterministically under test.
+  using Clock = std::function<std::chrono::system_clock::time_point()>;
+
+  /// Tunables for the caching and verification policy.
   struct Options {
     std::chrono::seconds fallback_ttl{std::chrono::hours{1}};
     std::chrono::seconds minimum_ttl{std::chrono::minutes{5}};
     std::chrono::seconds maximum_ttl{std::chrono::hours{24}};
     std::chrono::seconds unknown_kid_cooldown{std::chrono::minutes{5}};
+    std::chrono::seconds clock_skew{0};
   };
 
   /// Construct a provider for a concrete key set URL with an injected
-  /// transport, optionally overriding the caching and refetch policy.
+  /// transport, optionally overriding the policy and the clock.
   JWKSProvider(std::string jwks_uri, Fetcher fetcher);
   JWKSProvider(std::string jwks_uri, Fetcher fetcher, Options options);
+  JWKSProvider(std::string jwks_uri, Fetcher fetcher, Options options,
+               Clock clock);
 
   /// The provider owns a mutex guarding its cache, so it is neither copyable
   /// nor movable. Store it behind a pointer or construct it in place.
@@ -69,15 +78,15 @@ public:
 
   /// Verify a token against the provider's key set, fetching or refreshing the
   /// keys as needed. Returns no value when the token is fully valid, otherwise
-  /// the first failing step. The optional tail adds a clock skew tolerance, an
-  /// expected subject, and an expected type for the access token profile.
+  /// the first failing step. The current time and the clock skew tolerance are
+  /// the provider's own concern, so a caller supplies only what identifies the
+  /// token: an optional expected subject and an optional expected type for the
+  /// access token profile.
   [[nodiscard]] auto
   verify(const JWT &token,
          const std::span<const JWSAlgorithm> allowed_algorithms,
          const std::string_view expected_issuer,
          const std::string_view expected_audience,
-         const std::chrono::system_clock::time_point now,
-         const std::chrono::seconds clock_skew = std::chrono::seconds{0},
          const std::optional<std::string_view> expected_subject = std::nullopt,
          const std::optional<std::string_view> expected_type = std::nullopt)
       -> std::optional<JWTVerificationError>;
@@ -96,6 +105,7 @@ private:
   const std::string jwks_uri_;
   const Fetcher fetcher_;
   const Options options_;
+  const Clock clock_;
   std::mutex mutex_;
   std::shared_ptr<const JWKS> keys_;
   std::chrono::system_clock::time_point next_refresh_{};

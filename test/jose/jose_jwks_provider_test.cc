@@ -62,13 +62,15 @@ TEST(JOSE_jwks_provider, unreachable_issuer_denies) {
         calls += 1;
         return std::nullopt;
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{1});
@@ -81,13 +83,15 @@ TEST(JOSE_jwks_provider, malformed_body_is_treated_as_failure) {
         return sourcemeta::core::JWKSProvider::FetchResult{"not json at all",
                                                            std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -101,19 +105,18 @@ TEST(JOSE_jwks_provider, cache_hit_does_not_refetch) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 }
@@ -127,30 +130,27 @@ TEST(JOSE_jwks_provider, cache_control_absent_uses_fallback) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 1 hour fallback lifetime elapses
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 3599))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 3599);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the fallback lifetime
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 3600))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 3600);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
 
@@ -163,30 +163,27 @@ TEST(JOSE_jwks_provider, cache_control_above_maximum_clamps_down) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::chrono::hours{48}};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 24 hour maximum lifetime elapses
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 86399))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 86399);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the maximum lifetime, never at the advertised 48 hours
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 86400))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 86400);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
 
@@ -199,30 +196,27 @@ TEST(JOSE_jwks_provider, cache_control_below_minimum_clamps_up) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::chrono::seconds{60}};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 5 minute minimum lifetime elapses
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 299))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 299);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the minimum lifetime, never at the advertised 60 seconds
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 300))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 300);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
 
@@ -236,30 +230,27 @@ TEST(JOSE_jwks_provider, cache_control_zero_clamps_to_minimum) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::chrono::seconds{0}};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 5 minute minimum lifetime elapses
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 299))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 299);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the minimum lifetime; zero does not collapse into fallback
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 300))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 300);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
 
@@ -275,13 +266,15 @@ TEST(JOSE_jwks_provider, unknown_key_triggers_one_guarded_refetch) {
             std::string{calls == 1 ? ELLIPTIC_CURVE_KEYS : SIGNED_KEYS},
             std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   EXPECT_FALSE(error.has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -295,7 +288,10 @@ TEST(JOSE_jwks_provider, signature_failure_is_not_retried) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{RSA_KEYS_KEY_ID_K1}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1300000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   // This token names "k1" and the set contains "k1", but the re-headed token's
   // signature does not match, so verification returns a signature failure
   // rather than an unknown-key result, and a signature failure is never retried
@@ -303,8 +299,7 @@ TEST(JOSE_jwks_provider, signature_failure_is_not_retried) {
   ASSERT_TRUE(token.has_value());
 
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client",
-                      std::chrono::system_clock::from_time_t(1300000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Signature);
   EXPECT_EQ(calls, std::size_t{1});
@@ -320,30 +315,31 @@ TEST(JOSE_jwks_provider, unknown_key_refetch_is_bounded_by_cooldown) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{RSA_KEYS_KEY_ID_OTHER}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1300000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN_WITH_KEY_ID)};
   ASSERT_TRUE(token.has_value());
 
   // Cold fetch (1) then one guarded refetch (2); the kid is still absent
   const auto first{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client",
-                      std::chrono::system_clock::from_time_t(1300000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
   ASSERT_TRUE(first.has_value());
   EXPECT_EQ(first.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{2});
 
   // Within the cooldown window no further refetch happens
   const auto second{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client",
-                      std::chrono::system_clock::from_time_t(1300000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
   ASSERT_TRUE(second.has_value());
   EXPECT_EQ(second.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{2});
 
   // After the cooldown elapses a new guarded refetch is allowed
-  const auto third{provider.verify(
-      token.value(), ALLOWED_RS256, "joe", "client",
-      std::chrono::system_clock::from_time_t(1300000000 + 301))};
+  now = std::chrono::system_clock::from_time_t(1300000000 + 301);
+  const auto third{
+      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
   ASSERT_TRUE(third.has_value());
   EXPECT_EQ(third.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{3});
@@ -362,31 +358,28 @@ TEST(JOSE_jwks_provider, failed_refresh_serves_stale_keys) {
         }
         return std::nullopt;
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
-  // Past the 1 hour fallback lifetime the refresh is attempted and fails, so
-  // the retained keys still verify the token
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 7200))
-          .has_value());
+  // Past the fallback lifetime the refresh is attempted and fails, so the
+  // retained keys still verify the token
+  now = std::chrono::system_clock::from_time_t(1000000000 + 7200);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 
   // A failed refresh backs off by the minimum lifetime, so an immediate retry
   // does not hammer the unreachable issuer
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000 +
-                                                                  7200 + 60))
+  now = std::chrono::system_clock::from_time_t(1000000000 + 7200 + 60);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -398,18 +391,42 @@ TEST(JOSE_jwks_provider, expected_type_is_forwarded) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   // SIGNED_TOKEN carries typ "at+jwt", so pinning a different type is rejected,
   // proving the expected type argument reaches the underlying verification
-  const auto error{provider.verify(
-      token.value(), ALLOWED_RS256, "acme", "client",
-      std::chrono::system_clock::from_time_t(1000000000),
-      std::chrono::seconds{0}, std::nullopt, "application/example")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt,
+                                   "application/example")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
+}
+
+TEST(JOSE_jwks_provider, clock_skew_tolerates_recent_expiry) {
+  const auto fetcher{
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            std::string{SIGNED_KEYS}, std::nullopt};
+      }};
+  // Thirty seconds past the token's expiry, but a sixty second skew absorbs it,
+  // proving the configured tolerance reaches the underlying verification
+  auto now{std::chrono::system_clock::from_time_t(2000000030)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{.clock_skew =
+                                                  std::chrono::seconds{60}},
+      [&now] { return now; }};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
 }
 
 TEST(JOSE_jwks_provider, fetcher_exception_is_treated_as_failure) {
@@ -418,14 +435,16 @@ TEST(JOSE_jwks_provider, fetcher_exception_is_treated_as_failure) {
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
         throw std::runtime_error{"transport failure"};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   // A throwing fetcher must not escape verify; it denies like any failed fetch
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -442,21 +461,21 @@ TEST(JOSE_jwks_provider, fetcher_recovers_after_exception) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   // The first fetch throws and denies, leaving the provider usable
   const auto first{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(first.has_value());
   EXPECT_EQ(first.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 
   // The next call obtains keys and verifies, proving no state was corrupted
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -473,23 +492,22 @@ TEST(JOSE_jwks_provider, fetcher_exception_serves_stale_keys) {
         }
         throw std::runtime_error{"transport failure"};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider
-                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                           std::chrono::system_clock::from_time_t(1000000000))
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Past the fallback lifetime the refresh throws, so the retained keys are
   // still served rather than failing closed
-  EXPECT_FALSE(
-      provider
-          .verify(token.value(), ALLOWED_RS256, "acme", "client",
-                  std::chrono::system_clock::from_time_t(1000000000 + 7200))
-          .has_value());
+  now = std::chrono::system_clock::from_time_t(1000000000 + 7200);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
 
@@ -500,13 +518,15 @@ TEST(JOSE_jwks_provider, empty_key_set_is_treated_as_failure) {
         return sourcemeta::core::JWKSProvider::FetchResult{R"({ "keys": [] })",
                                                            std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -520,16 +540,17 @@ TEST(JOSE_jwks_provider, disallowed_algorithm_denies) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   // The token is signed with RS256, which is absent from the allow-list
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::ES256}};
-  const auto error{
-      provider.verify(token.value(), allowed, "acme", "client",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+  const auto error{provider.verify(token.value(), allowed, "acme", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(),
             sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
@@ -544,14 +565,16 @@ TEST(JOSE_jwks_provider, expired_token_denies) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  // One second past the token's expiry of 2000000000
+  auto now{std::chrono::system_clock::from_time_t(2000000001)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  // One second past the token's expiry of 2000000000
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(2000000001))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Expiration);
 }
@@ -563,33 +586,15 @@ TEST(JOSE_jwks_provider, wrong_audience_denies) {
         return sourcemeta::core::JWKSProvider::FetchResult{
             std::string{SIGNED_KEYS}, std::nullopt};
       }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
   const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "unexpected",
-                      std::chrono::system_clock::from_time_t(1000000000))};
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "unexpected")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
-}
-
-TEST(JOSE_jwks_provider, clock_skew_tolerates_recent_expiry) {
-  const auto fetcher{
-      [](const std::string_view)
-          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
-        return sourcemeta::core::JWKSProvider::FetchResult{
-            std::string{SIGNED_KEYS}, std::nullopt};
-      }};
-  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher};
-  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
-  ASSERT_TRUE(token.has_value());
-
-  // Thirty seconds past expiry, but a sixty second skew absorbs it, proving the
-  // tolerance argument reaches the underlying verification
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client",
-                      std::chrono::system_clock::from_time_t(2000000030),
-                      std::chrono::seconds{60})};
-  EXPECT_FALSE(error.has_value());
 }

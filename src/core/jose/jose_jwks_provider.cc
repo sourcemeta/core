@@ -11,6 +11,10 @@
 
 namespace {
 
+auto system_now() -> std::chrono::system_clock::time_point {
+  return std::chrono::system_clock::now();
+}
+
 auto clamp_ttl(const std::optional<std::chrono::seconds> max_age,
                const sourcemeta::core::JWKSProvider::Options &options)
     -> std::chrono::seconds {
@@ -29,12 +33,18 @@ auto clamp_ttl(const std::optional<std::chrono::seconds> max_age,
 namespace sourcemeta::core {
 
 JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher)
-    : JWKSProvider{std::move(jwks_uri), std::move(fetcher), Options{}} {}
+    : JWKSProvider{std::move(jwks_uri), std::move(fetcher), Options{},
+                   system_now} {}
 
 JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher,
                            Options options)
+    : JWKSProvider{std::move(jwks_uri), std::move(fetcher), options,
+                   system_now} {}
+
+JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher,
+                           Options options, Clock clock)
     : jwks_uri_{std::move(jwks_uri)}, fetcher_{std::move(fetcher)},
-      options_{options} {}
+      options_{options}, clock_{std::move(clock)} {}
 
 auto JWKSProvider::fetch_and_install_locked(
     const std::chrono::system_clock::time_point now) -> bool {
@@ -109,11 +119,11 @@ auto JWKSProvider::verify(
     const JWT &token, const std::span<const JWSAlgorithm> allowed_algorithms,
     const std::string_view expected_issuer,
     const std::string_view expected_audience,
-    const std::chrono::system_clock::time_point now,
-    const std::chrono::seconds clock_skew,
     const std::optional<std::string_view> expected_subject,
     const std::optional<std::string_view> expected_type)
     -> std::optional<JWTVerificationError> {
+  const auto now{this->clock_()};
+
   std::shared_ptr<const JWKS> snapshot;
   {
     const std::scoped_lock lock{this->mutex_};
@@ -124,9 +134,9 @@ auto JWKSProvider::verify(
     return JWTVerificationError::UnknownKey;
   }
 
-  const auto error{jwt_verify(token, *snapshot, allowed_algorithms,
-                              expected_issuer, expected_audience, now,
-                              clock_skew, expected_subject, expected_type)};
+  const auto error{jwt_verify(
+      token, *snapshot, allowed_algorithms, expected_issuer, expected_audience,
+      now, this->options_.clock_skew, expected_subject, expected_type)};
   if (!error.has_value() || error.value() != JWTVerificationError::UnknownKey) {
     return error;
   }
@@ -145,8 +155,8 @@ auto JWKSProvider::verify(
   }
 
   return jwt_verify(token, *refreshed, allowed_algorithms, expected_issuer,
-                    expected_audience, now, clock_skew, expected_subject,
-                    expected_type);
+                    expected_audience, now, this->options_.clock_skew,
+                    expected_subject, expected_type);
 }
 
 } // namespace sourcemeta::core
