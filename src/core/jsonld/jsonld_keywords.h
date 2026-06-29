@@ -12,7 +12,6 @@ namespace sourcemeta::core {
 inline constexpr JSON::StringView KEYWORD_BASE{"@base"};
 inline constexpr JSON::StringView KEYWORD_CONTAINER{"@container"};
 inline constexpr JSON::StringView KEYWORD_CONTEXT{"@context"};
-inline constexpr JSON::StringView KEYWORD_DEFAULT{"@default"};
 inline constexpr JSON::StringView KEYWORD_DIRECTION{"@direction"};
 inline constexpr JSON::StringView KEYWORD_GRAPH{"@graph"};
 inline constexpr JSON::StringView KEYWORD_ID{"@id"};
@@ -39,7 +38,6 @@ inline constexpr JSON::StringView KEYWORD_VOCAB{"@vocab"};
 inline const auto KEYWORD_BASE_HASH{JSON::Object::hash(KEYWORD_BASE)};
 inline const auto KEYWORD_CONTAINER_HASH{JSON::Object::hash(KEYWORD_CONTAINER)};
 inline const auto KEYWORD_CONTEXT_HASH{JSON::Object::hash(KEYWORD_CONTEXT)};
-inline const auto KEYWORD_DEFAULT_HASH{JSON::Object::hash(KEYWORD_DEFAULT)};
 inline const auto KEYWORD_DIRECTION_HASH{JSON::Object::hash(KEYWORD_DIRECTION)};
 inline const auto KEYWORD_GRAPH_HASH{JSON::Object::hash(KEYWORD_GRAPH)};
 inline const auto KEYWORD_ID_HASH{JSON::Object::hash(KEYWORD_ID)};
@@ -61,11 +59,15 @@ inline const auto KEYWORD_VALUE_HASH{JSON::Object::hash(KEYWORD_VALUE)};
 inline const auto KEYWORD_VERSION_HASH{JSON::Object::hash(KEYWORD_VERSION)};
 inline const auto KEYWORD_VOCAB_HASH{JSON::Object::hash(KEYWORD_VOCAB)};
 
-// Markers used internally by inverse context creation and term selection. These
-// are not JSON-LD document keywords.
+// Markers used internally by inverse context creation, term selection, and node
+// map generation. These are not JSON-LD document keywords: @default is the name
+// the API algorithms give the default graph, and it is defined by the framing
+// specification rather than the core keyword grammar.
 inline constexpr JSON::StringView KEYWORD_ANY{"@any"};
+inline constexpr JSON::StringView KEYWORD_DEFAULT{"@default"};
 inline constexpr JSON::StringView KEYWORD_NULL{"@null"};
 inline const auto KEYWORD_ANY_HASH{JSON::Object::hash(KEYWORD_ANY)};
+inline const auto KEYWORD_DEFAULT_HASH{JSON::Object::hash(KEYWORD_DEFAULT)};
 
 // A stable owned copy of the @context keyword, suitable as a JSON Pointer
 // token. (A namespace-scope JSON::String constant would trip clang-tidy's
