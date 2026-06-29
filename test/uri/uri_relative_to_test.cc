@@ -329,3 +329,24 @@ TEST(URI_relative_to, same_path_base_query_target_other_query) {
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "?q=2");
 }
+
+TEST(URI_relative_to, same_directory_path_base_query_target_none) {
+  const sourcemeta::core::URI base{"https://www.example.com/foo/?q=1"};
+  sourcemeta::core::URI uri{"https://www.example.com/foo/"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./");
+}
+
+TEST(URI_relative_to, same_directory_path_base_query_target_fragment) {
+  const sourcemeta::core::URI base{"https://www.example.com/foo/?q=1"};
+  sourcemeta::core::URI uri{"https://www.example.com/foo/#baz"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "./#baz");
+}
+
+TEST(URI_relative_to, same_directory_path_target_query) {
+  const sourcemeta::core::URI base{"https://www.example.com/foo/?q=1"};
+  sourcemeta::core::URI uri{"https://www.example.com/foo/?q=2"};
+  uri.relative_to(base);
+  EXPECT_EQ(uri.recompose(), "?q=2");
+}

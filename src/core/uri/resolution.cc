@@ -156,18 +156,26 @@ auto URI::relative_to(const URI &base) -> URI & {
     return *this;
   }
 
-  // Both URIs share the same path and differ only in their query or fragment,
-  // so the relative reference needs no path, just the differing query and
-  // fragment. An empty path inherits the base's query on resolution, so this is
-  // only safe when this URI carries its own query or the base has none.
-  // Otherwise a trailing path segment is needed to override the base's query.
-  if (this->path_ == base.path_ &&
-      (this->query_.has_value() || !base.query_.has_value())) {
+  // Both URIs share the same path and differ only in their query or fragment.
+  if (this->path_ == base.path_ && this->path_.has_value()) {
     this->scheme_.reset();
     this->userinfo_.reset();
     this->host_.reset();
     this->port_.reset();
-    this->path_.reset();
+    if (this->query_.has_value() || !base.query_.has_value()) {
+      // An empty relative path is safe here: it will not inherit a base query
+      // on resolution, because this URI either carries its own query or the
+      // base has none.
+      this->path_.reset();
+    } else {
+      // Dropping the base's query requires a non-empty path so that resolution
+      // does not re-inherit it. Use the last path segment, or "./" when the
+      // path has no final segment (it ends in a slash).
+      const auto &path{this->path_.value()};
+      const auto slash{path.rfind('/')};
+      auto segment{slash == std::string::npos ? path : path.substr(slash + 1)};
+      this->path_ = segment.empty() ? std::string{"./"} : std::move(segment);
+    }
     return *this;
   }
 
