@@ -53,9 +53,12 @@ auto process_context(ExpansionState &state, ActiveContext &active_context,
         }
       }
       // Nullifying the context resets to the initial context, whose base is
-      // the document base.
+      // the document base. Whether to relativise is a processing option rather
+      // than context state, so it survives the reset.
+      const bool relativise{active_context.compact_to_relative};
       active_context = ActiveContext{};
       active_context.base = state.document_base;
+      active_context.compact_to_relative = relativise;
       continue;
     }
 

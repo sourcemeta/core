@@ -105,6 +105,37 @@ auto jsonld_expand(const JSON &input, const JSON &expand_context,
 SOURCEMETA_CORE_JSONLD_EXPORT
 auto jsonld_is_expanded(const JSON &document) -> bool;
 
+/// @ingroup jsonld
+///
+/// Compact a JSON-LD document in expanded form against the given context to
+/// produce a friendlier shape. The input must already be expanded, and the
+/// result carries the given context. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/json.h>
+/// #include <sourcemeta/core/jsonld.h>
+/// #include <iostream>
+///
+/// const auto document{sourcemeta::core::parse_json(R"([
+///   { "http://schema.org/name": [ { "@value": "Sourcemeta" } ] }
+/// ])")};
+///
+/// const auto context{sourcemeta::core::parse_json(R"({
+///   "name": "http://schema.org/name"
+/// })")};
+///
+/// const auto compacted{sourcemeta::core::jsonld_compact(document, context)};
+/// sourcemeta::core::prettify(compacted, std::cout);
+/// std::cout << std::endl;
+/// ```
+SOURCEMETA_CORE_JSONLD_EXPORT
+auto jsonld_compact(const JSON &input, const JSON &context,
+                    const JSON::StringView base_iri = "",
+                    const JSONLDResolver &resolver = {},
+                    const JSONLDVersion version = JSONLDVersion::V1_1,
+                    const bool compact_arrays = true,
+                    const bool compact_to_relative = true) -> JSON;
+
 } // namespace sourcemeta::core
 
 #endif

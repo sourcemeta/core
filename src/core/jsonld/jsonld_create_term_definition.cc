@@ -33,6 +33,7 @@ auto same_definition(const TermDefinition &left, const TermDefinition &right)
          left.has_direction == right.has_direction &&
          left.context == right.context &&
          left.context_base == right.context_base && left.index == right.index &&
+         left.index_iri == right.index_iri && left.nest == right.nest &&
          left.reverse == right.reverse && left.prefix == right.prefix;
 }
 
@@ -534,6 +535,7 @@ auto create_term_definition(ExpansionState &state,
       if (is_keyword(nest_string) && nest_string != KEYWORD_NEST) {
         throw JSONLDError("Invalid @nest value", term_pointer, {KEYWORD_NEST});
       }
+      definition.nest = nest_string;
     }
 
     if (const auto *index_entry{
@@ -562,6 +564,7 @@ auto create_term_definition(ExpansionState &state,
                           {KEYWORD_INDEX});
       }
       definition.index = index_string;
+      definition.index_iri = index_iri.value();
     }
 
     if (const auto *protected_entry{
