@@ -73,6 +73,11 @@ auto reverse_target(JSON &node, const JSON::StringView predicate) -> JSON & {
 // Attach a value under a single edge. A set, represented as a bare array,
 // spreads its members into the property array.
 auto attach_one(JSON &node, const JSONLDEdge &edge, JSON value) -> void {
+  // An empty set carries no values, so it asserts no property.
+  if (value.is_array() && value.empty()) {
+    return;
+  }
+
   auto &target{edge.reverse ? reverse_target(node, edge.predicate)
                             : property_target(node, edge.predicate)};
   if (value.is_array()) {
