@@ -1004,6 +1004,64 @@ TEST(JSONLD_materialize, array_root_spreads_into_default_graph) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
+TEST(JSONLD_materialize, root_collection_of_literals_is_dropped) {
+  const auto instance = sourcemeta::core::parse_json(R"([ "a", "b" ])");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {},
+          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{0},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+  map.emplace(sourcemeta::core::Pointer{1},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json("[]");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(JSONLD_materialize, root_collection_keeps_only_node_elements) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"([ { "name": "A" }, "loose" ])");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {},
+          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(
+      sourcemeta::core::Pointer{0},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/a"}});
+  map.emplace(sourcemeta::core::Pointer{0, "name"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/name", false}},
+                  .value = sourcemeta::core::JSONLDLiteral{}});
+  map.emplace(sourcemeta::core::Pointer{1},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/a",
+      "https://schema.org/name": [ { "@value": "A" } ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
 TEST(JSONLD_materialize, scalar_root_literal_is_dropped) {
   const auto instance = sourcemeta::core::parse_json(R"("hello")");
 

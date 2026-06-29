@@ -304,14 +304,18 @@ auto jsonld_materialize(const JSON &instance, const JSONLDAnnotationMap &map)
 
   auto result{JSON::make_array()};
   if (root.has_value()) {
+    // The default graph may only hold node objects. A top-level value or list
+    // object, whether the root itself or an element of a root set, carries no
+    // triples and is dropped.
     if (root->is_array()) {
       for (auto &element : root->as_array()) {
-        result.push_back(std::move(element));
+        if (is_node_object(element)) {
+          result.push_back(std::move(element));
+        }
       }
     } else if (is_node_object(root.value())) {
       result.push_back(std::move(root.value()));
     }
-    // A top-level value or list object carries no triples and is dropped.
   }
 
   for (auto &node : standalone) {
