@@ -641,3 +641,24 @@ TEST(JOSE_jwks_provider, inverted_lifetime_bounds_stay_well_defined) {
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
+
+TEST(JOSE_jwks_provider, empty_clock_falls_back_to_the_system_clock) {
+  const auto fetcher{
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            std::string{SIGNED_KEYS}, std::nullopt};
+      }};
+  // A default-constructed clock falls back to real time rather than calling an
+  // empty target, so the far-future token verifies instead of throwing
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{},
+      sourcemeta::core::JWKSProvider::Clock{}};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+
+  const auto error{
+      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  EXPECT_FALSE(error.has_value());
+}

@@ -48,7 +48,10 @@ JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher,
 JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher,
                            Options options, Clock clock)
     : jwks_uri_{std::move(jwks_uri)}, fetcher_{std::move(fetcher)},
-      options_{options}, clock_{std::move(clock)} {}
+      options_{options},
+      // An empty clock falls back to the system clock so that a default
+      // constructed one cannot make verification throw
+      clock_{clock ? std::move(clock) : Clock{system_now}} {}
 
 auto JWKSProvider::fetch_and_install_locked(
     const std::chrono::system_clock::time_point now) -> bool {
