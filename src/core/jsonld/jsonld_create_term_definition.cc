@@ -33,7 +33,8 @@ auto same_definition(const TermDefinition &left, const TermDefinition &right)
          left.has_direction == right.has_direction &&
          left.context == right.context &&
          left.context_base == right.context_base && left.index == right.index &&
-         left.reverse == right.reverse && left.prefix == right.prefix;
+         left.nest == right.nest && left.reverse == right.reverse &&
+         left.prefix == right.prefix;
 }
 
 // Store a freshly-built term definition, enforcing protected-term redefinition.

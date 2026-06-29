@@ -65,9 +65,14 @@ auto nest_target(JSON &result, const TermDefinition *const definition,
   if (key == KEYWORD_NEST) {
     key = compact_iri(active_context, inverse_context,
                       JSON::String{KEYWORD_NEST}, nullptr, true, false);
-  } else if (active_context.terms.find(key) == active_context.terms.cend()) {
-    // A non-@nest nest value must reference a defined term.
-    throw JSONLDError("Invalid @nest value", empty_weak_pointer);
+  } else {
+    // A non-@nest nest value must reference a term that expands to @nest.
+    const auto iterator{active_context.terms.find(key)};
+    if (iterator == active_context.terms.cend() ||
+        !iterator->second.iri.has_value() ||
+        iterator->second.iri.value() != KEYWORD_NEST) {
+      throw JSONLDError("Invalid @nest value", empty_weak_pointer);
+    }
   }
   if (!result.defines(key)) {
     result.assign_assume_new(key, JSON::make_object());
@@ -356,6 +361,8 @@ auto compact(ExpansionState &state, const ActiveContext &active_context,
                      item.defines(KEYWORD_INDEX, KEYWORD_INDEX_HASH)) {
             key = item.at(KEYWORD_INDEX, KEYWORD_INDEX_HASH).to_string();
           }
+          // The graph value is already compacted to an array when the term has
+          // an @set container or compactArrays is false, so it is added as-is.
           add_value(target.at(item_property), key, std::move(compacted), false);
           continue;
         }

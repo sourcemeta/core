@@ -75,8 +75,18 @@ auto compact_iri(const ActiveContext &active_context,
   }
 
   if (vocabulary && inverse_context.defines(variable)) {
+    // When a default base direction is set, the default language is the
+    // language and direction joined by an underscore, even if there is no
+    // default language (Section 6.2.3).
     JSON::String default_language{KEYWORD_NONE};
-    if (active_context.default_language.has_value()) {
+    if (active_context.default_direction.has_value()) {
+      default_language =
+          active_context.default_language.has_value()
+              ? lowercase(active_context.default_language.value())
+              : JSON::String{};
+      default_language += "_";
+      default_language += lowercase(active_context.default_direction.value());
+    } else if (active_context.default_language.has_value()) {
       default_language = lowercase(active_context.default_language.value());
     }
 

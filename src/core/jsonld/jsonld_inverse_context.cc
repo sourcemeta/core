@@ -30,13 +30,18 @@ auto assign_if_missing(JSON &map, const JSON::StringView key,
 auto create_inverse_context(const ActiveContext &active_context) -> JSON {
   auto result{JSON::make_object()};
 
+  // When a default base direction is set, the default language is the language
+  // and direction joined by an underscore, even if there is no default
+  // language (Section 4.3.1).
   JSON::String default_language{KEYWORD_NONE};
-  if (active_context.default_language.has_value()) {
+  if (active_context.default_direction.has_value()) {
+    default_language = active_context.default_language.has_value()
+                           ? lowercase(active_context.default_language.value())
+                           : JSON::String{};
+    default_language += "_";
+    default_language += lowercase(active_context.default_direction.value());
+  } else if (active_context.default_language.has_value()) {
     default_language = lowercase(active_context.default_language.value());
-    if (active_context.default_direction.has_value()) {
-      default_language += "_";
-      default_language += lowercase(active_context.default_direction.value());
-    }
   }
 
   // Terms are processed shortest first, breaking ties lexicographically, so
