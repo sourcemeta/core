@@ -5,6 +5,7 @@
 #include "jsonld_keywords.h"
 
 #include <algorithm> // std::find, std::sort
+#include <cassert>   // assert
 #include <optional>  // std::optional, std::nullopt
 #include <utility>   // std::move
 #include <vector>    // std::vector
@@ -77,6 +78,9 @@ auto nest_target(JSON &result, const TermDefinition *const definition,
   if (!result.defines(key)) {
     result.assign_assume_new(key, JSON::make_object());
   }
+  // The nest target is a context-defined term that expands to @nest, so it can
+  // never collide with an ordinary compacted property and is always an object.
+  assert(result.at(key).is_object());
   return result.at(key);
 }
 

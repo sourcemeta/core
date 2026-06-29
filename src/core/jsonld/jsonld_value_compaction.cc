@@ -57,7 +57,7 @@ auto compact_value(const ActiveContext &active_context,
         value.object_size() - 1 -
         (value.defines(KEYWORD_INDEX, KEYWORD_INDEX_HASH) ? 1U : 0U)};
     const auto &identifier{value.at(KEYWORD_ID, KEYWORD_ID_HASH)};
-    if (extra == 0 && definition != nullptr &&
+    if (extra == 0 && index_ok && definition != nullptr &&
         definition->type_mapping.has_value() && identifier.is_string()) {
       if (definition->type_mapping.value() == KEYWORD_ID) {
         return JSON{compact_iri(active_context, inverse_context,
