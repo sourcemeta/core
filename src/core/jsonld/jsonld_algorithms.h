@@ -24,6 +24,8 @@ struct TermDefinition {
   std::optional<JSON> context;
   std::optional<JSON::String> context_base;
   std::optional<JSON::String> index;
+  std::optional<JSON::String> index_iri;
+  std::optional<JSON::String> nest;
   bool reverse{false};
   bool prefix{false};
   bool is_protected{false};
@@ -101,6 +103,29 @@ auto expand_value(ExpansionState &state, ActiveContext &active_context,
 auto expand(ExpansionState &state, ActiveContext &active_context,
             const std::optional<JSON::String> &active_property,
             const JSON &element, const WeakPointer &pointer) -> JSON;
+
+// Inverse Context Creation (JSON-LD 1.1 API Section 4.3.1). The inverse context
+// is represented as a JSON map of IRI to container to type/language to term.
+auto create_inverse_context(const ActiveContext &active_context) -> JSON;
+
+// IRI Compaction (JSON-LD 1.1 API Section 5.2.1). A null value is signalled by
+// a null pointer.
+auto compact_iri(const ActiveContext &active_context,
+                 const JSON &inverse_context, const JSON::String &variable,
+                 const JSON *const value, const bool vocabulary,
+                 const bool reverse) -> JSON::String;
+
+// Value Compaction (JSON-LD 1.1 API Section 7.2)
+auto compact_value(const ActiveContext &active_context,
+                   const JSON &inverse_context,
+                   const std::optional<JSON::String> &active_property,
+                   const JSON &value) -> JSON;
+
+// Compaction (JSON-LD 1.1 API Section 7.1)
+auto compact(ExpansionState &state, const ActiveContext &active_context,
+             const JSON &inverse_context,
+             const std::optional<JSON::String> &active_property,
+             const JSON &element, const bool compact_arrays) -> JSON;
 
 } // namespace sourcemeta::core
 

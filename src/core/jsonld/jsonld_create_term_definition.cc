@@ -534,6 +534,7 @@ auto create_term_definition(ExpansionState &state,
       if (is_keyword(nest_string) && nest_string != KEYWORD_NEST) {
         throw JSONLDError("Invalid @nest value", term_pointer, {KEYWORD_NEST});
       }
+      definition.nest = nest_string;
     }
 
     if (const auto *index_entry{
@@ -562,6 +563,7 @@ auto create_term_definition(ExpansionState &state,
                           {KEYWORD_INDEX});
       }
       definition.index = index_string;
+      definition.index_iri = index_iri.value();
     }
 
     if (const auto *protected_entry{

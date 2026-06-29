@@ -59,6 +59,12 @@ inline const auto KEYWORD_VALUE_HASH{JSON::Object::hash(KEYWORD_VALUE)};
 inline const auto KEYWORD_VERSION_HASH{JSON::Object::hash(KEYWORD_VERSION)};
 inline const auto KEYWORD_VOCAB_HASH{JSON::Object::hash(KEYWORD_VOCAB)};
 
+// Markers used internally by inverse context creation and term selection. These
+// are not JSON-LD document keywords.
+inline constexpr JSON::StringView KEYWORD_ANY{"@any"};
+inline constexpr JSON::StringView KEYWORD_NULL{"@null"};
+inline const auto KEYWORD_ANY_HASH{JSON::Object::hash(KEYWORD_ANY)};
+
 // A stable owned copy of the @context keyword, suitable as a JSON Pointer
 // token. (A namespace-scope JSON::String constant would trip clang-tidy's
 // throwing-static-initialization check, hence the function-local static.)
