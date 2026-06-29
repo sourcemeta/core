@@ -39,6 +39,7 @@ inline constexpr JSON::StringView KEYWORD_VOCAB{"@vocab"};
 inline const auto KEYWORD_BASE_HASH{JSON::Object::hash(KEYWORD_BASE)};
 inline const auto KEYWORD_CONTAINER_HASH{JSON::Object::hash(KEYWORD_CONTAINER)};
 inline const auto KEYWORD_CONTEXT_HASH{JSON::Object::hash(KEYWORD_CONTEXT)};
+inline const auto KEYWORD_DEFAULT_HASH{JSON::Object::hash(KEYWORD_DEFAULT)};
 inline const auto KEYWORD_DIRECTION_HASH{JSON::Object::hash(KEYWORD_DIRECTION)};
 inline const auto KEYWORD_GRAPH_HASH{JSON::Object::hash(KEYWORD_GRAPH)};
 inline const auto KEYWORD_ID_HASH{JSON::Object::hash(KEYWORD_ID)};

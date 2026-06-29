@@ -19,17 +19,17 @@ auto is_blank_node(const JSON::StringView value) -> bool {
 }
 
 // Append a value to the property array of node, creating the array as needed.
-auto append_value(JSON &node, const JSON::String &property, const JSON &value)
+auto append_value(JSON &node, const JSON::StringView property, JSON value)
     -> void {
   if (!node.defines(property)) {
     node.assign_assume_new(JSON::String{property}, JSON::make_array());
   }
-  node.at(property).push_back(value);
+  node.at(property).push_back(std::move(value));
 }
 
 // Append a value to the property array of node unless an equivalent value is
 // already present.
-auto add_unique(JSON &node, const JSON::String &property, const JSON &value)
+auto add_unique(JSON &node, const JSON::StringView property, JSON value)
     -> void {
   if (!node.defines(property)) {
     node.assign_assume_new(JSON::String{property}, JSON::make_array());
@@ -40,13 +40,13 @@ auto add_unique(JSON &node, const JSON::String &property, const JSON &value)
       return;
     }
   }
-  array.push_back(value);
+  array.push_back(std::move(value));
 }
 
 } // namespace
 
 auto generate_blank_node_identifier(
-    BlankNodeState &state, const std::optional<JSON::String> &identifier)
+    BlankNodeState &state, const std::optional<JSON::StringView> &identifier)
     -> JSON::String {
   if (identifier.has_value()) {
     const auto iterator{state.identifiers.find(identifier.value())};
@@ -67,7 +67,7 @@ auto generate_blank_node_identifier(
 auto generate_node_map(BlankNodeState &state, JSON &node_map,
                        const JSON &element, const JSON::StringView active_graph,
                        const JSON *active_subject,
-                       const std::optional<JSON::String> &active_property,
+                       const std::optional<JSON::StringView> &active_property,
                        JSON *list) -> void {
   if (element.is_array()) {
     for (const auto &item : element.as_array()) {
@@ -105,9 +105,9 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
     if (list == nullptr) {
       auto &subject_node{
           node_map.at(active_graph).at(active_subject->to_string())};
-      add_unique(subject_node, active_property.value(), working);
+      add_unique(subject_node, active_property.value(), std::move(working));
     } else {
-      list->at(KEYWORD_LIST, KEYWORD_LIST_HASH).push_back(working);
+      list->at(KEYWORD_LIST, KEYWORD_LIST_HASH).push_back(std::move(working));
     }
     return;
   }
@@ -115,14 +115,15 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
   // A list object recurses into a fresh list accumulator.
   if (working.defines(KEYWORD_LIST, KEYWORD_LIST_HASH)) {
     auto result{JSON::make_object()};
-    result.assign_assume_new(JSON::String{KEYWORD_LIST}, JSON::make_array());
+    result.assign_assume_new(JSON::String{KEYWORD_LIST}, JSON::make_array(),
+                             KEYWORD_LIST_HASH);
     generate_node_map(state, node_map,
                       working.at(KEYWORD_LIST, KEYWORD_LIST_HASH), active_graph,
                       active_subject, active_property, &result);
     if (list == nullptr) {
       auto &subject_node{
           node_map.at(active_graph).at(active_subject->to_string())};
-      append_value(subject_node, active_property.value(), result);
+      append_value(subject_node, active_property.value(), std::move(result));
     } else {
       list->at(KEYWORD_LIST, KEYWORD_LIST_HASH).push_back(std::move(result));
     }
@@ -162,7 +163,7 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
                                 KEYWORD_ID_HASH);
     if (list == nullptr) {
       add_unique(node_map.at(active_graph).at(active_subject->to_string()),
-                 active_property.value(), reference);
+                 active_property.value(), std::move(reference));
     } else {
       list->at(KEYWORD_LIST, KEYWORD_LIST_HASH).push_back(std::move(reference));
     }
@@ -230,16 +231,17 @@ auto generate_node_map(BlankNodeState &state, JSON &node_map,
     working.erase(KEYWORD_INCLUDED);
   }
 
-  std::vector<JSON::String> properties;
+  std::vector<JSON::StringView> properties;
+  properties.reserve(working.object_size());
   for (const auto &entry : working.as_object()) {
     properties.push_back(entry.first);
   }
   std::ranges::sort(properties);
   const JSON subject{id.value()};
-  for (const auto &property : properties) {
-    JSON::String key{is_blank_node(property)
-                         ? generate_blank_node_identifier(state, property)
-                         : property};
+  for (const auto property : properties) {
+    const JSON::String key{is_blank_node(property)
+                               ? generate_blank_node_identifier(state, property)
+                               : JSON::String{property}};
     auto &node{node_map.at(active_graph).at(id.value())};
     if (!node.defines(key)) {
       node.assign_assume_new(JSON::String{key}, JSON::make_array());

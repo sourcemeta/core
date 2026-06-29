@@ -138,9 +138,10 @@ struct BlankNodeState {
 };
 
 // Generate Blank Node Identifier (JSON-LD 1.1 API Section 7.4). A null value is
-// signalled by an empty optional.
+// signalled by an empty optional. The view, when present, only needs to outlive
+// the call, as the running state stores an owned copy.
 auto generate_blank_node_identifier(
-    BlankNodeState &state, const std::optional<JSON::String> &identifier)
+    BlankNodeState &state, const std::optional<JSON::StringView> &identifier)
     -> JSON::String;
 
 // Node Map Generation (JSON-LD 1.1 API Section 7.2). The node map is a JSON map
@@ -148,11 +149,11 @@ auto generate_blank_node_identifier(
 // subject is a subject identifier string, or a node object when a reverse
 // property relationship is being processed, or a null pointer. A null active
 // property is signalled by an empty optional, and the list accumulator by a
-// null pointer.
+// null pointer. The active property view only needs to outlive the call.
 auto generate_node_map(BlankNodeState &state, JSON &node_map,
                        const JSON &element, const JSON::StringView active_graph,
                        const JSON *active_subject,
-                       const std::optional<JSON::String> &active_property,
+                       const std::optional<JSON::StringView> &active_property,
                        JSON *list) -> void;
 
 // Flattening (JSON-LD 1.1 API Section 7.1). Returns the flattened document in
