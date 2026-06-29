@@ -450,7 +450,9 @@ auto compact(ExpansionState &state, const ActiveContext &active_context,
             list_object.assign_assume_new(
                 index_alias, JSON{item.at(KEYWORD_INDEX, KEYWORD_INDEX_HASH)});
           }
-          add_value(target, item_property, std::move(list_object), false);
+          add_value(target, item_property, std::move(list_object),
+                    container_includes(item_definition, KEYWORD_SET) ||
+                        !compact_arrays);
         }
         continue;
       }

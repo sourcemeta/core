@@ -19,8 +19,13 @@ TEST(JSONLD_compact, compact_to_relative_true_relativises_against_base) {
       input, context, "http://example.org/", {},
       sourcemeta::core::JSONLDVersion::V1_1, true, true)};
 
-  EXPECT_EQ(result.at("@id").to_string(), "a");
-  EXPECT_EQ(result.at("b").at("@id").to_string(), "c");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "a",
+    "b": { "@id": "c" },
+    "@context": { "b": "http://example.com/b" }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONLD_compact, compact_to_relative_false_keeps_absolute_against_base) {
@@ -39,8 +44,13 @@ TEST(JSONLD_compact, compact_to_relative_false_keeps_absolute_against_base) {
       input, context, "http://example.org/", {},
       sourcemeta::core::JSONLDVersion::V1_1, true, false)};
 
-  EXPECT_EQ(result.at("@id").to_string(), "http://example.org/a");
-  EXPECT_EQ(result.at("b").at("@id").to_string(), "http://example.org/c");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@id": "http://example.org/a",
+    "b": { "@id": "http://example.org/c" },
+    "@context": { "b": "http://example.com/b" }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONLD_compact, id_typed_value_with_index_keeps_index) {
@@ -58,8 +68,12 @@ TEST(JSONLD_compact, id_typed_value_with_index_keeps_index) {
 
   const auto result{sourcemeta::core::jsonld_compact(input, context)};
 
-  EXPECT_EQ(result.at("id").at("@id").to_string(), "http://example.org/x");
-  EXPECT_EQ(result.at("id").at("@index").to_string(), "foo");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "id": { "@id": "http://example.org/x", "@index": "foo" },
+    "@context": { "id": { "@id": "http://example.com/id", "@type": "@id" } }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONLD_compact, nest_value_not_expanding_to_nest_is_rejected) {
@@ -90,7 +104,16 @@ TEST(JSONLD_compact, nest_value_aliasing_nest_nests_the_property) {
 
   const auto result{sourcemeta::core::jsonld_compact(input, context)};
 
-  EXPECT_EQ(result.at("nst").at("p").to_string(), "v");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "nst": { "p": "v" },
+    "@context": {
+      "@vocab": "http://example.com/",
+      "p": { "@nest": "nst" },
+      "nst": "@nest"
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONLD_compact, type_map_remaining_stays_array_without_compact_arrays) {
@@ -113,10 +136,17 @@ TEST(JSONLD_compact, type_map_remaining_stays_array_without_compact_arrays) {
   const auto result{sourcemeta::core::jsonld_compact(
       input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, false)};
 
-  const auto &node{result.at("@graph").at(0).at("p").at("A").at(0)};
-  EXPECT_TRUE(node.at("@type").is_array());
-  EXPECT_EQ(node.at("@type").size(), 1);
-  EXPECT_EQ(node.at("@type").at(0).to_string(), "B");
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@graph": [
+      { "p": { "A": [ { "@type": [ "B" ], "v": [ "x" ] } ] } }
+    ],
+    "@context": {
+      "@vocab": "http://example.com/",
+      "p": { "@id": "http://example.com/p", "@container": "@type" }
+    }
+  })");
+
+  EXPECT_EQ(result, expected);
 }
 
 TEST(JSONLD_compact, protected_redefinition_with_different_index_expansion) {
@@ -150,4 +180,23 @@ TEST(JSONLD_compact, protected_redefinition_with_different_index_expansion) {
 
   EXPECT_THROW(sourcemeta::core::jsonld_compact(input, context),
                sourcemeta::core::JSONLDError);
+}
+
+TEST(JSONLD_compact, list_object_stays_array_without_compact_arrays) {
+  const auto input = sourcemeta::core::parse_json(R"([
+    { "http://example.com/p": [ { "@list": [ { "@value": "a" } ] } ] }
+  ])");
+
+  const auto context = sourcemeta::core::parse_json("{}");
+
+  const auto result{sourcemeta::core::jsonld_compact(
+      input, context, "", {}, sourcemeta::core::JSONLDVersion::V1_1, false)};
+
+  const auto expected = sourcemeta::core::parse_json(R"({
+    "@graph": [
+      { "http://example.com/p": [ { "@list": [ "a" ] } ] }
+    ]
+  })");
+
+  EXPECT_EQ(result, expected);
 }
