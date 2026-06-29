@@ -38,7 +38,16 @@ JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher,
 
 auto JWKSProvider::fetch_and_install_locked(
     const std::chrono::system_clock::time_point now) -> bool {
-  const auto fetched{this->fetcher_(this->jwks_uri_)};
+  std::optional<FetchResult> fetched;
+  try {
+    fetched = this->fetcher_(this->jwks_uri_);
+  } catch (...) {
+    // A fetcher signals failure by returning no value, but a throwing transport
+    // is treated as just another failed retrieval, so a misbehaving fetcher can
+    // never escape verification
+    return false;
+  }
+
   if (!fetched.has_value()) {
     return false;
   }
