@@ -69,7 +69,7 @@ public:
   JWKSProvider(std::string jwks_uri, Fetcher fetcher, Options options,
                Clock clock);
 
-  /// The provider owns a mutex guarding its cache, so it is neither copyable
+  /// The provider owns a lock guarding its cache, so it is neither copyable
   /// nor movable. Store it behind a pointer or construct it in place.
   JWKSProvider(const JWKSProvider &) = delete;
   auto operator=(const JWKSProvider &) -> JWKSProvider & = delete;

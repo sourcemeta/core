@@ -2,7 +2,7 @@
 
 #include <sourcemeta/core/json.h> // sourcemeta::core::try_parse_json
 
-#include <algorithm> // std::clamp
+#include <algorithm> // std::max, std::min
 #include <chrono>    // std::chrono
 #include <memory>    // std::make_shared, std::shared_ptr
 #include <mutex>     // std::scoped_lock
@@ -18,11 +18,15 @@ auto system_now() -> std::chrono::system_clock::time_point {
 auto clamp_ttl(const std::optional<std::chrono::seconds> max_age,
                const sourcemeta::core::JWKSProvider::Options &options)
     -> std::chrono::seconds {
-  // An advertised lifetime (including a real zero) is clamped into the
-  // configured band; the absence of one falls back to the default lifetime
+  // An advertised lifetime (including a real zero) is held within the
+  // configured band. The absence of one falls back to the default lifetime. The
+  // lower and upper limits are applied as separate comparisons so that a
+  // configuration whose band is inverted, with the minimum above the maximum,
+  // stays well defined rather than undefined, with the minimum taking
+  // precedence
   if (max_age.has_value()) {
-    return std::clamp(max_age.value(), options.minimum_ttl,
-                      options.maximum_ttl);
+    return std::max(options.minimum_ttl,
+                    std::min(max_age.value(), options.maximum_ttl));
   }
 
   return options.fallback_ttl;
@@ -89,8 +93,8 @@ auto JWKSProvider::refresh_locked(
     if (!this->fetch_and_install_locked(now)) {
       // A failed refresh of a set we already hold serves the stale keys and
       // backs off, so a persistently unreachable issuer is not refetched on
-      // every request. Only the ability to validate a brand-new kid is delayed,
-      // and that is separately bounded by the unknown-key cooldown
+      // every request. Only the ability to validate a freshly rotated key is
+      // delayed, and that is separately bounded by the cooldown
       this->next_refresh_ = now + this->options_.minimum_ttl;
     }
   }
@@ -141,9 +145,13 @@ auto JWKSProvider::verify(
     return error;
   }
 
-  // The token named a key the set does not hold, which is the rotation signal
-  // (jwt_verify reserves UnknownKey for exactly this). One guarded, cooldown
-  // bounded refetch and a single retry; a Signature result is never retried
+  // No key in the current set could verify the token, whether because the key
+  // it names is absent, because it names none and nothing matched, or because
+  // only incompatible keys are present. That is the signal the set may be stale
+  // after a rotation, so the provider performs one guarded, cooldown-bounded
+  // refetch and retries once. A failure that is instead a present but
+  // non-verifying key is never retried, since that is an attack or a corrupt
+  // token, not a rotation
   std::shared_ptr<const JWKS> refreshed;
   {
     const std::scoped_lock lock{this->mutex_};

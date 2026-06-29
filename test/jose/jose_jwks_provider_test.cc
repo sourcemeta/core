@@ -12,8 +12,8 @@
 
 namespace {
 
-// Locally-signed RS256 token, header typ "at+jwt", iss "acme", aud "client",
-// exp 2000000000, and its matching key set (from jose_jwt_verify_test.cc)
+// A locally-signed token whose issuer, audience, and far-future expiry let the
+// success path run to completion, with its matching key set
 constexpr std::string_view SIGNED_TOKEN{
     "eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCJ9."
     "eyJpc3MiOiJhY21lIiwiYXVkIjoiY2xpZW50IiwiZXhwIjoyMDAwMDAwMDAwfQ."
@@ -27,8 +27,9 @@ constexpr std::string_view SIGNED_TOKEN{
 constexpr std::string_view SIGNED_KEYS{
     R"JSON({ "keys": [ { "kty": "RSA", "n": "oHTpl-jfNfBuXmBp58sW8s_77UP6j2jA0mjjKjhDkxhp7Agk-xLNGgfPCS_bjdZ6YU6FGeab8uVjkSgo9_0OCJUaF4vzEGwXmNuGawANxnZtiYjWvbJlq-2mn_L7rsqGQcSkMmyM0g4aX7dF8wB6DVrXShJ78fcrNtpeoU72YGEdjehA8qVclDFwBdpCGynxxnWJePk72lQb6gkVMqKMc3jBF8GkWf8oP_sjss-fpOjSUMR1c8_0JlTYWO46KWOZa0EO2t8H1V3imMyzbhoxRd_qZHmo46gJkG-ZdebjX0vGQllaCwu0z4kLcXIfAZhqPEkdssDGhC_txwJuhaPDFQ", "e": "AQAB" } ] })JSON"};
 
-// RFC 7515 A.2 token re-headed with kid "k1" (its signature therefore no longer
-// matches the re-headed signing input), plus kid-bearing key sets
+// The RFC 7515 Appendix A.2 worked-example token, re-headed with a key
+// identifier so its signature no longer matches the bytes it now covers, plus
+// key sets that carry identifiers
 constexpr std::string_view RS256_TOKEN_WITH_KEY_ID{
     "eyJhbGciOiJSUzI1NiIsImtpZCI6ImsxIn0."
     "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS"
@@ -44,8 +45,9 @@ constexpr std::string_view RSA_KEYS_KEY_ID_K1{
 constexpr std::string_view RSA_KEYS_KEY_ID_OTHER{
     R"JSON({ "keys": [ { "kty": "RSA", "n": "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddxHmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMsD1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSHSXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdVMTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ", "e": "AQAB", "kid": "other" } ] })JSON"};
 
-// An EC-only set, which cannot serve an RS256 token, so a no-kid token verified
-// against it reports UnknownKey (no compatible key)
+// A set holding only an elliptic-curve key, which cannot serve the RSA token,
+// so verifying that token against it reports an unknown key for want of a
+// compatible one
 constexpr std::string_view ELLIPTIC_CURVE_KEYS{
     R"JSON({ "keys": [ { "kty": "EC", "crv": "P-256", "x": "f83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPHvRVEU", "y": "x_FEzRu9m36HLN_tue659LNpXW6pCyStikYjKIWI5a0" } ] })JSON"};
 
@@ -247,7 +249,8 @@ TEST(JOSE_jwks_provider, cache_control_zero_clamps_to_minimum) {
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
-  // Stale at exactly the minimum lifetime; zero does not collapse into fallback
+  // Stale at exactly the minimum lifetime, and zero does not collapse into the
+  // fallback
   now = std::chrono::system_clock::from_time_t(1000000000 + 300);
   EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
                    .has_value());
@@ -292,9 +295,10 @@ TEST(JOSE_jwks_provider, signature_failure_is_not_retried) {
   sourcemeta::core::JWKSProvider provider{
       "https://issuer.test/jwks", fetcher,
       sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
-  // This token names "k1" and the set contains "k1", but the re-headed token's
-  // signature does not match, so verification returns a signature failure
-  // rather than an unknown-key result, and a signature failure is never retried
+  // The token names a key the set also contains, but the token was re-headed so
+  // its signature no longer matches, so verification reports a signature
+  // failure rather than an unknown key, and a signature failure is never
+  // retried
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN_WITH_KEY_ID)};
   ASSERT_TRUE(token.has_value());
 
@@ -307,7 +311,8 @@ TEST(JOSE_jwks_provider, signature_failure_is_not_retried) {
 
 TEST(JOSE_jwks_provider, unknown_key_refetch_is_bounded_by_cooldown) {
   std::size_t calls{0};
-  // The published set never contains "k1", so every verify hits an unknown key
+  // The published set never contains the token's key, so every verification
+  // hits an unknown key
   const auto fetcher{
       [&calls](const std::string_view)
           -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
@@ -322,7 +327,7 @@ TEST(JOSE_jwks_provider, unknown_key_refetch_is_bounded_by_cooldown) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN_WITH_KEY_ID)};
   ASSERT_TRUE(token.has_value());
 
-  // Cold fetch (1) then one guarded refetch (2); the kid is still absent
+  // Cold fetch then one guarded refetch, and the named key is still absent
   const auto first{
       provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
   ASSERT_TRUE(first.has_value());
@@ -398,8 +403,8 @@ TEST(JOSE_jwks_provider, expected_type_is_forwarded) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  // SIGNED_TOKEN carries typ "at+jwt", so pinning a different type is rejected,
-  // proving the expected type argument reaches the underlying verification
+  // The token carries an access-token type, so pinning a different expected
+  // type is rejected, proving that argument reaches the underlying verification
   const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
                                    "client", std::nullopt,
                                    "application/example")};
@@ -442,7 +447,8 @@ TEST(JOSE_jwks_provider, fetcher_exception_is_treated_as_failure) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  // A throwing fetcher must not escape verify; it denies like any failed fetch
+  // A throwing fetcher must not escape verification, and it denies like any
+  // failed fetch
   const auto error{
       provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   ASSERT_TRUE(error.has_value());
@@ -547,7 +553,7 @@ TEST(JOSE_jwks_provider, disallowed_algorithm_denies) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   ASSERT_TRUE(token.has_value());
 
-  // The token is signed with RS256, which is absent from the allow-list
+  // The token's signing algorithm is absent from the allow-list
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::ES256}};
   const auto error{provider.verify(token.value(), allowed, "acme", "client")};
@@ -597,4 +603,41 @@ TEST(JOSE_jwks_provider, wrong_audience_denies) {
       provider.verify(token.value(), ALLOWED_RS256, "acme", "unexpected")};
   ASSERT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
+}
+
+TEST(JOSE_jwks_provider, inverted_lifetime_bounds_stay_well_defined) {
+  std::size_t calls{0};
+  const auto fetcher{
+      [&calls](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        calls += 1;
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            std::string{SIGNED_KEYS}, std::chrono::hours{1}};
+      }};
+  auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  // A misconfiguration with the minimum above the maximum must not be undefined
+  // behaviour; the minimum wins, so the advertised one hour becomes one day
+  sourcemeta::core::JWKSProvider::Options options;
+  options.minimum_ttl = std::chrono::hours{24};
+  options.maximum_ttl = std::chrono::minutes{5};
+  sourcemeta::core::JWKSProvider provider{"https://issuer.test/jwks", fetcher,
+                                          options, [&now] { return now; }};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  ASSERT_TRUE(token.has_value());
+
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
+  EXPECT_EQ(calls, std::size_t{1});
+
+  // Still fresh one second before the minimum elapses
+  now = std::chrono::system_clock::from_time_t(1000000000 + 86399);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
+  EXPECT_EQ(calls, std::size_t{1});
+
+  // Stale at exactly the minimum
+  now = std::chrono::system_clock::from_time_t(1000000000 + 86400);
+  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+                   .has_value());
+  EXPECT_EQ(calls, std::size_t{2});
 }
