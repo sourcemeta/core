@@ -1,0 +1,143 @@
+#include <sourcemeta/core/jose_jwks_provider.h>
+
+#include <sourcemeta/core/json.h> // sourcemeta::core::try_parse_json
+
+#include <algorithm> // std::clamp
+#include <chrono>    // std::chrono
+#include <memory>    // std::make_shared, std::shared_ptr
+#include <mutex>     // std::scoped_lock
+#include <optional>  // std::optional, std::nullopt
+#include <utility>   // std::move
+
+namespace {
+
+auto clamp_ttl(const std::optional<std::chrono::seconds> max_age,
+               const sourcemeta::core::JWKSProvider::Options &options)
+    -> std::chrono::seconds {
+  // An advertised lifetime (including a real zero) is clamped into the
+  // configured band; the absence of one falls back to the default lifetime
+  if (max_age.has_value()) {
+    return std::clamp(max_age.value(), options.minimum_ttl,
+                      options.maximum_ttl);
+  }
+
+  return options.fallback_ttl;
+}
+
+} // namespace
+
+namespace sourcemeta::core {
+
+JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher)
+    : JWKSProvider{std::move(jwks_uri), std::move(fetcher), Options{}} {}
+
+JWKSProvider::JWKSProvider(std::string jwks_uri, Fetcher fetcher,
+                           Options options)
+    : jwks_uri_{std::move(jwks_uri)}, fetcher_{std::move(fetcher)},
+      options_{options} {}
+
+auto JWKSProvider::fetch_and_install_locked(
+    const std::chrono::system_clock::time_point now) -> bool {
+  const auto fetched{this->fetcher_(this->jwks_uri_)};
+  if (!fetched.has_value()) {
+    return false;
+  }
+
+  auto document{try_parse_json(fetched.value().body)};
+  if (!document.has_value()) {
+    return false;
+  }
+
+  auto parsed{JWKS::from(std::move(document).value())};
+  if (!parsed.has_value()) {
+    return false;
+  }
+
+  this->keys_ = std::make_shared<const JWKS>(std::move(parsed).value());
+  this->next_refresh_ =
+      now + clamp_ttl(fetched.value().max_age, this->options_);
+  return true;
+}
+
+auto JWKSProvider::refresh_locked(
+    const std::chrono::system_clock::time_point now)
+    -> std::shared_ptr<const JWKS> {
+  if (this->keys_ == nullptr) {
+    // Cold start: keep attempting on every call until a set is obtained, so the
+    // provider recovers the instant the issuer becomes reachable
+    this->fetch_and_install_locked(now);
+  } else if (now >= this->next_refresh_) {
+    if (!this->fetch_and_install_locked(now)) {
+      // A failed refresh of a set we already hold serves the stale keys and
+      // backs off, so a persistently unreachable issuer is not refetched on
+      // every request. Only the ability to validate a brand-new kid is delayed,
+      // and that is separately bounded by the unknown-key cooldown
+      this->next_refresh_ = now + this->options_.minimum_ttl;
+    }
+  }
+
+  return this->keys_;
+}
+
+auto JWKSProvider::refetch_for_unknown_kid_locked(
+    const std::chrono::system_clock::time_point now)
+    -> std::shared_ptr<const JWKS> {
+  if (now < this->unknown_kid_cooldown_until_) {
+    return nullptr;
+  }
+
+  // The cooldown is armed before the attempt so that tokens carrying random key
+  // identifiers cannot drive a fetch on every request
+  this->unknown_kid_cooldown_until_ = now + this->options_.unknown_kid_cooldown;
+  if (this->fetch_and_install_locked(now)) {
+    return this->keys_;
+  }
+
+  return nullptr;
+}
+
+auto JWKSProvider::verify(
+    const JWT &token, const std::span<const JWSAlgorithm> allowed_algorithms,
+    const std::string_view expected_issuer,
+    const std::string_view expected_audience,
+    const std::chrono::system_clock::time_point now,
+    const std::chrono::seconds clock_skew,
+    const std::optional<std::string_view> expected_subject,
+    const std::optional<std::string_view> expected_type)
+    -> std::optional<JWTVerificationError> {
+  std::shared_ptr<const JWKS> snapshot;
+  {
+    const std::scoped_lock lock{this->mutex_};
+    snapshot = this->refresh_locked(now);
+  }
+
+  if (snapshot == nullptr) {
+    return JWTVerificationError::UnknownKey;
+  }
+
+  const auto error{jwt_verify(token, *snapshot, allowed_algorithms,
+                              expected_issuer, expected_audience, now,
+                              clock_skew, expected_subject, expected_type)};
+  if (!error.has_value() || error.value() != JWTVerificationError::UnknownKey) {
+    return error;
+  }
+
+  // The token named a key the set does not hold, which is the rotation signal
+  // (jwt_verify reserves UnknownKey for exactly this). One guarded, cooldown
+  // bounded refetch and a single retry; a Signature result is never retried
+  std::shared_ptr<const JWKS> refreshed;
+  {
+    const std::scoped_lock lock{this->mutex_};
+    refreshed = this->refetch_for_unknown_kid_locked(now);
+  }
+
+  if (refreshed == nullptr || refreshed == snapshot) {
+    return error;
+  }
+
+  return jwt_verify(token, *refreshed, allowed_algorithms, expected_issuer,
+                    expected_audience, now, clock_skew, expected_subject,
+                    expected_type);
+}
+
+} // namespace sourcemeta::core
