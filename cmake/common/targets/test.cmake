@@ -1,3 +1,19 @@
+# Generate a translation unit that defines the test runner entry point and return
+# its path. The entry point must be compiled into each test executable rather than
+# provided by the (potentially shared) library, as an executable entry point
+# cannot be resolved from a shared library
+function(sourcemeta_test_main OUTPUT_VARIABLE)
+  set(GENERATED_MAIN "${CMAKE_CURRENT_BINARY_DIR}/sourcemeta_core_test_main.cc")
+  file(GENERATE OUTPUT "${GENERATED_MAIN}" CONTENT
+"#include <sourcemeta/core/test.h>
+
+auto main(int argc, char **argv) -> int {
+  return sourcemeta::core::test_run(argc, argv);
+}
+")
+  set("${OUTPUT_VARIABLE}" "${GENERATED_MAIN}" PARENT_SCOPE)
+endfunction()
+
 function(sourcemeta_test)
   cmake_parse_arguments(SOURCEMETA_TEST ""
     "NAMESPACE;PROJECT;NAME;VARIANT" "SOURCES" ${ARGN})
@@ -8,16 +24,18 @@ function(sourcemeta_test)
     set(TARGET_VARIANT "unit")
   endif()
 
+  sourcemeta_test_main(GENERATED_MAIN)
+
   sourcemeta_executable(
     NAMESPACE "${SOURCEMETA_TEST_NAMESPACE}"
     PROJECT "${SOURCEMETA_TEST_PROJECT}"
     NAME "${SOURCEMETA_TEST_NAME}"
     VARIANT "${TARGET_VARIANT}"
-    SOURCES "${SOURCEMETA_TEST_SOURCES}"
+    SOURCES "${SOURCEMETA_TEST_SOURCES}" "${GENERATED_MAIN}"
     OUTPUT TARGET_NAME)
 
   target_link_libraries("${TARGET_NAME}"
-    PRIVATE sourcemeta::core::test_main)
+    PRIVATE sourcemeta::core::test)
 
   # Test executables are not shipped, so LTO buys nothing and significantly
   # slows the link step (GCC's LTRANS phase serializes per executable)

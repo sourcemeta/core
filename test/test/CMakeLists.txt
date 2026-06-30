@@ -1,18 +1,24 @@
-add_executable(sourcemeta_core_test_success test_success.cc)
+sourcemeta_test_main(SOURCEMETA_CORE_TEST_DRIVER_MAIN)
+
+add_executable(sourcemeta_core_test_success
+  test_success.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
 target_link_libraries(sourcemeta_core_test_success
-  PRIVATE sourcemeta::core::test_main)
+  PRIVATE sourcemeta::core::test)
 
-add_executable(sourcemeta_core_test_failure test_failure.cc)
+add_executable(sourcemeta_core_test_failure
+  test_failure.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
 target_link_libraries(sourcemeta_core_test_failure
-  PRIVATE sourcemeta::core::test_main)
+  PRIVATE sourcemeta::core::test)
 
-add_executable(sourcemeta_core_test_throw test_throw.cc)
+add_executable(sourcemeta_core_test_throw
+  test_throw.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
 target_link_libraries(sourcemeta_core_test_throw
-  PRIVATE sourcemeta::core::test_main)
+  PRIVATE sourcemeta::core::test)
 
-add_executable(sourcemeta_core_test_filter test_filter.cc)
+add_executable(sourcemeta_core_test_filter
+  test_filter.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
 target_link_libraries(sourcemeta_core_test_filter
-  PRIVATE sourcemeta::core::test_main)
+  PRIVATE sourcemeta::core::test)
 
 if(WIN32)
   set(SOURCEMETA_CORE_TEST_RUNNER powershell -ExecutionPolicy Bypass -File
