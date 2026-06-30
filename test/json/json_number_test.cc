@@ -601,7 +601,7 @@ TEST(JSON_number, as_real_decimal_out_of_range_throws) {
     [[maybe_unused]] const auto value = document.as_real();
     FAIL();
   } catch (const std::out_of_range &error) {
-    EXPECT_STREQ(error.what(), "stod: out of range");
+    EXPECT_STREQ(error.what(), "Numeric value is out of range");
   }
 }
 
