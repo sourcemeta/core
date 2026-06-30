@@ -80,6 +80,35 @@ TEST(HTTP_cache_control_max_age, prefix_only_directive_ignored) {
   EXPECT_EQ(result.value(), std::chrono::seconds{7});
 }
 
+TEST(HTTP_cache_control_max_age, quoted_string_value) {
+  const auto result{
+      sourcemeta::core::http_cache_control_max_age("max-age=\"600\"")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), std::chrono::seconds{600});
+}
+
+TEST(HTTP_cache_control_max_age, quoted_string_value_among_directives) {
+  const auto result{sourcemeta::core::http_cache_control_max_age(
+      "public, max-age=\"42\", must-revalidate")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), std::chrono::seconds{42});
+}
+
+TEST(HTTP_cache_control_max_age, empty_quoted_string_value) {
+  EXPECT_FALSE(
+      sourcemeta::core::http_cache_control_max_age("max-age=\"\"").has_value());
+}
+
+TEST(HTTP_cache_control_max_age, unterminated_quote_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_cache_control_max_age("max-age=\"600")
+                   .has_value());
+}
+
+TEST(HTTP_cache_control_max_age, non_numeric_quoted_value_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_cache_control_max_age("max-age=\"abc\"")
+                   .has_value());
+}
+
 TEST(HTTP_cache_control_max_age, overflow_saturates) {
   const auto result{sourcemeta::core::http_cache_control_max_age(
       "max-age=999999999999999999999999")};

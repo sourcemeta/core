@@ -29,8 +29,15 @@ auto http_cache_control_max_age(const std::string_view cache_control) noexcept
         }
 
         found = true;
-        const auto digits{http_subview(directive, separator + 1,
-                                       directive.size() - separator - 1)};
+        auto digits{http_subview(directive, separator + 1,
+                                 directive.size() - separator - 1)};
+        // RFC 9111 §5.2.4: a sender must not generate the quoted-string form
+        // for a delta-seconds argument, but recipients ought to accept it
+        if (digits.size() >= 2 && digits.front() == '"' &&
+            digits.back() == '"') {
+          digits = http_subview(digits, 1, digits.size() - 2);
+        }
+
         if (digits.empty()) {
           return;
         }
