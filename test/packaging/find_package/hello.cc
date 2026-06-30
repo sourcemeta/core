@@ -27,6 +27,7 @@
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/semver.h>
 #include <sourcemeta/core/stacktrace.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 #include <sourcemeta/core/unicode.h>
