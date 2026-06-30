@@ -4,6 +4,8 @@
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/jsonpointer.h>
 
+#include <functional> // std::cref
+
 TEST(JSONLD_materialize, node_with_literal_property) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "name": "Sourcemeta" })");
@@ -1162,6 +1164,204 @@ TEST(JSONLD_materialize, node_descriptor_on_scalar_ignores_value) {
     {
       "@id": "https://example.com/doc",
       "https://example.com/x": [ { "@id": "https://example.com/other" } ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(JSONLD_materialize, weak_node_with_literal_property) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "name": "Sourcemeta" })");
+
+  const sourcemeta::core::JSON::String name_key{"name"};
+
+  sourcemeta::core::JSONLDWeakAnnotationMap map;
+  map.emplace(
+      sourcemeta::core::WeakPointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/org"}});
+  map.emplace(sourcemeta::core::WeakPointer{std::cref(name_key)},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/name", false}},
+                  .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/org",
+      "https://schema.org/name": [ { "@value": "Sourcemeta" } ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(JSONLD_materialize, weak_reference_property) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "currency": "USD" })");
+
+  const sourcemeta::core::JSON::String currency_key{"currency"};
+
+  sourcemeta::core::JSONLDWeakAnnotationMap map;
+  map.emplace(
+      sourcemeta::core::WeakPointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "urn:isbn:978-0131103627"}});
+  map.emplace(sourcemeta::core::WeakPointer{std::cref(currency_key)},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/priceCurrency", false}},
+                  .value = sourcemeta::core::JSONLDReference{
+                      .id = "https://www.iso.org/iso-4217/USD",
+                      .types = {"https://schema.org/Currency"}}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "urn:isbn:978-0131103627",
+      "https://schema.org/priceCurrency": [
+        {
+          "@id": "https://www.iso.org/iso-4217/USD",
+          "@type": [ "https://schema.org/Currency" ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(JSONLD_materialize, weak_ordered_collection_becomes_list) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "authors": [ "Ada", "Alan" ] })");
+
+  const sourcemeta::core::JSON::String authors_key{"authors"};
+
+  sourcemeta::core::JSONLDWeakAnnotationMap map;
+  map.emplace(sourcemeta::core::WeakPointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/book"}});
+  map.emplace(
+      sourcemeta::core::WeakPointer{std::cref(authors_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/author", false}},
+          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::WeakPointer{std::cref(authors_key), 0},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDLiteral{
+                      .datatype = "http://www.w3.org/2001/XMLSchema#string"}});
+  map.emplace(sourcemeta::core::WeakPointer{std::cref(authors_key), 1},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDLiteral{
+                      .datatype = "http://www.w3.org/2001/XMLSchema#string"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/author": [
+        {
+          "@list": [
+            { "@value": "Ada", "@type": "http://www.w3.org/2001/XMLSchema#string" },
+            { "@value": "Alan", "@type": "http://www.w3.org/2001/XMLSchema#string" }
+          ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(JSONLD_materialize, weak_reverse_edge) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "series": { "name": "Trilogy" } })");
+
+  const sourcemeta::core::JSON::String series_key{"series"};
+  const sourcemeta::core::JSON::String name_key{"name"};
+
+  sourcemeta::core::JSONLDWeakAnnotationMap map;
+  map.emplace(sourcemeta::core::WeakPointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/book"}});
+  map.emplace(sourcemeta::core::WeakPointer{std::cref(series_key)},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/hasPart", true}},
+                  .value = sourcemeta::core::JSONLDNode{}});
+  map.emplace(
+      sourcemeta::core::WeakPointer{std::cref(series_key), std::cref(name_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "@reverse": {
+        "https://schema.org/hasPart": [
+          { "https://schema.org/name": [ { "@value": "Trilogy" } ] }
+        ]
+      }
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(JSONLD_materialize, weak_array_root_spreads_into_default_graph) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"([ { "name": "A" }, { "name": "B" } ])");
+
+  const sourcemeta::core::JSON::String name_key{"name"};
+
+  sourcemeta::core::JSONLDWeakAnnotationMap map;
+  map.emplace(
+      sourcemeta::core::WeakPointer{},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {},
+          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(
+      sourcemeta::core::WeakPointer{0},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/a"}});
+  map.emplace(sourcemeta::core::WeakPointer{0, std::cref(name_key)},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/name", false}},
+                  .value = sourcemeta::core::JSONLDLiteral{}});
+  map.emplace(
+      sourcemeta::core::WeakPointer{1},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/b"}});
+  map.emplace(sourcemeta::core::WeakPointer{1, std::cref(name_key)},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/name", false}},
+                  .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/a",
+      "https://schema.org/name": [ { "@value": "A" } ]
+    },
+    {
+      "@id": "https://example.com/b",
+      "https://schema.org/name": [ { "@value": "B" } ]
     }
   ])");
 
