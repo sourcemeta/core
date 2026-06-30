@@ -109,6 +109,35 @@ TEST(HTTP_cache_control_max_age, non_numeric_quoted_value_rejected) {
                    .has_value());
 }
 
+TEST(HTTP_cache_control_max_age, quoted_pair_escaped_digits) {
+  const auto result{
+      sourcemeta::core::http_cache_control_max_age("max-age=\"6\\0\\0\"")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), std::chrono::seconds{600});
+}
+
+TEST(HTTP_cache_control_max_age, quoted_pair_escaped_non_digit_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_cache_control_max_age("max-age=\"6\\a0\"")
+                   .has_value());
+}
+
+TEST(HTTP_cache_control_max_age, dangling_escape_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_cache_control_max_age("max-age=\"60\\\"")
+                   .has_value());
+}
+
+TEST(HTTP_cache_control_max_age, backslash_in_token_form_rejected) {
+  EXPECT_FALSE(sourcemeta::core::http_cache_control_max_age("max-age=6\\00")
+                   .has_value());
+}
+
+TEST(HTTP_cache_control_max_age, far_above_overflow_boundary) {
+  const auto result{
+      sourcemeta::core::http_cache_control_max_age("max-age=4294967296")};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), std::chrono::seconds{2147483648});
+}
+
 TEST(HTTP_cache_control_max_age, overflow_saturates) {
   const auto result{sourcemeta::core::http_cache_control_max_age(
       "max-age=999999999999999999999999")};

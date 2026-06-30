@@ -3,6 +3,7 @@
 #include "helpers.h"
 
 #include <chrono>      // std::chrono::seconds
+#include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
 
@@ -10,8 +11,8 @@ namespace sourcemeta::core {
 
 auto http_cache_control_max_age(const std::string_view cache_control) noexcept
     -> std::optional<std::chrono::seconds> {
-  // RFC 9111 §1.2.2: a delta-seconds value larger than the cache can
-  // represent, or any subsequent overflow, must be treated as 2^31
+  // RFC 9111 §1.2.2: a delta-seconds value larger than the cache can represent
+  // is treated as 2^31
   constexpr std::chrono::seconds::rep overflow_seconds{2147483648};
   std::optional<std::chrono::seconds> result;
   bool found{false};
@@ -29,29 +30,51 @@ auto http_cache_control_max_age(const std::string_view cache_control) noexcept
         }
 
         found = true;
-        auto digits{http_subview(directive, separator + 1,
-                                 directive.size() - separator - 1)};
-        // RFC 9111 §5.2.4: a sender must not generate the quoted-string form
-        // for a delta-seconds argument, but recipients ought to accept it
-        if (digits.size() >= 2 && digits.front() == '"' &&
-            digits.back() == '"') {
-          digits = http_subview(digits, 1, digits.size() - 2);
+        auto value{http_subview(directive, separator + 1,
+                                directive.size() - separator - 1)};
+        // RFC 9111 §5.2.2.1 forbids a sender from generating the quoted-string
+        // form for delta-seconds, but RFC 9111 §5.2.4 asks recipients to accept
+        // it regardless
+        const bool quoted{value.size() >= 2 && value.front() == '"' &&
+                          value.back() == '"'};
+        if (quoted) {
+          value = http_subview(value, 1, value.size() - 2);
         }
 
-        if (digits.empty()) {
+        if (value.empty()) {
           return;
         }
 
         std::chrono::seconds::rep seconds{0};
-        for (const char character : digits) {
+        for (std::size_t index{0}; index < value.size(); ++index) {
+          char character{value[index]};
+          // RFC 9110 §5.6.4: within a quoted-string a backslash escapes the
+          // octet that follows it
+          if (quoted && character == '\\') {
+            index += 1;
+            if (index >= value.size()) {
+              return;
+            }
+
+            character = value[index];
+          }
+
           if (character < '0' || character > '9') {
             return;
           }
 
-          seconds = (seconds * 10) + (character - '0');
-          if (seconds > overflow_seconds) {
+          // Clamp before multiplying so the running total cannot itself
+          // overflow on a hostile number of digits
+          if (seconds > overflow_seconds / 10) {
             seconds = overflow_seconds;
+            continue;
           }
+
+          seconds = (seconds * 10) + (character - '0');
+        }
+
+        if (seconds > overflow_seconds) {
+          seconds = overflow_seconds;
         }
 
         result = std::chrono::seconds{seconds};
