@@ -157,45 +157,99 @@ TEST(URI_path_setter, set_path_with_trailing_slash) {
 TEST(URI_path_setter, set_relative_path) {
   sourcemeta::core::URI uri{"https://example.com"};
 
-  EXPECT_THROW(uri.path("../foo"), sourcemeta::core::URIError);
-  EXPECT_THROW(uri.path("./foo"), sourcemeta::core::URIError);
+  try {
+    uri.path("../foo");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
+  }
+  try {
+    uri.path("./foo");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
+  }
 
   auto path{"../foo"};
-  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
+  try {
+    uri.path(std::move(path));
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
+  }
   EXPECT_EQ(path, "../foo");
 
   path = "./foo";
-  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
+  try {
+    uri.path(std::move(path));
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
+  }
   EXPECT_EQ(path, "./foo");
 }
 
 TEST(URI_path_setter, set_path_with_query) {
   sourcemeta::core::URI uri{"https://example.com"};
 
-  EXPECT_THROW(uri.path("/foo%20bar?query=value#fragment"),
-               sourcemeta::core::URIError);
+  try {
+    uri.path("/foo%20bar?query=value#fragment");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
+  }
 
   std::string path{"/fooz%20bar?query=value#fragment"};
-  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
+  try {
+    uri.path(std::move(path));
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
+  }
 }
 
 TEST(URI_path_setter, set_path_with_fragment) {
   sourcemeta::core::URI uri{"https://example.com"};
 
-  EXPECT_THROW(uri.path("/foo%20bar#fragment"), sourcemeta::core::URIError);
+  try {
+    uri.path("/foo%20bar#fragment");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a path that contains a fragment");
+  }
 
   std::string path{"/fooz%20bar#fragment"};
-  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
+  try {
+    uri.path(std::move(path));
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a path that contains a fragment");
+  }
 }
 
 TEST(URI_path_setter, set_path_with_query_and_fragment) {
   sourcemeta::core::URI uri{"https://example.com/old?query=value#fragment"};
 
-  EXPECT_THROW(uri.path("/new?query=value#fragment"),
-               sourcemeta::core::URIError);
+  try {
+    uri.path("/new?query=value#fragment");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
+  }
 
   std::string path{"/newer?query=value#fragment"};
-  EXPECT_THROW(uri.path(std::move(path)), sourcemeta::core::URIError);
+  try {
+    uri.path(std::move(path));
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
+  }
 }
 
 TEST(URI_path_setter_no_scheme, set_path_on_host_only) {
@@ -341,14 +395,25 @@ TEST(URI_path, append_path_chain) {
 
 TEST(URI_path, append_path_rejects_scheme) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
-  EXPECT_THROW(uri.append_path("https://other.example.com/foo"),
-               sourcemeta::core::URIError);
+  try {
+    uri.append_path("https://other.example.com/foo");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme and authority");
+  }
 }
 
 TEST(URI_path, append_path_rejects_authority_only) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
-  EXPECT_THROW(uri.append_path("//other.example.com/foo"),
-               sourcemeta::core::URIError);
+  try {
+    uri.append_path("//other.example.com/foo");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains an authority");
+  }
 }
 
 TEST(URI_path, append_path_colon_in_first_segment_accepted) {
@@ -395,22 +460,46 @@ TEST(URI_path, append_path_dot_dot_empty_base) {
 
 TEST(URI_path, append_path_rejects_fragment) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar#baz"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar#baz");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a fragment");
+  }
 }
 
 TEST(URI_path, append_path_rejects_query) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar?x=1"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar?x=1");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a query");
+  }
 }
 
 TEST(URI_path, append_path_rejects_fragment_only) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("#bar"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("#bar");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a fragment");
+  }
 }
 
 TEST(URI_path, append_path_rejects_query_only) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("?x=1"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("?x=1");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a query");
+  }
 }
 
 TEST(URI_path, append_path_double_slash_in_argument_preserved) {
@@ -445,37 +534,83 @@ TEST(URI_path, append_path_trailing_slash_on_segment_input) {
 
 TEST(URI_path, append_path_rejects_space) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar baz"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar baz");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
+  }
 }
 
 TEST(URI_path, append_path_rejects_control_character) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar\nbaz"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar\nbaz");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
+  }
 }
 
 TEST(URI_path, append_path_rejects_square_brackets) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar[1]"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar[1]");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
+  }
 }
 
 TEST(URI_path, append_path_rejects_non_ascii) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar\xE2\x86\x92"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar\xE2\x86\x92");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
+  }
 }
 
 TEST(URI_path, append_path_rejects_truncated_percent) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar%"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar%");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
+  }
 }
 
 TEST(URI_path, append_path_rejects_partial_percent) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar%2"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar%2");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
+  }
 }
 
 TEST(URI_path, append_path_rejects_invalid_percent_digits) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
-  EXPECT_THROW(uri.append_path("bar%GZ"), sourcemeta::core::URIError);
+  try {
+    uri.append_path("bar%GZ");
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
+  }
 }
 
 TEST(URI_path, append_path_accepts_valid_percent_encoding) {
@@ -514,31 +649,66 @@ TEST(URI_path, append_path_uri_overload_dot_dot_collapses) {
 TEST(URI_path, append_path_uri_overload_rejects_scheme) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
   const sourcemeta::core::URI reference{"https://other.example.com/foo"};
-  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+  try {
+    uri.append_path(reference);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
+  }
 }
 
 TEST(URI_path, append_path_uri_overload_rejects_urn) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
   const sourcemeta::core::URI reference{"urn:example:foo"};
-  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+  try {
+    uri.append_path(reference);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
+  }
 }
 
 TEST(URI_path, append_path_uri_overload_rejects_query) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
   const sourcemeta::core::URI reference{"bar?x=1"};
-  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+  try {
+    uri.append_path(reference);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
+  }
 }
 
 TEST(URI_path, append_path_uri_overload_rejects_fragment) {
   sourcemeta::core::URI uri{"http://example.com:8080/foo"};
   const sourcemeta::core::URI reference{"bar#baz"};
-  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+  try {
+    uri.append_path(reference);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
+  }
 }
 
 TEST(URI_path, append_path_uri_overload_rejects_authority) {
   sourcemeta::core::URI uri{"http://example.com:8080"};
   const sourcemeta::core::URI reference{"//other.example.com/foo"};
-  EXPECT_THROW(uri.append_path(reference), sourcemeta::core::URIError);
+  try {
+    uri.append_path(reference);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
+  }
 }
 
 TEST(URI_path, append_path_uri_overload_chain) {

@@ -111,8 +111,11 @@ TEST(GZIP, compress_higher_level_is_not_larger) {
 
 TEST(GZIP, decompress_invalid_input_throws) {
   const std::string garbage{"this is not gzip data"};
-  EXPECT_THROW(sourcemeta::core::gunzip(
-                   reinterpret_cast<const std::uint8_t *>(garbage.data()),
-                   garbage.size()),
-               sourcemeta::core::GZIPError);
+  try {
+    sourcemeta::core::gunzip(
+        reinterpret_cast<const std::uint8_t *>(garbage.data()), garbage.size());
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
+  }
 }

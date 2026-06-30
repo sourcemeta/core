@@ -247,68 +247,112 @@ TEST(Punycode_encode, long_string_non_ascii) {
 
 TEST(Punycode_encode, error_surrogate_code_point) {
   const std::u32string input{0xD800};
-  EXPECT_THROW(sourcemeta::core::utf32_to_punycode(input),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf32_to_punycode(input);
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid code point");
+  }
 }
 
 TEST(Punycode_encode, error_code_point_above_maximum) {
   const std::u32string input{0x110000};
-  EXPECT_THROW(sourcemeta::core::utf32_to_punycode(input),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf32_to_punycode(input);
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid code point");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_bad_start_byte) {
   // 0xFF is never valid as a UTF-8 start byte
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xFF"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xFF");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_incomplete_2byte_sequence) {
   // 0xC3 starts a 2-byte sequence but no continuation follows
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xC3"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xC3");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_incomplete_3byte_sequence) {
   // 0xE2 starts a 3-byte sequence but only one continuation follows
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xE2\x80"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xE2\x80");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_incomplete_4byte_sequence) {
   // 0xF0 starts a 4-byte sequence but only two continuations follow
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xF0\x9F\x98"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xF0\x9F\x98");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_bad_continuation_byte) {
   // 0xC3 expects a continuation byte (0x80-0xBF), not 0x00
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xC3\x00"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xC3\x00");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_overlong_2byte) {
   // Overlong encoding of ASCII character (should be single byte)
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xC0\x80"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xC0\x80");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_overlong_3byte) {
   // Overlong 3-byte encoding of a character that fits in 2 bytes
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xE0\x80\x80"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xE0\x80\x80");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_overlong_4byte) {
   // Overlong 4-byte encoding of a character that fits in 3 bytes
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xF0\x80\x80\x80"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xF0\x80\x80\x80");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, error_utf8_surrogate_code_point) {
   // UTF-8 encoding of surrogate U+D800 (invalid)
-  EXPECT_THROW(sourcemeta::core::utf8_to_punycode("\xED\xA0\x80"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::utf8_to_punycode("\xED\xA0\x80");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
+  }
 }
 
 TEST(Punycode_encode, utf8_api_simple) {

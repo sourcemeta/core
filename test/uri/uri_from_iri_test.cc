@@ -15,14 +15,21 @@ TEST(URI_from_iri, accepts_ascii_like_uri) {
 
 TEST(URI_from_iri, rejects_private_use_in_path) {
   // RFC 3987 allows private-use characters only in the query
-  EXPECT_THROW(
-      sourcemeta::core::URI::from_iri("https://example.com/\xEE\x80\x80"),
-      sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI::from_iri("https://example.com/\xEE\x80\x80");
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 21);
+  }
 }
 
 TEST(URI_from_iri, rejects_invalid_utf8) {
-  EXPECT_THROW(sourcemeta::core::URI::from_iri("https://example.com/\xC3"),
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI::from_iri("https://example.com/\xC3");
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 21);
+  }
 }
 
 TEST(URI_from_iri, equals_plain_uri_with_same_components) {

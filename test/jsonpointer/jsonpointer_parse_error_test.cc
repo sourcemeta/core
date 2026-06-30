@@ -9,12 +9,11 @@
 #define EXPECT_POINTER_PARSE_ERROR(input, expected_column)                     \
   try {                                                                        \
     sourcemeta::core::to_pointer(input);                                       \
-    FAIL() << "The to_pointer function was expected to throw";                 \
+    FAIL();                                                                    \
   } catch (const sourcemeta::core::PointerParseError &error) {                 \
     EXPECT_EQ(error.column(), expected_column);                                \
-    SUCCEED();                                                                 \
   } catch (const std::exception &) {                                           \
-    FAIL() << "The to_pointer function threw an unexpected error";             \
+    FAIL();                                                                    \
   }
 
 TEST(JSONPointer_parse_error, missing_initial_slash) {

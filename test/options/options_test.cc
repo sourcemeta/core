@@ -156,8 +156,12 @@ TEST(Options, unknown_option_throws) {
   const char *const argv[] = {arg0, arg1};
   const int argc = 2;
 
-  EXPECT_THROW(app.parse(argc, argv),
-               sourcemeta::core::OptionsUnknownOptionError);
+  try {
+    app.parse(argc, argv);
+    FAIL();
+  } catch (const sourcemeta::core::OptionsUnknownOptionError &error) {
+    EXPECT_EQ(error.option(), "unknown");
+  }
 }
 
 TEST(Options, flag_given_value_throws) {
@@ -169,8 +173,12 @@ TEST(Options, flag_given_value_throws) {
   const char *const argv[] = {arg0, arg1};
   const int argc = 2;
 
-  EXPECT_THROW(app.parse(argc, argv),
-               sourcemeta::core::OptionsUnexpectedValueFlagError);
+  try {
+    app.parse(argc, argv);
+    FAIL();
+  } catch (const sourcemeta::core::OptionsUnexpectedValueFlagError &error) {
+    EXPECT_EQ(error.option(), "verbose");
+  }
 }
 
 TEST(Options, positional_after_double_dash) {
@@ -274,8 +282,12 @@ TEST(Options, long_option_without_value) {
   const char *const argv[] = {arg0, arg1};
   const int argc = 2;
 
-  EXPECT_THROW(app.parse(argc, argv),
-               sourcemeta::core::OptionsMissingOptionValueError);
+  try {
+    app.parse(argc, argv);
+    FAIL();
+  } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
+    EXPECT_EQ(error.option(), "file");
+  }
 }
 
 TEST(Options, short_option_without_value) {
@@ -287,8 +299,12 @@ TEST(Options, short_option_without_value) {
   const char *const argv[] = {arg0, arg1};
   const int argc = 2;
 
-  EXPECT_THROW(app.parse(argc, argv),
-               sourcemeta::core::OptionsMissingOptionValueError);
+  try {
+    app.parse(argc, argv);
+    FAIL();
+  } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
+    EXPECT_EQ(error.option(), "f");
+  }
 }
 
 TEST(Options, single_dash_is_consumed_as_value) {

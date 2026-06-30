@@ -255,24 +255,40 @@ TEST(Punycode_decode, long_string_non_ascii) {
 }
 
 TEST(Punycode_decode, error_invalid_digit) {
-  EXPECT_THROW(sourcemeta::core::punycode_to_utf32("abc!def"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::punycode_to_utf32("abc!def");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
 }
 
 TEST(Punycode_decode, error_non_basic_before_delimiter) {
   // Non-ASCII character (0x80+) before the delimiter
-  EXPECT_THROW(sourcemeta::core::punycode_to_utf32("\x80-abc"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::punycode_to_utf32("\x80-abc");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Non-basic code point before delimiter");
+  }
 }
 
 TEST(Punycode_decode, error_leading_delimiter_only) {
-  EXPECT_THROW(sourcemeta::core::punycode_to_utf32("-"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::punycode_to_utf32("-");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
 }
 
 TEST(Punycode_decode, error_leading_delimiter_with_body) {
-  EXPECT_THROW(sourcemeta::core::punycode_to_utf32("-abc"),
-               sourcemeta::core::PunycodeError);
+  try {
+    sourcemeta::core::punycode_to_utf32("-abc");
+    FAIL();
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
+  }
 }
 
 TEST(Punycode_decode, trailing_delimiter_basic_only) {

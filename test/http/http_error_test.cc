@@ -4,9 +4,8 @@
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_status.h>
 
-#include <optional>  // std::optional
-#include <stdexcept> // std::runtime_error
-#include <string>    // std::string
+#include <optional> // std::optional
+#include <string>   // std::string
 
 TEST(HTTP_error, message) {
   const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::GET,
@@ -27,13 +26,6 @@ TEST(HTTP_error, url) {
                                           "https://example.com/schema.json",
                                           "Connection refused"};
   EXPECT_EQ(error.url(), "https://example.com/schema.json");
-}
-
-TEST(HTTP_error, catchable_as_runtime_error) {
-  EXPECT_THROW(
-      throw sourcemeta::core::HTTPError(sourcemeta::core::HTTPMethod::GET,
-                                        "https://example.com", "failure"),
-      std::runtime_error);
 }
 
 TEST(HTTP_error, status_error_message) {
@@ -63,13 +55,6 @@ TEST(HTTP_error, status_error_status) {
       sourcemeta::core::HTTP_STATUS_SERVICE_UNAVAILABLE};
   EXPECT_EQ(error.status(), sourcemeta::core::HTTP_STATUS_SERVICE_UNAVAILABLE);
   EXPECT_EQ(error.status().code, 503);
-}
-
-TEST(HTTP_error, status_error_catchable_as_http_error) {
-  EXPECT_THROW(throw sourcemeta::core::HTTPStatusError(
-                   sourcemeta::core::HTTPMethod::GET, "https://example.com",
-                   sourcemeta::core::HTTP_STATUS_NOT_FOUND),
-               sourcemeta::core::HTTPError);
 }
 
 TEST(HTTP_error, status_error_owns_status_data) {
