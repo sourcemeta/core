@@ -74,8 +74,7 @@ struct JSONLDDescriptor {
 
 /// @ingroup jsonld
 /// A resolved mapping of instance positions to their JSON-LD semantics, keyed
-/// by JSON Pointer. The pointer type is a template parameter so the same map
-/// can be keyed by an owning `Pointer` or a non-owning `WeakPointer`.
+/// by a JSON Pointer of the given kind
 template <typename PointerT>
 using JSONLDBasicAnnotationMap =
     std::unordered_map<PointerT, JSONLDDescriptor, typename PointerT::Hasher>;
