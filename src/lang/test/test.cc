@@ -32,8 +32,9 @@ auto base_name(std::string_view path) -> std::string {
 }
 
 auto print_usage(std::string_view program) -> void {
-  std::cerr
-      << "Usage: " << base_name(program) << " [options]\n\n"
+  std::cout
+      << "Usage: " << std::filesystem::path{program}.stem().string()
+      << " [options]\n\n"
       << "Run the registered tests.\n\n"
       << "Options:\n"
       << "  -f, --filter <prefix>  Only run tests whose <suite>.<name> starts "

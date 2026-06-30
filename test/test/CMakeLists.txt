@@ -1,18 +1,18 @@
 add_executable(sourcemeta_core_test_success test_success.cc)
 target_link_libraries(sourcemeta_core_test_success
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test_main)
 
 add_executable(sourcemeta_core_test_failure test_failure.cc)
 target_link_libraries(sourcemeta_core_test_failure
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test_main)
 
 add_executable(sourcemeta_core_test_throw test_throw.cc)
 target_link_libraries(sourcemeta_core_test_throw
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test_main)
 
 add_executable(sourcemeta_core_test_filter test_filter.cc)
 target_link_libraries(sourcemeta_core_test_filter
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test_main)
 
 if(WIN32)
   set(SOURCEMETA_CORE_TEST_RUNNER powershell -ExecutionPolicy Bypass -File

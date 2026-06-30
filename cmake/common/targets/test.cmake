@@ -17,7 +17,7 @@ function(sourcemeta_test)
     OUTPUT TARGET_NAME)
 
   target_link_libraries("${TARGET_NAME}"
-    PRIVATE sourcemeta::core::test)
+    PRIVATE sourcemeta::core::test_main)
 
   # Test executables are not shipped, so LTO buys nothing and significantly
   # slows the link step (GCC's LTRANS phase serializes per executable)
