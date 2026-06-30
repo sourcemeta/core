@@ -90,11 +90,9 @@ TEST(JSON_real, float_infinity) {
 
 TEST(JSON_real, copy_constructor_cannot_create_invalid_json) {
   try {
-    {
-      const sourcemeta::core::JSON source{
-          std::numeric_limits<double>::quiet_NaN()};
-      const sourcemeta::core::JSON copy{source};
-    };
+    const sourcemeta::core::JSON source{
+        std::numeric_limits<double>::quiet_NaN()};
+    const sourcemeta::core::JSON copy{source};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -103,10 +101,8 @@ TEST(JSON_real, copy_constructor_cannot_create_invalid_json) {
 
 TEST(JSON_real, move_constructor_cannot_create_invalid_json) {
   try {
-    {
-      sourcemeta::core::JSON source{std::numeric_limits<double>::infinity()};
-      const sourcemeta::core::JSON moved{std::move(source)};
-    };
+    sourcemeta::core::JSON source{std::numeric_limits<double>::infinity()};
+    const sourcemeta::core::JSON moved{std::move(source)};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -115,12 +111,10 @@ TEST(JSON_real, move_constructor_cannot_create_invalid_json) {
 
 TEST(JSON_real, copy_assignment_cannot_create_invalid_json) {
   try {
-    {
-      const sourcemeta::core::JSON source{
-          std::numeric_limits<double>::quiet_NaN()};
-      sourcemeta::core::JSON target{1.0};
-      target = source;
-    };
+    const sourcemeta::core::JSON source{
+        std::numeric_limits<double>::quiet_NaN()};
+    sourcemeta::core::JSON target{1.0};
+    target = source;
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -129,11 +123,9 @@ TEST(JSON_real, copy_assignment_cannot_create_invalid_json) {
 
 TEST(JSON_real, move_assignment_cannot_create_invalid_json) {
   try {
-    {
-      sourcemeta::core::JSON source{std::numeric_limits<double>::infinity()};
-      sourcemeta::core::JSON target{1.0};
-      target = std::move(source);
-    };
+    sourcemeta::core::JSON source{std::numeric_limits<double>::infinity()};
+    sourcemeta::core::JSON target{1.0};
+    target = std::move(source);
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -142,12 +134,9 @@ TEST(JSON_real, move_assignment_cannot_create_invalid_json) {
 
 TEST(JSON_real, addition_operator_cannot_create_invalid_json) {
   try {
-    {
-      const sourcemeta::core::JSON left{
-          std::numeric_limits<double>::infinity()};
-      const sourcemeta::core::JSON right{1.0};
-      const auto result{left + right};
-    };
+    const sourcemeta::core::JSON left{std::numeric_limits<double>::infinity()};
+    const sourcemeta::core::JSON right{1.0};
+    const auto result{left + right};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -156,12 +145,9 @@ TEST(JSON_real, addition_operator_cannot_create_invalid_json) {
 
 TEST(JSON_real, subtraction_operator_cannot_create_invalid_json) {
   try {
-    {
-      const sourcemeta::core::JSON left{
-          -std::numeric_limits<double>::infinity()};
-      const sourcemeta::core::JSON right{1.0};
-      const auto result{left - right};
-    };
+    const sourcemeta::core::JSON left{-std::numeric_limits<double>::infinity()};
+    const sourcemeta::core::JSON right{1.0};
+    const auto result{left - right};
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -170,11 +156,9 @@ TEST(JSON_real, subtraction_operator_cannot_create_invalid_json) {
 
 TEST(JSON_real, addition_assignment_operator_cannot_create_invalid_json) {
   try {
-    {
-      sourcemeta::core::JSON document{std::numeric_limits<double>::infinity()};
-      const sourcemeta::core::JSON addend{1.0};
-      document += addend;
-    };
+    sourcemeta::core::JSON document{std::numeric_limits<double>::infinity()};
+    const sourcemeta::core::JSON addend{1.0};
+    document += addend;
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
@@ -183,11 +167,9 @@ TEST(JSON_real, addition_assignment_operator_cannot_create_invalid_json) {
 
 TEST(JSON_real, subtraction_assignment_operator_cannot_create_invalid_json) {
   try {
-    {
-      sourcemeta::core::JSON document{-std::numeric_limits<double>::infinity()};
-      const sourcemeta::core::JSON subtrahend{1.0};
-      document -= subtrahend;
-    };
+    sourcemeta::core::JSON document{-std::numeric_limits<double>::infinity()};
+    const sourcemeta::core::JSON subtrahend{1.0};
+    document -= subtrahend;
     FAIL();
   } catch (const std::invalid_argument &error) {
     EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
