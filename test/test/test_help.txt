@@ -3,6 +3,5 @@ Usage: sourcemeta_core_test_success [options]
 Run the registered tests.
 
 Options:
-  -f, --filter <substring>  Only run tests whose <suite>.<name> contains <substring>
-  --gtest_filter <value>    Alias for --filter (surrounding '*' are ignored)
-  -h, --help                Show this message
+  -f, --filter <prefix>  Only run tests whose <suite>.<name> starts with <prefix>
+  -h, --help             Show this message

@@ -36,11 +36,9 @@ auto print_usage(std::string_view program) -> void {
       << "Usage: " << base_name(program) << " [options]\n\n"
       << "Run the registered tests.\n\n"
       << "Options:\n"
-      << "  -f, --filter <substring>  Only run tests whose <suite>.<name> "
-         "contains <substring>\n"
-      << "  --gtest_filter <value>    Alias for --filter (surrounding '*' "
-         "are ignored)\n"
-      << "  -h, --help                Show this message\n";
+      << "  -f, --filter <prefix>  Only run tests whose <suite>.<name> starts "
+         "with <prefix>\n"
+      << "  -h, --help             Show this message\n";
 }
 
 auto print_diagnostic(std::string_view message) -> void {
@@ -93,7 +91,7 @@ auto test_run(int argc, char **argv) -> int {
   sourcemeta::core::stacktrace_on_crash();
 
   sourcemeta::core::Options options;
-  options.option("filter", {"gtest_filter", "f"});
+  options.option("filter", {"f"});
   options.flag("help", {"h"});
 
   try {
@@ -108,22 +106,15 @@ auto test_run(int argc, char **argv) -> int {
     return EXIT_FAILURE;
   }
 
-  std::string needle;
+  std::string_view needle;
   if (options.contains("filter") && !options.at("filter").empty()) {
-    needle = std::string{options.at("filter").front()};
-    while (!needle.empty() && needle.front() == '*') {
-      needle.erase(needle.begin());
-    }
-
-    while (!needle.empty() && needle.back() == '*') {
-      needle.pop_back();
-    }
+    needle = options.at("filter").front();
   }
 
   std::vector<const RegisteredTest *> selected;
   for (const auto &entry : registry()) {
     const std::string identifier{entry.suite + "." + entry.name};
-    if (needle.empty() || identifier.find(needle) != std::string::npos) {
+    if (needle.empty() || identifier.starts_with(needle)) {
       selected.push_back(&entry);
     }
   }
