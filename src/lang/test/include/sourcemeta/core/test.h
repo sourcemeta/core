@@ -174,16 +174,30 @@ inline auto test_c_string_label(const char *const value) -> std::string_view {
                           : std::string_view{value};
 }
 
-// The operands are taken as function arguments so that any temporaries they
-// produce live through the whole comparison, which a separate reference binding
-// inside the macro would let dangle
+// References, rather than values, so that the operands bind without copying and
+// without rejecting comparisons of non-copyable types. This aggregate only ever
+// lives for the duration of a single comparison call, so the usual hazards of
+// reference members do not apply here.
+template <typename Left, typename Right> struct test_operands {
+  // NOLINTBEGIN(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const Left &left;
+  const Right &right;
+  // NOLINTEND(cppcoreguidelines-avoid-const-or-ref-data-members)
+};
+
+// Collecting both operands through a single braced initializer keeps their
+// temporaries alive for the whole comparison and pins their evaluation to
+// left-to-right order. Binding each operand to its own reference inside the
+// macro guarantees neither
 template <typename Left, typename Right, typename Comparator>
 auto test_expect_comparison(std::string_view file, int line,
-                            std::string_view expression, const Left &left,
-                            const Right &right, Comparator comparator) -> void {
-  if (!comparator(left, right)) {
-    test_report_failure(file, line,
-                        test_describe_mismatch(expression, left, right));
+                            std::string_view expression,
+                            const test_operands<Left, Right> &operands,
+                            Comparator comparator) -> void {
+  if (!comparator(operands.left, operands.right)) {
+    test_report_failure(
+        file, line,
+        test_describe_mismatch(expression, operands.left, operands.right));
   }
 }
 
@@ -201,8 +215,8 @@ auto test_expect_comparison(std::string_view file, int line,
 
 #define SOURCEMETA_CORE_TEST_COMPARE(actual, expected, comparator, operation)  \
   ::sourcemeta::core::test_expect_comparison(                                  \
-      __FILE__, __LINE__, #actual " " operation " " #expected, (actual),       \
-      (expected),                                                              \
+      __FILE__, __LINE__, #actual " " operation " " #expected,                 \
+      ::sourcemeta::core::test_operands{(actual), (expected)},                 \
       [](const auto &sourcemeta_test_left,                                     \
          const auto &sourcemeta_test_right) {                                  \
         return ::sourcemeta::core::comparator(sourcemeta_test_left,            \
