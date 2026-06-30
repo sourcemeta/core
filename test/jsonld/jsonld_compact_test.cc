@@ -87,8 +87,11 @@ TEST(JSONLD_compact, nest_value_not_expanding_to_nest_is_rejected) {
     "other": "http://example.com/other"
   })");
 
-  EXPECT_THROW(sourcemeta::core::jsonld_compact(input, context),
-               sourcemeta::core::JSONLDError);
+  try {
+    sourcemeta::core::jsonld_compact(input, context);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &) {
+  }
 }
 
 TEST(JSONLD_compact, nest_value_aliasing_nest_nests_the_property) {
@@ -178,8 +181,11 @@ TEST(JSONLD_compact, protected_redefinition_with_different_index_expansion) {
     }
   ])");
 
-  EXPECT_THROW(sourcemeta::core::jsonld_compact(input, context),
-               sourcemeta::core::JSONLDError);
+  try {
+    sourcemeta::core::jsonld_compact(input, context);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &) {
+  }
 }
 
 TEST(JSONLD_compact, list_object_stays_array_without_compact_arrays) {

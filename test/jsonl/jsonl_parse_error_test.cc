@@ -12,13 +12,12 @@
     sourcemeta::core::ConstJSONLIterator iterator{parser.cbegin()};            \
     while (iterator != parser.cend())                                          \
       ++iterator;                                                              \
-    FAIL() << "The JSONL parser was expected to throw";                        \
+    FAIL();                                                                    \
   } catch (const sourcemeta::core::JSONParseError &error) {                    \
     EXPECT_EQ(error.line(), expected_line);                                    \
     EXPECT_EQ(error.column(), expected_column);                                \
-    SUCCEED();                                                                 \
   } catch (const std::exception &) {                                           \
-    FAIL() << "The JSONL parser was expected to throw a parse error";          \
+    FAIL();                                                                    \
   }
 
 TEST(JSONL_parse_error, invalid_first_row) {

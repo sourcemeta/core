@@ -82,42 +82,63 @@ TEST(URI_from_path, unicode_windows) {
 
 TEST(URI_from_path, unix_relative_simple) {
   const std::filesystem::path example{"foo/bar/baz"};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }
 
 TEST(URI_from_path, unix_relative_with_dot) {
   const std::filesystem::path example{"./foo/bar"};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }
 
 TEST(URI_from_path, unix_relative_with_dotdot) {
   const std::filesystem::path example{"../parent/dir"};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }
 
 TEST(URI_from_path, unix_empty_path) {
   const std::filesystem::path example{""};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }
 
 TEST(URI_from_path, windows_relative_simple) {
   const std::filesystem::path example{"folder\\file.txt"};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }
 
 TEST(URI_from_path, windows_relative_with_dot) {
   const std::filesystem::path example{".\\foo\\bar"};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }
 
 TEST(URI_from_path, windows_relative_with_dotdot) {
   const std::filesystem::path example{"..\\up\\one\\level"};
-  EXPECT_THROW(sourcemeta::core::URI::from_path(example),
-               sourcemeta::core::URIError);
+  try {
+    sourcemeta::core::URI::from_path(example);
+    FAIL();
+  } catch (const sourcemeta::core::URIError &) {
+  }
 }

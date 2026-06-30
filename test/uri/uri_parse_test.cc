@@ -6,8 +6,12 @@
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L302
 
 TEST(URI_parse, syntax_error_1) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"//[::44.1"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"//[::44.1"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 3);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("//[::44.1"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("//[::44.1"));
 }
@@ -16,16 +20,24 @@ TEST(URI_parse, syntax_error_1) {
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L510-L516
 
 TEST(URI_parse, syntax_error_2) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://moo:21@moo:21@moo/"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://moo:21@moo:21@moo/"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 21);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://moo:21@moo:21@moo/"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://moo:21@moo:21@moo/"));
 }
 
 TEST(URI_parse, syntax_error_3) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://moo:21@moo:21@moo:21/"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://moo:21@moo:21@moo:21/"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 21);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://moo:21@moo:21@moo:21/"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://moo:21@moo:21@moo:21/"));
@@ -35,15 +47,24 @@ TEST(URI_parse, syntax_error_3) {
 // https://github.com/uriparser/uriparser/blob/bf0174e83164a4659c51c135399478bec389eafa/test/test.cpp#L2180
 
 TEST(URI_parse, syntax_error_4) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[vA.123456"}, // missing "]"
-               sourcemeta::core::URIParseError);
+  try {
+    // missing "]"
+    sourcemeta::core::URI uri{"http://[vA.123456"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[vA.123456"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[vA.123456"));
 }
 
 TEST(URI_parse, syntax_error_5) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%6G"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.example.com#/foo%6G"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 29);
+  }
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri("https://www.example.com#/foo%6G"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
@@ -95,24 +116,36 @@ TEST(URI_parse, urn_with_fragment) {
 }
 
 TEST(URI_parse, syntax_error_percent_at_end) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.example.com#/foo%"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 29);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.example.com#/foo%"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("https://www.example.com#/foo%"));
 }
 
 TEST(URI_parse, syntax_error_percent_one_hex) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%2"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.example.com#/foo%2"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 29);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.example.com#/foo%2"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com#/foo%2"));
 }
 
 TEST(URI_parse, syntax_error_percent_non_hex) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com#/foo%ZZ"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.example.com#/foo%ZZ"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 29);
+  }
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri("https://www.example.com#/foo%ZZ"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
@@ -120,24 +153,36 @@ TEST(URI_parse, syntax_error_percent_non_hex) {
 }
 
 TEST(URI_parse, syntax_error_percent_in_path) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com/foo%6G"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.example.com/foo%6G"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 28);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.example.com/foo%6G"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com/foo%6G"));
 }
 
 TEST(URI_parse, syntax_error_percent_in_query) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.example.com?foo%6G"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.example.com?foo%6G"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 28);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.example.com?foo%6G"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference(
       "https://www.example.com?foo%6G"));
 }
 
 TEST(URI_parse, syntax_error_percent_in_host) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"https://www.exam%ple.com"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"https://www.exam%ple.com"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 17);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("https://www.exam%ple.com"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("https://www.exam%ple.com"));
@@ -152,17 +197,26 @@ TEST(URI_parse, rfc3986_mixed_case_percent_encoding_lower_upper) {
 
 // RFC 3986: fragment = *( pchar / "/" / "?" )
 TEST(URI_parse, syntax_error_double_fragment_delimiter) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com/#frag#ment"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://example.com/#frag#ment"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 25);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://example.com/#frag#ment"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://example.com/#frag#ment"));
 }
 
-// RFC 3986: "[" and "]" are gen-delims only allowed in IP-literal within host.
+// RFC 3986: "[" and "]" are gen-delims only allowed in IP-literal within
+// host.
 TEST(URI_parse, syntax_error_brackets_in_query) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com/?q=[value]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://example.com/?q=[value]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 23);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://example.com/?q=[value]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://example.com/?q=[value]"));
@@ -171,54 +225,82 @@ TEST(URI_parse, syntax_error_brackets_in_query) {
 // RFC 3986: relative-ref path-noscheme means the first segment of a
 // schemeless, authorityless path must not contain a colon
 TEST(URI_parse, syntax_error_digit_prefix_scheme_like) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"2http://example.com"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"2http://example.com"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 6);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("2http://example.com"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("2http://example.com"));
 }
 
 TEST(URI_parse, syntax_error_underscore_scheme_like) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"my_scheme://example.com"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"my_scheme://example.com"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 10);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("my_scheme://example.com"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("my_scheme://example.com"));
 }
 
 TEST(URI_parse, syntax_error_colon_slash_slash) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"://example.com"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"://example.com"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 1);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("://example.com"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("://example.com"));
 }
 
 TEST(URI_parse, syntax_error_hyphen_prefix_scheme_like) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"-http://example.com"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"-http://example.com"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 6);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("-http://example.com"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("-http://example.com"));
 }
 
 // RFC 3986: path-abempty after authority must start with "/" or be empty
 TEST(URI_parse, syntax_error_port_trailing_alpha) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com:80a"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://example.com:80a"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 22);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://example.com:80a"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://example.com:80a"));
 }
 
 TEST(URI_parse, syntax_error_port_trailing_range) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com:80-90"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://example.com:80-90"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 22);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://example.com:80-90"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://example.com:80-90"));
 }
 
 TEST(URI_parse, syntax_error_port_exceeds_uint32) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://example.com:4294967296"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://example.com:4294967296"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 20);
+  }
   // RFC 3986: port = *DIGIT, so any digit sequence is syntactically valid
   EXPECT_TRUE(sourcemeta::core::URI::is_uri("http://example.com:4294967296"));
   EXPECT_TRUE(
@@ -226,10 +308,13 @@ TEST(URI_parse, syntax_error_port_exceeds_uint32) {
 }
 
 TEST(URI_parse, syntax_error_port_overflow_unsigned_long) {
-  EXPECT_THROW(
-      sourcemeta::core::URI uri{
-          "http://example.com:999999999999999999999999999999"},
-      sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{
+        "http://example.com:999999999999999999999999999999"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 20);
+  }
   // RFC 3986: port = *DIGIT, so any digit sequence is syntactically valid
   EXPECT_TRUE(sourcemeta::core::URI::is_uri(
       "http://example.com:999999999999999999999999999999"));
@@ -246,16 +331,24 @@ TEST(URI_parse, rfc3986_port_max_uint32) {
 }
 
 TEST(URI_parse, syntax_error_bare_ipv6_no_brackets) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://2001:db8::1"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://2001:db8::1"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 13);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://2001:db8::1"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://2001:db8::1"));
 }
 
 // RFC 3986: IPv6 brackets must contain valid hex digits, colons, and dots
 TEST(URI_parse, syntax_error_ipv6_invalid_hex) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[2001:db8::gggg]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[2001:db8::gggg]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 19);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[2001:db8::gggg]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://[2001:db8::gggg]"));
@@ -264,68 +357,104 @@ TEST(URI_parse, syntax_error_ipv6_invalid_hex) {
 // RFC 3986: IPvFuture = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
 // Must have version hex digits and dot separator
 TEST(URI_parse, syntax_error_ipvfuture_bare_v) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[v]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[v]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 10);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[v]"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[v]"));
 }
 
 TEST(URI_parse, syntax_error_ipvfuture_missing_dot) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[vabc]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[vabc]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 13);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[vabc]"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[vabc]"));
 }
 
 TEST(URI_parse, syntax_error_ipvfuture_non_hex_version) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[vZ.foo]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[vZ.foo]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 10);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[vZ.foo]"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[vZ.foo]"));
 }
 
 TEST(URI_parse, syntax_error_ipv6_empty_brackets) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[]"));
   EXPECT_FALSE(sourcemeta::core::URI::is_uri_reference("http://[]"));
 }
 
 TEST(URI_parse, syntax_error_ipv6_h16_too_long) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[2001:db8::00000]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[2001:db8::00000]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[2001:db8::00000]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://[2001:db8::00000]"));
 }
 
 TEST(URI_parse, syntax_error_ipv6_double_compression) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[2001::db8::1]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[2001::db8::1]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[2001::db8::1]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://[2001::db8::1]"));
 }
 
 TEST(URI_parse, syntax_error_ipv6_too_few_groups_without_compression) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[1:2:3:4:5:6:7]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[1:2:3:4:5:6:7]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[1:2:3:4:5:6:7]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://[1:2:3:4:5:6:7]"));
 }
 
 TEST(URI_parse, syntax_error_ipv6_too_many_groups) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[1:2:3:4:5:6:7:8:9]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[1:2:3:4:5:6:7:8:9]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[1:2:3:4:5:6:7:8:9]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://[1:2:3:4:5:6:7:8:9]"));
 }
 
 TEST(URI_parse, syntax_error_ipv6_embedded_ipv4_out_of_range) {
-  EXPECT_THROW(sourcemeta::core::URI uri{"http://[::ffff:1.2.3.256]"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI uri{"http://[::ffff:1.2.3.256]"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 8);
+  }
   EXPECT_FALSE(sourcemeta::core::URI::is_uri("http://[::ffff:1.2.3.256]"));
   EXPECT_FALSE(
       sourcemeta::core::URI::is_uri_reference("http://[::ffff:1.2.3.256]"));
@@ -811,6 +940,10 @@ TEST(URI_parse, rfc3986_empty_path_with_fragment) {
 
 TEST(URI_parse, uri_constructor_rejects_non_ascii) {
   // The plain URI constructor does not accept IRI characters
-  EXPECT_THROW(sourcemeta::core::URI{"https://example.com/caf\xC3\xA9"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI{"https://example.com/caf\xC3\xA9"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 24);
+  }
 }

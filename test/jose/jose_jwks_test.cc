@@ -226,8 +226,11 @@ TEST(JOSE_JWKS, from_accepts_rvalue) {
 
 TEST(JOSE_JWKS, constructor_throws_on_invalid_input) {
   const auto document{sourcemeta::core::parse_json(R"({ "keys": [] })")};
-  EXPECT_THROW(sourcemeta::core::JWKS{document},
-               sourcemeta::core::JWKSParseError);
+  try {
+    sourcemeta::core::JWKS{document};
+    FAIL();
+  } catch (const sourcemeta::core::JWKSParseError &) {
+  }
 }
 
 TEST(JOSE_JWKS, owns_keys_after_source_destroyed) {

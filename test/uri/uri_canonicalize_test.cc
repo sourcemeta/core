@@ -462,9 +462,11 @@ TEST(URI_canonicalize, iri_removes_default_port_preserving_host_ucschar) {
 
 TEST(URI_canonicalize, static_rejects_non_ascii) {
   // The static entry point parses as a plain URI, so IRI input is rejected
-  EXPECT_THROW(
-      sourcemeta::core::URI::canonicalize("https://example.com/caf\xC3\xA9"),
-      sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI::canonicalize("https://example.com/caf\xC3\xA9");
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &) {
+  }
 }
 
 TEST(URI_canonicalize, iri_decodes_percent_encoded_lower_boundary) {

@@ -43,9 +43,12 @@ TEST(IO_FileView, as_with_offset) {
 }
 
 TEST(IO_FileView, file_not_found) {
-  EXPECT_THROW(sourcemeta::core::FileView(
-                   std::filesystem::path{STUBS_DIRECTORY} / "nonexistent.bin"),
-               sourcemeta::core::FileViewError);
+  try {
+    sourcemeta::core::FileView(std::filesystem::path{STUBS_DIRECTORY} /
+                               "nonexistent.bin");
+    FAIL();
+  } catch (const sourcemeta::core::FileViewError &) {
+  }
 }
 
 TEST(IO_FileView, empty_file_does_not_throw) {

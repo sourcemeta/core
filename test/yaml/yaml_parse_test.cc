@@ -121,12 +121,12 @@ TEST(YAML_parse, empty) {
   const std::string input{""};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -134,12 +134,12 @@ TEST(YAML_parse, blank) {
   const std::string input{"    "};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 1);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -147,12 +147,12 @@ TEST(YAML_parse, invalid_1) {
   const std::string input{"{ xx"};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 5);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -160,14 +160,14 @@ TEST(YAML_parse, undefined_anchor) {
   const std::string input{"alias: *unknown"};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLUnknownAnchorError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLUnknownAnchorError &error) {
     EXPECT_EQ(error.anchor(), "unknown");
     EXPECT_STREQ(error.what(), "YAML alias references undefined anchor");
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 8);
   } catch (...) {
-    FAIL() << "Expected YAMLUnknownAnchorError, got different exception";
+    FAIL();
   }
 }
 
@@ -205,28 +205,34 @@ TEST(YAML_parse, yaml_or_json_stub_test_2) {
 }
 
 TEST(YAML_parse, file_not_exists) {
-  EXPECT_THROW(sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
-                                           "not_exists.yaml"),
-               sourcemeta::core::IOFileNotFoundError);
+  try {
+    sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
+                                "not_exists.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+  }
 }
 
 TEST(YAML_parse, yaml_or_json_file_not_exists) {
-  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
-                   std::filesystem::path{STUBS_PATH} / "not_exists.yaml"),
-               sourcemeta::core::IOFileNotFoundError);
+  try {
+    sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
+                                        "not_exists.yaml");
+    FAIL();
+  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+  }
 }
 
 TEST(YAML_parse, read_yaml_invalid_carries_path) {
   try {
     sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
                                 "invalid.yaml");
-    FAIL() << "Expected YAMLFileParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLFileParseError &error) {
     EXPECT_EQ(error.path(), std::filesystem::path{STUBS_PATH} / "invalid.yaml");
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 15);
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a file parse error";
+    FAIL();
   }
 }
 
@@ -433,21 +439,24 @@ TEST(YAML_parse, yaml_or_json_no_extension_json_content) {
 }
 
 TEST(YAML_parse, yaml_or_json_invalid_json_throws_json_error) {
-  EXPECT_THROW(sourcemeta::core::read_yaml_or_json(
-                   std::filesystem::path{STUBS_PATH} / "invalid.json"),
-               sourcemeta::core::JSONParseError);
+  try {
+    sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
+                                        "invalid.json");
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &) {
+  }
 }
 
 TEST(YAML_parse, yaml_or_json_invalid_yaml_throws_yaml_error) {
   try {
     sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
                                         "invalid.yaml");
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 15);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -503,11 +512,11 @@ TEST(YAML_parse, invalid_hex_escape) {
   const std::string input{"\"\\xGG\""};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -515,11 +524,11 @@ TEST(YAML_parse, invalid_unicode_escape_4) {
   const std::string input{"\"\\uZZZZ\""};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -527,11 +536,11 @@ TEST(YAML_parse, invalid_unicode_escape_8) {
   const std::string input{"\"\\UZZZZZZZZ\""};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &error) {
     EXPECT_EQ(error.line(), 1);
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }
 
@@ -547,10 +556,9 @@ TEST(YAML_parse, exponential_alias_expansion_is_bounded) {
                           "i: &i [ *h, *h, *h, *h, *h, *h, *h, *h, *h, *h ]\n"};
   try {
     sourcemeta::core::parse_yaml(input);
-    FAIL() << "Expected YAMLParseError to be thrown";
+    FAIL();
   } catch (const sourcemeta::core::YAMLParseError &) {
-    SUCCEED();
   } catch (...) {
-    FAIL() << "Expected YAMLParseError, got different exception";
+    FAIL();
   }
 }

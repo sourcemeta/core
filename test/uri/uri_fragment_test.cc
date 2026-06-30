@@ -45,8 +45,11 @@ TEST(URI_fragment, encoded_question_mark_preserved) {
 }
 
 TEST(URI_fragment, invalid_fragment_with_pointer) {
-  EXPECT_THROW(sourcemeta::core::URI{"#foo#/$defs/bar"},
-               sourcemeta::core::URIParseError);
+  try {
+    sourcemeta::core::URI{"#foo#/$defs/bar"};
+    FAIL();
+  } catch (const sourcemeta::core::URIParseError &) {
+  }
 }
 
 TEST(URI_fragment, urn) {

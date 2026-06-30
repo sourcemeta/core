@@ -1,19 +1,13 @@
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/regex.h>
 
 TEST(Crypto_uuid_v4, regex) {
   const auto uuid{sourcemeta::core::uuidv4()};
-#if defined(_MSC_VER)
-  EXPECT_THAT(uuid,
-              // Windows regular expressions don't support [, ], {, and }
-              testing::MatchesRegex("^........-....-4...-....-............$"));
-#else
-  EXPECT_THAT(uuid,
-              testing::MatchesRegex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-"
-                                    "[89ab][0-9a-f]{3}-[0-9a-f]{12}$"));
-#endif
+  EXPECT_TRUE(sourcemeta::core::matches_if_valid(
+      "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      uuid));
   EXPECT_TRUE(sourcemeta::core::is_uuid_like(uuid));
 }
 

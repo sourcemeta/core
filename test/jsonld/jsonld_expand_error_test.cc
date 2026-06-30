@@ -11,13 +11,13 @@
                                    expected_pointer)                           \
   try {                                                                        \
     [[maybe_unused]] const auto result{expression};                            \
-    FAIL() << "Expected JSON-LD error: " << (expected_code);                   \
+    FAIL();                                                                    \
   } catch (const sourcemeta::core::JSONLDError &error) {                       \
     EXPECT_STREQ(error.what(), (expected_code));                               \
     EXPECT_EQ(sourcemeta::core::to_string(error.pointer()),                    \
               (expected_pointer));                                             \
   } catch (...) {                                                              \
-    FAIL() << "Expected a JSONLDError: " << (expected_code);                   \
+    FAIL();                                                                    \
   }
 
 namespace {

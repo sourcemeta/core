@@ -17,6 +17,8 @@ sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto)
 target_link_libraries(sourcemeta_core_crypto_unit
+  PRIVATE sourcemeta::core::regex)
+target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::text)
 
 # pyca/cryptography Test Vectors

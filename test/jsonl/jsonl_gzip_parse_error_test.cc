@@ -19,7 +19,6 @@ TEST(JSONL_gzip_parse_error, invalid_compressed_data) {
     }
     FAIL();
   } catch (const sourcemeta::core::GZIPError &) {
-    SUCCEED();
   } catch (const std::exception &) {
     FAIL();
   }
@@ -40,7 +39,6 @@ TEST(JSONL_gzip_parse_error, invalid_json_in_compressed_data) {
   } catch (const sourcemeta::core::JSONParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 3);
-    SUCCEED();
   } catch (const std::exception &) {
     FAIL();
   }
@@ -61,7 +59,6 @@ TEST(JSONL_gzip_parse_error, invalid_delimiter_in_compressed_data) {
   } catch (const sourcemeta::core::JSONParseError &error) {
     EXPECT_EQ(error.line(), 1);
     EXPECT_EQ(error.column(), 7);
-    SUCCEED();
   } catch (const std::exception &) {
     FAIL();
   }

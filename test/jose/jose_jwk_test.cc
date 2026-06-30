@@ -154,8 +154,11 @@ TEST(JOSE_JWK, rejects_invalid_base64url) {
 
 TEST(JOSE_JWK, constructor_throws_on_invalid_input) {
   const auto document{sourcemeta::core::parse_json(R"({ "kty": "oct" })")};
-  EXPECT_THROW(sourcemeta::core::JWK{document},
-               sourcemeta::core::JWKParseError);
+  try {
+    sourcemeta::core::JWK{document};
+    FAIL();
+  } catch (const sourcemeta::core::JWKParseError &) {
+  }
 }
 
 TEST(JOSE_JWK, from_accepts_rvalue) {

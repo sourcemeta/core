@@ -31,8 +31,11 @@ TEST(IO_canonical, unmapped_error_surfaces_as_filesystem_error) {
   // no_such_file_or_directory nor any of the other mapped categories.
   std::filesystem::create_symlink(loop_path, loop_path);
 
-  EXPECT_THROW(sourcemeta::core::canonical(loop_path),
-               std::filesystem::filesystem_error);
+  try {
+    sourcemeta::core::canonical(loop_path);
+    FAIL();
+  } catch (const std::filesystem::filesystem_error &) {
+  }
 
   std::filesystem::remove(loop_path);
 }

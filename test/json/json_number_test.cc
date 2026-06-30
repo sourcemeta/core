@@ -597,8 +597,11 @@ TEST(JSON_number, as_real_decimal) {
 TEST(JSON_number, as_real_decimal_out_of_range_throws) {
   const auto document{sourcemeta::core::parse_json("1e400")};
   ASSERT_TRUE(document.is_decimal());
-  EXPECT_THROW([[maybe_unused]] const auto value = document.as_real(),
-               std::out_of_range);
+  try {
+    [[maybe_unused]] const auto value = document.as_real();
+    FAIL();
+  } catch (const std::out_of_range &) {
+  }
 }
 
 TEST(JSON_number, compare_int_real_equal) {
@@ -670,15 +673,21 @@ TEST(JSON_number, as_integer_decimal_fractional) {
 TEST(JSON_number, as_integer_decimal_out_of_range_throws) {
   const auto document{sourcemeta::core::parse_json("10000000000000000000")};
   ASSERT_TRUE(document.is_decimal());
-  EXPECT_THROW([[maybe_unused]] const auto value = document.as_integer(),
-               std::out_of_range);
+  try {
+    [[maybe_unused]] const auto value = document.as_integer();
+    FAIL();
+  } catch (const std::out_of_range &) {
+  }
 }
 
 TEST(JSON_number, as_integer_real_out_of_range_throws) {
   const sourcemeta::core::JSON document{1e300};
   ASSERT_TRUE(document.is_real());
-  EXPECT_THROW([[maybe_unused]] const auto value = document.as_integer(),
-               std::out_of_range);
+  try {
+    [[maybe_unused]] const auto value = document.as_integer();
+    FAIL();
+  } catch (const std::out_of_range &) {
+  }
 }
 
 TEST(JSON_number, is_integer_int_storage) {

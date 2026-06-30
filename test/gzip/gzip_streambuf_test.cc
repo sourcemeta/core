@@ -118,7 +118,11 @@ TEST(GZIP_stream_buffer, multiple_small_reads) {
 
 TEST(GZIP_stream_buffer, invalid_input_throws) {
   const std::string garbage{"this is not gzip data"};
-  EXPECT_THROW(decompress_via_stream(garbage), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(garbage);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, truncated_input_throws) {
@@ -126,7 +130,11 @@ TEST(GZIP_stream_buffer, truncated_input_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed.resize(compressed.size() / 2);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, output_size_one_byte) {
@@ -466,7 +474,11 @@ TEST(GZIP_stream_buffer, wrong_first_magic_byte_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[0] = static_cast<char>(0x00);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, wrong_second_magic_byte_throws) {
@@ -474,7 +486,11 @@ TEST(GZIP_stream_buffer, wrong_second_magic_byte_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[1] = static_cast<char>(0x00);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, unsupported_compression_method_throws) {
@@ -482,7 +498,11 @@ TEST(GZIP_stream_buffer, unsupported_compression_method_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[2] = static_cast<char>(0x09);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, reserved_flag_bit_5_set_throws) {
@@ -490,7 +510,11 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_5_set_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[3] = static_cast<char>(0x20);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, reserved_flag_bit_6_set_throws) {
@@ -498,7 +522,11 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_6_set_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[3] = static_cast<char>(0x40);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, reserved_flag_bit_7_set_throws) {
@@ -506,7 +534,11 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_7_set_throws) {
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[3] = static_cast<char>(0x80);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, corrupted_trailing_crc32_throws) {
@@ -516,7 +548,11 @@ TEST(GZIP_stream_buffer, corrupted_trailing_crc32_throws) {
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[compressed.size() - 8] =
       static_cast<char>(compressed[compressed.size() - 8] ^ 0xff);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, corrupted_trailing_isize_throws) {
@@ -526,11 +562,19 @@ TEST(GZIP_stream_buffer, corrupted_trailing_isize_throws) {
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   compressed[compressed.size() - 1] =
       static_cast<char>(compressed[compressed.size() - 1] ^ 0xff);
-  EXPECT_THROW(decompress_via_stream(compressed), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(compressed);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, empty_source_stream_throws) {
-  EXPECT_THROW(decompress_via_stream(""), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream("");
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, trailing_data_after_member_is_ignored) {
@@ -556,7 +600,11 @@ TEST(GZIP_stream_buffer, fhcrc_mismatch_throws) {
       0x91, 0xc9,             // FHCRC corrupted (correct is 0x90 0xc9)
       0x01, 0x0b, 0x00, 0xf4, 0xff, 'h',  'e',  'l',  'l',  'o',  ' ',  'w',
       'o',  'r',  'l',  'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, multiple_deflate_blocks) {
@@ -777,7 +825,11 @@ TEST(GZIP_stream_buffer, reserved_deflate_block_type_throws) {
       0x07,                   // BFINAL=1, BTYPE=11 (reserved/invalid)
       0x00, 0x00, 0x00, 0x00, // arbitrary trailing bytes
       0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
@@ -789,7 +841,11 @@ TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
       0x00, 0x00, // NLEN corrupted (must be 0xf4 0xff)
       'h',  'e',  'l',  'l',  'o',  ' ',  'w',  'o',  'r',  'l',
       'd',  0x85, 0x11, 0x4a, 0x0d, 0x0b, 0x00, 0x00, 0x00};
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, two_concatenated_members) {
@@ -824,7 +880,11 @@ TEST(GZIP_stream_buffer, header_only_source_throws) {
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
   const std::string header_only{compressed.substr(0, 10)};
-  EXPECT_THROW(decompress_via_stream(header_only), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(header_only);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, truncated_mid_fname_throws) {
@@ -832,7 +892,11 @@ TEST(GZIP_stream_buffer, truncated_mid_fname_throws) {
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00,
       0x00, 0x00, 0xff, 'd',  'a',  't'}; // no null terminator
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, truncated_mid_fcomment_throws) {
@@ -840,7 +904,11 @@ TEST(GZIP_stream_buffer, truncated_mid_fcomment_throws) {
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00,
       0x00, 0x00, 0xff, 'c',  'm',  't'}; // no null terminator
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, truncated_mid_fextra_throws) {
@@ -849,7 +917,11 @@ TEST(GZIP_stream_buffer, truncated_mid_fextra_throws) {
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
       0x00, 0x00, 0x00, 0xff, 0x0a, 0x00, // XLEN = 10
       'A',  'B',  'C'};                   // only 3 of 10 promised bytes present
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, fextra_spans_internal_buffer) {
@@ -872,7 +944,11 @@ TEST(GZIP_stream_buffer, dynamic_block_hlit_above_286_throws) {
   sourcemeta::core::InputByteStream stream{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                            0x00, 0x00, 0x00, 0x00, 0xff,
                                            0xfd, 0x00, 0x00};
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }
 
 TEST(GZIP_stream_buffer, dynamic_block_incomplete_code_throws) {
@@ -884,5 +960,9 @@ TEST(GZIP_stream_buffer, dynamic_block_incomplete_code_throws) {
   sourcemeta::core::InputByteStream stream{0x1f, 0x8b, 0x08, 0x00, 0x00,
                                            0x00, 0x00, 0x00, 0x00, 0xff,
                                            0x05, 0x00, 0x24, 0x00};
-  EXPECT_THROW(decompress_via_stream(stream), sourcemeta::core::GZIPError);
+  try {
+    decompress_via_stream(stream);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &) {
+  }
 }

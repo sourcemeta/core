@@ -147,8 +147,11 @@ TEST(JSONLD_flatten, conflicting_indexes_are_rejected) {
     { "@id": "http://example.com/a", "@index": "2" }
   ])");
 
-  EXPECT_THROW(sourcemeta::core::jsonld_flatten(input),
-               sourcemeta::core::JSONLDError);
+  try {
+    sourcemeta::core::jsonld_flatten(input);
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &) {
+  }
 }
 
 TEST(JSONLD_flatten, flatten_and_compact_against_context) {

@@ -10,15 +10,13 @@
                              expected_error, expected_message)                 \
   try {                                                                        \
     sourcemeta::core::parse_json((input));                                     \
-    FAIL() << "The parse function was expected to throw";                      \
+    FAIL();                                                                    \
   } catch (const sourcemeta::core::expected_error &error) {                    \
     EXPECT_EQ(error.line(), expected_line);                                    \
     EXPECT_EQ(error.column(), expected_column);                                \
     EXPECT_STREQ(error.what(), expected_message);                              \
-    SUCCEED();                                                                 \
   } catch (const std::exception &) {                                           \
-    FAIL()                                                                     \
-        << "The parse function was expected to throw the desired parse error"; \
+    FAIL();                                                                    \
   }
 
 #define EXPECT_PARSE_ERROR(input, expected_line, expected_column)              \
@@ -674,7 +672,7 @@ TEST(JSON_parse_error, read_json_invalid_1) {
     EXPECT_EQ(error.column(), 9);
     EXPECT_STREQ(error.what(), "Failed to parse the JSON document");
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a file parse error";
+    FAIL();
   }
 }
 
@@ -689,7 +687,7 @@ TEST(JSON_parse_error, read_json_invalid_2) {
     EXPECT_EQ(error.column(), 1);
     EXPECT_STREQ(error.what(), "Failed to parse the JSON document");
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a file parse error";
+    FAIL();
   }
 }
 
@@ -706,7 +704,7 @@ TEST(JSON_parse_error, read_json_invalid_bigint) {
                  "The JSON value is not representable by the IETF RFC 8259 "
                  "interoperable signed integer range");
   } catch (...) {
-    FAIL() << "The parse function was expected to throw a file parse error";
+    FAIL();
   }
 }
 

@@ -295,8 +295,11 @@ TEST(JOSE_JWT, rejects_critical_header) {
 }
 
 TEST(JOSE_JWT, constructor_throws_on_invalid_input) {
-  EXPECT_THROW(sourcemeta::core::JWT{"abc.def"},
-               sourcemeta::core::JWTParseError);
+  try {
+    sourcemeta::core::JWT{"abc.def"};
+    FAIL();
+  } catch (const sourcemeta::core::JWTParseError &) {
+  }
 }
 
 TEST(JOSE_JWT, owns_decoded_data) {

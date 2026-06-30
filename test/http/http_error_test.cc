@@ -30,10 +30,12 @@ TEST(HTTP_error, url) {
 }
 
 TEST(HTTP_error, catchable_as_runtime_error) {
-  EXPECT_THROW(
-      throw sourcemeta::core::HTTPError(sourcemeta::core::HTTPMethod::GET,
-                                        "https://example.com", "failure"),
-      std::runtime_error);
+  try {
+    throw sourcemeta::core::HTTPError(sourcemeta::core::HTTPMethod::GET,
+                                      "https://example.com", "failure");
+    FAIL();
+  } catch (const std::runtime_error &) {
+  }
 }
 
 TEST(HTTP_error, status_error_message) {
@@ -66,10 +68,13 @@ TEST(HTTP_error, status_error_status) {
 }
 
 TEST(HTTP_error, status_error_catchable_as_http_error) {
-  EXPECT_THROW(throw sourcemeta::core::HTTPStatusError(
-                   sourcemeta::core::HTTPMethod::GET, "https://example.com",
-                   sourcemeta::core::HTTP_STATUS_NOT_FOUND),
-               sourcemeta::core::HTTPError);
+  try {
+    throw sourcemeta::core::HTTPStatusError(
+        sourcemeta::core::HTTPMethod::GET, "https://example.com",
+        sourcemeta::core::HTTP_STATUS_NOT_FOUND);
+    FAIL();
+  } catch (const sourcemeta::core::HTTPError &) {
+  }
 }
 
 TEST(HTTP_error, status_error_owns_status_data) {

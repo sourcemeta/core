@@ -5,7 +5,6 @@
 TEST(IO_flush, test_txt) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt"};
   sourcemeta::core::flush(path);
-  SUCCEED();
 }
 
 TEST(IO_flush, not_exists) {

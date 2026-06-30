@@ -112,24 +112,36 @@ TEST(HTTP_SystemRequest, timeout_against_unreachable_host_throws) {
   // sub-millisecond timer granularity of some backends
   sourcemeta::core::HTTPSystemRequest request{"https://192.0.2.1/"};
   request.timeout(std::chrono::milliseconds{1000});
-  EXPECT_THROW(
-      { [[maybe_unused]] const auto response{request.send()}; },
-      sourcemeta::core::HTTPError);
+  try {
+    {
+      [[maybe_unused]] const auto response{request.send()};
+    };
+    FAIL();
+  } catch (const sourcemeta::core::HTTPError &) {
+  }
 }
 
 TEST(HTTP_SystemRequest, unresolvable_host_throws) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://this-host-does-not-exist.sourcemeta.invalid/"};
-  EXPECT_THROW(
-      { [[maybe_unused]] const auto response{request.send()}; },
-      sourcemeta::core::HTTPError);
+  try {
+    {
+      [[maybe_unused]] const auto response{request.send()};
+    };
+    FAIL();
+  } catch (const sourcemeta::core::HTTPError &) {
+  }
 }
 
 TEST(HTTP_SystemRequest, maximum_response_size_exceeded_throws) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/api/list"};
   request.maximum_response_size(1);
-  EXPECT_THROW(
-      { [[maybe_unused]] const auto response{request.send()}; },
-      sourcemeta::core::HTTPError);
+  try {
+    {
+      [[maybe_unused]] const auto response{request.send()};
+    };
+    FAIL();
+  } catch (const sourcemeta::core::HTTPError &) {
+  }
 }

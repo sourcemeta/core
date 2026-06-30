@@ -100,12 +100,15 @@ TEST(Parallel_for_each, empty_range) {
 TEST(Parallel_for_each, work_callback_throw) {
   std::vector<std::size_t> items{1, 2, 3, 4, 5};
 
-  EXPECT_THROW(sourcemeta::core::parallel_for_each(
-                   items.begin(), items.end(),
-                   [](const auto value, const auto, const auto) {
-                     if (value == 3) {
-                       throw std::runtime_error("error");
-                     }
-                   }),
-               std::runtime_error);
+  try {
+    sourcemeta::core::parallel_for_each(
+        items.begin(), items.end(),
+        [](const auto value, const auto, const auto) {
+          if (value == 3) {
+            throw std::runtime_error("error");
+          }
+        });
+    FAIL();
+  } catch (const std::runtime_error &) {
+  }
 }
