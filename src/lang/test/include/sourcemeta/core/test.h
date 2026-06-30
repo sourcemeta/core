@@ -5,6 +5,8 @@
 #include <sourcemeta/core/test_export.h>
 #endif
 
+#include <sourcemeta/core/numeric_util.h>
+
 #include <functional>  // std::function
 #include <ostream>     // std::ostream
 #include <sstream>     // std::ostringstream
@@ -157,6 +159,21 @@ auto test_describe_mismatch(std::string_view expression, const Left &left,
          "\n  expected: " + test_stringify(right);
 }
 
+inline auto test_c_string_equal(const char *const left, const char *const right)
+    -> bool {
+  // A null pointer is not a valid string to view, so compare pointers directly
+  if (left == nullptr || right == nullptr) {
+    return left == right;
+  }
+
+  return std::string_view{left} == std::string_view{right};
+}
+
+inline auto test_c_string_label(const char *const value) -> std::string_view {
+  return value == nullptr ? std::string_view{"(null)"}
+                          : std::string_view{value};
+}
+
 } // namespace sourcemeta::core
 
 #define SOURCEMETA_CORE_TEST_REGISTER(name)                                    \
@@ -196,6 +213,41 @@ auto test_describe_mismatch(std::string_view expression, const Left &left,
 #define EXPECT_GE(actual, expected)                                            \
   SOURCEMETA_CORE_TEST_COMPARE(actual, expected, test_compare_greater_equal,   \
                                ">=")
+
+#define SOURCEMETA_CORE_TEST_COMPARE_FLOATING(actual, expected, type)          \
+  do {                                                                         \
+    const type sourcemeta_test_actual{static_cast<type>(actual)};              \
+    const type sourcemeta_test_expected{static_cast<type>(expected)};          \
+    if (!::sourcemeta::core::real_equal(sourcemeta_test_actual,                \
+                                        sourcemeta_test_expected)) {           \
+      ::sourcemeta::core::test_report_failure(                                 \
+          __FILE__, __LINE__,                                                  \
+          ::sourcemeta::core::test_describe_mismatch(                          \
+              #actual " ~= " #expected, sourcemeta_test_actual,                \
+              sourcemeta_test_expected));                                      \
+    }                                                                          \
+  } while (false)
+
+#define EXPECT_DOUBLE_EQ(actual, expected)                                     \
+  SOURCEMETA_CORE_TEST_COMPARE_FLOATING(actual, expected, double)
+#define EXPECT_FLOAT_EQ(actual, expected)                                      \
+  SOURCEMETA_CORE_TEST_COMPARE_FLOATING(actual, expected, float)
+
+#define EXPECT_STREQ(actual, expected)                                         \
+  do {                                                                         \
+    const char *const sourcemeta_test_actual{(actual)};                        \
+    const char *const sourcemeta_test_expected{(expected)};                    \
+    if (!::sourcemeta::core::test_c_string_equal(sourcemeta_test_actual,       \
+                                                 sourcemeta_test_expected)) {  \
+      ::sourcemeta::core::test_report_failure(                                 \
+          __FILE__, __LINE__,                                                  \
+          ::sourcemeta::core::test_describe_mismatch(                          \
+              #actual " == " #expected,                                        \
+              ::sourcemeta::core::test_c_string_label(sourcemeta_test_actual), \
+              ::sourcemeta::core::test_c_string_label(                         \
+                  sourcemeta_test_expected)));                                 \
+    }                                                                          \
+  } while (false)
 
 #define EXPECT_TRUE(condition)                                                 \
   do {                                                                         \

@@ -6,6 +6,8 @@ if(SOURCEMETA_CORE_INSTALL)
 endif()
 
 target_link_libraries(sourcemeta_core_test
+  PUBLIC sourcemeta::core::numeric)
+target_link_libraries(sourcemeta_core_test
   PRIVATE sourcemeta::core::options)
 target_link_libraries(sourcemeta_core_test
   PRIVATE sourcemeta::core::stacktrace)

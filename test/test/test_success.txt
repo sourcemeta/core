@@ -1,6 +1,9 @@
 TAP version 14
-1..3
+1..6
 ok 1 - test_success.arithmetic
 ok 2 - test_success.truth
 ok 3 - test_success.ordering
-# 3 passed, 0 failed
+ok 4 - test_success.double_approximate
+ok 5 - test_success.float_approximate
+ok 6 - test_success.string_equal
+# 6 passed, 0 failed

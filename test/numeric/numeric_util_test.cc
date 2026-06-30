@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/numeric.h>
 
+#include <cmath>   // std::nextafter
 #include <cstdint> // std::int64_t, std::uint64_t, std::uint8_t
 #include <limits>  // std::numeric_limits
 
@@ -596,4 +597,84 @@ TEST(Numeric_util, real_digits_small_fractional_part) {
   const auto digits{sourcemeta::core::real_digits<std::int64_t>(1.5, position)};
   EXPECT_EQ(digits, 15);
   EXPECT_EQ(position, 1);
+}
+
+TEST(Numeric_util, real_equal_double_identical) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(1.5, 1.5));
+}
+
+TEST(Numeric_util, real_equal_double_within_rounding) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(0.1 + 0.2, 0.3));
+}
+
+TEST(Numeric_util, real_equal_double_clearly_unequal) {
+  EXPECT_FALSE(sourcemeta::core::real_equal(1.0, 2.0));
+}
+
+TEST(Numeric_util, real_equal_double_negative_identical) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(-1.5, -1.5));
+}
+
+TEST(Numeric_util, real_equal_double_opposite_signs) {
+  EXPECT_FALSE(sourcemeta::core::real_equal(1.0, -1.0));
+}
+
+TEST(Numeric_util, real_equal_double_zero) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(0.0, 0.0));
+}
+
+TEST(Numeric_util, real_equal_double_positive_and_negative_zero) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(0.0, -0.0));
+}
+
+TEST(Numeric_util, real_equal_double_adjacent_values) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(1.0, std::nextafter(1.0, 2.0)));
+}
+
+TEST(Numeric_util, real_equal_double_nan_not_equal_to_itself) {
+  const double nan{std::numeric_limits<double>::quiet_NaN()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(nan, nan));
+}
+
+TEST(Numeric_util, real_equal_double_nan_not_equal_to_value) {
+  const double nan{std::numeric_limits<double>::quiet_NaN()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(nan, 1.0));
+}
+
+TEST(Numeric_util, real_equal_double_infinities_equal) {
+  const double infinity{std::numeric_limits<double>::infinity()};
+  EXPECT_TRUE(sourcemeta::core::real_equal(infinity, infinity));
+}
+
+TEST(Numeric_util, real_equal_double_infinity_not_equal_to_value) {
+  const double infinity{std::numeric_limits<double>::infinity()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(infinity, 1.0));
+}
+
+TEST(Numeric_util, real_equal_double_infinity_not_equal_to_maximum) {
+  const double infinity{std::numeric_limits<double>::infinity()};
+  const double maximum{std::numeric_limits<double>::max()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(infinity, maximum));
+}
+
+TEST(Numeric_util, real_equal_float_identical) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(1.5F, 1.5F));
+}
+
+TEST(Numeric_util, real_equal_float_within_rounding) {
+  EXPECT_TRUE(sourcemeta::core::real_equal(0.1F + 0.2F, 0.3F));
+}
+
+TEST(Numeric_util, real_equal_float_clearly_unequal) {
+  EXPECT_FALSE(sourcemeta::core::real_equal(1.0F, 2.0F));
+}
+
+TEST(Numeric_util, real_equal_float_nan_not_equal_to_itself) {
+  const float nan{std::numeric_limits<float>::quiet_NaN()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(nan, nan));
+}
+
+TEST(Numeric_error, out_of_range_message) {
+  const sourcemeta::core::NumericOutOfRangeError error;
+  EXPECT_STREQ(error.what(), "Numeric value is out of range");
 }
