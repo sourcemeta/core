@@ -377,8 +377,8 @@ constexpr auto real_digits(Real value, std::uint64_t &point_position)
 /// @ingroup numeric
 /// Compare two floating-point values for equality within a small tolerance of
 /// four units in the last place, which absorbs the rounding error a typical
-/// computation accumulates. A NaN is never equal to anything, including itself.
-/// For example:
+/// computation accumulates. A NaN is never equal to anything, and an infinity
+/// is equal only to the same infinity. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/numeric.h>
@@ -389,12 +389,18 @@ constexpr auto real_digits(Real value, std::uint64_t &point_position)
 /// assert(!sourcemeta::core::real_equal(1.0, 2.0));
 /// ```
 template <std::floating_point Real>
+  requires(sizeof(Real) == sizeof(std::uint32_t) ||
+           sizeof(Real) == sizeof(std::uint64_t))
 auto real_equal(const Real left, const Real right) -> bool {
   using Bits = std::conditional_t<sizeof(Real) == sizeof(std::uint32_t),
                                   std::uint32_t, std::uint64_t>;
 
-  if (left != left || right != right) {
-    return false;
+  // A NaN equals nothing and an infinity equals only the same infinity, both
+  // handled exactly here. Only finite values fall through to the tolerance
+  // below, which would otherwise treat the largest finite value and infinity as
+  // equal because their encodings are adjacent
+  if (!std::isfinite(left) || !std::isfinite(right)) {
+    return left == right;
   }
 
   // Map the sign-and-magnitude bit pattern to a biased ordering in which

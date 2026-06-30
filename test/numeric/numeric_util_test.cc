@@ -651,6 +651,12 @@ TEST(Numeric_util, real_equal_double_infinity_not_equal_to_value) {
   EXPECT_FALSE(sourcemeta::core::real_equal(infinity, 1.0));
 }
 
+TEST(Numeric_util, real_equal_double_infinity_not_equal_to_maximum) {
+  const double infinity{std::numeric_limits<double>::infinity()};
+  const double maximum{std::numeric_limits<double>::max()};
+  EXPECT_FALSE(sourcemeta::core::real_equal(infinity, maximum));
+}
+
 TEST(Numeric_util, real_equal_float_identical) {
   EXPECT_TRUE(sourcemeta::core::real_equal(1.5F, 1.5F));
 }

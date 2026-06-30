@@ -159,6 +159,21 @@ auto test_describe_mismatch(std::string_view expression, const Left &left,
          "\n  expected: " + test_stringify(right);
 }
 
+inline auto test_c_string_equal(const char *const left, const char *const right)
+    -> bool {
+  // A null pointer is not a valid string to view, so compare pointers directly
+  if (left == nullptr || right == nullptr) {
+    return left == right;
+  }
+
+  return std::string_view{left} == std::string_view{right};
+}
+
+inline auto test_c_string_label(const char *const value) -> std::string_view {
+  return value == nullptr ? std::string_view{"(null)"}
+                          : std::string_view{value};
+}
+
 } // namespace sourcemeta::core
 
 #define SOURCEMETA_CORE_TEST_REGISTER(name)                                    \
@@ -220,14 +235,17 @@ auto test_describe_mismatch(std::string_view expression, const Left &left,
 
 #define EXPECT_STREQ(actual, expected)                                         \
   do {                                                                         \
-    const ::std::string_view sourcemeta_test_actual{(actual)};                 \
-    const ::std::string_view sourcemeta_test_expected{(expected)};             \
-    if (sourcemeta_test_actual != sourcemeta_test_expected) {                  \
+    const char *const sourcemeta_test_actual{(actual)};                        \
+    const char *const sourcemeta_test_expected{(expected)};                    \
+    if (!::sourcemeta::core::test_c_string_equal(sourcemeta_test_actual,       \
+                                                 sourcemeta_test_expected)) {  \
       ::sourcemeta::core::test_report_failure(                                 \
           __FILE__, __LINE__,                                                  \
           ::sourcemeta::core::test_describe_mismatch(                          \
-              #actual " == " #expected, sourcemeta_test_actual,                \
-              sourcemeta_test_expected));                                      \
+              #actual " == " #expected,                                        \
+              ::sourcemeta::core::test_c_string_label(sourcemeta_test_actual), \
+              ::sourcemeta::core::test_c_string_label(                         \
+                  sourcemeta_test_expected)));                                 \
     }                                                                          \
   } while (false)
 
