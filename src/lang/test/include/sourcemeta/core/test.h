@@ -5,12 +5,14 @@
 #include <sourcemeta/core/test_export.h>
 #endif
 
+#include <bit>         // std::bit_cast
+#include <cstdint>     // std::uint32_t, std::uint64_t
 #include <functional>  // std::function
 #include <ostream>     // std::ostream
 #include <sstream>     // std::ostringstream
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <type_traits> // std::is_integral_v, std::is_same_v, std::remove_cv_t
+#include <type_traits> // std::is_integral_v, std::is_same_v, std::remove_cv_t, std::conditional_t
 #include <utility> // std::cmp_equal, std::cmp_not_equal, std::cmp_less, std::cmp_greater, std::cmp_less_equal, std::cmp_greater_equal
 
 /// @defgroup test Test
@@ -157,6 +159,33 @@ auto test_describe_mismatch(std::string_view expression, const Left &left,
          "\n  expected: " + test_stringify(right);
 }
 
+template <typename Bits>
+constexpr auto test_floating_to_biased(const Bits bits) -> Bits {
+  constexpr Bits sign_bit{Bits{1} << (8 * sizeof(Bits) - 1)};
+  return (sign_bit & bits) != 0 ? static_cast<Bits>(~bits + Bits{1})
+                                : static_cast<Bits>(sign_bit | bits);
+}
+
+template <typename Float>
+auto test_floating_almost_equal(const Float left, const Float right) -> bool {
+  using Bits = std::conditional_t<sizeof(Float) == sizeof(std::uint32_t),
+                                  std::uint32_t, std::uint64_t>;
+
+  // A NaN compares unequal to everything, including itself
+  if (left != left || right != right) {
+    return false;
+  }
+
+  const Bits left_biased{test_floating_to_biased(std::bit_cast<Bits>(left))};
+  const Bits right_biased{test_floating_to_biased(std::bit_cast<Bits>(right))};
+  // Treat values within four units in the last place as equal, matching the
+  // tolerance of a typical floating-point comparison
+  constexpr Bits maximum_units_in_last_place{4};
+  return (left_biased >= right_biased
+              ? left_biased - right_biased
+              : right_biased - left_biased) <= maximum_units_in_last_place;
+}
+
 } // namespace sourcemeta::core
 
 #define SOURCEMETA_CORE_TEST_REGISTER(name)                                    \
@@ -196,6 +225,38 @@ auto test_describe_mismatch(std::string_view expression, const Left &left,
 #define EXPECT_GE(actual, expected)                                            \
   SOURCEMETA_CORE_TEST_COMPARE(actual, expected, test_compare_greater_equal,   \
                                ">=")
+
+#define SOURCEMETA_CORE_TEST_COMPARE_FLOATING(actual, expected, type)          \
+  do {                                                                         \
+    const type sourcemeta_test_actual{static_cast<type>(actual)};              \
+    const type sourcemeta_test_expected{static_cast<type>(expected)};          \
+    if (!::sourcemeta::core::test_floating_almost_equal(                       \
+            sourcemeta_test_actual, sourcemeta_test_expected)) {               \
+      ::sourcemeta::core::test_report_failure(                                 \
+          __FILE__, __LINE__,                                                  \
+          ::sourcemeta::core::test_describe_mismatch(                          \
+              #actual " ~= " #expected, sourcemeta_test_actual,                \
+              sourcemeta_test_expected));                                      \
+    }                                                                          \
+  } while (false)
+
+#define EXPECT_DOUBLE_EQ(actual, expected)                                     \
+  SOURCEMETA_CORE_TEST_COMPARE_FLOATING(actual, expected, double)
+#define EXPECT_FLOAT_EQ(actual, expected)                                      \
+  SOURCEMETA_CORE_TEST_COMPARE_FLOATING(actual, expected, float)
+
+#define EXPECT_STREQ(actual, expected)                                         \
+  do {                                                                         \
+    const ::std::string_view sourcemeta_test_actual{(actual)};                 \
+    const ::std::string_view sourcemeta_test_expected{(expected)};             \
+    if (sourcemeta_test_actual != sourcemeta_test_expected) {                  \
+      ::sourcemeta::core::test_report_failure(                                 \
+          __FILE__, __LINE__,                                                  \
+          ::sourcemeta::core::test_describe_mismatch(                          \
+              #actual " == " #expected, sourcemeta_test_actual,                \
+              sourcemeta_test_expected));                                      \
+    }                                                                          \
+  } while (false)
 
 #define EXPECT_TRUE(condition)                                                 \
   do {                                                                         \
