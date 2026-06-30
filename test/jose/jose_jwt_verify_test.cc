@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
@@ -56,122 +56,122 @@ constexpr std::string_view SIGNED_KEYS{
     R"JSON({ "keys": [ { "kty": "RSA", "n": "oHTpl-jfNfBuXmBp58sW8s_77UP6j2jA0mjjKjhDkxhp7Agk-xLNGgfPCS_bjdZ6YU6FGeab8uVjkSgo9_0OCJUaF4vzEGwXmNuGawANxnZtiYjWvbJlq-2mn_L7rsqGQcSkMmyM0g4aX7dF8wB6DVrXShJ78fcrNtpeoU72YGEdjehA8qVclDFwBdpCGynxxnWJePk72lQb6gkVMqKMc3jBF8GkWf8oP_sjss-fpOjSUMR1c8_0JlTYWO46KWOZa0EO2t8H1V3imMyzbhoxRd_qZHmo46gJkG-ZdebjX0vGQllaCwu0z4kLcXIfAZhqPEkdssDGhC_txwJuhaPDFQ", "e": "AQAB" } ] })JSON"};
 } // namespace
 
-TEST(JOSE_jwt_verify, algorithm_not_allowed) {
+TEST(algorithm_not_allowed) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(RSA_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::ES256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000))};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(),
             sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
 }
 
-TEST(JOSE_jwt_verify, unknown_key_by_identifier) {
+TEST(unknown_key_by_identifier) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN_WITH_KEY_ID)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(RSA_KEYS_KEY_ID_OTHER))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000))};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
 
-TEST(JOSE_jwt_verify, unknown_key_no_compatible_key) {
+TEST(unknown_key_no_compatible_key) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(ELLIPTIC_CURVE_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000))};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
 
-TEST(JOSE_jwt_verify, signature_failure) {
+TEST(signature_failure) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN_WITH_KEY_ID)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(RSA_KEYS_KEY_ID_K1))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000))};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Signature);
 }
 
-TEST(JOSE_jwt_verify, valid_signature_reaches_audience_check) {
+TEST(valid_signature_reaches_audience_check) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(RSA_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000))};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
 }
 
-TEST(JOSE_jwt_verify, issuer_mismatch_after_valid_signature) {
+TEST(issuer_mismatch_after_valid_signature) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(RSA_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "wrong", "client",
       std::chrono::system_clock::from_time_t(1300000000))};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Issuer);
 }
 
-TEST(JOSE_jwt_verify, type_required_but_absent) {
+TEST(type_required_but_absent) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(RSA_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
       std::chrono::system_clock::from_time_t(1300000000),
       std::chrono::seconds{0}, std::nullopt, "at+jwt")};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
 }
 
 // The signed token below is generated locally with OpenSSL (RS256, header
 // typ "at+jwt", unexpired issuer and audience claims), since no RFC worked
 // example pairs a valid signature with verifiable claims and an explicit type
-TEST(JOSE_jwt_verify, valid) {
+TEST(valid) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
@@ -180,12 +180,12 @@ TEST(JOSE_jwt_verify, valid) {
   EXPECT_FALSE(error.has_value());
 }
 
-TEST(JOSE_jwt_verify, type_compact_form_matches) {
+TEST(type_compact_form_matches) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
@@ -195,12 +195,12 @@ TEST(JOSE_jwt_verify, type_compact_form_matches) {
   EXPECT_FALSE(error.has_value());
 }
 
-TEST(JOSE_jwt_verify, type_application_prefix_matches) {
+TEST(type_application_prefix_matches) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
@@ -210,18 +210,18 @@ TEST(JOSE_jwt_verify, type_application_prefix_matches) {
   EXPECT_FALSE(error.has_value());
 }
 
-TEST(JOSE_jwt_verify, type_mismatch) {
+TEST(type_mismatch) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(SIGNED_KEYS))};
-  ASSERT_TRUE(keys.has_value());
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "acme", "client",
       std::chrono::system_clock::from_time_t(1000000000),
       std::chrono::seconds{0}, std::nullopt, "application/example")};
-  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
 }

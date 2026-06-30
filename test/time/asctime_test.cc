@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <chrono>
 #include <ctime>
 
 #include <sourcemeta/core/time.h>
 
-TEST(Time_asctime, parse_rfc_example) {
+TEST(parse_rfc_example) {
   const auto point{sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 1994")};
-  ASSERT_TRUE(point.has_value());
+  EXPECT_TRUE(point.has_value());
 
   std::tm parts = {};
   parts.tm_year = 94;
@@ -26,9 +26,9 @@ TEST(Time_asctime, parse_rfc_example) {
   EXPECT_EQ(point.value(), expected);
 }
 
-TEST(Time_asctime, parse_two_digit_day) {
+TEST(parse_two_digit_day) {
   const auto point{sourcemeta::core::from_asctime("Wed Oct 21 11:28:00 2015")};
-  ASSERT_TRUE(point.has_value());
+  EXPECT_TRUE(point.has_value());
 
   std::tm parts = {};
   parts.tm_year = 115;
@@ -47,30 +47,30 @@ TEST(Time_asctime, parse_two_digit_day) {
   EXPECT_EQ(point.value(), expected);
 }
 
-TEST(Time_asctime, parse_empty_returns_nullopt) {
+TEST(parse_empty_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_asctime("").has_value());
 }
 
-TEST(Time_asctime, parse_wrong_length_returns_nullopt) {
+TEST(parse_wrong_length_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 1994 GMT")
                    .has_value());
 }
 
-TEST(Time_asctime, parse_imf_fixdate_form_returns_nullopt) {
+TEST(parse_imf_fixdate_form_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_asctime("Sun, 06 Nov 1994 08:49:37 GMT")
                    .has_value());
 }
 
-TEST(Time_asctime, parse_rfc850_form_returns_nullopt) {
+TEST(parse_rfc850_form_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_asctime("Sunday, 06-Nov-94 08:49:37 GMT")
                    .has_value());
 }
 
-TEST(Time_asctime, parse_garbage_returns_nullopt) {
+TEST(parse_garbage_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_asctime("FOO").has_value());
 }
 
-TEST(Time_asctime, format_round_trip) {
+TEST(format_round_trip) {
   std::tm parts = {};
   parts.tm_year = 70;
   parts.tm_mon = 0;
@@ -87,68 +87,68 @@ TEST(Time_asctime, format_round_trip) {
   EXPECT_EQ(sourcemeta::core::to_asctime(point), "Thu Jan  1 00:00:00 1970");
 }
 
-TEST(Time_asctime, parse_accepts_zero_padded_single_digit_day) {
+TEST(parse_accepts_zero_padded_single_digit_day) {
   EXPECT_TRUE(
       sourcemeta::core::from_asctime("Sun Nov 06 08:49:37 1994").has_value());
 }
 
-TEST(Time_asctime, parse_rejects_trailing_newline) {
+TEST(parse_rejects_trailing_newline) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Nov  6 08:49:37 1994\n").has_value());
 }
 
-TEST(Time_asctime, parse_rejects_sign_prefix_in_day) {
+TEST(parse_rejects_sign_prefix_in_day) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Nov +6 08:49:37 1994").has_value());
 }
 
 // RFC 9110 §5.6.7: the day-of-month must be valid for the given month and year
-TEST(Time_asctime, parse_rejects_february_thirtieth) {
+TEST(parse_rejects_february_thirtieth) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Feb 30 08:49:37 2015").has_value());
 }
 
 // RFC 9110 §5.6.7: 2015 is not a leap year so February has only 28 days
-TEST(Time_asctime, parse_rejects_february_twenty_ninth_non_leap) {
+TEST(parse_rejects_february_twenty_ninth_non_leap) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Feb 29 08:49:37 2015").has_value());
 }
 
 // RFC 9110 §5.6.7: the day-of-month must be at least one
-TEST(Time_asctime, parse_rejects_zero_day) {
+TEST(parse_rejects_zero_day) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Nov 00 08:49:37 1994").has_value());
 }
 
 // RFC 9110 §5.6.7: the hour must be in the range 00-23
-TEST(Time_asctime, parse_rejects_hour_twenty_four) {
+TEST(parse_rejects_hour_twenty_four) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Nov  6 24:49:37 1994").has_value());
 }
 
 // RFC 9110 §5.6.7: the minute must be in the range 00-59
-TEST(Time_asctime, parse_rejects_minute_sixty) {
+TEST(parse_rejects_minute_sixty) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Nov  6 08:60:37 1994").has_value());
 }
 
 // RFC 9110 §5.6.7: the second must not exceed a leap second
-TEST(Time_asctime, parse_rejects_second_sixty_one) {
+TEST(parse_rejects_second_sixty_one) {
   EXPECT_FALSE(
       sourcemeta::core::from_asctime("Sun Nov  6 08:49:61 1994").has_value());
 }
 
-TEST(Time_asctime, format_output_length_is_24) {
+TEST(format_output_length_is_24) {
   const auto point{std::chrono::system_clock::from_time_t(0)};
   EXPECT_EQ(sourcemeta::core::to_asctime(point).size(), 24u);
 }
 
-TEST(Time_asctime, format_output_has_no_trailing_newline) {
+TEST(format_output_has_no_trailing_newline) {
   const auto point{std::chrono::system_clock::from_time_t(0)};
   EXPECT_NE(sourcemeta::core::to_asctime(point).back(), '\n');
 }
 
-TEST(Time_asctime, format_two_digit_day) {
+TEST(format_two_digit_day) {
   std::tm parts = {};
   parts.tm_year = 115;
   parts.tm_mon = 9;

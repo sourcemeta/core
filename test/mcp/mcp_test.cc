@@ -3,7 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonrpc.h>
 
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <cstddef>  // std::size_t
 #include <cstdint>  // std::int64_t
@@ -11,251 +11,251 @@
 #include <optional> // std::optional, std::nullopt
 #include <utility>  // std::move
 
-TEST(MCP, protocol_version_string_2025_03_26) {
+TEST(protocol_version_string_2025_03_26) {
   EXPECT_EQ(sourcemeta::core::mcp_protocol_version_string(
                 sourcemeta::core::MCPProtocolVersion::V_2025_03_26),
             "2025-03-26");
 }
 
-TEST(MCP, protocol_version_string_2025_06_18) {
+TEST(protocol_version_string_2025_06_18) {
   EXPECT_EQ(sourcemeta::core::mcp_protocol_version_string(
                 sourcemeta::core::MCPProtocolVersion::V_2025_06_18),
             "2025-06-18");
 }
 
-TEST(MCP, protocol_version_string_2025_11_25) {
+TEST(protocol_version_string_2025_11_25) {
   EXPECT_EQ(sourcemeta::core::mcp_protocol_version_string(
                 sourcemeta::core::MCPProtocolVersion::V_2025_11_25),
             "2025-11-25");
 }
 
-TEST(MCP, method_initialize) {
+TEST(method_initialize) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_INITIALIZE, "initialize");
 }
 
-TEST(MCP, method_ping) { EXPECT_EQ(sourcemeta::core::MCP_METHOD_PING, "ping"); }
+TEST(method_ping) { EXPECT_EQ(sourcemeta::core::MCP_METHOD_PING, "ping"); }
 
-TEST(MCP, method_tools_list) {
+TEST(method_tools_list) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_TOOLS_LIST, "tools/list");
 }
 
-TEST(MCP, method_tools_call) {
+TEST(method_tools_call) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_TOOLS_CALL, "tools/call");
 }
 
-TEST(MCP, method_resources_list) {
+TEST(method_resources_list) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_LIST, "resources/list");
 }
 
-TEST(MCP, method_resources_read) {
+TEST(method_resources_read) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_READ, "resources/read");
 }
 
-TEST(MCP, method_resources_templates_list) {
+TEST(method_resources_templates_list) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_RESOURCES_TEMPLATES_LIST,
             "resources/templates/list");
 }
 
-TEST(MCP, method_notifications_initialized) {
+TEST(method_notifications_initialized) {
   EXPECT_EQ(sourcemeta::core::MCP_METHOD_NOTIFICATIONS_INITIALIZED,
             "notifications/initialized");
 }
 
-TEST(MCP, code_resource_not_found) {
+TEST(code_resource_not_found) {
   EXPECT_EQ(sourcemeta::core::MCP_CODE_RESOURCE_NOT_FOUND,
             static_cast<std::int64_t>(-32002));
 }
 
-TEST(MCP, code_url_elicitation_required) {
+TEST(code_url_elicitation_required) {
   EXPECT_EQ(sourcemeta::core::MCP_CODE_URL_ELICITATION_REQUIRED,
             static_cast<std::int64_t>(-32042));
 }
 
-TEST(MCP, is_request_method_initialize) {
+TEST(is_request_method_initialize) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("initialize"));
 }
 
-TEST(MCP, is_request_method_ping) {
+TEST(is_request_method_ping) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("ping"));
 }
 
-TEST(MCP, is_request_method_tools_list) {
+TEST(is_request_method_tools_list) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("tools/list"));
 }
 
-TEST(MCP, is_request_method_tools_call) {
+TEST(is_request_method_tools_call) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("tools/call"));
 }
 
-TEST(MCP, is_request_method_resources_list) {
+TEST(is_request_method_resources_list) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("resources/list"));
 }
 
-TEST(MCP, is_request_method_resources_read) {
+TEST(is_request_method_resources_read) {
   EXPECT_TRUE(sourcemeta::core::mcp_is_request_method("resources/read"));
 }
 
-TEST(MCP, is_request_method_resources_templates_list) {
+TEST(is_request_method_resources_templates_list) {
   EXPECT_TRUE(
       sourcemeta::core::mcp_is_request_method("resources/templates/list"));
 }
 
-TEST(MCP, is_request_method_notifications_initialized_is_not_request) {
+TEST(is_request_method_notifications_initialized_is_not_request) {
   EXPECT_FALSE(
       sourcemeta::core::mcp_is_request_method("notifications/initialized"));
 }
 
-TEST(MCP, is_request_method_unknown) {
+TEST(is_request_method_unknown) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_request_method("foo/bar"));
 }
 
-TEST(MCP, is_request_method_empty) {
+TEST(is_request_method_empty) {
   EXPECT_FALSE(sourcemeta::core::mcp_is_request_method(""));
 }
 
-TEST(MCP, resolve_protocol_version_empty_defaults_to_2025_03_26) {
+TEST(resolve_protocol_version_empty_defaults_to_2025_03_26) {
   const auto result{sourcemeta::core::mcp_resolve_protocol_version("")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
 }
 
-TEST(MCP, resolve_protocol_version_2025_03_26) {
+TEST(resolve_protocol_version_2025_03_26) {
   const auto result{
       sourcemeta::core::mcp_resolve_protocol_version("2025-03-26")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_03_26);
 }
 
-TEST(MCP, resolve_protocol_version_2025_06_18) {
+TEST(resolve_protocol_version_2025_06_18) {
   const auto result{
       sourcemeta::core::mcp_resolve_protocol_version("2025-06-18")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_06_18);
 }
 
-TEST(MCP, resolve_protocol_version_2025_11_25) {
+TEST(resolve_protocol_version_2025_11_25) {
   const auto result{
       sourcemeta::core::mcp_resolve_protocol_version("2025-11-25")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::MCPProtocolVersion::V_2025_11_25);
 }
 
-TEST(MCP, resolve_protocol_version_unknown) {
+TEST(resolve_protocol_version_unknown) {
   EXPECT_FALSE(
       sourcemeta::core::mcp_resolve_protocol_version("9999-01-01").has_value());
 }
 
-TEST(MCP, resolve_protocol_version_malformed) {
+TEST(resolve_protocol_version_malformed) {
   EXPECT_FALSE(
       sourcemeta::core::mcp_resolve_protocol_version("not-a-date").has_value());
 }
 
-TEST(MCP, supports_output_schema_2025_03_26) {
+TEST(supports_output_schema_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_output_schema(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_output_schema_2025_06_18) {
+TEST(supports_output_schema_2025_06_18) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_output_schema(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_output_schema_2025_11_25) {
+TEST(supports_output_schema_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_output_schema(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, supports_structured_content_2025_03_26) {
+TEST(supports_structured_content_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_structured_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_structured_content_2025_06_18) {
+TEST(supports_structured_content_2025_06_18) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_structured_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_structured_content_2025_11_25) {
+TEST(supports_structured_content_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_structured_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, supports_resource_link_content_2025_03_26) {
+TEST(supports_resource_link_content_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_resource_link_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_resource_link_content_2025_06_18) {
+TEST(supports_resource_link_content_2025_06_18) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_resource_link_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_resource_link_content_2025_11_25) {
+TEST(supports_resource_link_content_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_resource_link_content(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, supports_implementation_title_2025_03_26) {
+TEST(supports_implementation_title_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_title(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_implementation_title_2025_06_18) {
+TEST(supports_implementation_title_2025_06_18) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_title(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_implementation_title_2025_11_25) {
+TEST(supports_implementation_title_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_title(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, supports_implementation_description_2025_03_26) {
+TEST(supports_implementation_description_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_description(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_implementation_description_2025_06_18) {
+TEST(supports_implementation_description_2025_06_18) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_description(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_implementation_description_2025_11_25) {
+TEST(supports_implementation_description_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_description(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, supports_implementation_website_url_2025_03_26) {
+TEST(supports_implementation_website_url_2025_03_26) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_website_url(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_implementation_website_url_2025_06_18) {
+TEST(supports_implementation_website_url_2025_06_18) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_implementation_website_url(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_implementation_website_url_2025_11_25) {
+TEST(supports_implementation_website_url_2025_11_25) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_implementation_website_url(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, supports_jsonrpc_batching_2025_03_26) {
+TEST(supports_jsonrpc_batching_2025_03_26) {
   EXPECT_TRUE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26));
 }
 
-TEST(MCP, supports_jsonrpc_batching_2025_06_18) {
+TEST(supports_jsonrpc_batching_2025_06_18) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18));
 }
 
-TEST(MCP, supports_jsonrpc_batching_2025_11_25) {
+TEST(supports_jsonrpc_batching_2025_11_25) {
   EXPECT_FALSE(sourcemeta::core::mcp_supports_jsonrpc_batching(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25));
 }
 
-TEST(MCP, make_text_block) {
+TEST(make_text_block) {
   const auto block{sourcemeta::core::mcp_make_text_block("hello")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
@@ -264,7 +264,7 @@ TEST(MCP, make_text_block) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_text_block_empty_string) {
+TEST(make_text_block_empty_string) {
   const auto block{sourcemeta::core::mcp_make_text_block("")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
@@ -273,7 +273,7 @@ TEST(MCP, make_text_block_empty_string) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_text_block_with_newlines) {
+TEST(make_text_block_with_newlines) {
   const auto block{sourcemeta::core::mcp_make_text_block("line1\nline2")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
     "type": "text",
@@ -282,7 +282,7 @@ TEST(MCP, make_text_block_with_newlines) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_11_25_full) {
+TEST(make_resource_link_2025_11_25_full) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "file:///foo",
       "text/plain", "My File", "A description")};
@@ -296,7 +296,7 @@ TEST(MCP, make_resource_link_2025_11_25_full) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_11_25_without_name_and_description) {
+TEST(make_resource_link_2025_11_25_without_name_and_description) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "file:///foo",
       "text/plain")};
@@ -308,7 +308,7 @@ TEST(MCP, make_resource_link_2025_11_25_without_name_and_description) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_06_18_supports_structured) {
+TEST(make_resource_link_2025_06_18_supports_structured) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_06_18, "file:///foo",
       "text/plain", "My File")};
@@ -321,7 +321,7 @@ TEST(MCP, make_resource_link_2025_06_18_supports_structured) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_with_name) {
+TEST(make_resource_link_2025_03_26_falls_back_to_text_with_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
       "text/plain", "My File", "A description")};
@@ -332,7 +332,7 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_with_name) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_without_name) {
+TEST(make_resource_link_2025_03_26_falls_back_to_text_without_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
       "text/plain", {}, "A description")};
@@ -343,8 +343,7 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_without_name) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP,
-     make_resource_link_2025_03_26_falls_back_to_text_without_description) {
+TEST(make_resource_link_2025_03_26_falls_back_to_text_without_description) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
       "text/plain", "My File")};
@@ -355,7 +354,7 @@ TEST(MCP,
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_uri_only) {
+TEST(make_resource_link_2025_03_26_falls_back_to_text_uri_only) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "file:///foo",
       "text/plain")};
@@ -366,8 +365,7 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_to_text_uri_only) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP,
-     make_resource_link_2025_03_26_falls_back_handles_parentheses_in_name) {
+TEST(make_resource_link_2025_03_26_falls_back_handles_parentheses_in_name) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26,
       "https://example.com/schema", "application/schema+json",
@@ -379,8 +377,7 @@ TEST(MCP,
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP,
-     make_resource_link_2025_03_26_falls_back_preserves_empty_uri_position) {
+TEST(make_resource_link_2025_03_26_falls_back_preserves_empty_uri_position) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain",
       "My File", "A description")};
@@ -391,8 +388,7 @@ TEST(MCP,
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP,
-     make_resource_link_2025_03_26_falls_back_empty_uri_with_description_only) {
+TEST(make_resource_link_2025_03_26_falls_back_empty_uri_with_description_only) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain", {},
       "A description")};
@@ -403,7 +399,7 @@ TEST(MCP,
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, make_resource_link_2025_03_26_falls_back_empty_uri_with_name_only) {
+TEST(make_resource_link_2025_03_26_falls_back_empty_uri_with_name_only) {
   const auto block{sourcemeta::core::mcp_make_resource_link(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "", "text/plain",
       "My File")};
@@ -414,7 +410,7 @@ TEST(MCP, make_resource_link_2025_03_26_falls_back_empty_uri_with_name_only) {
   EXPECT_EQ(block, expected);
 }
 
-TEST(MCP, tool_success_with_object_result) {
+TEST(tool_success_with_object_result) {
   const auto identifier{sourcemeta::core::JSON{1}};
   auto result{sourcemeta::core::JSON::make_object()};
   result.assign("foo", sourcemeta::core::JSON{42});
@@ -435,7 +431,7 @@ TEST(MCP, tool_success_with_object_result) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_success_with_array_result) {
+TEST(tool_success_with_array_result) {
   const auto identifier{sourcemeta::core::JSON{"abc"}};
   const auto envelope{sourcemeta::core::mcp_make_tool_success(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, identifier,
@@ -454,7 +450,7 @@ TEST(MCP, tool_success_with_array_result) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_success_with_null_id) {
+TEST(tool_success_with_null_id) {
   const auto envelope{sourcemeta::core::mcp_make_tool_success(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25,
       sourcemeta::core::JSON{nullptr}, sourcemeta::core::JSON::make_object())};
@@ -472,7 +468,7 @@ TEST(MCP, tool_success_with_null_id) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_success_2025_03_26_omits_structured_content) {
+TEST(tool_success_2025_03_26_omits_structured_content) {
   const auto identifier{sourcemeta::core::JSON{1}};
   auto result{sourcemeta::core::JSON::make_object()};
   result.assign("foo", sourcemeta::core::JSON{42});
@@ -492,7 +488,7 @@ TEST(MCP, tool_success_2025_03_26_omits_structured_content) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_success_with_explicit_content_blocks) {
+TEST(tool_success_with_explicit_content_blocks) {
   const auto identifier{sourcemeta::core::JSON{1}};
   auto structured{sourcemeta::core::JSON::make_object()};
   structured.assign("ok", sourcemeta::core::JSON{true});
@@ -513,7 +509,7 @@ TEST(MCP, tool_success_with_explicit_content_blocks) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_success_with_explicit_blocks_omits_structured_on_2025_03_26) {
+TEST(tool_success_with_explicit_blocks_omits_structured_on_2025_03_26) {
   const auto identifier{sourcemeta::core::JSON{1}};
   auto structured{sourcemeta::core::JSON::make_object()};
   structured.assign("ok", sourcemeta::core::JSON{true});
@@ -533,7 +529,7 @@ TEST(MCP, tool_success_with_explicit_blocks_omits_structured_on_2025_03_26) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_error_with_message) {
+TEST(tool_error_with_message) {
   const auto identifier{sourcemeta::core::JSON{7}};
   const auto envelope{
       sourcemeta::core::mcp_make_tool_error(identifier, "Schema not found")};
@@ -548,7 +544,7 @@ TEST(MCP, tool_error_with_message) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_error_with_string_id) {
+TEST(tool_error_with_string_id) {
   const auto identifier{sourcemeta::core::JSON{"req-1"}};
   const auto envelope{
       sourcemeta::core::mcp_make_tool_error(identifier, "Invalid input")};
@@ -563,7 +559,7 @@ TEST(MCP, tool_error_with_string_id) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, tool_error_with_null_id) {
+TEST(tool_error_with_null_id) {
   const auto envelope{sourcemeta::core::mcp_make_tool_error(
       sourcemeta::core::JSON{nullptr}, "Boom")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -577,7 +573,7 @@ TEST(MCP, tool_error_with_null_id) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, error_resource_not_found_with_integer_id) {
+TEST(error_resource_not_found_with_integer_id) {
   const auto identifier{sourcemeta::core::JSON{3}};
   const auto envelope{
       sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
@@ -592,7 +588,7 @@ TEST(MCP, error_resource_not_found_with_integer_id) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, error_resource_not_found_with_string_id) {
+TEST(error_resource_not_found_with_string_id) {
   const auto identifier{sourcemeta::core::JSON{"req-7"}};
   const auto envelope{
       sourcemeta::core::mcp_make_error_resource_not_found(identifier)};
@@ -607,7 +603,7 @@ TEST(MCP, error_resource_not_found_with_string_id) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, make_resource_full) {
+TEST(make_resource_full) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", "First file",
       std::optional<std::size_t>{1024})};
@@ -621,7 +617,7 @@ TEST(MCP, make_resource_full) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_without_description) {
+TEST(make_resource_without_description) {
   const auto resource{
       sourcemeta::core::mcp_make_resource("file:///a", "Alpha", "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -632,7 +628,7 @@ TEST(MCP, make_resource_without_description) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_without_size) {
+TEST(make_resource_without_size) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", "First file")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -644,7 +640,7 @@ TEST(MCP, make_resource_without_size) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority) {
+TEST(make_resource_with_priority) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", "First file",
       std::optional<std::size_t>{1024}, std::optional<double>{0.75})};
@@ -659,7 +655,7 @@ TEST(MCP, make_resource_with_priority) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority_without_size) {
+TEST(make_resource_with_priority_without_size) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", {}, std::nullopt,
       std::optional<double>{0.25})};
@@ -672,7 +668,7 @@ TEST(MCP, make_resource_with_priority_without_size) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority_clamped_high) {
+TEST(make_resource_with_priority_clamped_high) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", {}, std::nullopt,
       std::optional<double>{2.5})};
@@ -685,7 +681,7 @@ TEST(MCP, make_resource_with_priority_clamped_high) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority_clamped_low) {
+TEST(make_resource_with_priority_clamped_low) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", {}, std::nullopt,
       std::optional<double>{-5.0})};
@@ -698,7 +694,7 @@ TEST(MCP, make_resource_with_priority_clamped_low) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority_positive_infinity) {
+TEST(make_resource_with_priority_positive_infinity) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", {}, std::nullopt,
       std::optional<double>{std::numeric_limits<double>::infinity()})};
@@ -711,7 +707,7 @@ TEST(MCP, make_resource_with_priority_positive_infinity) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority_negative_infinity) {
+TEST(make_resource_with_priority_negative_infinity) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", {}, std::nullopt,
       std::optional<double>{-std::numeric_limits<double>::infinity()})};
@@ -724,7 +720,7 @@ TEST(MCP, make_resource_with_priority_negative_infinity) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_with_priority_nan) {
+TEST(make_resource_with_priority_nan) {
   const auto resource{sourcemeta::core::mcp_make_resource(
       "file:///a", "Alpha", "text/plain", {}, std::nullopt,
       std::optional<double>{std::numeric_limits<double>::quiet_NaN()})};
@@ -737,7 +733,7 @@ TEST(MCP, make_resource_with_priority_nan) {
   EXPECT_EQ(resource, expected);
 }
 
-TEST(MCP, make_resource_text_content) {
+TEST(make_resource_text_content) {
   const auto content{sourcemeta::core::mcp_make_resource_text_content(
       "file:///a", "text/plain", "Hello")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -748,7 +744,7 @@ TEST(MCP, make_resource_text_content) {
   EXPECT_EQ(content, expected);
 }
 
-TEST(MCP, make_resources_read_result_single) {
+TEST(make_resources_read_result_single) {
   auto contents{sourcemeta::core::JSON::make_array()};
   contents.push_back(sourcemeta::core::mcp_make_resource_text_content(
       "file:///a", "text/plain", "Hello"));
@@ -762,7 +758,7 @@ TEST(MCP, make_resources_read_result_single) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(MCP, make_resources_read_result_empty) {
+TEST(make_resources_read_result_empty) {
   const auto result{sourcemeta::core::mcp_make_resources_read_result(
       sourcemeta::core::JSON::make_array())};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -771,7 +767,7 @@ TEST(MCP, make_resources_read_result_empty) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(MCP, make_resource_template) {
+TEST(make_resource_template) {
   const auto entry{sourcemeta::core::mcp_make_resource_template(
       "file:///{path}", "Files", "Resolves a file path", "text/plain")};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -783,7 +779,7 @@ TEST(MCP, make_resource_template) {
   EXPECT_EQ(entry, expected);
 }
 
-TEST(MCP, make_tool_descriptor_default_annotations_2025_11_25) {
+TEST(make_tool_descriptor_default_annotations_2025_11_25) {
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "say", "Says hello",
       sourcemeta::core::parse_json(R"({ "type": "object" })"))};
@@ -801,7 +797,7 @@ TEST(MCP, make_tool_descriptor_default_annotations_2025_11_25) {
   EXPECT_EQ(entry, expected);
 }
 
-TEST(MCP, make_tool_descriptor_with_output_schema_2025_11_25) {
+TEST(make_tool_descriptor_with_output_schema_2025_11_25) {
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_11_25, "say", "Says hello",
       sourcemeta::core::parse_json(R"({ "type": "object" })"),
@@ -821,7 +817,7 @@ TEST(MCP, make_tool_descriptor_with_output_schema_2025_11_25) {
   EXPECT_EQ(entry, expected);
 }
 
-TEST(MCP, make_tool_descriptor_with_output_schema_dropped_on_2025_03_26) {
+TEST(make_tool_descriptor_with_output_schema_dropped_on_2025_03_26) {
   const auto entry{sourcemeta::core::mcp_make_tool_descriptor(
       sourcemeta::core::MCPProtocolVersion::V_2025_03_26, "say", "Says hello",
       sourcemeta::core::parse_json(R"({ "type": "object" })"),
@@ -840,7 +836,7 @@ TEST(MCP, make_tool_descriptor_with_output_schema_dropped_on_2025_03_26) {
   EXPECT_EQ(entry, expected);
 }
 
-TEST(MCP, make_tool_descriptor_with_title_and_read_only_hints) {
+TEST(make_tool_descriptor_with_title_and_read_only_hints) {
   sourcemeta::core::MCPToolAnnotations annotations;
   annotations.title = "Say Hello";
   annotations.read_only = true;
@@ -866,7 +862,7 @@ TEST(MCP, make_tool_descriptor_with_title_and_read_only_hints) {
   EXPECT_EQ(entry, expected);
 }
 
-TEST(MCP, make_initialize_result_minimal_2025_11_25) {
+TEST(make_initialize_result_minimal_2025_11_25) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -889,7 +885,7 @@ TEST(MCP, make_initialize_result_minimal_2025_11_25) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, make_initialize_result_with_all_capabilities) {
+TEST(make_initialize_result_with_all_capabilities) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -923,7 +919,7 @@ TEST(MCP, make_initialize_result_with_all_capabilities) {
   EXPECT_EQ(envelope, expected);
 }
 
-TEST(MCP, make_initialize_result_includes_instructions_when_provided) {
+TEST(make_initialize_result_includes_instructions_when_provided) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -938,7 +934,7 @@ TEST(MCP, make_initialize_result_includes_instructions_when_provided) {
             "Be careful.");
 }
 
-TEST(MCP, make_initialize_result_includes_title_on_2025_06_18) {
+TEST(make_initialize_result_includes_title_on_2025_06_18) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -956,7 +952,7 @@ TEST(MCP, make_initialize_result_includes_title_on_2025_06_18) {
   EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("websiteUrl"));
 }
 
-TEST(MCP, make_initialize_result_includes_full_implementation_on_2025_11_25) {
+TEST(make_initialize_result_includes_full_implementation_on_2025_11_25) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -978,7 +974,6 @@ TEST(MCP, make_initialize_result_includes_full_implementation_on_2025_11_25) {
 }
 
 TEST(
-    MCP,
     make_initialize_result_strips_unsupported_implementation_fields_on_2025_03_26) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
@@ -996,7 +991,7 @@ TEST(
   EXPECT_FALSE(envelope.at("result").at("serverInfo").defines("websiteUrl"));
 }
 
-TEST(MCP, make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
+TEST(make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1011,7 +1006,7 @@ TEST(MCP, make_initialize_result_falls_back_to_2025_11_25_on_unknown_version) {
             "2025-11-25");
 }
 
-TEST(MCP, make_initialize_result_returns_invalid_request_when_missing_params) {
+TEST(make_initialize_result_returns_invalid_request_when_missing_params) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0", "id": 1, "method": "initialize"
   })JSON")};
@@ -1023,7 +1018,7 @@ TEST(MCP, make_initialize_result_returns_invalid_request_when_missing_params) {
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
 
-TEST(MCP, make_initialize_result_returns_invalid_request_when_id_missing) {
+TEST(make_initialize_result_returns_invalid_request_when_id_missing) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0", "method": "initialize", "params": {}
   })JSON")};
@@ -1035,7 +1030,7 @@ TEST(MCP, make_initialize_result_returns_invalid_request_when_id_missing) {
             sourcemeta::core::JSONRPC_CODE_INVALID_REQUEST);
 }
 
-TEST(MCP, tool_call_arguments_present) {
+TEST(tool_call_arguments_present) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1043,12 +1038,12 @@ TEST(MCP, tool_call_arguments_present) {
     "params": { "name": "foo", "arguments": { "x": 1 } }
   })JSON")};
   const auto *arguments{sourcemeta::core::mcp_tool_call_arguments(envelope)};
-  ASSERT_NE(arguments, nullptr);
+  EXPECT_NE(arguments, nullptr);
   EXPECT_TRUE(arguments->is_object());
   EXPECT_EQ(arguments->at("x").to_integer(), 1);
 }
 
-TEST(MCP, tool_call_arguments_missing) {
+TEST(tool_call_arguments_missing) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1058,7 +1053,7 @@ TEST(MCP, tool_call_arguments_missing) {
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
 
-TEST(MCP, tool_call_arguments_params_not_object) {
+TEST(tool_call_arguments_params_not_object) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1068,7 +1063,7 @@ TEST(MCP, tool_call_arguments_params_not_object) {
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
 
-TEST(MCP, tool_call_arguments_no_params) {
+TEST(tool_call_arguments_no_params) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1077,7 +1072,7 @@ TEST(MCP, tool_call_arguments_no_params) {
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
 
-TEST(MCP, tool_call_arguments_string_value) {
+TEST(tool_call_arguments_string_value) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1087,7 +1082,7 @@ TEST(MCP, tool_call_arguments_string_value) {
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
 
-TEST(MCP, tool_call_arguments_array_value) {
+TEST(tool_call_arguments_array_value) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,
@@ -1097,7 +1092,7 @@ TEST(MCP, tool_call_arguments_array_value) {
   EXPECT_EQ(sourcemeta::core::mcp_tool_call_arguments(envelope), nullptr);
 }
 
-TEST(MCP, tool_call_arguments_null_value) {
+TEST(tool_call_arguments_null_value) {
   const auto envelope{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",
     "id": 1,

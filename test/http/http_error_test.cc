@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/http_error.h>
 #include <sourcemeta/core/http_method.h>
@@ -7,49 +7,49 @@
 #include <optional> // std::optional
 #include <string>   // std::string
 
-TEST(HTTP_error, message) {
+TEST(message) {
   const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::GET,
                                           "https://example.com",
                                           "Connection refused"};
   EXPECT_STREQ(error.what(), "Connection refused");
 }
 
-TEST(HTTP_error, method) {
+TEST(method) {
   const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::POST,
                                           "https://example.com",
                                           "Connection refused"};
   EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::POST);
 }
 
-TEST(HTTP_error, url) {
+TEST(url) {
   const sourcemeta::core::HTTPError error{sourcemeta::core::HTTPMethod::GET,
                                           "https://example.com/schema.json",
                                           "Connection refused"};
   EXPECT_EQ(error.url(), "https://example.com/schema.json");
 }
 
-TEST(HTTP_error, status_error_message) {
+TEST(status_error_message) {
   const sourcemeta::core::HTTPStatusError error{
       sourcemeta::core::HTTPMethod::GET, "https://example.com",
       sourcemeta::core::HTTP_STATUS_NOT_FOUND};
   EXPECT_STREQ(error.what(), "Unsuccessful HTTP response");
 }
 
-TEST(HTTP_error, status_error_method) {
+TEST(status_error_method) {
   const sourcemeta::core::HTTPStatusError error{
       sourcemeta::core::HTTPMethod::POST, "https://example.com",
       sourcemeta::core::HTTP_STATUS_NOT_FOUND};
   EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::POST);
 }
 
-TEST(HTTP_error, status_error_url) {
+TEST(status_error_url) {
   const sourcemeta::core::HTTPStatusError error{
       sourcemeta::core::HTTPMethod::GET, "https://example.com/schema.json",
       sourcemeta::core::HTTP_STATUS_NOT_FOUND};
   EXPECT_EQ(error.url(), "https://example.com/schema.json");
 }
 
-TEST(HTTP_error, status_error_status) {
+TEST(status_error_status) {
   const sourcemeta::core::HTTPStatusError error{
       sourcemeta::core::HTTPMethod::GET, "https://example.com",
       sourcemeta::core::HTTP_STATUS_SERVICE_UNAVAILABLE};
@@ -57,7 +57,7 @@ TEST(HTTP_error, status_error_status) {
   EXPECT_EQ(error.status().code, 503);
 }
 
-TEST(HTTP_error, status_error_owns_status_data) {
+TEST(status_error_owns_status_data) {
   std::optional<sourcemeta::core::HTTPStatusError> error;
   {
     const std::string phrase{"Custom Experimental Phrase"};

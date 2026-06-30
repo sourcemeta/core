@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/io.h>
@@ -31,7 +31,7 @@ auto decompress_via_stream(const std::string &compressed) -> std::string {
 
 } // namespace
 
-TEST(GZIP_stream_buffer, empty) {
+TEST(empty) {
   const std::string input;
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -39,7 +39,7 @@ TEST(GZIP_stream_buffer, empty) {
   EXPECT_TRUE(result.empty());
 }
 
-TEST(GZIP_stream_buffer, hello_world) {
+TEST(hello_world) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -47,7 +47,7 @@ TEST(GZIP_stream_buffer, hello_world) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, large_input) {
+TEST(large_input) {
   const std::string pattern{"The quick brown fox jumps over the lazy dog. "};
   std::string input;
   for (int index = 0; index < 1000; ++index) {
@@ -60,7 +60,7 @@ TEST(GZIP_stream_buffer, large_input) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, binary_data) {
+TEST(binary_data) {
   std::string input;
   input.resize(256);
   for (unsigned int index = 0; index < 256; ++index) {
@@ -74,7 +74,7 @@ TEST(GZIP_stream_buffer, binary_data) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, read_char_by_char) {
+TEST(read_char_by_char) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -91,7 +91,7 @@ TEST(GZIP_stream_buffer, read_char_by_char) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, multiple_small_reads) {
+TEST(multiple_small_reads) {
   const std::string pattern{"abcdefghij"};
   std::string input;
   for (int index = 0; index < 500; ++index) {
@@ -116,7 +116,7 @@ TEST(GZIP_stream_buffer, multiple_small_reads) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, invalid_input_throws) {
+TEST(invalid_input_throws) {
   const std::string garbage{"this is not gzip data"};
   try {
     decompress_via_stream(garbage);
@@ -126,7 +126,7 @@ TEST(GZIP_stream_buffer, invalid_input_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, truncated_input_throws) {
+TEST(truncated_input_throws) {
   const std::string input{"hello world, this needs to be long enough"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -139,7 +139,7 @@ TEST(GZIP_stream_buffer, truncated_input_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, output_size_one_byte) {
+TEST(output_size_one_byte) {
   const std::string input{"X"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -147,7 +147,7 @@ TEST(GZIP_stream_buffer, output_size_one_byte) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, output_size_two_bytes) {
+TEST(output_size_two_bytes) {
   const std::string input{"AB"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -155,7 +155,7 @@ TEST(GZIP_stream_buffer, output_size_two_bytes) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, output_size_16383) {
+TEST(output_size_16383) {
   std::string input;
   input.resize(16383);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -168,7 +168,7 @@ TEST(GZIP_stream_buffer, output_size_16383) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, output_size_16384) {
+TEST(output_size_16384) {
   std::string input;
   input.resize(16384);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -181,7 +181,7 @@ TEST(GZIP_stream_buffer, output_size_16384) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, output_size_16385) {
+TEST(output_size_16385) {
   std::string input;
   input.resize(16385);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -194,7 +194,7 @@ TEST(GZIP_stream_buffer, output_size_16385) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, output_size_32768) {
+TEST(output_size_32768) {
   std::string input;
   input.resize(32768);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -207,7 +207,7 @@ TEST(GZIP_stream_buffer, output_size_32768) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, output_size_one_megabyte) {
+TEST(output_size_one_megabyte) {
   std::string input;
   input.resize(1024 * 1024);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -220,7 +220,7 @@ TEST(GZIP_stream_buffer, output_size_one_megabyte) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, highly_compressible_zeros) {
+TEST(highly_compressible_zeros) {
   const std::string input(65536, '\0');
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -230,7 +230,7 @@ TEST(GZIP_stream_buffer, highly_compressible_zeros) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, highly_compressible_repeated_byte) {
+TEST(highly_compressible_repeated_byte) {
   const std::string input(65536, static_cast<char>(0xff));
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -240,7 +240,7 @@ TEST(GZIP_stream_buffer, highly_compressible_repeated_byte) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, incompressible_random_bytes) {
+TEST(incompressible_random_bytes) {
   std::mt19937 generator{42};
   std::uniform_int_distribution<int> distribution{0, 255};
   std::string input;
@@ -255,7 +255,7 @@ TEST(GZIP_stream_buffer, incompressible_random_bytes) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, read_after_end_returns_eof) {
+TEST(read_after_end_returns_eof) {
   const std::string input{"hello"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -271,7 +271,7 @@ TEST(GZIP_stream_buffer, read_after_end_returns_eof) {
   EXPECT_EQ(decompressed.get(), std::char_traits<char>::eof());
 }
 
-TEST(GZIP_stream_buffer, peek_returns_first_byte) {
+TEST(peek_returns_first_byte) {
   const std::string input{"hello"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -285,7 +285,7 @@ TEST(GZIP_stream_buffer, peek_returns_first_byte) {
   EXPECT_EQ(decompressed.peek(), 'e');
 }
 
-TEST(GZIP_stream_buffer, mixed_peek_and_get) {
+TEST(mixed_peek_and_get) {
   const std::string input{"abcdef"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -305,7 +305,7 @@ TEST(GZIP_stream_buffer, mixed_peek_and_get) {
   EXPECT_EQ(decompressed.peek(), std::char_traits<char>::eof());
 }
 
-TEST(GZIP_stream_buffer, read_chunk_equal_to_internal_buffer) {
+TEST(read_chunk_equal_to_internal_buffer) {
   std::string input;
   input.resize(50000);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -329,7 +329,7 @@ TEST(GZIP_stream_buffer, read_chunk_equal_to_internal_buffer) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, read_chunk_larger_than_internal_buffer) {
+TEST(read_chunk_larger_than_internal_buffer) {
   std::string input;
   input.resize(50000);
   for (std::size_t index = 0; index < input.size(); ++index) {
@@ -353,7 +353,7 @@ TEST(GZIP_stream_buffer, read_chunk_larger_than_internal_buffer) {
   EXPECT_EQ(std::memcmp(result.data(), input.data(), input.size()), 0);
 }
 
-TEST(GZIP_stream_buffer, header_with_ftext_flag) {
+TEST(header_with_ftext_flag) {
   // RFC 1952 section 2.3 gzip stream with FLG.FTEXT (0x01) set.
   // FTEXT is informational, so the streambuf must accept and ignore it.
   sourcemeta::core::InputByteStream stream{
@@ -374,7 +374,7 @@ TEST(GZIP_stream_buffer, header_with_ftext_flag) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_fname) {
+TEST(header_with_fname) {
   // FLG.FNAME (0x08) introduces a null-terminated filename after the fixed
   // 10-byte header
   sourcemeta::core::InputByteStream stream{
@@ -392,7 +392,7 @@ TEST(GZIP_stream_buffer, header_with_fname) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_fcomment) {
+TEST(header_with_fcomment) {
   // FLG.FCOMMENT (0x10) introduces a null-terminated comment after the fixed
   // 10-byte header
   sourcemeta::core::InputByteStream stream{
@@ -411,7 +411,7 @@ TEST(GZIP_stream_buffer, header_with_fcomment) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_fextra) {
+TEST(header_with_fextra) {
   // FLG.FEXTRA (0x04) introduces a length-prefixed extra field after the
   // fixed 10-byte header. XLEN is a little-endian 16-bit count of the
   // following bytes
@@ -431,7 +431,7 @@ TEST(GZIP_stream_buffer, header_with_fextra) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_fhcrc) {
+TEST(header_with_fhcrc) {
   // FLG.FHCRC (0x02) appends a 16-bit CRC of the preceding header bytes.
   // The 16-bit CRC is the low 16 bits of the CRC-32 of the 10 header bytes
   sourcemeta::core::InputByteStream stream{
@@ -449,7 +449,7 @@ TEST(GZIP_stream_buffer, header_with_fhcrc) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_all_optional_flags) {
+TEST(header_with_all_optional_flags) {
   // Every optional FLG bit set at once. RFC 1952 fixes the order of optional
   // fields: FEXTRA, FNAME, FCOMMENT, FHCRC
   sourcemeta::core::InputByteStream stream{
@@ -471,7 +471,7 @@ TEST(GZIP_stream_buffer, header_with_all_optional_flags) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, wrong_first_magic_byte_throws) {
+TEST(wrong_first_magic_byte_throws) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -484,7 +484,7 @@ TEST(GZIP_stream_buffer, wrong_first_magic_byte_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, wrong_second_magic_byte_throws) {
+TEST(wrong_second_magic_byte_throws) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -497,7 +497,7 @@ TEST(GZIP_stream_buffer, wrong_second_magic_byte_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, unsupported_compression_method_throws) {
+TEST(unsupported_compression_method_throws) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -510,7 +510,7 @@ TEST(GZIP_stream_buffer, unsupported_compression_method_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, reserved_flag_bit_5_set_throws) {
+TEST(reserved_flag_bit_5_set_throws) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -523,7 +523,7 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_5_set_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, reserved_flag_bit_6_set_throws) {
+TEST(reserved_flag_bit_6_set_throws) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -536,7 +536,7 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_6_set_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, reserved_flag_bit_7_set_throws) {
+TEST(reserved_flag_bit_7_set_throws) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -549,7 +549,7 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_7_set_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, corrupted_trailing_crc32_throws) {
+TEST(corrupted_trailing_crc32_throws) {
   const std::string input{
       "hello world, this is long enough to produce a real deflate body"};
   auto compressed{sourcemeta::core::gzip(
@@ -564,7 +564,7 @@ TEST(GZIP_stream_buffer, corrupted_trailing_crc32_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, corrupted_trailing_isize_throws) {
+TEST(corrupted_trailing_isize_throws) {
   const std::string input{
       "hello world, this is long enough to produce a real deflate body"};
   auto compressed{sourcemeta::core::gzip(
@@ -579,7 +579,7 @@ TEST(GZIP_stream_buffer, corrupted_trailing_isize_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, empty_source_stream_throws) {
+TEST(empty_source_stream_throws) {
   try {
     decompress_via_stream("");
     FAIL();
@@ -588,7 +588,7 @@ TEST(GZIP_stream_buffer, empty_source_stream_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, trailing_data_after_member_is_ignored) {
+TEST(trailing_data_after_member_is_ignored) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -597,7 +597,7 @@ TEST(GZIP_stream_buffer, trailing_data_after_member_is_ignored) {
   EXPECT_EQ(result, input);
 }
 
-TEST(GZIP_stream_buffer, fhcrc_mismatch_throws) {
+TEST(fhcrc_mismatch_throws) {
   // RFC 1952 section 2.3.1.2: a compliant decoder must reject an FHCRC
   // mismatch. The correct CRC16 over the preceding 10 header bytes is
   // 0x90 0xc9, so flipping a bit must cause a hard failure
@@ -619,7 +619,7 @@ TEST(GZIP_stream_buffer, fhcrc_mismatch_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, multiple_deflate_blocks) {
+TEST(multiple_deflate_blocks) {
   // RFC 1951 allows a deflate stream to contain multiple blocks. Only the
   // last block has BFINAL set. This fixture splits "hello world" into two
   // stored blocks
@@ -640,7 +640,7 @@ TEST(GZIP_stream_buffer, multiple_deflate_blocks) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, fextra_with_zero_xlen) {
+TEST(fextra_with_zero_xlen) {
   // RFC 1952: XLEN=0 is a valid FEXTRA encoding (no extra-field bytes)
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00,
@@ -651,7 +651,7 @@ TEST(GZIP_stream_buffer, fextra_with_zero_xlen) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, mtime_nonzero_is_accepted) {
+TEST(mtime_nonzero_is_accepted) {
   // RFC 1952 section 2.3.1.2: MTIME is informational and any value, including
   // non-zero, must be accepted
   sourcemeta::core::InputByteStream stream{
@@ -662,7 +662,7 @@ TEST(GZIP_stream_buffer, mtime_nonzero_is_accepted) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, xfl_max_compression_is_accepted) {
+TEST(xfl_max_compression_is_accepted) {
   // RFC 1952 section 2.3.1.2: XFL=2 indicates maximum compression
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -673,7 +673,7 @@ TEST(GZIP_stream_buffer, xfl_max_compression_is_accepted) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, xfl_fastest_compression_is_accepted) {
+TEST(xfl_fastest_compression_is_accepted) {
   // RFC 1952 section 2.3.1.2: XFL=4 indicates fastest compression
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -684,7 +684,7 @@ TEST(GZIP_stream_buffer, xfl_fastest_compression_is_accepted) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, os_field_unix_is_accepted) {
+TEST(os_field_unix_is_accepted) {
   // RFC 1952 section 2.3.1.2: OS=3 indicates Unix; decoders must accept any
   // value
   sourcemeta::core::InputByteStream stream{
@@ -695,7 +695,7 @@ TEST(GZIP_stream_buffer, os_field_unix_is_accepted) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, fname_with_latin1_high_bytes) {
+TEST(fname_with_latin1_high_bytes) {
   // RFC 1952 section 2.3.1.2: FNAME is ISO 8859-1 (Latin-1), so bytes in the
   // 0x80 to 0xff range must be accepted
   sourcemeta::core::InputByteStream stream{
@@ -706,7 +706,7 @@ TEST(GZIP_stream_buffer, fname_with_latin1_high_bytes) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, fcomment_with_latin1_high_bytes) {
+TEST(fcomment_with_latin1_high_bytes) {
   // RFC 1952 section 2.3.1.2: FCOMMENT is ISO 8859-1
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xc0, 0xc1,
@@ -716,7 +716,7 @@ TEST(GZIP_stream_buffer, fcomment_with_latin1_high_bytes) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, read_via_getline) {
+TEST(read_via_getline) {
   const std::string input{"line one\nline two\nline three"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -735,7 +735,7 @@ TEST(GZIP_stream_buffer, read_via_getline) {
   EXPECT_EQ(third_line, "line three");
 }
 
-TEST(GZIP_stream_buffer, ignore_skips_bytes) {
+TEST(ignore_skips_bytes) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -750,7 +750,7 @@ TEST(GZIP_stream_buffer, ignore_skips_bytes) {
   EXPECT_EQ(remaining, "world");
 }
 
-TEST(GZIP_stream_buffer, operator_in_extracts_tokens) {
+TEST(operator_in_extracts_tokens) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -765,7 +765,7 @@ TEST(GZIP_stream_buffer, operator_in_extracts_tokens) {
   EXPECT_EQ(second, "world");
 }
 
-TEST(GZIP_stream_buffer, stored_block_with_empty_non_final_then_data) {
+TEST(stored_block_with_empty_non_final_then_data) {
   // RFC 1951 section 3.2.4: a stored block with LEN=0 is well-formed
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
@@ -779,7 +779,7 @@ TEST(GZIP_stream_buffer, stored_block_with_empty_non_final_then_data) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, empty_payload_via_empty_final_stored_block) {
+TEST(empty_payload_via_empty_final_stored_block) {
   // Hand-crafted minimum valid gzip member encoding an empty payload
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
@@ -791,7 +791,7 @@ TEST(GZIP_stream_buffer, empty_payload_via_empty_final_stored_block) {
   EXPECT_TRUE(decompress_via_stream(stream).empty());
 }
 
-TEST(GZIP_stream_buffer, header_with_fextra_and_fname) {
+TEST(header_with_fextra_and_fname) {
   // RFC 1952 fixes the order: FEXTRA precedes FNAME
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x0c, 0x00, 0x00, 0x00, 0x00,
@@ -804,7 +804,7 @@ TEST(GZIP_stream_buffer, header_with_fextra_and_fname) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_fextra_and_fcomment) {
+TEST(header_with_fextra_and_fcomment) {
   // RFC 1952 fixes the order: FEXTRA precedes FCOMMENT
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x14, 0x00, 0x00, 0x00, 0x00,
@@ -817,7 +817,7 @@ TEST(GZIP_stream_buffer, header_with_fextra_and_fcomment) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, header_with_fname_and_fcomment) {
+TEST(header_with_fname_and_fcomment) {
   // RFC 1952 fixes the order: FNAME precedes FCOMMENT
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 'a',  '.',
@@ -828,7 +828,7 @@ TEST(GZIP_stream_buffer, header_with_fname_and_fcomment) {
   EXPECT_EQ(decompress_via_stream(stream), "hello world");
 }
 
-TEST(GZIP_stream_buffer, reserved_deflate_block_type_throws) {
+TEST(reserved_deflate_block_type_throws) {
   // RFC 1951 section 3.2.3: BTYPE=11 is reserved and a compliant decoder
   // must reject it. Deflate packs bits LSB-first, so BFINAL=1 + BTYPE=11
   // is the byte 0b00000111 = 0x07
@@ -845,7 +845,7 @@ TEST(GZIP_stream_buffer, reserved_deflate_block_type_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
+TEST(stored_block_with_mismatched_nlen_throws) {
   // RFC 1951 section 3.2.4: NLEN must be the one's complement of LEN
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
@@ -862,7 +862,7 @@ TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, two_concatenated_members) {
+TEST(two_concatenated_members) {
   const std::string first{"hello"};
   const std::string second{" world"};
   const auto first_gzip{sourcemeta::core::gzip(
@@ -874,7 +874,7 @@ TEST(GZIP_stream_buffer, two_concatenated_members) {
   EXPECT_EQ(result, first + second);
 }
 
-TEST(GZIP_stream_buffer, three_concatenated_members_with_empty) {
+TEST(three_concatenated_members_with_empty) {
   const std::string first{"foo"};
   const std::string second;
   const std::string third{"baz"};
@@ -889,7 +889,7 @@ TEST(GZIP_stream_buffer, three_concatenated_members_with_empty) {
   EXPECT_EQ(result, first + second + third);
 }
 
-TEST(GZIP_stream_buffer, header_only_source_throws) {
+TEST(header_only_source_throws) {
   const std::string input{"hello world"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -902,7 +902,7 @@ TEST(GZIP_stream_buffer, header_only_source_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, truncated_mid_fname_throws) {
+TEST(truncated_mid_fname_throws) {
   // FLG.FNAME set but the source stream ends before the null terminator
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x08, 0x00, 0x00, 0x00,
@@ -915,7 +915,7 @@ TEST(GZIP_stream_buffer, truncated_mid_fname_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, truncated_mid_fcomment_throws) {
+TEST(truncated_mid_fcomment_throws) {
   // FLG.FCOMMENT set but the source stream ends before the null terminator
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x10, 0x00, 0x00, 0x00,
@@ -928,7 +928,7 @@ TEST(GZIP_stream_buffer, truncated_mid_fcomment_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, truncated_mid_fextra_throws) {
+TEST(truncated_mid_fextra_throws) {
   // FLG.FEXTRA with XLEN=10 but only 3 bytes of extra-field data present
   sourcemeta::core::InputByteStream stream{
       0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00,
@@ -942,7 +942,7 @@ TEST(GZIP_stream_buffer, truncated_mid_fextra_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, fextra_spans_internal_buffer) {
+TEST(fextra_spans_internal_buffer) {
   std::string compressed;
   compressed.append("\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff", 10);
   const std::size_t extra_size{20000};
@@ -955,7 +955,7 @@ TEST(GZIP_stream_buffer, fextra_spans_internal_buffer) {
   EXPECT_EQ(decompress_via_stream(compressed), "hello world");
 }
 
-TEST(GZIP_stream_buffer, dynamic_block_hlit_above_286_throws) {
+TEST(dynamic_block_hlit_above_286_throws) {
   // RFC 1951 section 3.2.7 caps the literal/length alphabet at 286 symbols.
   // The deflate payload starts a dynamic block with HLIT encoding 288 codes
   // (BFINAL=1, BTYPE=10, HLIT field = 31 so 31 + 257 = 288)
@@ -970,7 +970,7 @@ TEST(GZIP_stream_buffer, dynamic_block_hlit_above_286_throws) {
   }
 }
 
-TEST(GZIP_stream_buffer, dynamic_block_incomplete_code_throws) {
+TEST(dynamic_block_incomplete_code_throws) {
   // RFC 1951 forbids incomplete Huffman codes outside the single-code case.
   // The deflate payload starts a dynamic block whose code-length code tree
   // assigns length two to two symbols, leaving the alphabet incomplete

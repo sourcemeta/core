@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
@@ -23,32 +23,32 @@
   __EXPECT_PARSE_ERROR(input, expected_line, expected_column, JSONParseError,  \
                        "Failed to parse the JSON document");
 
-TEST(JSON_parse_error, boolean_true_invalid) {
+TEST(boolean_true_invalid) {
   std::istringstream input{"trrue"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, new_lines_before_invalid_true) {
+TEST(new_lines_before_invalid_true) {
   std::istringstream input{"\n\n\n\ntrrue"};
   EXPECT_PARSE_ERROR(input, 5, 3);
 }
 
-TEST(JSON_parse_error, whitespace_before_invalid_true) {
+TEST(whitespace_before_invalid_true) {
   std::istringstream input{" \t\rtrrue"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, invalid_start_character) {
+TEST(invalid_start_character) {
   std::istringstream input{"xxxxxxx"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, boolean_true_invalid_with_spaces) {
+TEST(boolean_true_invalid_with_spaces) {
   std::istringstream input{"   trrue   "};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, invalid_object_delimiter) {
+TEST(invalid_object_delimiter) {
   std::istringstream input{R"EOF({
     "foo": {
       "bar" "baz"
@@ -57,277 +57,277 @@ TEST(JSON_parse_error, invalid_object_delimiter) {
   EXPECT_PARSE_ERROR(input, 3, 13);
 }
 
-TEST(JSON_parse_error, array_comma_before_element) {
+TEST(array_comma_before_element) {
   std::istringstream input{"[,]"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, array_without_end) {
+TEST(array_without_end) {
   std::istringstream input{"["};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, empty_array_incomplete_right_with_inner_space) {
+TEST(empty_array_incomplete_right_with_inner_space) {
   std::istringstream input{"[  "};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, array_empty_with_comma_and_no_right_bracket) {
+TEST(array_empty_with_comma_and_no_right_bracket) {
   std::istringstream input{"[,"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, array_empty_with_comma_and_spacing) {
+TEST(array_empty_with_comma_and_spacing) {
   std::istringstream input{"[   ,   ]"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, array_boolean_incomplete) {
+TEST(array_boolean_incomplete) {
   std::istringstream input{"[true"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, array_incomplete_boolean) {
+TEST(array_incomplete_boolean) {
   std::istringstream input{"[tru]"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, array_without_comma_after_element) {
+TEST(array_without_comma_after_element) {
   std::istringstream input{"[1[2]]"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, array_unclosed_string_element) {
+TEST(array_unclosed_string_element) {
   std::istringstream input{"[\"foo]"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, array_single_element_trailing_comma) {
+TEST(array_single_element_trailing_comma) {
   std::istringstream input{"[true,]"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, array_single_element_trailing_commas) {
+TEST(array_single_element_trailing_commas) {
   std::istringstream input{"[true,,,]"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, array_single_element_middle_comma) {
+TEST(array_single_element_middle_comma) {
   std::istringstream input{"[true,,true]"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, array_single_element_leading_comma) {
+TEST(array_single_element_leading_comma) {
   std::istringstream input{"[,true]"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, array_single_element_leading_commas) {
+TEST(array_single_element_leading_commas) {
   std::istringstream input{"[,,,true]"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, concat_array_middle_unbalanced_right) {
+TEST(concat_array_middle_unbalanced_right) {
   std::istringstream input{"[true,[false]"};
   EXPECT_PARSE_ERROR(input, 1, 14);
 }
 
-TEST(JSON_parse_error, true_incomplete_1) {
+TEST(true_incomplete_1) {
   std::istringstream input{"tru"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, true_incomplete_2) {
+TEST(true_incomplete_2) {
   std::istringstream input{"tr"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, true_incomplete_3) {
+TEST(true_incomplete_3) {
   std::istringstream input{"t"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, false_incomplete_1) {
+TEST(false_incomplete_1) {
   std::istringstream input{"fals"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, false_incomplete_2) {
+TEST(false_incomplete_2) {
   std::istringstream input{"fal"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, false_incomplete_3) {
+TEST(false_incomplete_3) {
   std::istringstream input{"fa"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, false_incomplete_4) {
+TEST(false_incomplete_4) {
   std::istringstream input{"f"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, null_incomplete_1) {
+TEST(null_incomplete_1) {
   std::istringstream input{"nul"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, null_incomplete_2) {
+TEST(null_incomplete_2) {
   std::istringstream input{"nu"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, null_incomplete_3) {
+TEST(null_incomplete_3) {
   std::istringstream input{"n"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, empty_object_missing_left_curly) {
+TEST(empty_object_missing_left_curly) {
   std::istringstream input{"}"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, empty_object_missing_right_curly) {
+TEST(empty_object_missing_right_curly) {
   std::istringstream input{"{"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, object_missing_closing_curly) {
+TEST(object_missing_closing_curly) {
   std::istringstream input{"{\"foo\":{}"};
   EXPECT_PARSE_ERROR(input, 1, 10);
 }
 
-TEST(JSON_parse_error, object_integer_key) {
+TEST(object_integer_key) {
   std::istringstream input{"{1:false}"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, object_colon_but_no_key) {
+TEST(object_colon_but_no_key) {
   std::istringstream input{"{:false}"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, object_colon_but_no_key_with_space) {
+TEST(object_colon_but_no_key_with_space) {
   std::istringstream input{"{  :  false  }"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, object_colon_but_no_value) {
+TEST(object_colon_but_no_value) {
   std::istringstream input{"{\"x\":}"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, object_colon_but_no_value_with_space) {
+TEST(object_colon_but_no_value_with_space) {
   std::istringstream input{"{   \"x\"   :   }"};
   EXPECT_PARSE_ERROR(input, 1, 15);
 }
 
-TEST(JSON_parse_error, object_missing_key_left_quote) {
+TEST(object_missing_key_left_quote) {
   std::istringstream input{"{foo\":true}"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, object_missing_key_right_quote) {
+TEST(object_missing_key_right_quote) {
   std::istringstream input{"{\"foo:true}"};
   EXPECT_PARSE_ERROR(input, 1, 12);
 }
 
-TEST(JSON_parse_error, object_missing_key_both_quotes) {
+TEST(object_missing_key_both_quotes) {
   std::istringstream input{"{foo:true}"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, object_missing_colon) {
+TEST(object_missing_colon) {
   std::istringstream input{"{\"foo\" true}"};
   EXPECT_PARSE_ERROR(input, 1, 8);
 }
 
-TEST(JSON_parse_error, object_multiple_colons) {
+TEST(object_multiple_colons) {
   std::istringstream input{"{\"foo\"::true}"};
   EXPECT_PARSE_ERROR(input, 1, 8);
 }
 
-TEST(JSON_parse_error, object_no_right_curly_bracket) {
+TEST(object_no_right_curly_bracket) {
   std::istringstream input{"{\"foo\":true"};
   EXPECT_PARSE_ERROR(input, 1, 12);
 }
 
-TEST(JSON_parse_error, object_incomplete_boolean) {
+TEST(object_incomplete_boolean) {
   std::istringstream input{"{\"foo\":tru}"};
   EXPECT_PARSE_ERROR(input, 1, 11);
 }
 
-TEST(JSON_parse_error, object_key_without_value) {
+TEST(object_key_without_value) {
   std::istringstream input{"{\"foo\"}"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, object_key_without_value_after_valid_key) {
+TEST(object_key_without_value_after_valid_key) {
   std::istringstream input{"{\"foo\": 1,\"bar\"}"};
   EXPECT_PARSE_ERROR(input, 1, 16);
 }
 
-TEST(JSON_parse_error, object_trailing_comma_after_element) {
+TEST(object_trailing_comma_after_element) {
   std::istringstream input{"{\"foo\": 1,\"bar\":0,}"};
   EXPECT_PARSE_ERROR(input, 1, 19);
 }
 
-TEST(JSON_parse_error, object_trailing_comma) {
+TEST(object_trailing_comma) {
   std::istringstream input{"{\"foo\": 1,}"};
   EXPECT_PARSE_ERROR(input, 1, 11);
 }
 
-TEST(JSON_parse_error, object_trailing_comma_with_spacing) {
+TEST(object_trailing_comma_with_spacing) {
   std::istringstream input{"{\"foo\": 1  ,   } "};
   EXPECT_PARSE_ERROR(input, 1, 16);
 }
 
-TEST(JSON_parse_error, object_trailing_comma_with_left_spacing) {
+TEST(object_trailing_comma_with_left_spacing) {
   std::istringstream input{"{\"foo\": 1  ,}"};
   EXPECT_PARSE_ERROR(input, 1, 13);
 }
 
-TEST(JSON_parse_error, object_multiple_commas) {
+TEST(object_multiple_commas) {
   std::istringstream input{"{\"foo\": 1,,,,,}"};
   EXPECT_PARSE_ERROR(input, 1, 11);
 }
 
-TEST(JSON_parse_error, object_multiple_commas_with_spacing) {
+TEST(object_multiple_commas_with_spacing) {
   std::istringstream input{"{\"foo\": 1 ,  ,  , , }"};
   EXPECT_PARSE_ERROR(input, 1, 14);
 }
 
-TEST(JSON_parse_error, string_no_right_quote) {
+TEST(string_no_right_quote) {
   std::istringstream input{"\"foo"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, string_no_left_quote) {
+TEST(string_no_left_quote) {
   std::istringstream input{"foo\""};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, string_single_quotes) {
+TEST(string_single_quotes) {
   std::istringstream input{"'foo'"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, string_only_quote) {
+TEST(string_only_quote) {
   std::istringstream input{"\""};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, string_escaped_invalid) {
+TEST(string_escaped_invalid) {
   std::istringstream input{"\"foo\\xbar\""};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, string_escaped_incomplete) {
+TEST(string_escaped_incomplete) {
   std::istringstream input{"\"foo\\\""};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, string_invalid_control_characters) {
+TEST(string_invalid_control_characters) {
   std::istringstream input00{"\"foo \u0000 bar\""};
   std::istringstream input01{"\"foo \u0001 bar\""};
   std::istringstream input02{"\"foo \u0002 bar\""};
@@ -395,273 +395,272 @@ TEST(JSON_parse_error, string_invalid_control_characters) {
   EXPECT_PARSE_ERROR(input1F, 1, 6);
 }
 
-TEST(JSON_parse_error, string_invalid_code_point) {
+TEST(string_invalid_code_point) {
   std::istringstream input{"\"\\uXXXX\""};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, string_invalid_lowercase_code_point) {
+TEST(string_invalid_lowercase_code_point) {
   std::istringstream input{"\"\\uqqqq\""};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, string_incomplete_code_point_0) {
+TEST(string_incomplete_code_point_0) {
   std::istringstream input{"\"\\u\""};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, string_incomplete_code_point_1) {
+TEST(string_incomplete_code_point_1) {
   std::istringstream input{"\"\\u6\""};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, string_incomplete_code_point_2) {
+TEST(string_incomplete_code_point_2) {
   std::istringstream input{"\"\\u2F\""};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, string_incomplete_code_point_3) {
+TEST(string_incomplete_code_point_3) {
   std::istringstream input{"\"\\u02F\""};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, string_incomplete_code_point_space) {
+TEST(string_incomplete_code_point_space) {
   std::istringstream input{"\"\\u0F 2F\""};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, invalid_integer_trailing_minus) {
+TEST(invalid_integer_trailing_minus) {
   std::istringstream input{"[-0-]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, invalid_integer_trailing_character) {
+TEST(invalid_integer_trailing_character) {
   std::istringstream input{"[-0x]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, invalid_minus_in_between_integer) {
+TEST(invalid_minus_in_between_integer) {
   std::istringstream input{"[123-45]"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, integer_invalid_double_minus) {
+TEST(integer_invalid_double_minus) {
   std::istringstream input{"--123"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, integer_two_zeroes) {
+TEST(integer_two_zeroes) {
   std::istringstream input{"[00]"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, integer_multiple_zeroes) {
+TEST(integer_multiple_zeroes) {
   std::istringstream input{"[000]"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, leading_zero_with_one_digit_integer) {
+TEST(leading_zero_with_one_digit_integer) {
   std::istringstream input{"[01]"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, leading_zero_with_two_digits_integer) {
+TEST(leading_zero_with_two_digits_integer) {
   std::istringstream input{"[012]"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, real_leading_period) {
+TEST(real_leading_period) {
   std::istringstream input{".0"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, real_trailing_period) {
+TEST(real_trailing_period) {
   std::istringstream input{"0."};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, real_trailing_period_and_minus) {
+TEST(real_trailing_period_and_minus) {
   std::istringstream input{"[0.-]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, integer_double_minus_at_start) {
+TEST(integer_double_minus_at_start) {
   std::istringstream input{"--5"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, integer_leading_minus_and_period) {
+TEST(integer_leading_minus_and_period) {
   std::istringstream input{"-.0"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, integer_multiple_leading_plus) {
+TEST(integer_multiple_leading_plus) {
   std::istringstream input{"++5"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, real_multiple_sibling_periods) {
+TEST(real_multiple_sibling_periods) {
   std::istringstream input{"123..56"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, real_multiple_separate_periods) {
+TEST(real_multiple_separate_periods) {
   std::istringstream input{"[12.34.56]"};
   EXPECT_PARSE_ERROR(input, 1, 7);
 }
 
-TEST(JSON_parse_error, integer_with_plus) {
+TEST(integer_with_plus) {
   std::istringstream input{"+5"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, integer_string_zero_with_plus) {
+TEST(integer_string_zero_with_plus) {
   std::istringstream input{"+0"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, integer_negative_with_leading_zero) {
+TEST(integer_negative_with_leading_zero) {
   std::istringstream input{"-05"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, integer_negative_with_leading_zero_and_space) {
+TEST(integer_negative_with_leading_zero_and_space) {
   std::istringstream input{"[-0 5]"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, leading_zero_positive_integer_number) {
+TEST(leading_zero_positive_integer_number) {
   std::istringstream input{"[02]"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, leading_zero_negative_integer_number) {
+TEST(leading_zero_negative_integer_number) {
   std::istringstream input{"[-02]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, two_leading_zeroes_real_number) {
+TEST(two_leading_zeroes_real_number) {
   std::istringstream input{"[-00.2]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, multiple_leading_zeroes_real_number) {
+TEST(multiple_leading_zeroes_real_number) {
   std::istringstream input{"[-00000.2]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, decimal_invalid_standalone_exponent) {
+TEST(decimal_invalid_standalone_exponent) {
   std::istringstream input{"e10"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, decimal_invalid_standalone_negative_sign) {
+TEST(decimal_invalid_standalone_negative_sign) {
   std::istringstream input{"-"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, decimal_invalid_standalone_decimal_point) {
+TEST(decimal_invalid_standalone_decimal_point) {
   std::istringstream input{"."};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, decimal_exponent_no_digits) {
+TEST(decimal_exponent_no_digits) {
   std::istringstream input{"1e"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, decimal_exponent_sign_no_digits) {
+TEST(decimal_exponent_sign_no_digits) {
   std::istringstream input{"1e+"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_double_upper_e) {
+TEST(exponential_notation_error_double_upper_e) {
   std::istringstream input{"3EE2"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_double_lower_e) {
+TEST(exponential_notation_error_double_lower_e) {
   std::istringstream input{"3ee2"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_double_mixed_e) {
+TEST(exponential_notation_error_double_mixed_e) {
   std::istringstream input{"3eE2"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_trailing_upper_e) {
+TEST(exponential_notation_error_trailing_upper_e) {
   std::istringstream input{"3E"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_trailing_lower_e) {
+TEST(exponential_notation_error_trailing_lower_e) {
   std::istringstream input{"3e"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_trailing_upper_e_minus) {
+TEST(exponential_notation_error_trailing_upper_e_minus) {
   std::istringstream input{"3E-"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_trailing_lower_e_minus) {
+TEST(exponential_notation_error_trailing_lower_e_minus) {
   std::istringstream input{"3e-"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_leading_upper_e) {
+TEST(exponential_notation_error_leading_upper_e) {
   std::istringstream input{"E2"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_leading_lower_e) {
+TEST(exponential_notation_error_leading_lower_e) {
   std::istringstream input{"e2"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_minus_leading_upper_e) {
+TEST(exponential_notation_error_minus_leading_upper_e) {
   std::istringstream input{"-E2"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_minus_leading_lower_e) {
+TEST(exponential_notation_error_minus_leading_lower_e) {
   std::istringstream input{"-e2"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_double_e_with_digits) {
+TEST(exponential_notation_error_double_e_with_digits) {
   std::istringstream input{"[3E1E2]"};
   EXPECT_PARSE_ERROR(input, 1, 5);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_left_e_space) {
+TEST(exponential_notation_error_left_e_space) {
   std::istringstream input{"[3 E2]"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_right_e_space) {
+TEST(exponential_notation_error_right_e_space) {
   std::istringstream input{"3E 2"};
   EXPECT_PARSE_ERROR(input, 1, 3);
 }
 
-TEST(JSON_parse_error, exponential_notation_error_double_minus_after_e) {
+TEST(exponential_notation_error_double_minus_after_e) {
   std::istringstream input{"3E--2"};
   EXPECT_PARSE_ERROR(input, 1, 4);
 }
 
-TEST(JSON_parse_error,
-     exponential_notation_error_double_minus_with_digits_after_e) {
+TEST(exponential_notation_error_double_minus_with_digits_after_e) {
   std::istringstream input{"[3E-2-2]"};
   EXPECT_PARSE_ERROR(input, 1, 6);
 }
 
-TEST(JSON_parse_error, backspace_is_not_whitespace) {
+TEST(backspace_is_not_whitespace) {
   std::istringstream input{"\bfalse\b"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, read_json_invalid_1) {
+TEST(read_json_invalid_1) {
   try {
     sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
                                 "stub_invalid_1.json");
@@ -676,7 +675,7 @@ TEST(JSON_parse_error, read_json_invalid_1) {
   }
 }
 
-TEST(JSON_parse_error, read_json_invalid_2) {
+TEST(read_json_invalid_2) {
   try {
     sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
                                 "stub_invalid_2.json");
@@ -691,7 +690,7 @@ TEST(JSON_parse_error, read_json_invalid_2) {
   }
 }
 
-TEST(JSON_parse_error, read_json_invalid_bigint) {
+TEST(read_json_invalid_bigint) {
   try {
     sourcemeta::core::read_json(std::filesystem::path{TEST_DIRECTORY} /
                                 "stub_bigint.json");
@@ -708,7 +707,7 @@ TEST(JSON_parse_error, read_json_invalid_bigint) {
   }
 }
 
-TEST(JSON_parse_error, read_json_directory) {
+TEST(read_json_directory) {
   const std::filesystem::path path{TEST_DIRECTORY};
   try {
     sourcemeta::core::read_json(path);
@@ -720,7 +719,7 @@ TEST(JSON_parse_error, read_json_directory) {
   }
 }
 
-TEST(JSON_parse_error, read_json_non_existent) {
+TEST(read_json_non_existent) {
   const auto path{std::filesystem::path{TEST_DIRECTORY} / "i-dont-exist"};
   try {
     sourcemeta::core::read_json(path);
@@ -732,17 +731,17 @@ TEST(JSON_parse_error, read_json_non_existent) {
   }
 }
 
-TEST(JSON_parse_error, parsing_infinity_keyword_fails) {
+TEST(parsing_infinity_keyword_fails) {
   std::istringstream input{"Infinity"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
 
-TEST(JSON_parse_error, parsing_negative_infinity_keyword_fails) {
+TEST(parsing_negative_infinity_keyword_fails) {
   std::istringstream input{"-Infinity"};
   EXPECT_PARSE_ERROR(input, 1, 2);
 }
 
-TEST(JSON_parse_error, parsing_nan_keyword_fails) {
+TEST(parsing_nan_keyword_fails) {
   std::istringstream input{"NaN"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }

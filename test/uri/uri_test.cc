@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
@@ -6,44 +6,44 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
-TEST(URI, default_constructor) {
+TEST(default_constructor) {
   const sourcemeta::core::URI uri;
   EXPECT_TRUE(uri.empty());
   EXPECT_EQ(uri.recompose(), "");
 }
 
-TEST(URI, default_constructor_equals_empty_string) {
+TEST(default_constructor_equals_empty_string) {
   const sourcemeta::core::URI uri_default;
   const sourcemeta::core::URI uri_empty{""};
   EXPECT_EQ(uri_default, uri_empty);
 }
 
-TEST(URI, copy_constructor) {
+TEST(copy_constructor) {
   const sourcemeta::core::URI uri_1{"https://example.com"};
   const sourcemeta::core::URI uri_2{uri_1};
   EXPECT_EQ(uri_1.recompose(), uri_2.recompose());
 }
 
-TEST(URI, copy_constructor_empty) {
+TEST(copy_constructor_empty) {
   const sourcemeta::core::URI uri_1;
   const sourcemeta::core::URI uri_2{uri_1};
   EXPECT_TRUE(uri_2.empty());
   EXPECT_EQ(uri_1, uri_2);
 }
 
-TEST(URI, move_constructor) {
+TEST(move_constructor) {
   sourcemeta::core::URI uri_1{"https://example.com"};
   const sourcemeta::core::URI uri_2{std::move(uri_1)};
   EXPECT_EQ(uri_2.recompose(), "https://example.com");
 }
 
-TEST(URI, move_constructor_empty) {
+TEST(move_constructor_empty) {
   sourcemeta::core::URI uri_1;
   const sourcemeta::core::URI uri_2{std::move(uri_1)};
   EXPECT_TRUE(uri_2.empty());
 }
 
-TEST(URI, copy_assignment) {
+TEST(copy_assignment) {
   const sourcemeta::core::URI uri_1{"https://example.com"};
   sourcemeta::core::URI uri_2{"https://other.com"};
   uri_2 = uri_1;
@@ -51,7 +51,7 @@ TEST(URI, copy_assignment) {
   EXPECT_EQ(uri_2.recompose(), "https://example.com");
 }
 
-TEST(URI, copy_assignment_empty) {
+TEST(copy_assignment_empty) {
   const sourcemeta::core::URI uri_1;
   sourcemeta::core::URI uri_2{"https://example.com"};
   uri_2 = uri_1;
@@ -59,21 +59,21 @@ TEST(URI, copy_assignment_empty) {
   EXPECT_EQ(uri_1, uri_2);
 }
 
-TEST(URI, move_assignment) {
+TEST(move_assignment) {
   sourcemeta::core::URI uri_1{"https://example.com"};
   sourcemeta::core::URI uri_2{"https://other.com"};
   uri_2 = std::move(uri_1);
   EXPECT_EQ(uri_2.recompose(), "https://example.com");
 }
 
-TEST(URI, move_assignment_empty) {
+TEST(move_assignment_empty) {
   sourcemeta::core::URI uri_1;
   sourcemeta::core::URI uri_2{"https://example.com"};
   uri_2 = std::move(uri_1);
   EXPECT_TRUE(uri_2.empty());
 }
 
-TEST(URI, from_fragment) {
+TEST(from_fragment) {
   const auto uri{sourcemeta::core::URI::from_fragment("foo")};
   const auto fragment{uri.fragment()};
   EXPECT_TRUE(fragment.has_value());
@@ -81,7 +81,7 @@ TEST(URI, from_fragment) {
   EXPECT_EQ(uri.recompose(), "#foo");
 }
 
-TEST(URI, from_fragment_at) {
+TEST(from_fragment_at) {
   const auto uri{sourcemeta::core::URI::from_fragment("/@foo")};
   const auto fragment{uri.fragment()};
   EXPECT_TRUE(fragment.has_value());
@@ -89,7 +89,7 @@ TEST(URI, from_fragment_at) {
   EXPECT_EQ(uri.recompose(), "#/@foo");
 }
 
-TEST(URI, from_fragment_empty) {
+TEST(from_fragment_empty) {
   const auto uri{sourcemeta::core::URI::from_fragment("")};
   const auto fragment{uri.fragment()};
   EXPECT_TRUE(fragment.has_value());
@@ -97,7 +97,7 @@ TEST(URI, from_fragment_empty) {
   EXPECT_EQ(uri.recompose(), "#");
 }
 
-TEST(URI, from_fragment_with_hash) {
+TEST(from_fragment_with_hash) {
   const auto uri{sourcemeta::core::URI::from_fragment("#foo")};
   const auto fragment{uri.fragment()};
   EXPECT_TRUE(fragment.has_value());
@@ -105,7 +105,7 @@ TEST(URI, from_fragment_with_hash) {
   EXPECT_EQ(uri.recompose(), "#foo");
 }
 
-TEST(URI, from_fragment_with_hash_empty) {
+TEST(from_fragment_with_hash_empty) {
   const auto uri{sourcemeta::core::URI::from_fragment("#")};
   const auto fragment{uri.fragment()};
   EXPECT_TRUE(fragment.has_value());
@@ -113,13 +113,13 @@ TEST(URI, from_fragment_with_hash_empty) {
   EXPECT_EQ(uri.recompose(), "#");
 }
 
-TEST(URI, using_istream) {
+TEST(using_istream) {
   std::istringstream input{"https://example.com"};
   const sourcemeta::core::URI uri{input};
   EXPECT_EQ(uri.recompose(), "https://example.com");
 }
 
-TEST(URI, equality) {
+TEST(equality) {
   EXPECT_EQ(sourcemeta::core::URI{"https://example.com"},
             sourcemeta::core::URI{"https://example.com"});
   EXPECT_NE(sourcemeta::core::URI{"https://example.com"},
@@ -128,7 +128,7 @@ TEST(URI, equality) {
   EXPECT_EQ(self, self);
 }
 
-TEST(URI, map) {
+TEST(map) {
   std::map<sourcemeta::core::URI, bool> map;
   map.emplace("https://example.com", true);
   map.emplace("https://foo.com", false);
@@ -142,44 +142,44 @@ TEST(URI, map) {
   EXPECT_FALSE(map.at(sourcemeta::core::URI{"https://foo.com"}));
 }
 
-TEST(URI, from_string_view) {
+TEST(from_string_view) {
   const std::string_view input{"https://example.com/path"};
   const sourcemeta::core::URI uri{input};
   EXPECT_EQ(uri.recompose(), "https://example.com/path");
 }
 
-TEST(URI, from_string) {
+TEST(from_string) {
   const std::string input{"https://example.com/path"};
   const sourcemeta::core::URI uri{input};
   EXPECT_EQ(uri.recompose(), "https://example.com/path");
 }
 
-TEST(URI, from_string_literal) {
+TEST(from_string_literal) {
   const sourcemeta::core::URI uri{"https://example.com/path"};
   EXPECT_EQ(uri.recompose(), "https://example.com/path");
 }
 
-TEST(URI, resolve_from_string_constructed_base) {
+TEST(resolve_from_string_constructed_base) {
   const std::string base{"https://example.com"};
   sourcemeta::core::URI uri{"foo/bar"};
   uri.resolve_from(sourcemeta::core::URI{base});
   EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
 }
 
-TEST(URI, resolve_from_string_view_constructed_base) {
+TEST(resolve_from_string_view_constructed_base) {
   const std::string_view base{"https://example.com"};
   sourcemeta::core::URI uri{"foo/bar"};
   uri.resolve_from(sourcemeta::core::URI{base});
   EXPECT_EQ(uri.recompose(), "https://example.com/foo/bar");
 }
 
-TEST(URI, canonicalize_from_string_view) {
+TEST(canonicalize_from_string_view) {
   const std::string_view input{"hTtP://ExAmPlE.com:80/TEST"};
   const auto result{sourcemeta::core::URI::canonicalize(input)};
   EXPECT_EQ(result, "http://example.com/TEST");
 }
 
-TEST(URI, canonicalize_from_string) {
+TEST(canonicalize_from_string) {
   const std::string input{"hTtP://ExAmPlE.com:80/TEST"};
   const auto result{sourcemeta::core::URI::canonicalize(input)};
   EXPECT_EQ(result, "http://example.com/TEST");

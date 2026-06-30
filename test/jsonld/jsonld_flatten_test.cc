@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
 
-TEST(JSONLD_flatten, nested_anonymous_node_gets_blank_node_identifier) {
+TEST(nested_anonymous_node_gets_blank_node_identifier) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/a",
@@ -27,7 +27,7 @@ TEST(JSONLD_flatten, nested_anonymous_node_gets_blank_node_identifier) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
-TEST(JSONLD_flatten, named_graph_is_folded_into_graph_entry) {
+TEST(named_graph_is_folded_into_graph_entry) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/g",
@@ -55,7 +55,7 @@ TEST(JSONLD_flatten, named_graph_is_folded_into_graph_entry) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
-TEST(JSONLD_flatten, reverse_property_becomes_forward_edge) {
+TEST(reverse_property_becomes_forward_edge) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/a",
@@ -75,7 +75,7 @@ TEST(JSONLD_flatten, reverse_property_becomes_forward_edge) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
-TEST(JSONLD_flatten, list_value_is_preserved) {
+TEST(list_value_is_preserved) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/a",
@@ -97,7 +97,7 @@ TEST(JSONLD_flatten, list_value_is_preserved) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
-TEST(JSONLD_flatten, set_object_items_are_unwrapped) {
+TEST(set_object_items_are_unwrapped) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/a",
@@ -117,7 +117,7 @@ TEST(JSONLD_flatten, set_object_items_are_unwrapped) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
-TEST(JSONLD_flatten, set_object_wrapping_anonymous_node) {
+TEST(set_object_wrapping_anonymous_node) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/a",
@@ -141,7 +141,7 @@ TEST(JSONLD_flatten, set_object_wrapping_anonymous_node) {
   EXPECT_EQ(sourcemeta::core::jsonld_flatten(input), expected);
 }
 
-TEST(JSONLD_flatten, conflicting_indexes_are_rejected) {
+TEST(conflicting_indexes_are_rejected) {
   const auto input = sourcemeta::core::parse_json(R"([
     { "@id": "http://example.com/a", "@index": "1" },
     { "@id": "http://example.com/a", "@index": "2" }
@@ -155,7 +155,7 @@ TEST(JSONLD_flatten, conflicting_indexes_are_rejected) {
   }
 }
 
-TEST(JSONLD_flatten, flatten_and_compact_against_context) {
+TEST(flatten_and_compact_against_context) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.com/a",

@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME numeric
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME numeric
   SOURCES numeric_decimal_test.cc numeric_parse_test.cc numeric_uint128_test.cc
           numeric_util_test.cc numeric_zigzag_test.cc)
 

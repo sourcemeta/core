@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uri
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
   SOURCES
     uri_test.cc
     uri_fragment_test.cc

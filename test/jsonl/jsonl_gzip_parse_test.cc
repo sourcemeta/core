@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/jsonl.h>
@@ -8,7 +8,7 @@
 #include <string>  // std::string
 #include <vector>  // std::vector
 
-TEST(JSONL_gzip_parse, empty) {
+TEST(empty) {
   const std::string input;
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -22,7 +22,7 @@ TEST(JSONL_gzip_parse, empty) {
   EXPECT_TRUE(result.empty());
 }
 
-TEST(JSONL_gzip_parse, integers_n) {
+TEST(integers_n) {
   const std::string input{"1\n2\n3\n4"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -44,7 +44,7 @@ TEST(JSONL_gzip_parse, integers_n) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_gzip_parse, integers_rn) {
+TEST(integers_rn) {
   const std::string input{"1\r\n2\r\n3\r\n4"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -66,7 +66,7 @@ TEST(JSONL_gzip_parse, integers_rn) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_gzip_parse, integers_trailing_n) {
+TEST(integers_trailing_n) {
   const std::string input{"1\n2\n3\n4\n"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -88,7 +88,7 @@ TEST(JSONL_gzip_parse, integers_trailing_n) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_gzip_parse, whitespace_before_after) {
+TEST(whitespace_before_after) {
   const std::string input{" \t\r   1  \r\r\n2  \t\n3   \n4   \t\r   "};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -110,7 +110,7 @@ TEST(JSONL_gzip_parse, whitespace_before_after) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_gzip_parse, objects) {
+TEST(objects) {
   const std::string input{
       R"EOF({"name": "Gilbert", "wins": [["straight", "7h"]]}
 {"name": "Alexa", "wins": [["two pair", "4s"]]}
@@ -158,7 +158,7 @@ TEST(JSONL_gzip_parse, objects) {
   EXPECT_EQ(result.at(3).at("wins").size(), 1);
 }
 
-TEST(JSONL_gzip_parse, large_dataset) {
+TEST(large_dataset) {
   std::string input;
   for (int index = 0; index < 1000; ++index) {
     input += "{\"index\":" + std::to_string(index) + "}\n";
@@ -182,7 +182,7 @@ TEST(JSONL_gzip_parse, large_dataset) {
   }
 }
 
-TEST(JSONL_gzip_parse, default_mode_is_raw) {
+TEST(default_mode_is_raw) {
   std::istringstream stream{"1\n2\n3"};
   std::vector<sourcemeta::core::JSON> result;
   for (const auto &document : sourcemeta::core::JSONL{stream}) {

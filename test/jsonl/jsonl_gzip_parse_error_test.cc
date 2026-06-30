@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/jsonl.h>
@@ -8,7 +8,7 @@
 #include <sstream>   // std::istringstream
 #include <string>    // std::string
 
-TEST(JSONL_gzip_parse_error, invalid_compressed_data) {
+TEST(invalid_compressed_data) {
   const std::string garbage{"this is not gzip data"};
   std::istringstream stream{garbage};
   try {
@@ -25,7 +25,7 @@ TEST(JSONL_gzip_parse_error, invalid_compressed_data) {
   }
 }
 
-TEST(JSONL_gzip_parse_error, invalid_json_in_compressed_data) {
+TEST(invalid_json_in_compressed_data) {
   const std::string input{"trrue"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
@@ -45,7 +45,7 @@ TEST(JSONL_gzip_parse_error, invalid_json_in_compressed_data) {
   }
 }
 
-TEST(JSONL_gzip_parse_error, invalid_delimiter_in_compressed_data) {
+TEST(invalid_delimiter_in_compressed_data) {
   const std::string input{"false true"};
   const auto compressed{sourcemeta::core::gzip(
       reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};

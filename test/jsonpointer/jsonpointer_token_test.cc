@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
 
 #include <type_traits>
 
-TEST(JSONPointer_token, general_traits) {
+TEST(general_traits) {
   EXPECT_FALSE(
       std::is_default_constructible<sourcemeta::core::Pointer::Token>::value);
   EXPECT_FALSE(std::is_nothrow_default_constructible<
@@ -15,7 +15,7 @@ TEST(JSONPointer_token, general_traits) {
       std::is_nothrow_destructible<sourcemeta::core::Pointer::Token>::value);
 }
 
-TEST(JSONPointer_token, copy_traits) {
+TEST(copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::Pointer::Token>::value);
   EXPECT_TRUE(
       std::is_copy_constructible<sourcemeta::core::Pointer::Token>::value);
@@ -25,7 +25,7 @@ TEST(JSONPointer_token, copy_traits) {
                sourcemeta::core::Pointer::Token>::value);
 }
 
-TEST(JSONPointer_token, move_traits) {
+TEST(move_traits) {
   EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::Pointer::Token>::value);
   EXPECT_TRUE(
       std::is_move_constructible<sourcemeta::core::Pointer::Token>::value);
@@ -35,7 +35,7 @@ TEST(JSONPointer_token, move_traits) {
               sourcemeta::core::Pointer::Token>::value);
 }
 
-TEST(JSONPointer_token, character_token) {
+TEST(character_token) {
   const sourcemeta::core::Pointer::Token token{'f'};
   EXPECT_TRUE(token.is_property());
   EXPECT_FALSE(token.is_index());
@@ -43,7 +43,7 @@ TEST(JSONPointer_token, character_token) {
   EXPECT_EQ(token.to_property(), "f");
 }
 
-TEST(JSONPointer_token, string_token) {
+TEST(string_token) {
   const sourcemeta::core::Pointer::Token token{"foo"};
   EXPECT_TRUE(token.is_property());
   EXPECT_FALSE(token.is_index());
@@ -51,7 +51,7 @@ TEST(JSONPointer_token, string_token) {
   EXPECT_EQ(token.to_property(), "foo");
 }
 
-TEST(JSONPointer_token, integer_token) {
+TEST(integer_token) {
   const sourcemeta::core::Pointer::Token token{5};
   EXPECT_TRUE(token.is_index());
   EXPECT_FALSE(token.is_property());
@@ -59,19 +59,19 @@ TEST(JSONPointer_token, integer_token) {
   EXPECT_EQ(token.to_index(), 5);
 }
 
-TEST(JSONPointer_token, hyphen_string_token) {
+TEST(hyphen_string_token) {
   const sourcemeta::core::Pointer::Token token{"-"};
   EXPECT_FALSE(token.is_index());
   EXPECT_TRUE(token.is_hyphen());
 }
 
-TEST(JSONPointer_token, hyphen_char_token) {
+TEST(hyphen_char_token) {
   const sourcemeta::core::Pointer::Token token{'-'};
   EXPECT_FALSE(token.is_index());
   EXPECT_TRUE(token.is_hyphen());
 }
 
-TEST(JSONPointer_token, ordering_less_than) {
+TEST(ordering_less_than) {
   const sourcemeta::core::Pointer::Token token_1{"foo"};
   const sourcemeta::core::Pointer::Token token_2{"bar"};
   const sourcemeta::core::Pointer::Token token_3{"baz"};
@@ -80,21 +80,21 @@ TEST(JSONPointer_token, ordering_less_than) {
   EXPECT_TRUE(token_2 < token_3);
 }
 
-TEST(JSONPointer_token, to_json_index) {
+TEST(to_json_index) {
   const sourcemeta::core::Pointer::Token token{5};
   const sourcemeta::core::JSON result{token.to_json()};
   EXPECT_TRUE(result.is_integer());
   EXPECT_EQ(result.to_integer(), 5);
 }
 
-TEST(JSONPointer_token, to_json_property) {
+TEST(to_json_property) {
   const sourcemeta::core::Pointer::Token token{"foo"};
   const sourcemeta::core::JSON result{token.to_json()};
   EXPECT_TRUE(result.is_string());
   EXPECT_EQ(result.to_string(), "foo");
 }
 
-TEST(JSONPointer_token, property_hash) {
+TEST(property_hash) {
   const sourcemeta::core::Pointer::Token first{"foo"};
   const sourcemeta::core::Pointer::Token second{"bar"};
   const sourcemeta::core::Pointer::Token third{"foo"};
@@ -103,7 +103,7 @@ TEST(JSONPointer_token, property_hash) {
   EXPECT_EQ(first.property_hash(), third.property_hash());
 }
 
-TEST(JSONPointer_get, at_property_with_hash) {
+TEST(at_property_with_hash) {
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "foo": 1,
     "bar": 2,

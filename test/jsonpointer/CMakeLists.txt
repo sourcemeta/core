@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
   SOURCES
     jsonpointer_empty_pointer_test.cc
     jsonpointer_get_test.cc

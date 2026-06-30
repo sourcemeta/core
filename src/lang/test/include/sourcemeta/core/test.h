@@ -174,6 +174,19 @@ inline auto test_c_string_label(const char *const value) -> std::string_view {
                           : std::string_view{value};
 }
 
+// The operands are taken as function arguments so that any temporaries they
+// produce live through the whole comparison, which a separate reference binding
+// inside the macro would let dangle
+template <typename Left, typename Right, typename Comparator>
+auto test_expect_comparison(std::string_view file, int line,
+                            std::string_view expression, const Left &left,
+                            const Right &right, Comparator comparator) -> void {
+  if (!comparator(left, right)) {
+    test_report_failure(file, line,
+                        test_describe_mismatch(expression, left, right));
+  }
+}
+
 } // namespace sourcemeta::core
 
 #define SOURCEMETA_CORE_TEST_REGISTER(name)                                    \
@@ -187,18 +200,14 @@ inline auto test_c_string_label(const char *const value) -> std::string_view {
 #define TEST(name) SOURCEMETA_CORE_TEST_REGISTER(name)
 
 #define SOURCEMETA_CORE_TEST_COMPARE(actual, expected, comparator, operation)  \
-  do {                                                                         \
-    const auto &sourcemeta_test_actual{(actual)};                              \
-    const auto &sourcemeta_test_expected{(expected)};                          \
-    if (!::sourcemeta::core::comparator(sourcemeta_test_actual,                \
-                                        sourcemeta_test_expected)) {           \
-      ::sourcemeta::core::test_report_failure(                                 \
-          __FILE__, __LINE__,                                                  \
-          ::sourcemeta::core::test_describe_mismatch(                          \
-              #actual " " operation " " #expected, sourcemeta_test_actual,     \
-              sourcemeta_test_expected));                                      \
-    }                                                                          \
-  } while (false)
+  ::sourcemeta::core::test_expect_comparison(                                  \
+      __FILE__, __LINE__, #actual " " operation " " #expected, (actual),       \
+      (expected),                                                              \
+      [](const auto &sourcemeta_test_left,                                     \
+         const auto &sourcemeta_test_right) {                                  \
+        return ::sourcemeta::core::comparator(sourcemeta_test_left,            \
+                                              sourcemeta_test_right);          \
+      })
 
 #define EXPECT_EQ(actual, expected)                                            \
   SOURCEMETA_CORE_TEST_COMPARE(actual, expected, test_compare_equal, "==")

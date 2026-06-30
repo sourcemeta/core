@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
@@ -84,98 +84,98 @@ constexpr std::string_view EDDSA_ED448_JWK{
     R"JSON({ "kty": "OKP", "crv": "Ed448", "x": "E35kUtHOEUbcTPAayux0atDpqzE8jD1lGIdbrhR5I79Gm1bDz6JMUvrGk7zVusKM8FEDCWzJMjcA" })JSON"};
 } // namespace
 
-TEST(JOSE_jwt_verify_signature, rs256_valid) {
+TEST(rs256_valid) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, rs256_tampered_signature) {
+TEST(rs256_tampered_signature) {
   std::string tampered{RS256_TOKEN};
   const auto signature_start{tampered.rfind('.') + 1};
   tampered[signature_start] = (tampered[signature_start] == 'A') ? 'B' : 'A';
   const auto token{sourcemeta::core::JWT::from(tampered)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, es256_valid) {
+TEST(es256_valid) {
   const auto token{sourcemeta::core::JWT::from(ES256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, es256_tampered_signature) {
+TEST(es256_tampered_signature) {
   std::string tampered{ES256_TOKEN};
   const auto signature_start{tampered.rfind('.') + 1};
   tampered[signature_start] = (tampered[signature_start] == 'A') ? 'B' : 'A';
   const auto token{sourcemeta::core::JWT::from(tampered)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, rsa_token_with_elliptic_curve_key) {
+TEST(rsa_token_with_elliptic_curve_key) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, elliptic_curve_token_with_rsa_key) {
+TEST(elliptic_curve_token_with_rsa_key) {
   const auto token{sourcemeta::core::JWT::from(ES256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, elliptic_curve_algorithm_curve_mismatch) {
+TEST(elliptic_curve_algorithm_curve_mismatch) {
   const auto token{sourcemeta::core::JWT::from(ES512_TOKEN_CURVE_GUARD)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, unrecognized_algorithm) {
+TEST(unrecognized_algorithm) {
   const auto token{sourcemeta::core::JWT::from(HS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, contradicting_key_algorithm) {
+TEST(contradicting_key_algorithm) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(RSA_JWK_OTHER_ALGORITHM))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
@@ -185,54 +185,54 @@ TEST(JOSE_jwt_verify_signature, contradicting_key_algorithm) {
 // and P-384 / P-521 mappings. No RFC worked example covers these as a JWT: RFC
 // 7515 only provides RS256 and ES256, and the RFC 7520 cookbook signs a
 // non-JSON payload that is not a valid JWT
-TEST(JOSE_jwt_verify_signature, ps256_valid) {
+TEST(ps256_valid) {
   const auto token{sourcemeta::core::JWT::from(PS256_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(PS256_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, es384_valid) {
+TEST(es384_valid) {
   const auto token{sourcemeta::core::JWT::from(ES384_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(ES384_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, es512_valid) {
+TEST(es512_valid) {
   const auto token{sourcemeta::core::JWT::from(ES512_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(ES512_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
 // Self-signed with OpenSSL, since no RFC worked example provides an EdDSA token
 // with a JSON object payload (RFC 8037 signs plain text)
-TEST(JOSE_jwt_verify_signature, eddsa_ed25519) {
+TEST(eddsa_ed25519) {
   const auto token{sourcemeta::core::JWT::from(EDDSA_ED25519_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(EDDSA_ED25519_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }
 
-TEST(JOSE_jwt_verify_signature, eddsa_ed448) {
+TEST(eddsa_ed448) {
   const auto token{sourcemeta::core::JWT::from(EDDSA_ED448_TOKEN)};
-  ASSERT_TRUE(token.has_value());
+  EXPECT_TRUE(token.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(EDDSA_ED448_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(
       sourcemeta::core::jwt_verify_signature(token.value(), key.value()));
 }

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/regex.h>
 
@@ -6,7 +6,7 @@
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 
-TEST(Regex, copy_construct) {
+TEST(copy_construct) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
   const sourcemeta::core::Regex copy{regex.value()};
@@ -14,7 +14,7 @@ TEST(Regex, copy_construct) {
   EXPECT_FALSE(sourcemeta::core::matches(copy, "bar foo"));
 }
 
-TEST(Regex, copy_assign) {
+TEST(copy_assign) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
   sourcemeta::core::Regex copy{sourcemeta::core::RegexTypeNoop{}};
@@ -23,7 +23,7 @@ TEST(Regex, copy_assign) {
   EXPECT_FALSE(sourcemeta::core::matches(copy, "bar foo"));
 }
 
-TEST(Regex, move_construct) {
+TEST(move_construct) {
   auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
   const sourcemeta::core::Regex moved{std::move(regex).value()};
@@ -31,7 +31,7 @@ TEST(Regex, move_construct) {
   EXPECT_FALSE(sourcemeta::core::matches(moved, "bar foo"));
 }
 
-TEST(Regex, move_assign) {
+TEST(move_assign) {
   auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
   sourcemeta::core::Regex moved{sourcemeta::core::RegexTypeNoop{}};
@@ -40,14 +40,14 @@ TEST(Regex, move_assign) {
   EXPECT_FALSE(sourcemeta::core::matches(moved, "bar foo"));
 }
 
-TEST(Regex, to_regex_with_string_view) {
+TEST(to_regex_with_string_view) {
   const std::string_view pattern{"^foo"};
   const auto regex{sourcemeta::core::to_regex(pattern)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo bar"));
 }
 
-TEST(Regex, to_regex_with_string_view_subview) {
+TEST(to_regex_with_string_view_subview) {
   const std::string buffer{"prefix^foosuffix"};
   const std::string_view pattern{buffer.data() + 6, 4};
   const auto regex{sourcemeta::core::to_regex(pattern)};
@@ -55,14 +55,14 @@ TEST(Regex, to_regex_with_string_view_subview) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foo bar"));
 }
 
-TEST(Regex, matches_with_string_view) {
+TEST(matches_with_string_view) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
   const std::string_view value{"foo bar"};
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value));
 }
 
-TEST(Regex, matches_with_string_view_subview) {
+TEST(matches_with_string_view_subview) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
   const std::string buffer{"xxxfoo barxxx"};
@@ -70,20 +70,20 @@ TEST(Regex, matches_with_string_view_subview) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), value));
 }
 
-TEST(Regex, matches_if_valid_with_string_view) {
+TEST(matches_if_valid_with_string_view) {
   const std::string_view pattern{"^foo"};
   const std::string_view value{"foo bar"};
   EXPECT_TRUE(sourcemeta::core::matches_if_valid(pattern, value));
 }
 
-TEST(Regex, to_regex_default_string_view_does_not_invoke_ub) {
+TEST(to_regex_default_string_view_does_not_invoke_ub) {
   const std::string_view pattern{};
   EXPECT_EQ(pattern.data(), nullptr);
   const auto regex{sourcemeta::core::to_regex(pattern)};
   EXPECT_TRUE(regex.has_value());
 }
 
-TEST(Regex, catastrophic_backtracking_terminates) {
+TEST(catastrophic_backtracking_terminates) {
   const auto regex{sourcemeta::core::to_regex("(a+)+$")};
   EXPECT_TRUE(regex.has_value());
   const std::string value{std::string(64, 'a') + "!"};

@@ -1,80 +1,80 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 
 #include <stdexcept> // std::out_of_range
 
-TEST(JSON_number, is_number_zero) {
+TEST(is_number_zero) {
   const sourcemeta::core::JSON document{0};
   EXPECT_TRUE(document.is_number());
 }
 
-TEST(JSON_number, is_number_zero_real) {
+TEST(is_number_zero_real) {
   const sourcemeta::core::JSON document{0.0};
   EXPECT_TRUE(document.is_number());
 }
 
-TEST(JSON_number, is_number_positive_integer) {
+TEST(is_number_positive_integer) {
   const sourcemeta::core::JSON document{5};
   EXPECT_TRUE(document.is_number());
 }
 
-TEST(JSON_number, is_number_positive_real) {
+TEST(is_number_positive_real) {
   const sourcemeta::core::JSON document{5.3};
   EXPECT_TRUE(document.is_number());
 }
 
-TEST(JSON_number, is_number_negative_integer) {
+TEST(is_number_negative_integer) {
   const sourcemeta::core::JSON document{-5};
   EXPECT_TRUE(document.is_number());
 }
 
-TEST(JSON_number, is_number_negative_real) {
+TEST(is_number_negative_real) {
   const sourcemeta::core::JSON document{-5.3};
   EXPECT_TRUE(document.is_number());
 }
 
-TEST(JSON_number, is_number_string) {
+TEST(is_number_string) {
   const sourcemeta::core::JSON document{"0"};
   EXPECT_FALSE(document.is_number());
 }
 
-TEST(JSON_number, is_number_null) {
+TEST(is_number_null) {
   const sourcemeta::core::JSON document{nullptr};
   EXPECT_FALSE(document.is_number());
 }
 
-TEST(JSON_number, is_positive_negative_integer) {
+TEST(is_positive_negative_integer) {
   const sourcemeta::core::JSON document{-3};
   EXPECT_FALSE(document.is_positive());
 }
 
-TEST(JSON_number, is_positive_zero_integer) {
+TEST(is_positive_zero_integer) {
   const sourcemeta::core::JSON document{0};
   EXPECT_TRUE(document.is_positive());
 }
 
-TEST(JSON_number, is_positive_positive_integer) {
+TEST(is_positive_positive_integer) {
   const sourcemeta::core::JSON document{5};
   EXPECT_TRUE(document.is_positive());
 }
 
-TEST(JSON_number, is_positive_negative_real) {
+TEST(is_positive_negative_real) {
   const sourcemeta::core::JSON document{-3.2};
   EXPECT_FALSE(document.is_positive());
 }
 
-TEST(JSON_number, is_positive_zero_real) {
+TEST(is_positive_zero_real) {
   const sourcemeta::core::JSON document{0.0};
   EXPECT_TRUE(document.is_positive());
 }
 
-TEST(JSON_number, is_positive_positive_real) {
+TEST(is_positive_positive_real) {
   const sourcemeta::core::JSON document{5.1};
   EXPECT_TRUE(document.is_positive());
 }
 
-TEST(JSON_number, add_integer_integer) {
+TEST(add_integer_integer) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{3};
   const sourcemeta::core::JSON document{left + right};
@@ -82,7 +82,7 @@ TEST(JSON_number, add_integer_integer) {
   EXPECT_EQ(document.to_integer(), 8);
 }
 
-TEST(JSON_number, add_integer_real) {
+TEST(add_integer_real) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{3.2};
   const sourcemeta::core::JSON document{left + right};
@@ -90,7 +90,7 @@ TEST(JSON_number, add_integer_real) {
   EXPECT_EQ(document.to_real(), 8.2);
 }
 
-TEST(JSON_number, add_real_integer) {
+TEST(add_real_integer) {
   const sourcemeta::core::JSON left{3.2};
   const sourcemeta::core::JSON right{2};
   const sourcemeta::core::JSON document{left + right};
@@ -98,7 +98,7 @@ TEST(JSON_number, add_real_integer) {
   EXPECT_EQ(document.to_real(), 5.2);
 }
 
-TEST(JSON_number, add_real_real) {
+TEST(add_real_real) {
   const sourcemeta::core::JSON left{3.2};
   const sourcemeta::core::JSON right{2.0};
   const sourcemeta::core::JSON document{left + right};
@@ -106,7 +106,7 @@ TEST(JSON_number, add_real_real) {
   EXPECT_EQ(document.to_real(), 5.2);
 }
 
-TEST(JSON_number, substract_integer_integer) {
+TEST(substract_integer_integer) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{3};
   const sourcemeta::core::JSON document{left - right};
@@ -114,7 +114,7 @@ TEST(JSON_number, substract_integer_integer) {
   EXPECT_EQ(document.to_integer(), 2);
 }
 
-TEST(JSON_number, substract_integer_real) {
+TEST(substract_integer_real) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{3.2};
   const sourcemeta::core::JSON document{left - right};
@@ -122,7 +122,7 @@ TEST(JSON_number, substract_integer_real) {
   EXPECT_DOUBLE_EQ(document.to_real(), 1.8);
 }
 
-TEST(JSON_number, substract_real_integer) {
+TEST(substract_real_integer) {
   const sourcemeta::core::JSON left{3.2};
   const sourcemeta::core::JSON right{2};
   const sourcemeta::core::JSON document{left - right};
@@ -130,7 +130,7 @@ TEST(JSON_number, substract_real_integer) {
   EXPECT_DOUBLE_EQ(document.to_real(), 1.2);
 }
 
-TEST(JSON_number, substract_real_real) {
+TEST(substract_real_real) {
   const sourcemeta::core::JSON left{3.2};
   const sourcemeta::core::JSON right{2.0};
   const sourcemeta::core::JSON document{left - right};
@@ -138,7 +138,7 @@ TEST(JSON_number, substract_real_real) {
   EXPECT_DOUBLE_EQ(document.to_real(), 1.2);
 }
 
-TEST(JSON_number, increment_integer_integer) {
+TEST(increment_integer_integer) {
   sourcemeta::core::JSON document{5};
   const sourcemeta::core::JSON value{3};
   document += value;
@@ -146,7 +146,7 @@ TEST(JSON_number, increment_integer_integer) {
   EXPECT_EQ(document.to_integer(), 8);
 }
 
-TEST(JSON_number, increment_integer_real) {
+TEST(increment_integer_real) {
   sourcemeta::core::JSON document{5};
   const sourcemeta::core::JSON value{3.2};
   document += value;
@@ -154,7 +154,7 @@ TEST(JSON_number, increment_integer_real) {
   EXPECT_EQ(document.to_real(), 8.2);
 }
 
-TEST(JSON_number, increment_real_integer) {
+TEST(increment_real_integer) {
   sourcemeta::core::JSON document{3.2};
   const sourcemeta::core::JSON value{2};
   document += value;
@@ -162,7 +162,7 @@ TEST(JSON_number, increment_real_integer) {
   EXPECT_EQ(document.to_real(), 5.2);
 }
 
-TEST(JSON_number, increment_real_real) {
+TEST(increment_real_real) {
   sourcemeta::core::JSON document{3.2};
   const sourcemeta::core::JSON value{2.0};
   document += value;
@@ -170,7 +170,7 @@ TEST(JSON_number, increment_real_real) {
   EXPECT_EQ(document.to_real(), 5.2);
 }
 
-TEST(JSON_number, decrement_integer_integer) {
+TEST(decrement_integer_integer) {
   sourcemeta::core::JSON document{5};
   const sourcemeta::core::JSON value{3};
   document -= value;
@@ -178,7 +178,7 @@ TEST(JSON_number, decrement_integer_integer) {
   EXPECT_EQ(document.to_integer(), 2);
 }
 
-TEST(JSON_number, decrement_integer_real) {
+TEST(decrement_integer_real) {
   sourcemeta::core::JSON document{5};
   const sourcemeta::core::JSON value{3.2};
   document -= value;
@@ -186,7 +186,7 @@ TEST(JSON_number, decrement_integer_real) {
   EXPECT_DOUBLE_EQ(document.to_real(), 1.8);
 }
 
-TEST(JSON_number, decrement_real_integer) {
+TEST(decrement_real_integer) {
   sourcemeta::core::JSON document{3.2};
   const sourcemeta::core::JSON value{2};
   document -= value;
@@ -194,7 +194,7 @@ TEST(JSON_number, decrement_real_integer) {
   EXPECT_DOUBLE_EQ(document.to_real(), 1.2);
 }
 
-TEST(JSON_number, decrement_real_real) {
+TEST(decrement_real_real) {
   sourcemeta::core::JSON document{3.2};
   const sourcemeta::core::JSON value{2.0};
   document -= value;
@@ -202,7 +202,7 @@ TEST(JSON_number, decrement_real_real) {
   EXPECT_DOUBLE_EQ(document.to_real(), 1.2);
 }
 
-TEST(JSON_number, add_integer_integer_within_object) {
+TEST(add_integer_integer_within_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\": 5}");
   const sourcemeta::core::JSON value{3};
@@ -211,7 +211,7 @@ TEST(JSON_number, add_integer_integer_within_object) {
   EXPECT_EQ(document.at("foo").to_integer(), 8);
 }
 
-TEST(JSON_number, add_integer_real_within_object) {
+TEST(add_integer_real_within_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\": 5}");
   const sourcemeta::core::JSON value{3.2};
@@ -220,7 +220,7 @@ TEST(JSON_number, add_integer_real_within_object) {
   EXPECT_EQ(document.at("foo").to_real(), 8.2);
 }
 
-TEST(JSON_number, add_real_integer_within_object) {
+TEST(add_real_integer_within_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\": 3.5}");
   const sourcemeta::core::JSON value{2};
@@ -229,7 +229,7 @@ TEST(JSON_number, add_real_integer_within_object) {
   EXPECT_EQ(document.at("foo").to_real(), 5.5);
 }
 
-TEST(JSON_number, add_real_real_within_object) {
+TEST(add_real_real_within_object) {
   sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\": 3.5}");
   const sourcemeta::core::JSON value{2.0};
@@ -238,365 +238,365 @@ TEST(JSON_number, add_real_real_within_object) {
   EXPECT_EQ(document.at("foo").to_real(), 5.5);
 }
 
-TEST(JSON_number, divisible_by_integer_integer_true) {
+TEST(divisible_by_integer_integer_true) {
   const sourcemeta::core::JSON dividend{10};
   const sourcemeta::core::JSON divisor{5};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_integer_false) {
+TEST(divisible_by_integer_integer_false) {
   const sourcemeta::core::JSON dividend{11};
   const sourcemeta::core::JSON divisor{5};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_true) {
+TEST(divisible_by_integer_real_true) {
   const sourcemeta::core::JSON dividend{6};
   const sourcemeta::core::JSON divisor{1.5};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_false) {
+TEST(divisible_by_integer_real_false) {
   const sourcemeta::core::JSON dividend{7};
   const sourcemeta::core::JSON divisor{1.5};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_integer_true) {
+TEST(divisible_by_real_integer_true) {
   const sourcemeta::core::JSON dividend{6.0};
   EXPECT_TRUE(dividend.is_real());
   const sourcemeta::core::JSON divisor{2};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_integer_false) {
+TEST(divisible_by_real_integer_false) {
   const sourcemeta::core::JSON dividend{6.0};
   EXPECT_TRUE(dividend.is_real());
   const sourcemeta::core::JSON divisor{2.5};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_real_true) {
+TEST(divisible_by_real_real_true) {
   const sourcemeta::core::JSON dividend{4.5};
   EXPECT_TRUE(dividend.is_real());
   const sourcemeta::core::JSON divisor{1.5};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_real_false) {
+TEST(divisible_by_real_real_false) {
   const sourcemeta::core::JSON dividend{4.7};
   EXPECT_TRUE(dividend.is_real());
   const sourcemeta::core::JSON divisor{1.5};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_infinity) {
+TEST(divisible_by_infinity) {
   const sourcemeta::core::JSON dividend{1e308};
   const sourcemeta::core::JSON divisor{0.123456789};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_tiny_true) {
+TEST(divisible_by_tiny_true) {
   const sourcemeta::core::JSON dividend{0.0075};
   const sourcemeta::core::JSON divisor{0.0001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_tiny_false) {
+TEST(divisible_by_tiny_false) {
   const sourcemeta::core::JSON dividend{0.00751};
   const sourcemeta::core::JSON divisor{0.0001};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_zero) {
+TEST(divisible_by_real_zero) {
   const sourcemeta::core::JSON dividend{0.00751};
   const sourcemeta::core::JSON divisor{0};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_zero) {
+TEST(divisible_by_integer_zero) {
   const sourcemeta::core::JSON dividend{5};
   const sourcemeta::core::JSON divisor{0};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_zero_zero) {
+TEST(divisible_by_zero_zero) {
   const sourcemeta::core::JSON dividend{0};
   const sourcemeta::core::JSON divisor{0};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_zero_interger) {
+TEST(divisible_by_zero_interger) {
   const sourcemeta::core::JSON dividend{0};
   const sourcemeta::core::JSON divisor{5};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_zero_real_zero_real) {
+TEST(divisible_by_zero_real_zero_real) {
   const sourcemeta::core::JSON dividend{0.0};
   const sourcemeta::core::JSON divisor{0.0};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_float_overflow_integer_0_5) {
+TEST(divisible_by_float_overflow_integer_0_5) {
   const sourcemeta::core::JSON document{1e308};
   const sourcemeta::core::JSON divisor{0.5};
   EXPECT_TRUE(document.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_float_overflow_integer_1) {
+TEST(divisible_by_float_overflow_integer_1) {
   const sourcemeta::core::JSON document{1e308};
   const sourcemeta::core::JSON divisor{1};
   EXPECT_TRUE(document.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_float_overflow_integer_1_0) {
+TEST(divisible_by_float_overflow_integer_1_0) {
   const sourcemeta::core::JSON document{1e308};
   const sourcemeta::core::JSON divisor{1.0};
   EXPECT_TRUE(document.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_1_true_1) {
+TEST(divisible_by_real_0_1_true_1) {
   const sourcemeta::core::JSON dividend{3.5};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_1_true_2) {
+TEST(divisible_by_real_0_1_true_2) {
   const sourcemeta::core::JSON dividend{10.0};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_1_true_3) {
+TEST(divisible_by_real_0_1_true_3) {
   const sourcemeta::core::JSON dividend{100.3};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_1_true_4) {
+TEST(divisible_by_real_0_1_true_4) {
   const sourcemeta::core::JSON dividend{0.5};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_1_false) {
+TEST(divisible_by_real_0_1_false) {
   const sourcemeta::core::JSON dividend{3.55};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_01_true_1) {
+TEST(divisible_by_real_0_01_true_1) {
   const sourcemeta::core::JSON dividend{1280.32};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_01_true_2) {
+TEST(divisible_by_real_0_01_true_2) {
   const sourcemeta::core::JSON dividend{99.99};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_01_true_3) {
+TEST(divisible_by_real_0_01_true_3) {
   const sourcemeta::core::JSON dividend{0.01};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_01_true_4) {
+TEST(divisible_by_real_0_01_true_4) {
   const sourcemeta::core::JSON dividend{0.5};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_01_true_5) {
+TEST(divisible_by_real_0_01_true_5) {
   const sourcemeta::core::JSON dividend{1.0};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_01_false) {
+TEST(divisible_by_real_0_01_false) {
   const sourcemeta::core::JSON dividend{1.005};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_001_true_1) {
+TEST(divisible_by_real_0_001_true_1) {
   const sourcemeta::core::JSON dividend{1.001};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_001_true_2) {
+TEST(divisible_by_real_0_001_true_2) {
   const sourcemeta::core::JSON dividend{0.5};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_001_true_3) {
+TEST(divisible_by_real_0_001_true_3) {
   const sourcemeta::core::JSON dividend{25.123};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_001_false) {
+TEST(divisible_by_real_0_001_false) {
   const sourcemeta::core::JSON dividend{1.0005};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_0001_true_1) {
+TEST(divisible_by_real_0_0001_true_1) {
   const sourcemeta::core::JSON dividend{1.0001};
   const sourcemeta::core::JSON divisor{0.0001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_0001_true_2) {
+TEST(divisible_by_real_0_0001_true_2) {
   const sourcemeta::core::JSON dividend{99.9999};
   const sourcemeta::core::JSON divisor{0.0001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_0001_false) {
+TEST(divisible_by_real_0_0001_false) {
   const sourcemeta::core::JSON dividend{1.00005};
   const sourcemeta::core::JSON divisor{0.0001};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_0_1_true) {
+TEST(divisible_by_integer_real_0_1_true) {
   const sourcemeta::core::JSON dividend{10};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_0_1_true_2) {
+TEST(divisible_by_integer_real_0_1_true_2) {
   const sourcemeta::core::JSON dividend{1};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_0_01_true) {
+TEST(divisible_by_integer_real_0_01_true) {
   const sourcemeta::core::JSON dividend{1};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_0_01_true_2) {
+TEST(divisible_by_integer_real_0_01_true_2) {
   const sourcemeta::core::JSON dividend{100};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_0_001_true) {
+TEST(divisible_by_integer_real_0_001_true) {
   const sourcemeta::core::JSON dividend{1};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_integer_real_0_0001_true) {
+TEST(divisible_by_integer_real_0_0001_true) {
   const sourcemeta::core::JSON dividend{1};
   const sourcemeta::core::JSON divisor{0.0001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_3_true) {
+TEST(divisible_by_real_0_3_true) {
   const sourcemeta::core::JSON dividend{0.9};
   const sourcemeta::core::JSON divisor{0.3};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_3_false) {
+TEST(divisible_by_real_0_3_false) {
   const sourcemeta::core::JSON dividend{1.0};
   const sourcemeta::core::JSON divisor{0.3};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_7_true) {
+TEST(divisible_by_real_0_7_true) {
   const sourcemeta::core::JSON dividend{2.1};
   const sourcemeta::core::JSON divisor{0.7};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_real_0_7_false) {
+TEST(divisible_by_real_0_7_false) {
   const sourcemeta::core::JSON dividend{2.0};
   const sourcemeta::core::JSON divisor{0.7};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_negative_real_0_01_true) {
+TEST(divisible_by_negative_real_0_01_true) {
   const sourcemeta::core::JSON dividend{-1280.32};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_negative_real_0_1_true) {
+TEST(divisible_by_negative_real_0_1_true) {
   const sourcemeta::core::JSON dividend{-5.5};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_negative_real_0_001_true) {
+TEST(divisible_by_negative_real_0_001_true) {
   const sourcemeta::core::JSON dividend{-3.141};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_negative_real_0_01_false) {
+TEST(divisible_by_negative_real_0_01_false) {
   const sourcemeta::core::JSON dividend{-1.005};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_FALSE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_large_real_0_01_true) {
+TEST(divisible_by_large_real_0_01_true) {
   const sourcemeta::core::JSON dividend{999999.99};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_large_real_0_001_true) {
+TEST(divisible_by_large_real_0_001_true) {
   const sourcemeta::core::JSON dividend{12345.678};
   const sourcemeta::core::JSON divisor{0.001};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_large_real_0_1_true) {
+TEST(divisible_by_large_real_0_1_true) {
   const sourcemeta::core::JSON dividend{99999.9};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_negative_integer_real_0_1_true) {
+TEST(divisible_by_negative_integer_real_0_1_true) {
   const sourcemeta::core::JSON dividend{-10};
   const sourcemeta::core::JSON divisor{0.1};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, divisible_by_negative_integer_real_0_01_true) {
+TEST(divisible_by_negative_integer_real_0_01_true) {
   const sourcemeta::core::JSON dividend{-5};
   const sourcemeta::core::JSON divisor{0.01};
   EXPECT_TRUE(dividend.divisible_by(divisor));
 }
 
-TEST(JSON_number, as_real_real) {
+TEST(as_real_real) {
   const sourcemeta::core::JSON document{4.7};
   EXPECT_DOUBLE_EQ(document.as_real(), 4.7);
 }
 
-TEST(JSON_number, as_real_integer) {
+TEST(as_real_integer) {
   const sourcemeta::core::JSON document{4};
   EXPECT_DOUBLE_EQ(document.as_real(), 4.0);
 }
 
-TEST(JSON_number, as_real_decimal) {
+TEST(as_real_decimal) {
   const auto document{sourcemeta::core::parse_json("1e9")};
-  ASSERT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_decimal());
   EXPECT_DOUBLE_EQ(document.as_real(), 1e9);
 }
 
-TEST(JSON_number, as_real_decimal_out_of_range_throws) {
+TEST(as_real_decimal_out_of_range_throws) {
   const auto document{sourcemeta::core::parse_json("1e400")};
-  ASSERT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_decimal());
   try {
     [[maybe_unused]] const auto value = document.as_real();
     FAIL();
@@ -605,7 +605,7 @@ TEST(JSON_number, as_real_decimal_out_of_range_throws) {
   }
 }
 
-TEST(JSON_number, compare_int_real_equal) {
+TEST(compare_int_real_equal) {
   const sourcemeta::core::JSON left{300};
   const sourcemeta::core::JSON right{300.0};
   EXPECT_TRUE(left.is_integer());
@@ -616,7 +616,7 @@ TEST(JSON_number, compare_int_real_equal) {
   EXPECT_TRUE(right >= left);
 }
 
-TEST(JSON_number, big_real) {
+TEST(big_real) {
   const sourcemeta::core::JSON document{1e308};
   EXPECT_TRUE(document.is_number());
   EXPECT_FALSE(document.is_integer());
@@ -624,56 +624,56 @@ TEST(JSON_number, big_real) {
   EXPECT_EQ(document.to_real(), 1e308);
 }
 
-TEST(JSON_number, is_integral_integer) {
+TEST(is_integral_integer) {
   const sourcemeta::core::JSON document{5};
   EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_number, is_integral_non_integer_real) {
+TEST(is_integral_non_integer_real) {
   const sourcemeta::core::JSON document{5.3};
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_number, is_integral_integer_real) {
+TEST(is_integral_integer_real) {
   const sourcemeta::core::JSON document{5.0};
   EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_number, is_integral_non_number) {
+TEST(is_integral_non_number) {
   const sourcemeta::core::JSON document{true};
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_number, as_integer_integer) {
+TEST(as_integer_integer) {
   const sourcemeta::core::JSON document{5};
   EXPECT_EQ(document.as_integer(), 5);
 }
 
-TEST(JSON_number, as_integer_integer_real) {
+TEST(as_integer_integer_real) {
   const sourcemeta::core::JSON document{5.0};
   EXPECT_EQ(document.as_integer(), 5);
 }
 
-TEST(JSON_number, as_integer_non_integer_real) {
+TEST(as_integer_non_integer_real) {
   const sourcemeta::core::JSON document{5.5};
   EXPECT_EQ(document.as_integer(), 5);
 }
 
-TEST(JSON_number, as_integer_decimal) {
+TEST(as_integer_decimal) {
   const auto document{sourcemeta::core::parse_json("1e9")};
-  ASSERT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.as_integer(), 1000000000);
 }
 
-TEST(JSON_number, as_integer_decimal_fractional) {
+TEST(as_integer_decimal_fractional) {
   const auto document{sourcemeta::core::parse_json("1700000000.000000001")};
-  ASSERT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.as_integer(), 1700000000);
 }
 
-TEST(JSON_number, as_integer_decimal_out_of_range_throws) {
+TEST(as_integer_decimal_out_of_range_throws) {
   const auto document{sourcemeta::core::parse_json("10000000000000000000")};
-  ASSERT_TRUE(document.is_decimal());
+  EXPECT_TRUE(document.is_decimal());
   try {
     [[maybe_unused]] const auto value = document.as_integer();
     FAIL();
@@ -683,9 +683,9 @@ TEST(JSON_number, as_integer_decimal_out_of_range_throws) {
   }
 }
 
-TEST(JSON_number, as_integer_real_out_of_range_throws) {
+TEST(as_integer_real_out_of_range_throws) {
   const sourcemeta::core::JSON document{1e300};
-  ASSERT_TRUE(document.is_real());
+  EXPECT_TRUE(document.is_real());
   try {
     [[maybe_unused]] const auto value = document.as_integer();
     FAIL();
@@ -695,17 +695,17 @@ TEST(JSON_number, as_integer_real_out_of_range_throws) {
   }
 }
 
-TEST(JSON_number, is_integer_int_storage) {
+TEST(is_integer_int_storage) {
   const sourcemeta::core::JSON document{5};
   EXPECT_TRUE(document.is_integer());
 }
 
-TEST(JSON_number, is_integer_real_storage_integer_valued) {
+TEST(is_integer_real_storage_integer_valued) {
   const sourcemeta::core::JSON document{5.0};
   EXPECT_FALSE(document.is_integer());
 }
 
-TEST(JSON_number, is_integer_real_storage_fractional) {
+TEST(is_integer_real_storage_fractional) {
   const sourcemeta::core::JSON document{3.14};
   EXPECT_FALSE(document.is_integer());
 }

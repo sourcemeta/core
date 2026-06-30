@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 
@@ -10,7 +10,7 @@
 #include <unordered_set> // std::unordered_set
 #include <utility>       // std::move
 
-TEST(JSON_value, general_traits) {
+TEST(general_traits) {
   EXPECT_FALSE(std::is_default_constructible<sourcemeta::core::JSON>::value);
   EXPECT_TRUE(std::is_destructible<sourcemeta::core::JSON>::value);
   EXPECT_TRUE(std::is_nothrow_destructible<sourcemeta::core::JSON>::value);
@@ -18,14 +18,14 @@ TEST(JSON_value, general_traits) {
 
 // BIG WARNING! Increase this number will make projects like Blaze slower,
 // as it will affect cache lines when dealing with JSON documents
-TEST(JSON_value, size) {
+TEST(size) {
   // The union's largest member is std::string, whose size varies across
   // standard library implementations (24 on libc++, 32 on libstdc++).
   // The Type enum (1 byte) is padded to 8 bytes for alignment.
   EXPECT_EQ(sizeof(sourcemeta::core::JSON), sizeof(std::string) + 8);
 }
 
-TEST(JSON_value, copy_traits) {
+TEST(copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::JSON>::value);
   EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::JSON>::value);
   EXPECT_FALSE(std::is_nothrow_copy_assignable<sourcemeta::core::JSON>::value);
@@ -33,12 +33,12 @@ TEST(JSON_value, copy_traits) {
       std::is_nothrow_copy_constructible<sourcemeta::core::JSON>::value);
 }
 
-TEST(JSON_value, move_traits) {
+TEST(move_traits) {
   EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::JSON>::value);
   EXPECT_TRUE(std::is_move_constructible<sourcemeta::core::JSON>::value);
 }
 
-TEST(JSON_value, copy_equivalence_assignment) {
+TEST(copy_equivalence_assignment) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
@@ -49,161 +49,161 @@ TEST(JSON_value, copy_equivalence_assignment) {
   EXPECT_EQ(document, copy);
 }
 
-TEST(JSON_value, from_size_t) {
+TEST(from_size_t) {
   const std::size_t value{5};
   const sourcemeta::core::JSON document{value};
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 5);
 }
 
-TEST(JSON_value, compare_int_less_than_int) {
+TEST(compare_int_less_than_int) {
   const sourcemeta::core::JSON left{3};
   const sourcemeta::core::JSON right{4};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_int_greater_than_int) {
+TEST(compare_int_greater_than_int) {
   const sourcemeta::core::JSON left{4};
   const sourcemeta::core::JSON right{3};
   EXPECT_FALSE(left < right);
   EXPECT_TRUE(right < left);
 }
 
-TEST(JSON_value, compare_int_equal_int) {
+TEST(compare_int_equal_int) {
   const sourcemeta::core::JSON left{4};
   const sourcemeta::core::JSON right{4};
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_int_less_than_real) {
+TEST(compare_int_less_than_real) {
   const sourcemeta::core::JSON left{3};
   const sourcemeta::core::JSON right{4.3};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_int_greater_than_real) {
+TEST(compare_int_greater_than_real) {
   const sourcemeta::core::JSON left{4};
   const sourcemeta::core::JSON right{3.8};
   EXPECT_FALSE(left < right);
   EXPECT_TRUE(right < left);
 }
 
-TEST(JSON_value, compare_int_equal_real) {
+TEST(compare_int_equal_real) {
   const sourcemeta::core::JSON left{4};
   const sourcemeta::core::JSON right{4.0};
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_real_less_than_int) {
+TEST(compare_real_less_than_int) {
   const sourcemeta::core::JSON left{3.8};
   const sourcemeta::core::JSON right{4};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_real_greater_than_int) {
+TEST(compare_real_greater_than_int) {
   const sourcemeta::core::JSON left{4.2};
   const sourcemeta::core::JSON right{3};
   EXPECT_FALSE(left < right);
   EXPECT_TRUE(right < left);
 }
 
-TEST(JSON_value, compare_real_equal_int) {
+TEST(compare_real_equal_int) {
   const sourcemeta::core::JSON left{4.0};
   const sourcemeta::core::JSON right{4};
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_real_less_than_real) {
+TEST(compare_real_less_than_real) {
   const sourcemeta::core::JSON left{3.8};
   const sourcemeta::core::JSON right{4.1};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_real_greater_than_real) {
+TEST(compare_real_greater_than_real) {
   const sourcemeta::core::JSON left{4.2};
   const sourcemeta::core::JSON right{3.9};
   EXPECT_FALSE(left < right);
   EXPECT_TRUE(right < left);
 }
 
-TEST(JSON_value, compare_real_equal_real) {
+TEST(compare_real_equal_real) {
   const sourcemeta::core::JSON left{4.2};
   const sourcemeta::core::JSON right{4.2};
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_false_true) {
+TEST(compare_false_true) {
   const sourcemeta::core::JSON left{false};
   const sourcemeta::core::JSON right{true};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_false_false) {
+TEST(compare_false_false) {
   const sourcemeta::core::JSON left{false};
   const sourcemeta::core::JSON right{false};
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_true_true) {
+TEST(compare_true_true) {
   const sourcemeta::core::JSON left{true};
   const sourcemeta::core::JSON right{true};
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_bool_int) {
+TEST(compare_bool_int) {
   const sourcemeta::core::JSON left{true};
   const sourcemeta::core::JSON right{0};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_bool_real) {
+TEST(compare_bool_real) {
   const sourcemeta::core::JSON left{true};
   const sourcemeta::core::JSON right{4.5};
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_int_array) {
+TEST(compare_int_array) {
   const sourcemeta::core::JSON left{4};
   const sourcemeta::core::JSON right = sourcemeta::core::parse_json("[1,2,3]");
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_array_array_same) {
+TEST(compare_array_array_same) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[1,2,3]");
   const sourcemeta::core::JSON right = sourcemeta::core::parse_json("[1,2,3]");
   EXPECT_FALSE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_array_array_different) {
+TEST(compare_array_array_different) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[1,2]");
   const sourcemeta::core::JSON right = sourcemeta::core::parse_json("[1,2,3]");
   EXPECT_TRUE(left < right);
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_array_array_different_same_size) {
+TEST(compare_array_array_different_same_size) {
   const sourcemeta::core::JSON left = sourcemeta::core::parse_json("[1,3,4]");
   const sourcemeta::core::JSON right = sourcemeta::core::parse_json("[1,2,3]");
   EXPECT_FALSE(left < right);
   EXPECT_TRUE(right < left);
 }
 
-TEST(JSON_value, compare_object_object_same) {
+TEST(compare_object_object_same) {
   const sourcemeta::core::JSON left =
       sourcemeta::core::parse_json("{\"foo\":1}");
   const sourcemeta::core::JSON right =
@@ -212,7 +212,7 @@ TEST(JSON_value, compare_object_object_same) {
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_object_object_different_same_size) {
+TEST(compare_object_object_different_same_size) {
   const sourcemeta::core::JSON left =
       sourcemeta::core::parse_json("{\"foo\":1}");
   const sourcemeta::core::JSON right =
@@ -221,7 +221,7 @@ TEST(JSON_value, compare_object_object_different_same_size) {
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_object_object_different) {
+TEST(compare_object_object_different) {
   const sourcemeta::core::JSON left =
       sourcemeta::core::parse_json("{\"foo\":1}");
   const sourcemeta::core::JSON right =
@@ -230,40 +230,40 @@ TEST(JSON_value, compare_object_object_different) {
   EXPECT_FALSE(right < left);
 }
 
-TEST(JSON_value, compare_int_operator_less_than_or_equal_int) {
+TEST(compare_int_operator_less_than_or_equal_int) {
   const sourcemeta::core::JSON left{3};
   const sourcemeta::core::JSON right{4};
   EXPECT_TRUE(left <= right);
   EXPECT_FALSE(right <= left);
 }
 
-TEST(JSON_value, compare_int_operator_greater_than_int) {
+TEST(compare_int_operator_greater_than_int) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{4};
   EXPECT_TRUE(left > right);
   EXPECT_FALSE(right > left);
 }
 
-TEST(JSON_value, compare_int_operator_greater_than_int_equal) {
+TEST(compare_int_operator_greater_than_int_equal) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{5};
   EXPECT_FALSE(left > right);
 }
 
-TEST(JSON_value, compare_int_operator_greater_than_or_equal_int) {
+TEST(compare_int_operator_greater_than_or_equal_int) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{4};
   EXPECT_TRUE(left >= right);
   EXPECT_FALSE(right >= left);
 }
 
-TEST(JSON_value, compare_int_operator_not_equal_int) {
+TEST(compare_int_operator_not_equal_int) {
   const sourcemeta::core::JSON left{5};
   const sourcemeta::core::JSON right{4};
   EXPECT_TRUE(left != right);
 }
 
-TEST(JSON_value, set_null) {
+TEST(set_null) {
   sourcemeta::core::JSON document{true};
   EXPECT_FALSE(document.is_null());
   EXPECT_TRUE(document.is_boolean());
@@ -272,7 +272,7 @@ TEST(JSON_value, set_null) {
   EXPECT_FALSE(document.is_boolean());
 }
 
-TEST(JSON_value, set_const_null) {
+TEST(set_const_null) {
   sourcemeta::core::JSON document{true};
   EXPECT_FALSE(document.is_null());
   EXPECT_TRUE(document.is_boolean());
@@ -282,7 +282,7 @@ TEST(JSON_value, set_const_null) {
   EXPECT_FALSE(document.is_boolean());
 }
 
-TEST(JSON_value, set_negative_integer) {
+TEST(set_negative_integer) {
   sourcemeta::core::JSON document{true};
   EXPECT_TRUE(document.is_boolean());
   document.into(sourcemeta::core::JSON{-4});
@@ -291,7 +291,7 @@ TEST(JSON_value, set_negative_integer) {
   EXPECT_EQ(document.to_integer(), -4);
 }
 
-TEST(JSON_value, set_negative_real) {
+TEST(set_negative_real) {
   sourcemeta::core::JSON document{true};
   EXPECT_TRUE(document.is_boolean());
   document.into(sourcemeta::core::JSON{-4.3});
@@ -300,7 +300,7 @@ TEST(JSON_value, set_negative_real) {
   EXPECT_EQ(document.to_real(), -4.3);
 }
 
-TEST(JSON_value, set_negative_integral_real) {
+TEST(set_negative_integral_real) {
   sourcemeta::core::JSON document{true};
   EXPECT_TRUE(document.is_boolean());
   document.into(sourcemeta::core::JSON{-4.0});
@@ -308,7 +308,7 @@ TEST(JSON_value, set_negative_integral_real) {
   EXPECT_TRUE(document.is_real());
 }
 
-TEST(JSON_value, set_positive_integer) {
+TEST(set_positive_integer) {
   sourcemeta::core::JSON document{true};
   EXPECT_TRUE(document.is_boolean());
   document.into(sourcemeta::core::JSON{4});
@@ -316,7 +316,7 @@ TEST(JSON_value, set_positive_integer) {
   EXPECT_FALSE(document.is_real());
 }
 
-TEST(JSON_value, set_positive_real) {
+TEST(set_positive_real) {
   sourcemeta::core::JSON document{true};
   EXPECT_TRUE(document.is_boolean());
   document.into(sourcemeta::core::JSON{4.3});
@@ -324,7 +324,7 @@ TEST(JSON_value, set_positive_real) {
   EXPECT_TRUE(document.is_real());
 }
 
-TEST(JSON_value, set_positive_integral_real) {
+TEST(set_positive_integral_real) {
   sourcemeta::core::JSON document{true};
   EXPECT_TRUE(document.is_boolean());
   document.into(sourcemeta::core::JSON{4.0});
@@ -332,7 +332,7 @@ TEST(JSON_value, set_positive_integral_real) {
   EXPECT_TRUE(document.is_real());
 }
 
-TEST(JSON_value, into_string_from_boolean) {
+TEST(into_string_from_boolean) {
   sourcemeta::core::JSON document{false};
   EXPECT_FALSE(document.is_string());
   document.into(sourcemeta::core::JSON{"foo"});
@@ -340,7 +340,7 @@ TEST(JSON_value, into_string_from_boolean) {
   EXPECT_EQ(document.to_string(), "foo");
 }
 
-TEST(JSON_value, into_string_from_string) {
+TEST(into_string_from_string) {
   sourcemeta::core::JSON document{"foo"};
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.to_string(), "foo");
@@ -349,7 +349,7 @@ TEST(JSON_value, into_string_from_string) {
   EXPECT_EQ(document.to_string(), "bar");
 }
 
-TEST(JSON_value, to_ostream) {
+TEST(to_ostream) {
   const sourcemeta::core::JSON document{
       sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
@@ -372,7 +372,7 @@ private:
   const sourcemeta::core::JSON data;
 };
 
-TEST(JSON_value, class_member_initializer_list) {
+TEST(class_member_initializer_list) {
   const sourcemeta::core::JSON document{5};
   EXPECT_TRUE(document.is_integer());
   const ClassMemberInitializerList container{document};
@@ -381,7 +381,7 @@ TEST(JSON_value, class_member_initializer_list) {
   EXPECT_EQ(container.get(), document);
 }
 
-TEST(JSON_value, try_at) {
+TEST(try_at) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
@@ -390,7 +390,7 @@ TEST(JSON_value, try_at) {
   EXPECT_EQ(result->to_integer(), 5);
 }
 
-TEST(JSON_value, try_at_fail) {
+TEST(try_at_fail) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{\"foo\":5}");
   EXPECT_TRUE(document.is_object());
@@ -398,7 +398,7 @@ TEST(JSON_value, try_at_fail) {
   EXPECT_FALSE(result);
 }
 
-TEST(JSON_value, unordered_set_with_custom_hash) {
+TEST(unordered_set_with_custom_hash) {
   std::unordered_set<sourcemeta::core::JSON,
                      sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
       value;
@@ -413,7 +413,7 @@ TEST(JSON_value, unordered_set_with_custom_hash) {
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"baz"}));
 }
 
-TEST(JSON_value, unordered_set_with_reference_wrapper) {
+TEST(unordered_set_with_reference_wrapper) {
   const sourcemeta::core::JSON foo{"foo"};
   const sourcemeta::core::JSON bar{"bar"};
   const sourcemeta::core::JSON baz{"baz"};
@@ -437,7 +437,7 @@ TEST(JSON_value, unordered_set_with_reference_wrapper) {
   EXPECT_TRUE(value.contains(std::cref(bar_duplicate)));
 }
 
-TEST(JSON_value, unordered_map_with_reference_wrapper) {
+TEST(unordered_map_with_reference_wrapper) {
   const sourcemeta::core::JSON foo{"foo"};
   const sourcemeta::core::JSON bar{"bar"};
   const sourcemeta::core::JSON bar_duplicate{"bar"};
@@ -459,7 +459,7 @@ TEST(JSON_value, unordered_map_with_reference_wrapper) {
   EXPECT_EQ(value.at(std::cref(bar_duplicate)), 2);
 }
 
-TEST(JSON_value, destructs_deeply_nested_array_without_stack_overflow) {
+TEST(destructs_deeply_nested_array_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 2 + 1);
@@ -470,7 +470,7 @@ TEST(JSON_value, destructs_deeply_nested_array_without_stack_overflow) {
   EXPECT_TRUE(document.is_array());
 }
 
-TEST(JSON_value, destructs_deeply_nested_object_without_stack_overflow) {
+TEST(destructs_deeply_nested_object_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 6 + 1 + depth);
@@ -483,7 +483,7 @@ TEST(JSON_value, destructs_deeply_nested_object_without_stack_overflow) {
   EXPECT_TRUE(document.is_object());
 }
 
-TEST(JSON_value, copies_deeply_nested_array_without_stack_overflow) {
+TEST(copies_deeply_nested_array_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 2 + 1);
@@ -495,7 +495,7 @@ TEST(JSON_value, copies_deeply_nested_array_without_stack_overflow) {
   EXPECT_TRUE(copy.is_array());
 }
 
-TEST(JSON_value, copies_deeply_nested_object_without_stack_overflow) {
+TEST(copies_deeply_nested_object_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 6 + 1 + depth);
@@ -509,7 +509,7 @@ TEST(JSON_value, copies_deeply_nested_object_without_stack_overflow) {
   EXPECT_TRUE(copy.is_object());
 }
 
-TEST(JSON_value, copy_assigns_deeply_nested_array_without_stack_overflow) {
+TEST(copy_assigns_deeply_nested_array_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 2 + 1);
@@ -522,7 +522,7 @@ TEST(JSON_value, copy_assigns_deeply_nested_array_without_stack_overflow) {
   EXPECT_TRUE(target.is_array());
 }
 
-TEST(JSON_value, copy_assigns_deeply_nested_object_without_stack_overflow) {
+TEST(copy_assigns_deeply_nested_object_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 6 + 1 + depth);
@@ -537,7 +537,7 @@ TEST(JSON_value, copy_assigns_deeply_nested_object_without_stack_overflow) {
   EXPECT_TRUE(target.is_object());
 }
 
-TEST(JSON_value, move_assigns_deeply_nested_array_without_stack_overflow) {
+TEST(move_assigns_deeply_nested_array_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 2 + 1);
@@ -550,7 +550,7 @@ TEST(JSON_value, move_assigns_deeply_nested_array_without_stack_overflow) {
   EXPECT_TRUE(target.is_array());
 }
 
-TEST(JSON_value, move_assigns_deeply_nested_object_without_stack_overflow) {
+TEST(move_assigns_deeply_nested_object_without_stack_overflow) {
   constexpr std::size_t depth{100000};
   std::string deep;
   deep.reserve(depth * 6 + 1 + depth);
@@ -565,7 +565,7 @@ TEST(JSON_value, move_assigns_deeply_nested_object_without_stack_overflow) {
   EXPECT_TRUE(target.is_object());
 }
 
-TEST(JSON_value, direct_list_inits_deeply_nested_array_without_stack_overflow) {
+TEST(direct_list_inits_deeply_nested_array_without_stack_overflow) {
   // On GCC and MSVC, JSON x{other} selects JSON(initializer_list<JSON>) whose
   // single-element workaround invokes operator=(const JSON&)
   constexpr std::size_t depth{100000};

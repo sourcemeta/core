@@ -1,43 +1,43 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/jose.h>
 
-TEST(JOSE_algorithm, rs256) {
+TEST(rs256) {
   const auto result{sourcemeta::core::to_jws_algorithm("RS256")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::RS256);
 }
 
-TEST(JOSE_algorithm, ps384) {
+TEST(ps384) {
   const auto result{sourcemeta::core::to_jws_algorithm("PS384")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::PS384);
 }
 
-TEST(JOSE_algorithm, es512) {
+TEST(es512) {
   const auto result{sourcemeta::core::to_jws_algorithm("ES512")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::ES512);
 }
 
-TEST(JOSE_algorithm, eddsa) {
+TEST(eddsa) {
   const auto result{sourcemeta::core::to_jws_algorithm("EdDSA")};
-  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::EdDSA);
 }
 
-TEST(JOSE_algorithm, rejects_none) {
+TEST(rejects_none) {
   EXPECT_FALSE(sourcemeta::core::to_jws_algorithm("none").has_value());
 }
 
-TEST(JOSE_algorithm, rejects_hmac) {
+TEST(rejects_hmac) {
   EXPECT_FALSE(sourcemeta::core::to_jws_algorithm("HS256").has_value());
 }
 
-TEST(JOSE_algorithm, rejects_unknown) {
+TEST(rejects_unknown) {
   EXPECT_FALSE(sourcemeta::core::to_jws_algorithm("RS128").has_value());
 }
 
-TEST(JOSE_algorithm, rejects_empty) {
+TEST(rejects_empty) {
   EXPECT_FALSE(sourcemeta::core::to_jws_algorithm("").has_value());
 }

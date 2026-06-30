@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
@@ -6,13 +6,13 @@
 #include <string>
 #include <string_view>
 
-TEST(JSONPointer_parse, empty_string) {
+TEST(empty_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(""));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("");
   EXPECT_EQ(pointer.size(), 0);
 }
 
-TEST(JSONPointer_parse, slash) {
+TEST(slash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/");
   EXPECT_EQ(pointer.size(), 1);
@@ -20,7 +20,7 @@ TEST(JSONPointer_parse, slash) {
   EXPECT_EQ(pointer.at(0).to_property(), "");
 }
 
-TEST(JSONPointer_parse, slash_f) {
+TEST(slash_f) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/f"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/f");
   EXPECT_EQ(pointer.size(), 1);
@@ -28,7 +28,7 @@ TEST(JSONPointer_parse, slash_f) {
   EXPECT_EQ(pointer.at(0).to_property(), "f");
 }
 
-TEST(JSONPointer_parse, slash_foo) {
+TEST(slash_foo) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo");
@@ -37,7 +37,7 @@ TEST(JSONPointer_parse, slash_foo) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
 }
 
-TEST(JSONPointer_parse, slash_foo_bar_baz) {
+TEST(slash_foo_bar_baz) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/bar/baz"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo/bar/baz");
@@ -50,7 +50,7 @@ TEST(JSONPointer_parse, slash_foo_bar_baz) {
   EXPECT_EQ(pointer.at(2).to_property(), "baz");
 }
 
-TEST(JSONPointer_parse, slash_0) {
+TEST(slash_0) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/0");
   EXPECT_EQ(pointer.size(), 1);
@@ -58,7 +58,7 @@ TEST(JSONPointer_parse, slash_0) {
   EXPECT_EQ(pointer.at(0).to_index(), 0);
 }
 
-TEST(JSONPointer_parse, slash_1) {
+TEST(slash_1) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/1");
   EXPECT_EQ(pointer.size(), 1);
@@ -66,7 +66,7 @@ TEST(JSONPointer_parse, slash_1) {
   EXPECT_EQ(pointer.at(0).to_index(), 1);
 }
 
-TEST(JSONPointer_parse, slash_1234) {
+TEST(slash_1234) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1234"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/1234");
@@ -75,7 +75,7 @@ TEST(JSONPointer_parse, slash_1234) {
   EXPECT_EQ(pointer.at(0).to_index(), 1234);
 }
 
-TEST(JSONPointer_parse, slash_0_slash_1_slash_2) {
+TEST(slash_0_slash_1_slash_2) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0/1/2"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/0/1/2");
@@ -88,7 +88,7 @@ TEST(JSONPointer_parse, slash_0_slash_1_slash_2) {
   EXPECT_EQ(pointer.at(2).to_index(), 2);
 }
 
-TEST(JSONPointer_parse, slash_0_slash_foo_slash_2) {
+TEST(slash_0_slash_foo_slash_2) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0/foo/2"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/0/foo/2");
@@ -101,7 +101,7 @@ TEST(JSONPointer_parse, slash_0_slash_foo_slash_2) {
   EXPECT_EQ(pointer.at(2).to_index(), 2);
 }
 
-TEST(JSONPointer_parse, slash_0_slash_1234) {
+TEST(slash_0_slash_1234) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0/1234"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/0/1234");
@@ -112,7 +112,7 @@ TEST(JSONPointer_parse, slash_0_slash_1234) {
   EXPECT_EQ(pointer.at(1).to_index(), 1234);
 }
 
-TEST(JSONPointer_parse, slash_1000) {
+TEST(slash_1000) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1000"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/1000");
@@ -121,7 +121,7 @@ TEST(JSONPointer_parse, slash_1000) {
   EXPECT_EQ(pointer.at(0).to_index(), 1000);
 }
 
-TEST(JSONPointer_parse, negative_index_as_property) {
+TEST(negative_index_as_property) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/-1"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/-1");
   EXPECT_EQ(pointer.size(), 1);
@@ -129,7 +129,7 @@ TEST(JSONPointer_parse, negative_index_as_property) {
   EXPECT_EQ(pointer.at(0).to_property(), "-1");
 }
 
-TEST(JSONPointer_parse, slash_space_integer) {
+TEST(slash_space_integer) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/ 12"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/ 12");
@@ -138,7 +138,7 @@ TEST(JSONPointer_parse, slash_space_integer) {
   EXPECT_EQ(pointer.at(0).to_property(), " 12");
 }
 
-TEST(JSONPointer_parse, slash_foo_slash_space_integer) {
+TEST(slash_foo_slash_space_integer) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/ 12"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo/ 12");
@@ -149,7 +149,7 @@ TEST(JSONPointer_parse, slash_foo_slash_space_integer) {
   EXPECT_EQ(pointer.at(1).to_property(), " 12");
 }
 
-TEST(JSONPointer_parse, slash_foo_slash_space_bar_space) {
+TEST(slash_foo_slash_space_bar_space) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/ bar "));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo/ bar ");
@@ -160,7 +160,7 @@ TEST(JSONPointer_parse, slash_foo_slash_space_bar_space) {
   EXPECT_EQ(pointer.at(1).to_property(), " bar ");
 }
 
-TEST(JSONPointer_parse, slash_f_slash) {
+TEST(slash_f_slash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/f/"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/f/");
   EXPECT_EQ(pointer.size(), 2);
@@ -170,7 +170,7 @@ TEST(JSONPointer_parse, slash_f_slash) {
   EXPECT_EQ(pointer.at(1).to_property(), "");
 }
 
-TEST(JSONPointer_parse, slash_slash) {
+TEST(slash_slash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("//"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("//");
   EXPECT_EQ(pointer.size(), 2);
@@ -180,7 +180,7 @@ TEST(JSONPointer_parse, slash_slash) {
   EXPECT_EQ(pointer.at(1).to_property(), "");
 }
 
-TEST(JSONPointer_parse, slash_slash_slash) {
+TEST(slash_slash_slash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("///"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("///");
   EXPECT_EQ(pointer.size(), 3);
@@ -192,7 +192,7 @@ TEST(JSONPointer_parse, slash_slash_slash) {
   EXPECT_EQ(pointer.at(2).to_property(), "");
 }
 
-TEST(JSONPointer_parse, slash_slash_slash_foo) {
+TEST(slash_slash_slash_foo) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("///foo"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("///foo");
@@ -205,7 +205,7 @@ TEST(JSONPointer_parse, slash_slash_slash_foo) {
   EXPECT_EQ(pointer.at(2).to_property(), "foo");
 }
 
-TEST(JSONPointer_parse, positive_hex_index) {
+TEST(positive_hex_index) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0x23"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/0x23");
@@ -214,7 +214,7 @@ TEST(JSONPointer_parse, positive_hex_index) {
   EXPECT_EQ(pointer.at(0).to_property(), "0x23");
 }
 
-TEST(JSONPointer_parse, slash_00) {
+TEST(slash_00) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/00"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/00");
   EXPECT_EQ(pointer.size(), 1);
@@ -222,7 +222,7 @@ TEST(JSONPointer_parse, slash_00) {
   EXPECT_EQ(pointer.at(0).to_property(), "00");
 }
 
-TEST(JSONPointer_parse, slash_01) {
+TEST(slash_01) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/01"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/01");
   EXPECT_EQ(pointer.size(), 1);
@@ -230,7 +230,7 @@ TEST(JSONPointer_parse, slash_01) {
   EXPECT_EQ(pointer.at(0).to_property(), "01");
 }
 
-TEST(JSONPointer_parse, slash_001) {
+TEST(slash_001) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/001"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/001");
@@ -239,7 +239,7 @@ TEST(JSONPointer_parse, slash_001) {
   EXPECT_EQ(pointer.at(0).to_property(), "001");
 }
 
-TEST(JSONPointer_parse, slash_0100) {
+TEST(slash_0100) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0100"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/0100");
@@ -248,7 +248,7 @@ TEST(JSONPointer_parse, slash_0100) {
   EXPECT_EQ(pointer.at(0).to_property(), "0100");
 }
 
-TEST(JSONPointer_parse, positive_real_number_index) {
+TEST(positive_real_number_index) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1.23"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/1.23");
@@ -257,7 +257,7 @@ TEST(JSONPointer_parse, positive_real_number_index) {
   EXPECT_EQ(pointer.at(0).to_property(), "1.23");
 }
 
-TEST(JSONPointer_parse, index_in_scientific_notation) {
+TEST(index_in_scientific_notation) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1e1"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/1e1");
@@ -266,7 +266,7 @@ TEST(JSONPointer_parse, index_in_scientific_notation) {
   EXPECT_EQ(pointer.at(0).to_property(), "1e1");
 }
 
-TEST(JSONPointer_parse, integer_with_space) {
+TEST(integer_with_space) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1 1"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/1 1");
@@ -275,7 +275,7 @@ TEST(JSONPointer_parse, integer_with_space) {
   EXPECT_EQ(pointer.at(0).to_property(), "1 1");
 }
 
-TEST(JSONPointer_parse, percentage) {
+TEST(percentage) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/c%d"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/c%d");
@@ -284,7 +284,7 @@ TEST(JSONPointer_parse, percentage) {
   EXPECT_EQ(pointer.at(0).to_property(), "c%d");
 }
 
-TEST(JSONPointer_parse, caret) {
+TEST(caret) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/e^f"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/e^f");
@@ -293,7 +293,7 @@ TEST(JSONPointer_parse, caret) {
   EXPECT_EQ(pointer.at(0).to_property(), "e^f");
 }
 
-TEST(JSONPointer_parse, pipe) {
+TEST(pipe) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/g|h"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/g|h");
@@ -302,7 +302,7 @@ TEST(JSONPointer_parse, pipe) {
   EXPECT_EQ(pointer.at(0).to_property(), "g|h");
 }
 
-TEST(JSONPointer_parse, backslash_after_letter) {
+TEST(backslash_after_letter) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/i\\j"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/i\\j");
@@ -311,7 +311,7 @@ TEST(JSONPointer_parse, backslash_after_letter) {
   EXPECT_EQ(pointer.at(0).to_property(), "i\\j");
 }
 
-TEST(JSONPointer_parse, backslash) {
+TEST(backslash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\\"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\\");
   EXPECT_EQ(pointer.size(), 1);
@@ -319,7 +319,7 @@ TEST(JSONPointer_parse, backslash) {
   EXPECT_EQ(pointer.at(0).to_property(), "\\");
 }
 
-TEST(JSONPointer_parse, double_quote_after_letter) {
+TEST(double_quote_after_letter) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/k\"l"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/k\"l");
@@ -328,7 +328,7 @@ TEST(JSONPointer_parse, double_quote_after_letter) {
   EXPECT_EQ(pointer.at(0).to_property(), "k\"l");
 }
 
-TEST(JSONPointer_parse, double_quote) {
+TEST(double_quote) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\""));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\"");
   EXPECT_EQ(pointer.size(), 1);
@@ -336,7 +336,7 @@ TEST(JSONPointer_parse, double_quote) {
   EXPECT_EQ(pointer.at(0).to_property(), "\"");
 }
 
-TEST(JSONPointer_parse, space) {
+TEST(space) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/ "));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/ ");
   EXPECT_EQ(pointer.size(), 1);
@@ -344,7 +344,7 @@ TEST(JSONPointer_parse, space) {
   EXPECT_EQ(pointer.at(0).to_property(), " ");
 }
 
-TEST(JSONPointer_parse, escaped_slash_after_letter) {
+TEST(escaped_slash_after_letter) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/a~1b"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/a~1b");
@@ -353,7 +353,7 @@ TEST(JSONPointer_parse, escaped_slash_after_letter) {
   EXPECT_EQ(pointer.at(0).to_property(), "a/b");
 }
 
-TEST(JSONPointer_parse, escaped_slash) {
+TEST(escaped_slash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~1"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/~1");
   EXPECT_EQ(pointer.size(), 1);
@@ -361,7 +361,7 @@ TEST(JSONPointer_parse, escaped_slash) {
   EXPECT_EQ(pointer.at(0).to_property(), "/");
 }
 
-TEST(JSONPointer_parse, escaped_slash_with_backslash) {
+TEST(escaped_slash_with_backslash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\\/"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/\\/");
@@ -372,7 +372,7 @@ TEST(JSONPointer_parse, escaped_slash_with_backslash) {
   EXPECT_EQ(pointer.at(1).to_property(), "");
 }
 
-TEST(JSONPointer_parse, escaped_slash_with_backslash_after_letter) {
+TEST(escaped_slash_with_backslash_after_letter) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/x\\/"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/x\\/");
@@ -383,7 +383,7 @@ TEST(JSONPointer_parse, escaped_slash_with_backslash_after_letter) {
   EXPECT_EQ(pointer.at(1).to_property(), "");
 }
 
-TEST(JSONPointer_parse, escaped_tilde_after_letter) {
+TEST(escaped_tilde_after_letter) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/m~0n"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/m~0n");
@@ -392,7 +392,7 @@ TEST(JSONPointer_parse, escaped_tilde_after_letter) {
   EXPECT_EQ(pointer.at(0).to_property(), "m~n");
 }
 
-TEST(JSONPointer_parse, escaped_tilde) {
+TEST(escaped_tilde) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/~0");
   EXPECT_EQ(pointer.size(), 1);
@@ -400,7 +400,7 @@ TEST(JSONPointer_parse, escaped_tilde) {
   EXPECT_EQ(pointer.at(0).to_property(), "~");
 }
 
-TEST(JSONPointer_parse, tilde_zero_one) {
+TEST(tilde_zero_one) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~01"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/~01");
@@ -409,7 +409,7 @@ TEST(JSONPointer_parse, tilde_zero_one) {
   EXPECT_EQ(pointer.at(0).to_property(), "~1");
 }
 
-TEST(JSONPointer_parse, tilde_zero_one_after_letter) {
+TEST(tilde_zero_one_after_letter) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/x~01"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/x~01");
@@ -418,7 +418,7 @@ TEST(JSONPointer_parse, tilde_zero_one_after_letter) {
   EXPECT_EQ(pointer.at(0).to_property(), "x~1");
 }
 
-TEST(JSONPointer_parse, hyphen) {
+TEST(hyphen) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/-"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/-");
   EXPECT_EQ(pointer.size(), 1);
@@ -427,7 +427,7 @@ TEST(JSONPointer_parse, hyphen) {
   EXPECT_EQ(pointer.at(0).to_property(), "-");
 }
 
-TEST(JSONPointer_parse, hyphen_hyphen) {
+TEST(hyphen_hyphen) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/--"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/--");
   EXPECT_EQ(pointer.size(), 1);
@@ -436,7 +436,7 @@ TEST(JSONPointer_parse, hyphen_hyphen) {
   EXPECT_EQ(pointer.at(0).to_property(), "--");
 }
 
-TEST(JSONPointer_parse, hyphen_slash_hyphen) {
+TEST(hyphen_slash_hyphen) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/-/-"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/-/-");
@@ -449,7 +449,7 @@ TEST(JSONPointer_parse, hyphen_slash_hyphen) {
   EXPECT_EQ(pointer.at(1).to_property(), "-");
 }
 
-TEST(JSONPointer_parse, quote_within_string) {
+TEST(quote_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\"bar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\"bar");
@@ -458,7 +458,7 @@ TEST(JSONPointer_parse, quote_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\"bar");
 }
 
-TEST(JSONPointer_parse, quote) {
+TEST(quote) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\""));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\"");
   EXPECT_EQ(pointer.size(), 1);
@@ -466,7 +466,7 @@ TEST(JSONPointer_parse, quote) {
   EXPECT_EQ(pointer.at(0).to_property(), "\"");
 }
 
-TEST(JSONPointer_parse, backslash_within_string) {
+TEST(backslash_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\\bar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\\bar");
@@ -475,7 +475,7 @@ TEST(JSONPointer_parse, backslash_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\\bar");
 }
 
-TEST(JSONPointer_parse, backslash_only) {
+TEST(backslash_only) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\\"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\\");
   EXPECT_EQ(pointer.size(), 1);
@@ -483,7 +483,7 @@ TEST(JSONPointer_parse, backslash_only) {
   EXPECT_EQ(pointer.at(0).to_property(), "\\");
 }
 
-TEST(JSONPointer_parse, control_backspace) {
+TEST(control_backspace) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\b"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\b");
   EXPECT_EQ(pointer.size(), 1);
@@ -491,7 +491,7 @@ TEST(JSONPointer_parse, control_backspace) {
   EXPECT_EQ(pointer.at(0).to_property(), "\b");
 }
 
-TEST(JSONPointer_parse, control_backspace_within_string) {
+TEST(control_backspace_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\bbar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\bbar");
@@ -500,7 +500,7 @@ TEST(JSONPointer_parse, control_backspace_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\bbar");
 }
 
-TEST(JSONPointer_parse, control_formfeed) {
+TEST(control_formfeed) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\f"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\f");
   EXPECT_EQ(pointer.size(), 1);
@@ -508,7 +508,7 @@ TEST(JSONPointer_parse, control_formfeed) {
   EXPECT_EQ(pointer.at(0).to_property(), "\f");
 }
 
-TEST(JSONPointer_parse, control_formfeed_within_string) {
+TEST(control_formfeed_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\fbar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\fbar");
@@ -517,7 +517,7 @@ TEST(JSONPointer_parse, control_formfeed_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\fbar");
 }
 
-TEST(JSONPointer_parse, control_newline) {
+TEST(control_newline) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\n"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\n");
   EXPECT_EQ(pointer.size(), 1);
@@ -525,7 +525,7 @@ TEST(JSONPointer_parse, control_newline) {
   EXPECT_EQ(pointer.at(0).to_property(), "\n");
 }
 
-TEST(JSONPointer_parse, control_newline_within_string) {
+TEST(control_newline_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\nbar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\nbar");
@@ -534,7 +534,7 @@ TEST(JSONPointer_parse, control_newline_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\nbar");
 }
 
-TEST(JSONPointer_parse, control_carriage) {
+TEST(control_carriage) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\r"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\r");
   EXPECT_EQ(pointer.size(), 1);
@@ -542,7 +542,7 @@ TEST(JSONPointer_parse, control_carriage) {
   EXPECT_EQ(pointer.at(0).to_property(), "\r");
 }
 
-TEST(JSONPointer_parse, control_carriage_within_string) {
+TEST(control_carriage_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\rbar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\rbar");
@@ -551,7 +551,7 @@ TEST(JSONPointer_parse, control_carriage_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\rbar");
 }
 
-TEST(JSONPointer_parse, control_tab) {
+TEST(control_tab) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\t"));
   const sourcemeta::core::Pointer pointer = sourcemeta::core::to_pointer("/\t");
   EXPECT_EQ(pointer.size(), 1);
@@ -559,7 +559,7 @@ TEST(JSONPointer_parse, control_tab) {
   EXPECT_EQ(pointer.at(0).to_property(), "\t");
 }
 
-TEST(JSONPointer_parse, control_tab_within_string) {
+TEST(control_tab_within_string) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\tbar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo\tbar");
@@ -568,7 +568,7 @@ TEST(JSONPointer_parse, control_tab_within_string) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\tbar");
 }
 
-TEST(JSONPointer_parse, property_with_asterisk) {
+TEST(property_with_asterisk) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo*bar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo*bar");
@@ -577,7 +577,7 @@ TEST(JSONPointer_parse, property_with_asterisk) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo*bar");
 }
 
-TEST(JSONPointer_parse, two_tokens) {
+TEST(two_tokens) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/bar"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/foo/bar");
@@ -588,7 +588,7 @@ TEST(JSONPointer_parse, two_tokens) {
   EXPECT_EQ(pointer.at(1).to_property(), "bar");
 }
 
-TEST(JSONPointer_parse, regex_caret) {
+TEST(regex_caret) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/patternProperties/^v/foo"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/patternProperties/^v/foo");
@@ -601,7 +601,7 @@ TEST(JSONPointer_parse, regex_caret) {
   EXPECT_EQ(pointer.at(2).to_property(), "foo");
 }
 
-TEST(JSONPointer_parse, regex_backslash) {
+TEST(regex_backslash) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/[\\-]"));
   const sourcemeta::core::Pointer pointer =
       sourcemeta::core::to_pointer("/[\\-]");
@@ -610,7 +610,7 @@ TEST(JSONPointer_parse, regex_backslash) {
   EXPECT_EQ(pointer.at(0).to_property(), "[\\-]");
 }
 
-TEST(JSONPointer_parse, json_escape_backslash_n_treated_literally) {
+TEST(json_escape_backslash_n_treated_literally) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\\nbar"));
   const auto pointer = sourcemeta::core::to_pointer("/foo\\nbar");
   EXPECT_EQ(pointer.size(), 1);
@@ -618,7 +618,7 @@ TEST(JSONPointer_parse, json_escape_backslash_n_treated_literally) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\\nbar");
 }
 
-TEST(JSONPointer_parse, json_escape_unicode_treated_literally) {
+TEST(json_escape_unicode_treated_literally) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\\u002Abar"));
   const auto pointer = sourcemeta::core::to_pointer("/foo\\u002Abar");
   EXPECT_EQ(pointer.size(), 1);
@@ -626,7 +626,7 @@ TEST(JSONPointer_parse, json_escape_unicode_treated_literally) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\\u002Abar");
 }
 
-TEST(JSONPointer_parse, unicode_0001) {
+TEST(unicode_0001) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\u0001"));
   const auto pointer = sourcemeta::core::to_pointer("/\u0001");
   EXPECT_EQ(pointer.size(), 1);
@@ -634,7 +634,7 @@ TEST(JSONPointer_parse, unicode_0001) {
   EXPECT_EQ(pointer.at(0).to_property(), "\u0001");
 }
 
-TEST(JSONPointer_parse, unicode_0002) {
+TEST(unicode_0002) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\u0002"));
   const auto pointer = sourcemeta::core::to_pointer("/\u0002");
   EXPECT_EQ(pointer.size(), 1);
@@ -642,7 +642,7 @@ TEST(JSONPointer_parse, unicode_0002) {
   EXPECT_EQ(pointer.at(0).to_property(), "\u0002");
 }
 
-TEST(JSONPointer_parse, unicode_000B) {
+TEST(unicode_000B) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\u000B"));
   const auto pointer = sourcemeta::core::to_pointer("/\u000B");
   EXPECT_EQ(pointer.size(), 1);
@@ -650,7 +650,7 @@ TEST(JSONPointer_parse, unicode_000B) {
   EXPECT_EQ(pointer.at(0).to_property(), "\u000B");
 }
 
-TEST(JSONPointer_parse, unicode_000E) {
+TEST(unicode_000E) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\u000E"));
   const auto pointer = sourcemeta::core::to_pointer("/\u000E");
   EXPECT_EQ(pointer.size(), 1);
@@ -658,7 +658,7 @@ TEST(JSONPointer_parse, unicode_000E) {
   EXPECT_EQ(pointer.at(0).to_property(), "\u000E");
 }
 
-TEST(JSONPointer_parse, unicode_001F) {
+TEST(unicode_001F) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\u001F"));
   const auto pointer = sourcemeta::core::to_pointer("/\u001F");
   EXPECT_EQ(pointer.size(), 1);
@@ -666,7 +666,7 @@ TEST(JSONPointer_parse, unicode_001F) {
   EXPECT_EQ(pointer.at(0).to_property(), "\u001F");
 }
 
-TEST(JSONPointer_parse, unicode_0001_within_word) {
+TEST(unicode_0001_within_word) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\u0001bar"));
   const auto pointer = sourcemeta::core::to_pointer("/foo\u0001bar");
   EXPECT_EQ(pointer.size(), 1);
@@ -674,7 +674,7 @@ TEST(JSONPointer_parse, unicode_0001_within_word) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\u0001bar");
 }
 
-TEST(JSONPointer_parse, unicode_000E_within_word) {
+TEST(unicode_000E_within_word) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\u000Ebar"));
   const auto pointer = sourcemeta::core::to_pointer("/foo\u000Ebar");
   EXPECT_EQ(pointer.size(), 1);
@@ -682,7 +682,7 @@ TEST(JSONPointer_parse, unicode_000E_within_word) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\u000Ebar");
 }
 
-TEST(JSONPointer_parse, unicode_001F_within_word) {
+TEST(unicode_001F_within_word) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\u001Fbar"));
   const auto pointer = sourcemeta::core::to_pointer("/foo\u001Fbar");
   EXPECT_EQ(pointer.size(), 1);
@@ -690,7 +690,7 @@ TEST(JSONPointer_parse, unicode_001F_within_word) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo\u001Fbar");
 }
 
-TEST(JSONPointer_parse, to_pointer_with_string_view) {
+TEST(to_pointer_with_string_view) {
   const std::string_view input{"/foo/bar"};
   const auto pointer = sourcemeta::core::to_pointer(input);
   EXPECT_EQ(pointer.size(), 2);
@@ -698,7 +698,7 @@ TEST(JSONPointer_parse, to_pointer_with_string_view) {
   EXPECT_EQ(pointer.at(1).to_property(), "bar");
 }
 
-TEST(JSONPointer_parse, to_pointer_with_string_view_subview) {
+TEST(to_pointer_with_string_view_subview) {
   const std::string buffer{"prefix/foo/bar/0suffix"};
   const std::string_view view{buffer.data() + 6, 10};
   const auto pointer = sourcemeta::core::to_pointer(view);
@@ -709,7 +709,7 @@ TEST(JSONPointer_parse, to_pointer_with_string_view_subview) {
   EXPECT_EQ(pointer.at(2).to_index(), 0);
 }
 
-TEST(JSONPointer_parse, to_pointer_default_string_view) {
+TEST(to_pointer_default_string_view) {
   const std::string_view input{};
   EXPECT_EQ(input.data(), nullptr);
   const auto pointer = sourcemeta::core::to_pointer(input);

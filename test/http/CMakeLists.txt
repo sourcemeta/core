@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME http
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME http
   SOURCES http_status_test.cc http_make_problem_details_test.cc
           http_match_accept_test.cc http_match_accept_language_test.cc
           http_negotiate_encoding_test.cc http_from_date_test.cc
