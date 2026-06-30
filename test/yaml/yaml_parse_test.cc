@@ -209,7 +209,9 @@ TEST(YAML_parse, file_not_exists) {
     sourcemeta::core::read_yaml(std::filesystem::path{STUBS_PATH} /
                                 "not_exists.yaml");
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_EQ(error.path(),
+              std::filesystem::path{STUBS_PATH} / "not_exists.yaml");
   }
 }
 
@@ -218,7 +220,9 @@ TEST(YAML_parse, yaml_or_json_file_not_exists) {
     sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
                                         "not_exists.yaml");
     FAIL();
-  } catch (const sourcemeta::core::IOFileNotFoundError &) {
+  } catch (const sourcemeta::core::IOFileNotFoundError &error) {
+    EXPECT_EQ(error.path(),
+              std::filesystem::path{STUBS_PATH} / "not_exists.yaml");
   }
 }
 
@@ -443,7 +447,9 @@ TEST(YAML_parse, yaml_or_json_invalid_json_throws_json_error) {
     sourcemeta::core::read_yaml_or_json(std::filesystem::path{STUBS_PATH} /
                                         "invalid.json");
     FAIL();
-  } catch (const sourcemeta::core::JSONParseError &) {
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
   }
 }
 
@@ -557,7 +563,9 @@ TEST(YAML_parse, exponential_alias_expansion_is_bounded) {
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 7);
+    EXPECT_EQ(error.column(), 37);
   } catch (...) {
     FAIL();
   }

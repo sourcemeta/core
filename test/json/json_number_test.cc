@@ -600,7 +600,8 @@ TEST(JSON_number, as_real_decimal_out_of_range_throws) {
   try {
     [[maybe_unused]] const auto value = document.as_real();
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(), "stod: out of range");
   }
 }
 
@@ -676,7 +677,9 @@ TEST(JSON_number, as_integer_decimal_out_of_range_throws) {
   try {
     [[maybe_unused]] const auto value = document.as_integer();
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(),
+                 "The decimal number does not fit in a 64-bit integer");
   }
 }
 
@@ -686,7 +689,9 @@ TEST(JSON_number, as_integer_real_out_of_range_throws) {
   try {
     [[maybe_unused]] const auto value = document.as_integer();
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(),
+                 "The real number does not fit in a 64-bit integer");
   }
 }
 

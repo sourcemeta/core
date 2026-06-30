@@ -121,7 +121,8 @@ TEST(GZIP_stream_buffer, invalid_input_throws) {
   try {
     decompress_via_stream(garbage);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid gzip magic bytes");
   }
 }
 
@@ -133,7 +134,8 @@ TEST(GZIP_stream_buffer, truncated_input_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Unexpected end of source stream");
   }
 }
 
@@ -477,7 +479,8 @@ TEST(GZIP_stream_buffer, wrong_first_magic_byte_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid gzip magic bytes");
   }
 }
 
@@ -489,7 +492,8 @@ TEST(GZIP_stream_buffer, wrong_second_magic_byte_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Invalid gzip magic bytes");
   }
 }
 
@@ -501,7 +505,8 @@ TEST(GZIP_stream_buffer, unsupported_compression_method_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Unsupported gzip compression method");
   }
 }
 
@@ -513,7 +518,8 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_5_set_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Reserved gzip FLG bits must be zero");
   }
 }
 
@@ -525,7 +531,8 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_6_set_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Reserved gzip FLG bits must be zero");
   }
 }
 
@@ -537,7 +544,8 @@ TEST(GZIP_stream_buffer, reserved_flag_bit_7_set_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Reserved gzip FLG bits must be zero");
   }
 }
 
@@ -551,7 +559,8 @@ TEST(GZIP_stream_buffer, corrupted_trailing_crc32_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Gzip member CRC32 mismatch");
   }
 }
 
@@ -565,7 +574,8 @@ TEST(GZIP_stream_buffer, corrupted_trailing_isize_throws) {
   try {
     decompress_via_stream(compressed);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Gzip member ISIZE mismatch");
   }
 }
 
@@ -573,7 +583,8 @@ TEST(GZIP_stream_buffer, empty_source_stream_throws) {
   try {
     decompress_via_stream("");
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Empty source stream");
   }
 }
 
@@ -603,7 +614,8 @@ TEST(GZIP_stream_buffer, fhcrc_mismatch_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "FHCRC mismatch");
   }
 }
 
@@ -828,7 +840,8 @@ TEST(GZIP_stream_buffer, reserved_deflate_block_type_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Reserved deflate block type");
   }
 }
 
@@ -844,7 +857,8 @@ TEST(GZIP_stream_buffer, stored_block_with_mismatched_nlen_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Stored block LEN/NLEN mismatch");
   }
 }
 
@@ -883,7 +897,8 @@ TEST(GZIP_stream_buffer, header_only_source_throws) {
   try {
     decompress_via_stream(header_only);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Unexpected end of source stream");
   }
 }
 
@@ -895,7 +910,8 @@ TEST(GZIP_stream_buffer, truncated_mid_fname_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Unexpected end of source stream");
   }
 }
 
@@ -907,7 +923,8 @@ TEST(GZIP_stream_buffer, truncated_mid_fcomment_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Unexpected end of source stream");
   }
 }
 
@@ -920,7 +937,8 @@ TEST(GZIP_stream_buffer, truncated_mid_fextra_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Unexpected end of source stream");
   }
 }
 
@@ -947,7 +965,8 @@ TEST(GZIP_stream_buffer, dynamic_block_hlit_above_286_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Too many literal/length codes");
   }
 }
 
@@ -963,6 +982,7 @@ TEST(GZIP_stream_buffer, dynamic_block_incomplete_code_throws) {
   try {
     decompress_via_stream(stream);
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Incomplete Huffman code");
   }
 }

@@ -1756,7 +1756,9 @@ TEST(URITemplateRouter, operation_id_reject_empty) {
   try {
     router.add("/a", "", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "");
   }
 }
 
@@ -1779,7 +1781,9 @@ TEST(URITemplateRouter, operation_id_reject_leading_digit) {
   try {
     router.add("/a", "1foo", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "1foo");
   }
 }
 
@@ -1788,7 +1792,9 @@ TEST(URITemplateRouter, operation_id_reject_leading_underscore) {
   try {
     router.add("/a", "_foo", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "_foo");
   }
 }
 
@@ -1797,7 +1803,9 @@ TEST(URITemplateRouter, operation_id_reject_leading_hyphen) {
   try {
     router.add("/a", "-foo", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "-foo");
   }
 }
 
@@ -1806,17 +1814,23 @@ TEST(URITemplateRouter, operation_id_reject_invalid_characters) {
   try {
     router.add("/a", "foo.bar", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "foo.bar");
   }
   try {
     router.add("/a", "foo/bar", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "foo/bar");
   }
   try {
     router.add("/a", "foo bar", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidOperationIdError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidOperationIdError &error) {
+    EXPECT_EQ(error.operation_id(), "foo bar");
   }
 }
 
@@ -2787,7 +2801,9 @@ TEST(URITemplateRouter, strict_missing_leading_slash_throws) {
   try {
     router.add("foo", "op_806", 1);
     FAIL();
-  } catch (const sourcemeta::core::URITemplateRouterInvalidSegmentError &) {
+  } catch (
+      const sourcemeta::core::URITemplateRouterInvalidSegmentError &error) {
+    EXPECT_EQ(error.segment(), "foo");
   }
 }
 

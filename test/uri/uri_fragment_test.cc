@@ -48,7 +48,8 @@ TEST(URI_fragment, invalid_fragment_with_pointer) {
   try {
     sourcemeta::core::URI{"#foo#/$defs/bar"};
     FAIL();
-  } catch (const sourcemeta::core::URIParseError &) {
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 5);
   }
 }
 

@@ -18,7 +18,8 @@ TEST(JSONL_gzip_parse_error, invalid_compressed_data) {
       ++iterator;
     }
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_STREQ(error.what(), "Invalid gzip magic bytes");
   } catch (const std::exception &) {
     FAIL();
   }

@@ -109,6 +109,7 @@ TEST(Parallel_for_each, work_callback_throw) {
           }
         });
     FAIL();
-  } catch (const std::runtime_error &) {
+  } catch (const std::runtime_error &error) {
+    EXPECT_STREQ(error.what(), "error");
   }
 }

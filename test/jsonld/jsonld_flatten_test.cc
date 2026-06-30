@@ -150,7 +150,8 @@ TEST(JSONLD_flatten, conflicting_indexes_are_rejected) {
   try {
     sourcemeta::core::jsonld_flatten(input);
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(sourcemeta::core::to_string(error.pointer()), "");
   }
 }
 

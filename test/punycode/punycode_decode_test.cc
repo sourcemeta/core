@@ -258,7 +258,8 @@ TEST(Punycode_decode, error_invalid_digit) {
   try {
     sourcemeta::core::punycode_to_utf32("abc!def");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
   }
 }
 
@@ -267,7 +268,8 @@ TEST(Punycode_decode, error_non_basic_before_delimiter) {
   try {
     sourcemeta::core::punycode_to_utf32("\x80-abc");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Non-basic code point before delimiter");
   }
 }
 
@@ -275,7 +277,8 @@ TEST(Punycode_decode, error_leading_delimiter_only) {
   try {
     sourcemeta::core::punycode_to_utf32("-");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
   }
 }
 
@@ -283,7 +286,8 @@ TEST(Punycode_decode, error_leading_delimiter_with_body) {
   try {
     sourcemeta::core::punycode_to_utf32("-abc");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid digit");
   }
 }
 

@@ -42,14 +42,10 @@ TEST(Process_spawn, test_command_passing_condition) {
 TEST(Process_spawn, nonexistent_program_throws_exception) {
   const auto program{"/bin/this_program_definitely_does_not_exist"};
   try {
-    try {
-      sourcemeta::core::spawn(program, {});
-    } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
-      EXPECT_EQ(error.program(), program);
-      throw;
-    }
+    sourcemeta::core::spawn(program, {});
     FAIL();
-  } catch (const sourcemeta::core::ProcessProgramNotFoundError &) {
+  } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
+    EXPECT_EQ(error.program(), program);
   }
 }
 

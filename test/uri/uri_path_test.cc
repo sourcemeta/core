@@ -160,19 +160,25 @@ TEST(URI_path_setter, set_relative_path) {
   try {
     uri.path("../foo");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
   }
   try {
     uri.path("./foo");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
   }
 
   auto path{"../foo"};
   try {
     uri.path(std::move(path));
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
   }
   EXPECT_EQ(path, "../foo");
 
@@ -180,7 +186,9 @@ TEST(URI_path_setter, set_relative_path) {
   try {
     uri.path(std::move(path));
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a relative path to an absolute URI");
   }
   EXPECT_EQ(path, "./foo");
 }
@@ -191,14 +199,16 @@ TEST(URI_path_setter, set_path_with_query) {
   try {
     uri.path("/foo%20bar?query=value#fragment");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
   }
 
   std::string path{"/fooz%20bar?query=value#fragment"};
   try {
     uri.path(std::move(path));
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
   }
 }
 
@@ -208,14 +218,18 @@ TEST(URI_path_setter, set_path_with_fragment) {
   try {
     uri.path("/foo%20bar#fragment");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a path that contains a fragment");
   }
 
   std::string path{"/fooz%20bar#fragment"};
   try {
     uri.path(std::move(path));
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "You cannot set a path that contains a fragment");
   }
 }
 
@@ -225,14 +239,16 @@ TEST(URI_path_setter, set_path_with_query_and_fragment) {
   try {
     uri.path("/new?query=value#fragment");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
   }
 
   std::string path{"/newer?query=value#fragment"};
   try {
     uri.path(std::move(path));
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "You cannot set a path that contains a query");
   }
 }
 
@@ -382,7 +398,10 @@ TEST(URI_path, append_path_rejects_scheme) {
   try {
     uri.append_path("https://other.example.com/foo");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme and authority");
   }
 }
 
@@ -391,7 +410,9 @@ TEST(URI_path, append_path_rejects_authority_only) {
   try {
     uri.append_path("//other.example.com/foo");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains an authority");
   }
 }
 
@@ -442,7 +463,9 @@ TEST(URI_path, append_path_rejects_fragment) {
   try {
     uri.append_path("bar#baz");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a fragment");
   }
 }
 
@@ -451,7 +474,9 @@ TEST(URI_path, append_path_rejects_query) {
   try {
     uri.append_path("bar?x=1");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a query");
   }
 }
 
@@ -460,7 +485,9 @@ TEST(URI_path, append_path_rejects_fragment_only) {
   try {
     uri.append_path("#bar");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a fragment");
   }
 }
 
@@ -469,7 +496,9 @@ TEST(URI_path, append_path_rejects_query_only) {
   try {
     uri.append_path("?x=1");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(),
+                 "Cannot append a URI as a path that contains a query");
   }
 }
 
@@ -508,7 +537,10 @@ TEST(URI_path, append_path_rejects_space) {
   try {
     uri.append_path("bar baz");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
   }
 }
 
@@ -517,7 +549,10 @@ TEST(URI_path, append_path_rejects_control_character) {
   try {
     uri.append_path("bar\nbaz");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
   }
 }
 
@@ -526,7 +561,10 @@ TEST(URI_path, append_path_rejects_square_brackets) {
   try {
     uri.append_path("bar[1]");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
   }
 }
 
@@ -535,7 +573,10 @@ TEST(URI_path, append_path_rejects_non_ascii) {
   try {
     uri.append_path("bar\xE2\x86\x92");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains an invalid character");
   }
 }
 
@@ -544,7 +585,9 @@ TEST(URI_path, append_path_rejects_truncated_percent) {
   try {
     uri.append_path("bar%");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
   }
 }
 
@@ -553,7 +596,9 @@ TEST(URI_path, append_path_rejects_partial_percent) {
   try {
     uri.append_path("bar%2");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
   }
 }
 
@@ -562,7 +607,9 @@ TEST(URI_path, append_path_rejects_invalid_percent_digits) {
   try {
     uri.append_path("bar%GZ");
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(error.what(), "Cannot append a URI as a path that has an "
+                               "invalid percent-encoded sequence");
   }
 }
 
@@ -605,7 +652,10 @@ TEST(URI_path, append_path_uri_overload_rejects_scheme) {
   try {
     uri.append_path(reference);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
   }
 }
 
@@ -615,7 +665,10 @@ TEST(URI_path, append_path_uri_overload_rejects_urn) {
   try {
     uri.append_path(reference);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
   }
 }
 
@@ -625,7 +678,10 @@ TEST(URI_path, append_path_uri_overload_rejects_query) {
   try {
     uri.append_path(reference);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
   }
 }
 
@@ -635,7 +691,10 @@ TEST(URI_path, append_path_uri_overload_rejects_fragment) {
   try {
     uri.append_path(reference);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a query or fragment");
   }
 }
 
@@ -645,7 +704,10 @@ TEST(URI_path, append_path_uri_overload_rejects_authority) {
   try {
     uri.append_path(reference);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "Cannot append a URI as a path that contains a scheme or authority");
   }
 }
 

@@ -40,14 +40,10 @@ TEST(Process_spawn, where_command_not_found) {
 TEST(Process_spawn, nonexistent_program_throws_exception) {
   const auto program{"this_program_definitely_does_not_exist.exe"};
   try {
-    try {
-      sourcemeta::core::spawn(program, {});
-    } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
-      EXPECT_EQ(error.program(), program);
-      throw;
-    }
+    sourcemeta::core::spawn(program, {});
     FAIL();
-  } catch (const sourcemeta::core::ProcessProgramNotFoundError &) {
+  } catch (const sourcemeta::core::ProcessProgramNotFoundError &error) {
+    EXPECT_EQ(error.program(), program);
   }
 }
 

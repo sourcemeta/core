@@ -159,7 +159,8 @@ TEST(Options, unknown_option_throws) {
   try {
     app.parse(argc, argv);
     FAIL();
-  } catch (const sourcemeta::core::OptionsUnknownOptionError &) {
+  } catch (const sourcemeta::core::OptionsUnknownOptionError &error) {
+    EXPECT_EQ(error.option(), "unknown");
   }
 }
 
@@ -175,7 +176,8 @@ TEST(Options, flag_given_value_throws) {
   try {
     app.parse(argc, argv);
     FAIL();
-  } catch (const sourcemeta::core::OptionsUnexpectedValueFlagError &) {
+  } catch (const sourcemeta::core::OptionsUnexpectedValueFlagError &error) {
+    EXPECT_EQ(error.option(), "verbose");
   }
 }
 
@@ -283,7 +285,8 @@ TEST(Options, long_option_without_value) {
   try {
     app.parse(argc, argv);
     FAIL();
-  } catch (const sourcemeta::core::OptionsMissingOptionValueError &) {
+  } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
+    EXPECT_EQ(error.option(), "file");
   }
 }
 
@@ -299,7 +302,8 @@ TEST(Options, short_option_without_value) {
   try {
     app.parse(argc, argv);
     FAIL();
-  } catch (const sourcemeta::core::OptionsMissingOptionValueError &) {
+  } catch (const sourcemeta::core::OptionsMissingOptionValueError &error) {
+    EXPECT_EQ(error.option(), "f");
   }
 }
 

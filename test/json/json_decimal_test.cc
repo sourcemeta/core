@@ -532,7 +532,8 @@ TEST(JSON_decimal, construction_rejects_nan) {
   try {
     sourcemeta::core::JSON{value};
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -541,7 +542,8 @@ TEST(JSON_decimal, construction_rejects_positive_infinity) {
   try {
     sourcemeta::core::JSON{value};
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -551,7 +553,8 @@ TEST(JSON_decimal, construction_rejects_negative_infinity) {
   try {
     sourcemeta::core::JSON{value};
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -560,7 +563,8 @@ TEST(JSON_decimal, construction_move_rejects_nan) {
   try {
     sourcemeta::core::JSON{std::move(value)};
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -569,7 +573,8 @@ TEST(JSON_decimal, construction_move_rejects_positive_infinity) {
   try {
     sourcemeta::core::JSON{std::move(value)};
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -579,7 +584,8 @@ TEST(JSON_decimal, construction_move_rejects_negative_infinity) {
   try {
     sourcemeta::core::JSON{std::move(value)};
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -590,7 +596,8 @@ TEST(JSON_decimal, copy_constructor_cannot_create_invalid_json) {
       const sourcemeta::core::JSON copy{source};
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -601,7 +608,8 @@ TEST(JSON_decimal, move_constructor_cannot_create_invalid_json) {
       const sourcemeta::core::JSON moved{std::move(source)};
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -613,7 +621,8 @@ TEST(JSON_decimal, copy_assignment_cannot_create_invalid_json) {
       target = source;
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -625,7 +634,8 @@ TEST(JSON_decimal, move_assignment_cannot_create_invalid_json) {
       target = std::move(source);
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -637,7 +647,8 @@ TEST(JSON_decimal, addition_operator_cannot_create_invalid_json) {
       const auto result{left + right};
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -650,7 +661,8 @@ TEST(JSON_decimal, subtraction_operator_cannot_create_invalid_json) {
       const auto result{left - right};
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -662,7 +674,8 @@ TEST(JSON_decimal, addition_assignment_operator_cannot_create_invalid_json) {
       document += addend;
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 
@@ -675,7 +688,8 @@ TEST(JSON_decimal, subtraction_assignment_operator_cannot_create_invalid_json) {
       document -= subtrahend;
     };
     FAIL();
-  } catch (const std::invalid_argument &) {
+  } catch (const std::invalid_argument &error) {
+    EXPECT_STREQ(error.what(), "JSON does not support Infinity or NaN");
   }
 }
 

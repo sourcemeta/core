@@ -18,7 +18,8 @@ TEST(URI_from_iri, rejects_private_use_in_path) {
   try {
     sourcemeta::core::URI::from_iri("https://example.com/\xEE\x80\x80");
     FAIL();
-  } catch (const sourcemeta::core::URIParseError &) {
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 21);
   }
 }
 
@@ -26,7 +27,8 @@ TEST(URI_from_iri, rejects_invalid_utf8) {
   try {
     sourcemeta::core::URI::from_iri("https://example.com/\xC3");
     FAIL();
-  } catch (const sourcemeta::core::URIParseError &) {
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 21);
   }
 }
 

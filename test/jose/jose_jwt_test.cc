@@ -298,7 +298,8 @@ TEST(JOSE_JWT, constructor_throws_on_invalid_input) {
   try {
     sourcemeta::core::JWT{"abc.def"};
     FAIL();
-  } catch (const sourcemeta::core::JWTParseError &) {
+  } catch (const sourcemeta::core::JWTParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Web Token");
   }
 }
 

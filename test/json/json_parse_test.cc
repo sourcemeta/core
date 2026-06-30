@@ -1741,7 +1741,9 @@ TEST(JSON_parse, parse_default_string_view_does_not_invoke_ub) {
   try {
     sourcemeta::core::parse_json(input);
     FAIL();
-  } catch (const sourcemeta::core::JSONParseError &) {
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }
 
@@ -1753,6 +1755,8 @@ TEST(JSON_parse,
   try {
     sourcemeta::core::parse_json(input, line, column);
     FAIL();
-  } catch (const sourcemeta::core::JSONParseError &) {
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 1);
   }
 }

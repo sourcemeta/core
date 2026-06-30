@@ -157,7 +157,8 @@ TEST(JOSE_JWK, constructor_throws_on_invalid_input) {
   try {
     sourcemeta::core::JWK{document};
     FAIL();
-  } catch (const sourcemeta::core::JWKParseError &) {
+  } catch (const sourcemeta::core::JWKParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Web Key");
   }
 }
 

@@ -47,7 +47,9 @@ TEST(IO_FileView, file_not_found) {
     sourcemeta::core::FileView(std::filesystem::path{STUBS_DIRECTORY} /
                                "nonexistent.bin");
     FAIL();
-  } catch (const sourcemeta::core::FileViewError &) {
+  } catch (const sourcemeta::core::FileViewError &error) {
+    EXPECT_EQ(error.path(),
+              std::filesystem::path{STUBS_DIRECTORY} / "nonexistent.bin");
   }
 }
 

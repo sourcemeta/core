@@ -85,7 +85,10 @@ TEST(URI_from_path, unix_relative_simple) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }
 
@@ -94,7 +97,10 @@ TEST(URI_from_path, unix_relative_with_dot) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }
 
@@ -103,7 +109,10 @@ TEST(URI_from_path, unix_relative_with_dotdot) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }
 
@@ -112,7 +121,10 @@ TEST(URI_from_path, unix_empty_path) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }
 
@@ -121,7 +133,10 @@ TEST(URI_from_path, windows_relative_simple) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }
 
@@ -130,7 +145,10 @@ TEST(URI_from_path, windows_relative_with_dot) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }
 
@@ -139,6 +157,9 @@ TEST(URI_from_path, windows_relative_with_dotdot) {
   try {
     sourcemeta::core::URI::from_path(example);
     FAIL();
-  } catch (const sourcemeta::core::URIError &) {
+  } catch (const sourcemeta::core::URIError &error) {
+    EXPECT_STREQ(
+        error.what(),
+        "It is not valid to construct a file:// URI out of a relative path");
   }
 }

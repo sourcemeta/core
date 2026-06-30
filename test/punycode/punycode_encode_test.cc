@@ -250,7 +250,8 @@ TEST(Punycode_encode, error_surrogate_code_point) {
   try {
     sourcemeta::core::utf32_to_punycode(input);
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid code point");
   }
 }
 
@@ -259,7 +260,8 @@ TEST(Punycode_encode, error_code_point_above_maximum) {
   try {
     sourcemeta::core::utf32_to_punycode(input);
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid code point");
   }
 }
 
@@ -268,7 +270,8 @@ TEST(Punycode_encode, error_utf8_bad_start_byte) {
   try {
     sourcemeta::core::utf8_to_punycode("\xFF");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -277,7 +280,8 @@ TEST(Punycode_encode, error_utf8_incomplete_2byte_sequence) {
   try {
     sourcemeta::core::utf8_to_punycode("\xC3");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -286,7 +290,8 @@ TEST(Punycode_encode, error_utf8_incomplete_3byte_sequence) {
   try {
     sourcemeta::core::utf8_to_punycode("\xE2\x80");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -295,7 +300,8 @@ TEST(Punycode_encode, error_utf8_incomplete_4byte_sequence) {
   try {
     sourcemeta::core::utf8_to_punycode("\xF0\x9F\x98");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -304,7 +310,8 @@ TEST(Punycode_encode, error_utf8_bad_continuation_byte) {
   try {
     sourcemeta::core::utf8_to_punycode("\xC3\x00");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -313,7 +320,8 @@ TEST(Punycode_encode, error_utf8_overlong_2byte) {
   try {
     sourcemeta::core::utf8_to_punycode("\xC0\x80");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -322,7 +330,8 @@ TEST(Punycode_encode, error_utf8_overlong_3byte) {
   try {
     sourcemeta::core::utf8_to_punycode("\xE0\x80\x80");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -331,7 +340,8 @@ TEST(Punycode_encode, error_utf8_overlong_4byte) {
   try {
     sourcemeta::core::utf8_to_punycode("\xF0\x80\x80\x80");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 
@@ -340,7 +350,8 @@ TEST(Punycode_encode, error_utf8_surrogate_code_point) {
   try {
     sourcemeta::core::utf8_to_punycode("\xED\xA0\x80");
     FAIL();
-  } catch (const sourcemeta::core::PunycodeError &) {
+  } catch (const sourcemeta::core::PunycodeError &error) {
+    EXPECT_STREQ(error.what(), "Invalid UTF-8 input");
   }
 }
 

@@ -115,6 +115,7 @@ TEST(GZIP, decompress_invalid_input_throws) {
     sourcemeta::core::gunzip(
         reinterpret_cast<const std::uint8_t *>(garbage.data()), garbage.size());
     FAIL();
-  } catch (const sourcemeta::core::GZIPError &) {
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
   }
 }

@@ -850,7 +850,8 @@ TEST(Numeric_decimal, to_float_exceeds_max_float_throws) {
       [[maybe_unused]] const float result = value.to_float();
     };
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(), "stof: out of range");
   }
 }
 
@@ -862,7 +863,8 @@ TEST(Numeric_decimal, to_double_exceeds_max_double_throws) {
       [[maybe_unused]] const double result = value.to_double();
     };
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(), "stod: out of range");
   }
 }
 
@@ -874,7 +876,8 @@ TEST(Numeric_decimal, to_float_below_min_float_throws) {
       [[maybe_unused]] const float result = value.to_float();
     };
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(), "stof: out of range");
   }
 }
 
@@ -886,7 +889,8 @@ TEST(Numeric_decimal, to_double_below_min_double_throws) {
       [[maybe_unused]] const double result = value.to_double();
     };
     FAIL();
-  } catch (const std::out_of_range &) {
+  } catch (const std::out_of_range &error) {
+    EXPECT_STREQ(error.what(), "stod: out of range");
   }
 }
 
@@ -1434,7 +1438,8 @@ TEST(Numeric_decimal, exception_conversion_syntax_invalid_string) {
       const sourcemeta::core::Decimal value{"not_a_number"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -1444,7 +1449,8 @@ TEST(Numeric_decimal, exception_conversion_syntax_empty_string) {
       const sourcemeta::core::Decimal value{""};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -1454,7 +1460,8 @@ TEST(Numeric_decimal, exception_conversion_syntax_invalid_exponent) {
       const sourcemeta::core::Decimal value{"123e"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -1464,7 +1471,8 @@ TEST(Numeric_decimal, exception_conversion_syntax_multiple_dots) {
       const sourcemeta::core::Decimal value{"12.34.56"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -1476,7 +1484,8 @@ TEST(Numeric_decimal, exception_division_by_zero_divide) {
       const auto result = numerator / denominator;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+  } catch (const sourcemeta::core::NumericDivisionByZeroError &error) {
+    EXPECT_STREQ(error.what(), "Division by zero");
   }
 }
 
@@ -1488,7 +1497,8 @@ TEST(Numeric_decimal, exception_division_by_zero_divide_assign) {
       numerator /= denominator;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+  } catch (const sourcemeta::core::NumericDivisionByZeroError &error) {
+    EXPECT_STREQ(error.what(), "Division by zero");
   }
 }
 
@@ -1500,7 +1510,8 @@ TEST(Numeric_decimal, exception_invalid_operation_modulo_by_zero) {
       const auto result = numerator % denominator;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 
@@ -1512,7 +1523,8 @@ TEST(Numeric_decimal, exception_invalid_operation_modulo_assign_by_zero) {
       numerator %= denominator;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 
@@ -1523,7 +1535,8 @@ TEST(Numeric_decimal, exception_invalid_operation_zero_divided_by_zero) {
       const auto result = zero / zero;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 
@@ -1534,7 +1547,8 @@ TEST(Numeric_decimal, exception_invalid_operation_zero_modulo_zero) {
       const auto result = zero % zero;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 
@@ -1546,7 +1560,8 @@ TEST(Numeric_decimal, exception_overflow_multiplication) {
       const auto result = large * multiplier;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericOverflowError &) {
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
   }
 }
 
@@ -1558,7 +1573,8 @@ TEST(Numeric_decimal, exception_overflow_addition) {
       const auto result = large + addend;
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericOverflowError &) {
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
   }
 }
 
@@ -2478,7 +2494,8 @@ TEST(Numeric_decimal, parse_reject_whitespace_leading) {
       const sourcemeta::core::Decimal value{" 123"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2488,7 +2505,8 @@ TEST(Numeric_decimal, parse_reject_whitespace_trailing) {
       const sourcemeta::core::Decimal value{"123 "};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2498,7 +2516,8 @@ TEST(Numeric_decimal, parse_reject_whitespace_both) {
       const sourcemeta::core::Decimal value{" 123 "};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2508,7 +2527,8 @@ TEST(Numeric_decimal, parse_reject_bare_dot) {
       const sourcemeta::core::Decimal value{"."};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2518,7 +2538,8 @@ TEST(Numeric_decimal, parse_reject_bare_e) {
       const sourcemeta::core::Decimal value{"e5"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2528,7 +2549,8 @@ TEST(Numeric_decimal, parse_reject_double_dots) {
       const sourcemeta::core::Decimal value{"1.2.3"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2538,7 +2560,8 @@ TEST(Numeric_decimal, parse_reject_double_negative) {
       const sourcemeta::core::Decimal value{"--1"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2548,7 +2571,8 @@ TEST(Numeric_decimal, parse_reject_double_plus) {
       const sourcemeta::core::Decimal value{"++1"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2558,7 +2582,8 @@ TEST(Numeric_decimal, parse_reject_e_plus_only) {
       const sourcemeta::core::Decimal value{"1e+"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2568,7 +2593,8 @@ TEST(Numeric_decimal, parse_reject_e_minus_only) {
       const sourcemeta::core::Decimal value{"1e-"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2578,7 +2604,8 @@ TEST(Numeric_decimal, parse_reject_double_e) {
       const sourcemeta::core::Decimal value{"1ee5"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2588,7 +2615,8 @@ TEST(Numeric_decimal, parse_reject_trailing_alpha) {
       const sourcemeta::core::Decimal value{"123abc"};
     };
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -2762,7 +2790,8 @@ TEST(Numeric_decimal, divide_infinity_by_infinity_throws) {
                         sourcemeta::core::Decimal::infinity()};
     };
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 
@@ -3481,7 +3510,8 @@ TEST(Numeric_decimal, logb_zero_throws) {
   try {
     static_cast<void>(sourcemeta::core::Decimal{0}.logb());
     FAIL();
-  } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+  } catch (const sourcemeta::core::NumericDivisionByZeroError &error) {
+    EXPECT_STREQ(error.what(), "Division by zero");
   }
 }
 
@@ -3520,7 +3550,8 @@ TEST(Numeric_decimal, scale_by_snan_throws) {
   try {
     static_cast<void>(value.scale_by(sourcemeta::core::Decimal::snan()));
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 
@@ -3530,7 +3561,8 @@ TEST(Numeric_decimal, scale_by_huge_scale_throws) {
   try {
     static_cast<void>(value.scale_by(scale));
     FAIL();
-  } catch (const sourcemeta::core::NumericOverflowError &) {
+  } catch (const sourcemeta::core::NumericOverflowError &error) {
+    EXPECT_STREQ(error.what(), "Numeric overflow");
   }
 }
 
@@ -3613,7 +3645,8 @@ TEST(Numeric_decimal, divide_integer_by_zero_throws) {
     static_cast<void>(sourcemeta::core::Decimal{1}.divide_integer(
         sourcemeta::core::Decimal{0}));
     FAIL();
-  } catch (const sourcemeta::core::NumericDivisionByZeroError &) {
+  } catch (const sourcemeta::core::NumericDivisionByZeroError &error) {
+    EXPECT_STREQ(error.what(), "Division by zero");
   }
 }
 
@@ -3622,7 +3655,8 @@ TEST(Numeric_decimal, divide_integer_infinity_by_infinity_throws) {
     static_cast<void>(sourcemeta::core::Decimal::infinity().divide_integer(
         sourcemeta::core::Decimal::infinity()));
     FAIL();
-  } catch (const sourcemeta::core::NumericInvalidOperationError &) {
+  } catch (const sourcemeta::core::NumericInvalidOperationError &error) {
+    EXPECT_STREQ(error.what(), "Invalid numeric operation");
   }
 }
 

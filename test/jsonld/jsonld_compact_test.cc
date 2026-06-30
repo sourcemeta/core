@@ -90,7 +90,8 @@ TEST(JSONLD_compact, nest_value_not_expanding_to_nest_is_rejected) {
   try {
     sourcemeta::core::jsonld_compact(input, context);
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(sourcemeta::core::to_string(error.pointer()), "");
   }
 }
 
@@ -184,7 +185,8 @@ TEST(JSONLD_compact, protected_redefinition_with_different_index_expansion) {
   try {
     sourcemeta::core::jsonld_compact(input, context);
     FAIL();
-  } catch (const sourcemeta::core::JSONLDError &) {
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(sourcemeta::core::to_string(error.pointer()), "/1/t");
   }
 }
 

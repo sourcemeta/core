@@ -15,7 +15,8 @@ TEST(JSONPointer_error, parse_error) {
   try {
     throw exception;
     FAIL();
-  } catch (const sourcemeta::core::PointerParseError &) {
+  } catch (const sourcemeta::core::PointerParseError &error) {
+    EXPECT_STREQ(error.what(), "The input is not a valid JSON Pointer");
   }
   EXPECT_EQ(std::string{exception.what()},
             "The input is not a valid JSON Pointer");

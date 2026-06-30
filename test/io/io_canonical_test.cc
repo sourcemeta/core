@@ -34,7 +34,8 @@ TEST(IO_canonical, unmapped_error_surfaces_as_filesystem_error) {
   try {
     sourcemeta::core::canonical(loop_path);
     FAIL();
-  } catch (const std::filesystem::filesystem_error &) {
+  } catch (const std::filesystem::filesystem_error &error) {
+    EXPECT_EQ(error.path1(), loop_path);
   }
 
   std::filesystem::remove(loop_path);

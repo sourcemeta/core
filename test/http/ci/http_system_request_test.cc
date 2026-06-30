@@ -113,11 +113,11 @@ TEST(HTTP_SystemRequest, timeout_against_unreachable_host_throws) {
   sourcemeta::core::HTTPSystemRequest request{"https://192.0.2.1/"};
   request.timeout(std::chrono::milliseconds{1000});
   try {
-    {
-      [[maybe_unused]] const auto response{request.send()};
-    };
+    [[maybe_unused]] const auto response{request.send()};
     FAIL();
-  } catch (const sourcemeta::core::HTTPError &) {
+  } catch (const sourcemeta::core::HTTPError &error) {
+    EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::GET);
+    EXPECT_EQ(error.url(), "https://192.0.2.1/");
   }
 }
 
@@ -125,11 +125,12 @@ TEST(HTTP_SystemRequest, unresolvable_host_throws) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://this-host-does-not-exist.sourcemeta.invalid/"};
   try {
-    {
-      [[maybe_unused]] const auto response{request.send()};
-    };
+    [[maybe_unused]] const auto response{request.send()};
     FAIL();
-  } catch (const sourcemeta::core::HTTPError &) {
+  } catch (const sourcemeta::core::HTTPError &error) {
+    EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::GET);
+    EXPECT_EQ(error.url(),
+              "https://this-host-does-not-exist.sourcemeta.invalid/");
   }
 }
 
@@ -138,10 +139,10 @@ TEST(HTTP_SystemRequest, maximum_response_size_exceeded_throws) {
       "https://schemas.sourcemeta.com/self/v1/api/list"};
   request.maximum_response_size(1);
   try {
-    {
-      [[maybe_unused]] const auto response{request.send()};
-    };
+    [[maybe_unused]] const auto response{request.send()};
     FAIL();
-  } catch (const sourcemeta::core::HTTPError &) {
+  } catch (const sourcemeta::core::HTTPError &error) {
+    EXPECT_EQ(error.method(), sourcemeta::core::HTTPMethod::GET);
+    EXPECT_EQ(error.url(), "https://schemas.sourcemeta.com/self/v1/api/list");
   }
 }

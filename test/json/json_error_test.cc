@@ -14,7 +14,9 @@ TEST(JSON_error, parse_error) {
   try {
     throw exception;
     FAIL();
-  } catch (const sourcemeta::core::JSONParseError &) {
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    EXPECT_EQ(error.line(), 5);
+    EXPECT_EQ(error.column(), 6);
   }
   EXPECT_EQ(std::string{exception.what()}, "Failed to parse the JSON document");
   EXPECT_EQ(exception.line(), 5);

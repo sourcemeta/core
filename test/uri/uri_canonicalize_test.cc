@@ -465,7 +465,8 @@ TEST(URI_canonicalize, static_rejects_non_ascii) {
   try {
     sourcemeta::core::URI::canonicalize("https://example.com/caf\xC3\xA9");
     FAIL();
-  } catch (const sourcemeta::core::URIParseError &) {
+  } catch (const sourcemeta::core::URIParseError &error) {
+    EXPECT_EQ(error.column(), 24);
   }
 }
 
