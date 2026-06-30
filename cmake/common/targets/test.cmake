@@ -1,16 +1,22 @@
 # Generate a translation unit that defines the test runner entry point and return
 # its path. The entry point must be compiled into each test executable rather than
 # provided by the (potentially shared) library, as an executable entry point
-# cannot be resolved from a shared library
+# cannot be resolved from a shared library. It is generated once per directory, as
+# a directory may declare more than one test executable
 function(sourcemeta_test_main OUTPUT_VARIABLE)
-  set(GENERATED_MAIN "${CMAKE_CURRENT_BINARY_DIR}/sourcemeta_core_test_main.cc")
-  file(GENERATE OUTPUT "${GENERATED_MAIN}" CONTENT
+  get_property(GENERATED_MAIN DIRECTORY PROPERTY SOURCEMETA_CORE_TEST_MAIN)
+  if(NOT GENERATED_MAIN)
+    set(GENERATED_MAIN "${CMAKE_CURRENT_BINARY_DIR}/sourcemeta_core_test_main.cc")
+    file(GENERATE OUTPUT "${GENERATED_MAIN}" CONTENT
 "#include <sourcemeta/core/test.h>
 
 auto main(int argc, char **argv) -> int {
   return sourcemeta::core::test_run(argc, argv);
 }
 ")
+    set_property(DIRECTORY PROPERTY SOURCEMETA_CORE_TEST_MAIN "${GENERATED_MAIN}")
+  endif()
+
   set("${OUTPUT_VARIABLE}" "${GENERATED_MAIN}" PARENT_SCOPE)
 endfunction()
 
