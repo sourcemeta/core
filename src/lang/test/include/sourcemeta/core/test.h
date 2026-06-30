@@ -52,9 +52,9 @@ auto test_register(std::string_view suite, std::string_view name,
 /// @ingroup test
 ///
 /// Print a failure at the given location and abort the current test.
-SOURCEMETA_CORE_TEST_EXPORT
-auto test_report_failure(std::string_view file, int line,
-                         std::string_view message) -> void;
+[[noreturn]] SOURCEMETA_CORE_TEST_EXPORT auto
+test_report_failure(std::string_view file, int line, std::string_view message)
+    -> void;
 
 /// @ingroup test
 ///

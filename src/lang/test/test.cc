@@ -72,8 +72,8 @@ auto test_register(std::string_view suite, std::string_view name,
   return 0;
 }
 
-auto test_report_failure(std::string_view file, int line,
-                         std::string_view message) -> void {
+[[noreturn]] auto test_report_failure(std::string_view file, int line,
+                                      std::string_view message) -> void {
   throw TestAbortError{base_name(file) + ":" + std::to_string(line) + ": " +
                        std::string{message}};
 }
@@ -104,6 +104,9 @@ auto test_run(int argc, char **argv) -> int {
 
   if (options.contains("help")) {
     print_usage(argv[0]);
+    // A test binary exists to run tests, so an explicit help request exits with
+    // failure on purpose. This keeps a stray help invocation from being
+    // mistaken for a passing test
     return EXIT_FAILURE;
   }
 

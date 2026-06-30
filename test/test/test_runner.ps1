@@ -9,7 +9,7 @@ param(
   [string[]]$Rest
 )
 
-$Output = & $Driver @Rest 2>&1 | Out-String
+$Output = & $Driver @Rest 2>&1 | ForEach-Object { "$_" } | Out-String
 $ExitCode = $LASTEXITCODE
 
 if ($ExitCode -ne $ExpectedExit) {
