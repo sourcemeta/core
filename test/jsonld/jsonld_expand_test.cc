@@ -1,17 +1,17 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
 
 #include <optional> // std::optional, std::nullopt
 
-TEST(JSONLD_expand, empty_object) {
+TEST(empty_object) {
   const auto input = sourcemeta::core::parse_json("{}");
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, absolute_iri_property_with_string_value) {
+TEST(absolute_iri_property_with_string_value) {
   const auto input = sourcemeta::core::parse_json(R"({
     "http://example.com/foo": "bar"
   })");
@@ -25,7 +25,7 @@ TEST(JSONLD_expand, absolute_iri_property_with_string_value) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, node_with_id_and_property) {
+TEST(node_with_id_and_property) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@id": "http://example.com/a",
     "http://example.com/foo": "bar"
@@ -41,7 +41,7 @@ TEST(JSONLD_expand, node_with_id_and_property) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, type_is_made_an_array) {
+TEST(type_is_made_an_array) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@id": "http://example.com/a",
     "@type": "http://example.com/T",
@@ -59,7 +59,7 @@ TEST(JSONLD_expand, type_is_made_an_array) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, multiple_values_preserve_order) {
+TEST(multiple_values_preserve_order) {
   const auto input = sourcemeta::core::parse_json(R"({
     "http://example.com/foo": [ "a", "b" ]
   })");
@@ -73,7 +73,7 @@ TEST(JSONLD_expand, multiple_values_preserve_order) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, numeric_value) {
+TEST(numeric_value) {
   const auto input = sourcemeta::core::parse_json(R"({
     "http://example.com/foo": 1
   })");
@@ -87,7 +87,7 @@ TEST(JSONLD_expand, numeric_value) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, boolean_value) {
+TEST(boolean_value) {
   const auto input = sourcemeta::core::parse_json(R"({
     "http://example.com/foo": true
   })");
@@ -101,7 +101,7 @@ TEST(JSONLD_expand, boolean_value) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, undefined_term_without_context_is_dropped) {
+TEST(undefined_term_without_context_is_dropped) {
   const auto input = sourcemeta::core::parse_json(R"({
     "foo": "bar"
   })");
@@ -111,7 +111,7 @@ TEST(JSONLD_expand, undefined_term_without_context_is_dropped) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, term_maps_to_iri) {
+TEST(term_maps_to_iri) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "name": "http://example.com/name" },
     "name": "John"
@@ -126,7 +126,7 @@ TEST(JSONLD_expand, term_maps_to_iri) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, vocabulary_mapping) {
+TEST(vocabulary_mapping) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "@vocab": "http://example.com/" },
     "name": "John"
@@ -141,7 +141,7 @@ TEST(JSONLD_expand, vocabulary_mapping) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, compact_iri_via_prefix) {
+TEST(compact_iri_via_prefix) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "ex": "http://example.com/" },
     "ex:name": "John"
@@ -156,7 +156,7 @@ TEST(JSONLD_expand, compact_iri_via_prefix) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, type_coercion_to_id) {
+TEST(type_coercion_to_id) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
       "knows": { "@id": "http://example.com/knows", "@type": "@id" }
@@ -173,7 +173,7 @@ TEST(JSONLD_expand, type_coercion_to_id) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, type_coercion_to_datatype) {
+TEST(type_coercion_to_datatype) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
       "born": {
@@ -198,7 +198,7 @@ TEST(JSONLD_expand, type_coercion_to_datatype) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, default_language) {
+TEST(default_language) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "@language": "en", "name": "http://example.com/name" },
     "name": "John"
@@ -213,7 +213,7 @@ TEST(JSONLD_expand, default_language) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, list_keyword) {
+TEST(list_keyword) {
   const auto input = sourcemeta::core::parse_json(R"({
     "http://example.com/foo": { "@list": [ "a", "b" ] }
   })");
@@ -229,7 +229,7 @@ TEST(JSONLD_expand, list_keyword) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, direction_dropped_in_json_ld_1_0) {
+TEST(direction_dropped_in_json_ld_1_0) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "p": "http://example.com/p" },
     "p": { "@value": "v", "@direction": "rtl" }
@@ -244,7 +244,7 @@ TEST(JSONLD_expand, direction_dropped_in_json_ld_1_0) {
             expected);
 }
 
-TEST(JSONLD_expand, included_dropped_in_json_ld_1_0) {
+TEST(included_dropped_in_json_ld_1_0) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "p": "http://example.com/p" },
     "p": "v",
@@ -260,7 +260,7 @@ TEST(JSONLD_expand, included_dropped_in_json_ld_1_0) {
             expected);
 }
 
-TEST(JSONLD_expand, nest_term_whose_scoped_context_redefines_itself) {
+TEST(nest_term_whose_scoped_context_redefines_itself) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
       "nest": {
@@ -278,7 +278,7 @@ TEST(JSONLD_expand, nest_term_whose_scoped_context_redefines_itself) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, json_typed_value_in_list_container) {
+TEST(json_typed_value_in_list_container) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
       "e": {
@@ -301,7 +301,7 @@ TEST(JSONLD_expand, json_typed_value_in_list_container) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, id_typed_keyword_form_value_expands_to_null) {
+TEST(id_typed_keyword_form_value_expands_to_null) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": { "p": { "@id": "http://example.com/p", "@type": "@id" } },
     "p": "@foo"
@@ -314,7 +314,7 @@ TEST(JSONLD_expand, id_typed_keyword_form_value_expands_to_null) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, non_expandable_type_value_is_omitted) {
+TEST(non_expandable_type_value_is_omitted) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@id": "http://example.com/n",
     "@type": "@foo",
@@ -331,13 +331,13 @@ TEST(JSONLD_expand, non_expandable_type_value_is_omitted) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, graph_value_expanding_to_null_yields_no_element) {
+TEST(graph_value_expanding_to_null_yields_no_element) {
   const auto input = sourcemeta::core::parse_json(R"({ "@graph": "scalar" })");
   const auto expected = sourcemeta::core::parse_json("[]");
   EXPECT_EQ(sourcemeta::core::jsonld_expand(input), expected);
 }
 
-TEST(JSONLD_expand, base_in_remote_context_is_ignored) {
+TEST(base_in_remote_context_is_ignored) {
   const sourcemeta::core::JSONLDResolver resolver =
       [](const sourcemeta::core::JSON::StringView identifier)
       -> std::optional<sourcemeta::core::JSON> {
@@ -366,7 +366,7 @@ TEST(JSONLD_expand, base_in_remote_context_is_ignored) {
       expected);
 }
 
-TEST(JSONLD_expand, language_map_direction_uses_property_scoped_context) {
+TEST(language_map_direction_uses_property_scoped_context) {
   const auto input = sourcemeta::core::parse_json(R"({
     "@context": {
       "p": {

@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME crypto
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME crypto
   SOURCES
     crypto_sha256_test.cc
     crypto_sha384_test.cc

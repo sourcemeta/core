@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 
@@ -6,7 +6,7 @@
 #include <string>      // std::string
 #include <type_traits> // std::is_base_of_v
 
-TEST(JSON_error, parse_error) {
+TEST(parse_error) {
   static_assert(
       std::is_base_of_v<std::exception, sourcemeta::core::JSONParseError>,
       "Must subclass std::exception");

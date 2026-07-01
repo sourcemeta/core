@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME gzip
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME gzip
   SOURCES
     gzip_test.cc
     gzip_streambuf_test.cc)

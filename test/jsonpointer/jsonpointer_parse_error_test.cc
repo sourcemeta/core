@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
@@ -16,61 +16,61 @@
     FAIL();                                                                    \
   }
 
-TEST(JSONPointer_parse_error, missing_initial_slash) {
+TEST(missing_initial_slash) {
   const std::string input{"1"};
   EXPECT_POINTER_PARSE_ERROR(input, 1);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, tilde) {
+TEST(tilde) {
   const std::string input{"/~"};
   EXPECT_POINTER_PARSE_ERROR(input, 3);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, tilde_2) {
+TEST(tilde_2) {
   const std::string input{"/~2"};
   EXPECT_POINTER_PARSE_ERROR(input, 3);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, tilde_tilde) {
+TEST(tilde_tilde) {
   const std::string input{"/~~"};
   EXPECT_POINTER_PARSE_ERROR(input, 3);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, foo_tilde) {
+TEST(foo_tilde) {
   const std::string input{"/foo~"};
   EXPECT_POINTER_PARSE_ERROR(input, 6);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, index_foo_tilde) {
+TEST(index_foo_tilde) {
   const std::string input{"/123/foo~"};
   EXPECT_POINTER_PARSE_ERROR(input, 10);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, zero_index_foo_tilde) {
+TEST(zero_index_foo_tilde) {
   const std::string input{"/0/foo~"};
   EXPECT_POINTER_PARSE_ERROR(input, 8);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, slash_slash_foo_tilde) {
+TEST(slash_slash_foo_tilde) {
   const std::string input{"//foo~"};
   EXPECT_POINTER_PARSE_ERROR(input, 7);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, foo_tilde_2) {
+TEST(foo_tilde_2) {
   const std::string input{"/foo~2"};
   EXPECT_POINTER_PARSE_ERROR(input, 6);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(JSONPointer_parse_error, foo_tilde_tilde) {
+TEST(foo_tilde_tilde) {
   const std::string input{"/foo~~"};
   EXPECT_POINTER_PARSE_ERROR(input, 6);
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));

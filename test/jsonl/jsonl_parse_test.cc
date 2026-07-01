@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/jsonl.h>
 
 #include <sstream>
 #include <vector>
 
-TEST(JSONL_parse, empty) {
+TEST(empty) {
   std::istringstream stream{""};
   std::vector<sourcemeta::core::JSON> result;
   for (const auto &document : sourcemeta::core::JSONL{stream}) {
@@ -15,7 +15,7 @@ TEST(JSONL_parse, empty) {
   EXPECT_TRUE(result.empty());
 }
 
-TEST(JSONL_parse, blank) {
+TEST(blank) {
   std::istringstream stream{"    "};
   std::vector<sourcemeta::core::JSON> result;
   for (const auto &document : sourcemeta::core::JSONL{stream}) {
@@ -25,7 +25,7 @@ TEST(JSONL_parse, blank) {
   EXPECT_TRUE(result.empty());
 }
 
-TEST(JSONL_parse, integers_n) {
+TEST(integers_n) {
   std::string input{"1\n2\n3\n4"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -44,7 +44,7 @@ TEST(JSONL_parse, integers_n) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, whitespace_before_after_within) {
+TEST(whitespace_before_after_within) {
   std::string input{" \t\r   1  \r\r\n2  \t\n3   \n4   \t\r   "};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -63,7 +63,7 @@ TEST(JSONL_parse, whitespace_before_after_within) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, integers_n_trailing_n) {
+TEST(integers_n_trailing_n) {
   std::string input{"1\n2\n3\n4\n"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -82,7 +82,7 @@ TEST(JSONL_parse, integers_n_trailing_n) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, integers_n_trailing_rn) {
+TEST(integers_n_trailing_rn) {
   std::string input{"1\n2\n3\n4\r\n"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -101,7 +101,7 @@ TEST(JSONL_parse, integers_n_trailing_rn) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, integers_rn) {
+TEST(integers_rn) {
   std::string input{"1\r\n2\r\n3\r\n4"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -120,7 +120,7 @@ TEST(JSONL_parse, integers_rn) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, integers_rn_trailing_rn) {
+TEST(integers_rn_trailing_rn) {
   std::string input{"1\r\n2\r\n3\r\n4\r\n"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -139,7 +139,7 @@ TEST(JSONL_parse, integers_rn_trailing_rn) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, integers_rn_trailing_n) {
+TEST(integers_rn_trailing_n) {
   std::string input{"1\r\n2\r\n3\r\n4\n"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -158,7 +158,7 @@ TEST(JSONL_parse, integers_rn_trailing_n) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, integers_mixed) {
+TEST(integers_mixed) {
   std::string input{"1\r\n2\n3\r\n4\n"};
   std::istringstream stream{input};
   std::vector<sourcemeta::core::JSON> result;
@@ -177,7 +177,7 @@ TEST(JSONL_parse, integers_mixed) {
   EXPECT_EQ(result.at(3).to_integer(), 4);
 }
 
-TEST(JSONL_parse, example_1) {
+TEST(example_1) {
   std::string input{R"EOF(
     ["Name", "Session", "Score", "Completed"]
     ["Gilbert", "2013", 24, true]
@@ -252,7 +252,7 @@ TEST(JSONL_parse, example_1) {
   EXPECT_TRUE(result.at(4).at(3).to_boolean());
 }
 
-TEST(JSONL_parse, example_2) {
+TEST(example_2) {
   std::string input{R"EOF(
     {"name": "Gilbert", "wins": [["straight", "7♣"], ["one pair", "10♥"]]}
     {"name": "Alexa", "wins": [["two pair", "4♠"], ["two pair", "9♠"]]}

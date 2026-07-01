@@ -1,9 +1,9 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
 
-TEST(JSONLD_compact, compact_to_relative_true_relativises_against_base) {
+TEST(compact_to_relative_true_relativises_against_base) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.org/a",
@@ -28,7 +28,7 @@ TEST(JSONLD_compact, compact_to_relative_true_relativises_against_base) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(JSONLD_compact, compact_to_relative_false_keeps_absolute_against_base) {
+TEST(compact_to_relative_false_keeps_absolute_against_base) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "@id": "http://example.org/a",
@@ -53,7 +53,7 @@ TEST(JSONLD_compact, compact_to_relative_false_keeps_absolute_against_base) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(JSONLD_compact, id_typed_value_with_index_keeps_index) {
+TEST(id_typed_value_with_index_keeps_index) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "http://example.com/id": [
@@ -76,7 +76,7 @@ TEST(JSONLD_compact, id_typed_value_with_index_keeps_index) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(JSONLD_compact, nest_value_not_expanding_to_nest_is_rejected) {
+TEST(nest_value_not_expanding_to_nest_is_rejected) {
   const auto input = sourcemeta::core::parse_json(R"([
     { "http://example.com/p": [ { "@value": "v" } ] }
   ])");
@@ -95,7 +95,7 @@ TEST(JSONLD_compact, nest_value_not_expanding_to_nest_is_rejected) {
   }
 }
 
-TEST(JSONLD_compact, nest_value_aliasing_nest_nests_the_property) {
+TEST(nest_value_aliasing_nest_nests_the_property) {
   const auto input = sourcemeta::core::parse_json(R"([
     { "http://example.com/p": [ { "@value": "v" } ] }
   ])");
@@ -120,7 +120,7 @@ TEST(JSONLD_compact, nest_value_aliasing_nest_nests_the_property) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(JSONLD_compact, type_map_remaining_stays_array_without_compact_arrays) {
+TEST(type_map_remaining_stays_array_without_compact_arrays) {
   const auto input = sourcemeta::core::parse_json(R"([
     {
       "http://example.com/p": [
@@ -153,7 +153,7 @@ TEST(JSONLD_compact, type_map_remaining_stays_array_without_compact_arrays) {
   EXPECT_EQ(result, expected);
 }
 
-TEST(JSONLD_compact, protected_redefinition_with_different_index_expansion) {
+TEST(protected_redefinition_with_different_index_expansion) {
   const auto input = sourcemeta::core::parse_json(R"([
     { "http://example.com/p": [ { "@value": "x" } ] }
   ])");
@@ -190,7 +190,7 @@ TEST(JSONLD_compact, protected_redefinition_with_different_index_expansion) {
   }
 }
 
-TEST(JSONLD_compact, list_object_stays_array_without_compact_arrays) {
+TEST(list_object_stays_array_without_compact_arrays) {
   const auto input = sourcemeta::core::parse_json(R"([
     { "http://example.com/p": [ { "@list": [ { "@value": "a" } ] } ] }
   ])");

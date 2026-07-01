@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME json
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME json
   SOURCES
     json_array_test.cc
     json_boolean_test.cc

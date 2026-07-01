@@ -1,48 +1,48 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
-TEST(URI_empty, empty_default_constructor) {
+TEST(empty_default_constructor) {
   const sourcemeta::core::URI uri;
   EXPECT_TRUE(uri.empty());
 }
 
-TEST(URI_empty, empty_string_constructor) {
+TEST(empty_string_constructor) {
   const sourcemeta::core::URI uri{""};
   EXPECT_TRUE(uri.empty());
 }
 
-TEST(URI_empty, hier_only) {
+TEST(hier_only) {
   const sourcemeta::core::URI uri{"example.com"};
   EXPECT_FALSE(uri.empty());
 }
 
-TEST(URI_empty, path_only) {
+TEST(path_only) {
   const sourcemeta::core::URI uri{"/foo/bar"};
   EXPECT_FALSE(uri.empty());
 }
 
-TEST(URI_empty, query_only) {
+TEST(query_only) {
   const sourcemeta::core::URI uri{"?foo=bar"};
   EXPECT_FALSE(uri.empty());
 }
 
-TEST(URI_empty, fragment_only) {
+TEST(fragment_only) {
   const sourcemeta::core::URI uri{"#foo"};
   EXPECT_FALSE(uri.empty());
 }
 
-TEST(URI_empty, fragment_empty_only) {
+TEST(fragment_empty_only) {
   const sourcemeta::core::URI uri{"#"};
   EXPECT_FALSE(uri.empty());
 }
 
-TEST(URI_empty, urn_path) {
+TEST(urn_path) {
   const sourcemeta::core::URI uri{"urn:example:animal:ferret:nose"};
   EXPECT_FALSE(uri.empty());
 }
 
-TEST(URI_empty, iri_not_empty) {
+TEST(iri_not_empty) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
   EXPECT_FALSE(uri.empty());

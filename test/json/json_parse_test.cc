@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
@@ -6,21 +6,21 @@
 #include <sstream>
 #include <string>
 
-TEST(JSON_parse, true) {
+TEST(true) {
   std::istringstream input{"true"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_boolean());
   EXPECT_TRUE(document.to_boolean());
 }
 
-TEST(JSON_parse, false) {
+TEST(false) {
   std::istringstream input{"false"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_boolean());
   EXPECT_FALSE(document.to_boolean());
 }
 
-TEST(JSON_parse, true_equality) {
+TEST(true_equality) {
   std::istringstream input_1{"true"};
   std::istringstream input_2{"   true    "};
   std::istringstream input_3{"false"};
@@ -35,7 +35,7 @@ TEST(JSON_parse, true_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, false_equality) {
+TEST(false_equality) {
   std::istringstream input_1{"false"};
   std::istringstream input_2{"   false    "};
   std::istringstream input_3{"true"};
@@ -50,33 +50,33 @@ TEST(JSON_parse, false_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, true_with_spacing) {
+TEST(true_with_spacing) {
   std::istringstream input{"   true   "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_boolean());
   EXPECT_TRUE(document.to_boolean());
 }
 
-TEST(JSON_parse, false_with_spacing) {
+TEST(false_with_spacing) {
   std::istringstream input{"   false   "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_boolean());
   EXPECT_FALSE(document.to_boolean());
 }
 
-TEST(JSON_parse, null) {
+TEST(null) {
   std::istringstream input{"null"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_null());
 }
 
-TEST(JSON_parse, null_with_spacing) {
+TEST(null_with_spacing) {
   std::istringstream input{"   null   "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_null());
 }
 
-TEST(JSON_parse, null_equality) {
+TEST(null_equality) {
   std::istringstream input_1{"null"};
   std::istringstream input_2{"   null    "};
   std::istringstream input_3{"true"};
@@ -91,7 +91,7 @@ TEST(JSON_parse, null_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, string_empty) {
+TEST(string_empty) {
   std::istringstream input{"\"\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -100,7 +100,7 @@ TEST(JSON_parse, string_empty) {
   EXPECT_EQ(document.to_string(), "");
 }
 
-TEST(JSON_parse, string_with_null) {
+TEST(string_with_null) {
   std::istringstream input{"\"foo \\u0000 bar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -112,7 +112,7 @@ TEST(JSON_parse, string_with_null) {
   EXPECT_EQ(document.to_string(), "foo \0 bar"s);
 }
 
-TEST(JSON_parse, string_foo) {
+TEST(string_foo) {
   std::istringstream input{"\"foo\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -121,7 +121,7 @@ TEST(JSON_parse, string_foo) {
   EXPECT_EQ(document.to_string(), "foo");
 }
 
-TEST(JSON_parse, string_foo_with_spacing) {
+TEST(string_foo_with_spacing) {
   std::istringstream input{"      \"foo\"     "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -130,7 +130,7 @@ TEST(JSON_parse, string_foo_with_spacing) {
   EXPECT_EQ(document.to_string(), "foo");
 }
 
-TEST(JSON_parse, string_foo_padded) {
+TEST(string_foo_padded) {
   std::istringstream input{"\"   foo   \""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -139,7 +139,7 @@ TEST(JSON_parse, string_foo_padded) {
   EXPECT_EQ(document.to_string(), "   foo   ");
 }
 
-TEST(JSON_parse, string_escape_quote) {
+TEST(string_escape_quote) {
   std::istringstream input{"\"foo\\\"bar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -148,21 +148,21 @@ TEST(JSON_parse, string_escape_quote) {
   EXPECT_EQ(document.to_string(), "foo\"bar");
 }
 
-TEST(JSON_parse, empty_array) {
+TEST(empty_array) {
   std::istringstream input{"[]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 0);
 }
 
-TEST(JSON_parse, empty_array_with_inner_space) {
+TEST(empty_array_with_inner_space) {
   std::istringstream input{"[            ]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 0);
 }
 
-TEST(JSON_parse, array_one_null_item) {
+TEST(array_one_null_item) {
   std::istringstream input{"[null]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -170,7 +170,7 @@ TEST(JSON_parse, array_one_null_item) {
   EXPECT_TRUE(document.at(0).is_null());
 }
 
-TEST(JSON_parse, array_one_boolean_item) {
+TEST(array_one_boolean_item) {
   std::istringstream input{"[true]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -179,7 +179,7 @@ TEST(JSON_parse, array_one_boolean_item) {
   EXPECT_TRUE(document.at(0).to_boolean());
 }
 
-TEST(JSON_parse, array_one_boolean_item_with_inner_space) {
+TEST(array_one_boolean_item_with_inner_space) {
   std::istringstream input{"[   true     ]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -188,7 +188,7 @@ TEST(JSON_parse, array_one_boolean_item_with_inner_space) {
   EXPECT_TRUE(document.at(0).to_boolean());
 }
 
-TEST(JSON_parse, array_one_boolean_item_with_padding) {
+TEST(array_one_boolean_item_with_padding) {
   std::istringstream input{"   [ true  ]   "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -197,7 +197,7 @@ TEST(JSON_parse, array_one_boolean_item_with_padding) {
   EXPECT_TRUE(document.at(0).to_boolean());
 }
 
-TEST(JSON_parse, array_one_nested_null_item) {
+TEST(array_one_nested_null_item) {
   std::istringstream input{"[[null]]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -207,7 +207,7 @@ TEST(JSON_parse, array_one_nested_null_item) {
   EXPECT_TRUE(document.at(0).at(0).is_null());
 }
 
-TEST(JSON_parse, array_one_nested_nested_null_item) {
+TEST(array_one_nested_nested_null_item) {
   std::istringstream input{"[[[null]]]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -219,7 +219,7 @@ TEST(JSON_parse, array_one_nested_nested_null_item) {
   EXPECT_TRUE(document.at(0).at(0).at(0).is_null());
 }
 
-TEST(JSON_parse, array_nested_nested_string) {
+TEST(array_nested_nested_string) {
   std::istringstream input{"[[[\"nested\"]]]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -232,7 +232,7 @@ TEST(JSON_parse, array_nested_nested_string) {
   EXPECT_EQ(document.at(0).at(0).at(0).to_string(), "nested");
 }
 
-TEST(JSON_parse, array_false_true_false) {
+TEST(array_false_true_false) {
   std::istringstream input{"[false,true,false]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -245,7 +245,7 @@ TEST(JSON_parse, array_false_true_false) {
   EXPECT_FALSE(document.at(2).to_boolean());
 }
 
-TEST(JSON_parse, array_foo_bar_baz) {
+TEST(array_foo_bar_baz) {
   std::istringstream input{"[\"foo\",\"bar\",\"baz\"]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -258,7 +258,7 @@ TEST(JSON_parse, array_foo_bar_baz) {
   EXPECT_EQ(document.at(2).to_string(), "baz");
 }
 
-TEST(JSON_parse, array_mixed_boolean_nested) {
+TEST(array_mixed_boolean_nested) {
   std::istringstream input{"[false,[true],false]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -273,7 +273,7 @@ TEST(JSON_parse, array_mixed_boolean_nested) {
   EXPECT_FALSE(document.at(2).to_boolean());
 }
 
-TEST(JSON_parse, array_nested_double) {
+TEST(array_nested_double) {
   std::istringstream input{"[true,[false,[true]]]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -290,7 +290,7 @@ TEST(JSON_parse, array_nested_double) {
   EXPECT_TRUE(document.at(1).at(1).at(0).to_boolean());
 }
 
-TEST(JSON_parse, array_nested_double_with_spacing) {
+TEST(array_nested_double_with_spacing) {
   std::istringstream input{"   [   true  ,  [ false  ,  [ true] ] ]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -307,7 +307,7 @@ TEST(JSON_parse, array_nested_double_with_spacing) {
   EXPECT_TRUE(document.at(1).at(1).at(0).to_boolean());
 }
 
-TEST(JSON_parse, array_mixed_boolean_nested_with_spaces) {
+TEST(array_mixed_boolean_nested_with_spaces) {
   std::istringstream input{"  [   false  ,  [ true]    ,   false ]   "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -322,7 +322,7 @@ TEST(JSON_parse, array_mixed_boolean_nested_with_spaces) {
   EXPECT_FALSE(document.at(2).to_boolean());
 }
 
-TEST(JSON_parse, array_one_string_item) {
+TEST(array_one_string_item) {
   std::istringstream input{"[\"foo\"]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -331,7 +331,7 @@ TEST(JSON_parse, array_one_string_item) {
   EXPECT_EQ(document.at(0).to_string(), "foo");
 }
 
-TEST(JSON_parse, array_one_positive_integer_item) {
+TEST(array_one_positive_integer_item) {
   std::istringstream input{"[5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -340,7 +340,7 @@ TEST(JSON_parse, array_one_positive_integer_item) {
   EXPECT_EQ(document.at(0).to_integer(), 5);
 }
 
-TEST(JSON_parse, array_one_negative_integer_item) {
+TEST(array_one_negative_integer_item) {
   std::istringstream input{"[-5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -349,7 +349,7 @@ TEST(JSON_parse, array_one_negative_integer_item) {
   EXPECT_EQ(document.at(0).to_integer(), -5);
 }
 
-TEST(JSON_parse, array_one_positive_real_item) {
+TEST(array_one_positive_real_item) {
   std::istringstream input{"[5.5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -358,7 +358,7 @@ TEST(JSON_parse, array_one_positive_real_item) {
   EXPECT_EQ(document.at(0).to_real(), 5.5);
 }
 
-TEST(JSON_parse, array_one_negative_real_item) {
+TEST(array_one_negative_real_item) {
   std::istringstream input{"[-5.5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -367,7 +367,7 @@ TEST(JSON_parse, array_one_negative_real_item) {
   EXPECT_EQ(document.at(0).to_real(), -5.5);
 }
 
-TEST(JSON_parse, array_comma_within_string) {
+TEST(array_comma_within_string) {
   std::istringstream input{"[\"foo,bar\"]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -376,7 +376,7 @@ TEST(JSON_parse, array_comma_within_string) {
   EXPECT_EQ(document.at(0).to_string(), "foo,bar");
 }
 
-TEST(JSON_parse, array_with_stringified_array) {
+TEST(array_with_stringified_array) {
   std::istringstream input{"[\"[false,true]\"]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -385,7 +385,7 @@ TEST(JSON_parse, array_with_stringified_array) {
   EXPECT_EQ(document.at(0).to_string(), "[false,true]");
 }
 
-TEST(JSON_parse, array_equality) {
+TEST(array_equality) {
   std::istringstream input_1{"[ 1, 2, 3 ]"};
   std::istringstream input_2{"    [   1, 2    ,3]    "};
   std::istringstream input_3{"   [1,2,2]"};
@@ -400,7 +400,7 @@ TEST(JSON_parse, array_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, single_exponential_number_element) {
+TEST(single_exponential_number_element) {
   std::istringstream input{"[3e2]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -409,7 +409,7 @@ TEST(JSON_parse, single_exponential_number_element) {
   EXPECT_EQ(document.at(0).to_decimal(), sourcemeta::core::Decimal{"300"});
 }
 
-TEST(JSON_parse, object_equality) {
+TEST(object_equality) {
   std::istringstream input_1{"{\"foo\":1}"};
   std::istringstream input_2{"   {   \"foo\"   :  1  }    "};
   std::istringstream input_3{"{\"foo\":2}"};
@@ -424,7 +424,7 @@ TEST(JSON_parse, object_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, object_single_null) {
+TEST(object_single_null) {
   std::istringstream input{"{\"foo\":null}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -433,7 +433,7 @@ TEST(JSON_parse, object_single_null) {
   EXPECT_TRUE(document.at("foo").is_null());
 }
 
-TEST(JSON_parse, object_single_null_with_spaces) {
+TEST(object_single_null_with_spaces) {
   std::istringstream input{"   {   \"foo\"   :   null  }  "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -442,7 +442,7 @@ TEST(JSON_parse, object_single_null_with_spaces) {
   EXPECT_TRUE(document.at("foo").is_null());
 }
 
-TEST(JSON_parse, object_multiple_null) {
+TEST(object_multiple_null) {
   std::istringstream input{"{\"foo\":null,\"bar\":null,\"baz\":null}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -455,7 +455,7 @@ TEST(JSON_parse, object_multiple_null) {
   EXPECT_TRUE(document.at("baz").is_null());
 }
 
-TEST(JSON_parse, array_with_object_size_1) {
+TEST(array_with_object_size_1) {
   std::istringstream input{"[ { \"foo\": null } ]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -465,7 +465,7 @@ TEST(JSON_parse, array_with_object_size_1) {
   EXPECT_TRUE(document.at(0).at("foo").is_null());
 }
 
-TEST(JSON_parse, array_with_object_size_2) {
+TEST(array_with_object_size_2) {
   std::istringstream input{"[ { \"foo\": false, \"bar\": true } ]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -480,7 +480,7 @@ TEST(JSON_parse, array_with_object_size_2) {
   EXPECT_TRUE(document.at(0).at("bar").to_boolean());
 }
 
-TEST(JSON_parse, array_with_empty_object) {
+TEST(array_with_empty_object) {
   std::istringstream input{"[{}]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -489,7 +489,7 @@ TEST(JSON_parse, array_with_empty_object) {
   EXPECT_EQ(document.at(0).size(), 0);
 }
 
-TEST(JSON_parse, array_escaped_quote_within_string_element) {
+TEST(array_escaped_quote_within_string_element) {
   std::istringstream input{"[\"foo\\\"bar\"]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -498,7 +498,7 @@ TEST(JSON_parse, array_escaped_quote_within_string_element) {
   EXPECT_EQ(document.at(0).to_string(), "foo\"bar");
 }
 
-TEST(JSON_parse, object_with_array) {
+TEST(object_with_array) {
   std::istringstream input{"{ \"foo\": [null] }"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -509,7 +509,7 @@ TEST(JSON_parse, object_with_array) {
   EXPECT_TRUE(document.at("foo").at(0).is_null());
 }
 
-TEST(JSON_parse, object_with_array_two_elements) {
+TEST(object_with_array_two_elements) {
   std::istringstream input{"{ \"foo\": [false, true] }"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -523,7 +523,7 @@ TEST(JSON_parse, object_with_array_two_elements) {
   EXPECT_TRUE(document.at("foo").at(1).to_boolean());
 }
 
-TEST(JSON_parse, object_with_object) {
+TEST(object_with_object) {
   std::istringstream input{"{ \"foo\": { \"bar\": null } }"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -535,7 +535,7 @@ TEST(JSON_parse, object_with_object) {
   EXPECT_TRUE(document.at("foo").at("bar").is_null());
 }
 
-TEST(JSON_parse, object_with_positive_integer) {
+TEST(object_with_positive_integer) {
   std::istringstream input{"{ \"foo\": 5 }"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -545,21 +545,21 @@ TEST(JSON_parse, object_with_positive_integer) {
   EXPECT_EQ(document.at("foo").to_integer(), 5);
 }
 
-TEST(JSON_parse, empty_object) {
+TEST(empty_object) {
   std::istringstream input{"{}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 0);
 }
 
-TEST(JSON_parse, empty_object_with_spacing) {
+TEST(empty_object_with_spacing) {
   std::istringstream input{"{      }"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
   EXPECT_EQ(document.size(), 0);
 }
 
-TEST(JSON_parse, object_string_value_with_comma) {
+TEST(object_string_value_with_comma) {
   std::istringstream input{"{\"foo\":\"bar,baz\"}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -569,7 +569,7 @@ TEST(JSON_parse, object_string_value_with_comma) {
   EXPECT_EQ(document.at("foo").to_string(), "bar,baz");
 }
 
-TEST(JSON_parse, object_string_value_with_escaped_quote) {
+TEST(object_string_value_with_escaped_quote) {
   std::istringstream input{"{\"foo\":\"bar\\\"baz\"}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -579,7 +579,7 @@ TEST(JSON_parse, object_string_value_with_escaped_quote) {
   EXPECT_EQ(document.at("foo").to_string(), "bar\"baz");
 }
 
-TEST(JSON_parse, object_empty_string_key) {
+TEST(object_empty_string_key) {
   std::istringstream input{"{\"\":\"foo\"}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -589,7 +589,7 @@ TEST(JSON_parse, object_empty_string_key) {
   EXPECT_EQ(document.at("").to_string(), "foo");
 }
 
-TEST(JSON_parse, object_string_key_with_comma) {
+TEST(object_string_key_with_comma) {
   std::istringstream input{"{\"foo,bar\":\"baz\"}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -599,7 +599,7 @@ TEST(JSON_parse, object_string_key_with_comma) {
   EXPECT_EQ(document.at("foo,bar").to_string(), "baz");
 }
 
-TEST(JSON_parse, object_string_key_with_space) {
+TEST(object_string_key_with_space) {
   std::istringstream input{"{\"foo bar\":\"baz\"}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -609,7 +609,7 @@ TEST(JSON_parse, object_string_key_with_space) {
   EXPECT_EQ(document.at("foo bar").to_string(), "baz");
 }
 
-TEST(JSON_parse, object_string_value_with_stringified) {
+TEST(object_string_value_with_stringified) {
   std::istringstream input{"{\"foo\":\"{\\\"x\\\":1}\"}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -619,7 +619,7 @@ TEST(JSON_parse, object_string_value_with_stringified) {
   EXPECT_EQ(document.at("foo").to_string(), "{\"x\":1}");
 }
 
-TEST(JSON_parse, object_one_true_boolean_element_with_space) {
+TEST(object_one_true_boolean_element_with_space) {
   std::istringstream input{"    {   \"foo\"   :   true  }    "};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -629,7 +629,7 @@ TEST(JSON_parse, object_one_true_boolean_element_with_space) {
   EXPECT_TRUE(document.at("foo").to_boolean());
 }
 
-TEST(JSON_parse, object_two_boolean_values_with_space) {
+TEST(object_two_boolean_values_with_space) {
   std::istringstream input{
       "{   \"foo\"  :   true    ,     \"bar\"   :   false}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
@@ -643,7 +643,7 @@ TEST(JSON_parse, object_two_boolean_values_with_space) {
   EXPECT_FALSE(document.at("bar").to_boolean());
 }
 
-TEST(JSON_parse, object_one_array_element_with_space) {
+TEST(object_one_array_element_with_space) {
   std::istringstream input{"{   \"foo\"   :  [  true  ,  false   ]   }"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -657,7 +657,7 @@ TEST(JSON_parse, object_one_array_element_with_space) {
   EXPECT_FALSE(document.at("foo").at(1).to_boolean());
 }
 
-TEST(JSON_parse, object_minified_nested) {
+TEST(object_minified_nested) {
   std::istringstream input{"{\"foo\":{\"bar\":true}}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -668,7 +668,7 @@ TEST(JSON_parse, object_minified_nested) {
   EXPECT_TRUE(document.at("foo").defines("bar"));
 }
 
-TEST(JSON_parse, object_empty_nested_with_new_line_before_end) {
+TEST(object_empty_nested_with_new_line_before_end) {
   std::istringstream input("{\"x\":{}\n}");
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -678,84 +678,84 @@ TEST(JSON_parse, object_empty_nested_with_new_line_before_end) {
   EXPECT_EQ(document.at("x").size(), 0);
 }
 
-TEST(JSON_parse, zero_integer) {
+TEST(zero_integer) {
   std::istringstream input{"0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 0);
 }
 
-TEST(JSON_parse, minus_zero_integer) {
+TEST(minus_zero_integer) {
   std::istringstream input{"-0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 0);
 }
 
-TEST(JSON_parse, positive_single_digit_positive_integer) {
+TEST(positive_single_digit_positive_integer) {
   std::istringstream input{"1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 1);
 }
 
-TEST(JSON_parse, positive_multi_digit_positive_integer) {
+TEST(positive_multi_digit_positive_integer) {
   std::istringstream input{"1234"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 1234);
 }
 
-TEST(JSON_parse, positive_single_digit_negative_integer) {
+TEST(positive_single_digit_negative_integer) {
   std::istringstream input{"-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), -1);
 }
 
-TEST(JSON_parse, positive_multi_digit_negative_integer) {
+TEST(positive_multi_digit_negative_integer) {
   std::istringstream input{"-1234"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), -1234);
 }
 
-TEST(JSON_parse, positive_large_integer) {
+TEST(positive_large_integer) {
   std::istringstream input{"12391239123"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_integer());
   EXPECT_EQ(document.to_integer(), 12391239123);
 }
 
-TEST(JSON_parse, positive_real_trailing_zeroes) {
+TEST(positive_real_trailing_zeroes) {
   std::istringstream input{"1.50000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1.5);
 }
 
-TEST(JSON_parse, negative_real_trailing_zeroes) {
+TEST(negative_real_trailing_zeroes) {
   std::istringstream input{"-1.50000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1.5);
 }
 
-TEST(JSON_parse, positive_real) {
+TEST(positive_real) {
   std::istringstream input{"1.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1.5);
 }
 
-TEST(JSON_parse, negative_real) {
+TEST(negative_real) {
   std::istringstream input{"-1.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1.5);
 }
 
-TEST(JSON_parse, real_long_small_decimal) {
+TEST(real_long_small_decimal) {
   std::istringstream input{
       "0.00000000000000000000000000000000000000000000000000000000000000000000"
       "1"};
@@ -764,14 +764,14 @@ TEST(JSON_parse, real_long_small_decimal) {
   EXPECT_EQ(document.to_real(), 1e-69);
 }
 
-TEST(JSON_parse, real_subnormal_decimal) {
+TEST(real_subnormal_decimal) {
   std::istringstream input{"0." + std::string(309, '0') + "5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 5e-310);
 }
 
-TEST(JSON_parse, decimal_underflowing_decimal) {
+TEST(decimal_underflowing_decimal) {
   std::istringstream input{"0." + std::string(400, '0') + "1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
@@ -779,252 +779,252 @@ TEST(JSON_parse, decimal_underflowing_decimal) {
             sourcemeta::core::Decimal{"0." + std::string(400, '0') + "1"});
 }
 
-TEST(JSON_parse, real_leading_decimal_zero) {
+TEST(real_leading_decimal_zero) {
   std::istringstream input{"1.125"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1.125);
 }
 
-TEST(JSON_parse, real_multi_left_digit_positive_real) {
+TEST(real_multi_left_digit_positive_real) {
   std::istringstream input{"1234.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1234.5);
 }
 
-TEST(JSON_parse, real_multi_left_digit_negative_real) {
+TEST(real_multi_left_digit_negative_real) {
   std::istringstream input{"-1234.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1234.5);
 }
 
-TEST(JSON_parse, real_long_positive_real) {
+TEST(real_long_positive_real) {
   std::istringstream input{"1234.56789"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1234.56789);
 }
 
-TEST(JSON_parse, real_long_negative_real) {
+TEST(real_long_negative_real) {
   std::istringstream input{"-1234.56789"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1234.56789);
 }
 
-TEST(JSON_parse, single_digit_positive_real_integer) {
+TEST(single_digit_positive_real_integer) {
   std::istringstream input{"1.0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1.0);
 }
 
-TEST(JSON_parse, single_digit_positive_real_integer_trailing_zero) {
+TEST(single_digit_positive_real_integer_trailing_zero) {
   std::istringstream input{"1.0000000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 1.0);
 }
 
-TEST(JSON_parse, single_digit_negative_real_integer) {
+TEST(single_digit_negative_real_integer) {
   std::istringstream input{"-1.0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1.0);
 }
 
-TEST(JSON_parse, single_digit_negative_real_integer_trailing_zero) {
+TEST(single_digit_negative_real_integer_trailing_zero) {
   std::istringstream input{"-1.0000000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -1.0);
 }
 
-TEST(JSON_parse, leading_zero_real_number) {
+TEST(leading_zero_real_number) {
   std::istringstream input{"-0.125"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), -0.125);
 }
 
-TEST(JSON_parse, zero_integer_with_exponent) {
+TEST(zero_integer_with_exponent) {
   std::istringstream input{"0e2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"0e2"});
 }
 
-TEST(JSON_parse, zero_real_with_exponent) {
+TEST(zero_real_with_exponent) {
   std::istringstream input{"0.0e2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"0.0e2"});
 }
 
-TEST(JSON_parse, large_negative_exponential_number) {
+TEST(large_negative_exponential_number) {
   std::istringstream input{"-1.0e10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"-1.0e10"});
 }
 
-TEST(JSON_parse, large_positive_exponential_number_with_plus_exponent) {
+TEST(large_positive_exponential_number_with_plus_exponent) {
   std::istringstream input{"1.0e+10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"1.0e+10"});
 }
 
-TEST(JSON_parse, large_negative_exponential_number_with_plus_exponent) {
+TEST(large_negative_exponential_number_with_plus_exponent) {
   std::istringstream input{"-1.0e+10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"-1.0e+10"});
 }
 
-TEST(JSON_parse, number_exponential_notation_plus_after_e) {
+TEST(number_exponential_notation_plus_after_e) {
   std::istringstream input{"3E+2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"3E+2"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_1_upper) {
+TEST(exponential_notation_integer_1_upper) {
   std::istringstream input{"2E0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"2E0"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_2_upper) {
+TEST(exponential_notation_integer_2_upper) {
   std::istringstream input{"3E2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"3E2"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_3_upper) {
+TEST(exponential_notation_integer_3_upper) {
   std::istringstream input{"4.321768E3"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"4.321768E3"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_4_upper) {
+TEST(exponential_notation_integer_4_upper) {
   std::istringstream input{"-5.3E4"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"-5.3E4"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_5_upper) {
+TEST(exponential_notation_integer_5_upper) {
   std::istringstream input{"6.72E9"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"6.72E9"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_6_upper) {
+TEST(exponential_notation_integer_6_upper) {
   std::istringstream input{"5E-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"5E-1"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_7_upper) {
+TEST(exponential_notation_integer_7_upper) {
   std::istringstream input{"9.5E2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"9.5E2"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_8_upper) {
+TEST(exponential_notation_integer_8_upper) {
   std::istringstream input{"5E-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"5E-1"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_1_lower) {
+TEST(exponential_notation_integer_1_lower) {
   std::istringstream input{"2e0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"2e0"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_2_lower) {
+TEST(exponential_notation_integer_2_lower) {
   std::istringstream input{"3e2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"3e2"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_3_lower) {
+TEST(exponential_notation_integer_3_lower) {
   std::istringstream input{"4.321768e3"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"4.321768e3"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_4_lower) {
+TEST(exponential_notation_integer_4_lower) {
   std::istringstream input{"-5.3e4"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"-5.3e4"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_5_lower) {
+TEST(exponential_notation_integer_5_lower) {
   std::istringstream input{"6.72e9"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"6.72e9"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_6_lower) {
+TEST(exponential_notation_integer_6_lower) {
   std::istringstream input{"5e-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"5e-1"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_7_lower) {
+TEST(exponential_notation_integer_7_lower) {
   std::istringstream input{"9.5e2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"9.5e2"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_8_lower) {
+TEST(exponential_notation_integer_8_lower) {
   std::istringstream input{"5e-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"5e-1"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_1_real) {
+TEST(exponential_notation_integer_1_real) {
   std::istringstream input{"2.0e0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"2.0e0"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_2_real) {
+TEST(exponential_notation_integer_2_real) {
   std::istringstream input{"3.0e2"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"3.0e2"});
 }
 
-TEST(JSON_parse, exponential_notation_integer_3_real) {
+TEST(exponential_notation_integer_3_real) {
   std::istringstream input{"5.0e-1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"5.0e-1"});
 }
 
-TEST(JSON_parse, integer_equality) {
+TEST(integer_equality) {
   std::istringstream input_1{"5"};
   std::istringstream input_2{"   5    "};
   std::istringstream input_3{" 5.1 "};
@@ -1039,7 +1039,7 @@ TEST(JSON_parse, integer_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, real_equality) {
+TEST(real_equality) {
   std::istringstream input_1{"5.1"};
   std::istringstream input_2{"   5.1    "};
   std::istringstream input_3{" 5 "};
@@ -1054,7 +1054,7 @@ TEST(JSON_parse, real_equality) {
   EXPECT_FALSE(document_2 == document_3);
 }
 
-TEST(JSON_parse, integer_real_equal) {
+TEST(integer_real_equal) {
   std::istringstream left{"1"};
   std::istringstream right{"1.0"};
   const sourcemeta::core::JSON document_1 = sourcemeta::core::parse_json(left);
@@ -1065,7 +1065,7 @@ TEST(JSON_parse, integer_real_equal) {
   EXPECT_FALSE(document_2 != document_1);
 }
 
-TEST(JSON_parse, string_escaped_quotes) {
+TEST(string_escaped_quotes) {
   std::istringstream input{"\"\\\"foo\\\"\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1073,7 +1073,7 @@ TEST(JSON_parse, string_escaped_quotes) {
   EXPECT_EQ(document.to_string(), "\"foo\"");
 }
 
-TEST(JSON_parse, string_escaped_reverse_solidus) {
+TEST(string_escaped_reverse_solidus) {
   std::istringstream input{"\"foo\\\\bar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1081,7 +1081,7 @@ TEST(JSON_parse, string_escaped_reverse_solidus) {
   EXPECT_EQ(document.to_string(), "foo\\bar");
 }
 
-TEST(JSON_parse, string_escaped_solidus) {
+TEST(string_escaped_solidus) {
   std::istringstream input{"\"foo\\/bar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1089,7 +1089,7 @@ TEST(JSON_parse, string_escaped_solidus) {
   EXPECT_EQ(document.to_string(), "foo/bar");
 }
 
-TEST(JSON_parse, string_escaped_backspace) {
+TEST(string_escaped_backspace) {
   std::istringstream input{"\"foo\\bbar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1097,7 +1097,7 @@ TEST(JSON_parse, string_escaped_backspace) {
   EXPECT_EQ(document.to_string(), "foo\bbar");
 }
 
-TEST(JSON_parse, string_escaped_form_feed) {
+TEST(string_escaped_form_feed) {
   std::istringstream input{"\"foo\\fbar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1105,7 +1105,7 @@ TEST(JSON_parse, string_escaped_form_feed) {
   EXPECT_EQ(document.to_string(), "foo\fbar");
 }
 
-TEST(JSON_parse, string_escaped_line_feed) {
+TEST(string_escaped_line_feed) {
   std::istringstream input{"\"foo\\nbar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1113,7 +1113,7 @@ TEST(JSON_parse, string_escaped_line_feed) {
   EXPECT_EQ(document.to_string(), "foo\nbar");
 }
 
-TEST(JSON_parse, string_escaped_carriage_return) {
+TEST(string_escaped_carriage_return) {
   std::istringstream input{"\"foo\\rbar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1121,7 +1121,7 @@ TEST(JSON_parse, string_escaped_carriage_return) {
   EXPECT_EQ(document.to_string(), "foo\rbar");
 }
 
-TEST(JSON_parse, string_escaped_tab) {
+TEST(string_escaped_tab) {
   std::istringstream input{"\"foo\\tbar\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1129,7 +1129,7 @@ TEST(JSON_parse, string_escaped_tab) {
   EXPECT_EQ(document.to_string(), "foo\tbar");
 }
 
-TEST(JSON_parse, string_unicode_code_points) {
+TEST(string_unicode_code_points) {
   std::istringstream input{"\"\\u002F\""};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_string());
@@ -1137,7 +1137,7 @@ TEST(JSON_parse, string_unicode_code_points) {
   EXPECT_EQ(document.to_string(), "\u002F");
 }
 
-TEST(JSON_parse, string_unicode_length_surrogates) {
+TEST(string_unicode_length_surrogates) {
   // See https://en.wikipedia.org/wiki/UTF-8#Surrogates
   // https://unicodeplus.com/U+D83D
   // https://unicodeplus.com/U+DCA9
@@ -1148,7 +1148,7 @@ TEST(JSON_parse, string_unicode_length_surrogates) {
   EXPECT_EQ(document.byte_size(), 4);
 }
 
-TEST(JSON_parse, string_unicode_code_point_equality) {
+TEST(string_unicode_code_point_equality) {
   std::istringstream input_1{"\"\\u002F\""};
   std::istringstream input_2{"\"\\u002f\""};
   std::istringstream input_3{"\"\\/\""};
@@ -1168,7 +1168,7 @@ TEST(JSON_parse, string_unicode_code_point_equality) {
   EXPECT_EQ(document_3.to_string(), document_4.to_string());
 }
 
-TEST(JSON_parse, string_equality) {
+TEST(string_equality) {
   std::istringstream input_1{"\"foo\""};
   std::istringstream input_2{"   \"foo\"    "};
   std::istringstream input_3{"\"fo\""};
@@ -1184,7 +1184,7 @@ TEST(JSON_parse, string_equality) {
 }
 
 // https://datatracker.ietf.org/doc/html/rfc8259#section-13
-TEST(JSON_parse, rfc8259_example_1) {
+TEST(rfc8259_example_1) {
   std::istringstream input{
       "{\n"
       "\"Image\": {\n"
@@ -1254,7 +1254,7 @@ TEST(JSON_parse, rfc8259_example_1) {
 }
 
 // https://datatracker.ietf.org/doc/html/rfc8259#section-13
-TEST(JSON_parse, rfc8259_example_2) {
+TEST(rfc8259_example_2) {
   std::istringstream input{"[\n"
                            "{\n"
                            "\"precision\": \"zip\",\n"
@@ -1355,7 +1355,7 @@ TEST(JSON_parse, rfc8259_example_2) {
   EXPECT_EQ(value.at(1).at("Country").to_string(), "US");
 }
 
-TEST(JSON_parse, custom_line_column_from_string_stream) {
+TEST(custom_line_column_from_string_stream) {
   std::istringstream input{"[\n  false,\n  true\n]"};
   std::uint64_t line{5};
   std::uint64_t column{2};
@@ -1374,7 +1374,7 @@ TEST(JSON_parse, custom_line_column_from_string_stream) {
   EXPECT_TRUE(document.at(1).to_boolean());
 }
 
-TEST(JSON_parse, read_json) {
+TEST(read_json) {
   const sourcemeta::core::JSON document{sourcemeta::core::read_json(
       std::filesystem::path{TEST_DIRECTORY} / "stub_valid.json")};
   EXPECT_TRUE(document.is_object());
@@ -1384,7 +1384,7 @@ TEST(JSON_parse, read_json) {
   EXPECT_EQ(document.at("foo").to_integer(), 1);
 }
 
-TEST(JSON_parse, read_file) {
+TEST(read_file) {
   auto stream{sourcemeta::core::read_file(
       std::filesystem::path{TEST_DIRECTORY} / "stub_valid.json")};
   const auto document{sourcemeta::core::parse_json(stream)};
@@ -1395,21 +1395,21 @@ TEST(JSON_parse, read_file) {
   EXPECT_EQ(document.at("foo").to_integer(), 1);
 }
 
-TEST(JSON_parse, big_integer_beyond_64_bit) {
+TEST(big_integer_beyond_64_bit) {
   std::istringstream input{"9223372036854776000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal().to_string(), "9223372036854776000");
 }
 
-TEST(JSON_parse, big_negative_integer_beyond_64_bit) {
+TEST(big_negative_integer_beyond_64_bit) {
   std::istringstream input{"-9223372036854776000"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal().to_string(), "-9223372036854776000");
 }
 
-TEST(JSON_parse, very_large_integer) {
+TEST(very_large_integer) {
   std::istringstream input{"123456789012345678901234567890"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
@@ -1417,7 +1417,7 @@ TEST(JSON_parse, very_large_integer) {
             "123456789012345678901234567890");
 }
 
-TEST(JSON_parse, big_integer_in_array) {
+TEST(big_integer_in_array) {
   std::istringstream input{"[1, 9223372036854776000, 3]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
@@ -1430,7 +1430,7 @@ TEST(JSON_parse, big_integer_in_array) {
   EXPECT_EQ(document.at(2).to_integer(), 3);
 }
 
-TEST(JSON_parse, big_integer_in_object) {
+TEST(big_integer_in_object) {
   std::istringstream input{"{\"big\":9223372036854776000,\"small\":42}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_object());
@@ -1441,20 +1441,20 @@ TEST(JSON_parse, big_integer_in_object) {
   EXPECT_EQ(document.at("small").to_integer(), 42);
 }
 
-TEST(JSON_parse, big_real_number) {
+TEST(big_real_number) {
   std::istringstream input{"1.234567890123456789012345678901234567890"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
 }
 
-TEST(JSON_parse, very_small_real_number) {
+TEST(very_small_real_number) {
   std::istringstream input{"0.000000000000000000000000000001"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
   EXPECT_EQ(document.to_real(), 0.000000000000000000000000000001);
 }
 
-TEST(JSON_parse, big_real_in_array) {
+TEST(big_real_in_array) {
   std::istringstream input{
       "[1.5, 1.234567890123456789012345678901234567890, 2.5]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
@@ -1467,7 +1467,7 @@ TEST(JSON_parse, big_real_in_array) {
   EXPECT_EQ(document.at(2).to_real(), 2.5);
 }
 
-TEST(JSON_parse, big_real_in_object) {
+TEST(big_real_in_object) {
   std::istringstream input{
       "{\"pi\":3.14159265358979323846264338327950288419716939937510}"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
@@ -1476,49 +1476,49 @@ TEST(JSON_parse, big_real_in_object) {
   EXPECT_TRUE(document.at("pi").is_decimal());
 }
 
-TEST(JSON_parse, big_number_with_exponent) {
+TEST(big_number_with_exponent) {
   std::istringstream input{"1.5e10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"1.5e10"});
 }
 
-TEST(JSON_parse, big_number_with_negative_exponent) {
+TEST(big_number_with_negative_exponent) {
   std::istringstream input{"1.5e-10"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"1.5e-10"});
 }
 
-TEST(JSON_parse, scientific_constant_planck) {
+TEST(scientific_constant_planck) {
   std::istringstream input{"6.62607E-34"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"6.62607E-34"});
 }
 
-TEST(JSON_parse, scientific_constant_elementary_charge) {
+TEST(scientific_constant_elementary_charge) {
   std::istringstream input{"1.60218E-19"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"1.60218E-19"});
 }
 
-TEST(JSON_parse, scientific_constant_boltzmann) {
+TEST(scientific_constant_boltzmann) {
   std::istringstream input{"1.38065E-23"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal(), sourcemeta::core::Decimal{"1.38065E-23"});
 }
 
-TEST(JSON_parse, read_json_stub_bigint) {
+TEST(read_json_stub_bigint) {
   const sourcemeta::core::JSON document{sourcemeta::core::read_json(
       std::filesystem::path{TEST_DIRECTORY} / "stub_bigint.json")};
   EXPECT_TRUE(document.is_decimal());
   EXPECT_EQ(document.to_decimal().to_string(), "9223372036854776000");
 }
 
-TEST(JSON_parse, nested_big_integers_and_reals) {
+TEST(nested_big_integers_and_reals) {
   std::istringstream input{
       "{\"data\":[{\"big_int\":9223372036854776000,"
       "\"big_real\":3.14159265358979323846264338327950288419716939937510}]}"};
@@ -1534,154 +1534,154 @@ TEST(JSON_parse, nested_big_integers_and_reals) {
   EXPECT_TRUE(document.at("data").at(0).at("big_real").is_decimal());
 }
 
-TEST(JSON_parse, double_precision_below_2_53_with_fraction_point_1) {
+TEST(double_precision_below_2_53_with_fraction_point_1) {
   std::istringstream input{"9007199254740991.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_below_2_53_with_fraction_point_5) {
+TEST(double_precision_below_2_53_with_fraction_point_5) {
   std::istringstream input{"9007199254740991.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_below_2_53_with_fraction_point_9) {
+TEST(double_precision_below_2_53_with_fraction_point_9) {
   std::istringstream input{"9007199254740991.9"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_at_2_53_with_fraction_point_1) {
+TEST(double_precision_at_2_53_with_fraction_point_1) {
   std::istringstream input{"9007199254740992.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_at_2_53_with_fraction_point_5) {
+TEST(double_precision_at_2_53_with_fraction_point_5) {
   std::istringstream input{"9007199254740992.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_at_2_53_with_fraction_point_9) {
+TEST(double_precision_at_2_53_with_fraction_point_9) {
   std::istringstream input{"9007199254740992.9"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_above_2_53_with_fraction_point_1) {
+TEST(double_precision_above_2_53_with_fraction_point_1) {
   std::istringstream input{"9007199254740993.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_above_2_53_with_fraction_point_5) {
+TEST(double_precision_above_2_53_with_fraction_point_5) {
   std::istringstream input{"9007199254740993.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_above_2_53_with_fraction_point_9) {
+TEST(double_precision_above_2_53_with_fraction_point_9) {
   std::istringstream input{"9007199254740993.9"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_16_with_fraction_point_1) {
+TEST(double_precision_10_16_with_fraction_point_1) {
   std::istringstream input{"10000000000000000.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_16_with_fraction_point_5) {
+TEST(double_precision_10_16_with_fraction_point_5) {
   std::istringstream input{"10000000000000000.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_16_with_many_fractional_digits) {
+TEST(double_precision_10_16_with_many_fractional_digits) {
   std::istringstream input{"10000000000000000.123456789"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_17_with_fraction) {
+TEST(double_precision_10_17_with_fraction) {
   std::istringstream input{"100000000000000000.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_20_with_fraction) {
+TEST(double_precision_10_20_with_fraction) {
   std::istringstream input{"100000000000000000000.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_35_with_fraction) {
+TEST(double_precision_10_35_with_fraction) {
   std::istringstream input{"99999999999999999999999999999999999.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_9e15_with_fraction) {
+TEST(double_precision_9e15_with_fraction) {
   std::istringstream input{"9000000000000000.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_5e16_with_fraction) {
+TEST(double_precision_5e16_with_fraction) {
   std::istringstream input{"50000000000000000.1"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_below_2_53_with_point_0) {
+TEST(double_precision_below_2_53_with_point_0) {
   std::istringstream input{"123456789012345.0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_at_2_53_with_point_0) {
+TEST(double_precision_at_2_53_with_point_0) {
   std::istringstream input{"9007199254740992.0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_above_2_53_with_point_0) {
+TEST(double_precision_above_2_53_with_point_0) {
   std::istringstream input{"10000000000000000.0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_20_with_point_0) {
+TEST(double_precision_10_20_with_point_0) {
   std::istringstream input{"100000000000000000000.0"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_TRUE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_small_number_with_fraction) {
+TEST(double_precision_small_number_with_fraction) {
   std::istringstream input{"123.456"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
@@ -1689,7 +1689,7 @@ TEST(JSON_parse, double_precision_small_number_with_fraction) {
   EXPECT_EQ(document.to_real(), 123.456);
 }
 
-TEST(JSON_parse, double_precision_medium_number_with_fraction) {
+TEST(double_precision_medium_number_with_fraction) {
   std::istringstream input{"123456789.123"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_real());
@@ -1697,28 +1697,28 @@ TEST(JSON_parse, double_precision_medium_number_with_fraction) {
   EXPECT_EQ(document.to_real(), 123456789.123);
 }
 
-TEST(JSON_parse, double_precision_10_14_with_fraction) {
+TEST(double_precision_10_14_with_fraction) {
   std::istringstream input{"100000000000000.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, double_precision_10_15_with_fraction) {
+TEST(double_precision_10_15_with_fraction) {
   std::istringstream input{"1000000000000000.5"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_decimal());
   EXPECT_FALSE(document.is_integral());
 }
 
-TEST(JSON_parse, parse_string_view) {
+TEST(parse_string_view) {
   const std::string_view input{"[ 1, 2, 3 ]"};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(input);
   EXPECT_TRUE(document.is_array());
   EXPECT_EQ(document.size(), 3);
 }
 
-TEST(JSON_parse, parse_string_view_subview) {
+TEST(parse_string_view_subview) {
   const std::string buffer{"prefix[ 1, 2, 3 ]suffix"};
   const std::string_view view{buffer.data() + 6, 11};
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(view);
@@ -1726,7 +1726,7 @@ TEST(JSON_parse, parse_string_view_subview) {
   EXPECT_EQ(document.size(), 3);
 }
 
-TEST(JSON_parse, parse_string_view_with_line_column) {
+TEST(parse_string_view_with_line_column) {
   const std::string_view input{"[ 1, 2, 3 ]"};
   std::uint64_t line{1};
   std::uint64_t column{0};
@@ -1735,7 +1735,7 @@ TEST(JSON_parse, parse_string_view_with_line_column) {
   EXPECT_TRUE(document.is_array());
 }
 
-TEST(JSON_parse, parse_default_string_view_does_not_invoke_ub) {
+TEST(parse_default_string_view_does_not_invoke_ub) {
   const std::string_view input{};
   EXPECT_EQ(input.data(), nullptr);
   try {
@@ -1747,8 +1747,7 @@ TEST(JSON_parse, parse_default_string_view_does_not_invoke_ub) {
   }
 }
 
-TEST(JSON_parse,
-     parse_default_string_view_with_line_column_does_not_invoke_ub) {
+TEST(parse_default_string_view_with_line_column_does_not_invoke_ub) {
   const std::string_view input{};
   std::uint64_t line{1};
   std::uint64_t column{0};

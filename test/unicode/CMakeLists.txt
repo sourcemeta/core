@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME unicode
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME unicode
   SOURCES
     unicode_codepoint_to_utf8_test.cc
     unicode_utf8_to_utf32_test.cc

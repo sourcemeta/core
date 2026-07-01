@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
@@ -51,129 +51,129 @@ constexpr std::string_view OKP_JWK{
     R"JSON({ "kty": "OKP", "crv": "Ed25519", "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo" })JSON"};
 } // namespace
 
-TEST(JOSE_jws_verify_signature, rs256_valid) {
+TEST(rs256_valid) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, es256_valid) {
+TEST(es256_valid) {
   const auto signature{sourcemeta::core::base64url_decode(ECDSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::ES256, ES256_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, arbitrary_signing_input) {
+TEST(arbitrary_signing_input) {
   const auto signature{
       sourcemeta::core::base64url_decode(RSA_ARBITRARY_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, ARBITRARY_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, unrecognized_algorithm) {
+TEST(unrecognized_algorithm) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       std::nullopt, RS256_SIGNING_INPUT, signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, contradicting_key_algorithm) {
+TEST(contradicting_key_algorithm) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{sourcemeta::core::JWK::from(
       sourcemeta::core::parse_json(RSA_JWK_OTHER_ALGORITHM))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, key_type_mismatch) {
+TEST(key_type_mismatch) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, curve_mismatch) {
+TEST(curve_mismatch) {
   const auto signature{sourcemeta::core::base64url_decode(ECDSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::ES512, ES256_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, tampered_signature) {
+TEST(tampered_signature) {
   const auto signature{sourcemeta::core::base64url_decode(RSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   std::string tampered{signature.value()};
   tampered.front() =
       static_cast<char>(static_cast<unsigned char>(tampered.front()) ^ 0x80U);
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::RS256, RS256_SIGNING_INPUT, tampered,
       key.value()));
 }
 
 // The Ed25519 signature is the worked example from RFC 8037 Appendix A.4
-TEST(JOSE_jws_verify_signature, eddsa_ed25519_valid) {
+TEST(eddsa_ed25519_valid) {
   const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OKP_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, eddsa_tampered_signature) {
+TEST(eddsa_tampered_signature) {
   const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   std::string tampered{signature.value()};
   tampered.front() =
       static_cast<char>(static_cast<unsigned char>(tampered.front()) ^ 0x80U);
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OKP_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT, tampered,
       key.value()));
 }
 
-TEST(JOSE_jws_verify_signature, eddsa_key_type_mismatch) {
+TEST(eddsa_key_type_mismatch) {
   const auto signature{sourcemeta::core::base64url_decode(EDDSA_SIGNATURE)};
-  ASSERT_TRUE(signature.has_value());
+  EXPECT_TRUE(signature.has_value());
   const auto key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(EC_JWK))};
-  ASSERT_TRUE(key.has_value());
+  EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT,
       signature.value(), key.value()));

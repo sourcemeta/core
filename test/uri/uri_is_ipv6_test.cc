@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
 // Insipred from https://datatracker.ietf.org/doc/html/rfc2732#section-2
 
-TEST(URI_is_ipv6, ipv6_1) {
+TEST(ipv6_1) {
   const sourcemeta::core::URI uri{
       "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html"};
   EXPECT_TRUE(uri.is_ipv6());
@@ -13,7 +13,7 @@ TEST(URI_is_ipv6, ipv6_1) {
             "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html");
 }
 
-TEST(URI_is_ipv6, ipv6_2) {
+TEST(ipv6_2) {
   const sourcemeta::core::URI uri{
       "http://[1080:0:0:0:8:800:200C:417A]/index.html"};
   EXPECT_TRUE(uri.is_ipv6());
@@ -21,28 +21,28 @@ TEST(URI_is_ipv6, ipv6_2) {
   EXPECT_EQ(uri.recompose(), "http://[1080:0:0:0:8:800:200C:417A]/index.html");
 }
 
-TEST(URI_is_ipv6, ipv6_3) {
+TEST(ipv6_3) {
   const sourcemeta::core::URI uri{"http://[3ffe:2a00:100:7031::1]"};
   EXPECT_TRUE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "3ffe:2a00:100:7031::1");
   EXPECT_EQ(uri.recompose(), "http://[3ffe:2a00:100:7031::1]");
 }
 
-TEST(URI_is_ipv6, ipv6_4) {
+TEST(ipv6_4) {
   const sourcemeta::core::URI uri{"http://[1080::8:800:200C:417A]/foo"};
   EXPECT_TRUE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "1080::8:800:200C:417A");
   EXPECT_EQ(uri.recompose(), "http://[1080::8:800:200C:417A]/foo");
 }
 
-TEST(URI_is_ipv6, ipv6_5) {
+TEST(ipv6_5) {
   const sourcemeta::core::URI uri{"http://[::192.9.5.5]/ipng"};
   EXPECT_TRUE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "::192.9.5.5");
   EXPECT_EQ(uri.recompose(), "http://[::192.9.5.5]/ipng");
 }
 
-TEST(URI_is_ipv6, ipv6_6) {
+TEST(ipv6_6) {
   const sourcemeta::core::URI uri{
       "http://[::FFFF:129.144.52.38]:80/index.html"};
   EXPECT_TRUE(uri.is_ipv6());
@@ -50,28 +50,28 @@ TEST(URI_is_ipv6, ipv6_6) {
   EXPECT_EQ(uri.recompose(), "http://[::FFFF:129.144.52.38]:80/index.html");
 }
 
-TEST(URI_is_ipv6, ipv6_7) {
+TEST(ipv6_7) {
   const sourcemeta::core::URI uri{"http://[2010:836B:4179::836B:4179]"};
   EXPECT_TRUE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "2010:836B:4179::836B:4179");
   EXPECT_EQ(uri.recompose(), "http://[2010:836B:4179::836B:4179]");
 }
 
-TEST(URI_is_ipv6, ipv4) {
+TEST(ipv4) {
   const sourcemeta::core::URI uri{"http://192.168.1.1/index.html"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "192.168.1.1");
   EXPECT_EQ(uri.recompose(), "http://192.168.1.1/index.html");
 }
 
-TEST(URI_is_ipv6, ipv4_with_port) {
+TEST(ipv4_with_port) {
   const sourcemeta::core::URI uri{"http://203.0.113.1:8080/api/data"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "203.0.113.1");
   EXPECT_EQ(uri.recompose(), "http://203.0.113.1:8080/api/data");
 }
 
-TEST(URI_is_ipv6, ipv4_one_subdomain) {
+TEST(ipv4_one_subdomain) {
   const sourcemeta::core::URI uri{
       "http://server.198.51.100.1.example.com/page"};
   EXPECT_FALSE(uri.is_ipv6());
@@ -79,28 +79,28 @@ TEST(URI_is_ipv6, ipv4_one_subdomain) {
   EXPECT_EQ(uri.recompose(), "http://server.198.51.100.1.example.com/page");
 }
 
-TEST(URI_is_ipv6, ipv4_with_userinfo) {
+TEST(ipv4_with_userinfo) {
   const sourcemeta::core::URI uri{"http://user:pass@192.0.2.1/secure"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "192.0.2.1");
   EXPECT_EQ(uri.recompose(), "http://user:pass@192.0.2.1/secure");
 }
 
-TEST(URI_is_ipv6, ipv4_with_query) {
+TEST(ipv4_with_query) {
   const sourcemeta::core::URI uri{"http://198.51.100.42/search?q=test&page=1"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "198.51.100.42");
   EXPECT_EQ(uri.recompose(), "http://198.51.100.42/search?q=test&page=1");
 }
 
-TEST(URI_is_ipv6, ipv4_with_fragment) {
+TEST(ipv4_with_fragment) {
   const sourcemeta::core::URI uri{"http://203.0.113.53/document#section-2"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_EQ(uri.host().value(), "203.0.113.53");
   EXPECT_EQ(uri.recompose(), "http://203.0.113.53/document#section-2");
 }
 
-TEST(URI_is_ipv6, ipv4_multiple_subdomains) {
+TEST(ipv4_multiple_subdomains) {
   const sourcemeta::core::URI uri{
       "http://api.v1.198.51.100.5.example.com/endpoint"};
   EXPECT_FALSE(uri.is_ipv6());
@@ -108,21 +108,21 @@ TEST(URI_is_ipv6, ipv4_multiple_subdomains) {
   EXPECT_EQ(uri.recompose(), "http://api.v1.198.51.100.5.example.com/endpoint");
 }
 
-TEST(URI_is_ipv6, ipvfuture_no_colon) {
+TEST(ipvfuture_no_colon) {
   const sourcemeta::core::URI uri{"http://[v1.test]/"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_FALSE(uri.is_ipv4());
   EXPECT_EQ(uri.host().value(), "v1.test");
 }
 
-TEST(URI_is_ipv6, ipvfuture_with_colon) {
+TEST(ipvfuture_with_colon) {
   const sourcemeta::core::URI uri{"http://[vFF.a:b]/"};
   EXPECT_FALSE(uri.is_ipv6());
   EXPECT_FALSE(uri.is_ipv4());
   EXPECT_EQ(uri.host().value(), "vFF.a:b");
 }
 
-TEST(URI_is_ipv6, iri_unicode_host_not_ipv6) {
+TEST(iri_unicode_host_not_ipv6) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
   EXPECT_FALSE(uri.is_ipv6());

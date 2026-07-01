@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonld
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonld
   SOURCES jsonld_expand_test.cc jsonld_expand_error_test.cc
     jsonld_is_expanded_test.cc jsonld_compact_test.cc jsonld_flatten_test.cc
     jsonld_materialize_test.cc)

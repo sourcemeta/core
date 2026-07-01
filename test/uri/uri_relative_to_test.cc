@@ -1,120 +1,120 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
-TEST(URI_relative_to, absolute_absolute_base_true_1) {
+TEST(absolute_absolute_base_true_1) {
   const sourcemeta::core::URI base{"https://www.example.com"};
   sourcemeta::core::URI uri{"https://www.example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "foo");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_true_2) {
+TEST(absolute_absolute_base_true_2) {
   const sourcemeta::core::URI base{"https://www.example.com/foo"};
   sourcemeta::core::URI uri{"https://www.example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_true_3) {
+TEST(absolute_absolute_base_true_3) {
   const sourcemeta::core::URI base{"https://www.example.com/foo"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar?q=1"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "bar?q=1");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_true_4) {
+TEST(absolute_absolute_base_true_4) {
   const sourcemeta::core::URI base{"https://www.example.com/foo"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar#baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "bar#baz");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_1) {
+TEST(absolute_absolute_base_false_1) {
   const sourcemeta::core::URI base{"https://www.example.com/foo"};
   sourcemeta::core::URI uri{"http://www.example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "http://www.example.com/foo");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_2) {
+TEST(absolute_absolute_base_false_2) {
   const sourcemeta::core::URI base{"https://www.example.com/foo"};
   sourcemeta::core::URI uri{"https://www.example.com"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://www.example.com");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_3) {
+TEST(absolute_absolute_base_false_3) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://www.example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../foo");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_4) {
+TEST(absolute_absolute_base_false_4) {
   const sourcemeta::core::URI base{"https://foo.com"};
   sourcemeta::core::URI uri{"https://bar.com"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://bar.com");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_different_ports) {
+TEST(absolute_absolute_base_false_different_ports) {
   const sourcemeta::core::URI base{"http://localhost:8000"};
   sourcemeta::core::URI uri{"http://localhost:9000/schemas/test.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "http://localhost:9000/schemas/test.json");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_different_userinfo) {
+TEST(absolute_absolute_base_false_different_userinfo) {
   const sourcemeta::core::URI base{"https://alice@example.com/foo"};
   sourcemeta::core::URI uri{"https://bob@example.com/foo/bar"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://bob@example.com/foo/bar");
 }
 
-TEST(URI_relative_to, absolute_absolute_base_false_userinfo_vs_none) {
+TEST(absolute_absolute_base_false_userinfo_vs_none) {
   const sourcemeta::core::URI base{"https://example.com/foo"};
   sourcemeta::core::URI uri{"https://alice@example.com/foo/bar"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://alice@example.com/foo/bar");
 }
 
-TEST(URI_relative_to, absolute_relative_1) {
+TEST(absolute_relative_1) {
   const sourcemeta::core::URI base{"https://www.example.com"};
   sourcemeta::core::URI uri{"foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "foo");
 }
 
-TEST(URI_relative_to, absolute_relative_2) {
+TEST(absolute_relative_2) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar/baz"};
   sourcemeta::core::URI uri{"/qux"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "/qux");
 }
 
-TEST(URI_relative_to, relative_absolute_1) {
+TEST(relative_absolute_1) {
   const sourcemeta::core::URI base{"foo/bar"};
   sourcemeta::core::URI uri{"https://www.example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "https://www.example.com/foo");
 }
 
-TEST(URI_relative_to, relative_relative_1) {
+TEST(relative_relative_1) {
   const sourcemeta::core::URI base{"foo/bar"};
   sourcemeta::core::URI uri{"foo/bar/baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "foo/bar/baz");
 }
 
-TEST(URI_relative_to, urn_1) {
+TEST(urn_1) {
   const sourcemeta::core::URI base{"schema:"};
   sourcemeta::core::URI uri{"schema:myschema"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "myschema");
 }
 
-TEST(URI_relative_to, absolute_absolute_trailing_slash) {
+TEST(absolute_absolute_trailing_slash) {
   const sourcemeta::core::URI base{
       "https://github.com/apis-json/api-json/blob/develop/spec"};
   sourcemeta::core::URI uri{
@@ -123,56 +123,56 @@ TEST(URI_relative_to, absolute_absolute_trailing_slash) {
   EXPECT_EQ(uri.recompose(), "spec/");
 }
 
-TEST(URI_relative_to, target_is_prefix_of_base_parent) {
+TEST(target_is_prefix_of_base_parent) {
   const sourcemeta::core::URI base{"https://example.com/foo/bar/baz"};
   sourcemeta::core::URI uri{"https://example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../../foo");
 }
 
-TEST(URI_relative_to, target_is_one_level_up_at_root) {
+TEST(target_is_one_level_up_at_root) {
   const sourcemeta::core::URI base{"https://example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../foo");
 }
 
-TEST(URI_relative_to, target_is_root) {
+TEST(target_is_root) {
   const sourcemeta::core::URI base{"https://example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://example.com/"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../");
 }
 
-TEST(URI_relative_to, base_ends_with_slash) {
+TEST(base_ends_with_slash) {
   const sourcemeta::core::URI base{"https://example.com/foo/"};
   sourcemeta::core::URI uri{"https://example.com/foo/bar"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "bar");
 }
 
-TEST(URI_relative_to, base_root_only) {
+TEST(base_root_only) {
   const sourcemeta::core::URI base{"https://example.com/"};
   sourcemeta::core::URI uri{"https://example.com/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "foo");
 }
 
-TEST(URI_relative_to, sibling_paths_same_directory) {
+TEST(sibling_paths_same_directory) {
   const sourcemeta::core::URI base{"https://example.com/schemas/bar.json"};
   sourcemeta::core::URI uri{"https://example.com/schemas/foo.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "foo.json");
 }
 
-TEST(URI_relative_to, double_slash_with_trailing_slash) {
+TEST(double_slash_with_trailing_slash) {
   const sourcemeta::core::URI base{"https://example.com/slash/"};
   sourcemeta::core::URI uri{"https://example.com/slash/file.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "file.json");
 }
 
-TEST(URI_relative_to, different_directories_same_host_needs_dotdot) {
+TEST(different_directories_same_host_needs_dotdot) {
   const sourcemeta::core::URI base{
       "https://example.com/schemas/with-rebase-same-host.json"};
   sourcemeta::core::URI uri{"https://example.com/bundling/single"};
@@ -180,77 +180,77 @@ TEST(URI_relative_to, different_directories_same_host_needs_dotdot) {
   EXPECT_EQ(uri.recompose(), "../bundling/single");
 }
 
-TEST(URI_relative_to, different_directories_same_host_needs_dotdot_2) {
+TEST(different_directories_same_host_needs_dotdot_2) {
   const sourcemeta::core::URI base{"https://example.com/foo/bar/baz.json"};
   sourcemeta::core::URI uri{"https://example.com/qux/test.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../../qux/test.json");
 }
 
-TEST(URI_relative_to, different_directories_same_host_needs_dotdot_3) {
+TEST(different_directories_same_host_needs_dotdot_3) {
   const sourcemeta::core::URI base{"https://example.com/a/b/c.json"};
   sourcemeta::core::URI uri{"https://example.com/d.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../../d.json");
 }
 
-TEST(URI_relative_to, file_same_directory) {
+TEST(file_same_directory) {
   const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///home/user/schemas/other.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "other.json");
 }
 
-TEST(URI_relative_to, file_subdirectory) {
+TEST(file_subdirectory) {
   const sourcemeta::core::URI base{"file:///home/user/schemas"};
   sourcemeta::core::URI uri{"file:///home/user/schemas/sub/test.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "sub/test.json");
 }
 
-TEST(URI_relative_to, file_parent_directory) {
+TEST(file_parent_directory) {
   const sourcemeta::core::URI base{"file:///home/user/schemas/sub/base.json"};
   sourcemeta::core::URI uri{"file:///home/user/schemas/other.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../other.json");
 }
 
-TEST(URI_relative_to, file_different_root) {
+TEST(file_different_root) {
   const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///var/data/test.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../../../var/data/test.json");
 }
 
-TEST(URI_relative_to, file_same_file) {
+TEST(file_same_file) {
   const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///home/user/schemas/base.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "");
 }
 
-TEST(URI_relative_to, file_with_fragment) {
+TEST(file_with_fragment) {
   const sourcemeta::core::URI base{"file:///home/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///home/user/schemas/other.json#/defs/foo"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "other.json#/defs/foo");
 }
 
-TEST(URI_relative_to, file_windows_same_directory) {
+TEST(file_windows_same_directory) {
   const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/other.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "other.json");
 }
 
-TEST(URI_relative_to, file_windows_subdirectory) {
+TEST(file_windows_subdirectory) {
   const sourcemeta::core::URI base{"file:///C:/Users/user/schemas"};
   sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/sub/test.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "sub/test.json");
 }
 
-TEST(URI_relative_to, file_windows_parent_directory) {
+TEST(file_windows_parent_directory) {
   const sourcemeta::core::URI base{
       "file:///C:/Users/user/schemas/sub/base.json"};
   sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/other.json"};
@@ -258,21 +258,21 @@ TEST(URI_relative_to, file_windows_parent_directory) {
   EXPECT_EQ(uri.recompose(), "../other.json");
 }
 
-TEST(URI_relative_to, file_windows_different_drive) {
+TEST(file_windows_different_drive) {
   const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///D:/Data/test.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "../../../../D:/Data/test.json");
 }
 
-TEST(URI_relative_to, file_windows_same_file) {
+TEST(file_windows_same_file) {
   const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
   sourcemeta::core::URI uri{"file:///C:/Users/user/schemas/base.json"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "");
 }
 
-TEST(URI_relative_to, file_windows_with_fragment) {
+TEST(file_windows_with_fragment) {
   const sourcemeta::core::URI base{"file:///C:/Users/user/schemas/base.json"};
   sourcemeta::core::URI uri{
       "file:///C:/Users/user/schemas/other.json#/defs/foo"};
@@ -280,7 +280,7 @@ TEST(URI_relative_to, file_windows_with_fragment) {
   EXPECT_EQ(uri.recompose(), "other.json#/defs/foo");
 }
 
-TEST(URI_relative_to, iri_preserves_ucschar) {
+TEST(iri_preserves_ucschar) {
   const auto base{sourcemeta::core::URI::from_iri("https://example.com/dir/")};
   auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/dir/caf\xC3\xA9")};
@@ -288,84 +288,84 @@ TEST(URI_relative_to, iri_preserves_ucschar) {
   EXPECT_EQ(uri.recompose(), "caf\xC3\xA9");
 }
 
-TEST(URI_relative_to, same_path_only_query_differs) {
+TEST(same_path_only_query_differs) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar?q=1"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "?q=1");
 }
 
-TEST(URI_relative_to, same_path_only_fragment_differs) {
+TEST(same_path_only_fragment_differs) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar#baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "#baz");
 }
 
-TEST(URI_relative_to, same_path_query_and_fragment_differ) {
+TEST(same_path_query_and_fragment_differ) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar?q=1#baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "?q=1#baz");
 }
 
-TEST(URI_relative_to, same_path_base_query_target_none) {
+TEST(same_path_base_query_target_none) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "bar");
 }
 
-TEST(URI_relative_to, same_path_base_query_target_fragment_only) {
+TEST(same_path_base_query_target_fragment_only) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar#baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "bar#baz");
 }
 
-TEST(URI_relative_to, same_path_base_query_target_other_query) {
+TEST(same_path_base_query_target_other_query) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/bar?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/bar?q=2"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "?q=2");
 }
 
-TEST(URI_relative_to, same_directory_path_base_query_target_none) {
+TEST(same_directory_path_base_query_target_none) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "./");
 }
 
-TEST(URI_relative_to, same_directory_path_base_query_target_fragment) {
+TEST(same_directory_path_base_query_target_fragment) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/#baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "./#baz");
 }
 
-TEST(URI_relative_to, same_directory_path_target_query) {
+TEST(same_directory_path_target_query) {
   const sourcemeta::core::URI base{"https://www.example.com/foo/?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com/foo/?q=2"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "?q=2");
 }
 
-TEST(URI_relative_to, authority_no_path_only_fragment_differs) {
+TEST(authority_no_path_only_fragment_differs) {
   const sourcemeta::core::URI base{"https://www.example.com"};
   sourcemeta::core::URI uri{"https://www.example.com#baz"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "#baz");
 }
 
-TEST(URI_relative_to, authority_no_path_only_query_differs) {
+TEST(authority_no_path_only_query_differs) {
   const sourcemeta::core::URI base{"https://www.example.com?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com?q=2"};
   uri.relative_to(base);
   EXPECT_EQ(uri.recompose(), "?q=2");
 }
 
-TEST(URI_relative_to, authority_no_path_base_query_target_none) {
+TEST(authority_no_path_base_query_target_none) {
   const sourcemeta::core::URI base{"https://www.example.com?q=1"};
   sourcemeta::core::URI uri{"https://www.example.com"};
   uri.relative_to(base);

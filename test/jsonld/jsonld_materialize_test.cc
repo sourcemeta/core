@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
@@ -6,7 +6,7 @@
 
 #include <functional> // std::cref
 
-TEST(JSONLD_materialize, node_with_literal_property) {
+TEST(node_with_literal_property) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "name": "Sourcemeta" })");
 
@@ -33,7 +33,7 @@ TEST(JSONLD_materialize, node_with_literal_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, literal_with_datatype) {
+TEST(literal_with_datatype) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "isbn": "978-0131103627" })");
 
@@ -66,7 +66,7 @@ TEST(JSONLD_materialize, literal_with_datatype) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, literal_with_language_and_direction) {
+TEST(literal_with_language_and_direction) {
   const auto instance = sourcemeta::core::parse_json(R"({ "title": "مرحبا" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -96,7 +96,7 @@ TEST(JSONLD_materialize, literal_with_language_and_direction) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, reference_property) {
+TEST(reference_property) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "currency": "USD" })");
 
@@ -130,7 +130,7 @@ TEST(JSONLD_materialize, reference_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, ordered_collection_becomes_list) {
+TEST(ordered_collection_becomes_list) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "authors": [ "Ada", "Alan" ] })");
 
@@ -175,7 +175,7 @@ TEST(JSONLD_materialize, ordered_collection_becomes_list) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, unordered_collection_spreads_into_property) {
+TEST(unordered_collection_spreads_into_property) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "tags": [ "a", "b" ] })");
 
@@ -209,7 +209,7 @@ TEST(JSONLD_materialize, unordered_collection_spreads_into_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, field_with_multiple_predicates) {
+TEST(field_with_multiple_predicates) {
   const auto instance = sourcemeta::core::parse_json(R"({ "label": "Hi" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -238,7 +238,7 @@ TEST(JSONLD_materialize, field_with_multiple_predicates) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, reverse_edge) {
+TEST(reverse_edge) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "series": { "name": "Trilogy" } })");
 
@@ -273,7 +273,7 @@ TEST(JSONLD_materialize, reverse_edge) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, shared_blank_node_identifier_co_refers) {
+TEST(shared_blank_node_identifier_co_refers) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "billing": {}, "shipping": {} })");
 
@@ -305,7 +305,7 @@ TEST(JSONLD_materialize, shared_blank_node_identifier_co_refers) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, json_literal_preserved_verbatim) {
+TEST(json_literal_preserved_verbatim) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "payload": { "a": [ 1, 2 ] } })");
 
@@ -334,7 +334,7 @@ TEST(JSONLD_materialize, json_literal_preserved_verbatim) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, nested_ordered_collection_is_list_of_lists) {
+TEST(nested_ordered_collection_is_list_of_lists) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "matrix": [ [ 5 ] ] })");
 
@@ -385,7 +385,7 @@ TEST(JSONLD_materialize, nested_ordered_collection_is_list_of_lists) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, undescribed_object_with_described_child) {
+TEST(undescribed_object_with_described_child) {
   const auto instance = sourcemeta::core::parse_json(
       R"({ "name": "Doc", "meta": { "title": "T" } })");
 
@@ -417,7 +417,7 @@ TEST(JSONLD_materialize, undescribed_object_with_described_child) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, described_node_without_edge_is_standalone) {
+TEST(described_node_without_edge_is_standalone) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "extra": { "x": "v" } })");
 
@@ -450,7 +450,7 @@ TEST(JSONLD_materialize, described_node_without_edge_is_standalone) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, null_value_produces_no_triple) {
+TEST(null_value_produces_no_triple) {
   const auto instance = sourcemeta::core::parse_json(R"({ "maybe": null })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -473,7 +473,7 @@ TEST(JSONLD_materialize, null_value_produces_no_triple) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, named_graph) {
+TEST(named_graph) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "prov": { "who": "X" } })");
 
@@ -515,7 +515,7 @@ TEST(JSONLD_materialize, named_graph) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, scalar_root_reference) {
+TEST(scalar_root_reference) {
   const auto instance = sourcemeta::core::parse_json(R"("USD")");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -538,7 +538,7 @@ TEST(JSONLD_materialize, scalar_root_reference) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, empty_map_yields_empty_array) {
+TEST(empty_map_yields_empty_array) {
   const auto instance = sourcemeta::core::parse_json(R"({ "a": 1 })");
   const sourcemeta::core::JSONLDAnnotationMap map;
 
@@ -549,7 +549,7 @@ TEST(JSONLD_materialize, empty_map_yields_empty_array) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, node_with_type) {
+TEST(node_with_type) {
   const auto instance = sourcemeta::core::parse_json(R"({ "name": "Ada" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -577,7 +577,7 @@ TEST(JSONLD_materialize, node_with_type) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, node_with_multiple_types) {
+TEST(node_with_multiple_types) {
   const auto instance = sourcemeta::core::parse_json(R"({})");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -601,7 +601,7 @@ TEST(JSONLD_materialize, node_with_multiple_types) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, reference_without_types) {
+TEST(reference_without_types) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "currency": "USD" })");
 
@@ -631,7 +631,7 @@ TEST(JSONLD_materialize, reference_without_types) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, literal_with_language_only) {
+TEST(literal_with_language_only) {
   const auto instance = sourcemeta::core::parse_json(R"({ "title": "Hello" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -657,7 +657,7 @@ TEST(JSONLD_materialize, literal_with_language_only) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, literal_with_ltr_direction) {
+TEST(literal_with_ltr_direction) {
   const auto instance = sourcemeta::core::parse_json(R"({ "title": "Hello" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -687,7 +687,7 @@ TEST(JSONLD_materialize, literal_with_ltr_direction) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, boolean_literal) {
+TEST(boolean_literal) {
   const auto instance = sourcemeta::core::parse_json(R"({ "active": true })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -713,7 +713,7 @@ TEST(JSONLD_materialize, boolean_literal) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, integer_literal_without_datatype) {
+TEST(integer_literal_without_datatype) {
   const auto instance = sourcemeta::core::parse_json(R"({ "count": 42 })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -739,7 +739,7 @@ TEST(JSONLD_materialize, integer_literal_without_datatype) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, ordered_collection_of_nodes) {
+TEST(ordered_collection_of_nodes) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "authors": [ { "name": "Ada" } ] })");
 
@@ -780,7 +780,7 @@ TEST(JSONLD_materialize, ordered_collection_of_nodes) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, unordered_collection_of_nodes) {
+TEST(unordered_collection_of_nodes) {
   const auto instance = sourcemeta::core::parse_json(
       R"({ "items": [ { "sku": "1" }, { "sku": "2" } ] })");
 
@@ -825,7 +825,7 @@ TEST(JSONLD_materialize, unordered_collection_of_nodes) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, empty_ordered_collection_is_rdf_nil) {
+TEST(empty_ordered_collection_is_rdf_nil) {
   const auto instance = sourcemeta::core::parse_json(R"({ "authors": [] })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -852,7 +852,7 @@ TEST(JSONLD_materialize, empty_ordered_collection_is_rdf_nil) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, empty_unordered_collection_adds_no_property) {
+TEST(empty_unordered_collection_adds_no_property) {
   const auto instance = sourcemeta::core::parse_json(R"({ "tags": [] })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -876,7 +876,7 @@ TEST(JSONLD_materialize, empty_unordered_collection_adds_no_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, collection_with_undescribed_elements_skips_them) {
+TEST(collection_with_undescribed_elements_skips_them) {
   const auto instance = sourcemeta::core::parse_json(
       R"({ "authors": [ "Ada", "Unknown", "Alan" ] })");
 
@@ -912,7 +912,7 @@ TEST(JSONLD_materialize, collection_with_undescribed_elements_skips_them) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, nested_unordered_collection_flattens) {
+TEST(nested_unordered_collection_flattens) {
   const auto instance = sourcemeta::core::parse_json(
       R"({ "groups": [ [ "a", "b" ], [ "c" ] ] })");
 
@@ -961,7 +961,7 @@ TEST(JSONLD_materialize, nested_unordered_collection_flattens) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, array_root_spreads_into_default_graph) {
+TEST(array_root_spreads_into_default_graph) {
   const auto instance =
       sourcemeta::core::parse_json(R"([ { "name": "A" }, { "name": "B" } ])");
 
@@ -1006,7 +1006,7 @@ TEST(JSONLD_materialize, array_root_spreads_into_default_graph) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, root_collection_of_literals_is_dropped) {
+TEST(root_collection_of_literals_is_dropped) {
   const auto instance = sourcemeta::core::parse_json(R"([ "a", "b" ])");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -1029,7 +1029,7 @@ TEST(JSONLD_materialize, root_collection_of_literals_is_dropped) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, root_collection_keeps_only_node_elements) {
+TEST(root_collection_keeps_only_node_elements) {
   const auto instance =
       sourcemeta::core::parse_json(R"([ { "name": "A" }, "loose" ])");
 
@@ -1064,7 +1064,7 @@ TEST(JSONLD_materialize, root_collection_keeps_only_node_elements) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, scalar_root_literal_is_dropped) {
+TEST(scalar_root_literal_is_dropped) {
   const auto instance = sourcemeta::core::parse_json(R"("hello")");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -1079,7 +1079,7 @@ TEST(JSONLD_materialize, scalar_root_literal_is_dropped) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, collection_descriptor_on_non_array_is_dropped) {
+TEST(collection_descriptor_on_non_array_is_dropped) {
   const auto instance = sourcemeta::core::parse_json(R"({ "x": "scalar" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -1103,7 +1103,7 @@ TEST(JSONLD_materialize, collection_descriptor_on_non_array_is_dropped) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, output_is_a_fixed_point_of_expansion) {
+TEST(output_is_a_fixed_point_of_expansion) {
   const auto instance = sourcemeta::core::parse_json(R"({
     "name": "Ada",
     "homepage": "https://ada.example",
@@ -1145,7 +1145,7 @@ TEST(JSONLD_materialize, output_is_a_fixed_point_of_expansion) {
   EXPECT_EQ(sourcemeta::core::jsonld_expand(result), result);
 }
 
-TEST(JSONLD_materialize, node_descriptor_on_scalar_ignores_value) {
+TEST(node_descriptor_on_scalar_ignores_value) {
   const auto instance = sourcemeta::core::parse_json(R"({ "x": "scalar" })");
 
   sourcemeta::core::JSONLDAnnotationMap map;
@@ -1172,7 +1172,7 @@ TEST(JSONLD_materialize, node_descriptor_on_scalar_ignores_value) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, weak_node_with_literal_property) {
+TEST(weak_node_with_literal_property) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "name": "Sourcemeta" })");
 
@@ -1201,7 +1201,7 @@ TEST(JSONLD_materialize, weak_node_with_literal_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, weak_reference_property) {
+TEST(weak_reference_property) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "currency": "USD" })");
 
@@ -1237,7 +1237,7 @@ TEST(JSONLD_materialize, weak_reference_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, weak_ordered_collection_becomes_list) {
+TEST(weak_ordered_collection_becomes_list) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "authors": [ "Ada", "Alan" ] })");
 
@@ -1284,7 +1284,7 @@ TEST(JSONLD_materialize, weak_ordered_collection_becomes_list) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, weak_reverse_edge) {
+TEST(weak_reverse_edge) {
   const auto instance =
       sourcemeta::core::parse_json(R"({ "series": { "name": "Trilogy" } })");
 
@@ -1323,7 +1323,7 @@ TEST(JSONLD_materialize, weak_reverse_edge) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(JSONLD_materialize, weak_array_root_spreads_into_default_graph) {
+TEST(weak_array_root_spreads_into_default_graph) {
   const auto instance =
       sourcemeta::core::parse_json(R"([ { "name": "A" }, { "name": "B" } ])");
 

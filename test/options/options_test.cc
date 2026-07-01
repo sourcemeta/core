@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/options.h>
 
-TEST(Options, long_option_equals_parses_value_with_equal_sign) {
+TEST(long_option_equals_parses_value_with_equal_sign) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
@@ -19,7 +19,7 @@ TEST(Options, long_option_equals_parses_value_with_equal_sign) {
   EXPECT_TRUE(app.contains("foo"));
 }
 
-TEST(Options, long_option_space_parses_value_after_space) {
+TEST(long_option_space_parses_value_after_space) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
@@ -36,7 +36,7 @@ TEST(Options, long_option_space_parses_value_after_space) {
   EXPECT_EQ(app.at("foo")[0], "bar");
 }
 
-TEST(Options, short_option_space_parses_short_option_with_space_value) {
+TEST(short_option_space_parses_short_option_with_space_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -53,7 +53,7 @@ TEST(Options, short_option_space_parses_short_option_with_space_value) {
   EXPECT_EQ(app.at("file")[0], "path/to/x");
 }
 
-TEST(Options, short_option_attached_value_parses_short_option_attached_value) {
+TEST(short_option_attached_value_parses_short_option_attached_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -69,7 +69,7 @@ TEST(Options, short_option_attached_value_parses_short_option_attached_value) {
   EXPECT_EQ(app.at("file")[0], "path");
 }
 
-TEST(Options, combined_flags_parses_combined_short_flags) {
+TEST(combined_flags_parses_combined_short_flags) {
   sourcemeta::core::Options app;
   app.flag("alpha", {"a"});
   app.flag("beta", {"b"});
@@ -89,7 +89,6 @@ TEST(Options, combined_flags_parses_combined_short_flags) {
 }
 
 TEST(
-    Options,
     combined_flags_and_option_with_value_parses_combined_flags_and_option_value) {
   sourcemeta::core::Options app;
   app.flag("alpha", {"a"});
@@ -108,7 +107,7 @@ TEST(
   EXPECT_EQ(app.at("bopt")[0], "value");
 }
 
-TEST(Options, repeated_options_preserved_order) {
+TEST(repeated_options_preserved_order) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
@@ -130,7 +129,7 @@ TEST(Options, repeated_options_preserved_order) {
   EXPECT_EQ(app.at("foo")[2], "three");
 }
 
-TEST(Options, flags_count_multiple_occurrences) {
+TEST(flags_count_multiple_occurrences) {
   sourcemeta::core::Options app;
   app.flag("exclude", {"x"});
 
@@ -147,7 +146,7 @@ TEST(Options, flags_count_multiple_occurrences) {
   EXPECT_TRUE(app.contains("exclude"));
 }
 
-TEST(Options, unknown_option_throws) {
+TEST(unknown_option_throws) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
@@ -164,7 +163,7 @@ TEST(Options, unknown_option_throws) {
   }
 }
 
-TEST(Options, flag_given_value_throws) {
+TEST(flag_given_value_throws) {
   sourcemeta::core::Options app;
   app.flag("verbose", {"v"});
 
@@ -181,7 +180,7 @@ TEST(Options, flag_given_value_throws) {
   }
 }
 
-TEST(Options, positional_after_double_dash) {
+TEST(positional_after_double_dash) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
   app.flag("x", {"x"});
@@ -200,7 +199,7 @@ TEST(Options, positional_after_double_dash) {
   EXPECT_EQ(app.positional()[1], "pos2");
 }
 
-TEST(Options, positional_before_options) {
+TEST(positional_before_options) {
   sourcemeta::core::Options app;
   app.option("foo", {"foo"});
 
@@ -219,7 +218,7 @@ TEST(Options, positional_before_options) {
   EXPECT_EQ(app.at("foo")[0], "bar");
 }
 
-TEST(Options, skip_parameter_works) {
+TEST(skip_parameter_works) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -237,7 +236,7 @@ TEST(Options, skip_parameter_works) {
   EXPECT_EQ(app.at("file")[0], "file.txt");
 }
 
-TEST(Options, alias_mapping_recognizes_aliases) {
+TEST(alias_mapping_recognizes_aliases) {
   sourcemeta::core::Options app;
   app.option("file", {"f", "a"});
 
@@ -254,7 +253,7 @@ TEST(Options, alias_mapping_recognizes_aliases) {
   EXPECT_EQ(app.at("file")[0], "ok");
 }
 
-TEST(Options, option_value) {
+TEST(option_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
   app.flag("other", {"o"});
@@ -273,7 +272,7 @@ TEST(Options, option_value) {
   EXPECT_EQ(app.at("other").size(), 0);
 }
 
-TEST(Options, long_option_without_value) {
+TEST(long_option_without_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -290,7 +289,7 @@ TEST(Options, long_option_without_value) {
   }
 }
 
-TEST(Options, short_option_without_value) {
+TEST(short_option_without_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -307,7 +306,7 @@ TEST(Options, short_option_without_value) {
   }
 }
 
-TEST(Options, single_dash_is_consumed_as_value) {
+TEST(single_dash_is_consumed_as_value) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -324,7 +323,7 @@ TEST(Options, single_dash_is_consumed_as_value) {
   EXPECT_EQ(app.at("file")[0], "-");
 }
 
-TEST(Options, empty_result_for_missing_option) {
+TEST(empty_result_for_missing_option) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 
@@ -337,7 +336,7 @@ TEST(Options, empty_result_for_missing_option) {
   EXPECT_TRUE(app.positional().empty());
 }
 
-TEST(Options, mixed_complex_scenario_parses_complex_mixture_correctly) {
+TEST(mixed_complex_scenario_parses_complex_mixture_correctly) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
   app.flag("verbose", {"v"});
@@ -376,7 +375,7 @@ TEST(Options, mixed_complex_scenario_parses_complex_mixture_correctly) {
   EXPECT_EQ(app.positional()[2], "--also-pos");
 }
 
-TEST(Options, no_skip_includes_program_name_as_positional) {
+TEST(no_skip_includes_program_name_as_positional) {
   sourcemeta::core::Options app;
   app.option("foo", {"f"});
 
@@ -393,7 +392,7 @@ TEST(Options, no_skip_includes_program_name_as_positional) {
   EXPECT_EQ(app.at("foo")[0], "bar");
 }
 
-TEST(Options, no_skip_treats_program_name_as_option_if_prefixed) {
+TEST(no_skip_treats_program_name_as_option_if_prefixed) {
   sourcemeta::core::Options app;
   app.option("file", {"f"});
 

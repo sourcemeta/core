@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/unicode.h>
 
 #include <sstream> // std::istringstream
 #include <string>  // std::u32string
 
-TEST(Unicode_utf8_to_utf32, ascii) {
+TEST(ascii) {
   std::istringstream input{"Hello"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_TRUE(result.has_value());
@@ -13,14 +13,14 @@ TEST(Unicode_utf8_to_utf32, ascii) {
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, empty) {
+TEST(empty) {
   std::istringstream input{""};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_TRUE(result.has_value());
   EXPECT_TRUE(result.value().empty());
 }
 
-TEST(Unicode_utf8_to_utf32, two_byte) {
+TEST(two_byte) {
   std::istringstream input{"\xC3\xA9"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_TRUE(result.has_value());
@@ -28,7 +28,7 @@ TEST(Unicode_utf8_to_utf32, two_byte) {
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, three_byte_cjk) {
+TEST(three_byte_cjk) {
   std::istringstream input{"\xE4\xB8\x96"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_TRUE(result.has_value());
@@ -36,7 +36,7 @@ TEST(Unicode_utf8_to_utf32, three_byte_cjk) {
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, four_byte_emoji) {
+TEST(four_byte_emoji) {
   std::istringstream input{"\xF0\x9F\x98\x80"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_TRUE(result.has_value());
@@ -44,7 +44,7 @@ TEST(Unicode_utf8_to_utf32, four_byte_emoji) {
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, mixed) {
+TEST(mixed) {
   std::istringstream input{"H\xC3\xA9\xE4\xB8\x96\xF0\x9F\x98\x80"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_TRUE(result.has_value());
@@ -52,50 +52,50 @@ TEST(Unicode_utf8_to_utf32, mixed) {
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, invalid_continuation) {
+TEST(invalid_continuation) {
   std::istringstream input{"\xC3\x28"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(Unicode_utf8_to_utf32, truncated_sequence) {
+TEST(truncated_sequence) {
   std::istringstream input{"\xE4\xB8"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(Unicode_utf8_to_utf32, overlong_encoding) {
+TEST(overlong_encoding) {
   std::istringstream input{"\xC0\x80"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(Unicode_utf8_to_utf32, surrogate_codepoint) {
+TEST(surrogate_codepoint) {
   std::istringstream input{"\xED\xA0\x80"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(Unicode_utf8_to_utf32, invalid_start_byte) {
+TEST(invalid_start_byte) {
   std::istringstream input{"\xFF"};
   const auto result{sourcemeta::core::utf8_to_utf32(input)};
   EXPECT_FALSE(result.has_value());
 }
 
-TEST(Unicode_utf8_to_utf32, string_view_ascii) {
+TEST(string_view_ascii) {
   const auto result{sourcemeta::core::utf8_to_utf32("Hello")};
   EXPECT_TRUE(result.has_value());
   const std::u32string expected{0x48, 0x65, 0x6C, 0x6C, 0x6F};
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, string_view_empty) {
+TEST(string_view_empty) {
   const auto result{sourcemeta::core::utf8_to_utf32("")};
   EXPECT_TRUE(result.has_value());
   EXPECT_TRUE(result.value().empty());
 }
 
-TEST(Unicode_utf8_to_utf32, string_view_mixed) {
+TEST(string_view_mixed) {
   const auto result{
       sourcemeta::core::utf8_to_utf32("H\xC3\xA9\xE4\xB8\x96\xF0\x9F\x98\x80")};
   EXPECT_TRUE(result.has_value());
@@ -103,7 +103,7 @@ TEST(Unicode_utf8_to_utf32, string_view_mixed) {
   EXPECT_EQ(result.value(), expected);
 }
 
-TEST(Unicode_utf8_to_utf32, string_view_invalid) {
+TEST(string_view_invalid) {
   const auto result{sourcemeta::core::utf8_to_utf32("\xFF")};
   EXPECT_FALSE(result.has_value());
 }

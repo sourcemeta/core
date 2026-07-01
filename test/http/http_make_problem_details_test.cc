@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/http_problem.h>
 #include <sourcemeta/core/http_status.h>
 #include <sourcemeta/core/json.h>
 
-TEST(HTTP_make_problem_details, defaults_only_with_not_found_status) {
+TEST(defaults_only_with_not_found_status) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND})};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -15,7 +15,7 @@ TEST(HTTP_make_problem_details, defaults_only_with_not_found_status) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, defaults_only_with_internal_server_error) {
+TEST(defaults_only_with_internal_server_error) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_INTERNAL_SERVER_ERROR})};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -26,7 +26,7 @@ TEST(HTTP_make_problem_details, defaults_only_with_internal_server_error) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, type_override_replaces_about_blank) {
+TEST(type_override_replaces_about_blank) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_BAD_REQUEST,
        .type = "https://example.com/probs/invalid-uri"})};
@@ -38,7 +38,7 @@ TEST(HTTP_make_problem_details, type_override_replaces_about_blank) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, title_override_replaces_status_phrase) {
+TEST(title_override_replaces_status_phrase) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND,
        .title = "Schema unavailable"})};
@@ -50,7 +50,7 @@ TEST(HTTP_make_problem_details, title_override_replaces_status_phrase) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, detail_added_when_non_empty) {
+TEST(detail_added_when_non_empty) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND,
        .detail = "There is nothing at this URL"})};
@@ -63,7 +63,7 @@ TEST(HTTP_make_problem_details, detail_added_when_non_empty) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, instance_added_when_non_empty) {
+TEST(instance_added_when_non_empty) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND,
        .instance = "/requests/abc-123"})};
@@ -76,7 +76,7 @@ TEST(HTTP_make_problem_details, instance_added_when_non_empty) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, every_field_set) {
+TEST(every_field_set) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_BAD_REQUEST,
        .type = "https://example.com/probs/invalid-uri",
@@ -93,7 +93,7 @@ TEST(HTTP_make_problem_details, every_field_set) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, sourcemeta_urn_type) {
+TEST(sourcemeta_urn_type) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND,
        .type = "sourcemeta:one/not-found",
@@ -107,7 +107,7 @@ TEST(HTTP_make_problem_details, sourcemeta_urn_type) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, ok_status_200) {
+TEST(ok_status_200) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_OK})};
   const auto expected{sourcemeta::core::parse_json(R"JSON({
@@ -118,7 +118,7 @@ TEST(HTTP_make_problem_details, ok_status_200) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, method_not_allowed_with_detail) {
+TEST(method_not_allowed_with_detail) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_METHOD_NOT_ALLOWED,
        .detail = "This HTTP method is invalid for this URL"})};
@@ -131,7 +131,7 @@ TEST(HTTP_make_problem_details, method_not_allowed_with_detail) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, content_too_large_with_full_fields) {
+TEST(content_too_large_with_full_fields) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_CONTENT_TOO_LARGE,
        .type = "sourcemeta:one/content-too-large",
@@ -147,13 +147,13 @@ TEST(HTTP_make_problem_details, content_too_large_with_full_fields) {
   EXPECT_EQ(body, expected);
 }
 
-TEST(HTTP_make_problem_details, output_is_object) {
+TEST(output_is_object) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_OK})};
   EXPECT_TRUE(body.is_object());
 }
 
-TEST(HTTP_make_problem_details, key_order_is_canonical) {
+TEST(key_order_is_canonical) {
   const auto body{sourcemeta::core::http_make_problem_details(
       {.status = sourcemeta::core::HTTP_STATUS_NOT_FOUND,
        .type = "t",

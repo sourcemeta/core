@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/html.h>
 
-TEST(HTML_writer, example_1) {
+TEST(example_1) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.h1("Title");
@@ -19,7 +19,7 @@ TEST(HTML_writer, example_1) {
                             "<li>baz</li></ul><p>Footer</p></div>");
 }
 
-TEST(HTML_writer, escaped_text_content) {
+TEST(escaped_text_content) {
   sourcemeta::core::HTMLWriter document;
   document.p(
       "This contains <dangerous> & \"potentially\" 'harmful' characters");
@@ -29,7 +29,7 @@ TEST(HTML_writer, escaped_text_content) {
             "&#39;harmful&#39; characters</p>");
 }
 
-TEST(HTML_writer, raw_html_basic) {
+TEST(raw_html_basic) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.raw("<strong>Bold text</strong>");
@@ -38,7 +38,7 @@ TEST(HTML_writer, raw_html_basic) {
   EXPECT_EQ(document.str(), "<div><strong>Bold text</strong></div>");
 }
 
-TEST(HTML_writer, raw_html_with_dangerous_content) {
+TEST(raw_html_with_dangerous_content) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.raw("<script>alert('xss')</script>");
@@ -47,7 +47,7 @@ TEST(HTML_writer, raw_html_with_dangerous_content) {
   EXPECT_EQ(document.str(), "<div><script>alert('xss')</script></div>");
 }
 
-TEST(HTML_writer, raw_html_mixed_with_escaped) {
+TEST(raw_html_mixed_with_escaped) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.text("Safe text: <script>");
@@ -59,7 +59,7 @@ TEST(HTML_writer, raw_html_mixed_with_escaped) {
                             "&amp; more safe text</div>");
 }
 
-TEST(HTML_writer, raw_html_in_list) {
+TEST(raw_html_in_list) {
   sourcemeta::core::HTMLWriter document;
   document.ul();
   document.li("Regular item");
@@ -74,7 +74,7 @@ TEST(HTML_writer, raw_html_in_list) {
             "item</li><li>Another &amp; escaped item</li></ul>");
 }
 
-TEST(HTML_writer, raw_html_empty_content) {
+TEST(raw_html_empty_content) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.raw("");
@@ -83,7 +83,7 @@ TEST(HTML_writer, raw_html_empty_content) {
   EXPECT_EQ(document.str(), "<div></div>");
 }
 
-TEST(HTML_writer, raw_html_with_entities) {
+TEST(raw_html_with_entities) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.raw("&lt;already&gt; &amp; &quot;escaped&quot;");
@@ -93,7 +93,7 @@ TEST(HTML_writer, raw_html_with_entities) {
             "<div>&lt;already&gt; &amp; &quot;escaped&quot;</div>");
 }
 
-TEST(HTML_writer, empty_elements) {
+TEST(empty_elements) {
   {
     sourcemeta::core::HTMLWriter document;
     document.div();
@@ -114,7 +114,7 @@ TEST(HTML_writer, empty_elements) {
   }
 }
 
-TEST(HTML_writer, void_elements_self_closing) {
+TEST(void_elements_self_closing) {
   {
     sourcemeta::core::HTMLWriter document;
     document.br();
@@ -142,7 +142,7 @@ TEST(HTML_writer, void_elements_self_closing) {
   }
 }
 
-TEST(HTML_writer, single_text_node_inline_rendering) {
+TEST(single_text_node_inline_rendering) {
   {
     sourcemeta::core::HTMLWriter document;
     document.p("Hello");
@@ -160,7 +160,7 @@ TEST(HTML_writer, single_text_node_inline_rendering) {
   }
 }
 
-TEST(HTML_writer, multiple_children_block_rendering) {
+TEST(multiple_children_block_rendering) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.text("Text 1");
@@ -170,7 +170,7 @@ TEST(HTML_writer, multiple_children_block_rendering) {
   EXPECT_EQ(document.str(), "<div>Text 1<span>Text 2</span></div>");
 }
 
-TEST(HTML_writer, attribute_value_escaping) {
+TEST(attribute_value_escaping) {
   sourcemeta::core::HTMLWriter document;
   document.div()
       .attribute("title", "Alert: \"Click here\" & 'submit'")
@@ -185,7 +185,7 @@ TEST(HTML_writer, attribute_value_escaping) {
       "Content</div>");
 }
 
-TEST(HTML_writer, empty_attribute_values) {
+TEST(empty_attribute_values) {
   sourcemeta::core::HTMLWriter document;
   document.input()
       .attribute("type", "text")
@@ -196,7 +196,7 @@ TEST(HTML_writer, empty_attribute_values) {
             "<input type=\"text\" value=\"\" placeholder=\"Enter text\" />");
 }
 
-TEST(HTML_writer, nested_html_elements) {
+TEST(nested_html_elements) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.p("First paragraph");
@@ -213,7 +213,7 @@ TEST(HTML_writer, nested_html_elements) {
             "<p>Last paragraph</p></div>");
 }
 
-TEST(HTML_writer, complex_table_structure) {
+TEST(complex_table_structure) {
   sourcemeta::core::HTMLWriter document;
   document.table();
   document.thead();
@@ -254,7 +254,7 @@ TEST(HTML_writer, complex_table_structure) {
   EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_writer, form_elements_combination) {
+TEST(form_elements_combination) {
   sourcemeta::core::HTMLWriter document;
   document.form().attribute("action", "/submit").attribute("method", "post");
   document.fieldset();
@@ -301,14 +301,14 @@ TEST(HTML_writer, form_elements_combination) {
   EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_writer, unicode_and_special_characters) {
+TEST(unicode_and_special_characters) {
   sourcemeta::core::HTMLWriter document;
   document.p("Unicode: 你好世界 🌍 ñáéíóú");
 
   EXPECT_EQ(document.str(), "<p>Unicode: 你好世界 🌍 ñáéíóú</p>");
 }
 
-TEST(HTML_writer, whitespace_handling) {
+TEST(whitespace_handling) {
   sourcemeta::core::HTMLWriter document;
   document.pre("  Whitespace\n  should be\n    preserved  ");
 
@@ -316,7 +316,7 @@ TEST(HTML_writer, whitespace_handling) {
             "<pre>  Whitespace\n  should be\n    preserved  </pre>");
 }
 
-TEST(HTML_writer, mixed_raw_and_escaped_complex) {
+TEST(mixed_raw_and_escaped_complex) {
   sourcemeta::core::HTMLWriter document;
   document.article();
   document.h2("Article Title & <subtitle>");
@@ -342,7 +342,7 @@ TEST(HTML_writer, mixed_raw_and_escaped_complex) {
   EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_writer, semantic_html5_elements) {
+TEST(semantic_html5_elements) {
   sourcemeta::core::HTMLWriter document;
   document.main().attribute("role", "main");
   document.header();
@@ -387,7 +387,7 @@ TEST(HTML_writer, semantic_html5_elements) {
   EXPECT_EQ(document.str(), expected);
 }
 
-TEST(HTML_writer, attribute_order_consistency) {
+TEST(attribute_order_consistency) {
   sourcemeta::core::HTMLWriter document;
   document.div()
       .attribute("z-index", "1")
@@ -400,7 +400,7 @@ TEST(HTML_writer, attribute_order_consistency) {
             "<div z-index=\"1\" class=\"test\" id=\"main\">Content</div>");
 }
 
-TEST(HTML_writer, zero_length_strings) {
+TEST(zero_length_strings) {
   {
     sourcemeta::core::HTMLWriter document;
     document.p("");
@@ -415,7 +415,7 @@ TEST(HTML_writer, zero_length_strings) {
   }
 }
 
-TEST(HTML_writer, escaped_text_in_container) {
+TEST(escaped_text_in_container) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.text("Safe: <script>alert('xss')</script>");
@@ -425,7 +425,7 @@ TEST(HTML_writer, escaped_text_in_container) {
                             "&lt;/script&gt;</div>");
 }
 
-TEST(HTML_writer, template_element_tag_name) {
+TEST(template_element_tag_name) {
   {
     sourcemeta::core::HTMLWriter document;
     document.template_("Content");
@@ -441,7 +441,7 @@ TEST(HTML_writer, template_element_tag_name) {
   }
 }
 
-TEST(HTML_writer, chaining) {
+TEST(chaining) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.span().text("hello").close();
@@ -450,7 +450,7 @@ TEST(HTML_writer, chaining) {
   EXPECT_EQ(document.str(), "<div><span>hello</span></div>");
 }
 
-TEST(HTML_writer, write_to_stream) {
+TEST(write_to_stream) {
   sourcemeta::core::HTMLWriter document;
   document.p("Hello");
 
@@ -460,7 +460,7 @@ TEST(HTML_writer, write_to_stream) {
   EXPECT_EQ(output.str(), "<p>Hello</p>");
 }
 
-TEST(HTML_writer, reserve_does_not_change_output) {
+TEST(reserve_does_not_change_output) {
   sourcemeta::core::HTMLWriter document;
   document.reserve(1024);
   document.div("Content");
@@ -468,7 +468,7 @@ TEST(HTML_writer, reserve_does_not_change_output) {
   EXPECT_EQ(document.str(), "<div>Content</div>");
 }
 
-TEST(HTML_writer, void_element_with_attributes) {
+TEST(void_element_with_attributes) {
   sourcemeta::core::HTMLWriter document;
   document.div();
   document.img().attribute("src", "photo.png").attribute("alt", "A photo");
@@ -478,7 +478,7 @@ TEST(HTML_writer, void_element_with_attributes) {
             "<div><img src=\"photo.png\" alt=\"A photo\" /></div>");
 }
 
-TEST(HTML_writer, attribute_chaining) {
+TEST(attribute_chaining) {
   sourcemeta::core::HTMLWriter document;
   document.a().attribute("href", "/test").attribute("class", "link");
   document.text("Click");

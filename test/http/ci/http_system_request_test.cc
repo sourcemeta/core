@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/http.h>
 #include <sourcemeta/core/json.h>
 
 #include <chrono> // std::chrono::milliseconds
 
-TEST(HTTP_SystemRequest, get_health_ok) {
+TEST(get_health_ok) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/health"};
   const auto response{request.send()};
@@ -16,7 +16,7 @@ TEST(HTTP_SystemRequest, get_health_ok) {
       "https://schemas.sourcemeta.com/self/v1/health"));
 }
 
-TEST(HTTP_SystemRequest, head_health_ok) {
+TEST(head_health_ok) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/health",
       sourcemeta::core::HTTPMethod::HEAD};
@@ -25,14 +25,14 @@ TEST(HTTP_SystemRequest, head_health_ok) {
   EXPECT_TRUE(response.body.empty());
 }
 
-TEST(HTTP_SystemRequest, get_list_json_body) {
+TEST(get_list_json_body) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/api/list"};
   const auto response{request.send()};
   EXPECT_EQ(response.status, sourcemeta::core::HTTP_STATUS_OK);
   const auto content_type{
       sourcemeta::core::http_header_find(response.headers, "content-type")};
-  ASSERT_TRUE(content_type.has_value());
+  EXPECT_TRUE(content_type.has_value());
   EXPECT_NE(content_type.value().find("application/json"),
             std::string_view::npos);
   const auto body{sourcemeta::core::parse_json(response.body)};
@@ -40,7 +40,7 @@ TEST(HTTP_SystemRequest, get_list_json_body) {
   EXPECT_TRUE(body.defines("entries"));
 }
 
-TEST(HTTP_SystemRequest, get_missing_path_not_found) {
+TEST(get_missing_path_not_found) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/api/list/"
       "this-directory-does-not-exist-xyz"};
@@ -48,12 +48,12 @@ TEST(HTTP_SystemRequest, get_missing_path_not_found) {
   EXPECT_EQ(response.status, sourcemeta::core::HTTP_STATUS_NOT_FOUND);
   const auto content_type{
       sourcemeta::core::http_header_find(response.headers, "content-type")};
-  ASSERT_TRUE(content_type.has_value());
+  EXPECT_TRUE(content_type.has_value());
   EXPECT_NE(content_type.value().find("application/problem+json"),
             std::string_view::npos);
 }
 
-TEST(HTTP_SystemRequest, post_health_method_not_allowed) {
+TEST(post_health_method_not_allowed) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/health",
       sourcemeta::core::HTTPMethod::POST};
@@ -61,7 +61,7 @@ TEST(HTTP_SystemRequest, post_health_method_not_allowed) {
   EXPECT_EQ(response.status, sourcemeta::core::HTTP_STATUS_METHOD_NOT_ALLOWED);
 }
 
-TEST(HTTP_SystemRequest, post_evaluate_with_body) {
+TEST(post_evaluate_with_body) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/api/schemas/evaluate/"
       "cloudevents/v1.0.2/cloudevents",
@@ -71,12 +71,12 @@ TEST(HTTP_SystemRequest, post_evaluate_with_body) {
   EXPECT_EQ(response.status, sourcemeta::core::HTTP_STATUS_OK);
   const auto body{sourcemeta::core::parse_json(response.body)};
   EXPECT_TRUE(body.is_object());
-  ASSERT_TRUE(body.defines("valid"));
+  EXPECT_TRUE(body.defines("valid"));
   EXPECT_TRUE(body.at("valid").is_boolean());
   EXPECT_FALSE(body.at("valid").to_boolean());
 }
 
-TEST(HTTP_SystemRequest, post_evaluate_missing_instance_bad_request) {
+TEST(post_evaluate_missing_instance_bad_request) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/api/schemas/evaluate/"
       "cloudevents/v1.0.2/cloudevents",
@@ -85,7 +85,7 @@ TEST(HTTP_SystemRequest, post_evaluate_missing_instance_bad_request) {
   EXPECT_EQ(response.status, sourcemeta::core::HTTP_STATUS_BAD_REQUEST);
 }
 
-TEST(HTTP_SystemRequest, follow_redirect_to_https) {
+TEST(follow_redirect_to_https) {
   sourcemeta::core::HTTPSystemRequest request{
       "http://schemas.sourcemeta.com/self/v1/health"};
   request.follow_redirects(true);
@@ -97,7 +97,7 @@ TEST(HTTP_SystemRequest, follow_redirect_to_https) {
       "https://schemas.sourcemeta.com/self/v1/health"));
 }
 
-TEST(HTTP_SystemRequest, no_follow_redirect_returns_redirect) {
+TEST(no_follow_redirect_returns_redirect) {
   sourcemeta::core::HTTPSystemRequest request{
       "http://schemas.sourcemeta.com/self/v1/health"};
   request.follow_redirects(false);
@@ -106,7 +106,7 @@ TEST(HTTP_SystemRequest, no_follow_redirect_returns_redirect) {
   EXPECT_LT(response.status.code, 400);
 }
 
-TEST(HTTP_SystemRequest, timeout_against_unreachable_host_throws) {
+TEST(timeout_against_unreachable_host_throws) {
   // A non-routable RFC 5737 TEST-NET-1 address never completes the request,
   // so a bounded timeout reliably surfaces an error rather than racing the
   // sub-millisecond timer granularity of some backends
@@ -121,7 +121,7 @@ TEST(HTTP_SystemRequest, timeout_against_unreachable_host_throws) {
   }
 }
 
-TEST(HTTP_SystemRequest, unresolvable_host_throws) {
+TEST(unresolvable_host_throws) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://this-host-does-not-exist.sourcemeta.invalid/"};
   try {
@@ -134,7 +134,7 @@ TEST(HTTP_SystemRequest, unresolvable_host_throws) {
   }
 }
 
-TEST(HTTP_SystemRequest, maximum_response_size_exceeded_throws) {
+TEST(maximum_response_size_exceeded_throws) {
   sourcemeta::core::HTTPSystemRequest request{
       "https://schemas.sourcemeta.com/self/v1/api/list"};
   request.maximum_response_size(1);

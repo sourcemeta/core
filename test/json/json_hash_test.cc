@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 
-TEST(JSON_key_hash, hash_empty) {
+TEST(hash_empty) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{""};
@@ -14,7 +14,7 @@ TEST(JSON_key_hash, hash_empty) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_f) {
+TEST(hash_f) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"f"};
@@ -26,7 +26,7 @@ TEST(JSON_key_hash, hash_f) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fo) {
+TEST(hash_fo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fo"};
@@ -38,7 +38,7 @@ TEST(JSON_key_hash, hash_fo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foo) {
+TEST(hash_foo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foo"};
@@ -50,7 +50,7 @@ TEST(JSON_key_hash, hash_foo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooo) {
+TEST(hash_fooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooo"};
@@ -62,7 +62,7 @@ TEST(JSON_key_hash, hash_fooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foooo) {
+TEST(hash_foooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooo"};
@@ -74,7 +74,7 @@ TEST(JSON_key_hash, hash_foooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooooo) {
+TEST(hash_fooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooo"};
@@ -86,7 +86,7 @@ TEST(JSON_key_hash, hash_fooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foooooo) {
+TEST(hash_foooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooo"};
@@ -98,7 +98,7 @@ TEST(JSON_key_hash, hash_foooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooooooo) {
+TEST(hash_fooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooo"};
@@ -110,7 +110,7 @@ TEST(JSON_key_hash, hash_fooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foooooooo) {
+TEST(hash_foooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooo"};
@@ -122,7 +122,7 @@ TEST(JSON_key_hash, hash_foooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooooooooo) {
+TEST(hash_fooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooo"};
@@ -134,7 +134,7 @@ TEST(JSON_key_hash, hash_fooooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foooooooooo) {
+TEST(hash_foooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooo"};
@@ -146,7 +146,7 @@ TEST(JSON_key_hash, hash_foooooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooo) {
+TEST(hash_fooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooo"};
@@ -158,7 +158,7 @@ TEST(JSON_key_hash, hash_fooooooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooo) {
+TEST(hash_foooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooo"};
@@ -170,7 +170,7 @@ TEST(JSON_key_hash, hash_foooooooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooo) {
+TEST(hash_fooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooo"};
@@ -182,7 +182,7 @@ TEST(JSON_key_hash, hash_fooooooooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooo) {
+TEST(hash_foooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooo"};
@@ -194,7 +194,7 @@ TEST(JSON_key_hash, hash_foooooooooooooo) {
                         0x0000000000000000);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooo) {
+TEST(hash_fooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooo"};
@@ -206,7 +206,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooo) {
                         0x000000000000006f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooo) {
+TEST(hash_foooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooo"};
@@ -218,7 +218,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooo) {
                         0x0000000000006f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooo) {
+TEST(hash_fooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooo"};
@@ -230,7 +230,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooo) {
                         0x00000000006f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooo) {
+TEST(hash_foooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooo"};
@@ -242,7 +242,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooo) {
                         0x000000006f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooooo"};
@@ -254,7 +254,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooo) {
                         0x0000006f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooooo) {
+TEST(hash_foooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooooo"};
@@ -266,7 +266,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooooo) {
                         0x00006f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooooooo"};
@@ -278,7 +278,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooo) {
                         0x006f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooooooo) {
+TEST(hash_foooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooooooo"};
@@ -290,7 +290,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooooooooo"};
@@ -302,7 +302,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooooooooo) {
+TEST(hash_foooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooooooooo"};
@@ -314,7 +314,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooooooooooo"};
@@ -326,7 +326,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooooooooooo) {
+TEST(hash_foooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooooooooooo"};
@@ -338,7 +338,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooooooooooooo"};
@@ -350,7 +350,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooooooooooooo) {
+TEST(hash_foooooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooooooooooooo"};
@@ -362,7 +362,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"fooooooooooooooooooooooooooooo"};
@@ -374,7 +374,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_foooooooooooooooooooooooooooooo) {
+TEST(hash_foooooooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{"foooooooooooooooooooooooooooooo"};
@@ -386,7 +386,7 @@ TEST(JSON_key_hash, hash_foooooooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooooooo) {
+TEST(hash_fooooooooooooooooooooooooooooooo) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{
@@ -399,7 +399,7 @@ TEST(JSON_key_hash, hash_fooooooooooooooooooooooooooooooo) {
                         0x6f6f6f6f6f6f6f6f);
 }
 
-TEST(JSON_key_hash, hash_no_collision) {
+TEST(hash_no_collision) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>
       hasher;
   const sourcemeta::core::JSON::String value{

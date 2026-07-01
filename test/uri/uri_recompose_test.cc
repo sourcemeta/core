@@ -1,69 +1,69 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
-TEST(URI_recompose, example_1) {
+TEST(example_1) {
   const sourcemeta::core::URI uri{"https://example.com/foo"};
   EXPECT_EQ(uri.recompose(), "https://example.com/foo");
 }
 
-TEST(URI_recompose, example_2) {
+TEST(example_2) {
   const sourcemeta::core::URI uri{"https://example.com/foo/../bar"};
   // Without canonicalize(), path with ".." is preserved
   EXPECT_EQ(uri.recompose(), "https://example.com/foo/../bar");
 }
 
-TEST(URI_recompose, example_3) {
+TEST(example_3) {
   const sourcemeta::core::URI uri{"https://example.com/foo/%25/bar"};
   EXPECT_EQ(uri.recompose(), "https://example.com/foo/%25/bar");
 }
 
-TEST(URI_recompose, urn) {
+TEST(urn) {
   const sourcemeta::core::URI uri{"urn:example:schema"};
   EXPECT_EQ(uri.recompose(), "urn:example:schema");
 }
 
-TEST(URI_recompose, https_with_empty_fragment) {
+TEST(https_with_empty_fragment) {
   const sourcemeta::core::URI uri{"https://example.com/foo#"};
   EXPECT_EQ(uri.recompose(), "https://example.com/foo#");
 }
 
-TEST(URI_recompose, http_trailing_slash) {
+TEST(http_trailing_slash) {
   const sourcemeta::core::URI uri{"http://example.com/"};
   EXPECT_EQ(uri.recompose(), "http://example.com/");
 }
 
-TEST(URI_recompose, no_scheme) {
+TEST(no_scheme) {
   const sourcemeta::core::URI uri{"example.com/foo"};
   EXPECT_EQ(uri.recompose(), "example.com/foo");
 }
 
-TEST(URI_recompose, empty_fragment) {
+TEST(empty_fragment) {
   const sourcemeta::core::URI uri{"#"};
   EXPECT_EQ(uri.recompose(), "#");
 }
 
-TEST(URI_recompose, empty_uri_default_constructor) {
+TEST(empty_uri_default_constructor) {
   const sourcemeta::core::URI uri;
   EXPECT_EQ(uri.recompose(), "");
 }
 
-TEST(URI_recompose, empty_uri_string_constructor) {
+TEST(empty_uri_string_constructor) {
   const sourcemeta::core::URI uri{""};
   EXPECT_EQ(uri.recompose(), "");
 }
 
-TEST(URI_recompose, preserves_scheme_case) {
+TEST(preserves_scheme_case) {
   const sourcemeta::core::URI uri{"HtTpS://example.com/foo"};
   EXPECT_EQ(uri.recompose(), "HtTpS://example.com/foo");
 }
 
-TEST(URI_recompose, preserves_host_case) {
+TEST(preserves_host_case) {
   const sourcemeta::core::URI uri{"https://ExAmPlE.CoM/foo"};
   EXPECT_EQ(uri.recompose(), "https://ExAmPlE.CoM/foo");
 }
 
-TEST(URI_recompose, preserves_scheme_and_host_case) {
+TEST(preserves_scheme_and_host_case) {
   const sourcemeta::core::URI uri{"HtTp://ExAmPlE.CoM/foo"};
   EXPECT_EQ(uri.recompose(), "HtTp://ExAmPlE.CoM/foo");
 }
@@ -72,142 +72,142 @@ TEST(URI_recompose, preserves_scheme_and_host_case) {
 // preserved during recomposition. They are semantically distinct from
 // their literal counterparts.
 
-TEST(URI_recompose, encoded_slash_in_path) {
+TEST(encoded_slash_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/v1%2F2.json"};
   EXPECT_EQ(uri.recompose(), "http://example.com/v1%2F2.json");
 }
 
-TEST(URI_recompose, encoded_slash_vs_literal_slash_in_path) {
+TEST(encoded_slash_vs_literal_slash_in_path) {
   const sourcemeta::core::URI encoded{"http://example.com/v1%2F2.json"};
   const sourcemeta::core::URI literal{"http://example.com/v1/2.json"};
   EXPECT_NE(encoded.recompose(), literal.recompose());
 }
 
-TEST(URI_recompose, encoded_question_mark_in_path) {
+TEST(encoded_question_mark_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/foo%3Fbar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/foo%3Fbar");
   EXPECT_FALSE(uri.query().has_value());
 }
 
-TEST(URI_recompose, encoded_hash_in_path) {
+TEST(encoded_hash_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/foo%23bar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/foo%23bar");
   EXPECT_FALSE(uri.fragment().has_value());
 }
 
-TEST(URI_recompose, encoded_ampersand_in_query) {
+TEST(encoded_ampersand_in_query) {
   const sourcemeta::core::URI uri{"http://example.com/path?foo%26bar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/path?foo%26bar");
 }
 
-TEST(URI_recompose, encoded_hash_in_query) {
+TEST(encoded_hash_in_query) {
   const sourcemeta::core::URI uri{"http://example.com/path?foo%23bar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/path?foo%23bar");
   EXPECT_FALSE(uri.fragment().has_value());
 }
 
-TEST(URI_recompose, encoded_slash_in_fragment) {
+TEST(encoded_slash_in_fragment) {
   const sourcemeta::core::URI uri{"http://example.com/path#/foo%2Fbar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/path#/foo%2Fbar");
 }
 
-TEST(URI_recompose, encoded_colon_in_path) {
+TEST(encoded_colon_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/foo%3Abar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/foo%3Abar");
 }
 
-TEST(URI_recompose, encoded_at_in_path) {
+TEST(encoded_at_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/foo%40bar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/foo%40bar");
 }
 
-TEST(URI_recompose, multiple_encoded_reserved_in_path) {
+TEST(multiple_encoded_reserved_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/a%2Fb%3Fc%23d%40e"};
   EXPECT_EQ(uri.recompose(), "http://example.com/a%2Fb%3Fc%23d%40e");
 }
 
-TEST(URI_recompose, mixed_encoded_and_literal_reserved_in_path) {
+TEST(mixed_encoded_and_literal_reserved_in_path) {
   const sourcemeta::core::URI uri{"http://example.com/a/b%2Fc/d"};
   EXPECT_EQ(uri.recompose(), "http://example.com/a/b%2Fc/d");
 }
 
-TEST(URI_recompose, encoded_low_byte_zero_padded) {
+TEST(encoded_low_byte_zero_padded) {
   const sourcemeta::core::URI uri{"http://example.com/foo%0Abar"};
   EXPECT_EQ(uri.recompose(), "http://example.com/foo%0Abar");
 }
 
 // RFC 3986 Section 5.3: path-absolute without authority must preserve
 // the leading slash verbatim during recomposition
-TEST(URI_recompose, path_absolute_without_authority_file) {
+TEST(path_absolute_without_authority_file) {
   const sourcemeta::core::URI uri{"file:/path"};
   EXPECT_EQ(uri.recompose(), "file:/path");
 }
 
-TEST(URI_recompose, path_absolute_without_authority_multi_segment) {
+TEST(path_absolute_without_authority_multi_segment) {
   const sourcemeta::core::URI uri{"x:/a/b/c"};
   EXPECT_EQ(uri.recompose(), "x:/a/b/c");
 }
 
-TEST(URI_recompose, path_empty_with_scheme) {
+TEST(path_empty_with_scheme) {
   const sourcemeta::core::URI uri{"a:"};
   EXPECT_EQ(uri.recompose(), "a:");
 }
 
-TEST(URI_recompose, path_absolute_without_authority_roundtrip) {
+TEST(path_absolute_without_authority_roundtrip) {
   const sourcemeta::core::URI original{"file:/path"};
   const sourcemeta::core::URI roundtrip{original.recompose()};
   EXPECT_EQ(roundtrip.recompose(), "file:/path");
 }
 
-TEST(URI_recompose, ipvfuture_no_colon_in_content) {
+TEST(ipvfuture_no_colon_in_content) {
   const sourcemeta::core::URI uri{"http://[v1.test]/"};
   EXPECT_EQ(uri.host().value(), "v1.test");
   EXPECT_EQ(uri.recompose(), "http://[v1.test]/");
 }
 
-TEST(URI_recompose, ipvfuture_with_colon_in_content) {
+TEST(ipvfuture_with_colon_in_content) {
   const sourcemeta::core::URI uri{"http://[vFF.a:b]/"};
   EXPECT_EQ(uri.host().value(), "vFF.a:b");
   EXPECT_EQ(uri.recompose(), "http://[vFF.a:b]/");
 }
 
-TEST(URI_recompose, iri_ascii_recomposes_like_uri) {
+TEST(iri_ascii_recomposes_like_uri) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/path?q=1#f")};
   EXPECT_EQ(uri.recompose(), "https://example.com/path?q=1#f");
 }
 
-TEST(URI_recompose, iri_path_ucschar) {
+TEST(iri_path_ucschar) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
   EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9");
 }
 
-TEST(URI_recompose, iri_host_ucschar) {
+TEST(iri_host_ucschar) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://\xE4\xBE\x8B\xE3\x81\x88.jp/")};
   EXPECT_EQ(uri.recompose(), "https://\xE4\xBE\x8B\xE3\x81\x88.jp/");
 }
 
-TEST(URI_recompose, iri_query_ucschar) {
+TEST(iri_query_ucschar) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/?key=caf\xC3\xA9")};
   EXPECT_EQ(uri.recompose(), "https://example.com/?key=caf\xC3\xA9");
 }
 
-TEST(URI_recompose, iri_fragment_ucschar) {
+TEST(iri_fragment_ucschar) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/#section-\xCE\xB1")};
   EXPECT_EQ(uri.recompose(), "https://example.com/#section-\xCE\xB1");
 }
 
-TEST(URI_recompose, iri_userinfo_ucschar) {
+TEST(iri_userinfo_ucschar) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://user\xE5\x90\x8D@example.com/")};
   EXPECT_EQ(uri.recompose(), "https://user\xE5\x90\x8D@example.com/");
 }
 
-TEST(URI_recompose, iri_query_private_use) {
+TEST(iri_query_private_use) {
   // RFC 3987 permits private-use characters only in the query, where they must
   // round trip rather than being percent-encoded
   const auto uri{
@@ -215,13 +215,13 @@ TEST(URI_recompose, iri_query_private_use) {
   EXPECT_EQ(uri.recompose(), "https://example.com/?\xEE\x80\x80");
 }
 
-TEST(URI_recompose, iri_existing_percent_encoding_preserved) {
+TEST(iri_existing_percent_encoding_preserved) {
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/%25/caf\xC3\xA9")};
   EXPECT_EQ(uri.recompose(), "https://example.com/%25/caf\xC3\xA9");
 }
 
-TEST(URI_recompose, iri_all_components) {
+TEST(iri_all_components) {
   // Borrowed from the existing IRI syntax tests in this suite.
   const std::string input{
       "https://user\xE5\x90\x8D@\xE4\xBE\x8B\xE3\x81\x88.jp/"
@@ -229,14 +229,14 @@ TEST(URI_recompose, iri_all_components) {
   EXPECT_EQ(sourcemeta::core::URI::from_iri(input).recompose(), input);
 }
 
-TEST(URI_recompose, iri_four_byte_ucschar) {
+TEST(iri_four_byte_ucschar) {
   // A 4-byte UTF-8 character (here U+1F600) must be preserved literally
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/\xF0\x9F\x98\x80")};
   EXPECT_EQ(uri.recompose(), "https://example.com/\xF0\x9F\x98\x80");
 }
 
-TEST(URI_recompose, iri_lower_boundary_ucschar) {
+TEST(iri_lower_boundary_ucschar) {
   // U+00A0 is the lowest non-ASCII character an IRI may carry
   const auto uri{
       sourcemeta::core::URI::from_iri("https://example.com/\xC2\xA0")};

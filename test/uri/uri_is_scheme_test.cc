@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
-TEST(URI_is_scheme, common_schemes) {
+TEST(common_schemes) {
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("http"));
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("https"));
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("urn"));
@@ -10,12 +10,12 @@ TEST(URI_is_scheme, common_schemes) {
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("mailto"));
 }
 
-TEST(URI_is_scheme, single_letter) {
+TEST(single_letter) {
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("a"));
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("Z"));
 }
 
-TEST(URI_is_scheme, allowed_non_alpha_after_first) {
+TEST(allowed_non_alpha_after_first) {
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("h123"));
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("foo+bar"));
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("foo-bar"));
@@ -23,18 +23,18 @@ TEST(URI_is_scheme, allowed_non_alpha_after_first) {
   EXPECT_TRUE(sourcemeta::core::URI::is_scheme("a1+2-3.4"));
 }
 
-TEST(URI_is_scheme, empty_is_not_a_scheme) {
+TEST(empty_is_not_a_scheme) {
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme(""));
 }
 
-TEST(URI_is_scheme, must_start_with_alpha) {
+TEST(must_start_with_alpha) {
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme("1http"));
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme("+http"));
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme("-http"));
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme(".http"));
 }
 
-TEST(URI_is_scheme, rejects_disallowed_characters) {
+TEST(rejects_disallowed_characters) {
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme("http:"));
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme("ht tp"));
   EXPECT_FALSE(sourcemeta::core::URI::is_scheme("foo/bar"));

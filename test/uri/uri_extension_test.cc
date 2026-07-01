@@ -1,112 +1,112 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uri.h>
 
 #include <sstream>
 
-TEST(URI_extension, absolute_single_component_path_without_period) {
+TEST(absolute_single_component_path_without_period) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json");
 }
 
-TEST(URI_extension, absolute_single_component_path_with_period) {
+TEST(absolute_single_component_path_with_period) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   uri.extension(".json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json");
 }
 
-TEST(URI_extension, absolute_single_component_path_with_extension) {
+TEST(absolute_single_component_path_with_extension) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo.xml"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json");
 }
 
-TEST(URI_extension, absolute_single_component_path_with_double_extension) {
+TEST(absolute_single_component_path_with_double_extension) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo.tar.gz"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.tar.json");
 }
 
-TEST(URI_extension, absolute_no_path) {
+TEST(absolute_no_path) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com");
 }
 
-TEST(URI_extension, absolute_trailing_slash) {
+TEST(absolute_trailing_slash) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/");
 }
 
-TEST(URI_extension, absolute_trailing_slashes) {
+TEST(absolute_trailing_slashes) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com////"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com////");
 }
 
-TEST(URI_extension, absolute_trailing_period) {
+TEST(absolute_trailing_period) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo."};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json");
 }
 
-TEST(URI_extension, empty_fragment) {
+TEST(empty_fragment) {
   sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo#"};
   uri.extension(".json");
   EXPECT_EQ(uri.recompose(), "https://www.sourcemeta.com/foo.json#");
 }
 
-TEST(URI_extension, fragment_only) {
+TEST(fragment_only) {
   sourcemeta::core::URI uri{"#foo"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "#foo");
 }
 
-TEST(URI_extension, relative_multi_component_1) {
+TEST(relative_multi_component_1) {
   sourcemeta::core::URI uri{"/foo/bar"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "/foo/bar.json");
 }
 
-TEST(URI_extension, relative_multi_component_2) {
+TEST(relative_multi_component_2) {
   sourcemeta::core::URI uri{"foo/bar"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "foo/bar.json");
 }
 
-TEST(URI_extension, path_with_dot_in_directory) {
+TEST(path_with_dot_in_directory) {
   sourcemeta::core::URI uri{"https://example.com/foo.bar/baz"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo.bar/baz.json");
 }
 
-TEST(URI_extension, path_with_multiple_dots_in_filename) {
+TEST(path_with_multiple_dots_in_filename) {
   sourcemeta::core::URI uri{"https://example.com/foo.bar.baz.qux"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo.bar.baz.json");
 }
 
-TEST(URI_extension, empty_extension_removes_existing) {
+TEST(empty_extension_removes_existing) {
   sourcemeta::core::URI uri{"https://example.com/foo.json"};
   uri.extension("");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo");
 }
 
-TEST(URI_extension, path_with_query_string) {
+TEST(path_with_query_string) {
   sourcemeta::core::URI uri{"https://example.com/foo?query=value"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo.json?query=value");
 }
 
-TEST(URI_extension, path_ending_with_dot_in_directory) {
+TEST(path_ending_with_dot_in_directory) {
   sourcemeta::core::URI uri{"https://example.com/foo./bar"};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/foo./bar.json");
 }
 
-TEST(URI_extension, iri_unicode_path) {
+TEST(iri_unicode_path) {
   auto uri{sourcemeta::core::URI::from_iri("https://example.com/caf\xC3\xA9")};
   uri.extension("json");
   EXPECT_EQ(uri.recompose(), "https://example.com/caf\xC3\xA9.json");

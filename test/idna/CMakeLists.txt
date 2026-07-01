@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME idna
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME idna
   SOURCES
     idna_property_test.cc
     idna_passes_contexto_test.cc

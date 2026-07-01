@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 
@@ -7,40 +7,40 @@
 #include <unordered_set>
 #include <utility>
 
-TEST(JSON_string, foo_value_string) {
+TEST(foo_value_string) {
   const std::string value{"foo"};
   const sourcemeta::core::JSON document{value};
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.to_string(), "foo");
 }
 
-TEST(JSON_string, foo_value_string_view) {
+TEST(foo_value_string_view) {
   const std::string_view value{"foo"};
   const sourcemeta::core::JSON document{value};
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.to_string(), "foo");
 }
 
-TEST(JSON_string, foo_value_string_move) {
+TEST(foo_value_string_move) {
   std::string value{"foo"};
   const sourcemeta::core::JSON document{std::move(value)};
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.to_string(), "foo");
 }
 
-TEST(JSON_string, long_value_string_move) {
+TEST(long_value_string_move) {
   std::string value(64, 'x');
   const sourcemeta::core::JSON document{std::move(value)};
   EXPECT_TRUE(document.is_string());
   EXPECT_EQ(document.to_string(), std::string(64, 'x'));
 }
 
-TEST(JSON_string, type) {
+TEST(type) {
   const sourcemeta::core::JSON document{"foo"};
   EXPECT_EQ(document.type(), sourcemeta::core::JSON::Type::String);
 }
 
-TEST(JSON_string, to_stringstream) {
+TEST(to_stringstream) {
   const std::string value{"foo bar"};
   const sourcemeta::core::JSON document{value};
   EXPECT_TRUE(document.is_string());
@@ -56,37 +56,37 @@ TEST(JSON_string, to_stringstream) {
   EXPECT_TRUE(stream.eof());
 }
 
-TEST(JSON_string, estimated_byte_size_foo) {
+TEST(estimated_byte_size_foo) {
   const sourcemeta::core::JSON document{"foo"};
   EXPECT_EQ(document.estimated_byte_size(), 3);
 }
 
-TEST(JSON_string, estimated_byte_size_foo_bar_baz) {
+TEST(estimated_byte_size_foo_bar_baz) {
   const sourcemeta::core::JSON document{"foo bar baz"};
   EXPECT_EQ(document.estimated_byte_size(), 11);
 }
 
-TEST(JSON_string, estimated_byte_size_empty) {
+TEST(estimated_byte_size_empty) {
   const sourcemeta::core::JSON document{""};
   EXPECT_EQ(document.estimated_byte_size(), 0);
 }
 
-TEST(JSON_string, fast_hash_foo) {
+TEST(fast_hash_foo) {
   const sourcemeta::core::JSON document{"foo"};
   EXPECT_EQ(document.fast_hash(), 6);
 }
 
-TEST(JSON_string, fast_hash_foo_bar_baz) {
+TEST(fast_hash_foo_bar_baz) {
   const sourcemeta::core::JSON document{"foo bar baz"};
   EXPECT_EQ(document.fast_hash(), 14);
 }
 
-TEST(JSON_string, fast_hash_empty) {
+TEST(fast_hash_empty) {
   const sourcemeta::core::JSON document{""};
   EXPECT_EQ(document.fast_hash(), 3);
 }
 
-TEST(JSON_string, unicode_length_1) {
+TEST(unicode_length_1) {
   // This unicode string corresponds to 简律纯
   const auto document = sourcemeta::core::parse_json(R"JSON({
     "name": "\u7b80\u5f8b\u7eaf"
@@ -104,115 +104,115 @@ TEST(JSON_string, unicode_length_1) {
   EXPECT_EQ(document.at("name").byte_size(), 9);
 }
 
-TEST(JSON_string, includes_true) {
+TEST(includes_true) {
   const sourcemeta::core::JSON document{"foo bar baz"};
   EXPECT_TRUE(document.includes("foo"));
 }
 
-TEST(JSON_string, includes_false) {
+TEST(includes_false) {
   const sourcemeta::core::JSON document{"foo bar baz"};
   EXPECT_FALSE(document.includes("fooo"));
 }
 
-TEST(JSON_string, includes_character_true) {
+TEST(includes_character_true) {
   const sourcemeta::core::JSON document{"foo"};
   EXPECT_TRUE(document.includes('f'));
 }
 
-TEST(JSON_string, includes_character_false) {
+TEST(includes_character_false) {
   const sourcemeta::core::JSON document{"foo"};
   EXPECT_FALSE(document.includes('b'));
 }
 
-TEST(JSON_string, trim_const) {
+TEST(trim_const) {
   const sourcemeta::core::JSON document{" \r\t  foo   bar\n\v   \f"};
   EXPECT_EQ(document.trim(), "foo   bar");
   EXPECT_EQ(document.to_string(), " \r\t  foo   bar\n\v   \f");
 }
 
-TEST(JSON_string, trim_in_place) {
+TEST(trim_in_place) {
   sourcemeta::core::JSON document{" \r\t  foo   bar\n\v   \f"};
   const auto &result{document.trim()};
   EXPECT_EQ(result, "foo   bar");
   EXPECT_EQ(document.to_string(), "foo   bar");
 }
 
-TEST(JSON_string, is_trimmed_true) {
+TEST(is_trimmed_true) {
   const sourcemeta::core::JSON document{"Hello World"};
   EXPECT_TRUE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_empty) {
+TEST(is_trimmed_empty) {
   const sourcemeta::core::JSON document{""};
   EXPECT_TRUE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_leading_space) {
+TEST(is_trimmed_leading_space) {
   const sourcemeta::core::JSON document{" Hello World"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_trailing_space) {
+TEST(is_trimmed_trailing_space) {
   const sourcemeta::core::JSON document{"Hello World "};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_both_space) {
+TEST(is_trimmed_both_space) {
   const sourcemeta::core::JSON document{" Hello World "};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_leading_tab) {
+TEST(is_trimmed_leading_tab) {
   const sourcemeta::core::JSON document{"\tHello World"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_trailing_tab) {
+TEST(is_trimmed_trailing_tab) {
   const sourcemeta::core::JSON document{"Hello World\t"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_leading_newline) {
+TEST(is_trimmed_leading_newline) {
   const sourcemeta::core::JSON document{"\nHello World"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_trailing_newline) {
+TEST(is_trimmed_trailing_newline) {
   const sourcemeta::core::JSON document{"Hello World\n"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_leading_carriage_return) {
+TEST(is_trimmed_leading_carriage_return) {
   const sourcemeta::core::JSON document{"\rHello World"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_trailing_carriage_return) {
+TEST(is_trimmed_trailing_carriage_return) {
   const sourcemeta::core::JSON document{"Hello World\r"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_leading_vertical_tab) {
+TEST(is_trimmed_leading_vertical_tab) {
   const sourcemeta::core::JSON document{"\vHello World"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_trailing_vertical_tab) {
+TEST(is_trimmed_trailing_vertical_tab) {
   const sourcemeta::core::JSON document{"Hello World\v"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_leading_form_feed) {
+TEST(is_trimmed_leading_form_feed) {
   const sourcemeta::core::JSON document{"\fHello World"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_trailing_form_feed) {
+TEST(is_trimmed_trailing_form_feed) {
   const sourcemeta::core::JSON document{"Hello World\f"};
   EXPECT_FALSE(document.is_trimmed());
 }
 
-TEST(JSON_string, is_trimmed_inner_whitespace_ok) {
+TEST(is_trimmed_inner_whitespace_ok) {
   const sourcemeta::core::JSON document{"Hello \t\n\r World"};
   EXPECT_TRUE(document.is_trimmed());
 }

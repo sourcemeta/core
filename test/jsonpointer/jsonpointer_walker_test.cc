@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-TEST(JSONPointer_walker, null) {
+TEST(null) {
   const sourcemeta::core::JSON document{nullptr};
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -18,7 +18,7 @@ TEST(JSONPointer_walker, null) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, boolean_false) {
+TEST(boolean_false) {
   const sourcemeta::core::JSON document{false};
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -29,7 +29,7 @@ TEST(JSONPointer_walker, boolean_false) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, boolean_true) {
+TEST(boolean_true) {
   const sourcemeta::core::JSON document{true};
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -40,7 +40,7 @@ TEST(JSONPointer_walker, boolean_true) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, integer) {
+TEST(integer) {
   const sourcemeta::core::JSON document{5};
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -51,7 +51,7 @@ TEST(JSONPointer_walker, integer) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, real) {
+TEST(real) {
   const sourcemeta::core::JSON document{3.14};
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -62,7 +62,7 @@ TEST(JSONPointer_walker, real) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, string) {
+TEST(string) {
   const sourcemeta::core::JSON document{"foo bar"};
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -73,7 +73,7 @@ TEST(JSONPointer_walker, string) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, array_empty) {
+TEST(array_empty) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json("[]");
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -84,7 +84,7 @@ TEST(JSONPointer_walker, array_empty) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, array_scalars) {
+TEST(array_scalars) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("[ 1, 2, 3, 4 ]");
   std::vector<std::string> subpointers;
@@ -100,7 +100,7 @@ TEST(JSONPointer_walker, array_scalars) {
   EXPECT_EQ(subpointers.at(4), "/3");
 }
 
-TEST(JSONPointer_walker, array_deep) {
+TEST(array_deep) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json(R"EOF([
     [],
     [ 1, 2 ],
@@ -121,7 +121,7 @@ TEST(JSONPointer_walker, array_deep) {
   EXPECT_EQ(subpointers.at(6), "/2/0");
 }
 
-TEST(JSONPointer_walker, object_empty) {
+TEST(object_empty) {
   const sourcemeta::core::JSON document = sourcemeta::core::parse_json("{}");
   std::vector<std::string> subpointers;
   for (const auto &subpointer : sourcemeta::core::PointerWalker{document}) {
@@ -132,7 +132,7 @@ TEST(JSONPointer_walker, object_empty) {
   EXPECT_EQ(subpointers.at(0), "");
 }
 
-TEST(JSONPointer_walker, object_scalars) {
+TEST(object_scalars) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{ \"foo\": 1, \"bar\": 2, \"baz\": 3 }");
   // Do a set to not depend on object property ordering
@@ -148,7 +148,7 @@ TEST(JSONPointer_walker, object_scalars) {
   EXPECT_TRUE(subpointers.contains("/baz"));
 }
 
-TEST(JSONPointer_walker, object_nested) {
+TEST(object_nested) {
   const sourcemeta::core::JSON document =
       sourcemeta::core::parse_json("{ \"foo\": { \"bar\": 1 } }");
   std::vector<std::string> subpointers;

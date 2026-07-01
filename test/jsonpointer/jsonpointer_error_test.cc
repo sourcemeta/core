@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpointer.h>
@@ -7,7 +7,7 @@
 #include <string>      // std::string
 #include <type_traits> // std::is_base_of_v
 
-TEST(JSONPointer_error, parse_error) {
+TEST(parse_error) {
   static_assert(
       std::is_base_of_v<std::exception, sourcemeta::core::PointerParseError>,
       "Must subclass std::exception");
@@ -23,7 +23,7 @@ TEST(JSONPointer_error, parse_error) {
   EXPECT_EQ(exception.column(), 5);
 }
 
-TEST(JSONPointer_error, line_is_always_one) {
+TEST(line_is_always_one) {
   auto exception_1{sourcemeta::core::PointerParseError(5)};
   auto exception_2{sourcemeta::core::PointerParseError(1)};
   auto exception_3{sourcemeta::core::PointerParseError(8)};

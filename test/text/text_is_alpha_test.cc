@@ -1,31 +1,31 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/text.h>
 
-TEST(Text_is_alpha, lowercase_letters) {
+TEST(lowercase_letters) {
   EXPECT_TRUE(sourcemeta::core::is_alpha('a'));
   EXPECT_TRUE(sourcemeta::core::is_alpha('m'));
   EXPECT_TRUE(sourcemeta::core::is_alpha('z'));
 }
 
-TEST(Text_is_alpha, uppercase_letters) {
+TEST(uppercase_letters) {
   EXPECT_TRUE(sourcemeta::core::is_alpha('A'));
   EXPECT_TRUE(sourcemeta::core::is_alpha('M'));
   EXPECT_TRUE(sourcemeta::core::is_alpha('Z'));
 }
 
-TEST(Text_is_alpha, digits) {
+TEST(digits) {
   EXPECT_FALSE(sourcemeta::core::is_alpha('0'));
   EXPECT_FALSE(sourcemeta::core::is_alpha('9'));
 }
 
-TEST(Text_is_alpha, punctuation) {
+TEST(punctuation) {
   EXPECT_FALSE(sourcemeta::core::is_alpha('-'));
   EXPECT_FALSE(sourcemeta::core::is_alpha('_'));
   EXPECT_FALSE(sourcemeta::core::is_alpha(' '));
 }
 
-TEST(Text_is_alpha, ascii_boundaries) {
+TEST(ascii_boundaries) {
   // The ASCII characters immediately outside the two letter ranges
   EXPECT_FALSE(sourcemeta::core::is_alpha('@'));
   EXPECT_FALSE(sourcemeta::core::is_alpha('['));
@@ -33,18 +33,12 @@ TEST(Text_is_alpha, ascii_boundaries) {
   EXPECT_FALSE(sourcemeta::core::is_alpha('{'));
 }
 
-TEST(Text_is_alpha, string_all_letters) {
-  EXPECT_TRUE(sourcemeta::core::is_alpha("abcXYZ"));
-}
+TEST(string_all_letters) { EXPECT_TRUE(sourcemeta::core::is_alpha("abcXYZ")); }
 
-TEST(Text_is_alpha, string_with_digit) {
-  EXPECT_FALSE(sourcemeta::core::is_alpha("abc1"));
-}
+TEST(string_with_digit) { EXPECT_FALSE(sourcemeta::core::is_alpha("abc1")); }
 
-TEST(Text_is_alpha, string_with_punctuation) {
+TEST(string_with_punctuation) {
   EXPECT_FALSE(sourcemeta::core::is_alpha("ab-cd"));
 }
 
-TEST(Text_is_alpha, empty_string) {
-  EXPECT_FALSE(sourcemeta::core::is_alpha(""));
-}
+TEST(empty_string) { EXPECT_FALSE(sourcemeta::core::is_alpha("")); }

@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME regex
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME regex
   SOURCES
     regex_matches_if_valid_test.cc
     regex_matches_ecma262_test.cc

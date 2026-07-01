@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/io.h>
@@ -55,14 +55,14 @@ static auto verify_cookbook_signature(const std::string_view filename) -> bool {
              algorithm, signing_input, signature.value(), parsed_key.value());
 }
 
-TEST(JOSE_cookbook, rsa_pkcs1_v15_rs256) {
+TEST(rsa_pkcs1_v15_rs256) {
   EXPECT_TRUE(verify_cookbook_signature("4_1.rsa_v15_signature.json"));
 }
 
-TEST(JOSE_cookbook, rsa_pss_ps384) {
+TEST(rsa_pss_ps384) {
   EXPECT_TRUE(verify_cookbook_signature("4_2.rsa-pss_signature.json"));
 }
 
-TEST(JOSE_cookbook, ecdsa_es512) {
+TEST(ecdsa_es512) {
   EXPECT_TRUE(verify_cookbook_signature("4_3.ecdsa_signature.json"));
 }

@@ -1,10 +1,10 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/regex.h>
 
 #include <string>
 
-TEST(Regex_matches, rfc9485_edge_dollar_literal) {
+TEST(rfc9485_edge_dollar_literal) {
   // NOTE: This test deviates from RFC 9485, which allows $ as literal in
   // middle. We prefer ECMA-262 compliance where $ is ALWAYS an assertion.
   const auto regex{sourcemeta::core::to_regex("a$b")};
@@ -17,7 +17,7 @@ TEST(Regex_matches, rfc9485_edge_dollar_literal) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_preprocessing_escaped_backslash_dollar) {
+TEST(rfc9485_preprocessing_escaped_backslash_dollar) {
   // NOTE: This test deviates from RFC 9485, which treats $ as literal in
   // middle. We prefer ECMA-262 compliance where $ is ALWAYS an assertion.
   const auto regex{sourcemeta::core::to_regex("\\\\$foo")};
@@ -30,7 +30,7 @@ TEST(Regex_matches, rfc9485_preprocessing_escaped_backslash_dollar) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$foo"));
 }
 
-TEST(Regex_matches, rfc9485_literal_single_char) {
+TEST(rfc9485_literal_single_char) {
   const auto regex{sourcemeta::core::to_regex("a")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a"));
@@ -39,7 +39,7 @@ TEST(Regex_matches, rfc9485_literal_single_char) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "xyz"));
 }
 
-TEST(Regex_matches, rfc9485_literal_sequence) {
+TEST(rfc9485_literal_sequence) {
   const auto regex{sourcemeta::core::to_regex("hello")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("hello"));
@@ -48,7 +48,7 @@ TEST(Regex_matches, rfc9485_literal_sequence) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "world"));
 }
 
-TEST(Regex_matches, rfc9485_dot_wildcard) {
+TEST(rfc9485_dot_wildcard) {
   const auto regex{sourcemeta::core::to_regex("a.c")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a.c"));
@@ -58,7 +58,7 @@ TEST(Regex_matches, rfc9485_dot_wildcard) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ac"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_star) {
+TEST(rfc9485_quantifier_star) {
   const auto regex{sourcemeta::core::to_regex("ab*c")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("ab*c"));
@@ -69,7 +69,7 @@ TEST(Regex_matches, rfc9485_quantifier_star) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "adc"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_plus) {
+TEST(rfc9485_quantifier_plus) {
   const auto regex{sourcemeta::core::to_regex("ab+c")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("ab+c"));
@@ -79,7 +79,7 @@ TEST(Regex_matches, rfc9485_quantifier_plus) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ac"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_question) {
+TEST(rfc9485_quantifier_question) {
   const auto regex{sourcemeta::core::to_regex("ab?c")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("ab?c"));
@@ -88,7 +88,7 @@ TEST(Regex_matches, rfc9485_quantifier_question) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abbc"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_exact) {
+TEST(rfc9485_quantifier_exact) {
   const auto regex{sourcemeta::core::to_regex("a{3}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{3}"));
@@ -97,7 +97,7 @@ TEST(Regex_matches, rfc9485_quantifier_exact) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "aa"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_at_least) {
+TEST(rfc9485_quantifier_at_least) {
   const auto regex{sourcemeta::core::to_regex("a{2,}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,}"));
@@ -107,7 +107,7 @@ TEST(Regex_matches, rfc9485_quantifier_at_least) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_range) {
+TEST(rfc9485_quantifier_range) {
   const auto regex{sourcemeta::core::to_regex("a{2,4}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,4}"));
@@ -118,7 +118,7 @@ TEST(Regex_matches, rfc9485_quantifier_range) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_alternation_simple) {
+TEST(rfc9485_alternation_simple) {
   const auto regex{sourcemeta::core::to_regex("cat|dog")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("cat|dog"));
@@ -127,7 +127,7 @@ TEST(Regex_matches, rfc9485_alternation_simple) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "bird"));
 }
 
-TEST(Regex_matches, rfc9485_alternation_multiple) {
+TEST(rfc9485_alternation_multiple) {
   const auto regex{sourcemeta::core::to_regex("red|green|blue")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("red|green|blue"));
@@ -137,7 +137,7 @@ TEST(Regex_matches, rfc9485_alternation_multiple) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "yellow"));
 }
 
-TEST(Regex_matches, rfc9485_alternation_empty_branch) {
+TEST(rfc9485_alternation_empty_branch) {
   const auto regex{sourcemeta::core::to_regex("a|")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a|"));
@@ -146,7 +146,7 @@ TEST(Regex_matches, rfc9485_alternation_empty_branch) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "xyz"));
 }
 
-TEST(Regex_matches, rfc9485_charclass_simple) {
+TEST(rfc9485_charclass_simple) {
   const auto regex{sourcemeta::core::to_regex("[abc]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[abc]"));
@@ -156,7 +156,7 @@ TEST(Regex_matches, rfc9485_charclass_simple) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "d"));
 }
 
-TEST(Regex_matches, rfc9485_charclass_range) {
+TEST(rfc9485_charclass_range) {
   const auto regex{sourcemeta::core::to_regex("[a-z]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z]"));
@@ -167,7 +167,7 @@ TEST(Regex_matches, rfc9485_charclass_range) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "0"));
 }
 
-TEST(Regex_matches, rfc9485_charclass_multiple_ranges) {
+TEST(rfc9485_charclass_multiple_ranges) {
   const auto regex{sourcemeta::core::to_regex("[a-zA-Z0-9]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-zA-Z0-9]"));
@@ -177,7 +177,7 @@ TEST(Regex_matches, rfc9485_charclass_multiple_ranges) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "-"));
 }
 
-TEST(Regex_matches, rfc9485_charclass_negated) {
+TEST(rfc9485_charclass_negated) {
   const auto regex{sourcemeta::core::to_regex("[^abc]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^abc]"));
@@ -188,7 +188,7 @@ TEST(Regex_matches, rfc9485_charclass_negated) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
 }
 
-TEST(Regex_matches, rfc9485_charclass_dash_at_start) {
+TEST(rfc9485_charclass_dash_at_start) {
   const auto regex{sourcemeta::core::to_regex("[-abc]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-abc]"));
@@ -197,7 +197,7 @@ TEST(Regex_matches, rfc9485_charclass_dash_at_start) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "x"));
 }
 
-TEST(Regex_matches, rfc9485_charclass_dash_at_end) {
+TEST(rfc9485_charclass_dash_at_end) {
   const auto regex{sourcemeta::core::to_regex("[abc-]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[abc-]"));
@@ -206,7 +206,7 @@ TEST(Regex_matches, rfc9485_charclass_dash_at_end) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "x"));
 }
 
-TEST(Regex_matches, rfc9485_escape_left_paren) {
+TEST(rfc9485_escape_left_paren) {
   const auto regex{sourcemeta::core::to_regex("\\(test")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\(test"));
@@ -214,7 +214,7 @@ TEST(Regex_matches, rfc9485_escape_left_paren) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test"));
 }
 
-TEST(Regex_matches, rfc9485_escape_right_paren) {
+TEST(rfc9485_escape_right_paren) {
   const auto regex{sourcemeta::core::to_regex("test\\)")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("test\\)"));
@@ -222,7 +222,7 @@ TEST(Regex_matches, rfc9485_escape_right_paren) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test"));
 }
 
-TEST(Regex_matches, rfc9485_escape_left_bracket) {
+TEST(rfc9485_escape_left_bracket) {
   const auto regex{sourcemeta::core::to_regex("\\[test")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\[test"));
@@ -230,7 +230,7 @@ TEST(Regex_matches, rfc9485_escape_left_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test"));
 }
 
-TEST(Regex_matches, rfc9485_escape_right_bracket) {
+TEST(rfc9485_escape_right_bracket) {
   const auto regex{sourcemeta::core::to_regex("test\\]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("test\\]"));
@@ -238,7 +238,7 @@ TEST(Regex_matches, rfc9485_escape_right_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test"));
 }
 
-TEST(Regex_matches, rfc9485_escape_left_brace) {
+TEST(rfc9485_escape_left_brace) {
   const auto regex{sourcemeta::core::to_regex("\\{test")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\{test"));
@@ -246,7 +246,7 @@ TEST(Regex_matches, rfc9485_escape_left_brace) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test"));
 }
 
-TEST(Regex_matches, rfc9485_escape_right_brace) {
+TEST(rfc9485_escape_right_brace) {
   const auto regex{sourcemeta::core::to_regex("test\\}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("test\\}"));
@@ -254,7 +254,7 @@ TEST(Regex_matches, rfc9485_escape_right_brace) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test"));
 }
 
-TEST(Regex_matches, rfc9485_escape_asterisk) {
+TEST(rfc9485_escape_asterisk) {
   const auto regex{sourcemeta::core::to_regex("a\\*b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\*b"));
@@ -263,7 +263,7 @@ TEST(Regex_matches, rfc9485_escape_asterisk) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "aab"));
 }
 
-TEST(Regex_matches, rfc9485_escape_plus) {
+TEST(rfc9485_escape_plus) {
   const auto regex{sourcemeta::core::to_regex("a\\+b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\+b"));
@@ -271,7 +271,7 @@ TEST(Regex_matches, rfc9485_escape_plus) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_escape_question) {
+TEST(rfc9485_escape_question) {
   const auto regex{sourcemeta::core::to_regex("a\\?b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\?b"));
@@ -279,7 +279,7 @@ TEST(Regex_matches, rfc9485_escape_question) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_escape_dot) {
+TEST(rfc9485_escape_dot) {
   const auto regex{sourcemeta::core::to_regex("a\\.b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\.b"));
@@ -287,7 +287,7 @@ TEST(Regex_matches, rfc9485_escape_dot) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "axb"));
 }
 
-TEST(Regex_matches, rfc9485_escape_dash) {
+TEST(rfc9485_escape_dash) {
   const auto regex{sourcemeta::core::to_regex("a\\-b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\-b"));
@@ -295,7 +295,7 @@ TEST(Regex_matches, rfc9485_escape_dash) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_escape_newline) {
+TEST(rfc9485_escape_newline) {
   const auto regex{sourcemeta::core::to_regex("a\\nb")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\nb"));
@@ -303,7 +303,7 @@ TEST(Regex_matches, rfc9485_escape_newline) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "anb"));
 }
 
-TEST(Regex_matches, rfc9485_escape_carriage_return) {
+TEST(rfc9485_escape_carriage_return) {
   const auto regex{sourcemeta::core::to_regex("a\\rb")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\rb"));
@@ -311,7 +311,7 @@ TEST(Regex_matches, rfc9485_escape_carriage_return) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "arb"));
 }
 
-TEST(Regex_matches, rfc9485_escape_tab) {
+TEST(rfc9485_escape_tab) {
   const auto regex{sourcemeta::core::to_regex("a\\tb")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\tb"));
@@ -319,7 +319,7 @@ TEST(Regex_matches, rfc9485_escape_tab) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "atb"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_letter) {
+TEST(rfc9485_unicode_property_letter) {
   const auto regex{sourcemeta::core::to_regex("\\p{L}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{L}"));
@@ -331,7 +331,7 @@ TEST(Regex_matches, rfc9485_unicode_property_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "!"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_uppercase_letter) {
+TEST(rfc9485_unicode_property_uppercase_letter) {
   const auto regex{sourcemeta::core::to_regex("\\p{Lu}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lu}"));
@@ -341,7 +341,7 @@ TEST(Regex_matches, rfc9485_unicode_property_uppercase_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_lowercase_letter) {
+TEST(rfc9485_unicode_property_lowercase_letter) {
   const auto regex{sourcemeta::core::to_regex("\\p{Ll}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Ll}"));
@@ -351,7 +351,7 @@ TEST(Regex_matches, rfc9485_unicode_property_lowercase_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_titlecase_letter) {
+TEST(rfc9485_unicode_property_titlecase_letter) {
   const auto regex{sourcemeta::core::to_regex("\\p{Lt}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lt}"));
@@ -359,7 +359,7 @@ TEST(Regex_matches, rfc9485_unicode_property_titlecase_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_modifier_letter) {
+TEST(rfc9485_unicode_property_modifier_letter) {
   const auto regex{sourcemeta::core::to_regex("\\p{Lm}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lm}"));
@@ -367,7 +367,7 @@ TEST(Regex_matches, rfc9485_unicode_property_modifier_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_other_letter) {
+TEST(rfc9485_unicode_property_other_letter) {
   const auto regex{sourcemeta::core::to_regex("\\p{Lo}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lo}"));
@@ -375,7 +375,7 @@ TEST(Regex_matches, rfc9485_unicode_property_other_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_mark) {
+TEST(rfc9485_unicode_property_mark) {
   const auto regex{sourcemeta::core::to_regex("\\p{M}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{M}"));
@@ -383,7 +383,7 @@ TEST(Regex_matches, rfc9485_unicode_property_mark) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_nonspacing_mark) {
+TEST(rfc9485_unicode_property_nonspacing_mark) {
   const auto regex{sourcemeta::core::to_regex("\\p{Mn}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Mn}"));
@@ -391,7 +391,7 @@ TEST(Regex_matches, rfc9485_unicode_property_nonspacing_mark) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_spacing_mark) {
+TEST(rfc9485_unicode_property_spacing_mark) {
   const auto regex{sourcemeta::core::to_regex("\\p{Mc}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Mc}"));
@@ -399,7 +399,7 @@ TEST(Regex_matches, rfc9485_unicode_property_spacing_mark) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_enclosing_mark) {
+TEST(rfc9485_unicode_property_enclosing_mark) {
   const auto regex{sourcemeta::core::to_regex("\\p{Me}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Me}"));
@@ -407,7 +407,7 @@ TEST(Regex_matches, rfc9485_unicode_property_enclosing_mark) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_number) {
+TEST(rfc9485_unicode_property_number) {
   const auto regex{sourcemeta::core::to_regex("\\p{N}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{N}"));
@@ -417,7 +417,7 @@ TEST(Regex_matches, rfc9485_unicode_property_number) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_decimal_number) {
+TEST(rfc9485_unicode_property_decimal_number) {
   const auto regex{sourcemeta::core::to_regex("\\p{Nd}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Nd}"));
@@ -427,7 +427,7 @@ TEST(Regex_matches, rfc9485_unicode_property_decimal_number) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_letter_number) {
+TEST(rfc9485_unicode_property_letter_number) {
   const auto regex{sourcemeta::core::to_regex("\\p{Nl}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Nl}"));
@@ -435,7 +435,7 @@ TEST(Regex_matches, rfc9485_unicode_property_letter_number) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_other_number) {
+TEST(rfc9485_unicode_property_other_number) {
   const auto regex{sourcemeta::core::to_regex("\\p{No}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{No}"));
@@ -443,7 +443,7 @@ TEST(Regex_matches, rfc9485_unicode_property_other_number) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_punctuation) {
+TEST(rfc9485_unicode_property_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{P}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{P}"));
@@ -453,7 +453,7 @@ TEST(Regex_matches, rfc9485_unicode_property_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_connector_punctuation) {
+TEST(rfc9485_unicode_property_connector_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Pc}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pc}"));
@@ -461,7 +461,7 @@ TEST(Regex_matches, rfc9485_unicode_property_connector_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "."));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_dash_punctuation) {
+TEST(rfc9485_unicode_property_dash_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Pd}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pd}"));
@@ -469,7 +469,7 @@ TEST(Regex_matches, rfc9485_unicode_property_dash_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "."));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_open_punctuation) {
+TEST(rfc9485_unicode_property_open_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Ps}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Ps}"));
@@ -478,7 +478,7 @@ TEST(Regex_matches, rfc9485_unicode_property_open_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ")"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_close_punctuation) {
+TEST(rfc9485_unicode_property_close_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Pe}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pe}"));
@@ -487,7 +487,7 @@ TEST(Regex_matches, rfc9485_unicode_property_close_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "("));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_initial_punctuation) {
+TEST(rfc9485_unicode_property_initial_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Pi}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pi}"));
@@ -495,7 +495,7 @@ TEST(Regex_matches, rfc9485_unicode_property_initial_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "."));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_final_punctuation) {
+TEST(rfc9485_unicode_property_final_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Pf}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pf}"));
@@ -503,7 +503,7 @@ TEST(Regex_matches, rfc9485_unicode_property_final_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "."));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_other_punctuation) {
+TEST(rfc9485_unicode_property_other_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Po}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Po}"));
@@ -512,7 +512,7 @@ TEST(Regex_matches, rfc9485_unicode_property_other_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "("));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_separator) {
+TEST(rfc9485_unicode_property_separator) {
   const auto regex{sourcemeta::core::to_regex("\\p{Z}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Z}"));
@@ -521,7 +521,7 @@ TEST(Regex_matches, rfc9485_unicode_property_separator) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_space_separator) {
+TEST(rfc9485_unicode_property_space_separator) {
   const auto regex{sourcemeta::core::to_regex("\\p{Zs}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Zs}"));
@@ -530,7 +530,7 @@ TEST(Regex_matches, rfc9485_unicode_property_space_separator) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "\n"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_line_separator) {
+TEST(rfc9485_unicode_property_line_separator) {
   const auto regex{sourcemeta::core::to_regex("\\p{Zl}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Zl}"));
@@ -538,7 +538,7 @@ TEST(Regex_matches, rfc9485_unicode_property_line_separator) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), " "));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_paragraph_separator) {
+TEST(rfc9485_unicode_property_paragraph_separator) {
   const auto regex{sourcemeta::core::to_regex("\\p{Zp}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Zp}"));
@@ -546,7 +546,7 @@ TEST(Regex_matches, rfc9485_unicode_property_paragraph_separator) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), " "));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_symbol) {
+TEST(rfc9485_unicode_property_symbol) {
   const auto regex{sourcemeta::core::to_regex("\\p{S}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{S}"));
@@ -556,7 +556,7 @@ TEST(Regex_matches, rfc9485_unicode_property_symbol) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_math_symbol) {
+TEST(rfc9485_unicode_property_math_symbol) {
   const auto regex{sourcemeta::core::to_regex("\\p{Sm}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Sm}"));
@@ -565,7 +565,7 @@ TEST(Regex_matches, rfc9485_unicode_property_math_symbol) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_currency_symbol) {
+TEST(rfc9485_unicode_property_currency_symbol) {
   const auto regex{sourcemeta::core::to_regex("\\p{Sc}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Sc}"));
@@ -574,7 +574,7 @@ TEST(Regex_matches, rfc9485_unicode_property_currency_symbol) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "+"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_modifier_symbol) {
+TEST(rfc9485_unicode_property_modifier_symbol) {
   const auto regex{sourcemeta::core::to_regex("\\p{Sk}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Sk}"));
@@ -582,7 +582,7 @@ TEST(Regex_matches, rfc9485_unicode_property_modifier_symbol) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_other_symbol) {
+TEST(rfc9485_unicode_property_other_symbol) {
   const auto regex{sourcemeta::core::to_regex("\\p{So}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{So}"));
@@ -590,7 +590,7 @@ TEST(Regex_matches, rfc9485_unicode_property_other_symbol) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "$"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_other) {
+TEST(rfc9485_unicode_property_other) {
   const auto regex{sourcemeta::core::to_regex("\\p{C}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{C}"));
@@ -598,7 +598,7 @@ TEST(Regex_matches, rfc9485_unicode_property_other) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_control) {
+TEST(rfc9485_unicode_property_control) {
   const auto regex{sourcemeta::core::to_regex("\\p{Cc}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cc}"));
@@ -607,7 +607,7 @@ TEST(Regex_matches, rfc9485_unicode_property_control) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_format) {
+TEST(rfc9485_unicode_property_format) {
   const auto regex{sourcemeta::core::to_regex("\\p{Cf}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cf}"));
@@ -615,13 +615,13 @@ TEST(Regex_matches, rfc9485_unicode_property_format) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_unassigned) {
+TEST(rfc9485_unicode_property_unassigned) {
   const auto regex{sourcemeta::core::to_regex("\\p{Cn}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cn}"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_private_use) {
+TEST(rfc9485_unicode_property_private_use) {
   const auto regex{sourcemeta::core::to_regex("\\p{Co}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Co}"));
@@ -629,7 +629,7 @@ TEST(Regex_matches, rfc9485_unicode_property_private_use) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_complement_letter) {
+TEST(rfc9485_unicode_property_complement_letter) {
   const auto regex{sourcemeta::core::to_regex("\\P{L}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{L}"));
@@ -638,7 +638,7 @@ TEST(Regex_matches, rfc9485_unicode_property_complement_letter) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_complement_number) {
+TEST(rfc9485_unicode_property_complement_number) {
   const auto regex{sourcemeta::core::to_regex("\\P{N}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{N}"));
@@ -647,7 +647,7 @@ TEST(Regex_matches, rfc9485_unicode_property_complement_number) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_property_complement_punctuation) {
+TEST(rfc9485_unicode_property_complement_punctuation) {
   const auto regex{sourcemeta::core::to_regex("\\P{P}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{P}"));
@@ -656,7 +656,7 @@ TEST(Regex_matches, rfc9485_unicode_property_complement_punctuation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "!"));
 }
 
-TEST(Regex_matches, rfc9485_group_simple) {
+TEST(rfc9485_group_simple) {
   const auto regex{sourcemeta::core::to_regex("(ab)c")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(ab)c"));
@@ -664,7 +664,7 @@ TEST(Regex_matches, rfc9485_group_simple) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ac"));
 }
 
-TEST(Regex_matches, rfc9485_group_nested) {
+TEST(rfc9485_group_nested) {
   const auto regex{sourcemeta::core::to_regex("((ab)c)")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((ab)c)"));
@@ -672,7 +672,7 @@ TEST(Regex_matches, rfc9485_group_nested) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ac"));
 }
 
-TEST(Regex_matches, rfc9485_group_with_quantifier) {
+TEST(rfc9485_group_with_quantifier) {
   const auto regex{sourcemeta::core::to_regex("(ab)+")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(ab)+"));
@@ -682,7 +682,7 @@ TEST(Regex_matches, rfc9485_group_with_quantifier) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_group_with_alternation) {
+TEST(rfc9485_group_with_alternation) {
   const auto regex{sourcemeta::core::to_regex("(cat|dog)s")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(cat|dog)s"));
@@ -691,7 +691,7 @@ TEST(Regex_matches, rfc9485_group_with_alternation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "birds"));
 }
 
-TEST(Regex_matches, rfc9485_complex_email_like) {
+TEST(rfc9485_complex_email_like) {
   const auto regex{sourcemeta::core::to_regex("[a-z]+@[a-z]+\\.[a-z]+")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z]+@[a-z]+\\.[a-z]+"));
@@ -700,7 +700,7 @@ TEST(Regex_matches, rfc9485_complex_email_like) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "invalid"));
 }
 
-TEST(Regex_matches, rfc9485_complex_identifier) {
+TEST(rfc9485_complex_identifier) {
   const auto regex{sourcemeta::core::to_regex("[a-zA-Z_][a-zA-Z0-9_]*")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-zA-Z_][a-zA-Z0-9_]*"));
@@ -710,7 +710,7 @@ TEST(Regex_matches, rfc9485_complex_identifier) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "123invalid"));
 }
 
-TEST(Regex_matches, rfc9485_complex_unicode_word) {
+TEST(rfc9485_complex_unicode_word) {
   const auto regex{sourcemeta::core::to_regex("\\p{L}+")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{L}+"));
@@ -720,7 +720,7 @@ TEST(Regex_matches, rfc9485_complex_unicode_word) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "123"));
 }
 
-TEST(Regex_matches, rfc9485_complex_mixed_quantifiers) {
+TEST(rfc9485_complex_mixed_quantifiers) {
   const auto regex{sourcemeta::core::to_regex("a{2,3}b+c*")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,3}b+c*"));
@@ -731,7 +731,7 @@ TEST(Regex_matches, rfc9485_complex_mixed_quantifiers) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_complex_nested_groups_quantifiers) {
+TEST(rfc9485_complex_nested_groups_quantifiers) {
   const auto regex{sourcemeta::core::to_regex("((ab)+c)*")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((ab)+c)*"));
@@ -742,7 +742,7 @@ TEST(Regex_matches, rfc9485_complex_nested_groups_quantifiers) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_empty_pattern) {
+TEST(rfc9485_edge_empty_pattern) {
   const auto regex{sourcemeta::core::to_regex("")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(""));
@@ -750,7 +750,7 @@ TEST(Regex_matches, rfc9485_edge_empty_pattern) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "anything"));
 }
 
-TEST(Regex_matches, rfc9485_edge_alternation_empty_first) {
+TEST(rfc9485_edge_alternation_empty_first) {
   const auto regex{sourcemeta::core::to_regex("|abc")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("|abc"));
@@ -759,7 +759,7 @@ TEST(Regex_matches, rfc9485_edge_alternation_empty_first) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "xyz"));
 }
 
-TEST(Regex_matches, rfc9485_edge_alternation_empty_middle) {
+TEST(rfc9485_edge_alternation_empty_middle) {
   const auto regex{sourcemeta::core::to_regex("a||b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a||b"));
@@ -769,7 +769,7 @@ TEST(Regex_matches, rfc9485_edge_alternation_empty_middle) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "xyz"));
 }
 
-TEST(Regex_matches, rfc9485_edge_alternation_all_empty) {
+TEST(rfc9485_edge_alternation_all_empty) {
   const auto regex{sourcemeta::core::to_regex("||")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("||"));
@@ -777,7 +777,7 @@ TEST(Regex_matches, rfc9485_edge_alternation_all_empty) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "anything"));
 }
 
-TEST(Regex_matches, rfc9485_edge_escape_backslash) {
+TEST(rfc9485_edge_escape_backslash) {
   const auto regex{sourcemeta::core::to_regex("a\\\\b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\\\b"));
@@ -785,7 +785,7 @@ TEST(Regex_matches, rfc9485_edge_escape_backslash) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_escape_pipe) {
+TEST(rfc9485_edge_escape_pipe) {
   const auto regex{sourcemeta::core::to_regex("a\\|b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\|b"));
@@ -793,14 +793,14 @@ TEST(Regex_matches, rfc9485_edge_escape_pipe) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_caret_literal) {
+TEST(rfc9485_edge_caret_literal) {
   const auto regex{sourcemeta::core::to_regex("a\\^b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\^b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a^b"));
 }
 
-TEST(Regex_matches, rfc9485_edge_quantifier_zero_exact) {
+TEST(rfc9485_edge_quantifier_zero_exact) {
   const auto regex{sourcemeta::core::to_regex("a{0}b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0}b"));
@@ -808,7 +808,7 @@ TEST(Regex_matches, rfc9485_edge_quantifier_zero_exact) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_quantifier_zero_or_more) {
+TEST(rfc9485_edge_quantifier_zero_or_more) {
   const auto regex{sourcemeta::core::to_regex("a{0,}b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0,}b"));
@@ -817,7 +817,7 @@ TEST(Regex_matches, rfc9485_edge_quantifier_zero_or_more) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_quantifier_zero_to_n) {
+TEST(rfc9485_edge_quantifier_zero_to_n) {
   const auto regex{sourcemeta::core::to_regex("a{0,3}b")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0,3}b"));
@@ -828,7 +828,7 @@ TEST(Regex_matches, rfc9485_edge_quantifier_zero_to_n) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaaab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_nested_groups_deep) {
+TEST(rfc9485_edge_nested_groups_deep) {
   const auto regex{sourcemeta::core::to_regex("(((a)))")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(((a)))"));
@@ -836,7 +836,7 @@ TEST(Regex_matches, rfc9485_edge_nested_groups_deep) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_only_dash) {
+TEST(rfc9485_edge_charclass_only_dash) {
   const auto regex{sourcemeta::core::to_regex("[-]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-]"));
@@ -844,7 +844,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_only_dash) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_dash_both_ends) {
+TEST(rfc9485_edge_charclass_dash_both_ends) {
   const auto regex{sourcemeta::core::to_regex("[-a-]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-a-]"));
@@ -853,7 +853,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_dash_both_ends) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_mixed_content) {
+TEST(rfc9485_edge_charclass_mixed_content) {
   const auto regex{sourcemeta::core::to_regex("[a-z\\p{N}._-]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z\\p{N}._-]"));
@@ -866,7 +866,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_mixed_content) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "A"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_escaped_bracket) {
+TEST(rfc9485_edge_charclass_escaped_bracket) {
   const auto regex{sourcemeta::core::to_regex("[\\[\\]]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\[\\]]"));
@@ -875,7 +875,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_escaped_bracket) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_multiple_ranges) {
+TEST(rfc9485_edge_charclass_multiple_ranges) {
   const auto regex{sourcemeta::core::to_regex("[a-cA-C0-2]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-cA-C0-2]"));
@@ -893,7 +893,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_multiple_ranges) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "3"));
 }
 
-TEST(Regex_matches, rfc9485_edge_group_with_alternation_quantified) {
+TEST(rfc9485_edge_group_with_alternation_quantified) {
   const auto regex{sourcemeta::core::to_regex("(a|b){2}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(a|b){2}"));
@@ -904,7 +904,7 @@ TEST(Regex_matches, rfc9485_edge_group_with_alternation_quantified) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_edge_multiple_dots) {
+TEST(rfc9485_edge_multiple_dots) {
   const auto regex{sourcemeta::core::to_regex("...")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("..."));
@@ -914,7 +914,7 @@ TEST(Regex_matches, rfc9485_edge_multiple_dots) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(Regex_matches, rfc9485_edge_quantifier_large_range) {
+TEST(rfc9485_edge_quantifier_large_range) {
   const auto regex{sourcemeta::core::to_regex("a{100,200}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{100,200}"));
@@ -924,7 +924,7 @@ TEST(Regex_matches, rfc9485_edge_quantifier_large_range) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), std::string(99, 'a')));
 }
 
-TEST(Regex_matches, rfc9485_edge_alternation_with_groups) {
+TEST(rfc9485_edge_alternation_with_groups) {
   const auto regex{sourcemeta::core::to_regex("(abc)|(def)|(ghi)")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(abc)|(def)|(ghi)"));
@@ -934,7 +934,7 @@ TEST(Regex_matches, rfc9485_edge_alternation_with_groups) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "jkl"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_with_unicode_properties) {
+TEST(rfc9485_edge_charclass_with_unicode_properties) {
   const auto regex{sourcemeta::core::to_regex("[\\p{Lu}\\p{Nd}]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{Lu}\\p{Nd}]"));
@@ -944,7 +944,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_with_unicode_properties) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(Regex_matches, rfc9485_all_major_categories_combined) {
+TEST(rfc9485_all_major_categories_combined) {
   const auto regex{sourcemeta::core::to_regex(
       "[\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{S}\\p{C}]")};
   EXPECT_TRUE(regex.has_value());
@@ -957,7 +957,7 @@ TEST(Regex_matches, rfc9485_all_major_categories_combined) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
 }
 
-TEST(Regex_matches, rfc9485_complement_all_major_categories) {
+TEST(rfc9485_complement_all_major_categories) {
   const auto regex{sourcemeta::core::to_regex("\\P{L}\\P{N}\\P{P}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{L}\\P{N}\\P{P}"));
@@ -965,7 +965,7 @@ TEST(Regex_matches, rfc9485_complement_all_major_categories) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a  "));
 }
 
-TEST(Regex_matches, rfc9485_edge_nested_quantifiers_group) {
+TEST(rfc9485_edge_nested_quantifiers_group) {
   const auto regex{sourcemeta::core::to_regex("((a+)+)+")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((a+)+)+"));
@@ -975,7 +975,7 @@ TEST(Regex_matches, rfc9485_edge_nested_quantifiers_group) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_negated_with_range) {
+TEST(rfc9485_edge_charclass_negated_with_range) {
   const auto regex{sourcemeta::core::to_regex("[^a-z]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^a-z]"));
@@ -986,7 +986,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_negated_with_range) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "z"));
 }
 
-TEST(Regex_matches, rfc9485_edge_consecutive_alternations) {
+TEST(rfc9485_edge_consecutive_alternations) {
   const auto regex{sourcemeta::core::to_regex("a|b|c|d|e")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a|b|c|d|e"));
@@ -998,7 +998,7 @@ TEST(Regex_matches, rfc9485_edge_consecutive_alternations) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "f"));
 }
 
-TEST(Regex_matches, rfc9485_edge_group_quantifier_zero_or_one) {
+TEST(rfc9485_edge_group_quantifier_zero_or_one) {
   const auto regex{sourcemeta::core::to_regex("(abc)?")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(abc)?"));
@@ -1007,7 +1007,7 @@ TEST(Regex_matches, rfc9485_edge_group_quantifier_zero_or_one) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "xyz"));
 }
 
-TEST(Regex_matches, rfc9485_edge_mixed_quantifiers_sequence) {
+TEST(rfc9485_edge_mixed_quantifiers_sequence) {
   const auto regex{sourcemeta::core::to_regex("a?b+c*d{2}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a?b+c*d{2}"));
@@ -1018,7 +1018,7 @@ TEST(Regex_matches, rfc9485_edge_mixed_quantifiers_sequence) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ad"));
 }
 
-TEST(Regex_matches, rfc9485_edge_unicode_in_alternation) {
+TEST(rfc9485_edge_unicode_in_alternation) {
   const auto regex{sourcemeta::core::to_regex("\\p{Lu}|\\p{Ll}|\\p{Nd}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lu}|\\p{Ll}|\\p{Nd}"));
@@ -1028,7 +1028,7 @@ TEST(Regex_matches, rfc9485_edge_unicode_in_alternation) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "!"));
 }
 
-TEST(Regex_matches, rfc9485_edge_charclass_single_char) {
+TEST(rfc9485_edge_charclass_single_char) {
   const auto regex{sourcemeta::core::to_regex("[a]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a]"));
@@ -1036,7 +1036,7 @@ TEST(Regex_matches, rfc9485_edge_charclass_single_char) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "b"));
 }
 
-TEST(Regex_matches, rfc9485_edge_complex_real_world_email_subset) {
+TEST(rfc9485_edge_complex_real_world_email_subset) {
   const auto regex{sourcemeta::core::to_regex(
       "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z]{2,}")};
   EXPECT_TRUE(regex.has_value());
@@ -1049,7 +1049,7 @@ TEST(Regex_matches, rfc9485_edge_complex_real_world_email_subset) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "test@"));
 }
 
-TEST(Regex_matches, rfc9485_edge_complex_real_world_hex_color) {
+TEST(rfc9485_edge_complex_real_world_hex_color) {
   const auto regex{sourcemeta::core::to_regex("#[0-9a-fA-F]{6}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("#[0-9a-fA-F]{6}"));
@@ -1059,7 +1059,7 @@ TEST(Regex_matches, rfc9485_edge_complex_real_world_hex_color) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "#GGG"));
 }
 
-TEST(Regex_matches, rfc9485_edge_complex_real_world_uuid_partial) {
+TEST(rfc9485_edge_complex_real_world_uuid_partial) {
   const auto regex{sourcemeta::core::to_regex(
       "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")};
   EXPECT_TRUE(regex.has_value());
@@ -1070,7 +1070,7 @@ TEST(Regex_matches, rfc9485_edge_complex_real_world_uuid_partial) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "invalid-uuid"));
 }
 
-TEST(Regex_matches, rfc9485_preprocessing_literal_backslash_p) {
+TEST(rfc9485_preprocessing_literal_backslash_p) {
   const auto regex{sourcemeta::core::to_regex("\\\\p\\{L\\}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\p\\{L\\}"));
@@ -1078,7 +1078,7 @@ TEST(Regex_matches, rfc9485_preprocessing_literal_backslash_p) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "A"));
 }
 
-TEST(Regex_matches, rfc9485_preprocessing_literal_backslash_P) {
+TEST(rfc9485_preprocessing_literal_backslash_P) {
   const auto regex{sourcemeta::core::to_regex("\\\\P\\{N\\}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\P\\{N\\}"));
@@ -1086,7 +1086,7 @@ TEST(Regex_matches, rfc9485_preprocessing_literal_backslash_P) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "5"));
 }
 
-TEST(Regex_matches, rfc9485_preprocessing_mixed_escaped_and_unicode) {
+TEST(rfc9485_preprocessing_mixed_escaped_and_unicode) {
   const auto regex{sourcemeta::core::to_regex("\\\\p\\{L\\} \\p{L}")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\p\\{L\\} \\p{L}"));
@@ -1094,7 +1094,7 @@ TEST(Regex_matches, rfc9485_preprocessing_mixed_escaped_and_unicode) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "A A"));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_star_any_string) {
+TEST(rfc9485_quantifier_star_any_string) {
   const auto regex{sourcemeta::core::to_regex(".*")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(".*"));
@@ -1102,7 +1102,7 @@ TEST(Regex_matches, rfc9485_quantifier_star_any_string) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
 }
 
-TEST(Regex_matches, rfc9485_quantifier_plus_non_empty) {
+TEST(rfc9485_quantifier_plus_non_empty) {
   const auto regex{sourcemeta::core::to_regex(".+")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(".+"));
@@ -1110,21 +1110,21 @@ TEST(Regex_matches, rfc9485_quantifier_plus_non_empty) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
 }
 
-TEST(Regex_matches, rfc9485_dot_matches_newline) {
+TEST(rfc9485_dot_matches_newline) {
   const auto regex{sourcemeta::core::to_regex(".")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("."));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\n"));
 }
 
-TEST(Regex_matches, rfc9485_dot_matches_carriage_return) {
+TEST(rfc9485_dot_matches_carriage_return) {
   const auto regex{sourcemeta::core::to_regex(".")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("."));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\r"));
 }
 
-TEST(Regex_matches, rfc9485_unicode_range_4byte_deseret) {
+TEST(rfc9485_unicode_range_4byte_deseret) {
   const auto regex{sourcemeta::core::to_regex("[\\u{10400}-\\u{1044F}]")};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\u{10400}-\\u{1044F}]"));

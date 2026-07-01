@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME yaml
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME yaml
   SOURCES
     yaml_parse_test.cc
     yaml_parse_callback_test.cc

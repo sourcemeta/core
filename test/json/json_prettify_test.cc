@@ -1,101 +1,101 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/json.h>
 
 #include <sstream>
 
-TEST(JSON_prettify, boolean_false) {
+TEST(boolean_false) {
   const sourcemeta::core::JSON document{false};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "false");
 }
 
-TEST(JSON_prettify, boolean_true) {
+TEST(boolean_true) {
   const sourcemeta::core::JSON document{true};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "true");
 }
 
-TEST(JSON_prettify, null) {
+TEST(null) {
   const sourcemeta::core::JSON document{nullptr};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "null");
 }
 
-TEST(JSON_prettify, integer_positive) {
+TEST(integer_positive) {
   const sourcemeta::core::JSON document{1234};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "1234");
 }
 
-TEST(JSON_prettify, integer_negative) {
+TEST(integer_negative) {
   const sourcemeta::core::JSON document{-1234};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "-1234");
 }
 
-TEST(JSON_prettify, integer_zero) {
+TEST(integer_zero) {
   const sourcemeta::core::JSON document{0};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "0");
 }
 
-TEST(JSON_prettify, integer_minus_zero) {
+TEST(integer_minus_zero) {
   const sourcemeta::core::JSON document{-0};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "0");
 }
 
-TEST(JSON_prettify, real_positive) {
+TEST(real_positive) {
   const sourcemeta::core::JSON document{12.34};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "12.34");
 }
 
-TEST(JSON_prettify, real_negative) {
+TEST(real_negative) {
   const sourcemeta::core::JSON document{-12.34};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "-12.34");
 }
 
-TEST(JSON_prettify, real_zero) {
+TEST(real_zero) {
   const sourcemeta::core::JSON document{0.0};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "0.0");
 }
 
-TEST(JSON_prettify, real_minus_zero) {
+TEST(real_minus_zero) {
   const sourcemeta::core::JSON document{-0.0};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "0.0");
 }
 
-TEST(JSON_prettify, empty_string) {
+TEST(empty_string) {
   const sourcemeta::core::JSON document{""};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"\"");
 }
 
-TEST(JSON_prettify, small_string) {
+TEST(small_string) {
   const sourcemeta::core::JSON document{"foo"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\"");
 }
 
-TEST(JSON_prettify, array_integers) {
+TEST(array_integers) {
   const sourcemeta::core::JSON document{
       sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
@@ -104,7 +104,7 @@ TEST(JSON_prettify, array_integers) {
   EXPECT_EQ(stream.str(), "[ 1, 2, 3, 4 ]");
 }
 
-TEST(JSON_prettify, array_strings_almost_long) {
+TEST(array_strings_almost_long) {
   const sourcemeta::core::JSON document{sourcemeta::core::JSON{"aaaaaaaaaa"},
                                         sourcemeta::core::JSON{"bbbbbbbbbb"},
                                         sourcemeta::core::JSON{"cccccccccc"},
@@ -116,7 +116,7 @@ TEST(JSON_prettify, array_strings_almost_long) {
                           "\"dddddddddd\", \"eeeeeeeeee\" ]");
 }
 
-TEST(JSON_prettify, array_strings_almost_long_with_indentation) {
+TEST(array_strings_almost_long_with_indentation) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign("1", sourcemeta::core::JSON::make_object());
   document.at("1").assign("2", sourcemeta::core::JSON::make_object());
@@ -161,7 +161,7 @@ TEST(JSON_prettify, array_strings_almost_long_with_indentation) {
   EXPECT_EQ(stream.str(), expected);
 }
 
-TEST(JSON_prettify, array_strings_almost_long_with_long_property) {
+TEST(array_strings_almost_long_with_long_property) {
   auto document{sourcemeta::core::JSON::make_object()};
   // Key has 40 characters (plus 2 for quotes + 1 for semicolon + 1 for space) =
   // 44
@@ -192,7 +192,7 @@ TEST(JSON_prettify, array_strings_almost_long_with_long_property) {
   EXPECT_EQ(stream.str(), expected);
 }
 
-TEST(JSON_prettify, array_strings_long) {
+TEST(array_strings_long) {
   const sourcemeta::core::JSON document{sourcemeta::core::JSON{"aaaaaaaaaa"},
                                         sourcemeta::core::JSON{"bbbbbbbbbb"},
                                         sourcemeta::core::JSON{"cccccccccc"},
@@ -209,7 +209,7 @@ TEST(JSON_prettify, array_strings_long) {
             "\"gggggggggg\",\n  \"hhhhhhhhhh\"\n]");
 }
 
-TEST(JSON_prettify, array_nested_1) {
+TEST(array_nested_1) {
   sourcemeta::core::JSON array{
       sourcemeta::core::JSON{1}, sourcemeta::core::JSON{2},
       sourcemeta::core::JSON{3}, sourcemeta::core::JSON{4}};
@@ -220,7 +220,7 @@ TEST(JSON_prettify, array_nested_1) {
   EXPECT_EQ(stream.str(), "[\n  [ 1, 2, 3, 4 ]\n]");
 }
 
-TEST(JSON_prettify, array_nested_2) {
+TEST(array_nested_2) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
@@ -232,14 +232,14 @@ TEST(JSON_prettify, array_nested_2) {
   EXPECT_EQ(stream.str(), "[\n  1,\n  [ 2, 3 ],\n  4\n]");
 }
 
-TEST(JSON_prettify, array_empty) {
+TEST(array_empty) {
   const sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "[]");
 }
 
-TEST(JSON_prettify, object_integers) {
+TEST(object_integers) {
   const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
                                         {"bar", sourcemeta::core::JSON{2}}};
   std::ostringstream stream;
@@ -250,7 +250,7 @@ TEST(JSON_prettify, object_integers) {
   EXPECT_TRUE(matches);
 }
 
-TEST(JSON_prettify, object_integers_order_1) {
+TEST(object_integers_order_1) {
   sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
                                   {"bar", sourcemeta::core::JSON{2}},
                                   {"baz", sourcemeta::core::JSON{3}}};
@@ -261,7 +261,7 @@ TEST(JSON_prettify, object_integers_order_1) {
   EXPECT_EQ(stream.str(), "{\n  \"bar\": 2,\n  \"baz\": 3,\n  \"foo\": 1\n}");
 }
 
-TEST(JSON_prettify, object_integers_order_2) {
+TEST(object_integers_order_2) {
   sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
                                   {"bar", sourcemeta::core::JSON{2}},
                                   {"baz", sourcemeta::core::JSON{3}}};
@@ -272,14 +272,14 @@ TEST(JSON_prettify, object_integers_order_2) {
   EXPECT_EQ(stream.str(), "{\n  \"foo\": 1,\n  \"baz\": 3,\n  \"bar\": 2\n}");
 }
 
-TEST(JSON_prettify, object_empty) {
+TEST(object_empty) {
   const sourcemeta::core::JSON document = sourcemeta::core::JSON::make_object();
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "{}");
 }
 
-TEST(JSON_prettify, object_with_array) {
+TEST(object_with_array) {
   sourcemeta::core::JSON array{sourcemeta::core::JSON::Array{}};
   array.push_back(sourcemeta::core::JSON{1});
   array.push_back(sourcemeta::core::JSON{2});
@@ -289,7 +289,7 @@ TEST(JSON_prettify, object_with_array) {
   EXPECT_EQ(stream.str(), "{\n  \"foo\": [ 1, 2 ]\n}");
 }
 
-TEST(JSON_prettify, object_nested) {
+TEST(object_nested) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("bar", sourcemeta::core::JSON{1});
   const sourcemeta::core::JSON document{{"foo", std::move(object)}};
@@ -298,7 +298,7 @@ TEST(JSON_prettify, object_nested) {
   EXPECT_EQ(stream.str(), "{\n  \"foo\": {\n    \"bar\": 1\n  }\n}");
 }
 
-TEST(JSON_prettify, array_with_object) {
+TEST(array_with_object) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("foo", sourcemeta::core::JSON{1});
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
@@ -308,77 +308,77 @@ TEST(JSON_prettify, array_with_object) {
   EXPECT_EQ(stream.str(), "[\n  {\n    \"foo\": 1\n  }\n]");
 }
 
-TEST(JSON_prettify, simple_object) {
+TEST(simple_object) {
   const sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}}};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "{\n  \"foo\": 1\n}");
 }
 
-TEST(JSON_prettify, prettify_quote) {
+TEST(prettify_quote) {
   const sourcemeta::core::JSON document{"\""};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"\\\"\"");
 }
 
-TEST(JSON_prettify, prettify_escape) {
+TEST(prettify_escape) {
   const sourcemeta::core::JSON document{"\\"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"\\\\\"");
 }
 
-TEST(JSON_prettify, prettify_solidus) {
+TEST(prettify_solidus) {
   const sourcemeta::core::JSON document{"/"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"/\"");
 }
 
-TEST(JSON_prettify, prettify_backspace) {
+TEST(prettify_backspace) {
   const sourcemeta::core::JSON document{"foo\bbar"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\\bbar\"");
 }
 
-TEST(JSON_prettify, prettify_formfeed) {
+TEST(prettify_formfeed) {
   const sourcemeta::core::JSON document{"foo\fbar"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\\fbar\"");
 }
 
-TEST(JSON_prettify, prettify_newline) {
+TEST(prettify_newline) {
   const sourcemeta::core::JSON document{"foo\nbar"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\\nbar\"");
 }
 
-TEST(JSON_prettify, prettify_carriage_return) {
+TEST(prettify_carriage_return) {
   const sourcemeta::core::JSON document{"foo\rbar"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\\rbar\"");
 }
 
-TEST(JSON_prettify, prettify_tabulation) {
+TEST(prettify_tabulation) {
   const sourcemeta::core::JSON document{"foo\tbar"};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "\"foo\\tbar\"");
 }
 
-TEST(JSON_prettify, prettify_scientific_real) {
+TEST(prettify_scientific_real) {
   const sourcemeta::core::JSON document{4.321768E3};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream);
   EXPECT_EQ(stream.str(), "4321.768");
 }
 
-TEST(JSON_prettify, object_nested_with_0_spaces) {
+TEST(object_nested_with_0_spaces) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("bar", sourcemeta::core::JSON{1});
   const sourcemeta::core::JSON document{{"foo", std::move(object)}};
@@ -387,7 +387,7 @@ TEST(JSON_prettify, object_nested_with_0_spaces) {
   EXPECT_EQ(stream.str(), "{\n\"foo\": {\n\"bar\": 1\n}\n}");
 }
 
-TEST(JSON_prettify, object_nested_with_1_space) {
+TEST(object_nested_with_1_space) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("bar", sourcemeta::core::JSON{1});
   const sourcemeta::core::JSON document{{"foo", std::move(object)}};
@@ -396,7 +396,7 @@ TEST(JSON_prettify, object_nested_with_1_space) {
   EXPECT_EQ(stream.str(), "{\n \"foo\": {\n  \"bar\": 1\n }\n}");
 }
 
-TEST(JSON_prettify, object_nested_with_2_spaces) {
+TEST(object_nested_with_2_spaces) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("bar", sourcemeta::core::JSON{1});
   const sourcemeta::core::JSON document{{"foo", std::move(object)}};
@@ -405,7 +405,7 @@ TEST(JSON_prettify, object_nested_with_2_spaces) {
   EXPECT_EQ(stream.str(), "{\n  \"foo\": {\n    \"bar\": 1\n  }\n}");
 }
 
-TEST(JSON_prettify, object_nested_with_3_spaces) {
+TEST(object_nested_with_3_spaces) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("bar", sourcemeta::core::JSON{1});
   const sourcemeta::core::JSON document{{"foo", std::move(object)}};
@@ -414,7 +414,7 @@ TEST(JSON_prettify, object_nested_with_3_spaces) {
   EXPECT_EQ(stream.str(), "{\n   \"foo\": {\n      \"bar\": 1\n   }\n}");
 }
 
-TEST(JSON_prettify, object_nested_with_4_spaces) {
+TEST(object_nested_with_4_spaces) {
   sourcemeta::core::JSON object = sourcemeta::core::JSON::make_object();
   object.assign("bar", sourcemeta::core::JSON{1});
   const sourcemeta::core::JSON document{{"foo", std::move(object)}};
@@ -423,7 +423,7 @@ TEST(JSON_prettify, object_nested_with_4_spaces) {
   EXPECT_EQ(stream.str(), "{\n    \"foo\": {\n        \"bar\": 1\n    }\n}");
 }
 
-TEST(JSON_prettify, array_nested_with_0_spaces) {
+TEST(array_nested_with_0_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
@@ -435,7 +435,7 @@ TEST(JSON_prettify, array_nested_with_0_spaces) {
   EXPECT_EQ(stream.str(), "[\n1,\n[ 2, 3 ],\n4\n]");
 }
 
-TEST(JSON_prettify, array_nested_with_1_space) {
+TEST(array_nested_with_1_space) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
@@ -447,7 +447,7 @@ TEST(JSON_prettify, array_nested_with_1_space) {
   EXPECT_EQ(stream.str(), "[\n 1,\n [ 2, 3 ],\n 4\n]");
 }
 
-TEST(JSON_prettify, array_nested_with_2_spaces) {
+TEST(array_nested_with_2_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
@@ -459,7 +459,7 @@ TEST(JSON_prettify, array_nested_with_2_spaces) {
   EXPECT_EQ(stream.str(), "[\n  1,\n  [ 2, 3 ],\n  4\n]");
 }
 
-TEST(JSON_prettify, array_nested_with_3_spaces) {
+TEST(array_nested_with_3_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
@@ -471,7 +471,7 @@ TEST(JSON_prettify, array_nested_with_3_spaces) {
   EXPECT_EQ(stream.str(), "[\n   1,\n   [ 2, 3 ],\n   4\n]");
 }
 
-TEST(JSON_prettify, array_nested_with_4_spaces) {
+TEST(array_nested_with_4_spaces) {
   sourcemeta::core::JSON document{sourcemeta::core::JSON::Array{}};
   document.push_back(sourcemeta::core::JSON{1});
   sourcemeta::core::JSON nested{sourcemeta::core::JSON{2},
@@ -483,14 +483,14 @@ TEST(JSON_prettify, array_nested_with_4_spaces) {
   EXPECT_EQ(stream.str(), "[\n    1,\n    [ 2, 3 ],\n    4\n]");
 }
 
-TEST(JSON_prettify, boolean_false_with_4_spaces) {
+TEST(boolean_false_with_4_spaces) {
   const sourcemeta::core::JSON document{false};
   std::ostringstream stream;
   sourcemeta::core::prettify(document, stream, 4);
   EXPECT_EQ(stream.str(), "false");
 }
 
-TEST(JSON_prettify, object_reorder_with_4_spaces) {
+TEST(object_reorder_with_4_spaces) {
   sourcemeta::core::JSON document{{"foo", sourcemeta::core::JSON{1}},
                                   {"bar", sourcemeta::core::JSON{2}},
                                   {"baz", sourcemeta::core::JSON{3}}};
@@ -502,7 +502,7 @@ TEST(JSON_prettify, object_reorder_with_4_spaces) {
             "{\n    \"bar\": 2,\n    \"baz\": 3,\n    \"foo\": 1\n}");
 }
 
-TEST(JSON_prettify, decimal_positive_integer) {
+TEST(decimal_positive_integer) {
   const sourcemeta::core::Decimal value{12345};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -510,7 +510,7 @@ TEST(JSON_prettify, decimal_positive_integer) {
   EXPECT_EQ(stream.str(), "1.2345e+4");
 }
 
-TEST(JSON_prettify, decimal_negative_integer) {
+TEST(decimal_negative_integer) {
   const sourcemeta::core::Decimal value{-67890};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -518,7 +518,7 @@ TEST(JSON_prettify, decimal_negative_integer) {
   EXPECT_EQ(stream.str(), "-6.7890e+4");
 }
 
-TEST(JSON_prettify, decimal_zero) {
+TEST(decimal_zero) {
   const sourcemeta::core::Decimal value{0};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -526,7 +526,7 @@ TEST(JSON_prettify, decimal_zero) {
   EXPECT_EQ(stream.str(), "0e+0");
 }
 
-TEST(JSON_prettify, decimal_fractional) {
+TEST(decimal_fractional) {
   const sourcemeta::core::Decimal value{"3.14159"};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -534,7 +534,7 @@ TEST(JSON_prettify, decimal_fractional) {
   EXPECT_EQ(stream.str(), "3.14159e+0");
 }
 
-TEST(JSON_prettify, decimal_negative_fractional) {
+TEST(decimal_negative_fractional) {
   const sourcemeta::core::Decimal value{"-2.71828"};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -542,7 +542,7 @@ TEST(JSON_prettify, decimal_negative_fractional) {
   EXPECT_EQ(stream.str(), "-2.71828e+0");
 }
 
-TEST(JSON_prettify, decimal_large_integer) {
+TEST(decimal_large_integer) {
   const sourcemeta::core::Decimal value{"123456789012345678901234567890"};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -550,7 +550,7 @@ TEST(JSON_prettify, decimal_large_integer) {
   EXPECT_EQ(stream.str(), "1.23456789012345678901234567890e+29");
 }
 
-TEST(JSON_prettify, decimal_large_negative_integer) {
+TEST(decimal_large_negative_integer) {
   const sourcemeta::core::Decimal value{"-987654321098765432109876543210"};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -558,7 +558,7 @@ TEST(JSON_prettify, decimal_large_negative_integer) {
   EXPECT_EQ(stream.str(), "-9.87654321098765432109876543210e+29");
 }
 
-TEST(JSON_prettify, decimal_high_precision_fractional) {
+TEST(decimal_high_precision_fractional) {
   const sourcemeta::core::Decimal value{
       "3.141592653589793238462643383279502884197"};
   const sourcemeta::core::JSON document{value};
@@ -567,7 +567,7 @@ TEST(JSON_prettify, decimal_high_precision_fractional) {
   EXPECT_EQ(stream.str(), "3.141592653589793238462643383279502884197e+0");
 }
 
-TEST(JSON_prettify, decimal_very_small_fractional) {
+TEST(decimal_very_small_fractional) {
   const sourcemeta::core::Decimal value{"0.000000000000000000000000000001"};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -575,7 +575,7 @@ TEST(JSON_prettify, decimal_very_small_fractional) {
   EXPECT_EQ(stream.str(), "1e-30");
 }
 
-TEST(JSON_prettify, decimal_scientific_notation) {
+TEST(decimal_scientific_notation) {
   const sourcemeta::core::Decimal value{"1.23e10"};
   const sourcemeta::core::JSON document{value};
   std::ostringstream stream;
@@ -583,7 +583,7 @@ TEST(JSON_prettify, decimal_scientific_notation) {
   EXPECT_EQ(stream.str(), "1.23e+10");
 }
 
-TEST(JSON_prettify, decimal_in_array) {
+TEST(decimal_in_array) {
   const sourcemeta::core::Decimal value1{100};
   const sourcemeta::core::Decimal value2{"999.999"};
   const sourcemeta::core::Decimal value3{"-42"};
@@ -595,7 +595,7 @@ TEST(JSON_prettify, decimal_in_array) {
   EXPECT_EQ(stream.str(), "[ 1.00e+2, 9.99999e+2, -4.2e+1 ]");
 }
 
-TEST(JSON_prettify, decimal_large_numbers_in_array) {
+TEST(decimal_large_numbers_in_array) {
   const sourcemeta::core::Decimal value1{"123456789012345678901234567890"};
   const sourcemeta::core::Decimal value2{
       "98765432109876543210.98765432109876543210"};
@@ -609,7 +609,7 @@ TEST(JSON_prettify, decimal_large_numbers_in_array) {
                           "]");
 }
 
-TEST(JSON_prettify, decimal_nested_in_array) {
+TEST(decimal_nested_in_array) {
   const sourcemeta::core::Decimal value1{"111.111"};
   const sourcemeta::core::Decimal value2{"222.222"};
   sourcemeta::core::JSON inner_array{sourcemeta::core::JSON{value1},
@@ -621,7 +621,7 @@ TEST(JSON_prettify, decimal_nested_in_array) {
   EXPECT_EQ(stream.str(), "[\n  [ 1.11111e+2, 2.22222e+2 ]\n]");
 }
 
-TEST(JSON_prettify, decimal_in_object) {
+TEST(decimal_in_object) {
   const sourcemeta::core::Decimal value1{"12345"};
   const sourcemeta::core::Decimal value2{"-67.89"};
   sourcemeta::core::JSON document{
@@ -635,7 +635,7 @@ TEST(JSON_prettify, decimal_in_object) {
             "{\n  \"fractional\": -6.789e+1,\n  \"integer\": 1.2345e+4\n}");
 }
 
-TEST(JSON_prettify, decimal_large_numbers_in_object) {
+TEST(decimal_large_numbers_in_object) {
   const sourcemeta::core::Decimal big_int{"999999999999999999999999999999"};
   const sourcemeta::core::Decimal big_real{
       "123456789.123456789123456789123456789"};
@@ -651,7 +651,7 @@ TEST(JSON_prettify, decimal_large_numbers_in_object) {
             "\"bigReal\": 1.23456789123456789123456789123456789e+8\n}");
 }
 
-TEST(JSON_prettify, decimal_mixed_with_other_types_in_object) {
+TEST(decimal_mixed_with_other_types_in_object) {
   const sourcemeta::core::Decimal decimal_value{"3.14159"};
   sourcemeta::core::JSON document{
       {"string", sourcemeta::core::JSON{"hello"}},
@@ -667,7 +667,7 @@ TEST(JSON_prettify, decimal_mixed_with_other_types_in_object) {
             "\"integer\": 42,\n  \"string\": \"hello\"\n}");
 }
 
-TEST(JSON_prettify, decimal_nested_in_object_with_array) {
+TEST(decimal_nested_in_object_with_array) {
   const sourcemeta::core::Decimal value1{"111"};
   const sourcemeta::core::Decimal value2{"222.222"};
   sourcemeta::core::JSON array{sourcemeta::core::JSON::Array{}};
@@ -679,7 +679,7 @@ TEST(JSON_prettify, decimal_nested_in_object_with_array) {
   EXPECT_EQ(stream.str(), "{\n  \"decimals\": [ 1.11e+2, 2.22222e+2 ]\n}");
 }
 
-TEST(JSON_prettify, decimal_large_numbers_nested_with_indentation) {
+TEST(decimal_large_numbers_nested_with_indentation) {
   const sourcemeta::core::Decimal big1{"111111111111111111111111111111"};
   const sourcemeta::core::Decimal big2{"222222222222222222222222222222"};
   sourcemeta::core::JSON inner_object{{"first", sourcemeta::core::JSON{big1}},

@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/jsonpointer.h>
 
@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-TEST(JSONPointer_pointer, general_traits) {
+TEST(general_traits) {
   EXPECT_TRUE(std::is_default_constructible<sourcemeta::core::Pointer>::value);
   EXPECT_TRUE(
       std::is_nothrow_default_constructible<sourcemeta::core::Pointer>::value);
@@ -14,7 +14,7 @@ TEST(JSONPointer_pointer, general_traits) {
   EXPECT_TRUE(std::is_nothrow_destructible<sourcemeta::core::Pointer>::value);
 }
 
-TEST(JSONPointer_pointer, copy_traits) {
+TEST(copy_traits) {
   EXPECT_TRUE(std::is_copy_assignable<sourcemeta::core::Pointer>::value);
   EXPECT_TRUE(std::is_copy_constructible<sourcemeta::core::Pointer>::value);
   EXPECT_FALSE(
@@ -23,7 +23,7 @@ TEST(JSONPointer_pointer, copy_traits) {
       std::is_nothrow_copy_constructible<sourcemeta::core::Pointer>::value);
 }
 
-TEST(JSONPointer_pointer, move_traits) {
+TEST(move_traits) {
   EXPECT_TRUE(std::is_move_assignable<sourcemeta::core::Pointer>::value);
   EXPECT_TRUE(std::is_move_constructible<sourcemeta::core::Pointer>::value);
   EXPECT_TRUE(
@@ -32,13 +32,13 @@ TEST(JSONPointer_pointer, move_traits) {
       std::is_nothrow_move_constructible<sourcemeta::core::Pointer>::value);
 }
 
-TEST(JSONPointer_pointer, empty) {
+TEST(empty) {
   const sourcemeta::core::Pointer pointer;
   EXPECT_EQ(pointer.size(), 0);
   EXPECT_TRUE(pointer.empty());
 }
 
-TEST(JSONPointer_pointer, one_fragment_property) {
+TEST(one_fragment_property) {
   const sourcemeta::core::Pointer pointer{"foo"};
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_FALSE(pointer.empty());
@@ -46,14 +46,14 @@ TEST(JSONPointer_pointer, one_fragment_property) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
 }
 
-TEST(JSONPointer_pointer, one_fragment_back) {
+TEST(one_fragment_back) {
   const sourcemeta::core::Pointer pointer{"foo"};
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_TRUE(pointer.back().is_property());
   EXPECT_EQ(pointer.back().to_property(), "foo");
 }
 
-TEST(JSONPointer_pointer, one_fragment_index) {
+TEST(one_fragment_index) {
   const sourcemeta::core::Pointer pointer{0};
   EXPECT_EQ(pointer.size(), 1);
   EXPECT_FALSE(pointer.empty());
@@ -61,7 +61,7 @@ TEST(JSONPointer_pointer, one_fragment_index) {
   EXPECT_EQ(pointer.at(0).to_index(), 0);
 }
 
-TEST(JSONPointer_pointer, multiple_fragments_mixed) {
+TEST(multiple_fragments_mixed) {
   const sourcemeta::core::Pointer pointer{"foo", 1, "bar"};
   EXPECT_EQ(pointer.size(), 3);
   EXPECT_FALSE(pointer.empty());
@@ -73,14 +73,14 @@ TEST(JSONPointer_pointer, multiple_fragments_mixed) {
   EXPECT_EQ(pointer.at(2).to_property(), "bar");
 }
 
-TEST(JSONPointer_pointer, multiple_fragments_back) {
+TEST(multiple_fragments_back) {
   const sourcemeta::core::Pointer pointer{"foo", 1, "bar"};
   EXPECT_EQ(pointer.size(), 3);
   EXPECT_TRUE(pointer.back().is_property());
   EXPECT_EQ(pointer.back().to_property(), "bar");
 }
 
-TEST(JSONPointer_pointer, build_with_emplace_back) {
+TEST(build_with_emplace_back) {
   sourcemeta::core::Pointer pointer;
   EXPECT_EQ(pointer.size(), 0);
 
@@ -99,25 +99,25 @@ TEST(JSONPointer_pointer, build_with_emplace_back) {
   EXPECT_EQ(pointer.at(1).to_index(), 1);
 }
 
-TEST(JSONPointer_pointer, equality_empty) {
+TEST(equality_empty) {
   const sourcemeta::core::Pointer pointer_1;
   const sourcemeta::core::Pointer pointer_2;
   EXPECT_EQ(pointer_1, pointer_2);
 }
 
-TEST(JSONPointer_pointer, equality_true) {
+TEST(equality_true) {
   const sourcemeta::core::Pointer pointer_1{"foo", 1, "bar"};
   const sourcemeta::core::Pointer pointer_2{"foo", 1, "bar"};
   EXPECT_EQ(pointer_1, pointer_2);
 }
 
-TEST(JSONPointer_pointer, equality_false) {
+TEST(equality_false) {
   const sourcemeta::core::Pointer pointer_1{"foo", 1, "bar"};
   const sourcemeta::core::Pointer pointer_2{"foo", 2, "bar"};
   EXPECT_FALSE(pointer_1 == pointer_2);
 }
 
-TEST(JSONPointer_pointer, pop_back_non_empty) {
+TEST(pop_back_non_empty) {
   sourcemeta::core::Pointer pointer{"foo", "bar"};
   pointer.pop_back();
   EXPECT_EQ(pointer.size(), 1);
@@ -125,7 +125,7 @@ TEST(JSONPointer_pointer, pop_back_non_empty) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
 }
 
-TEST(JSONPointer_pointer, ordering_less_than) {
+TEST(ordering_less_than) {
   const sourcemeta::core::Pointer pointer_1{"foo", "bar"};
   const sourcemeta::core::Pointer pointer_2{"foo"};
   const sourcemeta::core::Pointer pointer_3{"baz"};
@@ -134,13 +134,13 @@ TEST(JSONPointer_pointer, ordering_less_than) {
   EXPECT_TRUE(pointer_3 < pointer_2);
 }
 
-TEST(JSONPointer_pointer, pop_back_zero_empty) {
+TEST(pop_back_zero_empty) {
   sourcemeta::core::Pointer pointer{};
   pointer.pop_back(0);
   EXPECT_EQ(pointer.size(), 0);
 }
 
-TEST(JSONPointer_pointer, pop_back_many_subset) {
+TEST(pop_back_many_subset) {
   sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
   pointer.pop_back(2);
   EXPECT_EQ(pointer.size(), 1);
@@ -148,13 +148,13 @@ TEST(JSONPointer_pointer, pop_back_many_subset) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
 }
 
-TEST(JSONPointer_pointer, pop_back_many_all) {
+TEST(pop_back_many_all) {
   sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
   pointer.pop_back(3);
   EXPECT_EQ(pointer.size(), 0);
 }
 
-TEST(JSONPointer_pointer, push_back_pointer_copy) {
+TEST(push_back_pointer_copy) {
   sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer other{"baz", "qux"};
   pointer.push_back(other);
@@ -169,7 +169,7 @@ TEST(JSONPointer_pointer, push_back_pointer_copy) {
   EXPECT_EQ(pointer.at(3).to_property(), "qux");
 }
 
-TEST(JSONPointer_pointer, push_back_pointer_move) {
+TEST(push_back_pointer_move) {
   sourcemeta::core::Pointer pointer{"foo", "bar"};
   sourcemeta::core::Pointer other{"baz", "qux"};
   pointer.push_back(std::move(other));
@@ -184,13 +184,13 @@ TEST(JSONPointer_pointer, push_back_pointer_move) {
   EXPECT_EQ(pointer.at(3).to_property(), "qux");
 }
 
-TEST(JSONPointer_pointer, initial_with_one_token) {
+TEST(initial_with_one_token) {
   const sourcemeta::core::Pointer pointer{"foo"};
   const sourcemeta::core::Pointer result{pointer.initial()};
   EXPECT_EQ(result.size(), 0);
 }
 
-TEST(JSONPointer_pointer, initial_with_two_tokens) {
+TEST(initial_with_two_tokens) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};
   const sourcemeta::core::Pointer result{pointer.initial()};
   EXPECT_EQ(result.size(), 1);
@@ -198,7 +198,7 @@ TEST(JSONPointer_pointer, initial_with_two_tokens) {
   EXPECT_EQ(pointer.at(0).to_property(), "foo");
 }
 
-TEST(JSONPointer_pointer, initial_with_three_tokens) {
+TEST(initial_with_three_tokens) {
   const sourcemeta::core::Pointer pointer{"foo", "bar", "baz"};
   const sourcemeta::core::Pointer result{pointer.initial()};
   EXPECT_EQ(result.size(), 2);
@@ -208,7 +208,7 @@ TEST(JSONPointer_pointer, initial_with_three_tokens) {
   EXPECT_EQ(pointer.at(1).to_property(), "bar");
 }
 
-TEST(JSONPointer_pointer, push_back_property_copy) {
+TEST(push_back_property_copy) {
   sourcemeta::core::Pointer pointer{"foo"};
   const sourcemeta::core::Pointer other{"bar"};
   pointer.push_back(other.back().to_property());
@@ -219,7 +219,7 @@ TEST(JSONPointer_pointer, push_back_property_copy) {
   EXPECT_EQ(pointer.at(1).to_property(), "bar");
 }
 
-TEST(JSONPointer_pointer, push_back_property_move) {
+TEST(push_back_property_move) {
   sourcemeta::core::Pointer pointer{"foo"};
   pointer.push_back("bar");
   EXPECT_EQ(pointer.size(), 2);
@@ -229,7 +229,7 @@ TEST(JSONPointer_pointer, push_back_property_move) {
   EXPECT_EQ(pointer.at(1).to_property(), "bar");
 }
 
-TEST(JSONPointer_pointer, push_back_index_copy) {
+TEST(push_back_index_copy) {
   sourcemeta::core::Pointer pointer{"foo"};
   const sourcemeta::core::Pointer other{0};
   pointer.push_back(other.back().to_index());
@@ -240,7 +240,7 @@ TEST(JSONPointer_pointer, push_back_index_copy) {
   EXPECT_EQ(pointer.at(1).to_index(), 0);
 }
 
-TEST(JSONPointer_pointer, push_back_index_move) {
+TEST(push_back_index_move) {
   sourcemeta::core::Pointer pointer{"foo"};
   pointer.push_back(0);
   EXPECT_EQ(pointer.size(), 2);
@@ -250,7 +250,7 @@ TEST(JSONPointer_pointer, push_back_index_move) {
   EXPECT_EQ(pointer.at(1).to_index(), 0);
 }
 
-TEST(JSONPointer_pointer, hash_unordered_set) {
+TEST(hash_unordered_set) {
   std::unordered_set<sourcemeta::core::Pointer,
                      sourcemeta::core::Pointer::Hasher>
       set;
@@ -283,7 +283,7 @@ TEST(JSONPointer_pointer, hash_unordered_set) {
   EXPECT_TRUE(set.contains(two_dup));
 }
 
-TEST(JSONPointer_pointer, hash_unordered_map) {
+TEST(hash_unordered_map) {
   std::unordered_map<sourcemeta::core::Pointer, int,
                      sourcemeta::core::Pointer::Hasher>
       map;
@@ -309,14 +309,14 @@ TEST(JSONPointer_pointer, hash_unordered_map) {
   EXPECT_EQ(map.at(four), 4);
 }
 
-TEST(JSONPointer_pointer, hash_empty_consistency) {
+TEST(hash_empty_consistency) {
   const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer empty_1{};
   const sourcemeta::core::Pointer empty_2{};
   EXPECT_EQ(hasher(empty_1), hasher(empty_2));
 }
 
-TEST(JSONPointer_pointer, hash_single_token_consistency) {
+TEST(hash_single_token_consistency) {
   const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer single_1{"foo"};
   const sourcemeta::core::Pointer single_2{"foo"};
@@ -325,7 +325,7 @@ TEST(JSONPointer_pointer, hash_single_token_consistency) {
   EXPECT_NE(hasher(single_1), hasher(single_3));
 }
 
-TEST(JSONPointer_pointer, hash_two_token_consistency) {
+TEST(hash_two_token_consistency) {
   const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer two_1{"foo", "bar"};
   const sourcemeta::core::Pointer two_2{"foo", "bar"};
@@ -334,7 +334,7 @@ TEST(JSONPointer_pointer, hash_two_token_consistency) {
   EXPECT_NE(hasher(two_1), hasher(two_3));
 }
 
-TEST(JSONPointer_pointer, hash_three_token_consistency) {
+TEST(hash_three_token_consistency) {
   const sourcemeta::core::Pointer::Hasher hasher;
   const sourcemeta::core::Pointer multi_1{"foo", "bar", 1};
   const sourcemeta::core::Pointer multi_2{"foo", "bar", 1};
