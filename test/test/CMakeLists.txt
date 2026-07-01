@@ -1,36 +1,26 @@
-sourcemeta_test_main(SOURCEMETA_CORE_TEST_DRIVER_MAIN)
-
-add_executable(sourcemeta_core_test_success
-  test_success.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
+add_executable(sourcemeta_core_test_success test_success.cc)
 target_link_libraries(sourcemeta_core_test_success
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_failure
-  test_failure.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
+add_executable(sourcemeta_core_test_failure test_failure.cc)
 target_link_libraries(sourcemeta_core_test_failure
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_throw
-  test_throw.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
+add_executable(sourcemeta_core_test_throw test_throw.cc)
 target_link_libraries(sourcemeta_core_test_throw
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_filter
-  test_filter.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
+add_executable(sourcemeta_core_test_filter test_filter.cc)
 target_link_libraries(sourcemeta_core_test_filter
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-add_executable(sourcemeta_core_test_fixture
-  test_fixture.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
+add_executable(sourcemeta_core_test_fixture test_fixture.cc)
 target_link_libraries(sourcemeta_core_test_fixture
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
-# This suite registers its cases at runtime, so it provides its own entry point
-# rather than the generated one
-add_executable(sourcemeta_core_test_dynamic
-  test_dynamic.cc)
+add_executable(sourcemeta_core_test_dynamic test_dynamic.cc)
 target_link_libraries(sourcemeta_core_test_dynamic
-  PRIVATE sourcemeta::core::test)
+  PRIVATE sourcemeta::core::test sourcemeta::core::test_main)
 
 if(WIN32)
   set(SOURCEMETA_CORE_TEST_RUNNER powershell -ExecutionPolicy Bypass -File
