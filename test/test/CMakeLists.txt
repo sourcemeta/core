@@ -25,6 +25,13 @@ add_executable(sourcemeta_core_test_fixture
 target_link_libraries(sourcemeta_core_test_fixture
   PRIVATE sourcemeta::core::test)
 
+# This suite registers its cases at runtime, so it provides its own entry point
+# rather than the generated one
+add_executable(sourcemeta_core_test_dynamic
+  test_dynamic.cc)
+target_link_libraries(sourcemeta_core_test_dynamic
+  PRIVATE sourcemeta::core::test)
+
 if(WIN32)
   set(SOURCEMETA_CORE_TEST_RUNNER powershell -ExecutionPolicy Bypass -File
     "${CMAKE_CURRENT_SOURCE_DIR}/test_runner.ps1")
@@ -63,3 +70,7 @@ add_test(NAME core.test.filter_none COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
 add_test(NAME core.test.fixture COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
   "$<TARGET_FILE:sourcemeta_core_test_fixture>" 0
   "${CMAKE_CURRENT_SOURCE_DIR}/test_fixture.txt")
+
+add_test(NAME core.test.dynamic COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_test_dynamic>" 0
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_dynamic.txt")

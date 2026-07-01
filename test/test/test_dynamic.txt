@@ -1,0 +1,6 @@
+TAP version 14
+1..3
+ok 1 - test_dynamic.length_1
+ok 2 - test_dynamic.length_2
+ok 3 - test_dynamic.length_3
+# 3 passed, 0 failed

@@ -7,11 +7,12 @@
 
 #include <sourcemeta/core/numeric_util.h>
 
-#include <functional>  // std::function
-#include <ostream>     // std::ostream
-#include <sstream>     // std::ostringstream
-#include <string>      // std::string
-#include <string_view> // std::string_view
+#include <functional>      // std::function
+#include <ostream>         // std::ostream
+#include <source_location> // std::source_location
+#include <sstream>         // std::ostringstream
+#include <string>          // std::string
+#include <string_view>     // std::string_view
 #include <type_traits> // std::is_integral_v, std::is_same_v, std::remove_cv_t
 #include <utility> // std::cmp_equal, std::cmp_not_equal, std::cmp_less, std::cmp_greater, std::cmp_less_equal, std::cmp_greater_equal
 
@@ -50,6 +51,15 @@ SOURCEMETA_CORE_TEST_EXPORT
 auto test_register(std::string_view suite, std::string_view name,
                    std::string_view file, int line, std::function<void()> body)
     -> int;
+
+/// @ingroup test
+///
+/// Register a test case whose suite and source location are taken from the call
+/// site. Intended for suites that discover their cases at runtime.
+SOURCEMETA_CORE_TEST_EXPORT
+auto test_register(
+    std::string_view name, std::function<void()> body,
+    std::source_location location = std::source_location::current()) -> int;
 
 /// @ingroup test
 ///
