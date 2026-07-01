@@ -38,6 +38,13 @@ TEST(mixed_widths) {
             "a\xC3\xA9\xE4\xB8\x96\xF0\x9F\x98\x80");
 }
 
+TEST(max_codepoint) {
+  EXPECT_EQ(sourcemeta::core::utf32_to_utf8(std::u32string{0x10FFFF}),
+            "\xF4\x8F\xBF\xBF");
+  EXPECT_EQ(sourcemeta::core::utf32_to_utf8_lenient(std::u32string{0x10FFFF}),
+            "\xF4\x8F\xBF\xBF");
+}
+
 TEST(round_trips_with_utf8_to_utf32) {
   const std::string original{"a\xC3\xA9\xE4\xB8\x96\xF0\x9F\x98\x80"};
   const auto codepoints{sourcemeta::core::utf8_to_utf32(original)};

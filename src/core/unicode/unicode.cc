@@ -58,8 +58,11 @@ auto utf8_decode_sequence(const std::uint8_t lead, const std::uint8_t size,
 
 // Append the UTF-8 byte sequence for `codepoint` by magnitude, without
 // validating that it is a Unicode scalar value. A surrogate falls into the
-// three-byte branch and produces its (ill-formed) WTF-8 encoding.
+// three-byte branch and produces its (ill-formed) WTF-8 encoding. The codepoint
+// must be within the Unicode codespace, otherwise the four-byte branch would
+// overflow the lead byte.
 auto append_utf8(const char32_t codepoint, std::string &output) -> void {
+  assert(codepoint <= 0x10FFFF);
   if (codepoint < 0x80) {
     output.push_back(static_cast<char>(codepoint));
   } else if (codepoint < 0x800) {
@@ -112,8 +115,7 @@ auto codepoint_to_utf8(const char32_t codepoint) -> std::string {
 auto utf32_to_utf8(const std::u32string_view input) -> std::string {
   std::string output;
   for (const auto codepoint : input) {
-    assert(is_valid_codepoint(codepoint));
-    append_utf8(codepoint, output);
+    codepoint_to_utf8(codepoint, output);
   }
   return output;
 }

@@ -110,7 +110,8 @@ auto utf8_to_utf32(const std::string_view input)
 /// @ingroup unicode
 /// Encode a sequence of Unicode codepoints (UTF-32) as a UTF-8 string, the
 /// inverse of `utf8_to_utf32`. Every codepoint must be a valid Unicode scalar
-/// value. For example:
+/// value (in particular, not a surrogate), otherwise the output is unspecified.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/unicode.h>
@@ -122,12 +123,15 @@ SOURCEMETA_CORE_UNICODE_EXPORT
 auto utf32_to_utf8(const std::u32string_view input) -> std::string;
 
 /// @ingroup unicode
-/// Encode a sequence of codepoints as UTF-8 without validating that each is a
-/// Unicode scalar value, the lenient counterpart of `utf32_to_utf8`. Surrogate
-/// codepoints, which cannot appear in well-formed UTF-8, are encoded as their
-/// (ill-formed) three-byte WTF-8 sequence rather than being rejected. This is
-/// intended for round-tripping data that may carry lone surrogates, such as
-/// test corpora. For example:
+/// Encode a sequence of codepoints as UTF-8, the lenient counterpart of
+/// `utf32_to_utf8`. Unlike that function, surrogate codepoints are permitted
+/// and encoded as their three-byte WTF-8 sequence rather than being rejected.
+/// Each codepoint must still be within the Unicode codespace (U+0000 to
+/// U+10FFFF), otherwise the output is unspecified. Because a surrogate is not a
+/// valid scalar value, its encoding is ill-formed UTF-8: it does not round-trip
+/// through `utf8_to_utf32` (which rejects surrogates) and is meant for
+/// byte-preserving workflows, such as feeding a strict decoder or validator
+/// with input that carries lone surrogates. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/unicode.h>
