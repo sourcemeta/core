@@ -109,3 +109,43 @@ TEST(parts_reference_input_buffer) {
   EXPECT_EQ(sizes.at(0), 5);
   EXPECT_EQ(sizes.at(1), 4);
 }
+
+TEST(vector_multiple_parts) {
+  const auto parts{sourcemeta::core::split("alpha;beta;gamma", ';')};
+  EXPECT_EQ(parts.size(), 3);
+  EXPECT_EQ(parts.at(0), "alpha");
+  EXPECT_EQ(parts.at(1), "beta");
+  EXPECT_EQ(parts.at(2), "gamma");
+}
+
+TEST(vector_no_delimiter_yields_full_input) {
+  const auto parts{sourcemeta::core::split("solo", ';')};
+  EXPECT_EQ(parts.size(), 1);
+  EXPECT_EQ(parts.at(0), "solo");
+}
+
+TEST(vector_empty_input_yields_single_empty_part) {
+  const auto parts{sourcemeta::core::split("", ';')};
+  EXPECT_EQ(parts.size(), 1);
+  EXPECT_EQ(parts.at(0), "");
+}
+
+TEST(vector_preserves_empty_parts) {
+  const auto parts{sourcemeta::core::split(";a;;b;", ';')};
+  EXPECT_EQ(parts.size(), 5);
+  EXPECT_EQ(parts.at(0), "");
+  EXPECT_EQ(parts.at(1), "a");
+  EXPECT_EQ(parts.at(2), "");
+  EXPECT_EQ(parts.at(3), "b");
+  EXPECT_EQ(parts.at(4), "");
+}
+
+TEST(vector_parts_reference_input_buffer) {
+  const std::string input{"alpha;beta"};
+  const auto parts{sourcemeta::core::split(input, ';')};
+  EXPECT_EQ(parts.size(), 2);
+  EXPECT_EQ(parts.at(0).data(), input.data());
+  EXPECT_EQ(parts.at(0).size(), 5);
+  EXPECT_EQ(parts.at(1).data(), input.data() + 6);
+  EXPECT_EQ(parts.at(1).size(), 4);
+}
