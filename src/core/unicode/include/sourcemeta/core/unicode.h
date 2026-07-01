@@ -108,6 +108,39 @@ auto utf8_to_utf32(const std::string_view input)
     -> std::optional<std::u32string>;
 
 /// @ingroup unicode
+/// Encode a sequence of Unicode codepoints (UTF-32) as a UTF-8 string, the
+/// inverse of `utf8_to_utf32`. Every codepoint must be a valid Unicode scalar
+/// value. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::utf32_to_utf8(U"A\u00E9") == "A\xC3\xA9");
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto utf32_to_utf8(const std::u32string_view input) -> std::string;
+
+/// @ingroup unicode
+/// Encode a sequence of codepoints as UTF-8 without validating that each is a
+/// Unicode scalar value, the lenient counterpart of `utf32_to_utf8`. Surrogate
+/// codepoints, which cannot appear in well-formed UTF-8, are encoded as their
+/// (ill-formed) three-byte WTF-8 sequence rather than being rejected. This is
+/// intended for round-tripping data that may carry lone surrogates, such as
+/// test corpora. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/unicode.h>
+/// #include <cassert>
+///
+/// // A lone surrogate U+D800 becomes its ill-formed three-byte encoding
+/// assert(sourcemeta::core::utf32_to_utf8_lenient(std::u32string{0xD800}) ==
+///        "\xED\xA0\x80");
+/// ```
+SOURCEMETA_CORE_UNICODE_EXPORT
+auto utf32_to_utf8_lenient(const std::u32string_view input) -> std::string;
+
+/// @ingroup unicode
 /// Convert a UTF-8 string into its wide character form without validation.
 /// The input must be valid UTF-8, otherwise the result is undefined.
 /// For example:
