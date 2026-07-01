@@ -228,8 +228,6 @@ TEST(read_past_end_of_stringstream_throws) {
     FAIL();
   } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
     EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
-  } catch (...) {
-    FAIL();
   }
 }
 
@@ -389,8 +387,6 @@ TEST_F(IOBinaryTest, seek_past_end_throws_via_file) {
     FAIL();
   } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
     EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
-  } catch (...) {
-    FAIL();
   }
 }
 
@@ -409,8 +405,6 @@ TEST_F(IOBinaryTest, get_past_end_throws_via_file) {
     FAIL();
   } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
     EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
-  } catch (...) {
-    FAIL();
   }
 }
 
