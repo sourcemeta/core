@@ -1,78 +1,62 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
-#include <exception>  // std::exception
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ifstream
+#include <ios>        // std::ios::binary, std::ios_base::badbit
 #include <string>     // std::string, std::char_traits
 
+namespace {
 enum class JSONTestType { Accept, Reject };
 
-class JSONTest : public testing::Test {
-public:
-  explicit JSONTest(const std::filesystem::path path,
-                    const JSONTestType category)
-      : test_path{path}, type{category} {}
-
-  void TestBody() override {
-    std::ifstream stream{this->test_path, std::ios::binary};
-    stream.exceptions(std::ios_base::badbit);
-    if (this->type == JSONTestType::Accept) {
-      sourcemeta::core::parse_json(stream);
-      // Core consumes up to the end of a valid document
-      // in the stream. Force it continue until the end to cover
-      // certain test cases.
-      while (stream.peek() != std::char_traits<char>::eof()) {
-        switch (stream.get()) {
-          case '\r':
-          case '\t':
-          case '\n':
-          case ' ':
-            break;
-          default:
-            FAIL() << "Unexpected character";
-        }
+auto run_json_test_case(const std::filesystem::path &path,
+                        const JSONTestType type) -> void {
+  std::ifstream stream{path, std::ios::binary};
+  stream.exceptions(std::ios_base::badbit);
+  if (type == JSONTestType::Accept) {
+    sourcemeta::core::parse_json(stream);
+    // Core consumes up to the end of a valid document in the stream. Force it
+    // to continue until the end to cover certain test cases.
+    while (stream.peek() != std::char_traits<char>::eof()) {
+      switch (stream.get()) {
+        case '\r':
+        case '\t':
+        case '\n':
+        case ' ':
+          break;
+        default:
+          FAIL();
       }
-    } else if (this->type == JSONTestType::Reject) {
-      try {
-        // Core consumes up to the end of a valid document
-        // in the stream. Force it continue until the end to cover
-        // certain test cases.
-        while (!stream.eof()) {
-          sourcemeta::core::parse_json(stream);
-        }
-      } catch (const sourcemeta::core::JSONParseError &) {
-        SUCCEED();
-      } catch (const std::exception &) {
-        FAIL() << "The parse function threw an unexpected error";
+    }
+  } else {
+    // Core consumes up to the end of a valid document in the stream. Force it
+    // to continue until the end to cover certain test cases.
+    try {
+      while (!stream.eof()) {
+        sourcemeta::core::parse_json(stream);
       }
-    } else {
-      FAIL() << "Invalid test type";
+      FAIL();
+    } catch (const sourcemeta::core::JSONParseError &) {
+      // A malformed document is expected to be rejected
     }
   }
+}
+} // namespace
 
-private:
-  const std::filesystem::path test_path;
-  const JSONTestType type;
-};
-
-int main(int argc, char **argv) {
-  testing::InitGoogleTest(&argc, argv);
-  const std::filesystem::path test_parsing_path =
-      std::filesystem::path{JSONTESTSUITE_PATH} / "test_parsing";
+auto main(int argc, char **argv) -> int {
+  const std::filesystem::path test_parsing_path{
+      std::filesystem::path{JSONTESTSUITE_PATH} / "test_parsing"};
   for (const std::filesystem::directory_entry &entry :
-       std::filesystem::directory_iterator(test_parsing_path)) {
+       std::filesystem::directory_iterator{test_parsing_path}) {
     const std::filesystem::path test_path{entry.path()};
-    const char front = test_path.filename().string().front();
-
-    JSONTestType type = front == 'n' || front == 'i' ? JSONTestType::Reject
-                                                     : JSONTestType::Accept;
-    testing::RegisterTest(
-        "JSONTestSuite", test_path.filename().string().c_str(), nullptr,
-        nullptr, __FILE__, __LINE__,
-        [=]() -> JSONTest * { return new JSONTest(test_path, type); });
+    const char front{test_path.filename().string().front()};
+    const JSONTestType type{front == 'n' || front == 'i'
+                                ? JSONTestType::Reject
+                                : JSONTestType::Accept};
+    sourcemeta::core::test_register(
+        test_path.filename().string(),
+        [test_path, type]() -> void { run_json_test_case(test_path, type); });
   }
 
-  return RUN_ALL_TESTS();
+  return sourcemeta::core::test_run(argc, argv);
 }

@@ -22,7 +22,7 @@ endfunction()
 
 function(sourcemeta_test)
   cmake_parse_arguments(SOURCEMETA_TEST ""
-    "NAMESPACE;PROJECT;NAME;VARIANT" "SOURCES" ${ARGN})
+    "NAMESPACE;PROJECT;NAME;VARIANT;MAIN" "SOURCES" ${ARGN})
 
   if(SOURCEMETA_TEST_VARIANT)
     set(TARGET_VARIANT "${SOURCEMETA_TEST_VARIANT}_unit")
@@ -30,14 +30,21 @@ function(sourcemeta_test)
     set(TARGET_VARIANT "unit")
   endif()
 
-  sourcemeta_test_main(GENERATED_MAIN)
+  set(TARGET_SOURCES "${SOURCEMETA_TEST_SOURCES}")
+
+  # Dynamic suites provide their own entry point that registers cases at runtime,
+  # so they opt out of the generated one with MAIN OFF
+  if(NOT DEFINED SOURCEMETA_TEST_MAIN OR SOURCEMETA_TEST_MAIN)
+    sourcemeta_test_main(GENERATED_MAIN)
+    list(APPEND TARGET_SOURCES "${GENERATED_MAIN}")
+  endif()
 
   sourcemeta_executable(
     NAMESPACE "${SOURCEMETA_TEST_NAMESPACE}"
     PROJECT "${SOURCEMETA_TEST_PROJECT}"
     NAME "${SOURCEMETA_TEST_NAME}"
     VARIANT "${TARGET_VARIANT}"
-    SOURCES "${SOURCEMETA_TEST_SOURCES}" "${GENERATED_MAIN}"
+    SOURCES "${TARGET_SOURCES}"
     OUTPUT TARGET_NAME)
 
   target_link_libraries("${TARGET_NAME}"

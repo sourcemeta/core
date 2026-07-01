@@ -32,7 +32,7 @@ target_compile_definitions(sourcemeta_core_json_unit
 
 # JSON Test Suite
 # See https://github.com/nst/JSONTestSuite
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsontestsuite
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsontestsuite MAIN OFF
   SOURCES jsontestsuite.cc)
 target_compile_definitions(sourcemeta_core_jsontestsuite_unit
   PRIVATE JSONTESTSUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/jsontestsuite")
