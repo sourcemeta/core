@@ -1,7 +1,6 @@
 #include <sourcemeta/core/idna.h>
 #include <sourcemeta/core/test.h>
 
-#include <optional>
 #include <string>
 
 TEST(empty_input_maps_to_empty) {
@@ -72,16 +71,17 @@ TEST(deviation_joiners_are_preserved) {
             std::u32string{U"a\u200Cb\u200Dc"});
 }
 
-// A disallowed codepoint fails the whole input (U+0080 control)
-TEST(disallowed_control_returns_nullopt) {
-  EXPECT_EQ(sourcemeta::core::idna_uts46_map(U"\u0080"), std::nullopt);
+// A disallowed codepoint (U+0080 control) is preserved for the validity check
+TEST(disallowed_control_is_preserved) {
+  EXPECT_EQ(sourcemeta::core::idna_uts46_map(U"\u0080"),
+            std::u32string{U"\u0080"});
 }
 
-// A codepoint beyond the Unicode range is disallowed
-TEST(out_of_range_codepoint_returns_nullopt) {
+// A codepoint beyond the Unicode range is disallowed and preserved
+TEST(out_of_range_codepoint_is_preserved) {
   EXPECT_EQ(sourcemeta::core::idna_uts46_map(std::u32string{U"a"} +
                                              char32_t{0x110000}),
-            std::nullopt);
+            std::u32string{U"a"} + char32_t{0x110000});
 }
 
 // A multi-codepoint mapping is expanded. U+00A8 DIAERESIS maps to
@@ -117,17 +117,16 @@ TEST(nfc_composes_unmapped_valid_input) {
             std::u32string{U"\u00F6"});
 }
 
-// Input consisting only of ignored code points maps to the empty string,
-// which is a value rather than an error
+// Input consisting only of ignored code points maps to the empty string
 TEST(all_ignored_input_maps_to_empty_string) {
   EXPECT_EQ(sourcemeta::core::idna_uts46_map(U"\u00AD"), std::u32string{U""});
 }
 
-// A lone surrogate is disallowed
-TEST(surrogate_returns_nullopt) {
+// A lone surrogate is disallowed and preserved
+TEST(surrogate_is_preserved) {
   EXPECT_EQ(
       sourcemeta::core::idna_uts46_map(std::u32string{U"a"} + char32_t{0xD800}),
-      std::nullopt);
+      std::u32string{U"a"} + char32_t{0xD800});
 }
 
 // A "valid ; NV8" code point (U+002F SOLIDUS) is kept by the mapper. Its

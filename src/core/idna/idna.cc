@@ -452,16 +452,18 @@ auto mapping_replacement(const char32_t codepoint) noexcept
 
 } // namespace
 
-auto idna_uts46_map(const std::u32string_view input)
-    -> std::optional<std::u32string> {
+auto idna_uts46_map(const std::u32string_view input) -> std::u32string {
   std::u32string mapped;
   mapped.reserve(input.size());
   for (const auto codepoint : input) {
     switch (mapping_status(codepoint)) {
-      // Under Nontransitional Processing the four deviation characters map to
-      // themselves, so they are kept alongside the valid ones
+      // UTS #46 §4 step 1. Valid and (under Nontransitional Processing)
+      // deviation code points are kept unchanged. Disallowed code points are
+      // also left in place, so the later validity check rejects them rather
+      // than the mapping silently dropping the whole input.
       case IDNAMappingStatus::Valid:
       case IDNAMappingStatus::Deviation:
+      case IDNAMappingStatus::Disallowed:
         mapped.push_back(codepoint);
         break;
       case IDNAMappingStatus::Mapped:
@@ -469,8 +471,6 @@ auto idna_uts46_map(const std::u32string_view input)
         break;
       case IDNAMappingStatus::Ignored:
         break;
-      case IDNAMappingStatus::Disallowed:
-        return std::nullopt;
     }
   }
 

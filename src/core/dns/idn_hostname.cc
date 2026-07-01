@@ -155,13 +155,10 @@ auto is_idn_hostname_uts46(const std::string_view value) -> bool {
     return false;
   }
 
-  // UTS #46 §4 steps 1-2: map and normalise before validating
-  const auto mapped{idna_uts46_map(*codepoints)};
-  if (!mapped.has_value()) {
-    return false;
-  }
-
-  return validate_idn_labels(*mapped);
+  // UTS #46 §4 steps 1-2: map and normalise before validating. Disallowed
+  // codepoints are preserved by the mapping and rejected here by the per-label
+  // validity check.
+  return validate_idn_labels(idna_uts46_map(*codepoints));
 }
 
 } // namespace sourcemeta::core
