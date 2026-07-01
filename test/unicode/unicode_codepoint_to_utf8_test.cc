@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 #include <sstream> // std::ostringstream

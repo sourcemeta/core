@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
 #include <array>        // std::array
 #include <cstddef>      // std::byte

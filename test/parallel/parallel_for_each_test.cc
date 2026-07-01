@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/parallel.h>
+#include <sourcemeta/core/test.h>
 
 #include <algorithm>
 #include <atomic>

@@ -1,8 +1,7 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_problem.h>
 #include <sourcemeta/core/http_status.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 TEST(defaults_only_with_not_found_status) {
   const auto body{sourcemeta::core::http_make_problem_details(

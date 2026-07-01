@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jose.h>
+#include <sourcemeta/core/test.h>
 
 TEST(rs256) {
   const auto result{sourcemeta::core::to_jws_algorithm("RS256")};

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/css.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_int_basic) {
   EXPECT_TRUE(sourcemeta::core::is_css2_rgb_function("rgb(255, 0, 128)"));

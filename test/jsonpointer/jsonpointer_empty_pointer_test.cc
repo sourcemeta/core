@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
 TEST(is_empty) {
   EXPECT_TRUE(sourcemeta::core::empty_pointer.empty());

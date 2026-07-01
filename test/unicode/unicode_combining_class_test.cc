@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 TEST(ascii_letter) { EXPECT_EQ(sourcemeta::core::combining_class(U'A'), 0); }

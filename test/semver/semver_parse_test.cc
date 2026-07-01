@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
 TEST(zero_zero_zero) {
   const sourcemeta::core::SemVer version{"0.0.0"};

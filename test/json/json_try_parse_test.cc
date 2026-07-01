@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_object) {
   const auto document{sourcemeta::core::try_parse_json("{ \"foo\": 1 }")};

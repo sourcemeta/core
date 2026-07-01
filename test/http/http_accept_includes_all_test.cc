@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/test.h>
 
 TEST(empty_header_returns_true) {
   EXPECT_TRUE(sourcemeta::core::http_accept_includes_all(

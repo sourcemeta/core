@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 TEST(ascii_null) { EXPECT_EQ(sourcemeta::core::utf8_lead_byte_size(0x00), 1u); }

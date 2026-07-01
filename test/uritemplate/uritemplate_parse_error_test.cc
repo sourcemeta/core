@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/uritemplate.h>
 
 #define EXPECT_URITEMPLATE_PARSE_ERROR(input, expected_column)                 \

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/options.h>
+#include <sourcemeta/core/test.h>
 
 TEST(long_option_equals_parses_value_with_equal_sign) {
   sourcemeta::core::Options app;

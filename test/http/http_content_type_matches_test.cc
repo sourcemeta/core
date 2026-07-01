@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/test.h>
 
 TEST(exact_match) {
   EXPECT_TRUE(sourcemeta::core::http_content_type_matches("application/json",

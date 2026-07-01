@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 TEST(ascii_letter) { EXPECT_FALSE(sourcemeta::core::is_combining_mark(U'A')); }

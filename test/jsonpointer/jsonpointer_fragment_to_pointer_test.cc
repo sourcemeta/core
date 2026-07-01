@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/uri.h>
 
 TEST(uri_with_base_and_fragment) {

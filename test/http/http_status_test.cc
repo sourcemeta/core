@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/test.h>
 
 TEST(ok_fields) {
   EXPECT_EQ(sourcemeta::core::HTTP_STATUS_OK.code, 200);

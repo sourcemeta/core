@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/css.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_six_digit_lower) {
   EXPECT_TRUE(sourcemeta::core::is_css2_hex_color("#cc8899"));

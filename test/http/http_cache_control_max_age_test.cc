@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/test.h>
 
 #include <chrono> // std::chrono::seconds
 

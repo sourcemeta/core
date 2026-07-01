@@ -1,8 +1,7 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 #include <optional>    // std::nullopt
 #include <string>      // std::string

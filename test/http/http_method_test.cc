@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_method.h>
+#include <sourcemeta/core/test.h>
 
 TEST(get_token) {
   EXPECT_EQ(

@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
+#include <sourcemeta/core/test.h>
 
 TEST(nested_anonymous_node_gets_blank_node_identifier) {
   const auto input = sourcemeta::core::parse_json(R"([

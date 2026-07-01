@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_basic) {
   const auto result = sourcemeta::core::SemVer::from("1.2.3");

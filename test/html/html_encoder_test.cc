@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/html.h>
+#include <sourcemeta/core/test.h>
 
 TEST(example_1) {
   sourcemeta::core::HTMLWriter document;

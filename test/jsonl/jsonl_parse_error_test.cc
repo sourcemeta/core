@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonl.h>
+#include <sourcemeta/core/test.h>
 
 #include <exception>
 #include <sstream>

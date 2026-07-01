@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 TEST(null) { EXPECT_FALSE(sourcemeta::core::is_surrogate(0x0000)); }

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/punycode.h>
+#include <sourcemeta/core/test.h>
 
 #include <sstream> // std::istringstream, std::ostringstream
 #include <string>  // std::string

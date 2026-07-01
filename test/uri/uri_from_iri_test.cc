@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/uri.h>
 
 TEST(parses_and_round_trips_unicode) {

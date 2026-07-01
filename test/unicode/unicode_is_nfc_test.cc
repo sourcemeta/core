@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 TEST(empty) { EXPECT_TRUE(sourcemeta::core::is_nfc(U"")); }

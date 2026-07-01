@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/regex.h>
+#include <sourcemeta/core/test.h>
 
 TEST(suite_valid_basic) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("([abc])+\\s+$"));

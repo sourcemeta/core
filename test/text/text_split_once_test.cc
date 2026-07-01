@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/text.h>
 
 TEST(char_delimiter_in_middle) {

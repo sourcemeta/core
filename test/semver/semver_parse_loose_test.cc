@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
 TEST(v_prefix_full) {
   const sourcemeta::core::SemVer version{"v1.2.3",

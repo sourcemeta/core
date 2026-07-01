@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/test.h>
 
 TEST(continue_100) {
   EXPECT_EQ(sourcemeta::core::http_status_from_code(100),

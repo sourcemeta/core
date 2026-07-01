@@ -1,9 +1,8 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 #include <filesystem>  // std::filesystem::path
 #include <string>      // std::string

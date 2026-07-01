@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/error.h>
+#include <sourcemeta/core/test.h>
 
 #include <filesystem>
 #include <stdexcept>

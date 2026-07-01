@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/idna.h>
+#include <sourcemeta/core/test.h>
 
 TEST(condition_1_first_char_latin_letter) {
   EXPECT_TRUE(sourcemeta::core::idna_passes_bidi_rule(U"abc"));

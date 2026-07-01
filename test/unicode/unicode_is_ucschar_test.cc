@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 // ASCII range is excluded from ucschar (those are in the URI ASCII set)

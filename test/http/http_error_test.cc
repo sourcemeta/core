@@ -1,8 +1,7 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_error.h>
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/test.h>
 
 #include <optional> // std::optional
 #include <string>   // std::string

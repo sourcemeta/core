@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/test.h>
 
 TEST(exact_match) {
   EXPECT_EQ(sourcemeta::core::http_match_accept(

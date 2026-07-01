@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/test.h>
 
 #include <sstream> // std::ostringstream
 #include <string>  // std::string

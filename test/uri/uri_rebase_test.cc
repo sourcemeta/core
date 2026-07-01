@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/uri.h>
 
 TEST(absolute_to_relative_match) {

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/test.h>
 
 #include <cmath>   // std::nextafter
 #include <cstdint> // std::int64_t, std::uint64_t, std::uint8_t

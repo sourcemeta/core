@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/uritemplate.h>
 
 #include <map>           // std::map

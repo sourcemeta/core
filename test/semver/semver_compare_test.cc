@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
 TEST(major_less) {
   EXPECT_LT(sourcemeta::core::SemVer{"1.0.0"},

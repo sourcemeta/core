@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
 TEST(mismatch_base_shorter) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/css.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_aqua) {
   EXPECT_TRUE(sourcemeta::core::is_css2_color_keyword("aqua"));

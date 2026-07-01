@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/test.h>
 
 #include <cstdint> // std::uint64_t, std::int64_t
 

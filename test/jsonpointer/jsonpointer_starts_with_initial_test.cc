@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
 TEST(property_prefix_true) {
   const sourcemeta::core::Pointer pointer{"foo", "bar"};

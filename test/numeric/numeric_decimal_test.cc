@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/test.h>
 
 #include <cmath>   // std::isnan, std::isinf
 #include <cstdint> // std::int32_t, std::int64_t, std::uint32_t, std::uint64_t

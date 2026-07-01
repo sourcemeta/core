@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/uri.h>
 
 // NON-STANDARD EXTENSION: Relative-to-Relative Resolution

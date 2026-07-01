@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/ip.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_all_zeros) { EXPECT_TRUE(sourcemeta::core::is_ipv4("0.0.0.0")); }
 

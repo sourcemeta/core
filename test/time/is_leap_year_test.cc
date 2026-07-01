@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/time.h>
 
 TEST(year_zero) { EXPECT_TRUE(sourcemeta::core::is_leap_year(0)); }

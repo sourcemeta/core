@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/text.h>
 
 #include <string_view> // std::string_view

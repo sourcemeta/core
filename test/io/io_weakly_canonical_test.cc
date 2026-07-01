@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 
 TEST(test_txt) {
   const auto path{sourcemeta::core::weakly_canonical(
