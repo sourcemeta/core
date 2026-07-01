@@ -1,7 +1,6 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
 #include <filesystem>  // std::filesystem
@@ -73,69 +72,58 @@ auto produces_valid_expanded_output(const std::string_view identifier) -> bool {
          identifier != "#t0122";
 }
 
-class JSONLDExpandTest : public testing::Test {
-public:
-  explicit JSONLDExpandTest(JSONLDExpandCase test_case)
-      : test_case_{std::move(test_case)} {}
+auto run_expand_case(const JSONLDExpandCase &test_case) -> void {
+  const auto resolver{
+      suite_resolver(test_case.suite_root, test_case.base_prefix)};
 
-  auto TestBody() -> void override {
-    const auto &test_case{this->test_case_};
-    const auto resolver{
-        suite_resolver(test_case.suite_root, test_case.base_prefix)};
+  const auto input{sourcemeta::core::read_json(test_case.input)};
 
-    const auto input{sourcemeta::core::read_json(test_case.input)};
-
-    if (test_case.negative) {
-      try {
-        if (test_case.expand_context.has_value()) {
-          const auto context{
-              sourcemeta::core::read_json(test_case.expand_context.value())};
-          [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
-              input, context, test_case.base_iri, resolver, test_case.version)};
-        } else {
-          [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
-              input, test_case.base_iri, resolver, test_case.version)};
-        }
-        FAIL() << "Expected error code: " << test_case.error_code;
-      } catch (const sourcemeta::core::JSONLDError &error) {
-        // The implementation capitalises the first letter of every error code,
-        // whereas the upstream suite expresses them in lower case.
-        std::string actual_code{error.what()};
-        if (!actual_code.empty()) {
-          actual_code.front() =
-              sourcemeta::core::to_lowercase(actual_code.front());
-        }
-        EXPECT_EQ(static_cast<std::string_view>(test_case.error_code),
-                  actual_code);
-      }
-    } else {
-      const auto expected{sourcemeta::core::read_json(test_case.expect)};
-      const auto actual{
-          test_case.expand_context.has_value()
-              ? sourcemeta::core::jsonld_expand(
-                    input,
-                    sourcemeta::core::read_json(
-                        test_case.expand_context.value()),
-                    test_case.base_iri, resolver, test_case.version)
-              : sourcemeta::core::jsonld_expand(input, test_case.base_iri,
-                                                resolver, test_case.version)};
-      EXPECT_EQ(actual, expected);
-      // Every expansion output, and every expected fixture, is by definition a
-      // valid expanded document, save for the few that are correct output yet
-      // not valid documents, which the validator must reject instead.
-      if (test_case.valid_expanded_output) {
-        EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(actual));
-        EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(expected));
+  if (test_case.negative) {
+    try {
+      if (test_case.expand_context.has_value()) {
+        const auto context{
+            sourcemeta::core::read_json(test_case.expand_context.value())};
+        [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
+            input, context, test_case.base_iri, resolver, test_case.version)};
       } else {
-        EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(actual));
-        EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(expected));
+        [[maybe_unused]] const auto result{sourcemeta::core::jsonld_expand(
+            input, test_case.base_iri, resolver, test_case.version)};
       }
+      FAIL();
+    } catch (const sourcemeta::core::JSONLDError &error) {
+      // The implementation capitalises the first letter of every error code,
+      // whereas the upstream suite expresses them in lower case.
+      std::string actual_code{error.what()};
+      if (!actual_code.empty()) {
+        actual_code.front() =
+            sourcemeta::core::to_lowercase(actual_code.front());
+      }
+      EXPECT_EQ(static_cast<std::string_view>(test_case.error_code),
+                actual_code);
+    }
+  } else {
+    const auto expected{sourcemeta::core::read_json(test_case.expect)};
+    const auto actual{
+        test_case.expand_context.has_value()
+            ? sourcemeta::core::jsonld_expand(
+                  input,
+                  sourcemeta::core::read_json(test_case.expand_context.value()),
+                  test_case.base_iri, resolver, test_case.version)
+            : sourcemeta::core::jsonld_expand(input, test_case.base_iri,
+                                              resolver, test_case.version)};
+    EXPECT_EQ(actual, expected);
+    // Every expansion output, and every expected fixture, is by definition a
+    // valid expanded document, save for the few that are correct output yet
+    // not valid documents, which the validator must reject instead.
+    if (test_case.valid_expanded_output) {
+      EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(actual));
+      EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(expected));
+    } else {
+      EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(actual));
+      EXPECT_FALSE(sourcemeta::core::jsonld_is_expanded(expected));
     }
   }
-
-private:
-  JSONLDExpandCase test_case_;
-};
+}
 
 auto register_expand_case(const sourcemeta::core::JSON &entry,
                           const std::filesystem::path &suite_root,
@@ -183,11 +171,9 @@ auto register_expand_case(const sourcemeta::core::JSON &entry,
     test_case.expect = suite_root / entry.at("expect").to_string();
   }
 
-  testing::RegisterTest(
-      "JSONLD_expand", suite_test_name(entry.at("@id").to_string()).c_str(),
-      nullptr, nullptr, __FILE__, __LINE__, [test_case]() -> testing::Test * {
-        return new JSONLDExpandTest(test_case);
-      });
+  sourcemeta::core::test_register(
+      "JSONLD_expand", suite_test_name(entry.at("@id").to_string()), __FILE__,
+      __LINE__, [test_case]() -> void { run_expand_case(test_case); });
 }
 
 struct JSONLDCompactCase {
@@ -204,49 +190,39 @@ struct JSONLDCompactCase {
   bool compact_to_relative;
 };
 
-class JSONLDCompactTest : public testing::Test {
-public:
-  explicit JSONLDCompactTest(JSONLDCompactCase test_case)
-      : test_case_{std::move(test_case)} {}
+auto run_compact_case(const JSONLDCompactCase &test_case) -> void {
+  const auto resolver{
+      suite_resolver(test_case.suite_root, test_case.base_prefix)};
 
-  auto TestBody() -> void override {
-    const auto &test_case{this->test_case_};
-    const auto resolver{
-        suite_resolver(test_case.suite_root, test_case.base_prefix)};
+  const auto input{sourcemeta::core::read_json(test_case.input)};
+  const auto context{sourcemeta::core::read_json(test_case.context)};
 
-    const auto input{sourcemeta::core::read_json(test_case.input)};
-    const auto context{sourcemeta::core::read_json(test_case.context)};
-
-    if (test_case.negative) {
-      try {
-        const auto expanded{sourcemeta::core::jsonld_expand(
-            input, test_case.base_iri, resolver, test_case.version)};
-        [[maybe_unused]] const auto result{sourcemeta::core::jsonld_compact(
-            expanded, context, test_case.base_iri, resolver, test_case.version,
-            test_case.compact_arrays, test_case.compact_to_relative)};
-        FAIL() << "Expected error code: " << test_case.error_code;
-      } catch (const sourcemeta::core::JSONLDError &error) {
-        std::string actual_code{error.what()};
-        sourcemeta::core::to_lowercase(actual_code);
-        std::string expected_code{test_case.error_code};
-        sourcemeta::core::to_lowercase(expected_code);
-        EXPECT_EQ(expected_code, actual_code);
-      }
-    } else {
+  if (test_case.negative) {
+    try {
       const auto expanded{sourcemeta::core::jsonld_expand(
           input, test_case.base_iri, resolver, test_case.version)};
-      const auto expected{sourcemeta::core::read_json(test_case.expect)};
-      EXPECT_EQ(sourcemeta::core::jsonld_compact(
-                    expanded, context, test_case.base_iri, resolver,
-                    test_case.version, test_case.compact_arrays,
-                    test_case.compact_to_relative),
-                expected);
+      [[maybe_unused]] const auto result{sourcemeta::core::jsonld_compact(
+          expanded, context, test_case.base_iri, resolver, test_case.version,
+          test_case.compact_arrays, test_case.compact_to_relative)};
+      FAIL();
+    } catch (const sourcemeta::core::JSONLDError &error) {
+      std::string actual_code{error.what()};
+      sourcemeta::core::to_lowercase(actual_code);
+      std::string expected_code{test_case.error_code};
+      sourcemeta::core::to_lowercase(expected_code);
+      EXPECT_EQ(expected_code, actual_code);
     }
+  } else {
+    const auto expanded{sourcemeta::core::jsonld_expand(
+        input, test_case.base_iri, resolver, test_case.version)};
+    const auto expected{sourcemeta::core::read_json(test_case.expect)};
+    EXPECT_EQ(sourcemeta::core::jsonld_compact(
+                  expanded, context, test_case.base_iri, resolver,
+                  test_case.version, test_case.compact_arrays,
+                  test_case.compact_to_relative),
+              expected);
   }
-
-private:
-  JSONLDCompactCase test_case_;
-};
+}
 
 auto register_compact_case(const sourcemeta::core::JSON &entry,
                            const std::filesystem::path &suite_root,
@@ -318,11 +294,9 @@ auto register_compact_case(const sourcemeta::core::JSON &entry,
     test_case.expect = suite_root / entry.at("expect").to_string();
   }
 
-  testing::RegisterTest(
-      "JSONLD_compact", suite_test_name(entry.at("@id").to_string()).c_str(),
-      nullptr, nullptr, __FILE__, __LINE__, [test_case]() -> testing::Test * {
-        return new JSONLDCompactTest(test_case);
-      });
+  sourcemeta::core::test_register(
+      "JSONLD_compact", suite_test_name(entry.at("@id").to_string()), __FILE__,
+      __LINE__, [test_case]() -> void { run_compact_case(test_case); });
 }
 
 struct JSONLDFlattenCase {
@@ -354,41 +328,31 @@ auto run_flatten(const JSONLDFlattenCase &test_case,
   return sourcemeta::core::jsonld_flatten(expanded);
 }
 
-class JSONLDFlattenTest : public testing::Test {
-public:
-  explicit JSONLDFlattenTest(JSONLDFlattenCase test_case)
-      : test_case_{std::move(test_case)} {}
+auto run_flatten_case(const JSONLDFlattenCase &test_case) -> void {
+  const auto resolver{
+      suite_resolver(test_case.suite_root, test_case.base_prefix)};
 
-  auto TestBody() -> void override {
-    const auto &test_case{this->test_case_};
-    const auto resolver{
-        suite_resolver(test_case.suite_root, test_case.base_prefix)};
+  const auto input{sourcemeta::core::read_json(test_case.input)};
+  const auto expanded{sourcemeta::core::jsonld_expand(
+      input, test_case.base_iri, resolver, test_case.version)};
 
-    const auto input{sourcemeta::core::read_json(test_case.input)};
-    const auto expanded{sourcemeta::core::jsonld_expand(
-        input, test_case.base_iri, resolver, test_case.version)};
-
-    if (test_case.negative) {
-      try {
-        [[maybe_unused]] const auto result{
-            run_flatten(test_case, expanded, resolver)};
-        FAIL() << "Expected error code: " << test_case.error_code;
-      } catch (const sourcemeta::core::JSONLDError &error) {
-        std::string actual_code{error.what()};
-        sourcemeta::core::to_lowercase(actual_code);
-        std::string expected_code{test_case.error_code};
-        sourcemeta::core::to_lowercase(expected_code);
-        EXPECT_EQ(expected_code, actual_code);
-      }
-    } else {
-      const auto expected{sourcemeta::core::read_json(test_case.expect)};
-      EXPECT_EQ(run_flatten(test_case, expanded, resolver), expected);
+  if (test_case.negative) {
+    try {
+      [[maybe_unused]] const auto result{
+          run_flatten(test_case, expanded, resolver)};
+      FAIL();
+    } catch (const sourcemeta::core::JSONLDError &error) {
+      std::string actual_code{error.what()};
+      sourcemeta::core::to_lowercase(actual_code);
+      std::string expected_code{test_case.error_code};
+      sourcemeta::core::to_lowercase(expected_code);
+      EXPECT_EQ(expected_code, actual_code);
     }
+  } else {
+    const auto expected{sourcemeta::core::read_json(test_case.expect)};
+    EXPECT_EQ(run_flatten(test_case, expanded, resolver), expected);
   }
-
-private:
-  JSONLDFlattenCase test_case_;
-};
+}
 
 auto register_flatten_case(const sourcemeta::core::JSON &entry,
                            const std::filesystem::path &suite_root,
@@ -447,11 +411,9 @@ auto register_flatten_case(const sourcemeta::core::JSON &entry,
     test_case.expect = suite_root / entry.at("expect").to_string();
   }
 
-  testing::RegisterTest(
-      "JSONLD_flatten", suite_test_name(entry.at("@id").to_string()).c_str(),
-      nullptr, nullptr, __FILE__, __LINE__, [test_case]() -> testing::Test * {
-        return new JSONLDFlattenTest(test_case);
-      });
+  sourcemeta::core::test_register(
+      "JSONLD_flatten", suite_test_name(entry.at("@id").to_string()), __FILE__,
+      __LINE__, [test_case]() -> void { run_flatten_case(test_case); });
 }
 
 auto register_suite(const std::filesystem::path &suite_root,
@@ -470,12 +432,10 @@ auto register_suite(const std::filesystem::path &suite_root,
 } // namespace
 
 auto main(int argc, char **argv) -> int {
-  testing::InitGoogleTest(&argc, argv);
-
   const std::filesystem::path suite_root{JSONLD_SUITE_PATH};
   register_suite(suite_root, "expand-manifest.jsonld", register_expand_case);
   register_suite(suite_root, "compact-manifest.jsonld", register_compact_case);
   register_suite(suite_root, "flatten-manifest.jsonld", register_flatten_case);
 
-  return RUN_ALL_TESTS();
+  return sourcemeta::core::test_run(argc, argv);
 }

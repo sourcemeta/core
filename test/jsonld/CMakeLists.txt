@@ -12,7 +12,7 @@ target_link_libraries(sourcemeta_core_jsonld_unit
 
 # W3C JSON-LD Test Suite
 # See https://github.com/w3c/json-ld-api
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME jsonld_suite
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonld_suite
   SOURCES jsonld_suite.cc)
 target_compile_definitions(sourcemeta_core_jsonld_suite_unit
   PRIVATE JSONLD_SUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/w3c-json-ld/tests")

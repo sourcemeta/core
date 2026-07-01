@@ -1,6 +1,5 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/uritemplate.h>
 
 #include <cassert>       // assert
@@ -15,6 +14,7 @@
 #include <unordered_set> // std::unordered_set
 #include <variant>       // std::variant, std::get
 
+namespace {
 class JSONExpander {
 public:
   using CacheEntry =
@@ -90,46 +90,31 @@ private:
   std::unordered_map<std::string_view, CacheEntry> cache_;
 };
 
-class URITemplateTest : public testing::Test {
-public:
-  URITemplateTest(const std::string_view template_source,
-                  const std::unordered_set<std::string_view> &expected_results,
-                  const sourcemeta::core::JSON &variables)
-      : template_{template_source}, expected_{expected_results},
-        variables_{variables} {}
-
-  auto TestBody() -> void override {
-    try {
-      const sourcemeta::core::URITemplate uri_template{this->template_};
-      const auto result{uri_template.expand(JSONExpander{this->variables_})};
-      if (this->expected_.empty()) {
-        FAIL();
-      } else {
-        EXPECT_TRUE(this->expected_.contains(result));
-      }
-    } catch (const sourcemeta::core::URITemplateParseError &) {
-      if (this->expected_.empty()) {
-        SUCCEED();
-      } else {
-        throw;
-      }
-    } catch (const sourcemeta::core::URITemplateExpansionError &) {
-      if (this->expected_.empty()) {
-        SUCCEED();
-      } else {
-        throw;
-      }
+auto run_uritemplate_test_case(
+    const std::string_view template_source,
+    const std::unordered_set<std::string_view> &expected_results,
+    const sourcemeta::core::JSON &variables) -> void {
+  try {
+    const sourcemeta::core::URITemplate uri_template{template_source};
+    const auto result{uri_template.expand(JSONExpander{variables})};
+    if (expected_results.empty()) {
+      FAIL();
+    } else {
+      EXPECT_TRUE(expected_results.contains(result));
+    }
+  } catch (const sourcemeta::core::URITemplateParseError &) {
+    if (!expected_results.empty()) {
+      throw;
+    }
+  } catch (const sourcemeta::core::URITemplateExpansionError &) {
+    if (!expected_results.empty()) {
+      throw;
     }
   }
+}
 
-private:
-  const std::string_view template_;
-  const std::unordered_set<std::string_view> &expected_;
-  const sourcemeta::core::JSON &variables_;
-};
-
-static auto register_tests(const sourcemeta::core::JSON &document,
-                           const std::string_view prefix) -> void {
+auto register_tests(const sourcemeta::core::JSON &document,
+                    const std::string_view prefix) -> void {
   for (const auto &entry : document.as_object()) {
     const auto &section{entry.second};
     if (!section.is_object()) {
@@ -164,22 +149,21 @@ static auto register_tests(const sourcemeta::core::JSON &document,
 
       test_name << "_testcase_" << index;
 
-      testing::RegisterTest(
-          "URITemplateSuite", test_name.str().c_str(), nullptr, nullptr,
-          __FILE__, __LINE__,
-          [&template_value, expected_results, &section]() -> testing::Test * {
-            return new URITemplateTest(template_value.to_string(),
-                                       expected_results,
-                                       section.at("variables"));
+      sourcemeta::core::test_register(
+          test_name.str(),
+          [&template_value, expected_results, &section]() -> void {
+            run_uritemplate_test_case(template_value.to_string(),
+                                      expected_results,
+                                      section.at("variables"));
           });
 
       index += 1;
     }
   }
 }
+} // namespace
 
 auto main(int argc, char **argv) -> int {
-  testing::InitGoogleTest(&argc, argv);
   const std::filesystem::path suite_path{URITEMPLATE_SUITE_PATH};
 
   const auto spec_examples{
@@ -194,5 +178,5 @@ auto main(int argc, char **argv) -> int {
       sourcemeta::core::read_json(suite_path / "negative-tests.json")};
   register_tests(negative_tests, "negative_tests");
 
-  return RUN_ALL_TESTS();
+  return sourcemeta::core::test_run(argc, argv);
 }

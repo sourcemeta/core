@@ -13,7 +13,7 @@ target_link_libraries(sourcemeta_core_uritemplate_unit
 
 # URI Template Test Suite
 # See https://github.com/uri-templates/uritemplate-test
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uritemplate_suite
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uritemplate_suite
   SOURCES uritemplate_suite.cc)
 target_compile_definitions(sourcemeta_core_uritemplate_suite_unit
   PRIVATE URITEMPLATE_SUITE_PATH="${PROJECT_SOURCE_DIR}/vendor/uritemplate-test")

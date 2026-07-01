@@ -1,7 +1,6 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/io.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
 #include <cstddef>     // std::size_t
@@ -13,11 +12,12 @@
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 
+namespace {
 // Every NIST CAVP response file ignores blank lines and "#" comments, leaving
 // section headers and "Key = Value" records
 template <typename Callback>
-static auto for_each_vector_line(const std::filesystem::path &path,
-                                 Callback callback) -> void {
+auto for_each_vector_line(const std::filesystem::path &path, Callback callback)
+    -> void {
   auto stream{sourcemeta::core::read_file(path)};
   sourcemeta::core::for_each_line(stream,
                                   [&callback](const std::string_view line) {
@@ -29,7 +29,7 @@ static auto for_each_vector_line(const std::filesystem::path &path,
                                   });
 }
 
-static auto to_signature_hash_function(const std::string_view name)
+auto to_signature_hash_function(const std::string_view name)
     -> std::optional<sourcemeta::core::SignatureHashFunction> {
   if (name == "SHA256" || name == "SHA-256") {
     return sourcemeta::core::SignatureHashFunction::SHA256;
@@ -47,8 +47,7 @@ struct CurveParameters {
   std::size_t coordinate_bytes;
 };
 
-static auto to_curve(const std::string_view name)
-    -> std::optional<CurveParameters> {
+auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
   if (name == "P-256") {
     return CurveParameters{sourcemeta::core::EllipticCurve::P256, 32};
   } else if (name == "P-384") {
@@ -65,73 +64,63 @@ static auto to_curve(const std::string_view name)
 using DigestFunction = auto (*)(const std::string_view) -> std::string;
 
 // Every vector in this file reduces to running a closure that asserts on data
-// captured at registration time, so a single fixture carrying that closure
+// captured at registration time, so a single runner carrying that closure
 // stands in for every mechanism
-class PyCA_Cryptography_Test : public testing::Test {
-public:
-  explicit PyCA_Cryptography_Test(std::function<void()> input_assertion)
-      : assertion{std::move(input_assertion)} {}
+auto run_pyca_test_case(const std::function<void()> &assertion) -> void {
+  assertion();
+}
 
-  auto TestBody() -> void override { this->assertion(); }
-
-private:
-  const std::function<void()> assertion;
-};
-
-static auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
-                         const std::string_view modulus,
-                         const std::string_view exponent,
-                         const std::string_view message,
-                         const std::string_view signature) -> bool {
+auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
+                  const std::string_view modulus,
+                  const std::string_view exponent,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
   const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
   return key.has_value() && sourcemeta::core::rsassa_pkcs1_v15_verify(
                                 key.value(), hash, message, signature);
 }
 
-static auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
-                       const std::string_view modulus,
-                       const std::string_view exponent,
-                       const std::string_view message,
-                       const std::string_view signature) -> bool {
+auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
+                const std::string_view modulus, const std::string_view exponent,
+                const std::string_view message,
+                const std::string_view signature) -> bool {
   const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
   return key.has_value() && sourcemeta::core::rsassa_pss_verify(
                                 key.value(), hash, message, signature);
 }
 
-static auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
-                         const sourcemeta::core::SignatureHashFunction hash,
-                         const std::string_view coordinate_x,
-                         const std::string_view coordinate_y,
-                         const std::string_view message,
-                         const std::string_view signature) -> bool {
+auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
+                  const sourcemeta::core::SignatureHashFunction hash,
+                  const std::string_view coordinate_x,
+                  const std::string_view coordinate_y,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
   const auto key{
       sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
   return key.has_value() &&
          sourcemeta::core::ecdsa_verify(key.value(), hash, message, signature);
 }
 
-static auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
-                         const std::string_view public_key,
-                         const std::string_view message,
-                         const std::string_view signature) -> bool {
+auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
+                  const std::string_view public_key,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
   const auto key{sourcemeta::core::make_eddsa_public_key(curve, public_key)};
   return key.has_value() &&
          sourcemeta::core::eddsa_verify(key.value(), message, signature);
 }
 
-static auto register_case(const std::string &suite_name,
-                          const std::string &test_name,
-                          std::function<void()> assertion) -> void {
-  testing::RegisterTest(
-      suite_name.c_str(), test_name.c_str(), nullptr, nullptr, __FILE__,
-      __LINE__, [assertion = std::move(assertion)]() -> testing::Test * {
-        return new PyCA_Cryptography_Test(assertion);
-      });
+auto register_case(const std::string &suite_name, const std::string &test_name,
+                   std::function<void()> assertion) -> void {
+  sourcemeta::core::test_register(suite_name + "." + test_name,
+                                  [assertion = std::move(assertion)]() -> void {
+                                    run_pyca_test_case(assertion);
+                                  });
 }
 
-static auto register_sha_msg_tests(const std::filesystem::path &file_path,
-                                   const std::string &suite_name,
-                                   const DigestFunction digest) -> void {
+auto register_sha_msg_tests(const std::filesystem::path &file_path,
+                            const std::string &suite_name,
+                            const DigestFunction digest) -> void {
   std::string current_length;
   std::string current_message_hex;
 
@@ -166,9 +155,9 @@ static auto register_sha_msg_tests(const std::filesystem::path &file_path,
   });
 }
 
-static auto register_sha_monte_tests(const std::filesystem::path &file_path,
-                                     const std::string &suite_name,
-                                     const DigestFunction digest) -> void {
+auto register_sha_monte_tests(const std::filesystem::path &file_path,
+                              const std::string &suite_name,
+                              const DigestFunction digest) -> void {
   std::string seed;
   std::string current_count;
 
@@ -218,9 +207,9 @@ static auto register_sha_monte_tests(const std::filesystem::path &file_path,
   });
 }
 
-static auto register_sha_tests(const std::filesystem::path &directory,
-                               const std::string &name,
-                               const DigestFunction digest) -> void {
+auto register_sha_tests(const std::filesystem::path &directory,
+                        const std::string &name, const DigestFunction digest)
+    -> void {
   register_sha_msg_tests(directory / (name + "ShortMsg.rsp"),
                          "PyCA_Cryptography_" + name + "_ShortMsg", digest);
   register_sha_msg_tests(directory / (name + "LongMsg.rsp"),
@@ -239,8 +228,8 @@ struct RSAVector {
 };
 
 template <typename Callback>
-static auto for_each_rsa_case(const std::filesystem::path &file_path,
-                              Callback callback) -> void {
+auto for_each_rsa_case(const std::filesystem::path &file_path,
+                       Callback callback) -> void {
   RSAVector vector;
   std::uint64_t case_count{0};
 
@@ -281,7 +270,7 @@ static auto for_each_rsa_case(const std::filesystem::path &file_path,
   });
 }
 
-static auto register_rsa_sigver15_tests(const std::filesystem::path &file_path)
+auto register_rsa_sigver15_tests(const std::filesystem::path &file_path)
     -> void {
   for_each_rsa_case(file_path, [](const RSAVector &vector,
                                   const std::string_view result,
@@ -311,7 +300,7 @@ static auto register_rsa_sigver15_tests(const std::filesystem::path &file_path)
   });
 }
 
-static auto register_rsa_sigverpss_tests(const std::filesystem::path &file_path)
+auto register_rsa_sigverpss_tests(const std::filesystem::path &file_path)
     -> void {
   // Every case in this suite uses a 10-byte salt, while RFC 7518 Section 3.5
   // fixes the salt size to the hash function output ("The size of the salt
@@ -344,7 +333,7 @@ static auto register_rsa_sigverpss_tests(const std::filesystem::path &file_path)
   });
 }
 
-static auto register_ecdsa_sigver_tests(const std::filesystem::path &file_path)
+auto register_ecdsa_sigver_tests(const std::filesystem::path &file_path)
     -> void {
   std::optional<CurveParameters> current_curve;
   std::optional<sourcemeta::core::SignatureHashFunction> current_hash;
@@ -424,7 +413,7 @@ static auto register_ecdsa_sigver_tests(const std::filesystem::path &file_path)
   });
 }
 
-static auto register_eddsa_25519_tests(const std::filesystem::path &file_path)
+auto register_eddsa_25519_tests(const std::filesystem::path &file_path)
     -> void {
   std::uint64_t case_count{0};
 
@@ -462,8 +451,7 @@ static auto register_eddsa_25519_tests(const std::filesystem::path &file_path)
   });
 }
 
-static auto register_eddsa_448_tests(const std::filesystem::path &file_path)
-    -> void {
+auto register_eddsa_448_tests(const std::filesystem::path &file_path) -> void {
   std::string current_count;
   std::string public_key_hex;
   std::string message_hex;
@@ -519,9 +507,9 @@ static auto register_eddsa_448_tests(const std::filesystem::path &file_path)
     }
   });
 }
+} // namespace
 
 auto main(int argc, char **argv) -> int {
-  testing::InitGoogleTest(&argc, argv);
   const std::filesystem::path suite_path{PYCA_CRYPTOGRAPHY_PATH};
   const auto hashes_path{suite_path / "hashes"};
 
@@ -546,5 +534,5 @@ auto main(int argc, char **argv) -> int {
 
   register_eddsa_448_tests(suite_path / "asymmetric" / "Ed448" / "rfc8032.txt");
 
-  return RUN_ALL_TESTS();
+  return sourcemeta::core::test_run(argc, argv);
 }

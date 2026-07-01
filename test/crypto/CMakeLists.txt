@@ -23,7 +23,7 @@ target_link_libraries(sourcemeta_core_crypto_unit
 
 # pyca/cryptography Test Vectors
 # See https://github.com/pyca/cryptography
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography
   SOURCES pyca_cryptography_test.cc)
 target_compile_definitions(sourcemeta_core_pyca_cryptography_unit
   PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
@@ -36,7 +36,7 @@ target_link_libraries(sourcemeta_core_pyca_cryptography_unit
 
 # Project Wycheproof Test Vectors
 # See https://github.com/C2SP/wycheproof
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME wycheproof
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME wycheproof
   SOURCES wycheproof_test.cc)
 target_compile_definitions(sourcemeta_core_wycheproof_unit
   PRIVATE WYCHEPROOF_PATH="${PROJECT_SOURCE_DIR}/vendor/wycheproof")

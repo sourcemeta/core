@@ -28,7 +28,7 @@ target_link_libraries(sourcemeta_core_unicode_unit
   PRIVATE sourcemeta::core::unicode)
 
 # UAX #15 NormalizationTest.txt conformance pass
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core
   NAME unicode_normalization_suite
   SOURCES unicode_normalization_suite.cc)
 target_compile_definitions(sourcemeta_core_unicode_normalization_suite_unit
