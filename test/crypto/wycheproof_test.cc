@@ -1,8 +1,7 @@
-#include <gtest/gtest.h>
-
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/io.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
 #include <array>       // std::array
@@ -14,7 +13,8 @@
 #include <string_view> // std::string_view
 #include <utility>     // std::move
 
-static auto to_signature_hash_function(const std::string_view name)
+namespace {
+auto to_signature_hash_function(const std::string_view name)
     -> std::optional<sourcemeta::core::SignatureHashFunction> {
   if (name == "SHA-256") {
     return sourcemeta::core::SignatureHashFunction::SHA256;
@@ -32,8 +32,7 @@ struct CurveParameters {
   std::size_t coordinate_bytes;
 };
 
-static auto to_curve(const std::string_view name)
-    -> std::optional<CurveParameters> {
+auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
   if (name == "secp256r1") {
     return CurveParameters{sourcemeta::core::EllipticCurve::P256, 32};
   } else if (name == "secp384r1") {
@@ -46,70 +45,60 @@ static auto to_curve(const std::string_view name)
 }
 
 // Each vector reduces to a closure that asserts on data captured at
-// registration time, so a single fixture carrying that closure stands in for
+// registration time, so a single runner carrying that closure stands in for
 // every mechanism, matching the pyca-cryptography harness
-class Wycheproof_Test : public testing::Test {
-public:
-  explicit Wycheproof_Test(std::function<void()> input_assertion)
-      : assertion{std::move(input_assertion)} {}
-
-  auto TestBody() -> void override { this->assertion(); }
-
-private:
-  const std::function<void()> assertion;
-};
-
-static auto register_case(const std::string &suite_name,
-                          const std::string &test_name,
-                          std::function<void()> assertion) -> void {
-  testing::RegisterTest(
-      suite_name.c_str(), test_name.c_str(), nullptr, nullptr, __FILE__,
-      __LINE__, [assertion = std::move(assertion)]() -> testing::Test * {
-        return new Wycheproof_Test(assertion);
-      });
+auto run_wycheproof_test_case(const std::function<void()> &assertion) -> void {
+  assertion();
 }
 
-static auto load(const std::filesystem::path &path) -> sourcemeta::core::JSON {
+auto register_case(const std::string &suite_name, const std::string &test_name,
+                   std::function<void()> assertion) -> void {
+  sourcemeta::core::test_register(suite_name + "." + test_name,
+                                  [assertion = std::move(assertion)]() -> void {
+                                    run_wycheproof_test_case(assertion);
+                                  });
+}
+
+auto load(const std::filesystem::path &path) -> sourcemeta::core::JSON {
   auto stream{sourcemeta::core::read_file(path)};
   return sourcemeta::core::parse_json(stream);
 }
 
-static auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
-                         const std::string_view modulus,
-                         const std::string_view exponent,
-                         const std::string_view message,
-                         const std::string_view signature) -> bool {
+auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
+                  const std::string_view modulus,
+                  const std::string_view exponent,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
   const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
   return key.has_value() && sourcemeta::core::rsassa_pkcs1_v15_verify(
                                 key.value(), hash, message, signature);
 }
 
-static auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
-                       const std::string_view modulus,
-                       const std::string_view exponent,
-                       const std::string_view message,
-                       const std::string_view signature) -> bool {
+auto verify_pss(const sourcemeta::core::SignatureHashFunction hash,
+                const std::string_view modulus, const std::string_view exponent,
+                const std::string_view message,
+                const std::string_view signature) -> bool {
   const auto key{sourcemeta::core::make_rsa_public_key(modulus, exponent)};
   return key.has_value() && sourcemeta::core::rsassa_pss_verify(
                                 key.value(), hash, message, signature);
 }
 
-static auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
-                         const sourcemeta::core::SignatureHashFunction hash,
-                         const std::string_view coordinate_x,
-                         const std::string_view coordinate_y,
-                         const std::string_view message,
-                         const std::string_view signature) -> bool {
+auto verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
+                  const sourcemeta::core::SignatureHashFunction hash,
+                  const std::string_view coordinate_x,
+                  const std::string_view coordinate_y,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
   const auto key{
       sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
   return key.has_value() &&
          sourcemeta::core::ecdsa_verify(key.value(), hash, message, signature);
 }
 
-static auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
-                         const std::string_view public_key,
-                         const std::string_view message,
-                         const std::string_view signature) -> bool {
+auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
+                  const std::string_view public_key,
+                  const std::string_view message,
+                  const std::string_view signature) -> bool {
   const auto key{sourcemeta::core::make_eddsa_public_key(curve, public_key)};
   return key.has_value() &&
          sourcemeta::core::eddsa_verify(key.value(), message, signature);
@@ -120,9 +109,9 @@ using RsaVerify = auto (*)(const sourcemeta::core::SignatureHashFunction,
                            const std::string_view, const std::string_view)
     -> bool;
 
-static auto register_rsa_tests(const std::filesystem::path &path,
-                               const std::string &suite_name,
-                               const RsaVerify verify) -> void {
+auto register_rsa_tests(const std::filesystem::path &path,
+                        const std::string &suite_name, const RsaVerify verify)
+    -> void {
   const auto document{load(path)};
   const auto stem{path.stem().string()};
   for (const auto &group : document.at("testGroups").as_array()) {
@@ -167,8 +156,8 @@ static auto register_rsa_tests(const std::filesystem::path &path,
   }
 }
 
-static auto register_ecdsa_tests(const std::filesystem::path &path,
-                                 const std::string &suite_name) -> void {
+auto register_ecdsa_tests(const std::filesystem::path &path,
+                          const std::string &suite_name) -> void {
   const auto document{load(path)};
   const auto stem{path.stem().string()};
   for (const auto &group : document.at("testGroups").as_array()) {
@@ -214,10 +203,9 @@ static auto register_ecdsa_tests(const std::filesystem::path &path,
   }
 }
 
-static auto register_eddsa_tests(const std::filesystem::path &path,
-                                 const std::string &suite_name,
-                                 const sourcemeta::core::EdwardsCurve curve)
-    -> void {
+auto register_eddsa_tests(const std::filesystem::path &path,
+                          const std::string &suite_name,
+                          const sourcemeta::core::EdwardsCurve curve) -> void {
   const auto document{load(path)};
   const auto stem{path.stem().string()};
   for (const auto &group : document.at("testGroups").as_array()) {
@@ -248,9 +236,9 @@ static auto register_eddsa_tests(const std::filesystem::path &path,
     }
   }
 }
+} // namespace
 
 auto main(int argc, char **argv) -> int {
-  testing::InitGoogleTest(&argc, argv);
   const std::filesystem::path base{WYCHEPROOF_PATH};
   const auto vectors{base / "testvectors_v1"};
 
@@ -288,5 +276,5 @@ auto main(int argc, char **argv) -> int {
   register_eddsa_tests(vectors / "ed448_test.json", "Wycheproof_EdDSA",
                        sourcemeta::core::EdwardsCurve::Ed448);
 
-  return RUN_ALL_TESTS();
+  return sourcemeta::core::test_run(argc, argv);
 }
