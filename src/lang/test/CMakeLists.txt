@@ -19,8 +19,11 @@ target_link_libraries(sourcemeta_core_test
 add_library(sourcemeta_core_test_main STATIC test_main.cc)
 add_library(sourcemeta::core::test_main ALIAS sourcemeta_core_test_main)
 sourcemeta_add_default_options(PRIVATE sourcemeta_core_test_main)
+# Public so the dependency propagates to consumers and CMake orders this archive
+# ahead of the framework, keeping the entry point's reference to the runner
+# resolvable at link time
 target_link_libraries(sourcemeta_core_test_main
-  PRIVATE sourcemeta::core::test)
+  PUBLIC sourcemeta::core::test)
 set_target_properties(sourcemeta_core_test_main
   PROPERTIES EXPORT_NAME core::test_main)
 
