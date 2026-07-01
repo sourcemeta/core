@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/test.h>
 
 TEST(plain_token) {
   EXPECT_EQ(sourcemeta::core::http_parse_bearer("Bearer abc123"), "abc123");

@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/time.h>
 
 TEST(valid_basic_zulu) {

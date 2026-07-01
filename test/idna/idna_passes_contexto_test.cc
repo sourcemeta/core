@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/idna.h>
+#include <sourcemeta/core/test.h>
 
 TEST(middle_dot_between_latin_l) {
   EXPECT_TRUE(sourcemeta::core::idna_passes_contexto(U"l\u00B7l", 1));

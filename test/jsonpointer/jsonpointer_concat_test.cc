@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
 TEST(multi_multi) {
   const sourcemeta::core::Pointer left{"foo", "bar"};

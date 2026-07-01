@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/idna.h>
+#include <sourcemeta/core/test.h>
 
 TEST(zwj_preceded_by_devanagari_virama) {
   // Devanagari KA (U+0915) + VIRAMA (U+094D) + ZWJ (U+200D)

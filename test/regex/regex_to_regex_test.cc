@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/regex.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_1) {
   const auto regex{sourcemeta::core::to_regex("^foo")};

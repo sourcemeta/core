@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/test.h>
 
 #include <cstdint> // std::int64_t, std::uint64_t
 #include <limits>  // std::numeric_limits

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/html.h>
+#include <sourcemeta/core/test.h>
 
 TEST(empty_string) {
   std::string text = "";

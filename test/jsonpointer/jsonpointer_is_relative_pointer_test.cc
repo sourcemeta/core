@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
 TEST(valid_zero) { EXPECT_TRUE(sourcemeta::core::is_relative_pointer("0")); }
 

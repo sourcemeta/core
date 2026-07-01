@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME io
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME io
   SOURCES
     io_atomic_directory_swap_test.cc
     io_atomic_write_file_test.cc

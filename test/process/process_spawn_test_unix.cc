@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/process.h>
+#include <sourcemeta/core/test.h>
 
 #include <filesystem> // std::filesystem::path
 

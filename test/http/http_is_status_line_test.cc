@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_message.h>
+#include <sourcemeta/core/test.h>
 
 TEST(http_1_1) {
   EXPECT_TRUE(sourcemeta::core::http_is_status_line("HTTP/1.1 200 OK"));

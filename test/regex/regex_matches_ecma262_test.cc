@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/regex.h>
+#include <sourcemeta/core/test.h>
 
 #include <string>
 

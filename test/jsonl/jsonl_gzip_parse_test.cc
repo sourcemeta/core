@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/gzip.h>
 #include <sourcemeta/core/jsonl.h>
+#include <sourcemeta/core/test.h>
 
 #include <cstdint> // std::uint8_t
 #include <sstream> // std::istringstream

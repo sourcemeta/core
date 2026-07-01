@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/langtag.h>
+#include <sourcemeta/core/test.h>
 
 // RFC 5646 Appendix A: simple language subtag
 TEST(rfc_simple_language_subtag) {

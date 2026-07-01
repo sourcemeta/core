@@ -1,8 +1,7 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/jsonpointer.h>
+#include <sourcemeta/core/test.h>
 
 #include <functional> // std::cref
 

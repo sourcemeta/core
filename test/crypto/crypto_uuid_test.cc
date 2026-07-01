@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/regex.h>
+#include <sourcemeta/core/test.h>
 
 TEST(regex) {
   const auto uuid{sourcemeta::core::uuidv4()};

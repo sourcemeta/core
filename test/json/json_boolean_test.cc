@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 TEST(true_value) {
   const sourcemeta::core::JSON document{true};

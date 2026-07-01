@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/test.h>
 
 TEST(empty_header_returns_identity) {
   const auto result{sourcemeta::core::http_negotiate_encoding(

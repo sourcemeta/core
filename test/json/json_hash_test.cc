@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 TEST(hash_empty) {
   const sourcemeta::core::PropertyHashJSON<sourcemeta::core::JSON::String>

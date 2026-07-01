@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
+#include <sourcemeta/core/test.h>
 
 #include <chrono>      // std::chrono::system_clock, std::chrono::seconds
 #include <string>      // std::string

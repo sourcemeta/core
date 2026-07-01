@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/test.h>
 
 #include <array>   // std::array
 #include <cstdint> // std::uint8_t

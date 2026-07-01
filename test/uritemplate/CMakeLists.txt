@@ -1,4 +1,4 @@
-sourcemeta_googletest(NAMESPACE sourcemeta PROJECT core NAME uritemplate
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uritemplate
   SOURCES
     uritemplate_helpers.h
     uritemplate_test.cc

@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_message.h>
+#include <sourcemeta/core/test.h>
 
 #include <string> // std::string
 

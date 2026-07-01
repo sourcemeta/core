@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 #include <string>      // std::string
 #include <string_view> // std::string_view

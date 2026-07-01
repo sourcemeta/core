@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
 #include <exception>
 

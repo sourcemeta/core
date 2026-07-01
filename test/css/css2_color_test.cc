@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/css.h>
+#include <sourcemeta/core/test.h>
 
 TEST(suite_valid_keyword_fuchsia) {
   EXPECT_TRUE(sourcemeta::core::is_css2_color("fuchsia"));

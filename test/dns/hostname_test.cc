@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/dns.h>
+#include <sourcemeta/core/test.h>
 
 #include <string>
 

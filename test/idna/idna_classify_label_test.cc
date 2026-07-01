@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/idna.h>
+#include <sourcemeta/core/test.h>
 
 #include <optional>
 #include <string>

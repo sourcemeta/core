@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
+#include <sourcemeta/core/test.h>
 
 TEST(compact_to_relative_true_relativises_against_base) {
   const auto input = sourcemeta::core::parse_json(R"([

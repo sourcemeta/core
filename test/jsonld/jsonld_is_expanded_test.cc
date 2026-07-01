@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonld.h>
+#include <sourcemeta/core/test.h>
 
 TEST(empty_array) {
   const auto document = sourcemeta::core::parse_json("[]");

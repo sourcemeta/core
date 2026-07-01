@@ -213,6 +213,30 @@ auto test_expect_comparison(std::string_view file, int line,
 
 #define TEST(name) SOURCEMETA_CORE_TEST_REGISTER(name)
 
+// The fixture name is used as a base class and in token pasting, neither of
+// which can be parenthesized. The registration symbol is keyed on the test name
+// alone so that reusing a name within a file is a redefinition error, matching
+// the behavior of a plain test.
+// NOLINTBEGIN(bugprone-macro-parentheses)
+#define SOURCEMETA_CORE_TEST_REGISTER_FIXTURE(fixture, name)                   \
+  namespace {                                                                  \
+  struct sourcemeta_test_fixture_##fixture##_##name final : public fixture {   \
+    auto sourcemeta_test_body() -> void;                                       \
+  };                                                                           \
+  }                                                                            \
+  [[maybe_unused]] static const int sourcemeta_test_registration_##name =      \
+      ::sourcemeta::core::test_register(                                       \
+          ::sourcemeta::core::test_suite_from_path(__FILE__), #name, __FILE__, \
+          __LINE__, [] {                                                       \
+            sourcemeta_test_fixture_##fixture##_##name instance;               \
+            instance.sourcemeta_test_body();                                   \
+          });                                                                  \
+  auto sourcemeta_test_fixture_##fixture##_##name::sourcemeta_test_body()->void
+// NOLINTEND(bugprone-macro-parentheses)
+
+#define TEST_F(fixture, name)                                                  \
+  SOURCEMETA_CORE_TEST_REGISTER_FIXTURE(fixture, name)
+
 #define SOURCEMETA_CORE_TEST_COMPARE(actual, expected, comparator, operation)  \
   ::sourcemeta::core::test_expect_comparison(                                  \
       __FILE__, __LINE__, #actual " " operation " " #expected,                 \

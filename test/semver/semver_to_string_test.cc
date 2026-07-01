@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/semver.h>
+#include <sourcemeta/core/test.h>
 
 TEST(basic) {
   EXPECT_EQ(sourcemeta::core::SemVer{"1.2.3"}.to_string(), "1.2.3");

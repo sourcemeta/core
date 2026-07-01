@@ -1,5 +1,4 @@
 #include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/unicode.h>
 
 TEST(null) { EXPECT_TRUE(sourcemeta::core::is_valid_codepoint(0x0000)); }

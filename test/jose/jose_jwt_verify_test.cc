@@ -1,7 +1,6 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/test.h>
 
 #include <array>       // std::array
 #include <chrono>      // std::chrono::system_clock

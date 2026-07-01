@@ -1,6 +1,5 @@
-#include <sourcemeta/core/test.h>
-
 #include <sourcemeta/core/http_message.h>
+#include <sourcemeta/core/test.h>
 
 #include <functional> // std::less
 #include <map>        // std::map
