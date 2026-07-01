@@ -96,7 +96,6 @@ unicodetools/data/ucd/dev/extracted/DerivedLineBreak.txt
 unicodetools/data/ucd/dev/extracted/DerivedName.txt
 unicodetools/data/ucd/dev/extracted/DerivedNumericType.txt
 unicodetools/data/ucd/dev/extracted/DerivedNumericValues.txt
-unicodetools/data/idna/dev/IdnaMappingTable.txt
 unicodetools/data/idna/5.2.0/
 unicodetools/data/idna/6.0.0/
 unicodetools/data/idna/6.1.0/
@@ -133,5 +132,4 @@ unicodetools/data/ucd/dev/PropertyAliases.txt
 unicodetools/data/ucd/dev/PropList.txt
 unicodetools/data/ucd/dev/ScriptExtensions.txt
 unicodetools/data/ucd/dev/ReadMe.txt
-unicodetools/data/idna/dev/IdnaTestV2.txt
 unicodetools/data/idna/dev/ReadMe.txt

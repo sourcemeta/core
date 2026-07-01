@@ -204,6 +204,26 @@ TEST(invalid_utf8_label_trailing_hyphen) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("\xce\xb1-"));
 }
 
+// RFC 5891 §4.2.3.1: a label must not contain "--" in the third and fourth
+// positions unless it is a valid A-label. This is a plain DNS host name
+// (accepted by is_hostname) but a reserved R-LDH label for IDNA
+TEST(invalid_reserved_ldh_double_hyphen) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("bc--de"));
+  EXPECT_TRUE(sourcemeta::core::is_hostname("bc--de"));
+}
+
+TEST(invalid_reserved_ldh_double_hyphen_dotted) {
+  EXPECT_FALSE(sourcemeta::core::is_idn_hostname("a.bc--de.f"));
+  EXPECT_TRUE(sourcemeta::core::is_hostname("a.bc--de.f"));
+}
+
+// RFC 5890 §2.3.2.1: the "xn--" ACE prefix is the one permitted use of "--" in
+// the third and fourth positions, so a valid A-label is not rejected
+TEST(valid_a_label_double_hyphen_not_rejected) {
+  EXPECT_TRUE(sourcemeta::core::is_idn_hostname("xn--mnchen-3ya"));
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--mnchen-3ya"));
+}
+
 TEST(invalid_leading_dot) {
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname(".example"));
   EXPECT_FALSE(sourcemeta::core::is_hostname(".example"));
