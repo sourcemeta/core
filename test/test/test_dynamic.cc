@@ -13,13 +13,13 @@ auto expect_length(const std::string_view value, const std::size_t length)
 } // namespace
 
 auto main(int argc, char **argv) -> int {
-  constexpr std::array<std::string_view, 3> values{"a", "bb", "ccc"};
+  constexpr std::array<std::string_view, 3> values{{"a", "bb", "ccc"}};
   std::size_t index{0};
   for (const std::string_view value : values) {
     index += 1;
     sourcemeta::core::test_register(
         "length_" + std::to_string(index),
-        [value]() -> void { expect_length(value, value.size()); });
+        [value, index]() -> void { expect_length(value, index); });
   }
 
   return sourcemeta::core::test_run(argc, argv);

@@ -1,7 +1,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
-#include <exception>  // std::exception
 #include <filesystem> // std::filesystem
 #include <fstream>    // std::ifstream
 #include <ios>        // std::ios::binary, std::ios_base::badbit
@@ -39,8 +38,6 @@ auto run_json_test_case(const std::filesystem::path &path,
       FAIL();
     } catch (const sourcemeta::core::JSONParseError &) {
       // A malformed document is expected to be rejected
-    } catch (...) {
-      FAIL();
     }
   }
 }
