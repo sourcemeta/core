@@ -20,6 +20,11 @@ add_executable(sourcemeta_core_test_filter
 target_link_libraries(sourcemeta_core_test_filter
   PRIVATE sourcemeta::core::test)
 
+add_executable(sourcemeta_core_test_fixture
+  test_fixture.cc "${SOURCEMETA_CORE_TEST_DRIVER_MAIN}")
+target_link_libraries(sourcemeta_core_test_fixture
+  PRIVATE sourcemeta::core::test)
+
 if(WIN32)
   set(SOURCEMETA_CORE_TEST_RUNNER powershell -ExecutionPolicy Bypass -File
     "${CMAKE_CURRENT_SOURCE_DIR}/test_runner.ps1")
@@ -54,3 +59,7 @@ add_test(NAME core.test.filter_short COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
 add_test(NAME core.test.filter_none COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
   "$<TARGET_FILE:sourcemeta_core_test_filter>" 0
   "${CMAKE_CURRENT_SOURCE_DIR}/test_filter_none.txt" --filter nonexistent)
+
+add_test(NAME core.test.fixture COMMAND ${SOURCEMETA_CORE_TEST_RUNNER}
+  "$<TARGET_FILE:sourcemeta_core_test_fixture>" 0
+  "${CMAKE_CURRENT_SOURCE_DIR}/test_fixture.txt")

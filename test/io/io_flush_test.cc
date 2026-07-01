@@ -1,13 +1,13 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/io.h>
 
-TEST(IO_flush, test_txt) {
+TEST(test_txt) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt"};
   sourcemeta::core::flush(path);
 }
 
-TEST(IO_flush, not_exists) {
+TEST(not_exists) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "foo.txt"};
 
   try {

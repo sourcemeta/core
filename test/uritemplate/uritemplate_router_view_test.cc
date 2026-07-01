@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uritemplate.h>
 
@@ -12,14 +12,18 @@
 #include <fstream>    // std::ifstream
 #include <span>       // std::span
 #include <string>     // std::string
-#include <string_view> // std::string_view
-#include <utility>     // std::pair
-#include <variant>     // std::holds_alternative, std::get
-#include <vector>      // std::vector
+#include <string_view>  // std::string_view
+#include <system_error> // std::error_code
+#include <utility>      // std::pair
+#include <variant>      // std::holds_alternative, std::get
+#include <vector>       // std::vector
 
-class URITemplateRouterViewTest : public ::testing::Test {
+class URITemplateRouterViewTest {
 protected:
-  void TearDown() override { std::filesystem::remove(this->path); }
+  ~URITemplateRouterViewTest() {
+    std::error_code error;
+    std::filesystem::remove(this->path, error);
+  }
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path path{std::filesystem::temp_directory_path() /
                              "sourcemeta_core_uritemplate_router_test.bin"};
@@ -710,20 +714,20 @@ TEST_F(URITemplateRouterViewTest, expansion_matches_double_slashes) {
   EXPECT_ROUTER_CAPTURE(captures, 0, "path", "foo//bar");
 }
 
-TEST(URITemplateRouterView, corrupt_empty_data) {
+TEST(corrupt_empty_data) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_too_small_for_header) {
+TEST(corrupt_too_small_for_header) {
   const std::uint8_t data[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
   const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_wrong_magic) {
+TEST(corrupt_wrong_magic) {
   const std::uint32_t data[] = {0xDEADBEEF, 5, 1, 64, 64, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -731,7 +735,7 @@ TEST(URITemplateRouterView, corrupt_wrong_magic) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_wrong_version) {
+TEST(corrupt_wrong_version) {
   const std::uint32_t data[] = {0x52544552, 99, 1, 64, 64, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -739,7 +743,7 @@ TEST(URITemplateRouterView, corrupt_wrong_version) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_node_count_exceeds_file) {
+TEST(corrupt_node_count_exceeds_file) {
   const std::uint32_t data[] = {0x52544552, 5, 10, 32, 32, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -747,7 +751,7 @@ TEST(URITemplateRouterView, corrupt_node_count_exceeds_file) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_literal_child_out_of_bounds) {
+TEST(corrupt_literal_child_out_of_bounds) {
   const std::uint32_t data[] = {0x52544552, 5, 1,   64, 64,         0, 0, 0,
                                 0,          0, 999, 1,  0xFFFFFFFF, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -756,7 +760,7 @@ TEST(URITemplateRouterView, corrupt_literal_child_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_variable_child_out_of_bounds) {
+TEST(corrupt_variable_child_out_of_bounds) {
   const std::uint32_t data[] = {0x52544552, 5, 1,          64, 64,  0, 0, 0,
                                 0,          0, 0xFFFFFFFF, 0,  500, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -765,7 +769,7 @@ TEST(URITemplateRouterView, corrupt_variable_child_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_offset_out_of_bounds) {
+TEST(corrupt_string_offset_out_of_bounds) {
   const std::uint32_t data[] = {
       0x52544552, 5, 2, 96, 96,   0, 0,          0, 0,          0, 0, 1, 1,
       0xFFFFFFFF, 0, 0, 0,  9999, 5, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
@@ -775,7 +779,7 @@ TEST(URITemplateRouterView, corrupt_string_offset_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_variable_string_offset_out_of_bounds) {
+TEST(corrupt_variable_string_offset_out_of_bounds) {
   const std::uint32_t data[] = {
       0x52544552, 5,   2,          96, 96,         0,          0, 0,
       0,          0,   0xFFFFFFFF, 0,  1,          0,          0, 0,
@@ -786,14 +790,14 @@ TEST(URITemplateRouterView, corrupt_variable_string_offset_out_of_bounds) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_all_zeroes) {
+TEST(corrupt_all_zeroes) {
   const std::uint8_t data[128] = {};
   const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_all_ones) {
+TEST(corrupt_all_ones) {
   std::uint8_t data[128];
   std::memset(data, 0xFF, sizeof(data));
   const sourcemeta::core::URITemplateRouterView view{data, sizeof(data)};
@@ -801,7 +805,7 @@ TEST(URITemplateRouterView, corrupt_all_ones) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_table_offset_overlaps_header) {
+TEST(corrupt_string_table_offset_overlaps_header) {
   const std::uint32_t data[] = {0x52544552, 5, 1,          4, 64, 0, 0, 0, 0, 0,
                                 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0,  0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -810,7 +814,7 @@ TEST(URITemplateRouterView, corrupt_string_table_offset_overlaps_header) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_table_offset_past_end) {
+TEST(corrupt_string_table_offset_past_end) {
   const std::uint32_t data[] = {0x52544552, 5, 1, 99999, 99999,      0,
                                 0,          0, 0, 0,     0xFFFFFFFF, 0,
                                 0xFFFFFFFF, 0, 0, 0};
@@ -820,7 +824,7 @@ TEST(URITemplateRouterView, corrupt_string_table_offset_past_end) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_zero_node_count) {
+TEST(corrupt_zero_node_count) {
   const std::uint32_t data[] = {0x52544552, 5, 0, 32, 32, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
       reinterpret_cast<const std::uint8_t *>(data), sizeof(data)};
@@ -828,19 +832,19 @@ TEST(URITemplateRouterView, corrupt_zero_node_count) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_empty_data_match_empty_path) {
+TEST(corrupt_empty_data_match_empty_path) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_empty_data_match_root) {
+TEST(corrupt_empty_data_match_root) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "/", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_literal_child_count_overflow) {
+TEST(corrupt_literal_child_count_overflow) {
   const std::uint32_t data[] = {
       0x52544552, 5, 2, 96, 96, 0, 0,          0, 0,          0, 1, 0xFFFFFFFF,
       0xFFFFFFFF, 0, 0, 0,  0,  0, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
@@ -850,7 +854,7 @@ TEST(URITemplateRouterView, corrupt_literal_child_count_overflow) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_root_literal_child_oob_match_root) {
+TEST(corrupt_root_literal_child_oob_match_root) {
   const std::uint32_t data[] = {0x52544552, 5, 1,   64, 64,         0, 0, 0,
                                 0,          0, 999, 1,  0xFFFFFFFF, 0, 0, 0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -859,7 +863,7 @@ TEST(URITemplateRouterView, corrupt_root_literal_child_oob_match_root) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_deep_node_variable_child_oob) {
+TEST(corrupt_deep_node_variable_child_oob) {
   std::vector<std::uint8_t> data;
   const std::uint32_t header[] = {0x52544552, 5, 2, 96, 101, 0, 0, 0};
   const std::uint32_t root[] = {0, 0, 1, 1, 0xFFFFFFFF, 0, 0, 0};
@@ -877,7 +881,7 @@ TEST(URITemplateRouterView, corrupt_deep_node_variable_child_oob) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_expansion_string_oob) {
+TEST(corrupt_expansion_string_oob) {
   const std::uint32_t data[] = {
       0x52544552, 5,   2,          96, 96,         0,          0, 0,
       0,          0,   0xFFFFFFFF, 0,  1,          0,          0, 0,
@@ -888,7 +892,7 @@ TEST(URITemplateRouterView, corrupt_expansion_string_oob) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_empty_string_table_with_string_ref) {
+TEST(corrupt_empty_string_table_with_string_ref) {
   const std::uint32_t data[] = {
       0x52544552, 5, 2, 96, 96, 0,  0,          0, 0,          0, 1, 1,
       0xFFFFFFFF, 0, 0, 0,  0,  10, 0xFFFFFFFF, 0, 0xFFFFFFFF, 0, 0, 0};
@@ -898,7 +902,7 @@ TEST(URITemplateRouterView, corrupt_empty_string_table_with_string_ref) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_node_count_max_uint32) {
+TEST(corrupt_node_count_max_uint32) {
   const std::uint32_t data[] = {0x52544552, 5, 0xFFFFFFFF, 44, 44, 0,
                                 0,          0, 0,          0,  0};
   const sourcemeta::core::URITemplateRouterView view{
@@ -907,7 +911,7 @@ TEST(URITemplateRouterView, corrupt_node_count_max_uint32) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView, corrupt_string_offset_plus_length_overflow) {
+TEST(corrupt_string_offset_plus_length_overflow) {
   const std::uint32_t data[] = {
       0x52544552, 5,          2,          96, 96,         0,          0, 0,
       0,          0,          0xFFFFFFFF, 0,  1,          0,          0, 0,
@@ -918,8 +922,7 @@ TEST(URITemplateRouterView, corrupt_string_offset_plus_length_overflow) {
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView,
-     corrupt_string_offset_plus_length_overflow_with_data) {
+TEST(corrupt_string_offset_plus_length_overflow_with_data) {
   std::vector<std::uint8_t> data;
   const std::uint32_t header[] = {0x52544552, 5, 2, 96, 97, 0, 0, 0};
   const std::uint32_t root[] = {0, 0, 0xFFFFFFFF, 0, 1, 0, 0, 0};
@@ -939,8 +942,7 @@ TEST(URITemplateRouterView,
   EXPECT_EQ(captures.size(), 0);
 }
 
-TEST(URITemplateRouterView,
-     corrupt_literal_string_offset_plus_length_overflow) {
+TEST(corrupt_literal_string_offset_plus_length_overflow) {
   std::vector<std::uint8_t> data;
   const std::uint32_t header[] = {0x52544552, 5, 2, 96, 97, 0, 0, 0};
   const std::uint32_t root[] = {0, 0, 1, 1, 0xFFFFFFFF, 0, 0, 0};
@@ -2243,7 +2245,7 @@ TEST_F(URITemplateRouterViewTest, base_url_arguments_still_resolve) {
                             std::string{std::get<std::string_view>(value)});
         }
       });
-  ASSERT_EQ(seen.size(), 1);
+  EXPECT_EQ(seen.size(), 1);
   EXPECT_EQ(seen.at(0).first, "schema");
   EXPECT_EQ(seen.at(0).second, "schemas/health");
 }
@@ -2354,10 +2356,10 @@ TEST_F(URITemplateRouterViewTest, add_with_context_and_arguments) {
         }
       });
 
-  ASSERT_EQ(seen_string.size(), 1);
+  EXPECT_EQ(seen_string.size(), 1);
   EXPECT_EQ(seen_string.at(0).first, "schema");
   EXPECT_EQ(seen_string.at(0).second, "schemas/health");
-  ASSERT_EQ(seen_bool.size(), 1);
+  EXPECT_EQ(seen_bool.size(), 1);
   EXPECT_EQ(seen_bool.at(0).first, "enabled");
   EXPECT_TRUE(seen_bool.at(0).second);
 }

@@ -1,46 +1,48 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/io.h>
 
-#include <algorithm> // std::remove
-#include <fstream>   // std::ofstream
-#include <sstream>   // std::istringstream
-#include <string>    // std::string
+#include <algorithm>    // std::remove
+#include <filesystem>   // std::filesystem
+#include <fstream>      // std::ofstream
+#include <sstream>      // std::istringstream
+#include <string>       // std::string
+#include <system_error> // std::error_code
 
 #if !defined(_WIN32)
 #include <sys/stat.h> // mkfifo, S_IRUSR, S_IWUSR
 #include <thread>     // std::thread
 #endif
 
-TEST(IO_read_to_string, empty_stream) {
+TEST(empty_stream) {
   std::istringstream stream{""};
   EXPECT_EQ(sourcemeta::core::read_to_string(stream), "");
 }
 
-TEST(IO_read_to_string, single_line) {
+TEST(single_line) {
   std::istringstream stream{"hello"};
   EXPECT_EQ(sourcemeta::core::read_to_string(stream), "hello");
 }
 
-TEST(IO_read_to_string, multiple_lines) {
+TEST(multiple_lines) {
   std::istringstream stream{"line one\nline two\nline three"};
   EXPECT_EQ(sourcemeta::core::read_to_string(stream),
             "line one\nline two\nline three");
 }
 
-TEST(IO_read_to_string, large_input) {
+TEST(large_input) {
   const std::string payload(8192, 'a');
   std::istringstream stream{payload};
   EXPECT_EQ(sourcemeta::core::read_to_string(stream), payload);
 }
 
-TEST(IO_read_to_string, leaves_stream_at_eof) {
+TEST(leaves_stream_at_eof) {
   std::istringstream stream{"hello"};
   sourcemeta::core::read_to_string(stream);
   EXPECT_EQ(stream.peek(), std::char_traits<char>::eof());
 }
 
-TEST(IO_read_file_to_string, stub_text_file) {
+TEST(stub_text_file) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "test.txt"};
   auto contents{sourcemeta::core::read_file_to_string(path)};
   contents.erase(std::remove(contents.begin(), contents.end(), '\r'),
@@ -48,7 +50,7 @@ TEST(IO_read_file_to_string, stub_text_file) {
   EXPECT_EQ(contents, "Hello World\n");
 }
 
-TEST(IO_read_file_to_string, directory) {
+TEST(directory) {
   const std::filesystem::path path{STUBS_DIRECTORY};
   try {
     sourcemeta::core::read_file_to_string(path);
@@ -60,7 +62,7 @@ TEST(IO_read_file_to_string, directory) {
   }
 }
 
-TEST(IO_read_file_to_string, missing_file_throws) {
+TEST(missing_file_throws) {
   const auto path{std::filesystem::path{STUBS_DIRECTORY} / "no-such-file.txt"};
   try {
     sourcemeta::core::read_file_to_string(path);
@@ -72,13 +74,16 @@ TEST(IO_read_file_to_string, missing_file_throws) {
   }
 }
 
-class IOReadFileToStringTest : public ::testing::Test {
+class IOReadFileToStringTest {
 protected:
-  void SetUp() override {
+  IOReadFileToStringTest() {
     std::filesystem::create_directories(this->workspace);
   }
 
-  void TearDown() override { std::filesystem::remove_all(this->workspace); }
+  ~IOReadFileToStringTest() {
+    std::error_code error;
+    std::filesystem::remove_all(this->workspace, error);
+  }
 
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path workspace{
@@ -117,7 +122,7 @@ TEST_F(IOReadFileToStringTest, fifo) {
 
   const auto path{this->workspace / "fifo"};
   std::filesystem::remove(path);
-  ASSERT_EQ(::mkfifo(path.c_str(), S_IRUSR | S_IWUSR), 0);
+  EXPECT_EQ(::mkfifo(path.c_str(), S_IRUSR | S_IWUSR), 0);
   std::thread writer{[&path]() {
     std::ofstream stream{path};
     stream << "piped payload\nsecond line\n";

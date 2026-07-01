@@ -1,0 +1,5 @@
+TAP version 14
+1..2
+ok 1 - test_fixture.sees_constructed_member
+ok 2 - test_fixture.teardown_runs_between_tests
+# 2 passed, 0 failed

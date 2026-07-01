@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/uritemplate.h>
 
@@ -6,7 +6,7 @@
 
 #include <utility> // std::move
 
-TEST(URITemplate, iterator) {
+TEST(iterator) {
   const sourcemeta::core::URITemplate uri_template{"/{a}/{b}"};
   EXPECT_EQ(uri_template.size(), 4);
 
@@ -50,7 +50,7 @@ TEST(URITemplate, iterator) {
   EXPECT_EQ(iterator, uri_template.end());
 }
 
-TEST(URITemplate, copy_constructor) {
+TEST(copy_constructor) {
   const sourcemeta::core::URITemplate original{"http://example.com/{id}"};
   const sourcemeta::core::URITemplate copy{original};
 
@@ -60,7 +60,7 @@ TEST(URITemplate, copy_constructor) {
                                false);
 }
 
-TEST(URITemplate, move_constructor) {
+TEST(move_constructor) {
   sourcemeta::core::URITemplate original{"http://example.com/{id}"};
   const sourcemeta::core::URITemplate moved{std::move(original)};
 
@@ -70,7 +70,7 @@ TEST(URITemplate, move_constructor) {
                                false);
 }
 
-TEST(URITemplate, copy_assignment) {
+TEST(copy_assignment) {
   const sourcemeta::core::URITemplate original{"http://example.com/{id}"};
   sourcemeta::core::URITemplate copy{""};
 
@@ -88,7 +88,7 @@ TEST(URITemplate, copy_assignment) {
                                false);
 }
 
-TEST(URITemplate, move_assignment) {
+TEST(move_assignment) {
   sourcemeta::core::URITemplate original{"http://example.com/{id}"};
   sourcemeta::core::URITemplate moved{""};
 
@@ -101,7 +101,7 @@ TEST(URITemplate, move_assignment) {
                                false);
 }
 
-TEST(URITemplate, at_const_lvalue) {
+TEST(at_const_lvalue) {
   const sourcemeta::core::URITemplate uri_template{"/{id}"};
   const auto &token = uri_template.at(1);
   EXPECT_TRUE(
@@ -113,7 +113,7 @@ TEST(URITemplate, at_const_lvalue) {
   EXPECT_EQ(variable.variables[0].name, "id");
 }
 
-TEST(URITemplate, at_rvalue_move) {
+TEST(at_rvalue_move) {
   sourcemeta::core::URITemplate uri_template{"/{id}"};
   auto token = std::move(uri_template).at(1);
   EXPECT_TRUE(
@@ -124,7 +124,7 @@ TEST(URITemplate, at_rvalue_move) {
   EXPECT_EQ(variable.variables[0].name, "id");
 }
 
-TEST(URITemplate, at_rvalue_move_multiple) {
+TEST(at_rvalue_move_multiple) {
   sourcemeta::core::URITemplate uri_template{"/users/{id}/posts/{post_id}"};
   EXPECT_EQ(uri_template.size(), 4);
 

@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
+#include <sourcemeta/core/test.h>
 
 #include <sourcemeta/core/io.h>
 
 #include <array>   // std::array
 #include <cstddef> // std::byte
 #include <cstdint> // std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t
-#include <filesystem> // std::filesystem
-#include <fstream>    // std::ofstream
-#include <ios>        // std::ios::binary
-#include <sstream>    // std::istringstream, std::ostringstream
-#include <string>     // std::string
-#include <tuple>      // std::ignore
+#include <filesystem>   // std::filesystem
+#include <fstream>      // std::ofstream
+#include <ios>          // std::ios::binary
+#include <sstream>      // std::istringstream, std::ostringstream
+#include <string>       // std::string
+#include <system_error> // std::error_code
 
 namespace {
 
@@ -25,13 +25,14 @@ struct ExampleHeader {
 
 } // namespace
 
-class IOBinaryTest : public ::testing::Test {
+class IOBinaryTest {
 protected:
-  void SetUp() override {
-    std::filesystem::create_directories(this->workspace);
-  }
+  IOBinaryTest() { std::filesystem::create_directories(this->workspace); }
 
-  void TearDown() override { std::filesystem::remove_all(this->workspace); }
+  ~IOBinaryTest() {
+    std::error_code error;
+    std::filesystem::remove_all(this->workspace, error);
+  }
 
   // The tests are always sequential, so using the same path is safe
   std::filesystem::path workspace{std::filesystem::path{BUILD_DIRECTORY} /
@@ -42,43 +43,43 @@ protected:
 // BinaryWriter — std::ostream backend
 // -----------------------------------------------------------------------------
 
-TEST(IO_BinaryWriter, put_byte_emits_one_byte) {
+TEST(put_byte_emits_one_byte) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_byte(0x42);
   const auto bytes{stream.str()};
-  ASSERT_EQ(bytes.size(), 1);
+  EXPECT_EQ(bytes.size(), 1);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0x42);
 }
 
-TEST(IO_BinaryWriter, put_word_emits_two_bytes_little_endian) {
+TEST(put_word_emits_two_bytes_little_endian) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_word(0xCAFE);
   const auto bytes{stream.str()};
-  ASSERT_EQ(bytes.size(), 2);
+  EXPECT_EQ(bytes.size(), 2);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xFE);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCA);
 }
 
-TEST(IO_BinaryWriter, put_dword_emits_four_bytes_little_endian) {
+TEST(put_dword_emits_four_bytes_little_endian) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_dword(0xDEADBEEF);
   const auto bytes{stream.str()};
-  ASSERT_EQ(bytes.size(), 4);
+  EXPECT_EQ(bytes.size(), 4);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xEF);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xBE);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[2]), 0xAD);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[3]), 0xDE);
 }
 
-TEST(IO_BinaryWriter, put_qword_emits_eight_bytes_little_endian) {
+TEST(put_qword_emits_eight_bytes_little_endian) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_qword(0x0123456789ABCDEFULL);
   const auto bytes{stream.str()};
-  ASSERT_EQ(bytes.size(), 8);
+  EXPECT_EQ(bytes.size(), 8);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xEF);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xCD);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[2]), 0xAB);
@@ -89,27 +90,27 @@ TEST(IO_BinaryWriter, put_qword_emits_eight_bytes_little_endian) {
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[7]), 0x01);
 }
 
-TEST(IO_BinaryWriter, put_bytes_emits_raw_buffer) {
+TEST(put_bytes_emits_raw_buffer) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   constexpr std::array<std::byte, 3> payload{
       {std::byte{0xDE}, std::byte{0xAD}, std::byte{0xBE}}};
   writer.put_bytes(payload.data(), payload.size());
   const auto bytes{stream.str()};
-  ASSERT_EQ(bytes.size(), 3);
+  EXPECT_EQ(bytes.size(), 3);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[0]), 0xDE);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[1]), 0xAD);
   EXPECT_EQ(static_cast<std::uint8_t>(bytes[2]), 0xBE);
 }
 
-TEST(IO_BinaryWriter, put_bytes_zero_length_is_noop) {
+TEST(put_bytes_zero_length_is_noop) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   writer.put_bytes(nullptr, 0);
   EXPECT_EQ(stream.str().size(), 0);
 }
 
-TEST(IO_BinaryWriter, put_pod_via_put_bytes) {
+TEST(put_pod_via_put_bytes) {
   const ExampleHeader expected{0xDEADBEEF, 7, 0x42, 1024};
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
@@ -118,7 +119,7 @@ TEST(IO_BinaryWriter, put_pod_via_put_bytes) {
   EXPECT_EQ(stream.str().size(), sizeof(ExampleHeader));
 }
 
-TEST(IO_BinaryWriter, position_advances_after_writes) {
+TEST(position_advances_after_writes) {
   std::ostringstream stream;
   sourcemeta::core::BinaryWriter writer{stream};
   EXPECT_EQ(writer.position(), 0);
@@ -134,13 +135,13 @@ TEST(IO_BinaryWriter, position_advances_after_writes) {
 // BinaryReader — std::istream backend
 // -----------------------------------------------------------------------------
 
-TEST(IO_BinaryReader, get_byte_from_stringstream) {
+TEST(get_byte_from_stringstream) {
   std::istringstream input{"X"};
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_EQ(reader.get_byte(), 'X');
 }
 
-TEST(IO_BinaryReader, get_word_roundtrip_via_stringstream) {
+TEST(get_word_roundtrip_via_stringstream) {
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
   writer.put_word(0xCAFE);
@@ -150,7 +151,7 @@ TEST(IO_BinaryReader, get_word_roundtrip_via_stringstream) {
   EXPECT_EQ(reader.get_word(), 0xCAFE);
 }
 
-TEST(IO_BinaryReader, get_dword_roundtrip_via_stringstream) {
+TEST(get_dword_roundtrip_via_stringstream) {
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
   writer.put_dword(0x12345678);
@@ -161,7 +162,7 @@ TEST(IO_BinaryReader, get_dword_roundtrip_via_stringstream) {
   EXPECT_EQ(reader.position(), sizeof(std::uint32_t));
 }
 
-TEST(IO_BinaryReader, get_qword_roundtrip_via_stringstream) {
+TEST(get_qword_roundtrip_via_stringstream) {
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
   writer.put_qword(0x0123456789ABCDEFULL);
@@ -172,7 +173,7 @@ TEST(IO_BinaryReader, get_qword_roundtrip_via_stringstream) {
   EXPECT_EQ(reader.position(), sizeof(std::uint64_t));
 }
 
-TEST(IO_BinaryReader, get_pod_roundtrip_via_stringstream) {
+TEST(get_pod_roundtrip_via_stringstream) {
   const ExampleHeader expected{0xDEADBEEF, 7, 0x42, 1024};
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
@@ -189,7 +190,7 @@ TEST(IO_BinaryReader, get_pod_roundtrip_via_stringstream) {
   EXPECT_EQ(actual.payload_size, expected.payload_size);
 }
 
-TEST(IO_BinaryReader, sequential_gets_from_stringstream) {
+TEST(sequential_gets_from_stringstream) {
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
   writer.put_dword(10);
@@ -206,7 +207,7 @@ TEST(IO_BinaryReader, sequential_gets_from_stringstream) {
   EXPECT_EQ(reader.position(), 12);
 }
 
-TEST(IO_BinaryReader, seek_on_stringstream) {
+TEST(seek_on_stringstream) {
   std::ostringstream output;
   sourcemeta::core::BinaryWriter writer{output};
   writer.put_dword(0xAAAAAAAA);
@@ -220,14 +221,20 @@ TEST(IO_BinaryReader, seek_on_stringstream) {
   EXPECT_EQ(reader.get_dword(), 0xCCCCCCCC);
 }
 
-TEST(IO_BinaryReader, read_past_end_of_stringstream_throws) {
+TEST(read_past_end_of_stringstream_throws) {
   std::istringstream input{"AB"};
   sourcemeta::core::BinaryReader reader{input};
-  EXPECT_THROW(std::ignore = reader.get_dword(),
-               sourcemeta::core::IOReadOutOfBoundsError);
+  try {
+    [[maybe_unused]] const auto value{reader.get_dword()};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  } catch (...) {
+    FAIL();
+  }
 }
 
-TEST(IO_BinaryReader, has_more_data_on_stringstream) {
+TEST(has_more_data_on_stringstream) {
   std::istringstream input{"ABC"};
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_TRUE(reader.has_more_data());
@@ -239,13 +246,13 @@ TEST(IO_BinaryReader, has_more_data_on_stringstream) {
   EXPECT_FALSE(reader.has_more_data());
 }
 
-TEST(IO_BinaryReader, has_more_data_on_empty_stringstream) {
+TEST(has_more_data_on_empty_stringstream) {
   std::istringstream input{""};
   sourcemeta::core::BinaryReader reader{input};
   EXPECT_FALSE(reader.has_more_data());
 }
 
-TEST(IO_BinaryReader, has_more_data_treats_null_byte_as_data) {
+TEST(has_more_data_treats_null_byte_as_data) {
   // A null byte at the cursor is a legitimate value, not end-of-stream.
   std::istringstream input{std::string(1, '\0')};
   sourcemeta::core::BinaryReader reader{input};
@@ -378,8 +385,14 @@ TEST_F(IOBinaryTest, seek_past_end_throws_via_file) {
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
-  EXPECT_THROW(reader.seek(view.size() + 1),
-               sourcemeta::core::IOReadOutOfBoundsError);
+  try {
+    reader.seek(view.size() + 1);
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST_F(IOBinaryTest, get_past_end_throws_via_file) {
@@ -392,8 +405,14 @@ TEST_F(IOBinaryTest, get_past_end_throws_via_file) {
 
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
-  EXPECT_THROW(std::ignore = reader.get_dword(),
-               sourcemeta::core::IOReadOutOfBoundsError);
+  try {
+    [[maybe_unused]] const auto value{reader.get_dword()};
+    FAIL();
+  } catch (const sourcemeta::core::IOReadOutOfBoundsError &error) {
+    EXPECT_STREQ(error.what(), "Read past the end of the underlying data");
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST_F(IOBinaryTest, get_byte_span_roundtrip_via_file) {
@@ -426,8 +445,8 @@ TEST_F(IOBinaryTest, has_more_data_on_file_view) {
   const sourcemeta::core::FileView view{path};
   sourcemeta::core::BinaryReader reader{view};
   EXPECT_TRUE(reader.has_more_data());
-  std::ignore = reader.get_byte();
+  [[maybe_unused]] const auto first_byte{reader.get_byte()};
   EXPECT_TRUE(reader.has_more_data());
-  std::ignore = reader.get_byte();
+  [[maybe_unused]] const auto second_byte{reader.get_byte()};
   EXPECT_FALSE(reader.has_more_data());
 }
