@@ -56,6 +56,29 @@ auto is_email(const std::string_view value) -> bool;
 SOURCEMETA_CORE_EMAIL_EXPORT
 auto is_idn_email(const std::string_view value) -> bool;
 
+/// @ingroup email
+/// Check whether the given string is a valid internationalized `Mailbox` per
+/// RFC 6531 Section 3.3, validating the domain under UTS #46 processing rather
+/// than strict IDNA 2008. The domain is mapped and NFC-normalised before
+/// validation, so human-typed forms such as uppercase, fullwidth characters,
+/// and non-normalised (non-NFC) labels are accepted rather than rejected. The
+/// local part carries no normalisation requirement (RFC 6531) and is validated
+/// as-is. See https://www.unicode.org/reports/tr46/ for the algorithm. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/email.h>
+///
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_idn_email_uts46("joe.bloggs@example.com"));
+/// // Uppercase and fullwidth domains are mapped before validation
+/// assert(sourcemeta::core::is_idn_email_uts46("user@EXAMPLE.COM"));
+/// assert(!sourcemeta::core::is_idn_email_uts46("2962"));
+/// ```
+SOURCEMETA_CORE_EMAIL_EXPORT
+auto is_idn_email_uts46(const std::string_view value) -> bool;
+
 } // namespace sourcemeta::core
 
 #endif
