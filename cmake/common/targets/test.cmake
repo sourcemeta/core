@@ -1,28 +1,6 @@
-# Generate a translation unit that defines the test runner entry point and return
-# its path. The entry point must be compiled into each test executable rather than
-# provided by the (potentially shared) library, as an executable entry point
-# cannot be resolved from a shared library. It is generated once per directory, as
-# a directory may declare more than one test executable
-function(sourcemeta_test_main OUTPUT_VARIABLE)
-  get_property(GENERATED_MAIN DIRECTORY PROPERTY SOURCEMETA_CORE_TEST_MAIN)
-  if(NOT GENERATED_MAIN)
-    set(GENERATED_MAIN "${CMAKE_CURRENT_BINARY_DIR}/sourcemeta_core_test_main.cc")
-    file(GENERATE OUTPUT "${GENERATED_MAIN}" CONTENT
-"#include <sourcemeta/core/test.h>
-
-auto main(int argc, char **argv) -> int {
-  return sourcemeta::core::test_run(argc, argv);
-}
-")
-    set_property(DIRECTORY PROPERTY SOURCEMETA_CORE_TEST_MAIN "${GENERATED_MAIN}")
-  endif()
-
-  set("${OUTPUT_VARIABLE}" "${GENERATED_MAIN}" PARENT_SCOPE)
-endfunction()
-
 function(sourcemeta_test)
   cmake_parse_arguments(SOURCEMETA_TEST ""
-    "NAMESPACE;PROJECT;NAME;VARIANT;MAIN" "SOURCES" ${ARGN})
+    "NAMESPACE;PROJECT;NAME;VARIANT" "SOURCES" ${ARGN})
 
   if(SOURCEMETA_TEST_VARIANT)
     set(TARGET_VARIANT "${SOURCEMETA_TEST_VARIANT}_unit")
@@ -30,25 +8,20 @@ function(sourcemeta_test)
     set(TARGET_VARIANT "unit")
   endif()
 
-  set(TARGET_SOURCES "${SOURCEMETA_TEST_SOURCES}")
-
-  # Dynamic suites provide their own entry point that registers cases at runtime,
-  # so they opt out of the generated one with MAIN OFF
-  if(NOT DEFINED SOURCEMETA_TEST_MAIN OR SOURCEMETA_TEST_MAIN)
-    sourcemeta_test_main(GENERATED_MAIN)
-    list(APPEND TARGET_SOURCES "${GENERATED_MAIN}")
-  endif()
-
   sourcemeta_executable(
     NAMESPACE "${SOURCEMETA_TEST_NAMESPACE}"
     PROJECT "${SOURCEMETA_TEST_PROJECT}"
     NAME "${SOURCEMETA_TEST_NAME}"
     VARIANT "${TARGET_VARIANT}"
-    SOURCES "${TARGET_SOURCES}"
+    SOURCES "${SOURCEMETA_TEST_SOURCES}"
     OUTPUT TARGET_NAME)
 
   target_link_libraries("${TARGET_NAME}"
     PRIVATE sourcemeta::core::test)
+  # Provides a default entry point through static archive resolution unless the
+  # suite defines its own `main`
+  target_link_libraries("${TARGET_NAME}"
+    PRIVATE sourcemeta::core::test_main)
 
   # Test executables are not shipped, so LTO buys nothing and significantly
   # slows the link step (GCC's LTRANS phase serializes per executable)
