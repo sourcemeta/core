@@ -176,7 +176,6 @@ testvectors_v1/hkdf_sha384_test.json
 testvectors_v1/hkdf_sha512_test.json
 testvectors_v1/hmac_sha1_test.json
 testvectors_v1/hmac_sha224_test.json
-testvectors_v1/hmac_sha256_test.json
 testvectors_v1/hmac_sha3_224_test.json
 testvectors_v1/hmac_sha3_256_test.json
 testvectors_v1/hmac_sha3_384_test.json

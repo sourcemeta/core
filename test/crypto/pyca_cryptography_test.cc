@@ -218,6 +218,38 @@ auto register_sha_tests(const std::filesystem::path &directory,
                            "PyCA_Cryptography_" + name + "_Monte", digest);
 }
 
+auto register_hmac_tests(const std::filesystem::path &file_path,
+                         const std::string &suite_name) -> void {
+  std::string key_hex;
+  std::string message_hex;
+  std::uint64_t case_count{0};
+
+  for_each_vector_line(file_path, [&](const std::string_view line) {
+    const auto field{
+        sourcemeta::core::split_once(line, std::string_view{" = "})};
+    if (!field.has_value()) {
+      return;
+    }
+
+    if (field->first == "Key") {
+      key_hex = field->second;
+    } else if (field->first == "Msg") {
+      message_hex = field->second;
+    } else if (field->first == "MD") {
+      const auto expected_tag{std::string{field->second}};
+      const auto current_key{key_hex};
+      const auto current_message{message_hex};
+      case_count += 1;
+      register_case(suite_name, "case_" + std::to_string(case_count), [=]() {
+        EXPECT_EQ(sourcemeta::core::hmac_sha256(
+                      sourcemeta::core::hex_to_bytes(current_key).value(),
+                      sourcemeta::core::hex_to_bytes(current_message).value()),
+                  expected_tag);
+      });
+    }
+  });
+}
+
 struct RSAVector {
   std::string modulus_bits;
   std::string modulus_hex;
@@ -521,6 +553,9 @@ auto main(int argc, char **argv) -> int {
                      static_cast<DigestFunction>(sourcemeta::core::sha384));
   register_sha_tests(hashes_path / "SHA2", "SHA512",
                      static_cast<DigestFunction>(sourcemeta::core::sha512));
+
+  register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha256.txt",
+                      "PyCA_Cryptography_HMAC_SHA256");
 
   const auto rsa_path{suite_path / "asymmetric" / "RSA" / "FIPS_186-2"};
   register_rsa_sigver15_tests(rsa_path / "SigVer15_186-3.rsp");

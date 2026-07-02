@@ -53,7 +53,6 @@ vectors/cryptography_vectors/asymmetric/RSA/pkcs1v15crypt-vectors.txt
 vectors/cryptography_vectors/ciphers/
 vectors/cryptography_vectors/CMAC/
 vectors/cryptography_vectors/fernet/
-vectors/cryptography_vectors/HMAC/
 vectors/cryptography_vectors/HPKE/
 vectors/cryptography_vectors/KDF/
 vectors/cryptography_vectors/keywrap/
