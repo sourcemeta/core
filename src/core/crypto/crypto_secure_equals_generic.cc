@@ -1,4 +1,4 @@
-#include <sourcemeta/core/crypto_secure_equals.h>
+#include <sourcemeta/core/crypto.h>
 
 #include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
