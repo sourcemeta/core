@@ -46,3 +46,5 @@ vendor/unicodetools/unicodetools/data/ucd/dev/NormalizationTest.txt
 vendor/unicodetools/unicodetools/data/idna/dev/IdnaTestV2.txt
 vendor/w3c-json-ld
 vendor/w3c-json-ld.mask
+vendor/aws-sig-v4-test-suite
+vendor/aws-sig-v4-test-suite.mask
