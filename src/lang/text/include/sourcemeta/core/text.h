@@ -378,6 +378,32 @@ auto strip_right(const std::string_view input, const char character) noexcept
 
 /// @ingroup text
 ///
+/// Return the content of `input` with a single matched pair of surrounding
+/// `quote` characters removed, or `input` unchanged when it is not wrapped in
+/// that pair. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::unquote("\"abc\"", '"') == "abc");
+/// assert(sourcemeta::core::unquote("abc", '"') == "abc");
+/// assert(sourcemeta::core::unquote("\"", '"') == "\"");
+/// ```
+inline constexpr auto unquote(const std::string_view input,
+                              const char quote) noexcept -> std::string_view {
+  if (input.size() < 2 || input.front() != quote || input.back() != quote) {
+    return input;
+  }
+
+  auto inner{input};
+  inner.remove_prefix(1);
+  inner.remove_suffix(1);
+  return inner;
+}
+
+/// @ingroup text
+///
 /// Return `input` left-padded with `character` to at least `width` bytes, or
 /// a copy of `input` when it is already that long. For example:
 ///
@@ -585,6 +611,36 @@ inline auto equals_ignore_case(const std::string_view left,
 
   for (std::size_t index{0}; index < left.size(); ++index) {
     if (to_lowercase(left[index]) != to_lowercase(right[index])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/// @ingroup text
+///
+/// Return whether `value` begins with `prefix` under ASCII case-insensitive
+/// comparison. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::starts_with_ignore_case("__Host-id", "__host-"));
+/// assert(!sourcemeta::core::starts_with_ignore_case("id", "__host-"));
+/// ```
+///
+/// Like the other case-insensitive comparisons, this is allocation-free.
+inline auto starts_with_ignore_case(const std::string_view value,
+                                    const std::string_view prefix) noexcept
+    -> bool {
+  if (value.size() < prefix.size()) {
+    return false;
+  }
+
+  for (std::size_t index{0}; index < prefix.size(); ++index) {
+    if (to_lowercase(value[index]) != to_lowercase(prefix[index])) {
       return false;
     }
   }
