@@ -110,6 +110,15 @@ TEST(parse_leap_day) {
       sourcemeta::core::from_iso8601_basic("20200229T000000Z").has_value());
 }
 
+// timegm returns (time_t)-1 for this instant, which is a valid time one second
+// before the epoch and must not be mistaken for a conversion failure
+TEST(parse_second_before_epoch) {
+  const auto point{sourcemeta::core::from_iso8601_basic("19691231T235959Z")};
+  EXPECT_TRUE(point.has_value());
+  EXPECT_EQ(sourcemeta::core::to_iso8601_basic(point.value()),
+            "19691231T235959Z");
+}
+
 TEST(parse_empty_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_iso8601_basic("").has_value());
 }

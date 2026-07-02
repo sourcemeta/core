@@ -2,7 +2,6 @@
 
 #include "helpers.h"
 
-#include <cctype>      // std::isdigit
 #include <charconv>    // std::from_chars
 #include <chrono>      // std::chrono::system_clock
 #include <cstddef>     // std::size_t
@@ -21,7 +20,8 @@ constexpr auto FORMAT_ISO8601_BASIC{"%Y%m%dT%H%M%SZ"};
 auto all_digits(const std::string_view value, const std::size_t offset,
                 const std::size_t length) -> bool {
   for (std::size_t index = offset; index < offset + length; ++index) {
-    if (!std::isdigit(static_cast<unsigned char>(value[index]))) {
+    // A locale-independent ASCII check, matching what from_chars accepts
+    if (value[index] < '0' || value[index] > '9') {
       return false;
     }
   }
