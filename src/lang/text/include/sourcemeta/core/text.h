@@ -575,8 +575,8 @@ auto bytes_to_hex(const std::string_view input) -> std::string;
 /// assert(!sourcemeta::core::equals_ignore_case("foo", "bar"));
 /// ```
 ///
-/// This comparison is allocation-free, as it lowercases each character in place
-/// rather than materialising lowercased copies of its arguments.
+/// This comparison is allocation-free, as it compares the lowercase form of
+/// each character without materialising lowercased copies of its arguments.
 inline auto equals_ignore_case(const std::string_view left,
                                const std::string_view right) noexcept -> bool {
   if (left.size() != right.size()) {
