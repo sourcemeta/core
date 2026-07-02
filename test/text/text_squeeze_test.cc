@@ -32,3 +32,21 @@ TEST(other_characters_untouched) {
 TEST(collapses_only_the_given_character) {
   EXPECT_EQ(sourcemeta::core::squeeze("a..//b", '/'), "a../b");
 }
+
+TEST(append_preserves_existing_output) {
+  std::string output{"path="};
+  sourcemeta::core::squeeze("a//b", '/', output);
+  EXPECT_EQ(output, "path=a/b");
+}
+
+TEST(append_empty_leaves_output_untouched) {
+  std::string output{"unchanged"};
+  sourcemeta::core::squeeze("", '/', output);
+  EXPECT_EQ(output, "unchanged");
+}
+
+TEST(append_matches_returning_form) {
+  std::string output;
+  sourcemeta::core::squeeze("a   b", ' ', output);
+  EXPECT_EQ(output, sourcemeta::core::squeeze("a   b", ' '));
+}
