@@ -9,7 +9,7 @@
 namespace sourcemeta::core {
 
 auto URI::escape(const std::string_view input, std::string &output) -> void {
-  output.reserve(output.size() + input.size());
+  output.reserve(output.size() + input.size() * 3);
   for (const auto character : input) {
     if (uri_is_unreserved(character)) {
       output += character;

@@ -749,7 +749,8 @@ public:
   [[nodiscard]] static auto escape(std::string_view input) -> std::string;
 
   /// Percent-encode a string per RFC 3986, appending the result to an existing
-  /// string rather than allocating a new one. For example:
+  /// string rather than allocating a new one. The output must not alias the
+  /// input. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -769,8 +770,8 @@ public:
   /// #include <sourcemeta/core/uri.h>
   /// #include <cassert>
   ///
-  /// assert(sourcemeta::core::URI::unescape("foo%20bar%2Fbaz") == "foo
-  /// bar/baz");
+  /// const auto decoded{sourcemeta::core::URI::unescape("foo%20bar%2Fbaz")};
+  /// assert(decoded == "foo bar/baz");
   /// ```
   [[nodiscard]] static auto unescape(std::string_view input) -> std::string;
 
