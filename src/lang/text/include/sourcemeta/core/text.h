@@ -574,9 +574,37 @@ auto bytes_to_hex(const std::string_view input) -> std::string;
 /// assert(sourcemeta::core::equals_ignore_case("Hello", "hELLO"));
 /// assert(!sourcemeta::core::equals_ignore_case("foo", "bar"));
 /// ```
+///
+/// This comparison is allocation-free, as it compares the lowercase form of
+/// each character without materialising lowercased copies of its arguments.
+inline auto equals_ignore_case(const std::string_view left,
+                               const std::string_view right) noexcept -> bool {
+  if (left.size() != right.size()) {
+    return false;
+  }
+
+  for (std::size_t index{0}; index < left.size(); ++index) {
+    if (to_lowercase(left[index]) != to_lowercase(right[index])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/// @ingroup text
+///
+/// Collapse consecutive runs of a character into a single occurrence. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::squeeze("a//b///c", '/') == "a/b/c");
+/// ```
 SOURCEMETA_CORE_TEXT_EXPORT
-auto equals_ignore_case(const std::string_view left,
-                        const std::string_view right) noexcept -> bool;
+auto squeeze(const std::string_view input, const char character) -> std::string;
 
 /// @ingroup text
 ///
