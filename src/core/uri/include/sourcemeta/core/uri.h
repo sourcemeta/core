@@ -737,6 +737,44 @@ public:
   /// ```
   static auto canonicalize(std::string_view input) -> std::string;
 
+  /// Percent-encode a string per RFC 3986, escaping every octet outside the
+  /// unreserved set. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::escape("foo bar/baz") == "foo%20bar%2Fbaz");
+  /// ```
+  [[nodiscard]] static auto escape(std::string_view input) -> std::string;
+
+  /// Percent-encode a string per RFC 3986, appending the result to an existing
+  /// string rather than allocating a new one. The output must not alias the
+  /// input. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <string>
+  ///
+  /// std::string output{"key="};
+  /// sourcemeta::core::URI::escape("foo bar", output);
+  /// assert(output == "key=foo%20bar");
+  /// ```
+  static auto escape(std::string_view input, std::string &output) -> void;
+
+  /// Percent-decode every escape sequence in a string per RFC 3986, leaving
+  /// malformed sequences untouched. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const auto decoded{sourcemeta::core::URI::unescape("foo%20bar%2Fbaz")};
+  /// assert(decoded == "foo bar/baz");
+  /// ```
+  [[nodiscard]] static auto unescape(std::string_view input) -> std::string;
+
   /// Check if the given string is a valid URI scheme per RFC 3986
   /// (`ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )`). For example:
   ///
