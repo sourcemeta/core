@@ -776,7 +776,7 @@ public:
   [[nodiscard]] static auto unescape(std::string_view input) -> std::string;
 
   /// Remove the "." and ".." segments from a URI path per RFC 3986 Section
-  /// 5.2.4. For example:
+  /// 5.2.4, preserving leading ".." segments in a relative path. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>

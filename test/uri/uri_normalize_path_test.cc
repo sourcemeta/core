@@ -76,8 +76,16 @@ TEST(relative_leading_single_dot) {
   EXPECT_EQ(sourcemeta::core::URI::normalize_path("./foo"), "foo");
 }
 
+TEST(relative_interior_single_dot) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("a/./b"), "a/b");
+}
+
 TEST(relative_interior_double_dot) {
   EXPECT_EQ(sourcemeta::core::URI::normalize_path("a/b/../c"), "a/c");
+}
+
+TEST(relative_double_dot_removes_prior_segment) {
+  EXPECT_EQ(sourcemeta::core::URI::normalize_path("a/../b"), "b");
 }
 
 TEST(relative_double_dot_consumes_segment) {
