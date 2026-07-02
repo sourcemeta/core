@@ -1,6 +1,7 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME crypto
   SOURCES
     crypto_sha256_test.cc
+    crypto_hmac_sha256_test.cc
     crypto_sha384_test.cc
     crypto_sha512_test.cc
     crypto_sha1_test.cc

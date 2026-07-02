@@ -203,6 +203,40 @@ auto register_ecdsa_tests(const std::filesystem::path &path,
   }
 }
 
+auto register_hmac_tests(const std::filesystem::path &path,
+                         const std::string &suite_name) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    // The tag is the leading bytes of the digest, truncated to the group tag
+    // size (RFC 2104 Section 5)
+    const auto tag_bytes{
+        static_cast<std::size_t>(group.at("tagSize").to_integer()) / 8};
+    for (const auto &test : group.at("tests").as_array()) {
+      const auto expected{test.at("result").to_string() == "valid"};
+      const std::string key_hex{test.at("key").to_string()};
+      const std::string message_hex{test.at("msg").to_string()};
+      const std::string tag_hex{test.at("tag").to_string()};
+      const auto identifier{test.at("tcId").to_integer()};
+      register_case(
+          suite_name, stem + "_tc" + std::to_string(identifier), [=]() {
+            const auto key{sourcemeta::core::hex_to_bytes(key_hex)};
+            const auto message{sourcemeta::core::hex_to_bytes(message_hex)};
+            auto got{false};
+            if (key.has_value() && message.has_value()) {
+              const auto digest{sourcemeta::core::hmac_sha256_digest(
+                  key.value(), message.value())};
+              const auto computed{sourcemeta::core::bytes_to_hex(
+                  {reinterpret_cast<const char *>(digest.data()), tag_bytes})};
+              got = computed == tag_hex;
+            }
+
+            EXPECT_EQ(got, expected);
+          });
+    }
+  }
+}
+
 auto register_eddsa_tests(const std::filesystem::path &path,
                           const std::string &suite_name,
                           const sourcemeta::core::EdwardsCurve curve) -> void {
@@ -270,6 +304,9 @@ auto main(int argc, char **argv) -> int {
     register_ecdsa_tests(vectors / (std::string{name} + ".json"),
                          "Wycheproof_ECDSA");
   }
+
+  register_hmac_tests(vectors / "hmac_sha256_test.json",
+                      "Wycheproof_HMAC_SHA256");
 
   register_eddsa_tests(vectors / "ed25519_test.json", "Wycheproof_EdDSA",
                        sourcemeta::core::EdwardsCurve::Ed25519);
