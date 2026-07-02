@@ -13,7 +13,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME http
   SOURCES helpers.h problem.cc match_accept.cc match_accept_language.cc
           negotiate_encoding.cc from_date.cc format_link.cc field_list.cc
           accept_includes_all.cc content_type_matches.cc parse_bearer.cc
-          cache_control_max_age.cc
+          cache_control_max_age.cc serialize_cookie.cc
           ${SOURCEMETA_CORE_HTTP_CLIENT_SOURCE})
 
 if(SOURCEMETA_CORE_INSTALL)
@@ -23,6 +23,7 @@ endif()
 target_link_libraries(sourcemeta_core_http PUBLIC sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_http PUBLIC sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_http PRIVATE sourcemeta::core::time)
+target_link_libraries(sourcemeta_core_http PRIVATE sourcemeta::core::dns)
 
 if(SOURCEMETA_CORE_HTTP_USE_SYSTEM_CURL)
   find_package(CURL REQUIRED)
