@@ -637,8 +637,8 @@ auto squeeze(const std::string_view input, const char character) -> std::string;
 /// @ingroup text
 ///
 /// Collapse consecutive runs of a character into a single occurrence, appending
-/// the result to an existing string rather than allocating a new one. For
-/// example:
+/// the result to an existing string rather than allocating a new one. The
+/// output must not alias the input. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/text.h>
