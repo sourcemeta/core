@@ -22,7 +22,7 @@ auto hmac_sha256_digest(const std::string_view key,
   if (key.size() > block_size) {
     const auto digest{sha256_digest(key)};
     std::memcpy(padded_key.data(), digest.data(), digest.size());
-  } else {
+  } else if (!key.empty()) {
     std::memcpy(padded_key.data(), key.data(), key.size());
   }
 

@@ -1,4 +1,5 @@
 #include <sourcemeta/core/crypto_hmac_sha256.h>
+#include <sourcemeta/core/crypto_sha256.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -24,13 +25,24 @@ auto hmac_sha256_digest(const std::string_view key,
     throw std::runtime_error("Could not open the CNG HMAC-SHA256 provider");
   }
 
-  // The secret interface is not const-qualified but never writes through
-  // the pointer
+  // A key longer than the block size is hashed first (RFC 2104 Section 2),
+  // which also keeps the key length within the CNG length parameter. The
+  // secret interface is not const-qualified but never writes through the
+  // pointer
+  constexpr std::size_t block_size{64};
+  std::array<std::uint8_t, 32> key_digest{};
+  auto *secret{
+      reinterpret_cast<unsigned char *>(const_cast<char *>(key.data()))};
+  auto secret_size{key.size()};
+  if (secret_size > block_size) {
+    key_digest = sha256_digest(key);
+    secret = key_digest.data();
+    secret_size = key_digest.size();
+  }
+
   BCRYPT_HASH_HANDLE hash{nullptr};
-  if (!BCRYPT_SUCCESS(BCryptCreateHash(
-          algorithm, &hash, nullptr, 0,
-          reinterpret_cast<unsigned char *>(const_cast<char *>(key.data())),
-          static_cast<ULONG>(key.size()), 0))) {
+  if (!BCRYPT_SUCCESS(BCryptCreateHash(algorithm, &hash, nullptr, 0, secret,
+                                       static_cast<ULONG>(secret_size), 0))) {
     BCryptCloseAlgorithmProvider(algorithm, 0);
     throw std::runtime_error("Could not create the CNG HMAC-SHA256 hash");
   }

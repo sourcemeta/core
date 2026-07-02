@@ -2,10 +2,11 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
-#include <array>   // std::array
-#include <cstdint> // std::uint8_t
-#include <sstream> // std::ostringstream
-#include <string>  // std::string
+#include <array>       // std::array
+#include <cstdint>     // std::uint8_t
+#include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // RFC 4231 Section 4.2 (Test Case 1)
 TEST(rfc4231_case_1) {
@@ -59,6 +60,11 @@ TEST(rfc4231_case_7) {
 
 TEST(empty_key_and_message) {
   EXPECT_EQ(sourcemeta::core::hmac_sha256("", ""),
+            "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad");
+}
+
+TEST(null_key_view) {
+  EXPECT_EQ(sourcemeta::core::hmac_sha256(std::string_view{}, ""),
             "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad");
 }
 
