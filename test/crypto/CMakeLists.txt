@@ -13,7 +13,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_rsassa_pkcs1_v15_test.cc
     crypto_rsassa_pss_test.cc
     crypto_ecdsa_test.cc
-    crypto_eddsa_test.cc)
+    crypto_eddsa_test.cc
+    crypto_secure_equals_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto)

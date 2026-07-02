@@ -14,7 +14,7 @@ if(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
     crypto_sha1_openssl.cc crypto_sha256_openssl.cc
     crypto_hmac_sha256_openssl.cc crypto_sha384_openssl.cc
     crypto_sha512_openssl.cc crypto_random_openssl.cc
-    crypto_verify_openssl.cc)
+    crypto_verify_openssl.cc crypto_secure_equals_openssl.cc)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
 elseif(APPLE)
   enable_language(OBJCXX)
@@ -101,7 +101,7 @@ elseif(APPLE)
     crypto_sha1_apple.cc crypto_sha256_apple.cc crypto_hmac_sha256_apple.cc
     crypto_sha384_apple.cc
     crypto_sha512_apple.cc crypto_random_apple.cc
-    crypto_verify_apple.cc
+    crypto_verify_apple.cc crypto_secure_equals_apple.cc
     crypto_eddsa_cryptokit.mm "${CRYPTOKIT_OBJECT}"
     crypto_eddsa.h crypto_eddsa_apple.h crypto_bignum.h crypto_shake256.h)
 
@@ -127,7 +127,7 @@ elseif(WIN32)
     crypto_sha1_windows.cc crypto_sha256_windows.cc
     crypto_hmac_sha256_windows.cc crypto_sha384_windows.cc
     crypto_sha512_windows.cc crypto_random_windows.cc
-    crypto_verify_windows.cc crypto_eddsa.h
+    crypto_verify_windows.cc crypto_secure_equals_generic.cc crypto_eddsa.h
     crypto_bignum.h crypto_shake256.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
 else()
@@ -137,6 +137,7 @@ else()
     crypto_sha1_other.cc crypto_sha256_other.cc crypto_hmac_sha256_other.cc
     crypto_sha384_other.cc
     crypto_sha512_other.cc crypto_random_other.cc crypto_verify_other.cc
+    crypto_secure_equals_generic.cc
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h)
 endif()
 
