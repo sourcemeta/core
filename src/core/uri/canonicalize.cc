@@ -118,7 +118,7 @@ auto URI::canonicalize() -> URI & {
   // Canonicalize path by removing "." and ".." segments
   if (this->path_.has_value() && !this->path_.value().empty()) {
     auto &current_path{this->path_.value()};
-    normalize_path(current_path);
+    sourcemeta::core::normalize_path(current_path);
     if (current_path.empty()) {
       this->path_ = std::nullopt;
     }

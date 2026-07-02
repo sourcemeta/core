@@ -775,6 +775,19 @@ public:
   /// ```
   [[nodiscard]] static auto unescape(std::string_view input) -> std::string;
 
+  /// Remove the "." and ".." segments from a URI path per RFC 3986 Section
+  /// 5.2.4, preserving leading ".." segments in a relative path. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::URI::normalize_path("/foo/bar/../baz") ==
+  ///        "/foo/baz");
+  /// ```
+  [[nodiscard]] static auto normalize_path(std::string_view path)
+      -> std::string;
+
   /// Check if the given string is a valid URI scheme per RFC 3986
   /// (`ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )`). For example:
   ///
