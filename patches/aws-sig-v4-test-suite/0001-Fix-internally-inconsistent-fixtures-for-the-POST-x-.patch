@@ -1,0 +1,94 @@
+From d1c9be5517d1324b20551a878deb275b28951dca Mon Sep 17 00:00:00 2001
+From: Juan Cruz Viotti <jviotti@sourcemeta.com>
+Date: Thu, 2 Jul 2026 20:17:38 -0300
+Subject: [PATCH] Fix internally inconsistent fixtures for the POST
+ x-www-form-urlencoded cases
+
+The .creq files for post-x-www-form-urlencoded and
+post-x-www-form-urlencoded-parameters sign every request header
+(including Content-Length), but their .sts and .authz were generated
+from a different canonical request, so sha256(.creq) did not match the
+hash embedded in the corresponding .sts. Regenerate the .sts, .authz,
+and .sreq from each .creq so the fixtures are internally consistent.
+---
+ .../post-x-www-form-urlencoded-parameters.authz                | 2 +-
+ .../post-x-www-form-urlencoded-parameters.sreq                 | 3 ++-
+ .../post-x-www-form-urlencoded-parameters.sts                  | 2 +-
+ .../post-x-www-form-urlencoded.authz                           | 2 +-
+ .../post-x-www-form-urlencoded/post-x-www-form-urlencoded.sreq | 3 ++-
+ .../post-x-www-form-urlencoded/post-x-www-form-urlencoded.sts  | 2 +-
+ 6 files changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.authz b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.authz
+index c88990f..58bd19e 100755
+--- a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.authz
++++ b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.authz
+@@ -1 +1 @@
+-AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=1a72ec8f64bd914b0e42e42607c7fbce7fb2c7465f63e3092b3b0d39fa77a6fe
+\ No newline at end of file
++AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=2b9566917226a17022b710430a367d343cbff33af7ee50b0ff8f44d75a4a46d8
+\ No newline at end of file
+diff --git a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sreq b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sreq
+index cf4b459..d75725f 100755
+--- a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sreq
++++ b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sreq
+@@ -2,6 +2,7 @@ POST / HTTP/1.1
+ Content-Type:application/x-www-form-urlencoded; charset=utf-8
+ Host:example.amazonaws.com
+ X-Amz-Date:20150830T123600Z
+-Authorization: AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-type;host;x-amz-date, Signature=1a72ec8f64bd914b0e42e42607c7fbce7fb2c7465f63e3092b3b0d39fa77a6fe
++Content-Length:13
++Authorization: AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=2b9566917226a17022b710430a367d343cbff33af7ee50b0ff8f44d75a4a46d8
+ 
+ Param1=value1
+\ No newline at end of file
+diff --git a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sts b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sts
+index 3e83c52..89b9a2c 100755
+--- a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sts
++++ b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded-parameters/post-x-www-form-urlencoded-parameters.sts
+@@ -1,4 +1,4 @@
+ AWS4-HMAC-SHA256
+ 20150830T123600Z
+ 20150830/us-east-1/service/aws4_request
+-2e1cf7ed91881a30569e46552437e4156c823447bf1781b921b5d486c568dd1c
+\ No newline at end of file
++40329ab1037d77f10eb46ab0981b2b18f47473e491aa6b4ea30b7e8c7b8b625b
+\ No newline at end of file
+diff --git a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.authz b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.authz
+index d7baf53..a4297c1 100755
+--- a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.authz
++++ b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.authz
+@@ -1 +1 @@
+-AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-type;host;x-amz-date, Signature=ff11897932ad3f4e8b18135d722051e5ac45fc38421b1da7b9d196a0fe09473a
+\ No newline at end of file
++AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=fec50118d90ecf934441dd37fb9a49bd7f5adb6450802ca3a0977623bbb7c27f
+\ No newline at end of file
+diff --git a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sreq b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sreq
+index 9bac931..6e22803 100755
+--- a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sreq
++++ b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sreq
+@@ -2,6 +2,7 @@ POST / HTTP/1.1
+ Content-Type:application/x-www-form-urlencoded
+ Host:example.amazonaws.com
+ X-Amz-Date:20150830T123600Z
+-Authorization: AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-type;host;x-amz-date, Signature=ff11897932ad3f4e8b18135d722051e5ac45fc38421b1da7b9d196a0fe09473a
++Content-Length:13
++Authorization: AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=fec50118d90ecf934441dd37fb9a49bd7f5adb6450802ca3a0977623bbb7c27f
+ 
+ Param1=value1
+\ No newline at end of file
+diff --git a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sts b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sts
+index 65ab663..fa3cb80 100755
+--- a/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sts
++++ b/raw/aws-sig-v4-test-suite/post-x-www-form-urlencoded/post-x-www-form-urlencoded.sts
+@@ -1,4 +1,4 @@
+ AWS4-HMAC-SHA256
+ 20150830T123600Z
+ 20150830/us-east-1/service/aws4_request
+-42a5e5bb34198acb3e84da4f085bb7927f2bc277ca766e6d19c73c2154021281
+\ No newline at end of file
++a1a6cdc48a69eabac00524b1103e18f2655960c25a3c2e8de6f180e59238c68a
+\ No newline at end of file
+-- 
+2.55.0
+
