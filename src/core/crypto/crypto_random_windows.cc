@@ -6,12 +6,13 @@
 
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
 
-#include <array>     // std::array
+#include <cstdint>   // std::uint8_t
+#include <span>      // std::span
 #include <stdexcept> // std::runtime_error
 
 namespace sourcemeta::core {
 
-auto fill_random_bytes(std::array<unsigned char, 16> &bytes) -> void {
+auto fill_random_bytes(std::span<std::uint8_t> bytes) -> void {
   if (!BCRYPT_SUCCESS(BCryptGenRandom(nullptr, bytes.data(),
                                       static_cast<ULONG>(bytes.size()),
                                       BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {

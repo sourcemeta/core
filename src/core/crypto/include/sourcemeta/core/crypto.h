@@ -25,9 +25,42 @@
 #include <sourcemeta/core/crypto_uuid.h>
 #include <sourcemeta/core/crypto_verify.h>
 
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
+#include <span>        // std::span
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
+
+/// @ingroup crypto
+/// Fill a buffer with cryptographically secure random bytes, drawn from the
+/// system provider where available. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <array>
+/// #include <cstdint>
+///
+/// std::array<std::uint8_t, 16> buffer{};
+/// sourcemeta::core::random_bytes(buffer);
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT random_bytes(std::span<std::uint8_t> buffer)
+    -> void;
+
+/// @ingroup crypto
+/// Return the given number of cryptographically secure random bytes as a
+/// string, drawn from the system provider where available. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// const auto bytes{sourcemeta::core::random_bytes(32)};
+/// assert(bytes.size() == 32);
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT random_bytes(const std::size_t length)
+    -> std::string;
 
 /// @ingroup crypto
 /// Compare two byte sequences for equality in constant time when their lengths
