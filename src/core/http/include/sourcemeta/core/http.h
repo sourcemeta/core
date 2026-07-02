@@ -259,18 +259,19 @@ enum class HTTPCookieSameSite : std::uint8_t { Strict, Lax, None };
 
 /// @ingroup http
 /// A cookie to serialise into an RFC 6265 §4.1 `Set-Cookie` response header
-/// value. The caller owns the backing storage for every field, and must ensure
-/// the name and value are valid cookie-octets. When `same_site` is
-/// `HTTPCookieSameSite::None`, RFC 6265bis §5.5 requires `secure` to be set.
+/// value. The caller owns the backing storage for every field. A valid cookie
+/// has a name that is an RFC 9110 §5.6.2 token and a value made of RFC 6265
+/// §4.1.1 cookie-octets. RFC 6265bis §5.7 requires a cookie with a same-site
+/// mode of none to also be secure.
 struct HTTPCookie {
-  std::string_view name;
-  std::string_view value;
-  std::optional<std::string_view> path;
-  std::optional<std::string_view> domain;
-  std::optional<std::chrono::seconds> max_age;
+  std::string_view name{};
+  std::string_view value{};
+  std::optional<std::string_view> path{};
+  std::optional<std::string_view> domain{};
+  std::optional<std::chrono::seconds> max_age{};
   bool http_only{false};
   bool secure{false};
-  std::optional<HTTPCookieSameSite> same_site;
+  std::optional<HTTPCookieSameSite> same_site{};
 };
 
 /// @ingroup http
