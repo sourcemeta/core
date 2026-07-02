@@ -174,24 +174,28 @@ auto split_once(const std::string_view input,
   return std::pair{before, after};
 }
 
-auto squeeze(const std::string_view input, const char character)
-    -> std::string {
-  std::string result;
-  result.reserve(input.size());
+auto squeeze(const std::string_view input, const char character,
+             std::string &output) -> void {
   bool in_run{false};
   for (const auto value : input) {
     if (value == character) {
       if (!in_run) {
-        result.push_back(value);
+        output.push_back(value);
       }
 
       in_run = true;
     } else {
-      result.push_back(value);
+      output.push_back(value);
       in_run = false;
     }
   }
+}
 
+auto squeeze(const std::string_view input, const char character)
+    -> std::string {
+  std::string result;
+  result.reserve(input.size());
+  squeeze(input, character, result);
   return result;
 }
 

@@ -594,6 +594,34 @@ inline auto equals_ignore_case(const std::string_view left,
 
 /// @ingroup text
 ///
+/// Return whether one string orders before another under ASCII case-insensitive
+/// lexicographic comparison, which is useful as a sort comparator. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::less_ignore_case("apple", "Banana"));
+/// assert(!sourcemeta::core::less_ignore_case("Banana", "apple"));
+/// ```
+///
+/// Like the equality comparison, this is allocation-free.
+inline auto less_ignore_case(const std::string_view left,
+                             const std::string_view right) noexcept -> bool {
+  const auto length{left.size() < right.size() ? left.size() : right.size()};
+  for (std::size_t index{0}; index < length; ++index) {
+    const auto left_lower{to_lowercase(left[index])};
+    const auto right_lower{to_lowercase(right[index])};
+    if (left_lower != right_lower) {
+      return left_lower < right_lower;
+    }
+  }
+
+  return left.size() < right.size();
+}
+
+/// @ingroup text
+///
 /// Collapse consecutive runs of a character into a single occurrence. For
 /// example:
 ///
@@ -605,6 +633,25 @@ inline auto equals_ignore_case(const std::string_view left,
 /// ```
 SOURCEMETA_CORE_TEXT_EXPORT
 auto squeeze(const std::string_view input, const char character) -> std::string;
+
+/// @ingroup text
+///
+/// Collapse consecutive runs of a character into a single occurrence, appending
+/// the result to an existing string rather than allocating a new one. The
+/// output must not alias the input. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+/// #include <string>
+///
+/// std::string output{"path="};
+/// sourcemeta::core::squeeze("a//b", '/', output);
+/// assert(output == "path=a/b");
+/// ```
+SOURCEMETA_CORE_TEXT_EXPORT
+auto squeeze(const std::string_view input, const char character,
+             std::string &output) -> void;
 
 /// @ingroup text
 ///
