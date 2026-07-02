@@ -38,3 +38,22 @@ TEST(non_alphabetic_characters_match) {
 TEST(digits_are_not_case_folded) {
   EXPECT_FALSE(sourcemeta::core::equals_ignore_case("123", "124"));
 }
+
+// '[' (0x5B) and '{' (0x7B) differ by 0x20 but are not an ASCII case pair
+TEST(ascii_boundary_below_a_is_not_folded) {
+  EXPECT_FALSE(sourcemeta::core::equals_ignore_case("[", "{"));
+}
+
+// '@' (0x40) and '`' (0x60) differ by 0x20 but are not an ASCII case pair
+TEST(at_sign_and_backtick_are_not_folded) {
+  EXPECT_FALSE(sourcemeta::core::equals_ignore_case("@", "`"));
+}
+
+// Bytes outside ASCII pass through unchanged rather than being case-folded
+TEST(non_ascii_bytes_are_not_folded) {
+  EXPECT_FALSE(sourcemeta::core::equals_ignore_case("\xc0", "\xe0"));
+}
+
+TEST(identical_non_ascii_bytes_match) {
+  EXPECT_TRUE(sourcemeta::core::equals_ignore_case("\xc3\xa9", "\xc3\xa9"));
+}

@@ -174,19 +174,25 @@ auto split_once(const std::string_view input,
   return std::pair{before, after};
 }
 
-auto equals_ignore_case(const std::string_view left,
-                        const std::string_view right) noexcept -> bool {
-  if (left.size() != right.size()) {
-    return false;
-  }
+auto squeeze(const std::string_view input, const char character)
+    -> std::string {
+  std::string result;
+  result.reserve(input.size());
+  bool in_run{false};
+  for (const auto value : input) {
+    if (value == character) {
+      if (!in_run) {
+        result.push_back(value);
+      }
 
-  for (std::size_t index{0}; index < left.size(); ++index) {
-    if (to_lowercase(left[index]) != to_lowercase(right[index])) {
-      return false;
+      in_run = true;
+    } else {
+      result.push_back(value);
+      in_run = false;
     }
   }
 
-  return true;
+  return result;
 }
 
 auto remove_suffix_ignore_case(const std::string_view input,
