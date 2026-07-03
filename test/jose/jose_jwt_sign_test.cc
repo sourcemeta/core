@@ -60,6 +60,19 @@ TEST(jwt_sign_rejects_header_without_algorithm) {
                    .has_value());
 }
 
+TEST(jwt_sign_rejects_critical_header) {
+  // A token carrying critical extensions would be rejected by the parser, so it
+  // is not emitted (RFC 7515 Section 4.1.11)
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::jwt_sign(
+          sourcemeta::core::parse_json(R"({"alg":"ES256","crit":["exp"]})"),
+          sourcemeta::core::parse_json(R"({"iss":"acme"})"), key.value())
+          .has_value());
+}
+
 TEST(jwt_sign_rejects_unsupported_algorithm) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};

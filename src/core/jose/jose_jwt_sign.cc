@@ -12,6 +12,7 @@ namespace {
 using namespace std::string_view_literals;
 
 const auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
+const auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit"sv)};
 
 auto compact(const sourcemeta::core::JSON &document) -> std::string {
   std::ostringstream stream;
@@ -26,6 +27,13 @@ namespace sourcemeta::core {
 auto jwt_sign(const JSON &header, const JSON &payload, const JWKPrivate &key)
     -> std::optional<std::string> {
   if (!header.is_object() || !payload.is_object()) {
+    return std::nullopt;
+  }
+
+  // Critical header extensions are not understood, so a token carrying them is
+  // not emitted rather than producing one the parser would reject (RFC 7515
+  // Section 4.1.11)
+  if (header.try_at("crit", HASH_CRIT) != nullptr) {
     return std::nullopt;
   }
 

@@ -47,32 +47,25 @@ auto jws_sign(const JWSAlgorithm algorithm,
       return rsassa_pss_sign(*private_key, jws_hash_for(algorithm),
                              signing_input);
     // Each ECDSA algorithm is pinned to exactly one curve (RFC 7518 Section
-    // 3.4), so the key's curve is checked independently of any algorithm it
-    // declares
+    // 3.4). The raw signature width is twice the curve field width, so it pins
+    // the key's curve to the algorithm, including for a key parsed from PEM
+    // which carries no curve name
     case JWSAlgorithm::ES256:
-      if (key.type() != JWKPrivate::Type::EllipticCurve ||
-          key.curve() != "P-256") {
-        return std::nullopt;
-      }
-
-      return ecdsa_sign(*private_key, SignatureHashFunction::SHA256,
-                        signing_input);
     case JWSAlgorithm::ES384:
-      if (key.type() != JWKPrivate::Type::EllipticCurve ||
-          key.curve() != "P-384") {
+    case JWSAlgorithm::ES512: {
+      if (key.type() != JWKPrivate::Type::EllipticCurve) {
         return std::nullopt;
       }
 
-      return ecdsa_sign(*private_key, SignatureHashFunction::SHA384,
-                        signing_input);
-    case JWSAlgorithm::ES512:
-      if (key.type() != JWKPrivate::Type::EllipticCurve ||
-          key.curve() != "P-521") {
+      auto signature{
+          ecdsa_sign(*private_key, jws_hash_for(algorithm), signing_input)};
+      if (!signature.has_value() ||
+          signature.value().size() != jws_ecdsa_signature_bytes(algorithm)) {
         return std::nullopt;
       }
 
-      return ecdsa_sign(*private_key, SignatureHashFunction::SHA512,
-                        signing_input);
+      return signature;
+    }
     // The Edwards-curve algorithm names one of two curves through the key
     // rather than the algorithm (RFC 8037 Section 3.1), and the key fixes the
     // curve when it is parsed

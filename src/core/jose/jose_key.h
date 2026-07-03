@@ -119,6 +119,32 @@ inline auto jws_hash_for(const JWSAlgorithm algorithm)
   std::unreachable();
 }
 
+// The raw ECDSA signature length for each algorithm, twice the curve field
+// width (RFC 7518 Section 3.4). Since each algorithm is pinned to one curve,
+// this length identifies the curve the key must use, which the other
+// algorithms do not need
+inline auto jws_ecdsa_signature_bytes(const JWSAlgorithm algorithm)
+    -> std::size_t {
+  switch (algorithm) {
+    case JWSAlgorithm::ES256:
+      return 64;
+    case JWSAlgorithm::ES384:
+      return 96;
+    case JWSAlgorithm::ES512:
+      return 132;
+    case JWSAlgorithm::RS256:
+    case JWSAlgorithm::RS384:
+    case JWSAlgorithm::RS512:
+    case JWSAlgorithm::PS256:
+    case JWSAlgorithm::PS384:
+    case JWSAlgorithm::PS512:
+    case JWSAlgorithm::EdDSA:
+      break;
+  }
+
+  std::unreachable();
+}
+
 } // namespace sourcemeta::core
 
 #endif
