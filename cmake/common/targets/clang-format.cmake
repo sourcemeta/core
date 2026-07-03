@@ -110,18 +110,47 @@ function(sourcemeta_target_clang_format)
 
   if(CLANG_FORMAT_BIN)
     message(STATUS "Using `clang-format` from ${CLANG_FORMAT_BIN}")
+
+    # Invoke `clang-format` over the files in batches so that the full command
+    # never exceeds the operating system command-line length limit (notably the
+    # Windows `CreateProcess` limit) as the number of sources grows
+    set(SOURCEMETA_CLANG_FORMAT_BATCH_SIZE 100)
+    set(SOURCEMETA_CLANG_FORMAT_COMMANDS)
+    set(SOURCEMETA_CLANG_FORMAT_TEST_COMMANDS)
+    set(SOURCEMETA_CLANG_FORMAT_BATCH)
+    foreach(SOURCEMETA_CLANG_FORMAT_FILE IN LISTS
+        SOURCEMETA_TARGET_CLANG_FORMAT_FILES)
+      list(APPEND SOURCEMETA_CLANG_FORMAT_BATCH "${SOURCEMETA_CLANG_FORMAT_FILE}")
+      list(LENGTH SOURCEMETA_CLANG_FORMAT_BATCH SOURCEMETA_CLANG_FORMAT_LENGTH)
+      if(SOURCEMETA_CLANG_FORMAT_LENGTH GREATER_EQUAL
+          SOURCEMETA_CLANG_FORMAT_BATCH_SIZE)
+        list(APPEND SOURCEMETA_CLANG_FORMAT_COMMANDS
+          COMMAND "${CLANG_FORMAT_BIN}" "--style=file:${CLANG_FORMAT_CONFIG}"
+            -i ${SOURCEMETA_CLANG_FORMAT_BATCH})
+        list(APPEND SOURCEMETA_CLANG_FORMAT_TEST_COMMANDS
+          COMMAND "${CLANG_FORMAT_BIN}" "--style=file:${CLANG_FORMAT_CONFIG}"
+            --dry-run -Werror -i ${SOURCEMETA_CLANG_FORMAT_BATCH})
+        set(SOURCEMETA_CLANG_FORMAT_BATCH)
+      endif()
+    endforeach()
+    if(SOURCEMETA_CLANG_FORMAT_BATCH)
+      list(APPEND SOURCEMETA_CLANG_FORMAT_COMMANDS
+        COMMAND "${CLANG_FORMAT_BIN}" "--style=file:${CLANG_FORMAT_CONFIG}"
+          -i ${SOURCEMETA_CLANG_FORMAT_BATCH})
+      list(APPEND SOURCEMETA_CLANG_FORMAT_TEST_COMMANDS
+        COMMAND "${CLANG_FORMAT_BIN}" "--style=file:${CLANG_FORMAT_CONFIG}"
+          --dry-run -Werror -i ${SOURCEMETA_CLANG_FORMAT_BATCH})
+    endif()
+
     add_custom_target(clang_format
       WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
       VERBATIM
-      COMMAND "${CLANG_FORMAT_BIN}" "--style=file:${CLANG_FORMAT_CONFIG}"
-        -i ${SOURCEMETA_TARGET_CLANG_FORMAT_FILES}
+      ${SOURCEMETA_CLANG_FORMAT_COMMANDS}
       COMMENT "Formatting sources using ClangFormat")
     add_custom_target(clang_format_test
       WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
       VERBATIM
-      COMMAND "${CLANG_FORMAT_BIN}" "--style=file:${CLANG_FORMAT_CONFIG}"
-        --dry-run -Werror
-        -i ${SOURCEMETA_TARGET_CLANG_FORMAT_FILES}
+      ${SOURCEMETA_CLANG_FORMAT_TEST_COMMANDS}
       COMMENT "Checking for ClangFormat compliance")
   else()
     add_custom_target(clang_format
