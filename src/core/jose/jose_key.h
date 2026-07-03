@@ -1,0 +1,99 @@
+#ifndef SOURCEMETA_CORE_JOSE_KEY_H_
+#define SOURCEMETA_CORE_JOSE_KEY_H_
+
+// Curve and algorithm mappings shared by the public JWK and the private
+// JWKPrivate parsing paths
+
+#include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/jose_algorithm.h>
+
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
+#include <optional>    // std::optional, std::nullopt
+#include <string_view> // std::string_view
+#include <utility>     // std::unreachable
+
+namespace sourcemeta::core {
+
+// The kind of key, shared by the public and private parsing paths so that the
+// algorithm matching does not need to be written twice
+enum class JWKKind : std::uint8_t { RSA, EllipticCurve, OctetKeyPair };
+
+// The coordinate octet length is fixed per curve (RFC 7518 Section 6.2.1.2)
+inline auto jwk_ec_coordinate_bytes(const std::string_view curve)
+    -> std::optional<std::size_t> {
+  if (curve == "P-256") {
+    return 32;
+  } else if (curve == "P-384") {
+    return 48;
+  } else if (curve == "P-521") {
+    return 66;
+  } else {
+    return std::nullopt;
+  }
+}
+
+// The key octet length is fixed per Edwards curve (RFC 8032 Sections 5.1.5 and
+// 5.2.5), and the private seed shares it (RFC 8037 Section 2)
+inline auto jwk_okp_key_bytes(const std::string_view curve)
+    -> std::optional<std::size_t> {
+  if (curve == "Ed25519") {
+    return 32;
+  } else if (curve == "Ed448") {
+    return 57;
+  } else {
+    return std::nullopt;
+  }
+}
+
+// Both mappings are only reached after the curve has been validated above
+inline auto jwk_to_elliptic_curve(const std::string_view curve) noexcept
+    -> EllipticCurve {
+  if (curve == "P-256") {
+    return EllipticCurve::P256;
+  } else if (curve == "P-384") {
+    return EllipticCurve::P384;
+  } else {
+    return EllipticCurve::P521;
+  }
+}
+
+inline auto jwk_to_edwards_curve(const std::string_view curve) noexcept
+    -> EdwardsCurve {
+  if (curve == "Ed25519") {
+    return EdwardsCurve::Ed25519;
+  } else {
+    return EdwardsCurve::Ed448;
+  }
+}
+
+// The RSA algorithms only require an RSA key, each ECDSA algorithm is tied to a
+// specific curve (RFC 7518 Section 3.1), and the Edwards-curve algorithm
+// requires an octet key pair of either curve (RFC 8037 Section 3.1)
+inline auto jwk_algorithm_matches_key(const JWSAlgorithm algorithm,
+                                      const JWKKind kind,
+                                      const std::string_view curve) -> bool {
+  switch (algorithm) {
+    case JWSAlgorithm::RS256:
+    case JWSAlgorithm::RS384:
+    case JWSAlgorithm::RS512:
+    case JWSAlgorithm::PS256:
+    case JWSAlgorithm::PS384:
+    case JWSAlgorithm::PS512:
+      return kind == JWKKind::RSA;
+    case JWSAlgorithm::ES256:
+      return kind == JWKKind::EllipticCurve && curve == "P-256";
+    case JWSAlgorithm::ES384:
+      return kind == JWKKind::EllipticCurve && curve == "P-384";
+    case JWSAlgorithm::ES512:
+      return kind == JWKKind::EllipticCurve && curve == "P-521";
+    case JWSAlgorithm::EdDSA:
+      return kind == JWKKind::OctetKeyPair;
+  }
+
+  std::unreachable();
+}
+
+} // namespace sourcemeta::core
+
+#endif
