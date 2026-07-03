@@ -26,16 +26,8 @@ target_link_libraries(sourcemeta_core_crypto_unit
 
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME sign
   SOURCES crypto_sign_test.cc)
-target_compile_definitions(sourcemeta_core_sign_unit
-  PRIVATE WYCHEPROOF_PATH="${PROJECT_SOURCE_DIR}/vendor/wycheproof")
-target_compile_definitions(sourcemeta_core_sign_unit
-  PRIVATE PYCA_CRYPTOGRAPHY_PATH="${PROJECT_SOURCE_DIR}/vendor/pyca-cryptography/vectors/cryptography_vectors")
 target_link_libraries(sourcemeta_core_sign_unit
   PRIVATE sourcemeta::core::crypto)
-target_link_libraries(sourcemeta_core_sign_unit
-  PRIVATE sourcemeta::core::io)
-target_link_libraries(sourcemeta_core_sign_unit
-  PRIVATE sourcemeta::core::json)
 target_link_libraries(sourcemeta_core_sign_unit
   PRIVATE sourcemeta::core::text)
 
