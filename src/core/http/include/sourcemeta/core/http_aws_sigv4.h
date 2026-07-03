@@ -15,6 +15,15 @@
 namespace sourcemeta::core {
 
 /// @ingroup http
+/// The credentials used to sign a request with AWS Signature Version 4. The
+/// session token is left empty when using long-term credentials.
+struct HTTPAWSCredentials {
+  std::string_view access_key_id;
+  std::string_view secret_access_key;
+  std::string_view session_token;
+};
+
+/// @ingroup http
 /// Compute the AWS Signature Version 4 canonical request from a request method,
 /// path, query, headers, and payload hash. Each path segment and query
 /// parameter is decoded and re-encoded into canonical form, so the path and
