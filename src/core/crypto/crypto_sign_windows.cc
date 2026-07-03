@@ -115,10 +115,13 @@ auto native_rsa_private_key(const std::string_view rsa_private_key) -> KeyPair {
 
   std::array<std::string_view, 8> fields{};
   auto rest{sequence->content};
-  // Skip the version, then read modulus, publicExponent, privateExponent,
-  // prime1, prime2, exponent1, exponent2, coefficient
+  // Read the version, then modulus, publicExponent, privateExponent, prime1,
+  // prime2, exponent1, exponent2, coefficient. Only the two-prime form (version
+  // zero, RFC 8017 Appendix A.1.2) maps onto the full private key blob, so a
+  // multi-prime key with trailing otherPrimeInfos is rejected
   const auto version{sourcemeta::core::der_read(rest)};
-  if (!version.has_value() || version->tag != 0x02) {
+  if (!version.has_value() || version->tag != 0x02 ||
+      !sourcemeta::core::strip_left(version->content, '\x00').empty()) {
     return {.algorithm = nullptr, .key = nullptr};
   }
 

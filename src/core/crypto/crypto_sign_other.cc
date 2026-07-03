@@ -292,8 +292,11 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
       }
 
       const auto stripped_modulus{strip_left(modulus->content, '\x00')};
+      const auto stripped_private_exponent{
+          strip_left(private_exponent->content, '\x00')};
       if (stripped_modulus.empty() ||
-          stripped_modulus.size() > MAXIMUM_KEY_BYTES) {
+          stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
+          stripped_private_exponent.size() > MAXIMUM_KEY_BYTES) {
         return std::nullopt;
       }
 
@@ -302,8 +305,7 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
           .modulus = std::string{stripped_modulus},
           .public_exponent =
               std::string{strip_left(public_exponent->content, '\x00')},
-          .private_exponent =
-              std::string{strip_left(private_exponent->content, '\x00')},
+          .private_exponent = std::string{stripped_private_exponent},
           .scalar = {},
           .elliptic_curve = {},
           .edwards_seed = {},

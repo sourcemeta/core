@@ -508,6 +508,12 @@ inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)
 // A uniform random scalar in [1, modulus - 1], drawn with extra bytes so that
 // the modular reduction leaves negligible bias. Used as a per-signature secret
 inline auto bignum_random_scalar(const Bignum &modulus) -> Bignum {
+  // The interval is empty when the modulus is below two, so reject it rather
+  // than loop forever searching for a non-zero reduction
+  if (bignum_compare(modulus, bignum_from_u64(2)) < 0) {
+    return bignum_from_u64(0);
+  }
+
   const auto length{((bignum_bit_length(modulus) + 7) / 8) + 8};
   std::string buffer(length, '\x00');
   while (true) {

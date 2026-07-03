@@ -40,13 +40,27 @@ inline auto der_read(const std::string_view input)
       return std::nullopt;
     }
 
+    // The distinguished encoding rules require the minimal number of length
+    // octets (ITU-T X.690 Section 10.1), so a leading zero octet is not
+    // canonical
+    if (static_cast<unsigned char>(input[position]) == 0) {
+      return std::nullopt;
+    }
+
     for (std::size_t index{0}; index < count; ++index) {
       length = (length << 8u) | static_cast<unsigned char>(input[position]);
       position += 1;
     }
+
+    // A value below the short-form limit must use the short form
+    if (length < 0x80) {
+      return std::nullopt;
+    }
   }
 
-  if (position + length > input.size()) {
+  // Written so that the addition cannot overflow, as position never exceeds
+  // the input size at this point
+  if (length > input.size() - position) {
     return std::nullopt;
   }
 
@@ -55,19 +69,22 @@ inline auto der_read(const std::string_view input)
                     .rest = input.substr(position + length)};
 }
 
-// Append the definite-form length octets of a DER element
+// Append the definite-form length octets of a DER element, using the minimal
+// number of long-form octets for any length (ITU-T X.690 Section 10.1)
 inline auto der_append_length(std::string &output, const std::size_t length)
     -> void {
   if (length < 128) {
     output.push_back(static_cast<char>(length));
-  } else if (length < 256) {
-    output.push_back('\x81');
-    output.push_back(static_cast<char>(length));
-  } else {
-    output.push_back('\x82');
-    output.push_back(static_cast<char>((length >> 8u) & 0xffu));
-    output.push_back(static_cast<char>(length & 0xffu));
+    return;
   }
+
+  std::string octets;
+  for (std::size_t remaining{length}; remaining > 0; remaining >>= 8u) {
+    octets.insert(octets.begin(), static_cast<char>(remaining & 0xffu));
+  }
+
+  output.push_back(static_cast<char>(0x80u | octets.size()));
+  output.append(octets);
 }
 
 // Append a DER INTEGER holding the big-endian unsigned value

@@ -61,7 +61,9 @@ private:
 /// @ingroup crypto
 /// Parse a private key from an unencrypted PKCS#8 PEM document (RFC 5958),
 /// returning no value when the input is not a supported RSA, elliptic curve, or
-/// Edwards private key. Encrypted documents are not supported.
+/// Edwards private key. Encrypted documents are not supported. An elliptic
+/// curve key must carry its public point, which is optional in SEC1 (RFC 5915),
+/// because some backends store the point alongside the private scalar.
 auto SOURCEMETA_CORE_CRYPTO_EXPORT make_private_key(const std::string_view pem)
     -> std::optional<PrivateKey>;
 

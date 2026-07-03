@@ -30,7 +30,7 @@ extern "C" auto sourcemeta_core_eddsa_ed25519_sign_cryptokit(
     NSData *const payload{[NSData dataWithBytes:message length:message_size]};
     NSData *const result{[SourcemetaCoreEd25519 signWithSeed:key
                                                      message:payload]};
-    if (result == nil || result.length != 64) {
+    if (signature == nullptr || result == nil || result.length != 64) {
       return false;
     }
 
