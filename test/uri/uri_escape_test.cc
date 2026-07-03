@@ -67,3 +67,54 @@ TEST(append_empty_leaves_output_untouched) {
   sourcemeta::core::URI::escape("", output);
   EXPECT_EQ(output, "unchanged");
 }
+
+TEST(normalized_raw_characters_are_encoded) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("a=b&c", true), "a%3Db%26c");
+}
+
+TEST(normalized_existing_escape_is_preserved) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("a%20b", true), "a%20b");
+}
+
+TEST(normalized_existing_encoded_delimiter_is_preserved) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("path%2Fto", true), "path%2Fto");
+}
+
+TEST(normalized_needlessly_encoded_unreserved_is_decoded) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("%41%42", true), "AB");
+}
+
+TEST(normalized_lowercase_escape_is_uppercased) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("a%2fb", true), "a%2Fb");
+}
+
+TEST(normalized_mixed_raw_and_encoded) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("a b%2Fc", true), "a%20b%2Fc");
+}
+
+TEST(normalized_lone_percent_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("100%", true), "100%25");
+}
+
+TEST(normalized_percent_without_hex_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("%zz", true), "%25zz");
+}
+
+TEST(normalized_percent_with_single_trailing_hex_is_encoded) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("%a", true), "%25a");
+}
+
+TEST(normalized_utf8_multibyte_encoded_is_preserved) {
+  EXPECT_EQ(sourcemeta::core::URI::escape("%C3%A9", true), "%C3%A9");
+}
+
+TEST(normalized_is_idempotent_under_repeated_application) {
+  const auto once{sourcemeta::core::URI::escape("a b%2Fc&d", true)};
+  EXPECT_EQ(sourcemeta::core::URI::escape(once, true), once);
+}
+
+TEST(normalized_append_preserves_existing_output) {
+  std::string output{"prefix="};
+  sourcemeta::core::URI::escape("a b%2Fc", output, true);
+  EXPECT_EQ(output, "prefix=a%20b%2Fc");
+}
