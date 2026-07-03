@@ -1,5 +1,5 @@
 #include <sourcemeta/core/crypto_uuid.h>
-#include <sourcemeta/core/numeric.h> // is_hex_digit
+#include <sourcemeta/core/text.h>
 
 #include "crypto_random.h"
 

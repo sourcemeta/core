@@ -69,54 +69,6 @@ TEST(is_positive_digit_null) {
   EXPECT_FALSE(sourcemeta::core::is_positive_digit('\0'));
 }
 
-TEST(is_hex_digit_zero) { EXPECT_TRUE(sourcemeta::core::is_hex_digit('0')); }
-
-TEST(is_hex_digit_nine) { EXPECT_TRUE(sourcemeta::core::is_hex_digit('9')); }
-
-TEST(is_hex_digit_lowercase_a) {
-  EXPECT_TRUE(sourcemeta::core::is_hex_digit('a'));
-}
-
-TEST(is_hex_digit_lowercase_f) {
-  EXPECT_TRUE(sourcemeta::core::is_hex_digit('f'));
-}
-
-TEST(is_hex_digit_uppercase_a) {
-  EXPECT_TRUE(sourcemeta::core::is_hex_digit('A'));
-}
-
-TEST(is_hex_digit_uppercase_f) {
-  EXPECT_TRUE(sourcemeta::core::is_hex_digit('F'));
-}
-
-TEST(is_hex_digit_lowercase_g) {
-  EXPECT_FALSE(sourcemeta::core::is_hex_digit('g'));
-}
-
-TEST(is_hex_digit_uppercase_g) {
-  EXPECT_FALSE(sourcemeta::core::is_hex_digit('G'));
-}
-
-TEST(is_hex_digit_uppercase_z) {
-  EXPECT_FALSE(sourcemeta::core::is_hex_digit('Z'));
-}
-
-TEST(is_hex_digit_space) { EXPECT_FALSE(sourcemeta::core::is_hex_digit(' ')); }
-
-TEST(is_hex_digit_slash) { EXPECT_FALSE(sourcemeta::core::is_hex_digit('/')); }
-
-TEST(is_hex_digit_colon) { EXPECT_FALSE(sourcemeta::core::is_hex_digit(':')); }
-
-TEST(is_hex_digit_at_sign) {
-  EXPECT_FALSE(sourcemeta::core::is_hex_digit('@'));
-}
-
-TEST(is_hex_digit_backtick) {
-  EXPECT_FALSE(sourcemeta::core::is_hex_digit('`'));
-}
-
-TEST(is_hex_digit_null) { EXPECT_FALSE(sourcemeta::core::is_hex_digit('\0')); }
-
 TEST(is_byte_zero) { EXPECT_TRUE(sourcemeta::core::is_byte(0)); }
 
 TEST(is_byte_255) { EXPECT_TRUE(sourcemeta::core::is_byte(255)); }

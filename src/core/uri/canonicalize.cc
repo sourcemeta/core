@@ -33,8 +33,8 @@ auto unescape_iunreserved_inplace(std::string &input) -> void {
     }
 
     const auto lead{
-        static_cast<unsigned char>((uri_hex_to_int(input[position + 1]) << 4) |
-                                   uri_hex_to_int(input[position + 2]))};
+        static_cast<unsigned char>((hex_digit_value(input[position + 1]) << 4) |
+                                   hex_digit_value(input[position + 2]))};
     const auto length{sourcemeta::core::utf8_lead_byte_size(lead)};
 
     if (length == 1) {
@@ -69,8 +69,8 @@ auto unescape_iunreserved_inplace(std::string &input) -> void {
         break;
       }
       const auto continuation{static_cast<unsigned char>(
-          (uri_hex_to_int(input[continuation_position + 1]) << 4) |
-          uri_hex_to_int(input[continuation_position + 2]))};
+          (hex_digit_value(input[continuation_position + 1]) << 4) |
+          hex_digit_value(input[continuation_position + 2]))};
       if (!sourcemeta::core::is_utf8_continuation(continuation)) {
         decodable = false;
         break;
