@@ -117,6 +117,20 @@ static const std::string P521_QY_HEX{
     "5b08d302f139eda5656c3a139ab71f1db2879170a1a5dedc3214e3e7ce630fef"
     "4300"};
 
+// RFC 6979 Appendix A.2.5: the NIST P-256 example key and the deterministic
+// ECDSA signature it produces over the message below with SHA-256, reproduced
+// only by a backend that derives the nonce deterministically
+static const std::string RFC6979_MESSAGE{"sample"};
+static const std::string RFC6979_P256_D_HEX{
+    "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721"};
+static const std::string RFC6979_P256_QX_HEX{
+    "60fed4ba255a9d31c961eb74c6356d68c049b8923b61fa6ce669622e60f29fb6"};
+static const std::string RFC6979_P256_QY_HEX{
+    "7903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299"};
+static const std::string RFC6979_P256_SIGNATURE_HEX{
+    "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716"
+    "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8"};
+
 // Edwards keys as their raw seed and public key, with the deterministic Ed448
 // signature over the message (RFC 8032 uses no randomization for Ed448)
 static const std::string ED25519_SEED_HEX{
@@ -252,6 +266,29 @@ TEST(ecdsa_p521_sha512_signature_verifies) {
       ecdsa_signature_verifies(sourcemeta::core::EllipticCurve::P521,
                                sourcemeta::core::SignatureHashFunction::SHA512,
                                P521_D_HEX, P521_QX_HEX, P521_QY_HEX));
+}
+
+TEST(ecdsa_deterministic_nonce_matches_rfc6979_known_answer) {
+  const auto key{sourcemeta::core::make_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(RFC6979_P256_D_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P256_QX_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P256_QY_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  const auto first{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      RFC6979_MESSAGE)};
+  const auto second{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      RFC6979_MESSAGE)};
+  EXPECT_TRUE(first.has_value());
+  // A backend that derives the nonce deterministically (RFC 6979) produces the
+  // same signature twice, and only then is the published known answer
+  // reproducible. Randomized backends are covered by the round-trip tests
+  if (first.has_value() && first == second) {
+    EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
+              RFC6979_P256_SIGNATURE_HEX);
+  }
 }
 
 TEST(ed25519_signature_verifies) {

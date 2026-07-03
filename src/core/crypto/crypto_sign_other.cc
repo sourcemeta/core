@@ -145,19 +145,67 @@ auto to_curve_parameters(const EllipticCurve curve) -> EllipticCurveParameters {
   std::unreachable();
 }
 
-// FIPS 186-4 Section 6.4 step 2, deriving the integer from the leftmost bits of
-// the message digest, truncated to the bit length of the order
-auto digest_to_integer(const SignatureHashFunction hash,
-                       const std::string_view message,
-                       const std::size_t order_bits) -> Bignum {
-  const auto digest{digest_message(hash, message)};
-  auto value{bignum_from_bytes(digest)};
-  const auto digest_bits{digest.size() * 8};
-  if (digest_bits > order_bits) {
-    value = bignum_shift_right(value, digest_bits - order_bits);
+struct HashSizes {
+  std::size_t block_bytes;
+  std::size_t output_bytes;
+};
+
+auto hash_sizes(const SignatureHashFunction hash) -> HashSizes {
+  switch (hash) {
+    case SignatureHashFunction::SHA256:
+      return {.block_bytes = 64, .output_bytes = 32};
+    case SignatureHashFunction::SHA384:
+      return {.block_bytes = 128, .output_bytes = 48};
+    case SignatureHashFunction::SHA512:
+      return {.block_bytes = 128, .output_bytes = 64};
+  }
+
+  std::unreachable();
+}
+
+// HMAC (RFC 2104) keyed on the signature hash function, the primitive that the
+// deterministic nonce generator is built on
+auto hmac(const SignatureHashFunction hash, const std::string_view key,
+          const std::string_view message) -> std::string {
+  const auto block_bytes{hash_sizes(hash).block_bytes};
+  std::string block_key{key.size() > block_bytes ? digest_message(hash, key)
+                                                 : std::string{key}};
+  block_key.resize(block_bytes, '\x00');
+
+  std::string inner_input(block_bytes, '\x00');
+  std::string outer_input(block_bytes, '\x00');
+  for (std::size_t index{0}; index < block_bytes; ++index) {
+    const auto byte{static_cast<unsigned char>(block_key[index])};
+    inner_input[index] = static_cast<char>(byte ^ 0x36u);
+    outer_input[index] = static_cast<char>(byte ^ 0x5cu);
+  }
+
+  inner_input.append(message);
+  outer_input.append(digest_message(hash, inner_input));
+  return digest_message(hash, outer_input);
+}
+
+// RFC 6979 Section 2.3.2 bits2int, which is also the FIPS 186-4 Section 6.4
+// truncation of a bit string to the leftmost order-length bits
+auto bits2int(const std::string_view bits, const std::size_t order_bits)
+    -> Bignum {
+  auto value{bignum_from_bytes(bits)};
+  const auto bit_length{bits.size() * 8};
+  if (bit_length > order_bits) {
+    value = bignum_shift_right(value, bit_length - order_bits);
   }
 
   return value;
+}
+
+// RFC 6979 Section 2.3.4 bits2octets, reducing the truncated hash modulo the
+// order and encoding it to the fixed octet width
+auto bits2octets(const std::string_view bits, const Bignum &order,
+                 const std::size_t order_bits, const std::size_t order_bytes)
+    -> std::string {
+  auto value{bits2int(bits, order_bits)};
+  bignum_reduce(value, order);
+  return bignum_to_bytes(value, order_bytes);
 }
 
 auto sign_rsa(const std::string_view modulus,
@@ -169,47 +217,106 @@ auto sign_rsa(const std::string_view modulus,
   return bignum_to_bytes(representative, modulus.size());
 }
 
-// ECDSA signature generation (FIPS 186-4 Section 6.4.1)
+// The signature for one nonce candidate (FIPS 186-4 Section 6.4.1), returning
+// no value when the candidate must be rejected and a fresh one drawn
+auto ecdsa_signature_for_nonce(const Bignum &nonce,
+                               const Bignum &digest_integer,
+                               const Bignum &private_scalar,
+                               const JacobianPoint &generator,
+                               const EllipticCurveParameters &parameters,
+                               const std::size_t field_bytes)
+    -> std::optional<std::string> {
+  if (bignum_is_zero(nonce) || bignum_compare(nonce, parameters.order) >= 0) {
+    return std::nullopt;
+  }
+
+  const auto point{point_double_scalar_multiply(
+      nonce, generator, bignum_from_u64(0), generator, parameters)};
+  if (point_is_infinity(point)) {
+    return std::nullopt;
+  }
+
+  auto r{point_affine_x(point, parameters)};
+  bignum_reduce(r, parameters.order);
+  if (bignum_is_zero(r)) {
+    return std::nullopt;
+  }
+
+  // s = k^-1 (z + r * d) mod n
+  const auto s{bignum_mod_multiply(
+      bignum_mod_inverse(nonce, parameters.order),
+      bignum_mod_add(digest_integer,
+                     bignum_mod_multiply(r, private_scalar, parameters.order),
+                     parameters.order),
+      parameters.order)};
+  if (bignum_is_zero(s)) {
+    return std::nullopt;
+  }
+
+  std::string signature{bignum_to_bytes(r, field_bytes)};
+  signature.append(bignum_to_bytes(s, field_bytes));
+  return signature;
+}
+
+// ECDSA signature generation (FIPS 186-4 Section 6.4.1) with the per-signature
+// nonce derived deterministically from the private key and the message digest,
+// so that the signature never depends on the quality of the random generator
+// (RFC 6979 Section 3.2)
 auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
                 const std::string_view scalar, const std::string_view message)
     -> std::optional<std::string> {
   const auto parameters{to_curve_parameters(curve)};
   const auto field_bytes{parameters.field_bytes};
   const auto order_bits{bignum_bit_length(parameters.order)};
-  const auto digest_integer{digest_to_integer(hash, message, order_bits)};
+  const auto order_bytes{(order_bits + 7) / 8};
+  const auto digest{digest_message(hash, message)};
+  const auto digest_integer{bits2int(digest, order_bits)};
   const auto private_scalar{bignum_from_bytes(scalar)};
   const JacobianPoint generator{.x = parameters.generator_x,
                                 .y = parameters.generator_y,
                                 .z = bignum_from_u64(1)};
 
+  const auto private_octets{bignum_to_bytes(private_scalar, order_bytes)};
+  const auto hashed_octets{
+      bits2octets(digest, parameters.order, order_bits, order_bytes)};
+
+  // RFC 6979 Section 3.2 steps b to g: seed the HMAC generator
+  const auto output_bytes{hash_sizes(hash).output_bytes};
+  std::string hmac_value(output_bytes, '\x01');
+  std::string hmac_key(output_bytes, '\x00');
+  std::string seed{hmac_value};
+  seed.push_back('\x00');
+  seed.append(private_octets);
+  seed.append(hashed_octets);
+  hmac_key = hmac(hash, hmac_key, seed);
+  hmac_value = hmac(hash, hmac_key, hmac_value);
+  seed = hmac_value;
+  seed.push_back('\x01');
+  seed.append(private_octets);
+  seed.append(hashed_octets);
+  hmac_key = hmac(hash, hmac_key, seed);
+  hmac_value = hmac(hash, hmac_key, hmac_value);
+
   for (std::size_t attempt = 0; attempt < 256; ++attempt) {
-    const auto nonce{bignum_random_scalar(parameters.order)};
-    const auto point{point_double_scalar_multiply(
-        nonce, generator, bignum_from_u64(0), generator, parameters)};
-    if (point_is_infinity(point)) {
-      continue;
+    // RFC 6979 Section 3.2 step h.2: draw enough output to cover the order
+    std::string candidate;
+    while (candidate.size() * 8 < order_bits) {
+      hmac_value = hmac(hash, hmac_key, hmac_value);
+      candidate.append(hmac_value);
     }
 
-    auto r{point_affine_x(point, parameters)};
-    bignum_reduce(r, parameters.order);
-    if (bignum_is_zero(r)) {
-      continue;
+    const auto signature{ecdsa_signature_for_nonce(
+        bits2int(candidate, order_bits), digest_integer, private_scalar,
+        generator, parameters, field_bytes)};
+    if (signature.has_value()) {
+      return signature;
     }
 
-    // s = k^-1 (z + r * d) mod n
-    const auto s{bignum_mod_multiply(
-        bignum_mod_inverse(nonce, parameters.order),
-        bignum_mod_add(digest_integer,
-                       bignum_mod_multiply(r, private_scalar, parameters.order),
-                       parameters.order),
-        parameters.order)};
-    if (bignum_is_zero(s)) {
-      continue;
-    }
-
-    std::string signature{bignum_to_bytes(r, field_bytes)};
-    signature.append(bignum_to_bytes(s, field_bytes));
-    return signature;
+    // RFC 6979 Section 3.2 step h: reseed before the next candidate
+    std::string reseed{hmac_value};
+    reseed.push_back('\x00');
+    hmac_key = hmac(hash, hmac_key, reseed);
+    hmac_value = hmac(hash, hmac_key, hmac_value);
   }
 
   return std::nullopt;
