@@ -1,7 +1,9 @@
 #include <sourcemeta/core/crypto_base64.h>
 #include <sourcemeta/core/crypto_sign.h>
+#include <sourcemeta/core/text.h>
 
 #include "crypto_der.h"
+#include "crypto_helpers.h"
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
@@ -31,10 +33,16 @@ auto make_rsa_private_key(
     const std::string_view prime2, const std::string_view exponent1,
     const std::string_view exponent2, const std::string_view coefficient)
     -> std::optional<PrivateKey> {
-  if (modulus.empty() || public_exponent.empty() || private_exponent.empty() ||
-      prime1.empty() || prime2.empty() || exponent1.empty() ||
-      exponent2.empty() || coefficient.empty()) {
-    return std::nullopt;
+  // Reject empty or oversized components before they drive the document
+  // allocation, matching the key size limit the parsing paths enforce
+  const std::array<std::string_view, 8> components{
+      {modulus, public_exponent, private_exponent, prime1, prime2, exponent1,
+       exponent2, coefficient}};
+  for (const auto component : components) {
+    const auto stripped{strip_left(component, '\x00')};
+    if (stripped.empty() || stripped.size() > MAXIMUM_KEY_BYTES) {
+      return std::nullopt;
+    }
   }
 
   // RSAPrivateKey (RFC 8017 Appendix A.1.2), whose version is zero for the

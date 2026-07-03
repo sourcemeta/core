@@ -247,6 +247,7 @@ TEST(make_rsa_private_key_from_components_matches_known_answer) {
       sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
       sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
       sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
+  EXPECT_TRUE(key.has_value());
   const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
   EXPECT_TRUE(signature.has_value());
