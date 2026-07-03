@@ -4,6 +4,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_fragment_test.cc
     uri_empty_test.cc
     uri_host_test.cc
+    uri_authority_test.cc
     uri_path_test.cc
     uri_from_path_test.cc
     uri_to_path_test.cc
