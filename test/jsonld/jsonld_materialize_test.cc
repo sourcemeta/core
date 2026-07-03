@@ -139,11 +139,11 @@ TEST(ordered_collection_becomes_list) {
                   .edges = {},
                   .value = sourcemeta::core::JSONLDNode{
                       .id = "https://example.com/book"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"authors"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"authors"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/author", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
   map.emplace(sourcemeta::core::Pointer{"authors", 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {},
@@ -184,11 +184,11 @@ TEST(unordered_collection_spreads_into_property) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"tags"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{"tags"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/keywords", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(sourcemeta::core::Pointer{"tags", 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
@@ -343,16 +343,16 @@ TEST(nested_ordered_collection_is_list_of_lists) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"matrix"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/rows", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
-  map.emplace(
-      sourcemeta::core::Pointer{"matrix", 0},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"matrix"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://example.com/rows", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
+  map.emplace(sourcemeta::core::Pointer{"matrix", 0},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
   map.emplace(sourcemeta::core::Pointer{"matrix", 0, 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {},
@@ -748,11 +748,11 @@ TEST(ordered_collection_of_nodes) {
                   .edges = {},
                   .value = sourcemeta::core::JSONLDNode{
                       .id = "https://example.com/book"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"authors"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"authors"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/author", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
   map.emplace(sourcemeta::core::Pointer{"authors", 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
@@ -789,11 +789,11 @@ TEST(unordered_collection_of_nodes) {
                   .edges = {},
                   .value = sourcemeta::core::JSONLDNode{
                       .id = "https://example.com/order"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"items"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/item", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{"items"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://example.com/item", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(sourcemeta::core::Pointer{"items", 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {}, .value = sourcemeta::core::JSONLDNode{}});
@@ -833,11 +833,11 @@ TEST(empty_ordered_collection_is_rdf_nil) {
                   .edges = {},
                   .value = sourcemeta::core::JSONLDNode{
                       .id = "https://example.com/book"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"authors"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"authors"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/author", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     {
@@ -860,11 +860,11 @@ TEST(empty_unordered_collection_adds_no_property) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"tags"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/keywords", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{"tags"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/keywords", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/doc" }
@@ -885,11 +885,11 @@ TEST(collection_with_undescribed_elements_skips_them) {
                   .edges = {},
                   .value = sourcemeta::core::JSONLDNode{
                       .id = "https://example.com/book"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"authors"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"authors"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/author", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
   map.emplace(sourcemeta::core::Pointer{"authors", 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
@@ -921,21 +921,21 @@ TEST(nested_unordered_collection_flattens) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"groups"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/member", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
-  map.emplace(
-      sourcemeta::core::Pointer{"groups", 0},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
-  map.emplace(
-      sourcemeta::core::Pointer{"groups", 1},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{"groups"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://example.com/member", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
+  map.emplace(sourcemeta::core::Pointer{"groups", 0},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
+  map.emplace(sourcemeta::core::Pointer{"groups", 1},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(sourcemeta::core::Pointer{"groups", 0, 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
@@ -965,11 +965,11 @@ TEST(array_root_spreads_into_default_graph) {
       sourcemeta::core::parse_json(R"([ { "name": "A" }, { "name": "B" } ])");
 
   sourcemeta::core::JSONLDAnnotationMap map;
-  map.emplace(
-      sourcemeta::core::Pointer{},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(
       sourcemeta::core::Pointer{0},
       sourcemeta::core::JSONLDDescriptor{.edges = {},
@@ -1009,11 +1009,11 @@ TEST(root_collection_of_literals_is_dropped) {
   const auto instance = sourcemeta::core::parse_json(R"([ "a", "b" ])");
 
   sourcemeta::core::JSONLDAnnotationMap map;
-  map.emplace(
-      sourcemeta::core::Pointer{},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(sourcemeta::core::Pointer{0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
@@ -1033,11 +1033,11 @@ TEST(root_collection_keeps_only_node_elements) {
       sourcemeta::core::parse_json(R"([ { "name": "A" }, "loose" ])");
 
   sourcemeta::core::JSONLDAnnotationMap map;
-  map.emplace(
-      sourcemeta::core::Pointer{},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(
       sourcemeta::core::Pointer{0},
       sourcemeta::core::JSONLDDescriptor{.edges = {},
@@ -1087,11 +1087,11 @@ TEST(collection_descriptor_on_non_array_is_dropped) {
       sourcemeta::core::JSONLDDescriptor{.edges = {},
                                          .value = sourcemeta::core::JSONLDNode{
                                              .id = "https://example.com/doc"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"x"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://example.com/x", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"x"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://example.com/x", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/doc" }
@@ -1125,11 +1125,11 @@ TEST(output_is_a_fixed_point_of_expansion) {
                   .edges = {{"https://schema.org/url", false}},
                   .value = sourcemeta::core::JSONLDReference{
                       .id = "https://ada.example"}});
-  map.emplace(
-      sourcemeta::core::Pointer{"books"},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::Pointer{"books"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/author", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
   map.emplace(sourcemeta::core::Pointer{"books", 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {},
@@ -1248,11 +1248,11 @@ TEST(weak_ordered_collection_becomes_list) {
                   .edges = {},
                   .value = sourcemeta::core::JSONLDNode{
                       .id = "https://example.com/book"}});
-  map.emplace(
-      sourcemeta::core::WeakPointer{std::cref(authors_key)},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {{"https://schema.org/author", false}},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = true}});
+  map.emplace(sourcemeta::core::WeakPointer{std::cref(authors_key)},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/author", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::List}});
   map.emplace(sourcemeta::core::WeakPointer{std::cref(authors_key), 0},
               sourcemeta::core::JSONLDDescriptor{
                   .edges = {},
@@ -1329,11 +1329,11 @@ TEST(weak_array_root_spreads_into_default_graph) {
   const sourcemeta::core::JSON::String name_key{"name"};
 
   sourcemeta::core::JSONLDWeakAnnotationMap map;
-  map.emplace(
-      sourcemeta::core::WeakPointer{},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {},
-          .value = sourcemeta::core::JSONLDCollection{.ordered = false}});
+  map.emplace(sourcemeta::core::WeakPointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
   map.emplace(
       sourcemeta::core::WeakPointer{0},
       sourcemeta::core::JSONLDDescriptor{.edges = {},
@@ -1362,6 +1362,217 @@ TEST(weak_array_root_spreads_into_default_graph) {
       "@id": "https://example.com/b",
       "https://schema.org/name": [ { "@value": "B" } ]
     }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(language_container) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "label": { "en": "Colour", "fr": [ "Couleur", "Teinte" ], "@none": "Color" } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/thing"}});
+  map.emplace(
+      sourcemeta::core::Pointer{"label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Language}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/thing",
+      "https://schema.org/name": [
+        { "@value": "Color" },
+        { "@value": "Colour", "@language": "en" },
+        { "@value": "Couleur", "@language": "fr" },
+        { "@value": "Teinte", "@language": "fr" }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(language_container_empty) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "label": {} })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/thing"}});
+  map.emplace(
+      sourcemeta::core::Pointer{"label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Language}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "@id": "https://example.com/thing" }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(index_container_of_nodes) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "posts": { "2023": { "title": "A" }, "2024": { "title": "B" } } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/blog"}});
+  map.emplace(sourcemeta::core::Pointer{"posts"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/blogPost", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Index}});
+  map.emplace(sourcemeta::core::Pointer{"posts", "2023"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/post/2023"}});
+  map.emplace(sourcemeta::core::Pointer{"posts", "2023", "title"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/headline", false}},
+                  .value = sourcemeta::core::JSONLDLiteral{}});
+  map.emplace(sourcemeta::core::Pointer{"posts", "2024"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/post/2024"}});
+  map.emplace(sourcemeta::core::Pointer{"posts", "2024", "title"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/headline", false}},
+                  .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/blog",
+      "https://schema.org/blogPost": [
+        {
+          "@id": "https://example.com/post/2023",
+          "https://schema.org/headline": [ { "@value": "A" } ]
+        },
+        {
+          "@id": "https://example.com/post/2024",
+          "https://schema.org/headline": [ { "@value": "B" } ]
+        }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(index_container_of_literals) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "scores": { "math": 90, "art": 80 } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/report"}});
+  map.emplace(sourcemeta::core::Pointer{"scores"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/value", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Index}});
+  map.emplace(sourcemeta::core::Pointer{"scores", "math"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+  map.emplace(sourcemeta::core::Pointer{"scores", "art"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/report",
+      "https://schema.org/value": [ { "@value": 80 }, { "@value": 90 } ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(index_container_with_nested_set) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "groups": { "a": [ "x", "y" ] } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  map.emplace(sourcemeta::core::Pointer{"groups"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/item", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Index}});
+  map.emplace(sourcemeta::core::Pointer{"groups", "a"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Set}});
+  map.emplace(sourcemeta::core::Pointer{"groups", "a", 0},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+  map.emplace(sourcemeta::core::Pointer{"groups", "a", 1},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://schema.org/item": [ { "@value": "x" }, { "@value": "y" } ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(index_container_empty) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "posts": {} })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/blog"}});
+  map.emplace(sourcemeta::core::Pointer{"posts"},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {{"https://schema.org/blogPost", false}},
+                  .value = sourcemeta::core::JSONLDCollection{
+                      .container = sourcemeta::core::JSONLDContainer::Index}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "@id": "https://example.com/blog" }
   ])");
 
   const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
