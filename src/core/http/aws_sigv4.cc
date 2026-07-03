@@ -108,15 +108,18 @@ auto append_canonical_uri(std::string &output, std::string_view path,
     return;
   }
 
+  // Each segment is normalised in place, so a segment that arrives already
+  // percent-encoded is not encoded a second time
   std::size_t start{0};
   while (true) {
     const auto slash{path.find('/', start)};
     if (slash == std::string_view::npos) {
-      sourcemeta::core::URI::escape(path.substr(start), output);
+      sourcemeta::core::URI::escape(path.substr(start), output, true);
       break;
     }
 
-    sourcemeta::core::URI::escape(path.substr(start, slash - start), output);
+    sourcemeta::core::URI::escape(path.substr(start, slash - start), output,
+                                  true);
     output.push_back('/');
     start = slash + 1;
   }
@@ -128,12 +131,15 @@ auto append_canonical_query(std::string &output, const std::string_view query)
     return;
   }
 
+  // Each parameter is split off the encoded query, where delimiters are
+  // unambiguous, then normalised so that an encoded delimiter inside a value
+  // survives intact
   std::vector<std::pair<std::string, std::string>> parameters;
   for (const auto &[name, value] : sourcemeta::core::URI::Query{query}) {
     std::string encoded_name;
     std::string encoded_value;
-    sourcemeta::core::URI::escape(name, encoded_name);
-    sourcemeta::core::URI::escape(value, encoded_value);
+    sourcemeta::core::URI::escape(name, encoded_name, true);
+    sourcemeta::core::URI::escape(value, encoded_value, true);
     parameters.emplace_back(std::move(encoded_name), std::move(encoded_value));
   }
 

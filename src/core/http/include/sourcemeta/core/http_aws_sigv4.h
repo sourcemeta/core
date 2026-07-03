@@ -16,11 +16,11 @@ namespace sourcemeta::core {
 
 /// @ingroup http
 /// Compute the AWS Signature Version 4 canonical request from a request method,
-/// path, query, headers, and payload hash. The path and query are percent-
-/// encoded during canonicalization, so they must be provided in decoded form.
-/// When `normalize` is set the path is normalised by collapsing sequential
-/// slashes and removing dot segments, which every service except Amazon S3
-/// requires. For example:
+/// path, query, headers, and payload hash. Each path segment and query
+/// parameter is decoded and re-encoded into canonical form, so the path and
+/// query may be passed exactly as they appear in the request target. The path
+/// is optionally normalised by collapsing sequential slashes and removing dot
+/// segments, which every service except Amazon S3 requires. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/http.h>

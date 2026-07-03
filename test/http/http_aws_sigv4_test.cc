@@ -40,6 +40,33 @@ TEST(canonical_request_s3_preserves_dot_segments) {
   EXPECT_TRUE(canonical.starts_with("GET\n/foo/../bar\n"));
 }
 
+TEST(canonical_request_preserves_encoded_query_delimiter) {
+  const std::vector<std::pair<std::string_view, std::string_view>> headers{
+      {"Host", "example.amazonaws.com"}};
+  const auto canonical{sourcemeta::core::http_aws_sigv4_canonical_request(
+      "GET", "/", "a=b%26c&x=y", headers,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")};
+  EXPECT_TRUE(canonical.find("\na=b%26c&x=y\n") != std::string::npos);
+}
+
+TEST(canonical_request_does_not_double_encode_query) {
+  const std::vector<std::pair<std::string_view, std::string_view>> headers{
+      {"Host", "example.amazonaws.com"}};
+  const auto canonical{sourcemeta::core::http_aws_sigv4_canonical_request(
+      "GET", "/", "a=b%20c", headers,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")};
+  EXPECT_TRUE(canonical.find("\na=b%20c\n") != std::string::npos);
+}
+
+TEST(canonical_request_preserves_encoded_path_slash) {
+  const std::vector<std::pair<std::string_view, std::string_view>> headers{
+      {"Host", "example.amazonaws.com"}};
+  const auto canonical{sourcemeta::core::http_aws_sigv4_canonical_request(
+      "GET", "/foo%2Fbar", "", headers,
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")};
+  EXPECT_TRUE(canonical.starts_with("GET\n/foo%2Fbar\n"));
+}
+
 TEST(signed_headers_lowercases_and_sorts) {
   const std::vector<std::pair<std::string_view, std::string_view>> headers{
       {"X-Amz-Date", "20150830T123600Z"}, {"Host", "example.amazonaws.com"}};
