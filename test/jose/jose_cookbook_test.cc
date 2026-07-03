@@ -4,33 +4,30 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include <array>       // std::array
 #include <filesystem>  // std::filesystem::path
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
 // The IETF JOSE cookbook (RFC 7520) signs a plain text payload that is not a
 // JSON object, so its examples are valid signatures but not tokens. They are
-// verified here through the payload-agnostic signature engine rather than the
-// token layer. Each file carries the public key, the algorithm, and the compact
-// serialization whose first two segments are the signing input
-static auto verify_cookbook_signature(const std::string_view filename) -> bool {
+// exercised through the payload-agnostic signature engine rather than the token
+// layer. Each file carries the key, the algorithm, and the signing input, so
+// both verification and signing are driven from the same vectors
+namespace {
+
+auto load(const std::string_view filename) -> sourcemeta::core::JSON {
   const std::filesystem::path path{std::filesystem::path{JOSE_COOKBOOK_PATH} /
                                    "jws" / filename};
   auto stream{sourcemeta::core::read_file(path)};
-  const auto document{sourcemeta::core::parse_json(stream)};
+  return sourcemeta::core::parse_json(stream);
+}
 
-  const auto &compact{document.at("output").at("compact").to_string()};
-  const auto separator{compact.rfind('.')};
-  if (separator == std::string::npos) {
-    return false;
-  }
-
-  const std::string_view signing_input{
-      std::string_view{compact}.substr(0, separator)};
-  const auto signature{sourcemeta::core::base64url_decode(
-      std::string_view{compact}.substr(separator + 1))};
-
-  const auto &source_key{document.at("input").at("key")};
+// The public key, built by keeping only the public parameters the example key
+// carries alongside its private ones
+auto cookbook_public_key(const sourcemeta::core::JSON &source_key)
+    -> std::optional<sourcemeta::core::JWK> {
   const auto &type{source_key.at("kty").to_string()};
   auto key{sourcemeta::core::JSON::make_object()};
   key.assign("kty", source_key.at("kty"));
@@ -42,26 +39,76 @@ static auto verify_cookbook_signature(const std::string_view filename) -> bool {
     key.assign("x", source_key.at("x"));
     key.assign("y", source_key.at("y"));
   } else {
+    return std::nullopt;
+  }
+
+  return sourcemeta::core::JWK::from(key);
+}
+
+auto verify_example(const sourcemeta::core::JSON &document) -> bool {
+  const auto &signing_input{document.at("signing").at("sig-input").to_string()};
+  const auto signature{sourcemeta::core::base64url_decode(
+      document.at("signing").at("sig").to_string())};
+  const auto algorithm{sourcemeta::core::to_jws_algorithm(
+      document.at("input").at("alg").to_string())};
+  const auto key{cookbook_public_key(document.at("input").at("key"))};
+  return signature.has_value() && key.has_value() &&
+         sourcemeta::core::jws_verify_signature(algorithm, signing_input,
+                                                signature.value(), key.value());
+}
+
+auto sign_example(const sourcemeta::core::JSON &document) -> bool {
+  const auto &signing_input{document.at("signing").at("sig-input").to_string()};
+  const auto algorithm{sourcemeta::core::to_jws_algorithm(
+      document.at("input").at("alg").to_string())};
+  const auto key{
+      sourcemeta::core::JWKPrivate::from(document.at("input").at("key"))};
+  if (!algorithm.has_value() || !key.has_value()) {
     return false;
   }
 
-  const auto parsed_key{sourcemeta::core::JWK::from(key)};
-  const auto algorithm{sourcemeta::core::to_jws_algorithm(
-      document.at("input").at("alg").to_string())};
+  const auto signature{sourcemeta::core::jws_sign(algorithm.value(),
+                                                  signing_input, key.value())};
+  if (!signature.has_value()) {
+    return false;
+  }
 
-  return signature.has_value() && parsed_key.has_value() &&
-         sourcemeta::core::jws_verify_signature(
-             algorithm, signing_input, signature.value(), parsed_key.value());
+  // A reproducible example fixes its signature, while a randomized one can only
+  // be verified through the public key
+  if (document.defines("reproducible") &&
+      document.at("reproducible").to_boolean()) {
+    const auto expected{sourcemeta::core::base64url_decode(
+        document.at("signing").at("sig").to_string())};
+    return expected.has_value() && signature.value() == expected.value();
+  }
+
+  const auto verification_key{
+      cookbook_public_key(document.at("input").at("key"))};
+  return verification_key.has_value() &&
+         sourcemeta::core::jws_verify_signature(algorithm, signing_input,
+                                                signature.value(),
+                                                verification_key.value());
 }
 
-TEST(rsa_pkcs1_v15_rs256) {
-  EXPECT_TRUE(verify_cookbook_signature("4_1.rsa_v15_signature.json"));
-}
+} // namespace
 
-TEST(rsa_pss_ps384) {
-  EXPECT_TRUE(verify_cookbook_signature("4_2.rsa-pss_signature.json"));
-}
+auto main(int argc, char **argv) -> int {
+  // The single-signature asymmetric examples, which are the complete set our
+  // compact engine supports. The HMAC, detached, and general serialization
+  // examples are masked out of the vendored tree
+  constexpr std::array<std::string_view, 3> examples{
+      {"4_1.rsa_v15_signature.json", "4_2.rsa-pss_signature.json",
+       "4_3.ecdsa_signature.json"}};
 
-TEST(ecdsa_es512) {
-  EXPECT_TRUE(verify_cookbook_signature("4_3.ecdsa_signature.json"));
+  for (const auto example : examples) {
+    const auto name{std::filesystem::path{example}.stem().string()};
+    sourcemeta::core::test_register(name + ".verify", [example]() {
+      EXPECT_TRUE(verify_example(load(example)));
+    });
+    sourcemeta::core::test_register(name + ".sign", [example]() {
+      EXPECT_TRUE(sign_example(load(example)));
+    });
+  }
+
+  return sourcemeta::core::test_run(argc, argv);
 }
