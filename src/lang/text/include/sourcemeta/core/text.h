@@ -5,8 +5,10 @@
 #include <sourcemeta/core/text_export.h>
 #endif
 
+#include <array>       // std::array
 #include <concepts>    // std::same_as
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::int8_t
 #include <filesystem>  // std::filesystem::path
 #include <optional>    // std::optional
 #include <ostream>     // std::ostream
@@ -553,6 +555,57 @@ auto join_to(std::ostream &stream, const Range &items,
     stream << item;
     first = false;
   }
+}
+
+/// @ingroup text
+///
+/// Decode a single hexadecimal digit into its numeric value, returning a
+/// negative value when the character is not a hexadecimal digit. Both letter
+/// cases are accepted. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::hex_digit_value('a') == 10);
+/// assert(sourcemeta::core::hex_digit_value('z') < 0);
+/// ```
+inline auto hex_digit_value(const char character) noexcept -> std::int8_t {
+  // Indexed by byte value: ASCII '0'-'9', 'A'-'F', and 'a'-'f' map to their
+  // hexadecimal value, everything else to -1
+  static constexpr std::array<std::int8_t, 256> table{
+      {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,  1,  2,  3,  4,  5,
+       6,  7,  8,  9,  -1, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+       -1, -1, -1, -1}};
+  return table[static_cast<unsigned char>(character)];
+}
+
+/// @ingroup text
+///
+/// Check whether the given character is an ASCII hexadecimal digit
+/// (`'0'`-`'9'`, `'a'`-`'f'`, `'A'`-`'F'`). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::is_hex_digit('a'));
+/// assert(!sourcemeta::core::is_hex_digit('z'));
+/// ```
+inline auto is_hex_digit(const char character) noexcept -> bool {
+  return hex_digit_value(character) >= 0;
 }
 
 /// @ingroup text

@@ -1,7 +1,6 @@
 #include <sourcemeta/core/text.h>
 
 #include <cstddef>     // std::size_t
-#include <cstdint>     // std::int8_t
 #include <filesystem>  // std::filesystem::path
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -24,18 +23,6 @@ auto to_ascii_uppercase(const char character) noexcept -> char {
   return (character >= 'a' && character <= 'z')
              ? static_cast<char>(character - ('a' - 'A'))
              : character;
-}
-
-auto hex_digit_value(const char character) noexcept -> std::int8_t {
-  if (character >= '0' && character <= '9') {
-    return static_cast<std::int8_t>(character - '0');
-  } else if (character >= 'a' && character <= 'f') {
-    return static_cast<std::int8_t>(character - 'a' + 10);
-  } else if (character >= 'A' && character <= 'F') {
-    return static_cast<std::int8_t>(character - 'A' + 10);
-  } else {
-    return -1;
-  }
 }
 
 } // namespace

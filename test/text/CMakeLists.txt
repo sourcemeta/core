@@ -10,6 +10,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME text
           text_trim_test.cc text_take_until_test.cc text_split_once_test.cc
           text_split_test.cc text_join_to_test.cc
           text_hex_to_bytes_test.cc text_bytes_to_hex_test.cc
+          text_is_hex_digit_test.cc text_hex_digit_value_test.cc
           text_strip_left_test.cc text_strip_right_test.cc
           text_pad_left_test.cc text_squeeze_test.cc)
 
