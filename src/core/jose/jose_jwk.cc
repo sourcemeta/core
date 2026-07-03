@@ -6,7 +6,7 @@
 
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <utility>     // std::move, std::unreachable
 
 namespace {
 using namespace std::string_view_literals;
@@ -26,6 +26,20 @@ const auto HASH_DP{sourcemeta::core::JSON::Object::hash("dp"sv)};
 const auto HASH_DQ{sourcemeta::core::JSON::Object::hash("dq"sv)};
 const auto HASH_QI{sourcemeta::core::JSON::Object::hash("qi"sv)};
 const auto HASH_OTH{sourcemeta::core::JSON::Object::hash("oth"sv)};
+
+auto to_jwk_kind(const sourcemeta::core::JWK::Type type) noexcept
+    -> sourcemeta::core::JWKKind {
+  switch (type) {
+    case sourcemeta::core::JWK::Type::RSA:
+      return sourcemeta::core::JWKKind::RSA;
+    case sourcemeta::core::JWK::Type::EllipticCurve:
+      return sourcemeta::core::JWKKind::EllipticCurve;
+    case sourcemeta::core::JWK::Type::OctetKeyPair:
+      return sourcemeta::core::JWKKind::OctetKeyPair;
+  }
+
+  std::unreachable();
+}
 
 } // namespace
 
@@ -159,8 +173,7 @@ auto JWK::parse(const JSON &value, JWK &result) -> bool {
     // and otherwise leave it unset rather than rejecting an otherwise valid key
     const auto parsed{to_jws_algorithm(algorithm->to_string())};
     if (parsed.has_value() &&
-        jwk_algorithm_matches_key(parsed.value(),
-                                  static_cast<JWKKind>(result.type_),
+        jwk_algorithm_matches_key(parsed.value(), to_jwk_kind(result.type_),
                                   result.curve_)) {
       result.algorithm_ = parsed;
     }

@@ -87,7 +87,7 @@ LotnyAB/PnO2eU6aOt6q6EcZ
 TEST(jwk_private_from_pem_parses_rsa) {
   const auto key{sourcemeta::core::JWKPrivate::from_pem(RSA_PRIVATE_KEY_PEM)};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::JWKPrivate::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::JWKPrivate::Type::RSA);
   EXPECT_TRUE(key.value().private_key() != nullptr);
 }
 
@@ -95,7 +95,7 @@ TEST(jwk_private_from_json_parses_rsa) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(RSA_PRIVATE_JWK))};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() == sourcemeta::core::JWKPrivate::Type::RSA);
+  EXPECT_EQ(key.value().type(), sourcemeta::core::JWKPrivate::Type::RSA);
   EXPECT_TRUE(key.value().private_key() != nullptr);
 }
 
@@ -103,18 +103,20 @@ TEST(jwk_private_from_json_parses_ec) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::JWKPrivate::Type::EllipticCurve);
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::EllipticCurve);
   EXPECT_EQ(key.value().curve(), "P-256");
+  EXPECT_TRUE(key.value().private_key() != nullptr);
 }
 
 TEST(jwk_private_from_json_parses_okp) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OKP_PRIVATE_JWK))};
   EXPECT_TRUE(key.has_value());
-  EXPECT_TRUE(key.value().type() ==
-              sourcemeta::core::JWKPrivate::Type::OctetKeyPair);
+  EXPECT_EQ(key.value().type(),
+            sourcemeta::core::JWKPrivate::Type::OctetKeyPair);
   EXPECT_EQ(key.value().curve(), "Ed25519");
+  EXPECT_TRUE(key.value().private_key() != nullptr);
 }
 
 TEST(jwk_private_from_json_reads_key_id) {
@@ -135,8 +137,8 @@ TEST(jwk_private_from_json_reads_matching_algorithm) {
       R"("d":"ttepxcp-OwXCj4-v4sGcxRxQRXA8D5Svu02yhcHvbd0","alg":"ES256"})"))};
   EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(key.value().algorithm().has_value());
-  EXPECT_TRUE(key.value().algorithm().value() ==
-              sourcemeta::core::JWSAlgorithm::ES256);
+  EXPECT_EQ(key.value().algorithm().value(),
+            sourcemeta::core::JWSAlgorithm::ES256);
 }
 
 TEST(jwk_private_from_json_ignores_mismatched_algorithm) {

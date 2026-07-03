@@ -5,10 +5,7 @@
 #include <sourcemeta/core/jose_export.h>
 #endif
 
-// NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/jose_algorithm.h>
-#include <sourcemeta/core/jose_error.h>
-// NOLINTEND(misc-include-cleaner)
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>

@@ -47,6 +47,20 @@ auto required_base64url(const sourcemeta::core::JSON &value,
   return decoded;
 }
 
+auto to_jwk_kind(const sourcemeta::core::JWKPrivate::Type type) noexcept
+    -> sourcemeta::core::JWKKind {
+  switch (type) {
+    case sourcemeta::core::JWKPrivate::Type::RSA:
+      return sourcemeta::core::JWKKind::RSA;
+    case sourcemeta::core::JWKPrivate::Type::EllipticCurve:
+      return sourcemeta::core::JWKKind::EllipticCurve;
+    case sourcemeta::core::JWKPrivate::Type::OctetKeyPair:
+      return sourcemeta::core::JWKKind::OctetKeyPair;
+  }
+
+  std::unreachable();
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -103,8 +117,8 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
       return false;
     }
 
-    // The public coordinates and the private scalar are all required (RFC 7518
-    // Section 6.2.2)
+    // The public coordinates and the private scalar are all required and share
+    // the curve field width (RFC 7518 Sections 6.2.1 and 6.2.2)
     const auto coordinate_x{required_base64url(value, "x", HASH_X)};
     const auto coordinate_y{required_base64url(value, "y", HASH_Y)};
     const auto scalar{required_base64url(value, "d", HASH_D)};
@@ -112,7 +126,8 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
         coordinate_x.value().size() != coordinate_bytes.value() ||
         !coordinate_y.has_value() ||
         coordinate_y.value().size() != coordinate_bytes.value() ||
-        !scalar.has_value()) {
+        !scalar.has_value() ||
+        scalar.value().size() != coordinate_bytes.value()) {
       return false;
     }
 
@@ -132,10 +147,13 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
       return false;
     }
 
-    // The private seed is required and shares the public key length (RFC 8037
-    // Section 2)
+    // The public key and the private seed are both required and share the same
+    // length (RFC 8037 Section 2)
+    const auto public_key{required_base64url(value, "x", HASH_X)};
     const auto seed{required_base64url(value, "d", HASH_D)};
-    if (!seed.has_value() || seed.value().size() != key_bytes.value()) {
+    if (!public_key.has_value() ||
+        public_key.value().size() != key_bytes.value() || !seed.has_value() ||
+        seed.value().size() != key_bytes.value()) {
       return false;
     }
 
@@ -167,8 +185,7 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
     // and otherwise leave it unset rather than rejecting an otherwise valid key
     const auto parsed{to_jws_algorithm(algorithm->to_string())};
     if (parsed.has_value() &&
-        jwk_algorithm_matches_key(parsed.value(),
-                                  static_cast<JWKKind>(result.type_),
+        jwk_algorithm_matches_key(parsed.value(), to_jwk_kind(result.type_),
                                   result.curve_)) {
       result.algorithm_ = parsed;
     }
