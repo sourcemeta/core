@@ -151,6 +151,10 @@ auto ecdsa_signature_verifies(
   const auto key{sourcemeta::core::make_ec_private_key(
       curve, sourcemeta::core::hex_to_bytes(scalar_hex).value(),
       coordinate_x.value(), coordinate_y.value())};
+  if (!key.has_value()) {
+    return false;
+  }
+
   const auto signature{
       sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
   const auto public_key{sourcemeta::core::make_ec_public_key(

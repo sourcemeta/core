@@ -141,7 +141,9 @@ auto native_rsa_private_key(const std::string_view rsa_private_key) -> KeyPair {
   const auto exponent1{fields[5]};
   const auto exponent2{fields[6]};
   const auto coefficient{fields[7]};
-  if (modulus.empty()) {
+  // Bound the key size before the sizes drive allocations and are cast to the
+  // fixed-width blob length fields, matching the public-key parsing limit
+  if (modulus.empty() || modulus.size() > sourcemeta::core::MAXIMUM_KEY_BYTES) {
     return {.algorithm = nullptr, .key = nullptr};
   }
 

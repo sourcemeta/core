@@ -160,11 +160,15 @@ auto sign_rsa(EVP_PKEY *key, const sourcemeta::core::SignatureHashFunction hash,
     EVP_PKEY_CTX *key_context{nullptr};
     auto ready{EVP_DigestSignInit(context, &key_context,
                                   to_message_digest(hash), nullptr, key) == 1};
+    // The padding is set explicitly rather than left to the provider default,
+    // so a key restricted to one scheme cleanly rejects the other
     if (ready && probabilistic) {
       ready = EVP_PKEY_CTX_set_rsa_padding(key_context,
                                            RSA_PKCS1_PSS_PADDING) == 1 &&
               EVP_PKEY_CTX_set_rsa_pss_saltlen(key_context,
                                                RSA_PSS_SALTLEN_DIGEST) == 1;
+    } else if (ready) {
+      ready = EVP_PKEY_CTX_set_rsa_padding(key_context, RSA_PKCS1_PADDING) == 1;
     }
 
     if (ready) {
