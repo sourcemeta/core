@@ -110,6 +110,46 @@ auto verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
          sourcemeta::core::eddsa_verify(key.value(), message, signature);
 }
 
+// ECDSA and Ed25519 signing use a random nonce, so the output is not a fixed
+// known answer, and the aspect under test is that a fresh signature verifies
+auto sign_and_verify_ecdsa(const sourcemeta::core::EllipticCurve curve,
+                           const sourcemeta::core::SignatureHashFunction hash,
+                           const std::string_view scalar,
+                           const std::string_view coordinate_x,
+                           const std::string_view coordinate_y,
+                           const std::string_view message) -> bool {
+  const auto key{sourcemeta::core::make_ec_private_key(
+      curve, scalar, coordinate_x, coordinate_y)};
+  if (!key.has_value()) {
+    return false;
+  }
+
+  const auto signature{
+      sourcemeta::core::ecdsa_sign(key.value(), hash, message)};
+  const auto public_key{
+      sourcemeta::core::make_ec_public_key(curve, coordinate_x, coordinate_y)};
+  return signature.has_value() && public_key.has_value() &&
+         sourcemeta::core::ecdsa_verify(public_key.value(), hash, message,
+                                        signature.value());
+}
+
+auto sign_and_verify_eddsa(const sourcemeta::core::EdwardsCurve curve,
+                           const std::string_view seed,
+                           const std::string_view public_key,
+                           const std::string_view message) -> bool {
+  const auto key{sourcemeta::core::make_edwards_private_key(curve, seed)};
+  if (!key.has_value()) {
+    return false;
+  }
+
+  const auto signature{sourcemeta::core::eddsa_sign(key.value(), message)};
+  const auto verification_key{
+      sourcemeta::core::make_eddsa_public_key(curve, public_key)};
+  return signature.has_value() && verification_key.has_value() &&
+         sourcemeta::core::eddsa_verify(verification_key.value(), message,
+                                        signature.value());
+}
+
 auto register_case(const std::string &suite_name, const std::string &test_name,
                    std::function<void()> assertion) -> void {
   sourcemeta::core::test_register(suite_name + "." + test_name,
@@ -445,6 +485,77 @@ auto register_ecdsa_sigver_tests(const std::filesystem::path &file_path)
   });
 }
 
+auto register_ecdsa_siggen_tests(const std::filesystem::path &file_path)
+    -> void {
+  std::optional<CurveParameters> current_curve;
+  std::optional<sourcemeta::core::SignatureHashFunction> current_hash;
+  std::string message_hex;
+  std::string scalar_hex;
+  std::string coordinate_x_hex;
+  std::string coordinate_y_hex;
+  std::uint64_t case_count{0};
+
+  for_each_vector_line(file_path, [&](const std::string_view line) {
+    if (line.front() == '[') {
+      // The section header pairs a curve and a hash, like "[P-256,SHA-256]"
+      const auto header{sourcemeta::core::strip_right(
+          sourcemeta::core::strip_left(line, '['), ']')};
+      const auto parts{sourcemeta::core::split_once(header, ',')};
+      if (parts.has_value()) {
+        current_curve = to_curve(parts->first);
+        current_hash = to_signature_hash_function(parts->second);
+      }
+
+      return;
+    }
+
+    const auto field{
+        sourcemeta::core::split_once(line, std::string_view{" = "})};
+    if (!field.has_value()) {
+      return;
+    }
+
+    if (field->first == "Msg") {
+      message_hex = field->second;
+    } else if (field->first == "d") {
+      scalar_hex = field->second;
+    } else if (field->first == "Qx") {
+      coordinate_x_hex = field->second;
+    } else if (field->first == "Qy") {
+      coordinate_y_hex = field->second;
+    } else if (field->first == "S") {
+      case_count += 1;
+      if (!current_curve.has_value() || !current_hash.has_value()) {
+        return;
+      }
+
+      const auto width{current_curve.value().coordinate_bytes};
+      const auto curve{current_curve.value().curve};
+      const auto hash{current_hash.value()};
+      register_case(
+          "PyCA_Cryptography_ECDSA_SigGen",
+          "case_" + std::to_string(case_count), [=]() {
+            // The vectors elide leading zero nibbles, so an odd hex
+            // length means a single zero was dropped, and each value
+            // is padded to the curve width
+            const auto scalar{sourcemeta::core::pad_left(
+                sourcemeta::core::hex_to_bytes(scalar_hex, true).value(), width,
+                '\x00')};
+            const auto coordinate_x{sourcemeta::core::pad_left(
+                sourcemeta::core::hex_to_bytes(coordinate_x_hex, true).value(),
+                width, '\x00')};
+            const auto coordinate_y{sourcemeta::core::pad_left(
+                sourcemeta::core::hex_to_bytes(coordinate_y_hex, true).value(),
+                width, '\x00')};
+            const auto message{
+                sourcemeta::core::hex_to_bytes(message_hex, true).value()};
+            EXPECT_TRUE(sign_and_verify_ecdsa(curve, hash, scalar, coordinate_x,
+                                              coordinate_y, message));
+          });
+    }
+  });
+}
+
 auto register_eddsa_25519_tests(const std::filesystem::path &file_path)
     -> void {
   std::uint64_t case_count{0};
@@ -539,6 +650,106 @@ auto register_eddsa_448_tests(const std::filesystem::path &file_path) -> void {
     }
   });
 }
+
+auto register_eddsa_25519_sign_tests(const std::filesystem::path &file_path)
+    -> void {
+  std::uint64_t case_count{0};
+
+  for_each_vector_line(file_path, [&](const std::string_view line) {
+    const auto first{sourcemeta::core::split_once(line, ':')};
+    if (!first.has_value()) {
+      return;
+    }
+
+    const auto second{sourcemeta::core::split_once(first->second, ':')};
+    if (!second.has_value()) {
+      return;
+    }
+
+    const auto third{sourcemeta::core::split_once(second->second, ':')};
+    if (!third.has_value()) {
+      return;
+    }
+
+    // The secret field is the 32-byte seed concatenated with the public key
+    const std::string seed_hex{std::string{first->first}.substr(0, 64)};
+    const std::string public_key_hex{second->first};
+    const std::string message_hex{third->first};
+    case_count += 1;
+    register_case("PyCA_Cryptography_Ed25519_SigGen",
+                  "case_" + std::to_string(case_count), [=]() {
+                    EXPECT_TRUE(sign_and_verify_eddsa(
+                        sourcemeta::core::EdwardsCurve::Ed25519,
+                        sourcemeta::core::hex_to_bytes(seed_hex).value(),
+                        sourcemeta::core::hex_to_bytes(public_key_hex).value(),
+                        sourcemeta::core::hex_to_bytes(message_hex).value()));
+                  });
+  });
+}
+
+auto register_eddsa_448_sign_tests(const std::filesystem::path &file_path)
+    -> void {
+  std::string current_count;
+  std::string secret_hex;
+  std::string message_hex;
+  bool has_context{false};
+
+  for_each_vector_line(file_path, [&](const std::string_view line) {
+    const auto separator{line.find('=')};
+    if (separator == std::string_view::npos) {
+      return;
+    }
+
+    auto key{line.substr(0, separator)};
+    while (!key.empty() && key.back() == ' ') {
+      key.remove_suffix(1);
+    }
+
+    auto value{line.substr(separator + 1)};
+    while (!value.empty() && value.front() == ' ') {
+      value.remove_prefix(1);
+    }
+
+    if (key == "COUNT") {
+      current_count = value;
+      has_context = false;
+    } else if (key == "SECRET") {
+      secret_hex = value;
+    } else if (key == "MESSAGE") {
+      message_hex = value;
+    } else if (key == "CONTEXT") {
+      // JWS uses Ed448 with an empty context (RFC 8037 Section 3.1), and only
+      // an empty context yields the deterministic signature checked here
+      has_context = !value.empty();
+    } else if (key == "SIGNATURE") {
+      if (has_context) {
+        return;
+      }
+
+      const auto seed{secret_hex};
+      const auto message{message_hex};
+      const std::string expected_signature_hex{value};
+      register_case(
+          "PyCA_Cryptography_Ed448_SigGen", "count_" + current_count, [=]() {
+            const auto key_pair{sourcemeta::core::make_edwards_private_key(
+                sourcemeta::core::EdwardsCurve::Ed448,
+                sourcemeta::core::hex_to_bytes(seed).value())};
+            std::string signature_hex_got;
+            if (key_pair.has_value()) {
+              const auto signature{sourcemeta::core::eddsa_sign(
+                  key_pair.value(),
+                  sourcemeta::core::hex_to_bytes(message).value())};
+              if (signature.has_value()) {
+                signature_hex_got =
+                    sourcemeta::core::bytes_to_hex(signature.value());
+              }
+            }
+
+            EXPECT_EQ(signature_hex_got, expected_signature_hex);
+          });
+    }
+  });
+}
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -563,11 +774,17 @@ auto main(int argc, char **argv) -> int {
 
   register_ecdsa_sigver_tests(suite_path / "asymmetric" / "ECDSA" /
                               "FIPS_186-3" / "SigVer.rsp");
+  register_ecdsa_siggen_tests(suite_path / "asymmetric" / "ECDSA" /
+                              "FIPS_186-3" / "SigGen.txt");
 
   register_eddsa_25519_tests(suite_path / "asymmetric" / "Ed25519" /
                              "sign.input");
+  register_eddsa_25519_sign_tests(suite_path / "asymmetric" / "Ed25519" /
+                                  "sign.input");
 
   register_eddsa_448_tests(suite_path / "asymmetric" / "Ed448" / "rfc8032.txt");
+  register_eddsa_448_sign_tests(suite_path / "asymmetric" / "Ed448" /
+                                "rfc8032.txt");
 
   return sourcemeta::core::test_run(argc, argv);
 }

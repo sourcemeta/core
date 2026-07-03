@@ -24,6 +24,13 @@ target_link_libraries(sourcemeta_core_crypto_unit
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::text)
 
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME sign
+  SOURCES crypto_sign_test.cc)
+target_link_libraries(sourcemeta_core_sign_unit
+  PRIVATE sourcemeta::core::crypto)
+target_link_libraries(sourcemeta_core_sign_unit
+  PRIVATE sourcemeta::core::text)
+
 # pyca/cryptography Test Vectors
 # See https://github.com/pyca/cryptography
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME pyca_cryptography

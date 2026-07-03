@@ -16,4 +16,13 @@ public final class SourcemetaCoreEd25519: NSObject {
 
     return key.isValidSignature(signature, for: message)
   }
+
+  @objc public static func sign(seed: Data, message: Data) -> Data? {
+    guard let key = try? Curve25519.Signing.PrivateKey(
+        rawRepresentation: seed) else {
+      return nil
+    }
+
+    return try? key.signature(for: message)
+  }
 }
