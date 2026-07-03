@@ -153,14 +153,14 @@ auto native_ec_private_key(const std::string_view sec1,
     rest = element->rest;
   }
 
-  if (point.empty()) {
+  const auto stripped_scalar{
+      sourcemeta::core::strip_left(scalar->content, '\x00')};
+  if (point.empty() || stripped_scalar.empty()) {
     return nullptr;
   }
 
   std::string data{point};
-  data.append(sourcemeta::core::pad_left(
-      sourcemeta::core::strip_left(scalar->content, '\x00'), field_bytes,
-      '\x00'));
+  data.append(sourcemeta::core::pad_left(stripped_scalar, field_bytes, '\x00'));
   return native_private_key(kSecAttrKeyTypeECSECPrimeRandom, data);
 }
 

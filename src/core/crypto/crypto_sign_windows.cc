@@ -133,6 +133,12 @@ auto native_rsa_private_key(const std::string_view rsa_private_key) -> KeyPair {
     }
 
     field = sourcemeta::core::strip_left(element->content, '\x00');
+    // Every field feeds a blob length or padding width, so oversize input is
+    // rejected before it drives a cast or an allocation
+    if (field.size() > sourcemeta::core::MAXIMUM_KEY_BYTES) {
+      return {.algorithm = nullptr, .key = nullptr};
+    }
+
     rest = element->rest;
   }
 
@@ -223,7 +229,9 @@ auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
     rest = element->rest;
   }
 
-  if (point.size() != 2 * field_bytes) {
+  const auto stripped_scalar{
+      sourcemeta::core::strip_left(scalar->content, '\x00')};
+  if (point.size() != 2 * field_bytes || stripped_scalar.empty()) {
     return {.algorithm = nullptr, .key = nullptr};
   }
 
@@ -235,9 +243,7 @@ auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
   blob.resize(sizeof(header));
   std::memcpy(blob.data(), &header, sizeof(header));
   blob.append(point);
-  blob.append(sourcemeta::core::pad_left(
-      sourcemeta::core::strip_left(scalar->content, '\x00'), field_bytes,
-      '\x00'));
+  blob.append(sourcemeta::core::pad_left(stripped_scalar, field_bytes, '\x00'));
   return import_key_pair(to_ecdsa_algorithm(curve), BCRYPT_ECCPRIVATE_BLOB,
                          blob);
 }

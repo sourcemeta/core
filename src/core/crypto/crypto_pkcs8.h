@@ -63,8 +63,13 @@ inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
     return std::nullopt;
   }
 
+  // Only the two defined OneAsymmetricKey versions are accepted (RFC 5958
+  // Section 2): v1 for the bare private key and v2 which may append a public
+  // key, both encoded as a single-octet INTEGER
   const auto version{der_read(outer->content)};
-  if (!version.has_value() || version->tag != 0x02) {
+  if (!version.has_value() || version->tag != 0x02 ||
+      version->content.size() != 1 ||
+      static_cast<unsigned char>(version->content.front()) > 1) {
     return std::nullopt;
   }
 

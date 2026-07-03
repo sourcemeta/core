@@ -11,6 +11,7 @@
 #include <openssl/pem.h>         // PEM_read_bio_PrivateKey, BIO_*
 #include <openssl/rsa.h> // RSA_PKCS1_PSS_PADDING, RSA_PSS_SALTLEN_DIGEST
 
+#include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -74,6 +75,32 @@ auto to_pkey_id(const sourcemeta::core::EdwardsCurve curve) noexcept -> int {
   }
 
   std::unreachable();
+}
+
+// The signing functions only cover the three NIST prime curves, so a parsed key
+// on any other group is rejected here rather than producing a signature that no
+// matching public key can be built for
+auto supported_ec_field_bytes(EVP_PKEY *key) -> std::optional<std::size_t> {
+  std::array<char, 64> group{};
+  std::size_t length{0};
+  if (EVP_PKEY_get_utf8_string_param(key, OSSL_PKEY_PARAM_GROUP_NAME,
+                                     group.data(), group.size(),
+                                     &length) != 1) {
+    return std::nullopt;
+  }
+
+  const std::string_view name{group.data(), length};
+  if (name == "prime256v1" || name == "P-256") {
+    return 32;
+  }
+  if (name == "secp384r1" || name == "P-384") {
+    return 48;
+  }
+  if (name == "secp521r1" || name == "P-521") {
+    return 66;
+  }
+
+  return std::nullopt;
 }
 
 auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
@@ -261,10 +288,17 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
     case EVP_PKEY_RSA_PSS:
       kind = PrivateKey::Type::RSA;
       break;
-    case EVP_PKEY_EC:
+    case EVP_PKEY_EC: {
+      const auto supported{supported_ec_field_bytes(key)};
+      if (!supported.has_value()) {
+        EVP_PKEY_free(key);
+        return std::nullopt;
+      }
+
       kind = PrivateKey::Type::EllipticCurve;
-      field_bytes = static_cast<std::size_t>((EVP_PKEY_get_bits(key) + 7) / 8);
+      field_bytes = supported.value();
       break;
+    }
     case EVP_PKEY_ED25519:
     case EVP_PKEY_ED448:
       kind = PrivateKey::Type::Edwards;

@@ -436,14 +436,20 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
         return std::nullopt;
       }
 
+      const auto stripped_scalar{strip_left(scalar->content, '\x00')};
+      const auto scalar_width{curve_field_bytes(parsed->curve)};
+      // A zero or oversized scalar is not a valid private key
+      if (stripped_scalar.empty() || stripped_scalar.size() > scalar_width) {
+        return std::nullopt;
+      }
+
       return PrivateKey{new PrivateKey::Internal{
           .kind = PrivateKey::Type::EllipticCurve,
           .modulus = {},
           .public_exponent = {},
           .private_exponent = {},
           .scalar =
-              std::string{pad_left(strip_left(scalar->content, '\x00'),
-                                   curve_field_bytes(parsed->curve), '\x00')},
+              std::string{pad_left(stripped_scalar, scalar_width, '\x00')},
           .elliptic_curve = parsed->curve,
           .edwards_seed = {},
           .edwards_curve = {}}};
@@ -472,11 +478,17 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
 }
 
 auto make_ec_private_key(const EllipticCurve curve,
-                         const std::string_view scalar, const std::string_view,
-                         const std::string_view) -> std::optional<PrivateKey> {
+                         const std::string_view scalar,
+                         const std::string_view coordinate_x,
+                         const std::string_view coordinate_y)
+    -> std::optional<PrivateKey> {
   const auto stripped{strip_left(scalar, '\x00')};
   const auto width{curve_field_bytes(curve)};
-  if (stripped.empty() || stripped.size() > width) {
+  // The scalar alone drives signing here, but the public coordinates are still
+  // range-checked so that malformed input is rejected as on the other backends
+  if (stripped.empty() || stripped.size() > width ||
+      strip_left(coordinate_x, '\x00').size() > width ||
+      strip_left(coordinate_y, '\x00').size() > width) {
     return std::nullopt;
   }
 
