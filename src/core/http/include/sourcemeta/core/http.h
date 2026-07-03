@@ -6,6 +6,7 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/http_aws_sigv4.h>
 #include <sourcemeta/core/http_error.h>
 #include <sourcemeta/core/http_message.h>
 #include <sourcemeta/core/http_method.h>
