@@ -85,6 +85,20 @@ make_edwards_private_key(const EdwardsCurve curve, const std::string_view seed)
     -> std::optional<PrivateKey>;
 
 /// @ingroup crypto
+/// Parse an RSA private key from the components of its two-prime form (RFC 8017
+/// Section 3.2), each a raw big-endian integer, in the order modulus, public
+/// exponent, private exponent, first prime, second prime, first prime exponent,
+/// second prime exponent, and coefficient. Every component is required, as the
+/// platform backends import the key from its full private structure rather than
+/// recomputing the primes. Returns no value when the material is malformed.
+auto SOURCEMETA_CORE_CRYPTO_EXPORT make_rsa_private_key(
+    const std::string_view modulus, const std::string_view public_exponent,
+    const std::string_view private_exponent, const std::string_view prime1,
+    const std::string_view prime2, const std::string_view exponent1,
+    const std::string_view exponent2, const std::string_view coefficient)
+    -> std::optional<PrivateKey>;
+
+/// @ingroup crypto
 /// Produce an RSASSA-PKCS1-v1_5 signature (RFC 8017 Section 8.2.1) over a
 /// message, returning no value when the key is not an RSA key. For example:
 ///
