@@ -87,6 +87,14 @@ inline auto der_append_length(std::string &output, const std::size_t length)
   output.append(octets);
 }
 
+// Append a complete DER element, wrapping the content in its tag and length
+inline auto der_append_element(std::string &output, const unsigned char tag,
+                               const std::string_view content) -> void {
+  output.push_back(static_cast<char>(tag));
+  der_append_length(output, content.size());
+  output.append(content);
+}
+
 // Append a DER INTEGER holding the big-endian unsigned value
 inline auto der_append_unsigned_integer(std::string &output,
                                         std::string_view value) -> void {

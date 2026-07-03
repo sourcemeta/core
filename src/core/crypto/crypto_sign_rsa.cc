@@ -18,13 +18,6 @@ constexpr std::array<std::uint8_t, 15> RSA_ALGORITHM_IDENTIFIER{
     {0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01,
      0x01, 0x05, 0x00}};
 
-auto der_append_element(std::string &output, const unsigned char tag,
-                        const std::string_view content) -> void {
-  output.push_back(static_cast<char>(tag));
-  sourcemeta::core::der_append_length(output, content.size());
-  output.append(content);
-}
-
 } // namespace
 
 namespace sourcemeta::core {

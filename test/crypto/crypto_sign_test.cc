@@ -215,19 +215,6 @@ auto ecdsa_signature_verifies(
                                         signature.value());
 }
 
-auto rsa_private_key_from_components()
-    -> std::optional<sourcemeta::core::PrivateKey> {
-  return sourcemeta::core::make_rsa_private_key(
-      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
-      sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
-      sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
-      sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
-      sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
-      sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value());
-}
-
 } // namespace
 
 TEST(make_private_key_parses_rsa) {
@@ -237,13 +224,29 @@ TEST(make_private_key_parses_rsa) {
 }
 
 TEST(make_rsa_private_key_parses_rsa) {
-  const auto key{rsa_private_key_from_components()};
+  const auto key{sourcemeta::core::make_rsa_private_key(
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
   EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
 }
 
 TEST(make_rsa_private_key_from_components_matches_known_answer) {
-  const auto key{rsa_private_key_from_components()};
+  const auto key{sourcemeta::core::make_rsa_private_key(
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())};
   const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
       key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
   EXPECT_TRUE(signature.has_value());

@@ -85,12 +85,12 @@ make_edwards_private_key(const EdwardsCurve curve, const std::string_view seed)
     -> std::optional<PrivateKey>;
 
 /// @ingroup crypto
-/// Parse an RSA private key from its components in the two-prime form (RFC 8017
-/// Section 3.2), each given as a raw big-endian integer in the order modulus,
-/// public exponent, private exponent, the two primes, the two exponents, and
-/// the coefficient. The Chinese remainder theorem parameters are all required
-/// because some backends need them to import the key. Returns no value when the
-/// material is malformed.
+/// Parse an RSA private key from the components of its two-prime form (RFC 8017
+/// Section 3.2), each a raw big-endian integer, in the order modulus, public
+/// exponent, private exponent, first prime, second prime, first prime exponent,
+/// second prime exponent, and coefficient. Every component is required, as the
+/// platform backends import the key from its full private structure rather than
+/// recomputing the primes. Returns no value when the material is malformed.
 auto SOURCEMETA_CORE_CRYPTO_EXPORT make_rsa_private_key(
     const std::string_view modulus, const std::string_view public_exponent,
     const std::string_view private_exponent, const std::string_view prime1,
