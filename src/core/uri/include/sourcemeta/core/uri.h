@@ -227,6 +227,20 @@ public:
   /// ```
   [[nodiscard]] auto port() const -> std::optional<std::uint32_t>;
 
+  /// Get the recomposed authority component of the URI, if any, in the RFC 3986
+  /// form `[ userinfo "@" ] host [ ":" port ]`, with IPv6 hosts wrapped in
+  /// brackets. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  ///
+  /// const sourcemeta::core::URI uri{"https://example.com:8443/foo"};
+  /// assert(uri.authority().has_value());
+  /// assert(uri.authority().value() == "example.com:8443");
+  /// ```
+  [[nodiscard]] auto authority() const -> std::optional<std::string>;
+
   /// Get the path part of the URI, if any. For example:
   ///
   /// ```cpp
