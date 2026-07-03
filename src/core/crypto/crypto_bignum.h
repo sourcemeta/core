@@ -8,9 +8,12 @@
 
 #include <sourcemeta/core/numeric.h>
 
+#include "crypto_random.h"
+
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint64_t
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -500,6 +503,22 @@ inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)
   }
 
   return result;
+}
+
+// A uniform random scalar in [1, modulus - 1], drawn with extra bytes so that
+// the modular reduction leaves negligible bias. Used as a per-signature secret
+inline auto bignum_random_scalar(const Bignum &modulus) -> Bignum {
+  const auto length{((bignum_bit_length(modulus) + 7) / 8) + 8};
+  std::string buffer(length, '\x00');
+  while (true) {
+    fill_random_bytes(std::span<std::uint8_t>{
+        reinterpret_cast<std::uint8_t *>(buffer.data()), length});
+    auto value{bignum_from_bytes(buffer)};
+    bignum_reduce(value, modulus);
+    if (!bignum_is_zero(value)) {
+      return value;
+    }
+  }
 }
 
 } // namespace sourcemeta::core

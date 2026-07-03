@@ -1,5 +1,4 @@
 #include <sourcemeta/core/crypto.h>
-#include <sourcemeta/core/crypto_sign.h>
 #include <sourcemeta/core/text.h>
 
 #include "crypto_bignum.h"
@@ -161,19 +160,6 @@ auto digest_to_integer(const SignatureHashFunction hash,
   return value;
 }
 
-// A uniform per-signature secret in [1, order - 1], drawn with extra bytes so
-// that the modular reduction leaves negligible bias
-auto random_scalar(const Bignum &order) -> Bignum {
-  const auto length{((bignum_bit_length(order) + 7) / 8) + 8};
-  while (true) {
-    auto value{bignum_from_bytes(random_bytes(length))};
-    bignum_reduce(value, order);
-    if (!bignum_is_zero(value)) {
-      return value;
-    }
-  }
-}
-
 auto sign_rsa(const std::string_view modulus,
               const std::string_view private_exponent,
               const std::string_view encoded_message) -> std::string {
@@ -197,7 +183,7 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
                                 .z = bignum_from_u64(1)};
 
   for (std::size_t attempt = 0; attempt < 256; ++attempt) {
-    const auto nonce{random_scalar(parameters.order)};
+    const auto nonce{bignum_random_scalar(parameters.order)};
     const auto point{point_double_scalar_multiply(
         nonce, generator, bignum_from_u64(0), generator, parameters)};
     if (point_is_infinity(point)) {
