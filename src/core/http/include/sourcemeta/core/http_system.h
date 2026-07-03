@@ -134,7 +134,7 @@ public:
   ///
   /// sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
   /// request.header("Accept", "application/json");
-  /// assert(request.header("accept") == "application/json");
+  /// assert(request.header("accept").value() == "application/json");
   /// ```
   [[nodiscard]] auto header(const std::string_view name) const
       -> std::optional<std::string_view> {
