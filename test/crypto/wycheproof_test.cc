@@ -64,6 +64,31 @@ auto load(const std::filesystem::path &path) -> sourcemeta::core::JSON {
   return sourcemeta::core::parse_json(stream);
 }
 
+// The vectors carry the private key as raw PKCS#8, so it is base64 wrapped into
+// the PEM document that the key parser consumes
+auto to_pkcs8_pem(const std::string_view der) -> std::string {
+  const auto encoded{sourcemeta::core::base64_encode(der)};
+  std::string pem{"-----BEGIN PRIVATE KEY-----\n"};
+  for (std::size_t offset{0}; offset < encoded.size(); offset += 64) {
+    pem.append(encoded.substr(offset, 64));
+    pem.push_back('\n');
+  }
+
+  pem.append("-----END PRIVATE KEY-----\n");
+  return pem;
+}
+
+auto sign_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
+                const std::string_view pkcs8_pem,
+                const std::string_view message) -> std::optional<std::string> {
+  const auto key{sourcemeta::core::make_private_key(pkcs8_pem)};
+  if (!key.has_value()) {
+    return std::nullopt;
+  }
+
+  return sourcemeta::core::rsassa_pkcs1_v15_sign(key.value(), hash, message);
+}
+
 auto verify_pkcs1(const sourcemeta::core::SignatureHashFunction hash,
                   const std::string_view modulus,
                   const std::string_view exponent,
@@ -151,6 +176,47 @@ auto register_rsa_tests(const std::filesystem::path &path,
                        sourcemeta::core::strip_left(modulus.value(), '\x00'),
                        exponent.value(), message.value(), signature.value())};
             EXPECT_EQ(got, expected);
+          });
+    }
+  }
+}
+
+// The RSASSA-PKCS1-v1_5 generation vectors carry a private key and the exact
+// signature it must produce, so signing is checked against a fixed known answer
+auto register_rsa_sign_tests(const std::filesystem::path &path,
+                             const std::string &suite_name) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    const auto hash{to_signature_hash_function(group.at("sha").to_string())};
+    // Only the SHA-2 family is supported, and a small public exponent key is
+    // not loadable on every backend, so both are skipped
+    if (!hash.has_value() ||
+        group.at("privateKey").at("publicExponent").to_string() != "010001") {
+      continue;
+    }
+
+    const auto hash_function{hash.value()};
+    const std::string private_key_hex{group.at("privateKeyPkcs8").to_string()};
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string message_hex{test.at("msg").to_string()};
+      const std::string signature_hex{test.at("sig").to_string()};
+      const auto identifier{test.at("tcId").to_integer()};
+      register_case(
+          suite_name, stem + "_tc" + std::to_string(identifier), [=]() {
+            const auto der{sourcemeta::core::hex_to_bytes(private_key_hex)};
+            const auto message{sourcemeta::core::hex_to_bytes(message_hex)};
+            std::string signature_hex_got;
+            if (der.has_value() && message.has_value()) {
+              const auto signature{sign_pkcs1(
+                  hash_function, to_pkcs8_pem(der.value()), message.value())};
+              if (signature.has_value()) {
+                signature_hex_got =
+                    sourcemeta::core::bytes_to_hex(signature.value());
+              }
+            }
+
+            EXPECT_EQ(signature_hex_got, signature_hex);
           });
     }
   }
@@ -294,6 +360,15 @@ auto main(int argc, char **argv) -> int {
   for (const auto name : rsa_pss) {
     register_rsa_tests(vectors / (std::string{name} + ".json"),
                        "Wycheproof_RSA_PSS", verify_pss);
+  }
+
+  constexpr std::array<std::string_view, 5> rsa_pkcs1_sign{
+      {"rsa_pkcs1_1024_sig_gen_test", "rsa_pkcs1_1536_sig_gen_test",
+       "rsa_pkcs1_2048_sig_gen_test", "rsa_pkcs1_3072_sig_gen_test",
+       "rsa_pkcs1_4096_sig_gen_test"}};
+  for (const auto name : rsa_pkcs1_sign) {
+    register_rsa_sign_tests(vectors / (std::string{name} + ".json"),
+                            "Wycheproof_RSA_PKCS1_Sign");
   }
 
   constexpr std::array<std::string_view, 5> ecdsa{
