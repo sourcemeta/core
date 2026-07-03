@@ -13,6 +13,7 @@
 #include <sourcemeta/core/jose_jwks.h>
 #include <sourcemeta/core/jose_jwks_provider.h>
 #include <sourcemeta/core/jose_jwt.h>
+#include <sourcemeta/core/jose_sign.h>
 #include <sourcemeta/core/jose_verify.h>
 // NOLINTEND(misc-include-cleaner)
 
