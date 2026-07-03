@@ -22,6 +22,7 @@
 #include <sourcemeta/core/crypto_sha256.h>
 #include <sourcemeta/core/crypto_sha384.h>
 #include <sourcemeta/core/crypto_sha512.h>
+#include <sourcemeta/core/crypto_sign.h>
 #include <sourcemeta/core/crypto_uuid.h>
 #include <sourcemeta/core/crypto_verify.h>
 
