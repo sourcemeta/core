@@ -15,6 +15,10 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME http
 
 target_link_libraries(sourcemeta_core_http_unit
   PRIVATE sourcemeta::core::http)
+target_link_libraries(sourcemeta_core_http_unit
+  PRIVATE sourcemeta::core::crypto)
+target_link_libraries(sourcemeta_core_http_unit
+  PRIVATE sourcemeta::core::time)
 
 # Official AWS Signature Version 4 Test Suite
 # See https://docs.aws.amazon.com/general/latest/gr/signature-v4-test-suite.html

@@ -5,6 +5,7 @@
 #include <sourcemeta/core/http_export.h>
 #endif
 
+#include <sourcemeta/core/http_aws_sigv4.h>
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_status.h>
 #include <sourcemeta/core/text.h>
@@ -190,6 +191,29 @@ public:
     this->maximum_response_size_ = value;
     return *this;
   }
+
+  /// Sign this request with AWS Signature Version 4, stamping the `x-amz-date`,
+  /// `x-amz-content-sha256`, and `Authorization` headers, plus
+  /// `x-amz-security-token` when the credentials carry a session token. The
+  /// path is normalised for every service except Amazon S3. The timestamp
+  /// defaults to the current time. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/http.h>
+  ///
+  /// sourcemeta::core::HTTPSystemRequest request{
+  ///     "https://example.s3.amazonaws.com/key",
+  ///     sourcemeta::core::HTTPMethod::GET};
+  /// request.sign_aws_sigv4({.access_key_id = "AKIDEXAMPLE",
+  ///                         .secret_access_key = "secret"},
+  ///                        "us-east-1", "s3");
+  /// ```
+  auto sign_aws_sigv4(const HTTPAWSCredentials &credentials,
+                      const std::string_view region,
+                      const std::string_view service,
+                      const std::chrono::system_clock::time_point moment =
+                          std::chrono::system_clock::now())
+      -> HTTPSystemRequest &;
 
   /// Perform the request. A failure to obtain a response is reported as an
   /// error, while unsuccessful status codes are returned on the result
