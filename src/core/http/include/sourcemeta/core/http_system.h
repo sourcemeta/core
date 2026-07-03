@@ -7,14 +7,16 @@
 
 #include <sourcemeta/core/http_method.h>
 #include <sourcemeta/core/http_status.h>
+#include <sourcemeta/core/text.h>
 
-#include <chrono>    // std::chrono::milliseconds, std::chrono::seconds
-#include <cstddef>   // std::size_t
-#include <optional>  // std::optional
-#include <stdexcept> // std::runtime_error
-#include <string>    // std::string
-#include <utility>   // std::move, std::pair
-#include <vector>    // std::vector
+#include <chrono>      // std::chrono::milliseconds, std::chrono::seconds
+#include <cstddef>     // std::size_t
+#include <optional>    // std::optional
+#include <stdexcept>   // std::runtime_error
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move, std::pair
+#include <vector>      // std::vector
 
 namespace sourcemeta::core {
 
@@ -121,6 +123,33 @@ public:
   auto header(std::string name, std::string value) -> HTTPSystemRequest & {
     this->headers_.emplace_back(std::move(name), std::move(value));
     return *this;
+  }
+
+  /// Get the value of the first header with the given name, compared case
+  /// insensitively, or no value when no such header was added. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/http.h>
+  /// #include <cassert>
+  ///
+  /// sourcemeta::core::HTTPSystemRequest request{"https://example.com"};
+  /// request.header("Accept", "application/json");
+  /// assert(request.header("accept").value() == "application/json");
+  /// ```
+  [[nodiscard]] auto header(const std::string_view name) const
+      -> std::optional<std::string_view> {
+    for (const auto &[key, value] : this->headers_) {
+      if (equals_ignore_case(key, name)) {
+        return value;
+      }
+    }
+
+    return std::nullopt;
+  }
+
+  /// Get the request headers configured so far, in the order they were added
+  [[nodiscard]] auto headers() const noexcept -> const auto & {
+    return this->headers_;
   }
 
   /// Set the request body, sent along with the given `Content-Type` header
