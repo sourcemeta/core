@@ -231,7 +231,8 @@ auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
 
   const auto stripped_scalar{
       sourcemeta::core::strip_left(scalar->content, '\x00')};
-  if (point.size() != 2 * field_bytes || stripped_scalar.empty()) {
+  if (point.size() != 2 * field_bytes || stripped_scalar.empty() ||
+      stripped_scalar.size() > field_bytes) {
     return {.algorithm = nullptr, .key = nullptr};
   }
 

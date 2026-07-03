@@ -155,7 +155,8 @@ auto native_ec_private_key(const std::string_view sec1,
 
   const auto stripped_scalar{
       sourcemeta::core::strip_left(scalar->content, '\x00')};
-  if (point.empty() || stripped_scalar.empty()) {
+  if (point.empty() || stripped_scalar.empty() ||
+      stripped_scalar.size() > field_bytes) {
     return nullptr;
   }
 
