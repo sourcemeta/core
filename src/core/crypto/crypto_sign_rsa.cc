@@ -1,0 +1,83 @@
+#include <sourcemeta/core/crypto_base64.h>
+#include <sourcemeta/core/crypto_sign.h>
+
+#include "crypto_der.h"
+
+#include <array>       // std::array
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
+#include <optional>    // std::optional, std::nullopt
+#include <string>      // std::string
+#include <string_view> // std::string_view
+
+namespace {
+
+// The rsaEncryption AlgorithmIdentifier (1.2.840.113549.1.1.1 with a NULL
+// parameter), taken verbatim as it never varies for an RSA key
+constexpr std::array<std::uint8_t, 15> RSA_ALGORITHM_IDENTIFIER{
+    {0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01,
+     0x01, 0x05, 0x00}};
+
+auto der_append_element(std::string &output, const unsigned char tag,
+                        const std::string_view content) -> void {
+  output.push_back(static_cast<char>(tag));
+  sourcemeta::core::der_append_length(output, content.size());
+  output.append(content);
+}
+
+} // namespace
+
+namespace sourcemeta::core {
+
+// The private key components are assembled into a PKCS#8 document, which every
+// backend already parses, rather than teaching each backend to build a native
+// key from raw integers
+auto make_rsa_private_key(
+    const std::string_view modulus, const std::string_view public_exponent,
+    const std::string_view private_exponent, const std::string_view prime1,
+    const std::string_view prime2, const std::string_view exponent1,
+    const std::string_view exponent2, const std::string_view coefficient)
+    -> std::optional<PrivateKey> {
+  if (modulus.empty() || public_exponent.empty() || private_exponent.empty() ||
+      prime1.empty() || prime2.empty() || exponent1.empty() ||
+      exponent2.empty() || coefficient.empty()) {
+    return std::nullopt;
+  }
+
+  // RSAPrivateKey (RFC 8017 Appendix A.1.2), whose version is zero for the
+  // two-prime form
+  std::string rsa_private_key_body;
+  der_append_unsigned_integer(rsa_private_key_body, std::string_view{});
+  der_append_unsigned_integer(rsa_private_key_body, modulus);
+  der_append_unsigned_integer(rsa_private_key_body, public_exponent);
+  der_append_unsigned_integer(rsa_private_key_body, private_exponent);
+  der_append_unsigned_integer(rsa_private_key_body, prime1);
+  der_append_unsigned_integer(rsa_private_key_body, prime2);
+  der_append_unsigned_integer(rsa_private_key_body, exponent1);
+  der_append_unsigned_integer(rsa_private_key_body, exponent2);
+  der_append_unsigned_integer(rsa_private_key_body, coefficient);
+  std::string rsa_private_key;
+  der_append_element(rsa_private_key, 0x30, rsa_private_key_body);
+
+  // PrivateKeyInfo (RFC 5958 Section 2), whose version is likewise zero
+  std::string document_body;
+  der_append_unsigned_integer(document_body, std::string_view{});
+  document_body.append(
+      reinterpret_cast<const char *>(RSA_ALGORITHM_IDENTIFIER.data()),
+      RSA_ALGORITHM_IDENTIFIER.size());
+  der_append_element(document_body, 0x04, rsa_private_key);
+  std::string document;
+  der_append_element(document, 0x30, document_body);
+
+  const auto encoded{base64_encode(document)};
+  std::string pem{"-----BEGIN PRIVATE KEY-----\n"};
+  for (std::size_t offset{0}; offset < encoded.size(); offset += 64) {
+    pem.append(encoded.substr(offset, 64));
+    pem.push_back('\n');
+  }
+
+  pem.append("-----END PRIVATE KEY-----\n");
+  return make_private_key(pem);
+}
+
+} // namespace sourcemeta::core

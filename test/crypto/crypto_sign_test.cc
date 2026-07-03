@@ -85,6 +85,43 @@ static const std::string SIGNATURE_SHA512_HEX{
     "9d5d2685212eb389480adbea706ae807d48cc2d94ba559d4f6ff980df5b6404f"
     "0d30ce586d2f22ca253f74662cd3a366cb589f0d9514fe3d14c54649493f97e6"};
 
+// The private components of the RSA key above, so that the same known-answer
+// signatures can be reproduced from the raw integers rather than the document
+static const std::string PRIVATE_EXPONENT_HEX{
+    "0dd258f051228dcbcd8d60300b0ecd5ee344a367b4c8623c6b0a0dd7082573ce"
+    "443da5e365ff988e93e8fe72b39f5387c66109f882dd657e999a3e13e8a20474"
+    "6516088039e080973423a9decdb1d88b990c4dfca84985e7dc2a6d539ff51a06"
+    "9a7eec32eca88365368fc0b5335181e7a333d22e062d834b53f63fbb435d2b27"
+    "e78584628ee18e21bfd3702d0c3b2dbaf5786c015afe36d6add0ece52136da18"
+    "a196d323abf7a85463639c6b1f7dc5bb63332898841e47bbdf721e7ed93d1b5f"
+    "0139e602e8e358f57b2a777d9f578efa10ba5fc7fe78a97dbfe8aa2ee84d9c50"
+    "461e17774a8fc56745b7a974d77c2d0eab84d4b118dfe24e04b4e7067fcd12a1"};
+static const std::string PRIME1_HEX{
+    "cd80890bbd2a523348971519e2efd798317c16222c128e40d3d7913507212e71"
+    "82969fe9550f73efb99289c5acc9424eb48f584ca58a0b09e23744483d93363b"
+    "7715e190bc85d58fe67a13c62b676cb61ec9fa190ebfa2f2e3ea1c7bb7bda5be"
+    "5498467898f9c842c5acec570258a403641091e727f7886cde243db5d14573ef"};
+static const std::string PRIME2_HEX{
+    "c734085a976b91e4273a4dff6283bb5d8f19c91890c2ffbc92a43ca1a7b7363a"
+    "34ea83160b455b57ca391cf8fea4231606fc007cc759ce73a13068d5d808e56b"
+    "ecf600db5e59e6c5558b75c6ed9bc6c30320fa8c7d74f15947ed1ed9858ba3d2"
+    "4bd64de66236d806ab4749cb0ee147af7286de55a6d7bdfe45f82f847fd7ae49"};
+static const std::string EXPONENT1_HEX{
+    "59259f4df65bbb98ffae7abae615818346443c1dcadca9d53990d42f1aceac25"
+    "15af5de38cc0cd5c7b36348a0a30ac911406f3191cdecb7718293d77d12e6162"
+    "5e80a17f7628e0c2320b5734aa738d575bf7e684a43f41e2f83800ef328014bc"
+    "825a24880064ab193c438dab191b76daf9b7ae738684fd2bad1a2fa3060b8905"};
+static const std::string EXPONENT2_HEX{
+    "a34f250a1fd93061bb47316a8d7931c221ef21cde1dffb88bd2fa8055f59f43b"
+    "03e6be50f42c881610d381cd1ff5b04dfeabda3a71b44e6cbd58d2997de2cd33"
+    "0db12042b7b73c59cb27ea068c05898d96a312c4da9564c7ad0fd89abbc11f2c"
+    "e8bf685dd766def398b778e7dfeb10b9e54a6c3c0bec12f6c2a6154eab004701"};
+static const std::string COEFFICIENT_HEX{
+    "a8d8d74eb3ac304a8a61224db24e99d2c8c3076cae1d2e3b09b9166638a48384"
+    "c84785a6a58558ec439f89da1ba1e9f98c628532e5c0268e29cfa201812e5e37"
+    "abb33ef7efa8952230673a946ff30452ac73e5a7bde508cd8aaacf780dac0fe0"
+    "c0df3bda8242cd2b04885c0c28592e8b67c8007f3e73b6794e9a3adeaae84719"};
+
 // Elliptic curve keys, one per supported curve, as the private scalar and the
 // public point coordinates
 static const std::string P256_D_HEX{
@@ -178,12 +215,54 @@ auto ecdsa_signature_verifies(
                                         signature.value());
 }
 
+auto rsa_private_key_from_components()
+    -> std::optional<sourcemeta::core::PrivateKey> {
+  return sourcemeta::core::make_rsa_private_key(
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIVATE_EXPONENT_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+      sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value());
+}
+
 } // namespace
 
 TEST(make_private_key_parses_rsa) {
   const auto key{sourcemeta::core::make_private_key(RSA_PRIVATE_KEY)};
   EXPECT_TRUE(key.has_value());
   EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+}
+
+TEST(make_rsa_private_key_parses_rsa) {
+  const auto key{rsa_private_key_from_components()};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().type() == sourcemeta::core::PrivateKey::Type::RSA);
+}
+
+TEST(make_rsa_private_key_from_components_matches_known_answer) {
+  const auto key{rsa_private_key_from_components()};
+  const auto signature{sourcemeta::core::rsassa_pkcs1_v15_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256, MESSAGE)};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_EQ(sourcemeta::core::bytes_to_hex(signature.value()),
+            SIGNATURE_SHA256_HEX);
+}
+
+TEST(make_rsa_private_key_rejects_missing_component) {
+  // Every two-prime component is required
+  EXPECT_FALSE(sourcemeta::core::make_rsa_private_key(
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   std::string{},
+                   sourcemeta::core::hex_to_bytes(PRIME1_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(PRIME2_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT1_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT2_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(COEFFICIENT_HEX).value())
+                   .has_value());
 }
 
 TEST(make_ec_private_key_parses_elliptic_curve) {
