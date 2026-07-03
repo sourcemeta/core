@@ -100,6 +100,18 @@ TEST(fragment_only_has_no_authority) {
   EXPECT_FALSE(uri.authority().has_value());
 }
 
+TEST(empty_authority_is_present_but_empty) {
+  const sourcemeta::core::URI uri{"file:///path/to/file"};
+  EXPECT_TRUE(uri.authority().has_value());
+  EXPECT_EQ(uri.authority().value(), "");
+}
+
+TEST(file_url_with_host) {
+  const sourcemeta::core::URI uri{"file://host/path/to/file"};
+  EXPECT_TRUE(uri.authority().has_value());
+  EXPECT_EQ(uri.authority().value(), "host");
+}
+
 TEST(matches_recompose_authority_component) {
   const sourcemeta::core::URI uri{"https://user@example.com:8443/foo?x=1#y"};
   EXPECT_TRUE(uri.authority().has_value());

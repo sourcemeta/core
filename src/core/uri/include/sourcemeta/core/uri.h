@@ -229,7 +229,9 @@ public:
 
   /// Get the recomposed authority component of the URI, if any, in the RFC 3986
   /// form `[ userinfo "@" ] host [ ":" port ]`, with IPv6 hosts wrapped in
-  /// brackets. For example:
+  /// brackets. A URI with an empty authority, such as `file:///path`, returns a
+  /// present but empty value, so a caller must not treat a present value as
+  /// necessarily non-empty. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -238,6 +240,10 @@ public:
   /// const sourcemeta::core::URI uri{"https://example.com:8443/foo"};
   /// assert(uri.authority().has_value());
   /// assert(uri.authority().value() == "example.com:8443");
+  ///
+  /// const sourcemeta::core::URI file{"file:///path"};
+  /// assert(file.authority().has_value());
+  /// assert(file.authority().value().empty());
   /// ```
   [[nodiscard]] auto authority() const -> std::optional<std::string>;
 
