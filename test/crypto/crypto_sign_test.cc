@@ -42,72 +42,6 @@ auto load(const std::filesystem::path &path) -> sourcemeta::core::JSON {
   return sourcemeta::core::parse_json(stream);
 }
 
-// RFC 8032 Ed25519 private key: the fixed PKCS#8 prefix for a 32 byte seed
-auto ed25519_pkcs8(const std::string_view seed_hex) -> std::string {
-  const auto der{sourcemeta::core::hex_to_bytes(
-      std::string{"302e020100300506032b657004220420"} + std::string{seed_hex})};
-  return pem_wrap(der.value());
-}
-
-// RFC 8032 Ed448 private key: the fixed PKCS#8 prefix for a 57 byte seed
-auto ed448_pkcs8(const std::string_view seed_hex) -> std::string {
-  const auto der{sourcemeta::core::hex_to_bytes(
-      std::string{"3047020100300506032b6571043b0439"} + std::string{seed_hex})};
-  return pem_wrap(der.value());
-}
-
-auto der_length(const std::size_t length) -> std::string {
-  std::string out;
-  if (length < 128) {
-    out.push_back(static_cast<char>(length));
-  } else if (length < 256) {
-    out.push_back('\x81');
-    out.push_back(static_cast<char>(length));
-  } else {
-    out.push_back('\x82');
-    out.push_back(static_cast<char>((length >> 8u) & 0xffu));
-    out.push_back(static_cast<char>(length & 0xffu));
-  }
-
-  return out;
-}
-
-auto der(const unsigned char tag, const std::string_view content)
-    -> std::string {
-  std::string out;
-  out.push_back(static_cast<char>(tag));
-  out.append(der_length(content.size()));
-  out.append(content);
-  return out;
-}
-
-// Assemble a PKCS#8 elliptic curve private key from a scalar and public point
-auto ec_pkcs8(const std::string_view curve_oid_hex, const std::size_t field,
-              const std::string_view scalar_hex, const std::string_view x_hex,
-              const std::string_view y_hex) -> std::string {
-  const auto ec_public_oid{sourcemeta::core::hex_to_bytes("2a8648ce3d0201")};
-  const auto curve_oid{sourcemeta::core::hex_to_bytes(curve_oid_hex)};
-  const auto algorithm{der(0x30, der(0x06, ec_public_oid.value()) +
-                                     der(0x06, curve_oid.value()))};
-
-  std::string point{'\x04'};
-  point.append(sourcemeta::core::pad_left(
-      sourcemeta::core::hex_to_bytes(x_hex, true).value(), field, '\x00'));
-  point.append(sourcemeta::core::pad_left(
-      sourcemeta::core::hex_to_bytes(y_hex, true).value(), field, '\x00'));
-  std::string bit_string{'\x00'};
-  bit_string.append(point);
-
-  const auto scalar{sourcemeta::core::pad_left(
-      sourcemeta::core::hex_to_bytes(scalar_hex, true).value(), field, '\x00')};
-  const auto sec1{der(0x30, der(0x02, std::string{'\x01'}) + der(0x04, scalar) +
-                                der(0xa1, der(0x03, bit_string)))};
-
-  const auto pkcs8{
-      der(0x30, der(0x02, std::string{'\x00'}) + algorithm + der(0x04, sec1))};
-  return pem_wrap(pkcs8);
-}
-
 const std::filesystem::path wycheproof{WYCHEPROOF_PATH};
 const std::filesystem::path pyca{PYCA_CRYPTOGRAPHY_PATH};
 
@@ -124,8 +58,9 @@ TEST(ed25519_sign_round_trips_through_verify) {
       continue;
     }
 
-    const auto key{sourcemeta::core::make_private_key(
-        ed25519_pkcs8(fields.at(0).substr(0, 64)))};
+    const auto key{sourcemeta::core::make_edwards_private_key(
+        sourcemeta::core::EdwardsCurve::Ed25519,
+        sourcemeta::core::hex_to_bytes(fields.at(0).substr(0, 64)).value())};
     EXPECT_TRUE(key.has_value());
     if (!key.has_value()) {
       continue;
@@ -281,7 +216,9 @@ TEST(ed448_sign_matches_rfc8032_known_answers) {
         continue;
       }
 
-      const auto key{sourcemeta::core::make_private_key(ed448_pkcs8(secret))};
+      const auto key{sourcemeta::core::make_edwards_private_key(
+          sourcemeta::core::EdwardsCurve::Ed448,
+          sourcemeta::core::hex_to_bytes(secret).value())};
       EXPECT_TRUE(key.has_value());
       if (!key.has_value()) {
         continue;
@@ -318,8 +255,6 @@ TEST(ecdsa_sign_round_trips_through_verify) {
   std::string line;
   std::optional<sourcemeta::core::EllipticCurve> curve;
   std::optional<sourcemeta::core::SignatureHashFunction> hash;
-  std::string_view curve_oid_hex;
-  std::size_t field{0};
   std::string message;
   std::string scalar;
   std::string x;
@@ -328,20 +263,14 @@ TEST(ecdsa_sign_round_trips_through_verify) {
     if (line.starts_with("[P-256,SHA-256]")) {
       curve = sourcemeta::core::EllipticCurve::P256;
       hash = sourcemeta::core::SignatureHashFunction::SHA256;
-      curve_oid_hex = "2a8648ce3d030107";
-      field = 32;
       continue;
     } else if (line.starts_with("[P-384,SHA-384]")) {
       curve = sourcemeta::core::EllipticCurve::P384;
       hash = sourcemeta::core::SignatureHashFunction::SHA384;
-      curve_oid_hex = "2b81040022";
-      field = 48;
       continue;
     } else if (line.starts_with("[P-521,SHA-512]")) {
       curve = sourcemeta::core::EllipticCurve::P521;
       hash = sourcemeta::core::SignatureHashFunction::SHA512;
-      curve_oid_hex = "2b81040023";
-      field = 66;
       continue;
     } else if (line.starts_with("[")) {
       curve = std::nullopt;
@@ -364,8 +293,10 @@ TEST(ecdsa_sign_round_trips_through_verify) {
     } else if (name == "Qx") {
       x = value;
     } else if (name == "Qy") {
-      const auto key{sourcemeta::core::make_private_key(
-          ec_pkcs8(curve_oid_hex, field, scalar, x, value))};
+      const auto key{sourcemeta::core::make_ec_private_key(
+          curve.value(), sourcemeta::core::hex_to_bytes(scalar, true).value(),
+          sourcemeta::core::hex_to_bytes(x, true).value(),
+          sourcemeta::core::hex_to_bytes(value, true).value())};
       EXPECT_TRUE(key.has_value());
       if (!key.has_value()) {
         continue;

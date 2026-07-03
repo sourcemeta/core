@@ -237,6 +237,33 @@ auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
                          blob);
 }
 
+// Build a BCRYPT_ECCPRIVATE_BLOB directly from the caller-provided components
+auto native_ec_private_key_components(
+    const sourcemeta::core::EllipticCurve curve, const std::size_t field_bytes,
+    const std::string_view scalar, const std::string_view coordinate_x,
+    const std::string_view coordinate_y) -> KeyPair {
+  const auto stripped_x{sourcemeta::core::strip_left(coordinate_x, '\x00')};
+  const auto stripped_y{sourcemeta::core::strip_left(coordinate_y, '\x00')};
+  const auto stripped_scalar{sourcemeta::core::strip_left(scalar, '\x00')};
+  if (stripped_scalar.empty() || stripped_x.size() > field_bytes ||
+      stripped_y.size() > field_bytes || stripped_scalar.size() > field_bytes) {
+    return {.algorithm = nullptr, .key = nullptr};
+  }
+
+  BCRYPT_ECCKEY_BLOB header{};
+  header.dwMagic = to_ecc_private_magic(curve);
+  header.cbKey = static_cast<ULONG>(field_bytes);
+
+  std::string blob;
+  blob.resize(sizeof(header));
+  std::memcpy(blob.data(), &header, sizeof(header));
+  blob.append(sourcemeta::core::pad_left(stripped_x, field_bytes, '\x00'));
+  blob.append(sourcemeta::core::pad_left(stripped_y, field_bytes, '\x00'));
+  blob.append(sourcemeta::core::pad_left(stripped_scalar, field_bytes, '\x00'));
+  return import_key_pair(to_ecdsa_algorithm(curve), BCRYPT_ECCPRIVATE_BLOB,
+                         blob);
+}
+
 auto sign_hash(BCRYPT_KEY_HANDLE key, void *padding,
                const std::string_view digest, const ULONG flags)
     -> std::optional<std::string> {
@@ -369,6 +396,42 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   }
 
   std::unreachable();
+}
+
+auto make_ec_private_key(const EllipticCurve curve,
+                         const std::string_view scalar,
+                         const std::string_view coordinate_x,
+                         const std::string_view coordinate_y)
+    -> std::optional<PrivateKey> {
+  const auto field_bytes{curve_field_bytes(curve)};
+  const auto pair{native_ec_private_key_components(curve, field_bytes, scalar,
+                                                   coordinate_x, coordinate_y)};
+  if (pair.key == nullptr) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .algorithm = pair.algorithm,
+                               .key = pair.key,
+                               .field_bytes = field_bytes,
+                               .edwards_seed = {},
+                               .edwards_curve = {}}};
+}
+
+auto make_edwards_private_key(const EdwardsCurve curve,
+                              const std::string_view seed)
+    -> std::optional<PrivateKey> {
+  if (seed.size() != eddsa_public_key_bytes(curve)) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{new PrivateKey::Internal{.kind = PrivateKey::Type::Edwards,
+                                             .algorithm = nullptr,
+                                             .key = nullptr,
+                                             .field_bytes = 0,
+                                             .edwards_seed = std::string{seed},
+                                             .edwards_curve = curve}};
 }
 
 auto rsassa_pkcs1_v15_sign(const PrivateKey &key,

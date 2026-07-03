@@ -4,6 +4,8 @@
 #include <sourcemeta/core/crypto_base64.h>
 #include <sourcemeta/core/crypto_verify.h>
 
+#include "crypto_der.h"
+
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional, std::nullopt
@@ -11,50 +13,6 @@
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
-
-// A single parsed DER type-length-value element, along with the bytes that
-// follow it within the same sequence
-struct DERElement {
-  unsigned char tag;
-  std::string_view content;
-  std::string_view rest;
-};
-
-// Read one DER element from the front of the input, following the definite
-// length encoding of ITU-T X.690
-inline auto der_read(const std::string_view input)
-    -> std::optional<DERElement> {
-  if (input.size() < 2) {
-    return std::nullopt;
-  }
-
-  const auto tag{static_cast<unsigned char>(input[0])};
-  std::size_t position{1};
-  const auto first{static_cast<unsigned char>(input[position])};
-  position += 1;
-  std::size_t length{0};
-  if (first < 0x80) {
-    length = first;
-  } else {
-    const std::size_t count{first & 0x7fu};
-    if (count == 0 || count > 4 || position + count > input.size()) {
-      return std::nullopt;
-    }
-
-    for (std::size_t index{0}; index < count; ++index) {
-      length = (length << 8u) | static_cast<unsigned char>(input[position]);
-      position += 1;
-    }
-  }
-
-  if (position + length > input.size()) {
-    return std::nullopt;
-  }
-
-  return DERElement{.tag = tag,
-                    .content = input.substr(position, length),
-                    .rest = input.substr(position + length)};
-}
 
 // Decode a single-block PEM document into its DER bytes
 inline auto pem_to_der(const std::string_view pem)

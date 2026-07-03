@@ -164,6 +164,29 @@ auto native_ec_private_key(const std::string_view sec1,
   return native_private_key(kSecAttrKeyTypeECSECPrimeRandom, data);
 }
 
+// The platform expects the X9.63 public point followed by the private scalar,
+// built here directly from the caller-provided components
+auto native_ec_private_key_components(const std::size_t field_bytes,
+                                      const std::string_view scalar,
+                                      const std::string_view coordinate_x,
+                                      const std::string_view coordinate_y)
+    -> SecKeyRef {
+  const auto stripped_x{sourcemeta::core::strip_left(coordinate_x, '\x00')};
+  const auto stripped_y{sourcemeta::core::strip_left(coordinate_y, '\x00')};
+  const auto stripped_scalar{sourcemeta::core::strip_left(scalar, '\x00')};
+  if (stripped_scalar.empty() || stripped_x.size() > field_bytes ||
+      stripped_y.size() > field_bytes || stripped_scalar.size() > field_bytes) {
+    return nullptr;
+  }
+
+  std::string data;
+  data.push_back('\x04');
+  data.append(sourcemeta::core::pad_left(stripped_x, field_bytes, '\x00'));
+  data.append(sourcemeta::core::pad_left(stripped_y, field_bytes, '\x00'));
+  data.append(sourcemeta::core::pad_left(stripped_scalar, field_bytes, '\x00'));
+  return native_private_key(kSecAttrKeyTypeECSECPrimeRandom, data);
+}
+
 auto sign_with_algorithm(SecKeyRef key, const SecKeyAlgorithm algorithm,
                          const std::string_view message)
     -> std::optional<std::string> {
@@ -309,6 +332,40 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   }
 
   std::unreachable();
+}
+
+auto make_ec_private_key(const EllipticCurve curve,
+                         const std::string_view scalar,
+                         const std::string_view coordinate_x,
+                         const std::string_view coordinate_y)
+    -> std::optional<PrivateKey> {
+  const auto field_bytes{curve_field_bytes(curve)};
+  auto *key{native_ec_private_key_components(field_bytes, scalar, coordinate_x,
+                                             coordinate_y)};
+  if (key == nullptr) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .key = key,
+                               .field_bytes = field_bytes,
+                               .edwards_seed = {},
+                               .edwards_curve = {}}};
+}
+
+auto make_edwards_private_key(const EdwardsCurve curve,
+                              const std::string_view seed)
+    -> std::optional<PrivateKey> {
+  if (seed.size() != eddsa_public_key_bytes(curve)) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{new PrivateKey::Internal{.kind = PrivateKey::Type::Edwards,
+                                             .key = nullptr,
+                                             .field_bytes = 0,
+                                             .edwards_seed = std::string{seed},
+                                             .edwards_curve = curve}};
 }
 
 auto rsassa_pkcs1_v15_sign(const PrivateKey &key,

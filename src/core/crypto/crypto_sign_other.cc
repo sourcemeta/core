@@ -362,6 +362,43 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   std::unreachable();
 }
 
+auto make_ec_private_key(const EllipticCurve curve,
+                         const std::string_view scalar, const std::string_view,
+                         const std::string_view) -> std::optional<PrivateKey> {
+  const auto stripped{strip_left(scalar, '\x00')};
+  const auto width{curve_field_bytes(curve)};
+  if (stripped.empty() || stripped.size() > width) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{new PrivateKey::Internal{
+      .kind = PrivateKey::Type::EllipticCurve,
+      .modulus = {},
+      .public_exponent = {},
+      .private_exponent = {},
+      .scalar = std::string{pad_left(stripped, width, '\x00')},
+      .elliptic_curve = curve,
+      .edwards_seed = {},
+      .edwards_curve = {}}};
+}
+
+auto make_edwards_private_key(const EdwardsCurve curve,
+                              const std::string_view seed)
+    -> std::optional<PrivateKey> {
+  if (seed.size() != eddsa_public_key_bytes(curve)) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{new PrivateKey::Internal{.kind = PrivateKey::Type::Edwards,
+                                             .modulus = {},
+                                             .public_exponent = {},
+                                             .private_exponent = {},
+                                             .scalar = {},
+                                             .elliptic_curve = {},
+                                             .edwards_seed = std::string{seed},
+                                             .edwards_curve = curve}};
+}
+
 auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
                            const SignatureHashFunction hash,
                            const std::string_view message)

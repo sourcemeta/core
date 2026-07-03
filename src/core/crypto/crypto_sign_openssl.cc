@@ -1,9 +1,14 @@
 #include <sourcemeta/core/crypto_sign.h>
+#include <sourcemeta/core/text.h>
 
-#include <openssl/bn.h>  // BN_bn2binpad
-#include <openssl/ec.h>  // ECDSA_SIG, d2i_ECDSA_SIG, ECDSA_SIG_get0_*
-#include <openssl/evp.h> // EVP_*
-#include <openssl/pem.h> // PEM_read_bio_PrivateKey, BIO_*
+#include "crypto_helpers.h"
+
+#include <openssl/bn.h>          // BN_bn2binpad, BN_bin2bn
+#include <openssl/core_names.h>  // OSSL_PKEY_PARAM_*
+#include <openssl/ec.h>          // ECDSA_SIG, d2i_ECDSA_SIG, ECDSA_SIG_get0_*
+#include <openssl/evp.h>         // EVP_*
+#include <openssl/param_build.h> // OSSL_PARAM_*
+#include <openssl/pem.h>         // PEM_read_bio_PrivateKey, BIO_*
 #include <openssl/rsa.h> // RSA_PKCS1_PSS_PADDING, RSA_PSS_SALTLEN_DIGEST
 
 #include <cstddef>     // std::size_t
@@ -45,6 +50,85 @@ auto to_message_digest(
 // Refuse encrypted documents by offering no password, rather than letting the
 // default callback prompt on the terminal
 auto no_password(char *, int, int, void *) -> int { return 0; }
+
+auto to_group_name(const sourcemeta::core::EllipticCurve curve) noexcept
+    -> const char * {
+  switch (curve) {
+    case sourcemeta::core::EllipticCurve::P256:
+      return "P-256";
+    case sourcemeta::core::EllipticCurve::P384:
+      return "P-384";
+    case sourcemeta::core::EllipticCurve::P521:
+      return "P-521";
+  }
+
+  std::unreachable();
+}
+
+auto to_pkey_id(const sourcemeta::core::EdwardsCurve curve) noexcept -> int {
+  switch (curve) {
+    case sourcemeta::core::EdwardsCurve::Ed25519:
+      return EVP_PKEY_ED25519;
+    case sourcemeta::core::EdwardsCurve::Ed448:
+      return EVP_PKEY_ED448;
+  }
+
+  std::unreachable();
+}
+
+auto native_ec_private_key(const sourcemeta::core::EllipticCurve curve,
+                           const std::string_view scalar,
+                           const std::string_view coordinate_x,
+                           const std::string_view coordinate_y) -> EVP_PKEY * {
+  const auto width{sourcemeta::core::curve_field_bytes(curve)};
+  const auto stripped_x{sourcemeta::core::strip_left(coordinate_x, '\x00')};
+  const auto stripped_y{sourcemeta::core::strip_left(coordinate_y, '\x00')};
+  const auto stripped_scalar{sourcemeta::core::strip_left(scalar, '\x00')};
+  if (stripped_scalar.empty() || stripped_x.size() > width ||
+      stripped_y.size() > width || stripped_scalar.size() > width) {
+    return nullptr;
+  }
+
+  std::string point;
+  point.push_back('\x04');
+  point.append(sourcemeta::core::pad_left(stripped_x, width, '\x00'));
+  point.append(sourcemeta::core::pad_left(stripped_y, width, '\x00'));
+  const auto padded_scalar{
+      sourcemeta::core::pad_left(stripped_scalar, width, '\x00')};
+
+  EVP_PKEY *result{nullptr};
+  auto *scalar_number{
+      BN_bin2bn(reinterpret_cast<const unsigned char *>(padded_scalar.data()),
+                static_cast<int>(padded_scalar.size()), nullptr)};
+  auto *builder{OSSL_PARAM_BLD_new()};
+  if (scalar_number != nullptr && builder != nullptr &&
+      OSSL_PARAM_BLD_push_utf8_string(builder, OSSL_PKEY_PARAM_GROUP_NAME,
+                                      to_group_name(curve), 0) == 1 &&
+      OSSL_PARAM_BLD_push_octet_string(
+          builder, OSSL_PKEY_PARAM_PUB_KEY,
+          reinterpret_cast<const unsigned char *>(point.data()),
+          point.size()) == 1 &&
+      OSSL_PARAM_BLD_push_BN(builder, OSSL_PKEY_PARAM_PRIV_KEY,
+                             scalar_number) == 1) {
+    auto *parameters{OSSL_PARAM_BLD_to_param(builder)};
+    if (parameters != nullptr) {
+      auto *context{EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr)};
+      if (context != nullptr) {
+        if (EVP_PKEY_fromdata_init(context) == 1) {
+          EVP_PKEY_fromdata(context, &result, EVP_PKEY_KEYPAIR, parameters);
+        }
+
+        EVP_PKEY_CTX_free(context);
+      }
+
+      OSSL_PARAM_free(parameters);
+    }
+  }
+
+  OSSL_PARAM_BLD_free(builder);
+  BN_free(scalar_number);
+  return result;
+}
 
 auto sign_digest(EVP_MD_CTX *context, const std::string_view message)
     -> std::optional<std::string> {
@@ -188,6 +272,40 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
 
   return PrivateKey{new PrivateKey::Internal{
       .kind = kind, .key = key, .field_bytes = field_bytes}};
+}
+
+auto make_ec_private_key(const EllipticCurve curve,
+                         const std::string_view scalar,
+                         const std::string_view coordinate_x,
+                         const std::string_view coordinate_y)
+    -> std::optional<PrivateKey> {
+  auto *key{native_ec_private_key(curve, scalar, coordinate_x, coordinate_y)};
+  if (key == nullptr) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .key = key,
+                               .field_bytes = curve_field_bytes(curve)}};
+}
+
+auto make_edwards_private_key(const EdwardsCurve curve,
+                              const std::string_view seed)
+    -> std::optional<PrivateKey> {
+  if (seed.size() != eddsa_public_key_bytes(curve)) {
+    return std::nullopt;
+  }
+
+  auto *key{EVP_PKEY_new_raw_private_key(
+      to_pkey_id(curve), nullptr,
+      reinterpret_cast<const unsigned char *>(seed.data()), seed.size())};
+  if (key == nullptr) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{new PrivateKey::Internal{
+      .kind = PrivateKey::Type::Edwards, .key = key, .field_bytes = 0}};
 }
 
 auto rsassa_pkcs1_v15_sign(const PrivateKey &key,

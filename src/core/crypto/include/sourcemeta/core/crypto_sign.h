@@ -66,6 +66,23 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT make_private_key(const std::string_view pem)
     -> std::optional<PrivateKey>;
 
 /// @ingroup crypto
+/// Parse an elliptic curve private key from its raw big-endian private scalar
+/// and public point coordinates, returning no value when the material is
+/// malformed. The public coordinates are required because the platform key
+/// backends store the point alongside the scalar.
+auto SOURCEMETA_CORE_CRYPTO_EXPORT make_ec_private_key(
+    const EllipticCurve curve, const std::string_view scalar,
+    const std::string_view coordinate_x, const std::string_view coordinate_y)
+    -> std::optional<PrivateKey>;
+
+/// @ingroup crypto
+/// Parse an Edwards-curve private key from its raw seed, returning no value
+/// when the seed is the wrong length for the curve.
+auto SOURCEMETA_CORE_CRYPTO_EXPORT
+make_edwards_private_key(const EdwardsCurve curve, const std::string_view seed)
+    -> std::optional<PrivateKey>;
+
+/// @ingroup crypto
 /// Produce an RSASSA-PKCS1-v1_5 signature (RFC 8017 Section 8.2.1) over a
 /// message, returning no value when the key is not an RSA key. For example:
 ///
