@@ -16,8 +16,10 @@ namespace sourcemeta::core {
 /// (NIST SP 800-38D) with a fresh random nonce and no associated data. The
 /// result is the self-contained sealed message, the nonce followed by the
 /// ciphertext and the authentication tag, and its confidentiality and
-/// integrity are both protected. Returns no value when the key is not 256 bits
-/// or the random nonce could not be drawn. For example:
+/// integrity are both protected when the library is built against a system
+/// cryptography provider. Returns no value when the key is not 256 bits, the
+/// plaintext is too large to process, or the random nonce could not be drawn.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
@@ -33,9 +35,9 @@ aes_256_gcm_seal(const std::string_view key, const std::string_view plaintext)
 /// @ingroup crypto
 /// Open a message sealed with aes_256_gcm_seal under the same 256-bit key,
 /// returning the original plaintext. Returns no value when the key is not 256
-/// bits, the input is too short to be a sealed message, or the authentication
-/// tag does not verify, so a tampered or truncated message is rejected rather
-/// than decrypted. For example:
+/// bits, the input is too short to be a sealed message or too large to process,
+/// or the authentication tag does not verify, so a tampered or truncated
+/// message is rejected rather than decrypted. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>

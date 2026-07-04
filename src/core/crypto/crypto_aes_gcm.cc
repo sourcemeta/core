@@ -5,6 +5,8 @@
 
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
+#include <exception>   // std::exception
+#include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
 #include <string>      // std::string
@@ -17,18 +19,25 @@ namespace {
 constexpr std::size_t KEY_BYTES{32};
 constexpr std::size_t NONCE_BYTES{12};
 constexpr std::size_t TAG_BYTES{16};
+// An upper bound the backends can all process without narrowing their lengths
+constexpr std::size_t MAX_INPUT_BYTES{
+    static_cast<std::size_t>(std::numeric_limits<int>::max())};
 } // namespace
 
 auto aes_256_gcm_seal(const std::string_view key,
                       const std::string_view plaintext)
     -> std::optional<std::string> {
-  if (key.size() != KEY_BYTES) {
+  if (key.size() != KEY_BYTES || plaintext.size() > MAX_INPUT_BYTES) {
     return std::nullopt;
   }
 
   std::string nonce(NONCE_BYTES, '\x00');
-  fill_random_bytes(std::span<std::uint8_t>{
-      reinterpret_cast<std::uint8_t *>(nonce.data()), NONCE_BYTES});
+  try {
+    fill_random_bytes(std::span<std::uint8_t>{
+        reinterpret_cast<std::uint8_t *>(nonce.data()), NONCE_BYTES});
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
 
   const auto ciphertext{aes_256_gcm_encrypt(key, nonce, plaintext)};
   if (!ciphertext.has_value()) {
@@ -44,7 +53,8 @@ auto aes_256_gcm_seal(const std::string_view key,
 auto aes_256_gcm_unseal(const std::string_view key,
                         const std::string_view sealed)
     -> std::optional<std::string> {
-  if (key.size() != KEY_BYTES || sealed.size() < NONCE_BYTES + TAG_BYTES) {
+  if (key.size() != KEY_BYTES || sealed.size() < NONCE_BYTES + TAG_BYTES ||
+      sealed.size() - NONCE_BYTES > MAX_INPUT_BYTES) {
     return std::nullopt;
   }
 
