@@ -33,6 +33,10 @@ public final class SourcemetaCoreEd25519: NSObject {
 public final class SourcemetaCoreAESGCM: NSObject {
   @objc public static func seal(key: Data, nonce: Data,
                                 plaintext: Data) -> Data? {
+    guard key.count == 32 else {
+      return nil
+    }
+
     guard let sealingNonce = try? AES.GCM.Nonce(data: nonce) else {
       return nil
     }
@@ -48,6 +52,10 @@ public final class SourcemetaCoreAESGCM: NSObject {
 
   @objc public static func open(key: Data, nonce: Data, ciphertext: Data,
                                 tag: Data) -> Data? {
+    guard key.count == 32 else {
+      return nil
+    }
+
     guard let openingNonce = try? AES.GCM.Nonce(data: nonce),
           let box = try? AES.GCM.SealedBox(
               nonce: openingNonce, ciphertext: ciphertext, tag: tag) else {
