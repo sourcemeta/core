@@ -22,6 +22,12 @@ auto as_buffer(const std::string_view value) -> PUCHAR {
 auto as_buffer(std::string &value) -> PUCHAR {
   return reinterpret_cast<PUCHAR>(value.data());
 }
+
+// The chaining mode is a wide string constant rather than caller-owned bytes
+auto as_buffer(const wchar_t *const value) -> PUCHAR {
+  return reinterpret_cast<PUCHAR>(const_cast<wchar_t *>(
+      value)); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+}
 } // namespace
 
 namespace sourcemeta::core {
