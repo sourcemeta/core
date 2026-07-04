@@ -41,7 +41,6 @@ testvectors_v1/aes_ff1_radix65535_test.json
 testvectors_v1/aes_ff1_radix65536_test.json
 testvectors_v1/aes_ff1_radix85_test.json
 testvectors_v1/aes_gcm_siv_test.json
-testvectors_v1/aes_gcm_test.json
 testvectors_v1/aes_gmac_test.json
 testvectors_v1/aes_kwp_test.json
 testvectors_v1/aes_siv_cmac_test.json
