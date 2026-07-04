@@ -54,7 +54,7 @@ auto aes_256_gcm_unseal(const std::string_view key,
                         const std::string_view sealed)
     -> std::optional<std::string> {
   if (key.size() != KEY_BYTES || sealed.size() < NONCE_BYTES + TAG_BYTES ||
-      sealed.size() - NONCE_BYTES > MAX_INPUT_BYTES) {
+      sealed.size() - NONCE_BYTES - TAG_BYTES > MAX_INPUT_BYTES) {
     return std::nullopt;
   }
 
