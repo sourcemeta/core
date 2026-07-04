@@ -74,8 +74,8 @@ auto expand_key(const std::string_view key) -> RoundKeys {
   std::uint8_t round_constant{0x01};
   for (std::size_t index = 32; index < round_keys.size(); index += 4) {
     std::array<std::uint8_t, 4> word{
-        round_keys[index - 4], round_keys[index - 3], round_keys[index - 2],
-        round_keys[index - 1]};
+        {round_keys[index - 4], round_keys[index - 3], round_keys[index - 2],
+         round_keys[index - 1]}};
     const auto position{index / 4};
     if (position % 8 == 0) {
       const auto first{word[0]};
@@ -113,10 +113,10 @@ auto encrypt_block(const RoundKeys &round_keys, Block state) -> Block {
     }
 
     // ShiftRows over the column-major state (FIPS 197 Section 5.1.2)
-    const Block shifted{state[0],  state[5],  state[10], state[15],
-                        state[4],  state[9],  state[14], state[3],
-                        state[8],  state[13], state[2],  state[7],
-                        state[12], state[1],  state[6],  state[11]};
+    const Block shifted{{state[0], state[5], state[10], state[15], state[4],
+                         state[9], state[14], state[3], state[8], state[13],
+                         state[2], state[7], state[12], state[1], state[6],
+                         state[11]}};
     state = shifted;
 
     if (round != 14) {
@@ -288,7 +288,9 @@ auto aes_256_gcm_decrypt(const std::string_view key,
 
   std::uint8_t difference{0};
   for (std::size_t index = 0; index < 16; ++index) {
-    difference |= tag[index] ^ static_cast<std::uint8_t>(received_tag[index]);
+    difference = static_cast<std::uint8_t>(
+        difference |
+        (tag[index] ^ static_cast<std::uint8_t>(received_tag[index])));
   }
 
   if (difference != 0) {

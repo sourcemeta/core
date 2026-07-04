@@ -356,13 +356,15 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
         continue;
       }
 
-      const auto key{sourcemeta::core::hex_to_bytes(test.at("key").to_string())};
+      const auto key{
+          sourcemeta::core::hex_to_bytes(test.at("key").to_string())};
       const auto iv{sourcemeta::core::hex_to_bytes(test.at("iv").to_string())};
       const auto message{
           sourcemeta::core::hex_to_bytes(test.at("msg").to_string())};
       const auto ciphertext{
           sourcemeta::core::hex_to_bytes(test.at("ct").to_string())};
-      const auto tag{sourcemeta::core::hex_to_bytes(test.at("tag").to_string())};
+      const auto tag{
+          sourcemeta::core::hex_to_bytes(test.at("tag").to_string())};
       if (!key.has_value() || !iv.has_value() || !message.has_value() ||
           !ciphertext.has_value() || !tag.has_value()) {
         continue;
@@ -378,7 +380,8 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
           stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
           [key = key.value(), sealed = std::move(sealed),
            plaintext = message.value(), expected = (result == "valid")]() {
-            const auto opened{sourcemeta::core::aes_256_gcm_unseal(key, sealed)};
+            const auto opened{
+                sourcemeta::core::aes_256_gcm_unseal(key, sealed)};
             EXPECT_EQ(opened.has_value() && opened.value() == plaintext,
                       expected);
           });
