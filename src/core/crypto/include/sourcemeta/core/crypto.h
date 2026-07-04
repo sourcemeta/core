@@ -14,6 +14,7 @@
 /// #include <sourcemeta/core/crypto.h>
 /// ```
 
+#include <sourcemeta/core/crypto_aes_gcm.h>
 #include <sourcemeta/core/crypto_base64.h>
 #include <sourcemeta/core/crypto_crc32.h>
 #include <sourcemeta/core/crypto_fnv128.h>

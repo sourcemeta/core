@@ -15,7 +15,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_ecdsa_test.cc
     crypto_eddsa_test.cc
     crypto_secure_equals_test.cc
-    crypto_random_test.cc)
+    crypto_random_test.cc
+    crypto_aes_gcm_test.cc)
 
 target_link_libraries(sourcemeta_core_crypto_unit
   PRIVATE sourcemeta::core::crypto)
