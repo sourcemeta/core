@@ -71,7 +71,7 @@ public:
   };
 
   /// Construct a provider for a concrete key set URL with an injected
-  /// transport, optionally overriding the policy and the clock.
+  /// transport, using the default policy and the system clock.
   JWKSProvider(std::string jwks_uri, Fetcher fetcher);
   /// Construct a provider for a concrete key set URL with an injected
   /// transport, overriding the caching and verification policy.

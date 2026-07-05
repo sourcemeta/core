@@ -1023,6 +1023,10 @@ EXCLUDE_PATTERNS       =
 # wildcard * is used, a substring. Examples: ANamespace, AClass,
 # ANamespace::AClass, ANamespace::*Test
 
+# These are self-descriptive boilerplate that the codebase leaves undocumented by
+# convention. Excluding them keeps the undocumented-symbol gate meaningful without
+# forcing filler comments. The `*` in `operator*` is a substring wildcard, so it
+# intentionally covers every operator overload, not just dereference.
 EXCLUDE_SYMBOLS        = operator* \
                          what \
                          begin end cbegin cend rbegin rend crbegin crend \

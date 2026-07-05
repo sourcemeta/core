@@ -20,7 +20,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     # Fedora provides a modern Doxygen out of the box
-    container: fedora:44
+    container: fedora:latest
     steps:
       - name: Install dependencies
         run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git
