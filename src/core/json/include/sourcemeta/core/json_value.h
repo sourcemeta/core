@@ -34,6 +34,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup json
+/// This class represents a JSON document.
 class SOURCEMETA_CORE_JSON_EXPORT JSON {
 public:
   /// The character type used by the JSON document.
@@ -122,6 +123,7 @@ public:
   explicit JSON(const int value);
 
   // On some systems, `std::int64_t` might be equal to `long`
+  /// This constructor creates a JSON document from an integer type.
   template <typename T = std::int64_t>
   explicit JSON(const long value)
     requires(!std::is_same_v<T, std::int64_t>)
@@ -250,6 +252,7 @@ public:
 
   /// Misc constructors
   JSON(const JSON &);
+  /// A move constructor.
   JSON(JSON &&) noexcept;
   auto operator=(const JSON &) -> JSON &;
   auto operator=(JSON &&) noexcept -> JSON &;
@@ -1330,6 +1333,7 @@ public:
   /// const auto result = document.try_at("foo");
   /// EXPECT_TRUE(result);
   /// EXPECT_EQ(result->to_integer(), 1);
+  /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   try_at(const String &key) const -> const JSON * {
     assert(this->is_object());
@@ -1362,6 +1366,7 @@ public:
   ///   document.as_object().hash("foo"));
   /// EXPECT_TRUE(result);
   /// EXPECT_EQ(result->to_integer(), 1);
+  /// ```
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto
   try_at(const String &key, const typename Object::hash_type hash) const
       -> const JSON * {

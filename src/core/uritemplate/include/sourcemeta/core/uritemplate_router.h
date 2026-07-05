@@ -56,8 +56,13 @@ public:
   using Callback =
       std::function<void(Index, std::string_view, std::string_view)>;
 
+  /// The value of a route argument
   using ArgumentValue = std::variant<std::string_view, std::int64_t, bool>;
+
+  /// A named route argument
   using Argument = std::pair<std::string_view, ArgumentValue>;
+
+  /// The argument callback (name, value)
   using ArgumentCallback =
       std::function<void(std::string_view, const ArgumentValue &)>;
 
@@ -72,15 +77,21 @@ public:
 
   /// A node in the router trie
   struct Node {
+    /// The handler identifier of the route ending at this node
     Identifier identifier{0};
+    /// The context identifier associated with this node
     Identifier context{0};
+    /// The kind of component this node represents
     NodeType type{NodeType::Root};
+    /// The literal text or variable name of this node
     std::string_view value;
 
     // This children distinction enforces that there can only be one non-literal
     // child at the type level. Also allows us to more efficiently search on
     // literals
+    /// The literal children of this node
     std::vector<std::unique_ptr<Node>> literals;
+    /// The single non-literal child of this node
     std::unique_ptr<Node> variable;
   };
 
@@ -192,6 +203,7 @@ public:
   static auto save(const URITemplateRouter &router,
                    const std::filesystem::path &path) -> void;
 
+  /// Construct a view by loading a serialized router from a file
   URITemplateRouterView(const std::filesystem::path &path);
 
   /// Construct a view over an externally-owned buffer. The buffer must

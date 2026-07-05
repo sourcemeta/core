@@ -37,6 +37,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup uri
+/// A parsed URI that can be inspected, resolved, and recomposed
 class SOURCEMETA_CORE_URI_EXPORT URI {
 public:
   /// Default constructor creates an empty URI
@@ -285,6 +286,7 @@ public:
   /// uri.path(std::move(path));
   /// assert(uri.path().has_value());
   /// assert(uri.path().value() == "/foo/bar");
+  /// ```
   auto path(std::string &&path) -> URI &;
 
   /// Append a path to the existing URI path or set a path if such component
@@ -299,6 +301,7 @@ public:
   /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   /// uri.append_path("bar/baz");
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
+  /// ```
   auto append_path(std::string_view path) -> URI &;
 
   /// Append a path to the existing URI from a parsed reference. The
@@ -313,6 +316,7 @@ public:
   /// const sourcemeta::core::URI reference{"bar/baz"};
   /// uri.append_path(reference);
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo/bar/baz");
+  /// ```
   auto append_path(const URI &reference) -> URI &;
 
   /// Append a path to the existing URI from a parsed reference, moving the
@@ -342,6 +346,7 @@ public:
   /// sourcemeta::core::URI uri{"https://www.sourcemeta.com/foo"};
   /// uri.extension("json");
   /// assert(uri.recompose() == "https://www.sourcemeta.com/foo.json");
+  /// ```
   auto extension(std::string &&extension) -> URI &;
 
   /// Get the fragment part of the URI, if any. For example:

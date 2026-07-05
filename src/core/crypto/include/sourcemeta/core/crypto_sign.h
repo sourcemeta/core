@@ -36,6 +36,7 @@ public:
   enum class Type : std::uint8_t { RSA, EllipticCurve, Edwards };
 
   ~PrivateKey();
+  /// Move constructor
   PrivateKey(PrivateKey &&other) noexcept;
   auto operator=(PrivateKey &&other) noexcept -> PrivateKey &;
   PrivateKey(const PrivateKey &) = delete;

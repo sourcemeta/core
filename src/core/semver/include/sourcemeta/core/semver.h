@@ -32,6 +32,7 @@ namespace sourcemeta::core {
 /// The input string must outlive this object.
 class SOURCEMETA_CORE_SEMVER_EXPORT SemVer {
 public:
+  /// The level of strictness applied when parsing a version string.
   enum class Mode : std::uint8_t {
     Strict,
 
@@ -43,32 +44,39 @@ public:
     Loose
   };
 
+  /// Construct a version by parsing the given string, throwing on failure.
   SemVer(std::string_view input, Mode mode = Mode::Strict);
 
+  /// Parse a version from the given string, returning no value on failure.
   [[nodiscard]] static auto from(std::string_view input,
                                  Mode mode = Mode::Strict) noexcept
       -> std::optional<SemVer>;
 
+  /// The major version number.
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto major() const noexcept
       -> std::uint64_t {
     return this->major_;
   }
 
+  /// The minor version number.
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto minor() const noexcept
       -> std::uint64_t {
     return this->minor_;
   }
 
+  /// The patch version number.
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto patch() const noexcept
       -> std::uint64_t {
     return this->patch_;
   }
 
+  /// The pre-release identifier, or empty if none is present.
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto pre_release() const noexcept
       -> std::string_view {
     return this->pre_release_;
   }
 
+  /// The build metadata, or empty if none is present.
   [[nodiscard]] SOURCEMETA_FORCEINLINE inline auto build() const noexcept
       -> std::string_view {
     return this->build_;
@@ -109,6 +117,7 @@ public:
     return !(*this < other);
   }
 
+  /// Serialise the version back into its string representation.
   [[nodiscard]] auto to_string() const -> std::string;
 
 private:

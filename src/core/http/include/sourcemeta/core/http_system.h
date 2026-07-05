@@ -70,6 +70,8 @@ struct HTTPResponse {
 class SOURCEMETA_CORE_HTTP_EXPORT HTTPSystemBackendError
     : public std::runtime_error {
 public:
+  /// Construct an error from a message, the environment variable that overrides
+  /// the backend path, and the paths that were searched
   HTTPSystemBackendError(const std::string &message, std::string variable,
                          std::vector<std::string> paths)
       : std::runtime_error{message}, variable_{std::move(variable)},
@@ -110,6 +112,7 @@ private:
 /// ```
 class SOURCEMETA_CORE_HTTP_EXPORT HTTPSystemRequest {
 public:
+  /// Construct a request for the given URL and method
   explicit HTTPSystemRequest(std::string url,
                              const HTTPMethod method = HTTPMethod::GET)
       : url_{std::move(url)}, method_{method} {}

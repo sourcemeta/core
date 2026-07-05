@@ -20,7 +20,9 @@ namespace sourcemeta::core {
 /// How a position connects to its parent. The position is the object of the
 /// edge, asserted in reverse when the flag is set.
 struct JSONLDEdge {
+  /// The predicate that connects the position to its parent.
   JSON::String predicate{};
+  /// Whether the edge is asserted in reverse.
   bool reverse{false};
 };
 
@@ -33,8 +35,11 @@ enum class JSONLDDirection : std::uint8_t { LTR, RTL };
 /// and the graph flag asserts the node's descendants in the named graph the
 /// identifier denotes.
 struct JSONLDNode {
+  /// The node identifier, absent for a fresh blank node.
   std::optional<JSON::String> id{};
+  /// The types of the node.
   std::vector<JSON::String> types{};
+  /// Whether the node's descendants are asserted in the named graph it denotes.
   bool graph{false};
 };
 
@@ -43,16 +48,22 @@ struct JSONLDNode {
 /// JSON value, a language may carry a direction, and the JSON flag preserves an
 /// opaque JSON literal verbatim.
 struct JSONLDLiteral {
+  /// The literal datatype, defaulting to the native type of the value.
   std::optional<JSON::String> datatype{};
+  /// The language tag of the literal.
   std::optional<JSON::String> language{};
+  /// The base direction of the literal.
   std::optional<JSONLDDirection> direction{};
+  /// Whether the literal is preserved as an opaque JSON literal.
   bool json{false};
 };
 
 /// @ingroup jsonld
 /// A scalar promoted to an identified node
 struct JSONLDReference {
+  /// The identifier of the promoted node.
   JSON::String id{};
+  /// The types of the promoted node.
   std::vector<JSON::String> types{};
 };
 
@@ -67,6 +78,7 @@ enum class JSONLDContainer : std::uint8_t { List, Set, Language, Index };
 /// object of language tag to string, and an Index container over an object
 /// whose keys are index labels that carry no RDF.
 struct JSONLDCollection {
+  /// The container form of the collection.
   JSONLDContainer container{JSONLDContainer::Set};
 };
 
@@ -74,7 +86,9 @@ struct JSONLDCollection {
 /// The semantics of a single instance position: how it connects to its parent
 /// and what it is
 struct JSONLDDescriptor {
+  /// How the position connects to its parent.
   std::vector<JSONLDEdge> edges{};
+  /// What the position is.
   std::variant<JSONLDNode, JSONLDLiteral, JSONLDReference, JSONLDCollection>
       value{};
 };

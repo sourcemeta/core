@@ -18,8 +18,11 @@ namespace sourcemeta::core {
 /// The credentials used to sign a request with AWS Signature Version 4. The
 /// session token is left empty when using long-term credentials.
 struct HTTPAWSCredentials {
+  /// The access key identifier
   std::string_view access_key_id;
+  /// The secret access key
   std::string_view secret_access_key;
+  /// The temporary session token used with short-term credentials
   std::string_view session_token;
 };
 
