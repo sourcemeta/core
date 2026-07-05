@@ -9,15 +9,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      DOXYGEN_VERSION: "1.13.2"
+    # Fedora provides a modern Doxygen out of the box
+    container: fedora:44
     steps:
+      - name: Install dependencies
+        run: dnf install --assumeyes doxygen cmake gcc-c++ graphviz git
       - uses: actions/checkout@v4
-      - name: Install Doxygen
-        run: |
-          wget -q "https://github.com/doxygen/doxygen/releases/download/Release_${DOXYGEN_VERSION//./_}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz" -O /tmp/doxygen.tar.gz
-          tar xzf /tmp/doxygen.tar.gz -C /tmp
-          echo "/tmp/doxygen-${DOXYGEN_VERSION}/bin" >> "$GITHUB_PATH"
       - run: >
           cmake -S . -B ./build
           -DCMAKE_BUILD_TYPE:STRING=Release
