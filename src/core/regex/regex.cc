@@ -4,7 +4,6 @@
 
 #include "preprocess.h"
 
-#include <cassert>      // assert
 #include <charconv>     // std::from_chars
 #include <cstdint>      // std::uint64_t
 #include <regex>        // std::regex, std::smatch, std::regex_match
@@ -55,7 +54,12 @@ auto to_regex(const std::string_view pattern) -> std::optional<Regex> {
       return std::nullopt;
     }
 
-    assert(minimum <= maximum);
+    // ECMA-262 defines "numbers out of order in {} quantifier" as a
+    // SyntaxError, so such a pattern is not a valid regular expression
+    if (minimum > maximum) {
+      return std::nullopt;
+    }
+
     return RegexTypeRange{minimum, maximum};
   }
 

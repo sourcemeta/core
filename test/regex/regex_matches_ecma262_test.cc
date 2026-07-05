@@ -3395,3 +3395,8 @@ TEST(ecma262_empty_class_negated_quantified) {
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
 }
+
+TEST(ecma262_bounded_quantifier_out_of_order_is_invalid) {
+  EXPECT_FALSE(sourcemeta::core::to_regex("^.{5,2}$").has_value());
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("^.{5,2}$"));
+}

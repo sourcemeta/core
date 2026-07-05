@@ -837,3 +837,45 @@ TEST(object_explode_path_param) {
 
   EXPECT_EQ(result, ";semi=%3B;dot=.");
 }
+
+// RFC 6570 3.2.1 + Appendix A: for the ";" operator, an exploded
+// associative-array pair with an empty value emits just the name (";a"), since
+// "ifemp" is empty for ";". The "=" only applies to form-style (?/&).
+TEST(object_explode_empty_value_semicolon) {
+  const sourcemeta::core::URITemplate uri_template{"{;keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+  EXPECT_EQ(result, ";a");
+}
+
+TEST(object_explode_empty_value_query) {
+  const sourcemeta::core::URITemplate uri_template{"{?keys*}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+  EXPECT_EQ(result, "?a=");
+}
+
+TEST(object_no_explode_empty_value_semicolon) {
+  const sourcemeta::core::URITemplate uri_template{"{;keys}"};
+  const auto result = uri_template.expand(
+      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
+        if (name == "keys") {
+          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
+                                 false);
+        }
+        return std::nullopt;
+      });
+  EXPECT_EQ(result, ";keys=a,");
+}

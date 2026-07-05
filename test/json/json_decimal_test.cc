@@ -1212,3 +1212,11 @@ TEST(negative_exponent_non_integral) {
   EXPECT_FALSE(document.to_decimal().is_integer());
   EXPECT_FALSE(document.to_decimal().is_integral());
 }
+
+// A parse-clamped exponent must not overflow the internal 32-bit exponent
+// while stripping trailing zeros during a comparison.
+TEST(large_exponent_comparison_no_overflow) {
+  const auto value{
+      sourcemeta::core::parse_json("10000000000000000e2147483647")};
+  EXPECT_TRUE(value == value);
+}

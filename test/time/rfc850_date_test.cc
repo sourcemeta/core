@@ -255,3 +255,10 @@ TEST(format_round_trip) {
   EXPECT_EQ(sourcemeta::core::to_rfc850_date(point),
             "Thursday, 01-Jan-70 00:00:00 GMT");
 }
+
+// RFC 9110 s5.6.7: HTTP-date is case sensitive.
+TEST(parse_wrong_case_month_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_rfc850_date("Sunday, 06-nOV-94 08:49:37 GMT")
+          .has_value());
+}

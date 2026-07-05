@@ -61,3 +61,13 @@ TEST(rejects_unclosed_object) {
 TEST(rejects_invalid_number) {
   EXPECT_FALSE(sourcemeta::core::try_parse_json("01").has_value());
 }
+
+// RFC 8259 Section 2: a JSON text is a single value optionally surrounded by
+// whitespace, so trailing content after the value must be rejected.
+TEST(rejects_trailing_content) {
+  EXPECT_FALSE(sourcemeta::core::try_parse_json("123abc").has_value());
+}
+
+TEST(rejects_trailing_literal) {
+  EXPECT_FALSE(sourcemeta::core::try_parse_json("true false").has_value());
+}

@@ -744,3 +744,29 @@ TEST(parsing_nan_keyword_fails) {
   std::istringstream input{"NaN"};
   EXPECT_PARSE_ERROR(input, 1, 1);
 }
+
+// The string_view overloads reject trailing content and report the position of
+// the offending character rather than where the value ended.
+TEST(trailing_content_reports_position) {
+  bool threw{false};
+  try {
+    sourcemeta::core::parse_json("1 x");
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    threw = true;
+    EXPECT_EQ(error.line(), 1);
+    EXPECT_EQ(error.column(), 3);
+  }
+  EXPECT_TRUE(threw);
+}
+
+TEST(trailing_content_after_newline_reports_position) {
+  bool threw{false};
+  try {
+    sourcemeta::core::parse_json("1\n  x");
+  } catch (const sourcemeta::core::JSONParseError &error) {
+    threw = true;
+    EXPECT_EQ(error.line(), 2);
+    EXPECT_EQ(error.column(), 3);
+  }
+  EXPECT_TRUE(threw);
+}
