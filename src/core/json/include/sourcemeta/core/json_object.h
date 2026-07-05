@@ -15,6 +15,7 @@
 namespace sourcemeta::core {
 
 /// @ingroup json
+/// A JSON object mapping property keys to values
 template <typename Key, typename Value, typename Hash> class JSONObject {
 public:
   JSONObject() = default;
@@ -23,9 +24,11 @@ public:
   using mapped_type = Value;
   using hash_type = typename Hash::hash_type;
   using pair_value_type = std::pair<key_type, mapped_type>;
+  /// The string view type used to look up object keys
   using KeyView = std::basic_string_view<typename Key::value_type,
                                          typename Key::traits_type>;
 
+  /// Construct an object from a list of key and value pairs
   JSONObject(std::initializer_list<pair_value_type> entries) : data{} {
     this->data.reserve(entries.size());
     for (auto &&entry : entries) {
@@ -33,9 +36,13 @@ public:
     }
   }
 
+  /// A single object property entry
   struct Entry {
+    /// The property key
     key_type first;
+    /// The property value
     mapped_type second;
+    /// The precomputed hash of the property key
     hash_type hash;
 
     /// Check whether this entry's key equals the given key, comparing the

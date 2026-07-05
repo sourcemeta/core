@@ -33,7 +33,15 @@ namespace sourcemeta::core {
 /// ```
 class SOURCEMETA_CORE_JOSE_EXPORT JWKPrivate {
 public:
-  enum class Type : std::uint8_t { RSA, EllipticCurve, OctetKeyPair };
+  /// The family of key material a key holds.
+  enum class Type : std::uint8_t {
+    /// The RSA key type.
+    RSA,
+    /// The elliptic-curve key type.
+    EllipticCurve,
+    /// The Edwards-curve octet key pair type.
+    OctetKeyPair
+  };
 
   /// A key exclusively owns its parsed private key, so it is move-only.
   JWKPrivate(JWKPrivate &&other) noexcept = default;
@@ -58,8 +66,10 @@ public:
   [[nodiscard]] static auto from_pem(const std::string_view pem)
       -> std::optional<JWKPrivate>;
 
+  /// The family of key material this key holds.
   [[nodiscard]] auto type() const noexcept -> Type { return this->type_; }
 
+  /// The key identifier used to select this key, if present.
   [[nodiscard]] auto key_id() const noexcept
       -> std::optional<std::string_view> {
     if (this->key_id_.has_value()) {
@@ -69,6 +79,7 @@ public:
     return std::nullopt;
   }
 
+  /// The algorithm this key is intended for, if present.
   [[nodiscard]] auto algorithm() const noexcept -> std::optional<JWSAlgorithm> {
     return this->algorithm_;
   }
@@ -76,6 +87,7 @@ public:
   // Elliptic curve keys (RFC 7518 Section 6.2) and octet key pairs (RFC 8037
   // Section 2) carry a curve name, which the elliptic curve algorithms pin to
   // exactly one curve. It is empty for keys parsed from a PEM document
+  /// The curve this key is pinned to, empty when it carries none.
   [[nodiscard]] auto curve() const noexcept -> std::string_view {
     return this->curve_;
   }
@@ -83,6 +95,7 @@ public:
   // The parsed platform key, built once from the decoded material so that
   // signing reuses it rather than reconstructing it per signature. It is null
   // when the material could not be turned into a key
+  /// The parsed private key, or null when the material could not be decoded.
   [[nodiscard]] auto private_key() const noexcept -> const PrivateKey * {
     return this->private_key_.has_value() ? &*this->private_key_ : nullptr;
   }
