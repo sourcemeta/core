@@ -29,9 +29,9 @@ namespace sourcemeta::core {
 /// #include <sourcemeta/core/html.h>
 /// #include <cassert>
 ///
-/// std::string text{"<script>alert('xss')</script>"};
+/// std::string text{"1 < 2 & 3 > 0 'x' \"y\""};
 /// sourcemeta::core::html_escape(text);
-/// assert(text == "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;");
+/// assert(text == "1 &lt; 2 &amp; 3 &gt; 0 &#39;x&#39; &quot;y&quot;");
 /// ```
 SOURCEMETA_CORE_HTML_EXPORT
 auto html_escape(std::string &text) -> void;
