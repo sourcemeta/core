@@ -234,3 +234,23 @@ TEST(format_epoch) {
   EXPECT_EQ(sourcemeta::core::to_imf_fixdate(point),
             "Thu, 01 Jan 1970 00:00:00 GMT");
 }
+
+// RFC 9110 §5.6.7: "HTTP-date is case sensitive". Wrong-case day or month
+// names must be rejected.
+TEST(parse_wrong_case_day_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("wed, 21 Oct 2015 11:28:00 GMT")
+          .has_value());
+}
+
+TEST(parse_wrong_case_month_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed, 21 oCT 2015 11:28:00 GMT")
+          .has_value());
+}
+
+TEST(parse_upper_case_month_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_imf_fixdate("Wed, 21 OCT 2015 11:28:00 GMT")
+          .has_value());
+}

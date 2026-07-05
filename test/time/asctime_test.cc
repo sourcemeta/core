@@ -164,3 +164,14 @@ TEST(format_two_digit_day) {
 #endif
   EXPECT_EQ(sourcemeta::core::to_asctime(point), "Wed Oct 21 11:28:00 2015");
 }
+
+// RFC 9110 s5.6.7: HTTP-date is case sensitive.
+TEST(parse_wrong_case_month_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("Sun nOV  6 08:49:37 1994").has_value());
+}
+
+TEST(parse_wrong_case_day_name) {
+  EXPECT_FALSE(
+      sourcemeta::core::from_asctime("sun Nov  6 08:49:37 1994").has_value());
+}

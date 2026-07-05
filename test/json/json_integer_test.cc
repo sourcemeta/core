@@ -1,6 +1,9 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstdint> // std::int64_t
+#include <limits>  // std::numeric_limits
+
 TEST(positive) {
   const sourcemeta::core::JSON document{10};
   EXPECT_TRUE(document.is_integer());
@@ -135,4 +138,24 @@ TEST(subtraction_assignment_integer_decimal) {
   integer -= decimal;
   EXPECT_TRUE(integer.is_decimal());
   EXPECT_EQ(integer.to_decimal().to_string(), "1.8");
+}
+
+// Adding or subtracting past the integer range promotes to arbitrary precision
+// rather than wrapping, since signed integer overflow is undefined behavior.
+TEST(addition_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON maximum{
+      std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::JSON one{static_cast<std::int64_t>(1)};
+  const auto result{maximum + one};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_FALSE(result.is_integer());
+}
+
+TEST(subtraction_overflow_promotes_to_decimal) {
+  const sourcemeta::core::JSON minimum{
+      std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON one{static_cast<std::int64_t>(1)};
+  const auto result{minimum - one};
+  EXPECT_TRUE(result.is_decimal());
+  EXPECT_FALSE(result.is_integer());
 }

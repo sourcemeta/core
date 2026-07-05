@@ -569,3 +569,19 @@ TEST(exponential_alias_expansion_is_bounded) {
     FAIL();
   }
 }
+
+// A !!float tag whose value is outside the 64-bit integer range must not
+// invoke undefined behavior by casting an out-of-range double to an integer.
+TEST(float_tag_out_of_integer_range) {
+  const std::string input{"!!float 1e300"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 1e300);
+}
+
+TEST(float_tag_just_above_integer_range) {
+  const std::string input{"!!float 1e19"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_real());
+  EXPECT_EQ(result.to_real(), 1e19);
+}

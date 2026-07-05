@@ -386,3 +386,21 @@ TEST(read_json_stub_bigint) {
   EXPECT_TRACE(0, Pre, Decimal, 1, 1, Root, 0, "");
   EXPECT_TRACE(1, Post, Decimal, 1, 19, Root, 0, "");
 }
+
+// A trailing-content failure must leave the output untouched, since the value
+// is parsed into a temporary and only moved out on success.
+TEST(trailing_content_leaves_output_untouched) {
+  sourcemeta::core::JSON output{"sentinel"};
+  const auto callback =
+      [](const sourcemeta::core::JSON::ParsePhase,
+         const sourcemeta::core::JSON::Type, const std::uint64_t,
+         const std::uint64_t, const sourcemeta::core::JSON::ParseContext,
+         const std::size_t, const sourcemeta::core::JSON::String &) {};
+  try {
+    sourcemeta::core::parse_json("1 x", output, callback);
+    FAIL();
+  } catch (const sourcemeta::core::JSONParseError &) {
+    EXPECT_TRUE(output.is_string());
+    EXPECT_EQ(output.to_string(), "sentinel");
+  }
+}
