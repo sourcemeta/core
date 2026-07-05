@@ -116,7 +116,10 @@ TEST(embedded_null_byte) {
 
 // A multi-byte sequence truncated by the end of the input must not read past
 // the view. The buffer is exactly sized so a byte-count regression trips the
-// address sanitizer.
+// address sanitizer. These exercise the portable decoder, since on Windows the
+// conversion delegates to a platform API that substitutes a replacement
+// character instead, so the exact result differs there.
+#if !defined(_WIN32) && !defined(__CYGWIN__)
 TEST(truncated_four_byte_lead_no_overflow) {
   char *buffer{new char[1]};
   buffer[0] = static_cast<char>(0xF0);
@@ -144,3 +147,4 @@ TEST(truncated_two_byte_lead_no_overflow) {
   delete[] buffer;
   EXPECT_EQ(result, std::wstring{L"a"});
 }
+#endif
