@@ -16,7 +16,7 @@
 #include <optional>    // std::optional, std::nullopt
 #include <ostream>     // std::basic_ostream
 #include <type_traits> // std::conditional_t
-#include <utility>     // std::cmp_greater
+#include <utility>     // std::cmp_greater, std::move
 #include <vector>      // std::vector
 
 namespace sourcemeta::core {
@@ -259,12 +259,17 @@ auto parse_json(
   const char *begin{input.empty() ? "" : input.data()};
   const char *cursor{begin};
   const char *end{cursor + input.size()};
-  internal_parse_json<true>(cursor, end, line, column, callback, false, output);
+  // Parse into a temporary so that a trailing-content failure leaves the output
+  // untouched, matching how a malformed value fails before ever populating it
+  JSON result{nullptr};
+  internal_parse_json<true>(cursor, end, line, column, callback, false, result);
   const char *trailing{skip_trailing_whitespace(cursor, end)};
   if (trailing != end) {
     position_of(begin, trailing, line, column);
     throw JSONParseError(line, column);
   }
+
+  output = std::move(result);
 }
 
 auto read_json(const std::filesystem::path &path, JSON &output,
