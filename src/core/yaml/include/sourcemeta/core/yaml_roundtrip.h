@@ -30,18 +30,35 @@ class SOURCEMETA_CORE_YAML_EXPORT YAMLRoundTrip {
 public:
   /// The presentation style of a scalar value
   enum class ScalarStyle : std::uint8_t {
+    /// The unquoted scalar style
     Plain,
+    /// The single-quoted scalar style
     SingleQuoted,
+    /// The double-quoted scalar style
     DoubleQuoted,
+    /// The literal block scalar style that preserves line breaks
     Literal,
+    /// The folded block scalar style that joins lines with spaces
     Folded
   };
 
   /// The presentation style of a collection
-  enum class CollectionStyle : std::uint8_t { Block, Flow };
+  enum class CollectionStyle : std::uint8_t {
+    /// The indentation-based block collection style
+    Block,
+    /// The inline flow collection style delimited by brackets or braces
+    Flow
+  };
 
   /// The chomping behavior applied to a block scalar
-  enum class Chomping : std::uint8_t { Clip, Strip, Keep };
+  enum class Chomping : std::uint8_t {
+    /// Keep a single trailing line break and drop the rest
+    Clip,
+    /// Remove all trailing line breaks
+    Strip,
+    /// Preserve every trailing line break
+    Keep
+  };
 
   /// Holds the formatting details recorded for a single node
   struct NodeStyle {

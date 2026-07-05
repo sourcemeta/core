@@ -33,7 +33,14 @@ namespace sourcemeta::core {
 class SOURCEMETA_CORE_CRYPTO_EXPORT PrivateKey {
 public:
   /// The kind of key, which fixes the signature schemes it can produce.
-  enum class Type : std::uint8_t { RSA, EllipticCurve, Edwards };
+  enum class Type : std::uint8_t {
+    /// The RSA key type.
+    RSA,
+    /// The elliptic-curve key type.
+    EllipticCurve,
+    /// The Edwards-curve key type.
+    Edwards
+  };
 
   ~PrivateKey();
   /// Move constructor

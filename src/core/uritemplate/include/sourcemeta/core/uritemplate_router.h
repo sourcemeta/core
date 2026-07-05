@@ -68,10 +68,15 @@ public:
 
   /// The type of a node in the router trie
   enum class NodeType : std::uint8_t {
+    /// The root of the trie
     Root = 0,
+    /// A fixed literal path segment
     Literal = 1,
+    /// A single path segment capture
     Variable = 2,
+    /// A greedy capture requiring at least one trailing segment
     Expansion = 3,
+    /// A greedy capture allowing zero trailing segments
     OptionalExpansion = 4
   };
 

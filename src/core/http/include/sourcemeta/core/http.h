@@ -39,7 +39,9 @@ namespace sourcemeta::core {
 /// @ingroup http
 /// A content coding supported by this implementation.
 enum class HTTPContentEncoding : std::uint8_t {
+  /// The identity coding that applies no transformation.
   Identity,
+  /// The gzip coding per RFC 9110 §8.4.1.3.
   GZIP,
 };
 
@@ -259,7 +261,14 @@ auto http_format_links(std::span<const HTTPLink> links) -> std::string;
 
 /// @ingroup http
 /// The `SameSite` attribute of a cookie per RFC 6265bis §5.2.
-enum class HTTPCookieSameSite : std::uint8_t { Strict, Lax, None };
+enum class HTTPCookieSameSite : std::uint8_t {
+  /// The cookie is withheld from every cross-site request.
+  Strict,
+  /// The cookie is sent on top-level cross-site navigations only.
+  Lax,
+  /// The cookie is sent on every cross-site request.
+  None
+};
 
 /// @ingroup http
 /// A cookie to serialise into an RFC 6265 §4.1 `Set-Cookie` response header

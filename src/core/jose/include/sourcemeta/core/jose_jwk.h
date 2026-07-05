@@ -39,7 +39,14 @@ namespace sourcemeta::core {
 class SOURCEMETA_CORE_JOSE_EXPORT JWK {
 public:
   /// The family of key material a key holds.
-  enum class Type : std::uint8_t { RSA, EllipticCurve, OctetKeyPair };
+  enum class Type : std::uint8_t {
+    /// The RSA key type.
+    RSA,
+    /// The elliptic-curve key type.
+    EllipticCurve,
+    /// The Edwards-curve octet key pair type.
+    OctetKeyPair
+  };
 
   /// Parse a JSON Web Key from a JSON value, throwing on invalid input.
   explicit JWK(const JSON &value);

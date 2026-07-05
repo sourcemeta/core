@@ -34,6 +34,7 @@ class SOURCEMETA_CORE_SEMVER_EXPORT SemVer {
 public:
   /// The level of strictness applied when parsing a version string.
   enum class Mode : std::uint8_t {
+    /// Require a fully compliant version string.
     Strict,
 
     // Permits the following deviations on the version core only:
@@ -41,6 +42,7 @@ public:
     // - Missing patch, defaulting to 0 (e.g. "1.2")
     // - Missing minor and patch, defaulting to 0 (e.g. "1")
     // - Combinations of the above (e.g. "v1", "v1.2")
+    /// Permit common shorthand deviations on the version core.
     Loose
   };
 

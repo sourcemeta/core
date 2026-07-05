@@ -56,18 +56,31 @@ public:
   /// The object type used by the JSON document.
   using Object = JSONObject<String, JSON, PropertyHashJSON<JSON::String>>;
   /// The parsing phase of a JSON document.
-  enum class ParsePhase : std::uint8_t { Pre, Post };
+  enum class ParsePhase : std::uint8_t {
+    /// The phase before a value is parsed.
+    Pre,
+    /// The phase after a value is parsed.
+    Post
+  };
 
   // The enumeration indexes must stay in sync with the internal variant
   /// The different types of a JSON instance.
   enum class Type : std::uint8_t {
+    /// The JSON null type.
     Null = 0,
+    /// The JSON boolean type.
     Boolean = 1,
+    /// The JSON integer type.
     Integer = 2,
+    /// The JSON real number type.
     Real = 3,
+    /// The JSON string type.
     String = 4,
+    /// The JSON array type.
     Array = 5,
+    /// The JSON object type.
     Object = 6,
+    /// The JSON decimal type.
     Decimal = 7
   };
 
@@ -75,7 +88,14 @@ public:
   using TypeSet = std::bitset<8>;
 
   /// The context type for parse callbacks
-  enum class ParseContext : std::uint8_t { Root, Property, Index };
+  enum class ParseContext : std::uint8_t {
+    /// The root value of the document
+    Root,
+    /// An object property value
+    Property,
+    /// An array element value
+    Index
+  };
 
   /// An optional callback that can be passed to parsing functions to obtain
   /// metadata during the parsing process

@@ -28,7 +28,12 @@ struct JSONLDEdge {
 
 /// @ingroup jsonld
 /// The base direction of a language-tagged string
-enum class JSONLDDirection : std::uint8_t { LTR, RTL };
+enum class JSONLDDirection : std::uint8_t {
+  /// The left-to-right base direction
+  LTR,
+  /// The right-to-left base direction
+  RTL
+};
 
 /// @ingroup jsonld
 /// A position that is an object. An absent identifier means a fresh blank node,
@@ -70,7 +75,16 @@ struct JSONLDReference {
 /// @ingroup jsonld
 /// The container form of a collection position. List and Set range over an
 /// array; Language and Index range over an object.
-enum class JSONLDContainer : std::uint8_t { List, Set, Language, Index };
+enum class JSONLDContainer : std::uint8_t {
+  /// An ordered RDF list ranging over an array
+  List,
+  /// An unordered set ranging over an array
+  Set,
+  /// A map of language tag to string ranging over an object
+  Language,
+  /// A map of index labels carrying no RDF ranging over an object
+  Index
+};
 
 /// @ingroup jsonld
 /// A position that is a collection. A List is asserted as an RDF list and a Set

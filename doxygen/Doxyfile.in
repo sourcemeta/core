@@ -885,7 +885,7 @@ WARN_NO_PARAMDOC       = NO
 # will automatically be disabled.
 # The default value is: NO.
 
-WARN_IF_UNDOC_ENUM_VAL = NO
+WARN_IF_UNDOC_ENUM_VAL = YES
 
 # If the WARN_AS_ERROR tag is set to YES then doxygen will immediately stop when
 # a warning is encountered. If the WARN_AS_ERROR tag is set to FAIL_ON_WARNINGS
@@ -2317,6 +2317,17 @@ INCLUDE_FILE_PATTERNS  =
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 PREDEFINED             += DOXYGEN
+
+# The Unicode and IDNA character-database enumerators are generated from X-macro
+# lists, so their values have no source lines to attach documentation to. Expand
+# these lists to nothing for the documentation preprocessor only, keeping the
+# enum types and their descriptions while omitting the generated values.
+PREDEFINED             += SOURCEMETA_CORE_JOINING_TYPE_LIST(x)=
+PREDEFINED             += SOURCEMETA_CORE_BIDI_CLASS_LIST(x)=
+PREDEFINED             += SOURCEMETA_CORE_NFC_QUICK_CHECK_LIST(x)=
+PREDEFINED             += SOURCEMETA_CORE_UNICODE_SCRIPT_LIST(x)=
+PREDEFINED             += SOURCEMETA_CORE_IDNA_PROPERTY_LIST(x)=
+PREDEFINED             += SOURCEMETA_CORE_IDNA_MAPPING_STATUS_LIST(x)=
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
