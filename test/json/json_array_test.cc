@@ -581,6 +581,50 @@ TEST(unique_false) {
   EXPECT_FALSE(document.unique());
 }
 
+// The same numeric value in different representations is a duplicate, even
+// when the values are large enough to fall in distinct hash buckets
+TEST(unique_false_integer_and_real_same_value) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1000, 1000.0 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_integer_and_decimal_same_value) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1000, 1000e0 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_true_distinct_numeric_values) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1000, 1001.0 ]");
+  EXPECT_TRUE(document.unique());
+}
+
+TEST(unique_false_integer_real_and_decimal_same_value) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 1000, 1000.0, 1000e0 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_negative_number_same_value) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ -1000, -1000.0 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_false_fractional_real_and_decimal_same_value) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 0.25, 2.5e-1 ]");
+  EXPECT_FALSE(document.unique());
+}
+
+TEST(unique_true_distinct_fractional_values) {
+  const sourcemeta::core::JSON document =
+      sourcemeta::core::parse_json("[ 0.25, 0.5 ]");
+  EXPECT_TRUE(document.unique());
+}
+
 TEST(sort_object_items) {
   auto document = sourcemeta::core::parse_json(R"JSON([
     { "type": "string" },

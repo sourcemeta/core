@@ -749,8 +749,21 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
       return this->to_boolean() ? 1 : 0;
     case Type::Integer:
       return 4 + (static_cast<std::uint64_t>(this->to_integer()) % 256);
-    case Type::Real:
+    case Type::Real: {
+      // A number that equals an in-range integer must hash like that integer,
+      // otherwise equal values across representations would hash differently.
+      // The integer round-trip avoids a std::modf library call
+      const auto value{this->to_real()};
+      if (value >= static_cast<Real>(std::numeric_limits<Integer>::min()) &&
+          value < static_cast<Real>(std::numeric_limits<Integer>::max())) {
+        const auto truncated{static_cast<Integer>(value)};
+        if (static_cast<Real>(truncated) == value) {
+          return 4 + (static_cast<std::uint64_t>(truncated) % 256);
+        }
+      }
+
       return 5;
+    }
     case Type::String:
       return 3 + this->byte_size();
     case Type::Array:
@@ -768,8 +781,17 @@ auto JSON::operator-=(const JSON &substractive) -> JSON & {
             return accumulator + 1 + pair.first.size() +
                    pair.second.fast_hash();
           });
-    case Type::Decimal:
-      return 8;
+    case Type::Decimal: {
+      const auto &decimal{this->to_decimal()};
+      if (decimal.is_integral()) {
+        const auto integral{decimal.to_integral()};
+        if (integral.is_int64()) {
+          return 4 + (static_cast<std::uint64_t>(integral.to_int64()) % 256);
+        }
+      }
+
+      return 5;
+    }
     default:
       assert(false);
       return 0;
