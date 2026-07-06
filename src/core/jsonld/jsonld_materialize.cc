@@ -316,6 +316,10 @@ auto materialize_value(const JSON &value, PointerT &pointer,
                        std::vector<JSON> &standalone,
                        const std::vector<JSONLDEdge> **matched_edges)
     -> std::optional<JSON> {
+  if (matched_edges != nullptr) {
+    *matched_edges = nullptr;
+  }
+
   if (value.is_null()) {
     return std::nullopt;
   }
