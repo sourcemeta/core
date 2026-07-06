@@ -1,5 +1,6 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jose
-  SOURCES jose_algorithm_test.cc jose_jwk_test.cc jose_jwk_private_test.cc
+  SOURCES jose_test_keys.h
+          jose_algorithm_test.cc jose_jwk_test.cc jose_jwk_private_test.cc
           jose_jwks_test.cc
           jose_jwks_provider_test.cc jose_jwt_test.cc
           jose_jwt_check_claims_test.cc jose_jws_verify_signature_test.cc
