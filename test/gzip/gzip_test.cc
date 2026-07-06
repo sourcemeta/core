@@ -143,3 +143,59 @@ TEST(decompress_within_maximum_size_succeeds) {
       compressed.size(), 0, 1024)};
   EXPECT_EQ(decompressed, input);
 }
+
+TEST(decompress_concatenated_members) {
+  const std::string first{"hello "};
+  const std::string second{"world"};
+  auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(first.data()), first.size())};
+  compressed += sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(second.data()), second.size());
+  const auto decompressed{sourcemeta::core::gunzip(
+      reinterpret_cast<const std::uint8_t *>(compressed.data()),
+      compressed.size())};
+  EXPECT_EQ(decompressed, "hello world");
+}
+
+TEST(decompress_concatenated_members_grows_across_members) {
+  // A tiny hint forces the second member to grow the buffer that already holds
+  // the first, exercising the multi-member growth path
+  const std::string first{"hello "};
+  const std::string second{"world"};
+  auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(first.data()), first.size())};
+  compressed += sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(second.data()), second.size());
+  const auto decompressed{sourcemeta::core::gunzip(
+      reinterpret_cast<const std::uint8_t *>(compressed.data()),
+      compressed.size(), 1, 1024)};
+  EXPECT_EQ(decompressed, "hello world");
+}
+
+TEST(decompress_ignores_trailing_data) {
+  const std::string input{"hello world"};
+  auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  compressed += "not a gzip member";
+  const auto decompressed{sourcemeta::core::gunzip(
+      reinterpret_cast<const std::uint8_t *>(compressed.data()),
+      compressed.size())};
+  EXPECT_EQ(decompressed, input);
+}
+
+TEST(decompress_corrupt_trailing_member_throws) {
+  const std::string input{"hello world"};
+  auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  compressed.push_back('\x1F');
+  compressed.push_back('\x8B');
+  compressed.append("corrupt");
+  try {
+    sourcemeta::core::gunzip(
+        reinterpret_cast<const std::uint8_t *>(compressed.data()),
+        compressed.size());
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
+  }
+}

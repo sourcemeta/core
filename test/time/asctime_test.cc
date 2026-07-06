@@ -87,6 +87,23 @@ TEST(format_round_trip) {
   EXPECT_EQ(sourcemeta::core::to_asctime(point), "Thu Jan  1 00:00:00 1970");
 }
 
+// timegm returns (time_t)-1 for this instant, a valid time one second before
+// the epoch that must not be mistaken for a conversion failure
+TEST(parse_second_before_epoch) {
+  const auto point{sourcemeta::core::from_asctime("Wed Dec 31 23:59:59 1969")};
+  EXPECT_TRUE(point.has_value());
+  EXPECT_EQ(sourcemeta::core::to_asctime(point.value()),
+            "Wed Dec 31 23:59:59 1969");
+}
+
+TEST(parse_pre_epoch_round_trips) {
+  const auto point{sourcemeta::core::from_asctime("Mon Jan  1 00:00:00 1940")};
+  EXPECT_TRUE(point.has_value());
+  EXPECT_TRUE(point.value() < std::chrono::system_clock::from_time_t(0));
+  EXPECT_EQ(sourcemeta::core::to_asctime(point.value()),
+            "Mon Jan  1 00:00:00 1940");
+}
+
 TEST(parse_accepts_zero_padded_single_digit_day) {
   EXPECT_TRUE(
       sourcemeta::core::from_asctime("Sun Nov 06 08:49:37 1994").has_value());
