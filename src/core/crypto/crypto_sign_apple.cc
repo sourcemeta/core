@@ -250,6 +250,7 @@ PrivateKey::~PrivateKey() {
       CFRelease(internal_->key);
     }
 
+    secure_zero(internal_->edwards_seed);
     delete internal_;
   }
 }
@@ -266,6 +267,7 @@ auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
         CFRelease(internal_->key);
       }
 
+      secure_zero(internal_->edwards_seed);
       delete internal_;
     }
 

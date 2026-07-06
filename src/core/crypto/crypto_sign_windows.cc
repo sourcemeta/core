@@ -317,6 +317,7 @@ PrivateKey::~PrivateKey() {
       BCryptCloseAlgorithmProvider(internal_->algorithm, 0);
     }
 
+    secure_zero(internal_->edwards_seed);
     delete internal_;
   }
 }
@@ -337,6 +338,7 @@ auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
         BCryptCloseAlgorithmProvider(internal_->algorithm, 0);
       }
 
+      secure_zero(internal_->edwards_seed);
       delete internal_;
     }
 

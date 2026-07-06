@@ -340,7 +340,14 @@ struct PrivateKey::Internal {
 
 PrivateKey::PrivateKey(Internal *internal) noexcept : internal_{internal} {}
 
-PrivateKey::~PrivateKey() { delete internal_; }
+PrivateKey::~PrivateKey() {
+  if (internal_ != nullptr) {
+    secure_zero(internal_->private_exponent);
+    secure_zero(internal_->scalar);
+    secure_zero(internal_->edwards_seed);
+    delete internal_;
+  }
+}
 
 PrivateKey::PrivateKey(PrivateKey &&other) noexcept
     : internal_{other.internal_} {
@@ -349,7 +356,13 @@ PrivateKey::PrivateKey(PrivateKey &&other) noexcept
 
 auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
   if (this != &other) {
-    delete internal_;
+    if (internal_ != nullptr) {
+      secure_zero(internal_->private_exponent);
+      secure_zero(internal_->scalar);
+      secure_zero(internal_->edwards_seed);
+      delete internal_;
+    }
+
     internal_ = other.internal_;
     other.internal_ = nullptr;
   }
