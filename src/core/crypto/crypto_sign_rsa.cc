@@ -45,9 +45,16 @@ auto make_rsa_private_key(
     }
   }
 
+  // Every intermediate below holds private key material, so each is guarded so
+  // that it is wiped when the function unwinds, including on an exception from
+  // a later allocation. This does not reach copies left behind by earlier
+  // string reallocations, which would need a secret-zeroing allocator to
+  // eliminate
+
   // RSAPrivateKey (RFC 8017 Appendix A.1.2), whose version is zero for the
   // two-prime form
   std::string rsa_private_key_body;
+  const SecureScope rsa_private_key_body_scope{rsa_private_key_body};
   der_append_unsigned_integer(rsa_private_key_body, std::string_view{});
   der_append_unsigned_integer(rsa_private_key_body, modulus);
   der_append_unsigned_integer(rsa_private_key_body, public_exponent);
@@ -58,39 +65,32 @@ auto make_rsa_private_key(
   der_append_unsigned_integer(rsa_private_key_body, exponent2);
   der_append_unsigned_integer(rsa_private_key_body, coefficient);
   std::string rsa_private_key;
+  const SecureScope rsa_private_key_scope{rsa_private_key};
   der_append_element(rsa_private_key, 0x30, rsa_private_key_body);
 
   // PrivateKeyInfo (RFC 5958 Section 2), whose version is likewise zero
   std::string document_body;
+  const SecureScope document_body_scope{document_body};
   der_append_unsigned_integer(document_body, std::string_view{});
   document_body.append(
       reinterpret_cast<const char *>(RSA_ALGORITHM_IDENTIFIER.data()),
       RSA_ALGORITHM_IDENTIFIER.size());
   der_append_element(document_body, 0x04, rsa_private_key);
   std::string document;
+  const SecureScope document_scope{document};
   der_append_element(document, 0x30, document_body);
 
   auto encoded{base64_encode(document)};
+  const SecureScope encoded_scope{encoded};
   std::string pem{"-----BEGIN PRIVATE KEY-----\n"};
+  const SecureScope pem_scope{pem};
   for (std::size_t offset{0}; offset < encoded.size(); offset += 64) {
     pem.append(encoded.substr(offset, 64));
     pem.push_back('\n');
   }
 
   pem.append("-----END PRIVATE KEY-----\n");
-
-  auto result{make_private_key(pem)};
-  // Overwrite every intermediate that held private key material so it does not
-  // linger in freed memory once this function returns. This does not reach
-  // copies left behind by earlier string reallocations, which would need a
-  // secret-zeroing allocator to eliminate
-  secure_zero(rsa_private_key_body);
-  secure_zero(rsa_private_key);
-  secure_zero(document_body);
-  secure_zero(document);
-  secure_zero(encoded);
-  secure_zero(pem);
-  return result;
+  return make_private_key(pem);
 }
 
 } // namespace sourcemeta::core

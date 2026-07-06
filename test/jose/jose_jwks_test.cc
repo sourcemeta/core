@@ -2,13 +2,16 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include "jose_test_keys.h"
+
 #include <optional> // std::optional
 #include <string>   // std::string
 #include <utility>  // std::move
 
 TEST(parses_single_key) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "keys": [ { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB",
+      R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB",
                        "alg": "RS256", "kid": "rsa-1" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
   EXPECT_TRUE(keys.has_value());
@@ -27,7 +30,8 @@ TEST(parses_single_key) {
 TEST(parses_multiple_keys) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "keys": [
-             { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256",
+             { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS256",
                "kid": "rsa-1" },
              { "kty": "EC", "crv": "P-256",
                "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
@@ -58,7 +62,8 @@ TEST(parses_multiple_keys) {
 TEST(skips_unsupported_key) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "keys": [
-             { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256",
+             { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS256",
                "kid": "good" },
              { "kty": "oct", "k": "dGVzdA" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
@@ -77,7 +82,8 @@ TEST(skips_unsupported_key) {
 TEST(skips_structurally_invalid_key) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "keys": [
-             { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256",
+             { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS256",
                "kid": "good" },
              { "kty": "RSA", "n": "", "e": "AQAB", "kid": "bad" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
@@ -97,7 +103,8 @@ TEST(skips_structurally_invalid_key) {
 TEST(skips_non_object_entries) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "keys": [ "not a key",
-             { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256",
+             { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS256",
                "kid": "good" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
   EXPECT_TRUE(keys.has_value());
@@ -141,7 +148,8 @@ TEST(rejects_non_object) {
 
 TEST(find_returns_null_for_unknown_key_id) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "keys": [ { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB",
+      R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB",
                        "alg": "RS256", "kid": "present" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
   EXPECT_TRUE(keys.has_value());
@@ -158,7 +166,8 @@ TEST(find_returns_null_for_unknown_key_id) {
 
 TEST(find_ignores_keys_without_key_id) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "keys": [ { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB" } ] })")};
+      R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
   EXPECT_TRUE(keys.has_value());
   EXPECT_EQ(keys.value().size(), 1);
@@ -174,7 +183,8 @@ TEST(find_ignores_keys_without_key_id) {
 TEST(iterates_in_order) {
   const auto document{sourcemeta::core::parse_json(
       R"({ "keys": [
-             { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256",
+             { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS256",
                "kid": "rsa-1" },
              { "kty": "EC", "crv": "P-256",
                "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
@@ -208,7 +218,8 @@ TEST(iterates_in_order) {
 
 TEST(from_accepts_rvalue) {
   auto document{sourcemeta::core::parse_json(
-      R"({ "keys": [ { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB",
+      R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB",
                        "alg": "RS256", "kid": "rsa-1" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(std::move(document))};
   EXPECT_TRUE(keys.has_value());
@@ -237,7 +248,8 @@ TEST(owns_keys_after_source_destroyed) {
   std::optional<sourcemeta::core::JWKS> keys;
   {
     const auto document{sourcemeta::core::parse_json(
-        R"({ "keys": [ { "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB",
+        R"({ "keys": [ { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+        R"(", "e": "AQAB",
                          "alg": "RS256", "kid": "scoped" } ] })")};
     keys = sourcemeta::core::JWKS::from(document);
   }

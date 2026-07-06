@@ -2,13 +2,16 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/test.h>
 
+#include "jose_test_keys.h"
+
 #include <optional> // std::optional
 #include <string>   // std::string
 #include <utility>  // std::move
 
 TEST(rsa_public_key) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS256",
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "RS256",
            "kid": "key-1" })")};
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
@@ -22,7 +25,7 @@ TEST(rsa_public_key) {
 
 TEST(rsa_public_key_without_optional_metadata) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS R"(", "e": "AQAB" })")};
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::RSA);
@@ -47,7 +50,8 @@ TEST(elliptic_curve_public_key) {
 
 TEST(unrecognized_algorithm_is_absent) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "HS256" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "HS256" })")};
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().algorithm().has_value());
@@ -60,7 +64,7 @@ TEST(rejects_non_object) {
 
 TEST(rejects_missing_key_type) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB" })")};
+      R"({ "n": ")" JOSE_TEST_RSA_MODULUS R"(", "e": "AQAB" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -72,7 +76,8 @@ TEST(rejects_unsupported_key_type) {
 
 TEST(rejects_rsa_private_key) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "d": "dGVzdA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "d": "dGVzdA" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -170,7 +175,7 @@ TEST(constructor_throws_on_invalid_input) {
 
 TEST(from_accepts_rvalue) {
   auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS R"(", "e": "AQAB" })")};
   const auto key{sourcemeta::core::JWK::from(std::move(document))};
   EXPECT_TRUE(key.has_value());
   EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::RSA);
@@ -190,7 +195,8 @@ TEST(owns_material_after_source_destroyed) {
   std::optional<sourcemeta::core::JWK> key;
   {
     const auto document{sourcemeta::core::parse_json(
-        R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "kid": "scoped" })")};
+        R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+        R"(", "e": "AQAB", "kid": "scoped" })")};
     key = sourcemeta::core::JWK::from(document);
   }
 
@@ -201,37 +207,43 @@ TEST(owns_material_after_source_destroyed) {
 
 TEST(rejects_rsa_private_key_prime_p) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "p": "dGVzdA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "p": "dGVzdA" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_rsa_private_key_prime_q) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "q": "dGVzdA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "q": "dGVzdA" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_rsa_private_key_exponent_dp) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "dp": "dGVzdA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "dp": "dGVzdA" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_rsa_private_key_exponent_dq) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "dq": "dGVzdA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "dq": "dGVzdA" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_rsa_private_key_coefficient_qi) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "qi": "dGVzdA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "qi": "dGVzdA" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_rsa_private_key_other_primes_oth) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "oth": [] })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "oth": [] })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -243,7 +255,7 @@ TEST(rejects_empty_rsa_modulus) {
 
 TEST(rejects_empty_rsa_exponent) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS R"(", "e": "" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -289,7 +301,7 @@ TEST(accepts_ec_p521) {
 
 TEST(rejects_missing_rsa_exponent) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS R"(" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -316,7 +328,7 @@ TEST(rejects_missing_ec_coordinate_y) {
 
 TEST(rejects_non_string_key_type) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": 123, "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB" })")};
+      R"({ "kty": 123, "n": ")" JOSE_TEST_RSA_MODULUS R"(", "e": "AQAB" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -328,31 +340,35 @@ TEST(rejects_non_string_rsa_modulus) {
 
 TEST(rejects_lowercase_key_type) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "rsa", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB" })")};
+      R"({ "kty": "rsa", "n": ")" JOSE_TEST_RSA_MODULUS R"(", "e": "AQAB" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_invalid_base64url_exponent) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "not valid" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "not valid" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_non_string_key_id) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "kid": 123 })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "kid": 123 })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(rejects_non_string_algorithm) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": 123 })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": 123 })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
 TEST(ignores_unknown_members) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "use": "sig",
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "use": "sig",
            "key_ops": [ "verify" ], "x5t": "abc" })")};
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
@@ -363,7 +379,8 @@ TEST(ignores_algorithm_inconsistent_with_key_type) {
   // An algorithm hint that contradicts the key type is not actionable, so it
   // is dropped while the otherwise valid key still parses
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "ES256" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "ES256" })")};
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().algorithm().has_value());
@@ -373,7 +390,8 @@ TEST(tolerates_unsupported_algorithm) {
   // A valid but unsupported algorithm hint is advisory (RFC 7517 Section 4.4),
   // so it does not invalidate the key, it is simply not reported
   const auto document{sourcemeta::core::parse_json(
-      R"({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "EdDSA" })")};
+      R"({ "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
+      R"(", "e": "AQAB", "alg": "EdDSA" })")};
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().algorithm().has_value());

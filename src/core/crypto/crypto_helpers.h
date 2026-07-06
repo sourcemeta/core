@@ -23,6 +23,10 @@ inline constexpr std::size_t MAXIMUM_KEY_BYTES{512};
 // dead store
 inline auto secure_zero(void *const data, const std::size_t size) noexcept
     -> void {
+  if (data == nullptr) {
+    return;
+  }
+
   auto *pointer{static_cast<volatile unsigned char *>(data)};
   for (std::size_t index{0}; index < size; index += 1) {
     pointer[index] = 0;
