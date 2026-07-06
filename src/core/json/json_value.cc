@@ -434,25 +434,22 @@ auto JSON::size(const String &value) noexcept -> std::size_t {
   return result;
 }
 
-// `as_real` is reached only for integer and real operands here, never a
-// decimal, so it cannot throw even though it is no longer noexcept
+// Two numbers of different representations are ordered by exact mathematical
+// value, which is done by promoting both operands to the arbitrary precision
+// type. That conversion can allocate, so this is not strictly non-throwing, but
+// the only possible escape is an allocation failure, which is fatal regardless
 // NOLINTNEXTLINE(bugprone-exception-escape)
 auto JSON::operator<(const JSON &other) const noexcept -> bool {
-  if ((this->type() == Type::Integer && other.type() == Type::Real) ||
-      (this->type() == Type::Real && other.type() == Type::Integer)) {
-    return this->as_real() < other.as_real();
-  }
-
-  if ((this->type() == Type::Decimal &&
-       (other.type() == Type::Integer || other.type() == Type::Real)) ||
-      ((this->type() == Type::Integer || this->type() == Type::Real) &&
-       other.type() == Type::Decimal)) {
-    const Decimal left = this->is_decimal()   ? this->to_decimal()
-                         : this->is_integer() ? Decimal{this->to_integer()}
-                                              : Decimal{this->to_real()};
-    const Decimal right = other.is_decimal()   ? other.to_decimal()
-                          : other.is_integer() ? Decimal{other.to_integer()}
-                                               : Decimal{other.to_real()};
+  if (this->is_number() && other.is_number() &&
+      this->current_type != other.current_type) {
+    const Decimal left = this->is_decimal() ? this->to_decimal()
+                         : this->is_integer()
+                             ? Decimal{this->to_integer()}
+                             : Decimal::exact_from(this->to_real());
+    const Decimal right = other.is_decimal() ? other.to_decimal()
+                          : other.is_integer()
+                              ? Decimal{other.to_integer()}
+                              : Decimal::exact_from(other.to_real());
     return left < right;
   }
 
@@ -494,25 +491,22 @@ auto JSON::operator>=(const JSON &other) const noexcept -> bool {
   return *this > other || *this == other;
 }
 
-// `as_real` is reached only for integer and real operands here, never a
-// decimal, so it cannot throw even though it is no longer noexcept
+// Two numbers of different representations are compared by exact mathematical
+// value, which is done by promoting both operands to the arbitrary precision
+// type. That conversion can allocate, so this is not strictly non-throwing, but
+// the only possible escape is an allocation failure, which is fatal regardless
 // NOLINTNEXTLINE(bugprone-exception-escape)
 auto JSON::operator==(const JSON &other) const noexcept -> bool {
-  if ((this->type() == Type::Integer && other.type() == Type::Real) ||
-      (this->type() == Type::Real && other.type() == Type::Integer)) {
-    return this->as_real() == other.as_real();
-  }
-
-  if ((this->type() == Type::Decimal &&
-       (other.type() == Type::Integer || other.type() == Type::Real)) ||
-      ((this->type() == Type::Integer || this->type() == Type::Real) &&
-       other.type() == Type::Decimal)) {
-    const Decimal left = this->is_decimal()   ? this->to_decimal()
-                         : this->is_integer() ? Decimal{this->to_integer()}
-                                              : Decimal{this->to_real()};
-    const Decimal right = other.is_decimal()   ? other.to_decimal()
-                          : other.is_integer() ? Decimal{other.to_integer()}
-                                               : Decimal{other.to_real()};
+  if (this->is_number() && other.is_number() &&
+      this->current_type != other.current_type) {
+    const Decimal left = this->is_decimal() ? this->to_decimal()
+                         : this->is_integer()
+                             ? Decimal{this->to_integer()}
+                             : Decimal::exact_from(this->to_real());
+    const Decimal right = other.is_decimal() ? other.to_decimal()
+                          : other.is_integer()
+                              ? Decimal{other.to_integer()}
+                              : Decimal::exact_from(other.to_real());
     return left == right;
   }
 

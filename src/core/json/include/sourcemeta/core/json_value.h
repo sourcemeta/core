@@ -332,6 +332,17 @@ public:
   auto operator<=(const JSON &other) const noexcept -> bool;
   auto operator>(const JSON &other) const noexcept -> bool;
   auto operator>=(const JSON &other) const noexcept -> bool;
+
+  /// Compare two JSON instances for equality. Numbers compare by exact
+  /// mathematical value across the integer, real, and decimal representations,
+  /// so the same value written in different forms is equal. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// assert(sourcemeta::core::JSON{2} == sourcemeta::core::JSON{2.0});
+  /// ```
   auto operator==(const JSON &other) const noexcept -> bool;
   auto operator!=(const JSON &) const noexcept -> bool = default;
 
