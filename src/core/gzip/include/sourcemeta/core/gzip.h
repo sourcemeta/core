@@ -44,8 +44,9 @@ auto SOURCEMETA_CORE_GZIP_EXPORT gzip(const std::uint8_t *input,
 /// Decompress a GZIP compressed byte buffer (RFC 1952). An optional output
 /// size hint can be provided to avoid repeated buffer resizing. The output is
 /// bounded by a maximum size (256 MiB by default) so that a highly compressed
-/// input cannot exhaust memory, and decompressing beyond it throws. Only the
-/// first GZIP member is decoded. For example:
+/// input cannot exhaust memory, and decompressing beyond it throws. Every
+/// concatenated member is decoded and any trailing data that does not begin a
+/// new member is ignored, matching gzip(1). For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/gzip.h>

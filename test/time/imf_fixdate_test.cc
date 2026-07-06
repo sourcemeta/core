@@ -80,6 +80,14 @@ TEST(parse_pre_epoch_round_trips) {
             "Mon, 01 Jan 1900 00:00:00 GMT");
 }
 
+TEST(parse_far_future_year_is_representable) {
+  // Year 2200 is within system_clock's range on every platform, so the range
+  // guard that rejects unrepresentable dates must not reject it
+  EXPECT_TRUE(
+      sourcemeta::core::from_imf_fixdate("Wed, 31 Dec 2200 23:59:59 GMT")
+          .has_value());
+}
+
 TEST(parse_invalid_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_imf_fixdate("FOO").has_value());
 }
