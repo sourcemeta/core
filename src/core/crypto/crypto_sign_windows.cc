@@ -33,6 +33,7 @@ struct PrivateKey::Internal {
   std::size_t field_bytes;
   std::string edwards_seed;
   EdwardsCurve edwards_curve;
+  bool rsa_pss_restricted{false};
 };
 
 } // namespace sourcemeta::core
@@ -366,12 +367,14 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
         return std::nullopt;
       }
 
-      return PrivateKey{new PrivateKey::Internal{.kind = PrivateKey::Type::RSA,
-                                                 .algorithm = pair.algorithm,
-                                                 .key = pair.key,
-                                                 .field_bytes = 0,
-                                                 .edwards_seed = {},
-                                                 .edwards_curve = {}}};
+      return PrivateKey{new PrivateKey::Internal{
+          .kind = PrivateKey::Type::RSA,
+          .algorithm = pair.algorithm,
+          .key = pair.key,
+          .field_bytes = 0,
+          .edwards_seed = {},
+          .edwards_curve = {},
+          .rsa_pss_restricted = parsed->rsa_pss_restricted}};
     }
     case PKCS8KeyKind::EllipticCurve: {
       const auto field_bytes{curve_field_bytes(parsed->curve)};
@@ -452,6 +455,11 @@ auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
     -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
+    return std::nullopt;
+  }
+
+  // An id-RSASSA-PSS key is restricted to PSS and must not sign PKCS1v15
+  if (internal->rsa_pss_restricted) {
     return std::nullopt;
   }
 

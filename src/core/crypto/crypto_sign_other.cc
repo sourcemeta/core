@@ -335,6 +335,7 @@ struct PrivateKey::Internal {
   EllipticCurve elliptic_curve;
   std::string edwards_seed;
   EdwardsCurve edwards_curve;
+  bool rsa_pss_restricted{false};
 };
 
 PrivateKey::PrivateKey(Internal *internal) noexcept : internal_{internal} {}
@@ -416,7 +417,8 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
           .scalar = {},
           .elliptic_curve = {},
           .edwards_seed = {},
-          .edwards_curve = {}}};
+          .edwards_curve = {},
+          .rsa_pss_restricted = parsed->rsa_pss_restricted}};
     }
     case PKCS8KeyKind::EllipticCurve: {
       // RFC 5915 Section 3: ECPrivateKey is a SEQUENCE whose second field is
@@ -526,6 +528,11 @@ auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
     -> std::optional<std::string> {
   const auto *internal{key.internal()};
   if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
+    return std::nullopt;
+  }
+
+  // An id-RSASSA-PSS key is restricted to PSS and must not sign PKCS1v15
+  if (internal->rsa_pss_restricted) {
     return std::nullopt;
   }
 

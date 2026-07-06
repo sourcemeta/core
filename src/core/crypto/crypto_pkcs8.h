@@ -53,6 +53,9 @@ struct PKCS8Key {
   EllipticCurve curve;
   EdwardsCurve edwards_curve;
   std::string_view key;
+  // Set when the algorithm is id-RSASSA-PSS rather than rsaEncryption, so that
+  // such a key is refused for RSASSA-PKCS1-v1_5 signing (RFC 8017 Appendix A.2)
+  bool rsa_pss_restricted{false};
 };
 
 // Parse an RFC 5958 PrivateKeyInfo, identifying the algorithm from its object
@@ -101,7 +104,8 @@ inline auto parse_pkcs8(const std::string_view der) -> std::optional<PKCS8Key> {
     return PKCS8Key{.kind = PKCS8KeyKind::RSA,
                     .curve = {},
                     .edwards_curve = {},
-                    .key = private_key->content};
+                    .key = private_key->content,
+                    .rsa_pss_restricted = oid->content == rsa_pss};
   }
 
   if (oid->content == ed25519 || oid->content == ed448) {

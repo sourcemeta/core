@@ -70,7 +70,7 @@ auto make_rsa_private_key(
   std::string document;
   der_append_element(document, 0x30, document_body);
 
-  const auto encoded{base64_encode(document)};
+  auto encoded{base64_encode(document)};
   std::string pem{"-----BEGIN PRIVATE KEY-----\n"};
   for (std::size_t offset{0}; offset < encoded.size(); offset += 64) {
     pem.append(encoded.substr(offset, 64));
@@ -78,7 +78,19 @@ auto make_rsa_private_key(
   }
 
   pem.append("-----END PRIVATE KEY-----\n");
-  return make_private_key(pem);
+
+  auto result{make_private_key(pem)};
+  // Overwrite every intermediate that held private key material so it does not
+  // linger in freed memory once this function returns. This does not reach
+  // copies left behind by earlier string reallocations, which would need a
+  // secret-zeroing allocator to eliminate
+  secure_zero(rsa_private_key_body);
+  secure_zero(rsa_private_key);
+  secure_zero(document_body);
+  secure_zero(document);
+  secure_zero(encoded);
+  secure_zero(pem);
+  return result;
 }
 
 } // namespace sourcemeta::core
