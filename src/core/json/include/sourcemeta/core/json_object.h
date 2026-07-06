@@ -63,8 +63,12 @@ public:
                                          const hash_type key_hash) const
         -> bool {
       assert(JSONObject::hash(key) == key_hash);
+      // A perfect hash captures the key bytes but not its length, so two keys
+      // that differ only by trailing NUL bytes hash equal. Comparing sizes
+      // disambiguates them without the cost of a full string comparison
       return this->hash == key_hash &&
-             (hasher.is_perfect(key_hash) || this->first == key);
+             (hasher.is_perfect(key_hash) ? this->first.size() == key.size()
+                                          : this->first == key);
     }
   };
 
@@ -199,7 +203,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           auto iterator{this->cbegin()};
           std::advance(iterator, index);
           return iterator;
@@ -228,7 +233,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           auto iterator{this->cbegin()};
           std::advance(iterator, index);
           return iterator;
@@ -256,7 +262,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == hash) {
+        if (entry.hash == hash && entry.first.size() == key.size()) {
           return true;
         }
       }
@@ -280,7 +286,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == hash) {
+        if (entry.hash == hash && entry.first.size() == key.size()) {
           return true;
         }
       }
@@ -321,7 +327,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -346,7 +352,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (const auto &entry : *this) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -368,7 +374,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -392,7 +398,7 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           return entry.second;
         }
       }
@@ -416,7 +422,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           return &this->data[index].second;
         }
       }
@@ -442,7 +449,8 @@ public:
     // Move the perfect hash condition out of the loop for extra performance
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type index = 0; index < this->size(); index++) {
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           return &this->data[index].second;
         }
       }
@@ -469,7 +477,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type count = 0; count < object_size; count++) {
         const auto index{(start + count) % object_size};
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           start = index + 1;
           return &this->data[index].second;
         }
@@ -501,7 +510,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (size_type count = 0; count < object_size; count++) {
         const auto index{(start + count) % object_size};
-        if (this->data[index].hash == key_hash) {
+        if (this->data[index].hash == key_hash &&
+            this->data[index].first.size() == key.size()) {
           start = index + 1;
           return &this->data[index].second;
         }
@@ -529,7 +539,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (auto iterator = this->data.begin(); iterator != this->data.end();
            ++iterator) {
-        if (iterator->hash == key_hash) {
+        if (iterator->hash == key_hash &&
+            iterator->first.size() == key.size()) {
           iterator->second = value;
           return key_hash;
         } else if (iterator->hash == suffix_hash && iterator->first == suffix) {
@@ -560,7 +571,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.second = std::move(value);
           return key_hash;
         }
@@ -584,7 +595,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.second = std::move(value);
           return key_hash;
         }
@@ -608,7 +619,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.second = value;
           return key_hash;
         }
@@ -671,7 +682,7 @@ public:
 
     if (this->hasher.is_perfect(key_hash)) {
       for (auto &entry : this->data) {
-        if (entry.hash == key_hash) {
+        if (entry.hash == key_hash && entry.first.size() == key.size()) {
           entry.first = std::move(to);
           entry.hash = to_hash;
           break;
@@ -695,7 +706,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (auto iterator = this->data.begin(); iterator != this->data.end();
            ++iterator) {
-        if (iterator->hash == key_hash) {
+        if (iterator->hash == key_hash &&
+            iterator->first.size() == key.size()) {
           this->data.erase(iterator);
           return current_size - 1;
         }
@@ -722,7 +734,8 @@ public:
     if (this->hasher.is_perfect(key_hash)) {
       for (auto iterator = this->data.begin(); iterator != this->data.end();
            ++iterator) {
-        if (iterator->hash == key_hash) {
+        if (iterator->hash == key_hash &&
+            iterator->first.size() == key.size()) {
           this->data.erase(iterator);
           return current_size - 1;
         }
