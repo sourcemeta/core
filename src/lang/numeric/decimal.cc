@@ -6,7 +6,8 @@
 #include <array>     // std::array
 #include <cassert>   // assert
 #include <charconv>  // std::to_chars
-#include <cmath>     // std::isfinite
+#include <cmath>     // std::isfinite, std::isnan, std::isinf, std::abs,
+                     // std::frexp, std::ldexp
 #include <cstddef>   // std::size_t
 #include <cstring>   // std::strlen
 #include <iomanip>   // std::setprecision
@@ -55,6 +56,78 @@ auto strip_trailing_zeros(std::int64_t &coefficient, std::int32_t &exponent)
     coefficient /= 10;
     exponent += 1;
   }
+}
+
+// Multiply a magnitude held as base-10 digits, least significant first, by a
+// small factor in place
+auto multiply_decimal_digits(std::vector<std::uint8_t> &digits,
+                             const unsigned factor) -> void {
+  unsigned carry{0};
+  for (auto &digit : digits) {
+    const unsigned product{digit * factor + carry};
+    digit = static_cast<std::uint8_t>(product % 10);
+    carry = product / 10;
+  }
+
+  while (carry > 0) {
+    digits.push_back(static_cast<std::uint8_t>(carry % 10));
+    carry /= 10;
+  }
+}
+
+// Build the exact decimal string of a finite, non-zero magnitude. Every finite
+// double is a dyadic rational, so its exact value has a finite decimal
+// expansion recovered from the integer mantissa and the binary exponent
+auto exact_magnitude_to_decimal_string(const double magnitude) -> std::string {
+  int fraction_exponent{0};
+  const double fraction{std::frexp(magnitude, &fraction_exponent)};
+  // The fraction lies in [0.5, 1), so scaling it by 2^53 yields the exact
+  // integer mantissa
+  std::uint64_t mantissa{static_cast<std::uint64_t>(std::ldexp(fraction, 53))};
+  std::int32_t binary_exponent{static_cast<std::int32_t>(fraction_exponent) -
+                               53};
+
+  // Dropping trailing zero bits keeps the following multiplications short and
+  // avoids emitting spurious trailing decimal zeros
+  while (mantissa != 0 && (mantissa & 1U) == 0) {
+    mantissa >>= 1U;
+    binary_exponent += 1;
+  }
+
+  std::vector<std::uint8_t> digits;
+  for (std::uint64_t remaining{mantissa}; remaining > 0; remaining /= 10) {
+    digits.push_back(static_cast<std::uint8_t>(remaining % 10));
+  }
+
+  std::int32_t fractional_length{0};
+  if (binary_exponent >= 0) {
+    for (std::int32_t index = 0; index < binary_exponent; index += 1) {
+      multiply_decimal_digits(digits, 2);
+    }
+  } else {
+    fractional_length = -binary_exponent;
+    for (std::int32_t index = 0; index < fractional_length; index += 1) {
+      multiply_decimal_digits(digits, 5);
+    }
+  }
+
+  std::string coefficient;
+  coefficient.reserve(digits.size());
+  for (std::size_t index = digits.size(); index > 0; index -= 1) {
+    coefficient.push_back(static_cast<char>('0' + digits[index - 1]));
+  }
+
+  if (fractional_length == 0) {
+    return coefficient;
+  }
+
+  const auto fractional{static_cast<std::size_t>(fractional_length)};
+  if (coefficient.size() > fractional) {
+    const std::size_t split{coefficient.size() - fractional};
+    return coefficient.substr(0, split) + "." + coefficient.substr(split);
+  }
+
+  return "0." + std::string(fractional - coefficient.size(), '0') + coefficient;
 }
 
 template <typename FloatingPointType>
@@ -572,6 +645,32 @@ auto Decimal::strict_from(const double value) -> Decimal {
   assert(result.ec == std::errc{});
   Decimal output{std::string_view{
       buffer.data(), static_cast<std::size_t>(result.ptr - buffer.data())}};
+  output.flags_ =
+      static_cast<std::uint8_t>(output.flags_ & ~FLAG_INTEGER_LITERAL);
+  return output;
+}
+
+auto Decimal::exact_from(const double value) -> Decimal {
+  if (std::isnan(value)) {
+    return Decimal::nan();
+  }
+
+  if (std::isinf(value)) {
+    return value < 0 ? Decimal::negative_infinity() : Decimal::infinity();
+  }
+
+  // The library builds without IEEE signed zeros, so a negative zero is
+  // indistinguishable from a positive zero and always yields an unsigned zero
+  if (value == 0.0) {
+    Decimal output{static_cast<std::int64_t>(0)};
+    output.flags_ =
+        static_cast<std::uint8_t>(output.flags_ & ~FLAG_INTEGER_LITERAL);
+    return output;
+  }
+
+  const std::string magnitude{
+      exact_magnitude_to_decimal_string(std::abs(value))};
+  Decimal output{value < 0.0 ? "-" + magnitude : magnitude};
   output.flags_ =
       static_cast<std::uint8_t>(output.flags_ & ~FLAG_INTEGER_LITERAL);
   return output;

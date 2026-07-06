@@ -3829,3 +3829,146 @@ TEST(parse_extreme_negative_exponent_does_not_overflow) {
   const sourcemeta::core::Decimal value{"1.5e-2147483648"};
   EXPECT_TRUE(value.is_finite());
 }
+
+TEST(exact_from_integer_one) {
+  const auto value{sourcemeta::core::Decimal::exact_from(1.0)};
+  EXPECT_EQ(value.to_string(), "1");
+  EXPECT_TRUE(value == sourcemeta::core::Decimal{"1"});
+}
+
+TEST(exact_from_integer_five) {
+  const auto value{sourcemeta::core::Decimal::exact_from(5.0)};
+  EXPECT_EQ(value.to_string(), "5");
+}
+
+TEST(exact_from_integer_negative) {
+  const auto value{sourcemeta::core::Decimal::exact_from(-3.0)};
+  EXPECT_EQ(value.to_string(), "-3");
+}
+
+TEST(exact_from_integer_is_not_integer_literal_but_is_integral) {
+  const auto value{sourcemeta::core::Decimal::exact_from(5.0)};
+  EXPECT_FALSE(value.is_integer());
+  EXPECT_TRUE(value.is_integral());
+}
+
+TEST(exact_from_zero) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.0)};
+  EXPECT_TRUE(value.is_zero());
+  EXPECT_FALSE(value.is_signed());
+  EXPECT_EQ(value.to_string(), "0");
+}
+
+TEST(exact_from_negative_zero) {
+  // The library builds without IEEE signed zeros, so a negative zero converts
+  // to a plain unsigned zero
+  const auto value{sourcemeta::core::Decimal::exact_from(-0.0)};
+  EXPECT_TRUE(value.is_zero());
+  EXPECT_TRUE(value == sourcemeta::core::Decimal{0});
+}
+
+TEST(exact_from_dyadic_half) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.5)};
+  EXPECT_EQ(value.to_string(), "0.5");
+}
+
+TEST(exact_from_dyadic_quarter) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.25)};
+  EXPECT_EQ(value.to_string(), "0.25");
+}
+
+TEST(exact_from_dyadic_eighth) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.125)};
+  EXPECT_EQ(value.to_string(), "0.125");
+}
+
+TEST(exact_from_dyadic_three_and_a_half) {
+  const auto value{sourcemeta::core::Decimal::exact_from(3.5)};
+  EXPECT_EQ(value.to_string(), "3.5");
+}
+
+TEST(exact_from_dyadic_negative) {
+  const auto value{sourcemeta::core::Decimal::exact_from(-7.25)};
+  EXPECT_EQ(value.to_string(), "-7.25");
+}
+
+TEST(exact_from_two_pow_53) {
+  const auto value{sourcemeta::core::Decimal::exact_from(9007199254740992.0)};
+  EXPECT_EQ(value.to_string(), "9007199254740992");
+}
+
+TEST(exact_from_two_pow_63) {
+  const auto value{
+      sourcemeta::core::Decimal::exact_from(9223372036854775808.0)};
+  EXPECT_EQ(value.to_string(), "9223372036854775808");
+  EXPECT_TRUE(value == sourcemeta::core::Decimal{"9223372036854775808"});
+}
+
+TEST(exact_from_one_tenth_full_expansion) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.1)};
+  EXPECT_EQ(value.to_string(),
+            "0.1000000000000000055511151231257827021181583404541015625");
+}
+
+TEST(exact_from_one_tenth_differs_from_clean_decimal) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.1)};
+  EXPECT_FALSE(value == sourcemeta::core::Decimal{"0.1"});
+  EXPECT_TRUE(value > sourcemeta::core::Decimal{"0.1"});
+}
+
+TEST(exact_from_two_point_one_differs_from_clean_decimal) {
+  const auto value{sourcemeta::core::Decimal::exact_from(2.1)};
+  EXPECT_FALSE(value == sourcemeta::core::Decimal{"2.1"});
+  EXPECT_TRUE(value > sourcemeta::core::Decimal{"2.1"});
+}
+
+TEST(exact_from_roundtrips_one_tenth) {
+  const auto value{sourcemeta::core::Decimal::exact_from(0.1)};
+  EXPECT_EQ(value.to_double(), 0.1);
+}
+
+TEST(exact_from_roundtrips_two_point_one) {
+  const auto value{sourcemeta::core::Decimal::exact_from(2.1)};
+  EXPECT_EQ(value.to_double(), 2.1);
+}
+
+TEST(exact_from_roundtrips_negative_fraction) {
+  const auto value{sourcemeta::core::Decimal::exact_from(-3.2)};
+  EXPECT_EQ(value.to_double(), -3.2);
+}
+
+TEST(exact_from_roundtrips_large_magnitude) {
+  const auto value{sourcemeta::core::Decimal::exact_from(1e300)};
+  EXPECT_EQ(value.to_double(), 1e300);
+}
+
+TEST(exact_from_smallest_subnormal_is_exact) {
+  // The smallest positive double is 2^-1074, roughly 4.9407e-324, so its exact
+  // expansion is tightly bracketed here without a lossy round-trip
+  const double subnormal{std::numeric_limits<double>::denorm_min()};
+  const auto value{sourcemeta::core::Decimal::exact_from(subnormal)};
+  EXPECT_TRUE(value.is_finite());
+  EXPECT_FALSE(value.is_zero());
+  EXPECT_TRUE(value > sourcemeta::core::Decimal{"4e-324"});
+  EXPECT_TRUE(value < sourcemeta::core::Decimal{"5e-324"});
+}
+
+TEST(exact_from_nan) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      std::numeric_limits<double>::quiet_NaN())};
+  EXPECT_TRUE(value.is_nan());
+}
+
+TEST(exact_from_positive_infinity) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      std::numeric_limits<double>::infinity())};
+  EXPECT_TRUE(value.is_infinite());
+  EXPECT_FALSE(value.is_signed());
+}
+
+TEST(exact_from_negative_infinity) {
+  const auto value{sourcemeta::core::Decimal::exact_from(
+      -std::numeric_limits<double>::infinity())};
+  EXPECT_TRUE(value.is_infinite());
+  EXPECT_TRUE(value.is_signed());
+}
