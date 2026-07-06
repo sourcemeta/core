@@ -1186,6 +1186,17 @@ TEST(fast_hash_matches_equal_real_integral) {
   EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
 }
 
+// An integral value stored in a non-normalized form, such as a negative
+// exponent that leaves trailing zeros in the coefficient, must still hash like
+// the same integer, which relies on normalizing before the integer extraction
+TEST(fast_hash_negative_exponent_integral_decimal) {
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"30e-1"}};
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(3)};
+  EXPECT_TRUE(as_decimal.is_integral());
+  EXPECT_TRUE(as_decimal == as_integer);
+  EXPECT_EQ(as_decimal.fast_hash(), as_integer.fast_hash());
+}
+
 TEST(lexical_bignum_integer) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{
       "12345678910111213141516171819202122232425262728293031"}};
