@@ -5,7 +5,8 @@
 #include <sourcemeta/core/regex_export.h>
 #endif
 
-#include <cstdint>     // std::uint8_t, std::uint64_t
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
 #include <memory>      // std::shared_ptr
 #include <optional>    // std::optional
 #include <string>      // std::string
@@ -36,7 +37,7 @@ struct RegexTypeNonEmpty {
 
 /// @ingroup regex
 /// Matches any string whose length falls within an inclusive range.
-using RegexTypeRange = std::pair<std::uint64_t, std::uint64_t>;
+using RegexTypeRange = std::pair<std::size_t, std::size_t>;
 
 /// @ingroup regex
 /// A regular expression compiled through the PCRE2 engine.
