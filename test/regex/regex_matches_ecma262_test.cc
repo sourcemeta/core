@@ -3396,6 +3396,15 @@ TEST(ecma262_empty_class_negated_quantified) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), ""));
 }
 
+TEST(ecma262_bounded_quantifier_counts_codepoints) {
+  const auto regex{sourcemeta::core::to_regex("^.{3,3}$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(
+      regex.value(), "\xE4\xB8\xAD\xE6\x96\x87\xE5\xAD\x97"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
+}
+
 TEST(ecma262_bounded_quantifier_out_of_order_is_invalid) {
   EXPECT_FALSE(sourcemeta::core::to_regex("^.{5,2}$").has_value());
   EXPECT_FALSE(sourcemeta::core::is_regex_ecma("^.{5,2}$"));
