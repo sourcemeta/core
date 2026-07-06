@@ -5,6 +5,7 @@
 #include <sourcemeta/core/crypto_verify.h>
 
 #include "crypto_der.h"
+#include "crypto_helpers.h"
 
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
@@ -41,6 +42,8 @@ inline auto pem_to_der(const std::string_view pem)
     }
   }
 
+  // The base64 body carries the whole private key, so it is wiped once decoded
+  const SecureScope base64_scope{base64};
   return base64_decode(base64);
 }
 

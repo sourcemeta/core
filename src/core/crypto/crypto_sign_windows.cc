@@ -352,11 +352,13 @@ auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
 auto PrivateKey::type() const noexcept -> Type { return internal_->kind; }
 
 auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
-  const auto der{pem_to_der(pem)};
+  auto der{pem_to_der(pem)};
   if (!der.has_value()) {
     return std::nullopt;
   }
 
+  // The decoded PKCS#8 holds the whole private key, so it is wiped on return
+  const SecureScope der_scope{der.value()};
   const auto parsed{parse_pkcs8(der.value())};
   if (!parsed.has_value()) {
     return std::nullopt;

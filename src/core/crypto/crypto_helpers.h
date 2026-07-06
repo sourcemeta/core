@@ -33,6 +33,19 @@ inline auto secure_zero(std::string &value) noexcept -> void {
   secure_zero(value.data(), value.size());
 }
 
+// Overwrite the referenced buffer when leaving the current scope, so secret
+// material a local holds is wiped across every return path without threading a
+// manual call through each one
+struct SecureScope {
+  explicit SecureScope(std::string &value) noexcept : target{value} {}
+  SecureScope(const SecureScope &) = delete;
+  auto operator=(const SecureScope &) -> SecureScope & = delete;
+  SecureScope(SecureScope &&) = delete;
+  auto operator=(SecureScope &&) -> SecureScope & = delete;
+  ~SecureScope() { secure_zero(this->target); }
+  std::string &target;
+};
+
 // Whether a signature representative, as a big-endian integer, is strictly
 // less than the modulus. RFC 8017 Section 5.2.2 requires this range check, so
 // that an unreduced signature, which an attacker forges by adding the modulus
