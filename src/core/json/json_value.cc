@@ -3,7 +3,8 @@
 
 #include <algorithm>        // std::ranges::contains, std::ranges::fold_left
 #include <cassert>          // assert
-#include <cmath>            // std::isinf, std::isnan, std::modf
+#include <cmath>            // std::isinf, std::isnan, std::modf, std::floor
+#include <compare>          // std::strong_ordering, std::is_eq, std::is_lt
 #include <cstddef>          // std::size_t
 #include <cstdint>          // std::int64_t
 #include <exception>        // std::terminate
@@ -21,6 +22,95 @@
 namespace sourcemeta::core {
 
 static constexpr auto TRIM_WHITESPACE = " \t\n\r\v\f";
+
+namespace {
+
+// Reverse the direction of a comparison result
+auto reverse_ordering(const std::strong_ordering ordering)
+    -> std::strong_ordering {
+  if (std::is_lt(ordering)) {
+    return std::strong_ordering::greater;
+  }
+
+  if (std::is_gt(ordering)) {
+    return std::strong_ordering::less;
+  }
+
+  return std::strong_ordering::equal;
+}
+
+// Order a 64-bit integer against a real by exact value, without ever converting
+// the integer to a double, which would lose precision beyond 2^53
+auto integer_real_ordering(const std::int64_t left, const double right)
+    -> std::strong_ordering {
+  // Real values in a JSON document are always finite
+  constexpr double lowest{-9223372036854775808.0};
+  constexpr double past_highest{9223372036854775808.0};
+  const double floor_of_right{std::floor(right)};
+  if (floor_of_right >= past_highest) {
+    return std::strong_ordering::less;
+  }
+
+  if (floor_of_right < lowest) {
+    return std::strong_ordering::greater;
+  }
+
+  const auto integer_floor{static_cast<std::int64_t>(floor_of_right)};
+  if (left != integer_floor) {
+    return left < integer_floor ? std::strong_ordering::less
+                                : std::strong_ordering::greater;
+  }
+
+  // The integer equals the floor of the real, so they are equal only when the
+  // real has no fractional part, and otherwise the real is the larger of the
+  // two
+  return floor_of_right == right ? std::strong_ordering::equal
+                                 : std::strong_ordering::less;
+}
+
+// Order two numbers held in different representations by exact mathematical
+// value. Integer and integral operands are compared without allocating, and
+// only a real against a non-integral or out-of-range decimal falls back to the
+// exact arbitrary precision expansion
+auto cross_numeric_ordering(const JSON &left, const JSON &right)
+    -> std::strong_ordering {
+  if (left.is_integer() && right.is_real()) {
+    return integer_real_ordering(left.to_integer(), right.to_real());
+  }
+
+  if (left.is_real() && right.is_integer()) {
+    return reverse_ordering(
+        integer_real_ordering(right.to_integer(), left.to_real()));
+  }
+
+  if (left.is_real() && right.is_decimal() &&
+      right.to_decimal().is_integral() && right.to_decimal().is_int64()) {
+    return reverse_ordering(
+        integer_real_ordering(right.to_decimal().to_int64(), left.to_real()));
+  }
+
+  if (left.is_decimal() && right.is_real() && left.to_decimal().is_integral() &&
+      left.to_decimal().is_int64()) {
+    return integer_real_ordering(left.to_decimal().to_int64(), right.to_real());
+  }
+
+  const Decimal left_decimal = left.is_decimal() ? left.to_decimal()
+                               : left.is_integer()
+                                   ? Decimal{left.to_integer()}
+                                   : Decimal::exact_from(left.to_real());
+  const Decimal right_decimal = right.is_decimal() ? right.to_decimal()
+                                : right.is_integer()
+                                    ? Decimal{right.to_integer()}
+                                    : Decimal::exact_from(right.to_real());
+  if (left_decimal == right_decimal) {
+    return std::strong_ordering::equal;
+  }
+
+  return left_decimal < right_decimal ? std::strong_ordering::less
+                                      : std::strong_ordering::greater;
+}
+
+} // namespace
 
 JSON::JSON(const std::int64_t value) : current_type{Type::Integer} {
   this->data_integer = value;
@@ -434,23 +524,14 @@ auto JSON::size(const String &value) noexcept -> std::size_t {
   return result;
 }
 
-// Two numbers of different representations are ordered by exact mathematical
-// value, which is done by promoting both operands to the arbitrary precision
-// type. That conversion can allocate, so this is not strictly non-throwing, but
-// the only possible escape is an allocation failure, which is fatal regardless
+// Ordering numbers of different representations by exact value may allocate an
+// arbitrary precision expansion, so this is not strictly non-throwing, but the
+// only possible escape is an allocation failure, which is fatal regardless
 // NOLINTNEXTLINE(bugprone-exception-escape)
 auto JSON::operator<(const JSON &other) const noexcept -> bool {
   if (this->is_number() && other.is_number() &&
       this->current_type != other.current_type) {
-    const Decimal left = this->is_decimal() ? this->to_decimal()
-                         : this->is_integer()
-                             ? Decimal{this->to_integer()}
-                             : Decimal::exact_from(this->to_real());
-    const Decimal right = other.is_decimal() ? other.to_decimal()
-                          : other.is_integer()
-                              ? Decimal{other.to_integer()}
-                              : Decimal::exact_from(other.to_real());
-    return left < right;
+    return std::is_lt(cross_numeric_ordering(*this, other));
   }
 
   if (this->type() != other.type()) {
@@ -491,23 +572,14 @@ auto JSON::operator>=(const JSON &other) const noexcept -> bool {
   return *this > other || *this == other;
 }
 
-// Two numbers of different representations are compared by exact mathematical
-// value, which is done by promoting both operands to the arbitrary precision
-// type. That conversion can allocate, so this is not strictly non-throwing, but
-// the only possible escape is an allocation failure, which is fatal regardless
+// Comparing numbers of different representations by exact value may allocate an
+// arbitrary precision expansion, so this is not strictly non-throwing, but the
+// only possible escape is an allocation failure, which is fatal regardless
 // NOLINTNEXTLINE(bugprone-exception-escape)
 auto JSON::operator==(const JSON &other) const noexcept -> bool {
   if (this->is_number() && other.is_number() &&
       this->current_type != other.current_type) {
-    const Decimal left = this->is_decimal() ? this->to_decimal()
-                         : this->is_integer()
-                             ? Decimal{this->to_integer()}
-                             : Decimal::exact_from(this->to_real());
-    const Decimal right = other.is_decimal() ? other.to_decimal()
-                          : other.is_integer()
-                              ? Decimal{other.to_integer()}
-                              : Decimal::exact_from(other.to_real());
-    return left == right;
+    return std::is_eq(cross_numeric_ordering(*this, other));
   }
 
   if (this->current_type != other.current_type) {
