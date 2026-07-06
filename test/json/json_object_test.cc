@@ -1513,3 +1513,23 @@ TEST(entry_key_equals_imperfect_collision_is_rejected) {
   EXPECT_FALSE(
       entry.key_equals(other, sourcemeta::core::JSON::Object::hash(other)));
 }
+
+TEST(key_with_trailing_null_not_matched_as_prefix) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  sourcemeta::core::JSON::String key_with_null{"a"};
+  key_with_null.push_back('\x00');
+  document.assign(key_with_null, sourcemeta::core::JSON{1});
+  EXPECT_FALSE(document.defines("a"));
+  EXPECT_TRUE(document.defines(key_with_null));
+}
+
+TEST(keys_differing_by_trailing_null_are_distinct) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  sourcemeta::core::JSON::String key_with_null{"a"};
+  key_with_null.push_back('\x00');
+  document.assign("a", sourcemeta::core::JSON{1});
+  document.assign(key_with_null, sourcemeta::core::JSON{2});
+  EXPECT_EQ(document.size(), 2);
+  EXPECT_EQ(document.at("a").to_integer(), 1);
+  EXPECT_EQ(document.at(key_with_null).to_integer(), 2);
+}
