@@ -3,7 +3,17 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/yaml.h>
 
-#include <sstream>
+#include <sstream> // std::istringstream
+#include <string>  // std::string
+
+TEST(deeply_nested_flow_is_rejected) {
+  const std::string input{std::string(2000, '[') + std::string(2000, ']')};
+  try {
+    const auto result{sourcemeta::core::parse_yaml(input)};
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &) {
+  }
+}
 
 TEST(scalar_1) {
   const std::string input{"1"};

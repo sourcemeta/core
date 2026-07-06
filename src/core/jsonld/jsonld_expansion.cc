@@ -867,10 +867,29 @@ auto expand_entries(ExpansionState &state, ActiveContext &active_context,
 
 } // namespace
 
+namespace {
+struct ExpansionDepthScope {
+  std::size_t &counter;
+  explicit ExpansionDepthScope(std::size_t &value) : counter{value} {
+    this->counter += 1;
+  }
+  ~ExpansionDepthScope() { this->counter -= 1; }
+  ExpansionDepthScope(const ExpansionDepthScope &) = delete;
+  auto operator=(const ExpansionDepthScope &) -> ExpansionDepthScope & = delete;
+  ExpansionDepthScope(ExpansionDepthScope &&) = delete;
+  auto operator=(ExpansionDepthScope &&) -> ExpansionDepthScope & = delete;
+};
+} // namespace
+
 // Expansion (JSON-LD 1.1 API Section 5.1.2)
 auto expand(ExpansionState &state, ActiveContext &active_context,
             const std::optional<JSON::String> &active_property,
             const JSON &element, const WeakPointer &pointer) -> JSON {
+  const ExpansionDepthScope scope{state.depth};
+  if (state.depth > ExpansionState::maximum_depth) {
+    throw JSONLDError("Maximum nesting depth exceeded", pointer);
+  }
+
   if (element.is_null()) {
     return JSON{nullptr};
   }

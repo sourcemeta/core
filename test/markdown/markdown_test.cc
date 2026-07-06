@@ -58,6 +58,18 @@ TEST(safe_mode_omits_raw_html) {
   EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
 }
 
+TEST(default_omits_raw_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div onclick=\"x\">hi</div>")};
+  EXPECT_EQ(result, "<!-- raw HTML omitted -->\n");
+}
+
+TEST(unsafe_mode_passes_raw_html) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("<div onclick=\"x\">hi</div>", false)};
+  EXPECT_TRUE(result.find("onclick") != std::string::npos);
+}
+
 TEST(multiple_paragraphs) {
   const auto result{sourcemeta::core::markdown_to_html(
       "First paragraph\n\nSecond paragraph")};

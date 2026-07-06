@@ -118,3 +118,28 @@ TEST(decompress_invalid_input_throws) {
     EXPECT_EQ(std::string{error.what()}, "Could not decompress input");
   }
 }
+
+TEST(decompress_beyond_maximum_size_throws) {
+  const std::string input{"Hello, World! Highly compressible content here."};
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  try {
+    sourcemeta::core::gunzip(
+        reinterpret_cast<const std::uint8_t *>(compressed.data()),
+        compressed.size(), 0, 4);
+    FAIL();
+  } catch (const sourcemeta::core::GZIPError &error) {
+    EXPECT_EQ(std::string{error.what()},
+              "Decompressed output exceeds the maximum allowed size");
+  }
+}
+
+TEST(decompress_within_maximum_size_succeeds) {
+  const std::string input{"Hello, World! Highly compressible content here."};
+  const auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(input.data()), input.size())};
+  const auto decompressed{sourcemeta::core::gunzip(
+      reinterpret_cast<const std::uint8_t *>(compressed.data()),
+      compressed.size(), 0, 1024)};
+  EXPECT_EQ(decompressed, input);
+}

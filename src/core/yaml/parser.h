@@ -226,6 +226,23 @@ public:
 private:
   static constexpr std::size_t maximum_expanded_nodes{10000000};
 
+  // Cap the recursion depth of the value parser so that a deeply nested
+  // document cannot overflow the stack on attacker-controlled input
+  static constexpr std::size_t maximum_depth{1000};
+  std::size_t depth_{0};
+
+  struct DepthScope {
+    std::size_t &counter;
+    explicit DepthScope(std::size_t &value) : counter{value} {
+      this->counter += 1;
+    }
+    ~DepthScope() { this->counter -= 1; }
+    DepthScope(const DepthScope &) = delete;
+    auto operator=(const DepthScope &) -> DepthScope & = delete;
+    DepthScope(DepthScope &&) = delete;
+    auto operator=(DepthScope &&) -> DepthScope & = delete;
+  };
+
   auto count_expanded_nodes(const JSON &value) -> std::size_t {
     std::size_t total{1};
     if (value.is_array()) {
@@ -393,6 +410,12 @@ private:
                    const std::size_t index, const std::string &property,
                    const std::uint64_t key_line = 0,
                    const std::uint64_t key_column = 0) -> JSON {
+    const DepthScope scope{this->depth_};
+    if (this->depth_ > maximum_depth) {
+      throw YAMLParseError{token.line, token.column,
+                           "Maximum nesting depth exceeded"};
+    }
+
     if (this->roundtrip_) {
       if (context == JSON::ParseContext::Property) {
         this->pointer_stack_.push_back(std::string{property});

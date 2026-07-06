@@ -1,9 +1,16 @@
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/test.h>
 
+#include <string> // std::string
+
 TEST(valid_1) {
   const auto regex{sourcemeta::core::to_regex("^foo")};
   EXPECT_TRUE(regex.has_value());
+}
+
+TEST(deeply_nested_character_class_is_rejected) {
+  const std::string pattern{std::string(100, '[') + std::string(100, ']')};
+  EXPECT_FALSE(sourcemeta::core::to_regex(pattern).has_value());
 }
 
 TEST(invalid_1) {

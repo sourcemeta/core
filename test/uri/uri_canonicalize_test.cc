@@ -7,6 +7,16 @@ TEST(example_1) {
   EXPECT_EQ(uri.recompose(), "https://example.com/foo?bar=baz#test");
 }
 
+// RFC 3986 Section 4.2: a recomposed path beginning with "//" and no authority
+// must not re-parse as an authority
+TEST(recompose_double_slash_path_stays_authority_less) {
+  sourcemeta::core::URI uri{"a:/.//b"};
+  uri.canonicalize();
+  const auto recomposed{uri.recompose()};
+  const sourcemeta::core::URI reparsed{recomposed};
+  EXPECT_FALSE(reparsed.host().has_value());
+}
+
 // The empty fragment is optional
 TEST(example_2) {
   sourcemeta::core::URI uri{"http://example.com/foo#"};

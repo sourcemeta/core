@@ -46,6 +46,11 @@ struct ActiveContext {
 // The mutable state shared by the expansion algorithms for the duration of a
 // single top-level expansion.
 struct ExpansionState {
+  // Bounds the expansion recursion so a deeply nested document cannot overflow
+  // the stack on attacker-controlled input
+  static constexpr std::size_t maximum_depth{1000};
+  std::size_t depth{0};
+
   // Used to load remote contexts. The chain detects recursive inclusion.
   const JSONLDResolver *resolver{nullptr};
   std::vector<JSON::String> remote_context_chain;
