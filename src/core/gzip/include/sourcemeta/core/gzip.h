@@ -42,7 +42,10 @@ auto SOURCEMETA_CORE_GZIP_EXPORT gzip(const std::uint8_t *input,
 
 /// @ingroup gzip
 /// Decompress a GZIP compressed byte buffer (RFC 1952). An optional output
-/// size hint can be provided to avoid repeated buffer resizing. For example:
+/// size hint can be provided to avoid repeated buffer resizing. The output is
+/// bounded by a maximum size (256 MiB by default) so that a highly compressed
+/// input cannot exhaust memory, and decompressing beyond it throws. Only the
+/// first GZIP member is decoded. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/gzip.h>
@@ -53,7 +56,8 @@ auto SOURCEMETA_CORE_GZIP_EXPORT gzip(const std::uint8_t *input,
 /// ```
 auto SOURCEMETA_CORE_GZIP_EXPORT gunzip(const std::uint8_t *input,
                                         std::size_t size,
-                                        std::size_t output_hint = 0)
+                                        std::size_t output_hint = 0,
+                                        std::size_t maximum_size = 268435456)
     -> std::string;
 
 } // namespace sourcemeta::core

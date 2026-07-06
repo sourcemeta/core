@@ -4,7 +4,8 @@ extern "C" {
 #include <libdeflate.h>
 }
 
-#include <memory> // std::unique_ptr
+#include <algorithm> // std::min
+#include <memory>    // std::unique_ptr
 
 namespace sourcemeta::core {
 
@@ -40,7 +41,8 @@ auto gzip(const std::uint8_t *input, const std::size_t size, const int level)
 }
 
 auto gunzip(const std::uint8_t *input, const std::size_t size,
-            const std::size_t output_hint) -> std::string {
+            const std::size_t output_hint, const std::size_t maximum_size)
+    -> std::string {
   std::unique_ptr<libdeflate_decompressor,
                   decltype(&libdeflate_free_decompressor)>
       decompressor{libdeflate_alloc_decompressor(),
@@ -50,7 +52,18 @@ auto gunzip(const std::uint8_t *input, const std::size_t size,
   }
 
   std::string output;
-  auto capacity{output_hint > 0 ? output_hint : size * 4};
+  // Bound the very first allocation too, so a hint or the size heuristic cannot
+  // exceed the cap before the loop has a chance to reject the input. The size
+  // heuristic is guarded so that the multiplication cannot overflow before the
+  // clamp, since the cap is caller-controlled
+  std::size_t capacity{0};
+  if (output_hint > 0) {
+    capacity = std::min(output_hint, maximum_size);
+  } else if (size > maximum_size / 4) {
+    capacity = maximum_size;
+  } else {
+    capacity = size * 4;
+  }
 
   for (;;) {
     std::size_t actual_size{0};
@@ -73,7 +86,13 @@ auto gunzip(const std::uint8_t *input, const std::size_t size,
     }
 
     if (result == LIBDEFLATE_INSUFFICIENT_SPACE) {
-      capacity *= 2;
+      if (capacity >= maximum_size) {
+        throw GZIPError{"Decompressed output exceeds the maximum allowed size"};
+      }
+
+      // Double without overflowing: capacity is below the cap here, so doubling
+      // only runs when the result still fits under it
+      capacity = (capacity > maximum_size / 2) ? maximum_size : capacity * 2;
       continue;
     }
 

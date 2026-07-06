@@ -3,6 +3,18 @@
 #include <sourcemeta/core/test.h>
 
 #include <optional> // std::optional, std::nullopt
+#include <string>   // std::string
+
+TEST(deeply_nested_input_is_rejected) {
+  const auto input{sourcemeta::core::parse_json(std::string(1500, '[') +
+                                                std::string(1500, ']'))};
+  try {
+    const auto result{sourcemeta::core::jsonld_expand(input)};
+    FAIL();
+  } catch (const sourcemeta::core::JSONLDError &error) {
+    EXPECT_EQ(std::string{error.what()}, "Maximum nesting depth exceeded");
+  }
+}
 
 TEST(empty_object) {
   const auto input = sourcemeta::core::parse_json("{}");
