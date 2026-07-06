@@ -5,7 +5,7 @@
 #include <cassert>     // assert
 #include <cctype>      // std::isdigit
 #include <chrono>      // std::chrono::system_clock
-#include <ctime>       // std::time_t, std::tm, timegm, gmtime_r, gmtime_s
+#include <ctime>       // std::time_t, std::tm, gmtime_r, gmtime_s
 #include <iomanip>     // std::put_time, std::get_time
 #include <locale>      // std::locale
 #include <optional>    // std::optional, std::nullopt
@@ -80,11 +80,7 @@ auto from_imf_fixdate(const std::string_view value) noexcept
       !is_case_sensitive_month_abbreviation(value.substr(8, 3), parts.tm_mon)) {
     return std::nullopt;
   }
-#if defined(_MSC_VER)
-  return std::chrono::system_clock::from_time_t(_mkgmtime(&parts));
-#else
-  return std::chrono::system_clock::from_time_t(timegm(&parts));
-#endif
+  return broken_down_time_to_time_point(parts);
 } catch (...) {
   return std::nullopt;
 }

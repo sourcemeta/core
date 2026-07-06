@@ -816,11 +816,15 @@ private:
     bool has_digit{false};
     bool has_dot{false};
     bool has_exp{false};
+    bool has_exp_digit{false};
 
     for (std::size_t index = start; index < value.size(); ++index) {
       const char current{value[index]};
       if (current >= '0' && current <= '9') {
         has_digit = true;
+        if (has_exp) {
+          has_exp_digit = true;
+        }
       } else if (current == '.') {
         if (has_dot || has_exp) {
           return false;
@@ -840,7 +844,9 @@ private:
       }
     }
 
-    return has_digit;
+    // YAML 1.2.2 core schema: an exponent must carry at least one digit, so
+    // "1e" is a plain string rather than a malformed number that would throw
+    return has_digit && (!has_exp || has_exp_digit);
   }
 
   auto parse_number(const std::string_view value) -> JSON {

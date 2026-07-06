@@ -1,6 +1,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <bitset>
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -554,6 +555,25 @@ TEST(from_json_invalid_integer) {
   const sourcemeta::core::JSON document{true};
   const auto result{sourcemeta::core::from_json<int>(document)};
   EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_integer_out_of_range_is_rejected) {
+  const sourcemeta::core::JSON document{300};
+  const auto result{sourcemeta::core::from_json<std::uint8_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_integer_negative_into_unsigned_is_rejected) {
+  const sourcemeta::core::JSON document{-1};
+  const auto result{sourcemeta::core::from_json<std::uint8_t>(document)};
+  EXPECT_FALSE(result.has_value());
+}
+
+TEST(from_json_integer_within_range) {
+  const sourcemeta::core::JSON document{200};
+  const auto result{sourcemeta::core::from_json<std::uint8_t>(document)};
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), 200);
 }
 
 TEST(from_json_invalid_hash_1) {

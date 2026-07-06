@@ -5,7 +5,7 @@
 #include <charconv>    // std::from_chars
 #include <chrono>      // std::chrono::system_clock
 #include <cstddef>     // std::size_t
-#include <ctime>       // std::time_t, std::tm, timegm, gmtime_r, gmtime_s
+#include <ctime>       // std::time_t, std::tm, gmtime_r, gmtime_s
 #include <iomanip>     // std::put_time
 #include <locale>      // std::locale
 #include <optional>    // std::optional, std::nullopt
@@ -84,11 +84,7 @@ auto from_iso8601_basic(const std::string_view value) noexcept
   if (!is_valid_broken_down_time(parts)) {
     return std::nullopt;
   }
-#if defined(_MSC_VER)
-  return std::chrono::system_clock::from_time_t(_mkgmtime(&parts));
-#else
-  return std::chrono::system_clock::from_time_t(timegm(&parts));
-#endif
+  return broken_down_time_to_time_point(parts);
 }
 
 } // namespace sourcemeta::core

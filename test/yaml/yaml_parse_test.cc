@@ -364,6 +364,16 @@ TEST(exponent_with_leading_plus) {
   EXPECT_TRUE(result.is_decimal());
 }
 
+TEST(incomplete_exponent_is_a_string) {
+  // YAML 1.2.2 core schema requires a digit after the exponent, so "1e" is a
+  // plain string rather than a malformed number
+  const std::string input{"1e"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"1e"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
 TEST(real_long_small_decimal) {
   const std::string input{
       "0.00000000000000000000000000000000000000000000000000000000000000000000"
@@ -550,6 +560,31 @@ TEST(invalid_unicode_escape_4) {
 
 TEST(invalid_unicode_escape_8) {
   const std::string input{"\"\\UZZZZZZZZ\""};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(surrogate_unicode_escape_is_rejected) {
+  // YAML 1.2.2 Section 5.7: a lone surrogate is not a Unicode scalar value
+  const std::string input{"\"\\uD800\""};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(out_of_range_unicode_escape_is_rejected) {
+  const std::string input{"\"\\UFFFFFFFF\""};
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();

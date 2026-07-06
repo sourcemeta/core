@@ -59,6 +59,17 @@ TEST(parse_then_format) {
             "Wed, 21 Oct 2015 11:28:00 GMT");
 }
 
+TEST(parse_pre_epoch_round_trips) {
+  // A pre-1970 date maps to a negative time point, which the previous
+  // timegm-based conversion could not represent on a 32-bit time_t
+  const auto point{
+      sourcemeta::core::from_imf_fixdate("Mon, 01 Jan 1900 00:00:00 GMT")};
+  EXPECT_TRUE(point.has_value());
+  EXPECT_TRUE(point.value() < std::chrono::system_clock::from_time_t(0));
+  EXPECT_EQ(sourcemeta::core::to_imf_fixdate(point.value()),
+            "Mon, 01 Jan 1900 00:00:00 GMT");
+}
+
 TEST(parse_invalid_returns_nullopt) {
   EXPECT_FALSE(sourcemeta::core::from_imf_fixdate("FOO").has_value());
 }

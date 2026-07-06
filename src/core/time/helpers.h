@@ -4,12 +4,32 @@
 #include <sourcemeta/core/time.h>
 
 #include <array>       // std::array
+#include <chrono>      // std::chrono::system_clock, std::chrono::sys_days
 #include <cstdint>     // std::uint8_t, std::uint16_t
 #include <ctime>       // std::tm
 #include <string_view> // std::string_view
 #include <utility>     // std::cmp_greater
 
 namespace sourcemeta::core {
+
+// Convert an already-validated broken-down UTC time to a time point through
+// calendar arithmetic rather than timegm, which on a 32-bit time_t cannot
+// represent pre-1970 or far-future dates and signals failure with a
+// (time_t)-1 that is indistinguishable from a real 1969-12-31T23:59:59Z
+inline auto broken_down_time_to_time_point(const std::tm &parts)
+    -> std::chrono::system_clock::time_point {
+  const std::chrono::year_month_day date{
+      std::chrono::year{parts.tm_year + 1900},
+      std::chrono::month{static_cast<unsigned>(parts.tm_mon + 1)},
+      std::chrono::day{static_cast<unsigned>(parts.tm_mday)}};
+  const auto since_epoch{std::chrono::sys_days{date}.time_since_epoch() +
+                         std::chrono::hours{parts.tm_hour} +
+                         std::chrono::minutes{parts.tm_min} +
+                         std::chrono::seconds{parts.tm_sec}};
+  return std::chrono::system_clock::time_point{
+      std::chrono::duration_cast<std::chrono::system_clock::duration>(
+          since_epoch)};
+}
 
 // RFC 9110 §5.6.7: "HTTP-date is case sensitive". The standard library's
 // std::get_time matches day and month names case-insensitively on some
