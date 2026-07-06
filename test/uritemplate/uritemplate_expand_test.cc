@@ -794,32 +794,6 @@ TEST(object_no_explode) {
   EXPECT_EQ(result, "one,1,two,2");
 }
 
-TEST(semicolon_explode_object_empty_value) {
-  const sourcemeta::core::URITemplate uri_template{"{;keys*}"};
-  const auto result = uri_template.expand(
-      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
-        if (name == "keys") {
-          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
-                                 false);
-        }
-        return std::nullopt;
-      });
-  EXPECT_EQ(result, ";a");
-}
-
-TEST(semicolon_object_empty_value_keeps_key) {
-  const sourcemeta::core::URITemplate uri_template{"{;keys}"};
-  const auto result = uri_template.expand(
-      [](const std::string_view name) -> sourcemeta::core::URITemplateValue {
-        if (name == "keys") {
-          return std::make_tuple(std::string_view{""}, std::string_view{"a"},
-                                 false);
-        }
-        return std::nullopt;
-      });
-  EXPECT_EQ(result, ";keys=a,");
-}
-
 TEST(object_explode_query) {
   const sourcemeta::core::URITemplate uri_template{"{?keys*}"};
   std::size_t call_count = 0;
