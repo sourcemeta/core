@@ -21,7 +21,9 @@ namespace {
 template <typename PointerT>
 auto materialize_value(const JSON &value, PointerT &pointer,
                        const JSONLDBasicAnnotationMap<PointerT> &map,
-                       std::vector<JSON> &standalone) -> std::optional<JSON>;
+                       std::vector<JSON> &standalone,
+                       const std::vector<JSONLDEdge> **matched_edges = nullptr)
+    -> std::optional<JSON>;
 
 template <typename PointerT>
 auto fill_node(JSON &node, const JSON &instance_object, PointerT &pointer,
@@ -311,7 +313,13 @@ auto materialize_node(const JSONLDNode &descriptor, const JSON &value,
 template <typename PointerT>
 auto materialize_value(const JSON &value, PointerT &pointer,
                        const JSONLDBasicAnnotationMap<PointerT> &map,
-                       std::vector<JSON> &standalone) -> std::optional<JSON> {
+                       std::vector<JSON> &standalone,
+                       const std::vector<JSONLDEdge> **matched_edges)
+    -> std::optional<JSON> {
+  if (matched_edges != nullptr) {
+    *matched_edges = nullptr;
+  }
+
   if (value.is_null()) {
     return std::nullopt;
   }
@@ -333,6 +341,9 @@ auto materialize_value(const JSON &value, PointerT &pointer,
   }
 
   const auto &descriptor{iterator->second};
+  if (matched_edges != nullptr) {
+    *matched_edges = &descriptor.edges;
+  }
   if (std::holds_alternative<JSONLDNode>(descriptor.value)) {
     return materialize_node(std::get<JSONLDNode>(descriptor.value), value,
                             pointer, map, standalone);
@@ -384,16 +395,14 @@ auto fill_node(JSON &node, const JSON &instance_object, PointerT &pointer,
 
   for (const auto key : keys) {
     push_property(pointer, key.get());
-    const auto child_iterator{map.find(pointer)};
+    const std::vector<JSONLDEdge> *edges{nullptr};
     auto child_value{materialize_value(instance_object.at(key.get()), pointer,
-                                       map, standalone)};
+                                       map, standalone, &edges)};
     pointer.pop_back();
     if (!child_value.has_value()) {
       continue;
     }
 
-    const std::vector<JSONLDEdge> *edges{
-        child_iterator == map.cend() ? nullptr : &child_iterator->second.edges};
     if (edges == nullptr || edges->empty()) {
       // Without an edge a node cannot attach to its parent, so it is asserted
       // as a standalone node in the current graph. A non-node cannot be
