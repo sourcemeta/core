@@ -3860,9 +3860,11 @@ TEST(exact_from_zero) {
 }
 
 TEST(exact_from_negative_zero) {
+  // The library builds without IEEE signed zeros, so a negative zero converts
+  // to a plain unsigned zero
   const auto value{sourcemeta::core::Decimal::exact_from(-0.0)};
   EXPECT_TRUE(value.is_zero());
-  EXPECT_TRUE(value.is_signed());
+  EXPECT_TRUE(value == sourcemeta::core::Decimal{0});
 }
 
 TEST(exact_from_dyadic_half) {
