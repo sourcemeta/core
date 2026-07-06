@@ -53,9 +53,17 @@ auto gunzip(const std::uint8_t *input, const std::size_t size,
 
   std::string output;
   // Bound the very first allocation too, so a hint or the size heuristic cannot
-  // exceed the cap before the loop has a chance to reject the input
-  auto capacity{
-      std::min(output_hint > 0 ? output_hint : size * 4, maximum_size)};
+  // exceed the cap before the loop has a chance to reject the input. The size
+  // heuristic is guarded so that the multiplication cannot overflow before the
+  // clamp, since the cap is caller-controlled
+  std::size_t capacity{0};
+  if (output_hint > 0) {
+    capacity = std::min(output_hint, maximum_size);
+  } else if (size > maximum_size / 4) {
+    capacity = maximum_size;
+  } else {
+    capacity = size * 4;
+  }
 
   for (;;) {
     std::size_t actual_size{0};
@@ -82,7 +90,9 @@ auto gunzip(const std::uint8_t *input, const std::size_t size,
         throw GZIPError{"Decompressed output exceeds the maximum allowed size"};
       }
 
-      capacity = std::min(capacity * 2, maximum_size);
+      // Double without overflowing: capacity is below the cap here, so doubling
+      // only runs when the result still fits under it
+      capacity = (capacity > maximum_size / 2) ? maximum_size : capacity * 2;
       continue;
     }
 

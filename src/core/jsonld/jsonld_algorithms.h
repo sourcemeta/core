@@ -61,8 +61,10 @@ struct NestingDepthScope {
 
 struct ExpansionState {
   // Bounds the expansion and compaction recursion so a deeply nested document
-  // cannot overflow the stack on attacker-controlled input
-  static constexpr std::size_t maximum_depth{1000};
+  // cannot overflow the stack on attacker-controlled input. The bound is
+  // conservative so that it holds on platforms with a small default stack such
+  // as Windows, and is still far above any realistic nesting
+  static constexpr std::size_t maximum_depth{100};
   std::size_t depth{0};
 
   // Used to load remote contexts. The chain detects recursive inclusion.
