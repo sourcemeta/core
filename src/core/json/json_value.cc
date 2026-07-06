@@ -525,10 +525,8 @@ auto JSON::size(const String &value) noexcept -> std::size_t {
 }
 
 // Ordering numbers of different representations by exact value may allocate an
-// arbitrary precision expansion, so this is not strictly non-throwing, but the
-// only possible escape is an allocation failure, which is fatal regardless
-// NOLINTNEXTLINE(bugprone-exception-escape)
-auto JSON::operator<(const JSON &other) const noexcept -> bool {
+// arbitrary precision expansion, so this comparison is not noexcept
+auto JSON::operator<(const JSON &other) const -> bool {
   if (this->is_number() && other.is_number() &&
       this->current_type != other.current_type) {
     return std::is_lt(cross_numeric_ordering(*this, other));
@@ -560,23 +558,21 @@ auto JSON::operator<(const JSON &other) const noexcept -> bool {
   }
 }
 
-auto JSON::operator<=(const JSON &other) const noexcept -> bool {
+auto JSON::operator<=(const JSON &other) const -> bool {
   return *this < other || *this == other;
 }
 
-auto JSON::operator>(const JSON &other) const noexcept -> bool {
+auto JSON::operator>(const JSON &other) const -> bool {
   return !(*this < other) && *this != other;
 }
 
-auto JSON::operator>=(const JSON &other) const noexcept -> bool {
+auto JSON::operator>=(const JSON &other) const -> bool {
   return *this > other || *this == other;
 }
 
 // Comparing numbers of different representations by exact value may allocate an
-// arbitrary precision expansion, so this is not strictly non-throwing, but the
-// only possible escape is an allocation failure, which is fatal regardless
-// NOLINTNEXTLINE(bugprone-exception-escape)
-auto JSON::operator==(const JSON &other) const noexcept -> bool {
+// arbitrary precision expansion, so this comparison is not noexcept
+auto JSON::operator==(const JSON &other) const -> bool {
   if (this->is_number() && other.is_number() &&
       this->current_type != other.current_type) {
     return std::is_eq(cross_numeric_ordering(*this, other));
