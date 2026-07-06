@@ -157,6 +157,21 @@ TEST(decompress_concatenated_members) {
   EXPECT_EQ(decompressed, "hello world");
 }
 
+TEST(decompress_concatenated_members_grows_across_members) {
+  // A tiny hint forces the second member to grow the buffer that already holds
+  // the first, exercising the multi-member growth path
+  const std::string first{"hello "};
+  const std::string second{"world"};
+  auto compressed{sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(first.data()), first.size())};
+  compressed += sourcemeta::core::gzip(
+      reinterpret_cast<const std::uint8_t *>(second.data()), second.size());
+  const auto decompressed{sourcemeta::core::gunzip(
+      reinterpret_cast<const std::uint8_t *>(compressed.data()),
+      compressed.size(), 1, 1024)};
+  EXPECT_EQ(decompressed, "hello world");
+}
+
 TEST(decompress_ignores_trailing_data) {
   const std::string input{"hello world"};
   auto compressed{sourcemeta::core::gzip(

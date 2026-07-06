@@ -59,6 +59,16 @@ TEST(parse_then_format) {
             "Wed, 21 Oct 2015 11:28:00 GMT");
 }
 
+// timegm returns (time_t)-1 for this instant, a valid time one second before
+// the epoch that must not be mistaken for a conversion failure
+TEST(parse_second_before_epoch) {
+  const auto point{
+      sourcemeta::core::from_imf_fixdate("Wed, 31 Dec 1969 23:59:59 GMT")};
+  EXPECT_TRUE(point.has_value());
+  EXPECT_EQ(sourcemeta::core::to_imf_fixdate(point.value()),
+            "Wed, 31 Dec 1969 23:59:59 GMT");
+}
+
 TEST(parse_pre_epoch_round_trips) {
   // A pre-1970 date maps to a negative time point, which the previous
   // timegm-based conversion could not represent on a 32-bit time_t

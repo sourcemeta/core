@@ -374,6 +374,14 @@ TEST(incomplete_exponent_is_a_string) {
   EXPECT_TRUE(result.is_string());
 }
 
+TEST(exponent_sign_without_digit_is_a_string) {
+  const std::string input{"1e+"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"1e+"};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(result.is_string());
+}
+
 TEST(real_long_small_decimal) {
   const std::string input{
       "0.00000000000000000000000000000000000000000000000000000000000000000000"
@@ -568,6 +576,20 @@ TEST(invalid_unicode_escape_8) {
   } catch (...) {
     FAIL();
   }
+}
+
+TEST(valid_bmp_unicode_escape) {
+  const std::string input{"\"\\u00e9\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"\xC3\xA9"};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(valid_astral_unicode_escape) {
+  const std::string input{"\"\\U0001F600\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{"\xF0\x9F\x98\x80"};
+  EXPECT_EQ(result, expected);
 }
 
 TEST(surrogate_unicode_escape_is_rejected) {
