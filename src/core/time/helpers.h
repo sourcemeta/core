@@ -31,6 +31,29 @@ inline auto broken_down_time_to_time_point(const std::tm &parts)
           since_epoch)};
 }
 
+// Break a time point down into UTC calendar fields through calendar arithmetic
+// rather than gmtime, which on some platforms cannot represent a pre-1970 time
+// and computes the wrong weekday for the instant just before the epoch
+inline auto time_point_to_broken_down(
+    const std::chrono::system_clock::time_point time) noexcept -> std::tm {
+  const auto seconds{
+      std::chrono::floor<std::chrono::seconds>(time.time_since_epoch())};
+  const auto days{std::chrono::floor<std::chrono::days>(seconds)};
+  const std::chrono::year_month_day date{std::chrono::sys_days{days}};
+  const std::chrono::hh_mm_ss clock{seconds - days};
+  const std::chrono::weekday weekday{std::chrono::sys_days{days}};
+
+  std::tm parts{};
+  parts.tm_year = static_cast<int>(date.year()) - 1900;
+  parts.tm_mon = static_cast<int>(static_cast<unsigned>(date.month())) - 1;
+  parts.tm_mday = static_cast<int>(static_cast<unsigned>(date.day()));
+  parts.tm_hour = static_cast<int>(clock.hours().count());
+  parts.tm_min = static_cast<int>(clock.minutes().count());
+  parts.tm_sec = static_cast<int>(clock.seconds().count());
+  parts.tm_wday = static_cast<int>(weekday.c_encoding());
+  return parts;
+}
+
 // RFC 9110 §5.6.7: "HTTP-date is case sensitive". The standard library's
 // std::get_time matches day and month names case-insensitively on some
 // implementations, so the exact spelling is verified against the parsed index

@@ -2,15 +2,13 @@
 
 #include "helpers.h"
 
-#include <cassert>     // assert
 #include <cctype>      // std::isdigit
 #include <chrono>      // std::chrono::system_clock
-#include <ctime>       // std::time_t, std::tm, gmtime_r, gmtime_s
+#include <ctime>       // std::tm
 #include <iomanip>     // std::put_time, std::get_time
 #include <locale>      // std::locale
 #include <optional>    // std::optional, std::nullopt
 #include <sstream>     // std::ostringstream, std::istringstream
-#include <stdexcept>   // std::runtime_error
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -23,22 +21,10 @@ namespace sourcemeta::core {
 
 auto to_asctime(const std::chrono::system_clock::time_point time)
     -> std::string {
-  const std::time_t ctime = std::chrono::system_clock::to_time_t(time);
-  std::tm buffer;
-#if defined(_MSC_VER)
-  if (gmtime_s(&buffer, &ctime) != 0) {
-    throw std::runtime_error("Could not convert time point to asctime");
-  }
-#else
-  if (gmtime_r(&ctime, &buffer) == nullptr) {
-    throw std::runtime_error("Could not convert time point to asctime");
-  }
-#endif
-  std::tm *parts = &buffer;
-  assert(parts);
+  const auto parts{time_point_to_broken_down(time)};
   std::ostringstream stream;
   stream.imbue(std::locale::classic());
-  stream << std::put_time(parts, FORMAT_ASCTIME_OUTPUT);
+  stream << std::put_time(&parts, FORMAT_ASCTIME_OUTPUT);
   return stream.str();
 }
 
