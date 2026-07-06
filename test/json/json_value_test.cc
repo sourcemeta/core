@@ -2,6 +2,7 @@
 #include <sourcemeta/core/test.h>
 
 #include <cstddef>       // std::size_t
+#include <cstdint>       // std::int64_t
 #include <functional>    // std::reference_wrapper
 #include <string>        // std::string
 #include <type_traits>   // std::is_default_constructible, etc
@@ -410,6 +411,155 @@ TEST(unordered_set_with_custom_hash) {
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"foo"}));
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"bar"}));
   EXPECT_TRUE(value.contains(sourcemeta::core::JSON{"baz"}));
+}
+
+// The same numeric value in different representations is a single element, so
+// the hash and the equality must agree for the container to deduplicate it
+TEST(unordered_set_deduplicates_equal_numbers_across_representations) {
+  std::unordered_set<sourcemeta::core::JSON,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.insert(sourcemeta::core::JSON{1000});
+  value.insert(sourcemeta::core::JSON{1000.0});
+  EXPECT_EQ(value.size(), 1);
+}
+
+TEST(unordered_set_deduplicates_integer_real_and_decimal) {
+  std::unordered_set<sourcemeta::core::JSON,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.insert(sourcemeta::core::JSON{static_cast<std::int64_t>(1000)});
+  value.insert(sourcemeta::core::JSON{1000.0});
+  value.insert(sourcemeta::core::JSON{sourcemeta::core::Decimal{"1000"}});
+  EXPECT_EQ(value.size(), 1);
+}
+
+// A lookup through any representation finds an element stored under another
+TEST(unordered_set_finds_equal_number_across_representations) {
+  std::unordered_set<sourcemeta::core::JSON,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.insert(sourcemeta::core::JSON{static_cast<std::int64_t>(1000)});
+  EXPECT_TRUE(value.contains(sourcemeta::core::JSON{1000.0}));
+  EXPECT_TRUE(value.contains(
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"1000"}}));
+}
+
+TEST(unordered_set_keeps_distinct_numbers_separate) {
+  std::unordered_set<sourcemeta::core::JSON,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.insert(sourcemeta::core::JSON{static_cast<std::int64_t>(1000)});
+  value.insert(sourcemeta::core::JSON{1001.0});
+  value.insert(sourcemeta::core::JSON{sourcemeta::core::Decimal{"1002"}});
+  EXPECT_EQ(value.size(), 3);
+}
+
+// A map keyed by JSON must treat equal numbers across representations as one
+// key
+TEST(unordered_map_deduplicates_equal_number_keys) {
+  std::unordered_map<sourcemeta::core::JSON, int,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.emplace(sourcemeta::core::JSON{static_cast<std::int64_t>(1000)}, 1);
+  value.emplace(sourcemeta::core::JSON{1000.0}, 2);
+  value.emplace(sourcemeta::core::JSON{sourcemeta::core::Decimal{"1000"}}, 3);
+  EXPECT_EQ(value.size(), 1);
+}
+
+TEST(unordered_map_finds_equal_number_key_across_representations) {
+  std::unordered_map<sourcemeta::core::JSON, int,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.emplace(sourcemeta::core::JSON{static_cast<std::int64_t>(1000)}, 42);
+  EXPECT_TRUE(value.contains(sourcemeta::core::JSON{1000.0}));
+  EXPECT_TRUE(value.contains(
+      sourcemeta::core::JSON{sourcemeta::core::Decimal{"1000"}}));
+  EXPECT_EQ(value.at(sourcemeta::core::JSON{1000.0}), 42);
+  EXPECT_EQ(value.at(sourcemeta::core::JSON{sourcemeta::core::Decimal{"1000"}}),
+            42);
+}
+
+TEST(unordered_map_keeps_distinct_number_keys_separate) {
+  std::unordered_map<sourcemeta::core::JSON, int,
+                     sourcemeta::core::HashJSON<sourcemeta::core::JSON>>
+      value;
+  value.emplace(sourcemeta::core::JSON{static_cast<std::int64_t>(1000)}, 1);
+  value.emplace(sourcemeta::core::JSON{1001.0}, 2);
+  EXPECT_EQ(value.size(), 2);
+}
+
+// Equal values must hash equally, otherwise hash-based containers and the hash
+// prefilter in equality checks would treat them as different
+TEST(equal_integral_number_representations_hash_equally) {
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(1000)};
+  const sourcemeta::core::JSON as_real{1000.0};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"1000"}};
+  EXPECT_TRUE(as_integer == as_real);
+  EXPECT_TRUE(as_integer == as_decimal);
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_integer.fast_hash(), as_real.fast_hash());
+  EXPECT_EQ(as_integer.fast_hash(), as_decimal.fast_hash());
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+TEST(equal_zero_representations_hash_equally) {
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(0)};
+  const sourcemeta::core::JSON as_real{0.0};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"0"}};
+  EXPECT_TRUE(as_integer == as_real);
+  EXPECT_TRUE(as_integer == as_decimal);
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_integer.fast_hash(), as_real.fast_hash());
+  EXPECT_EQ(as_integer.fast_hash(), as_decimal.fast_hash());
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+TEST(equal_negative_integral_representations_hash_equally) {
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(-1000)};
+  const sourcemeta::core::JSON as_real{-1000.0};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"-1000"}};
+  EXPECT_TRUE(as_integer == as_real);
+  EXPECT_TRUE(as_integer == as_decimal);
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_integer.fast_hash(), as_real.fast_hash());
+  EXPECT_EQ(as_integer.fast_hash(), as_decimal.fast_hash());
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+// A power of two that is exactly representable as a real, so the integer and
+// real forms are genuinely equal and must hash equally
+TEST(equal_large_integral_representations_hash_equally) {
+  const sourcemeta::core::JSON as_integer{
+      static_cast<std::int64_t>(4503599627370496)};
+  const sourcemeta::core::JSON as_real{4503599627370496.0};
+  const sourcemeta::core::JSON as_decimal{
+      sourcemeta::core::Decimal{"4503599627370496"}};
+  EXPECT_TRUE(as_integer == as_real);
+  EXPECT_TRUE(as_integer == as_decimal);
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_integer.fast_hash(), as_real.fast_hash());
+  EXPECT_EQ(as_integer.fast_hash(), as_decimal.fast_hash());
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+TEST(equal_fractional_representations_hash_equally) {
+  const sourcemeta::core::JSON as_real{0.25};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"0.25"}};
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+// Values that are not equal are free to hash apart and must never compare equal
+TEST(distinct_numbers_are_not_equal_across_representations) {
+  const sourcemeta::core::JSON integer_thousand{
+      static_cast<std::int64_t>(1000)};
+  const sourcemeta::core::JSON real_thousand_and_one{1001.0};
+  const sourcemeta::core::JSON decimal_thousand_and_two{
+      sourcemeta::core::Decimal{"1002"}};
+  EXPECT_FALSE(integer_thousand == real_thousand_and_one);
+  EXPECT_FALSE(integer_thousand == decimal_thousand_and_two);
+  EXPECT_FALSE(real_thousand_and_one == decimal_thousand_and_two);
 }
 
 TEST(unordered_set_with_reference_wrapper) {

@@ -159,3 +159,36 @@ TEST(subtraction_overflow_promotes_to_decimal) {
   EXPECT_TRUE(result.is_decimal());
   EXPECT_FALSE(result.is_integer());
 }
+
+// Numeric equality is exact and transitive across the integer, real and
+// decimal representations.
+TEST(equal_across_numeric_representations) {
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(1000)};
+  const sourcemeta::core::JSON as_real{1000.0};
+  const auto as_decimal{sourcemeta::core::parse_json("1000e0")};
+  EXPECT_TRUE(as_integer == as_real);
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_TRUE(as_integer == as_decimal);
+}
+
+// The comparison is exact, so INT64_MAX and 2^63 (which differ by one) are not
+// treated as equal even though they round to the same double.
+TEST(equal_integer_real_is_exact_not_lossy) {
+  const sourcemeta::core::JSON real_two_pow_63{9223372036854775808.0};
+  const sourcemeta::core::JSON integer_maximum{
+      std::numeric_limits<std::int64_t>::max()};
+  EXPECT_FALSE(real_two_pow_63 == integer_maximum);
+  const sourcemeta::core::JSON two{static_cast<std::int64_t>(2)};
+  const sourcemeta::core::JSON two_and_a_half{2.5};
+  EXPECT_FALSE(two == two_and_a_half);
+}
+
+// Values that compare equal must produce the same fast hash. Equality checks
+// that use the hash as a prefilter skip the comparison when the hashes differ,
+// so an equal pair across numeric representations would otherwise be missed.
+TEST(fast_hash_matches_equal_real) {
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(1000)};
+  const sourcemeta::core::JSON as_real{1000.0};
+  EXPECT_TRUE(as_integer == as_real);
+  EXPECT_EQ(as_integer.fast_hash(), as_real.fast_hash());
+}

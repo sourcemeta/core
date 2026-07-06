@@ -205,14 +205,18 @@ TEST(fast_hash_minus_3_14) {
   EXPECT_EQ(document.fast_hash(), 5);
 }
 
+// An integral real hashes like the same integer so that equal numeric values
+// across representations hash equally
 TEST(fast_hash_minus_5_0) {
   const sourcemeta::core::JSON document{5.0};
-  EXPECT_EQ(document.fast_hash(), 5);
+  EXPECT_EQ(document.fast_hash(), 9);
+  EXPECT_EQ(document.fast_hash(),
+            sourcemeta::core::JSON{static_cast<std::int64_t>(5)}.fast_hash());
 }
 
 TEST(fast_hash_minus_0_0) {
   const sourcemeta::core::JSON document{0.0};
-  EXPECT_EQ(document.fast_hash(), 5);
+  EXPECT_EQ(document.fast_hash(), 4);
 }
 
 TEST(less_than_real_decimal) {

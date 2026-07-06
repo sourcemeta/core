@@ -1147,23 +1147,54 @@ TEST(divisible_by_large_decimal_decimal_0_001_true) {
 
 TEST(fast_hash_positive) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"3.14"}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  EXPECT_EQ(document.fast_hash(), 5);
 }
 
 TEST(fast_hash_negative) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{"-3.14"}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  EXPECT_EQ(document.fast_hash(), 5);
 }
 
+// An integral decimal hashes like the same integer so that equal numeric
+// values across representations hash equally
 TEST(fast_hash_zero) {
   const sourcemeta::core::JSON document{sourcemeta::core::Decimal{0}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  EXPECT_EQ(document.fast_hash(), 4);
+  EXPECT_EQ(document.fast_hash(),
+            sourcemeta::core::JSON{static_cast<std::int64_t>(0)}.fast_hash());
 }
 
 TEST(fast_hash_large) {
   const sourcemeta::core::JSON document{
       sourcemeta::core::Decimal{"123456789012345678901234567890"}};
-  EXPECT_EQ(document.fast_hash(), 8);
+  EXPECT_EQ(document.fast_hash(), 5);
+}
+
+// A real and a decimal of the same value compare equal, so they must hash
+// equally, whether the shared value is fractional or integral.
+TEST(fast_hash_matches_equal_real_fractional) {
+  const sourcemeta::core::JSON as_real{0.5};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"0.5"}};
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+TEST(fast_hash_matches_equal_real_integral) {
+  const sourcemeta::core::JSON as_real{5.0};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"5"}};
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+// An integral value stored in a non-normalized form, such as a negative
+// exponent that leaves trailing zeros in the coefficient, must still hash like
+// the same integer, which relies on normalizing before the integer extraction
+TEST(fast_hash_negative_exponent_integral_decimal) {
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"30e-1"}};
+  const sourcemeta::core::JSON as_integer{static_cast<std::int64_t>(3)};
+  EXPECT_TRUE(as_decimal.is_integral());
+  EXPECT_TRUE(as_decimal == as_integer);
+  EXPECT_EQ(as_decimal.fast_hash(), as_integer.fast_hash());
 }
 
 TEST(lexical_bignum_integer) {
