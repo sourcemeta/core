@@ -6,6 +6,20 @@ TEST(example_1) {
   EXPECT_EQ(uri.recompose(), "https://example.com/foo");
 }
 
+// The disambiguation must not over-apply: a colon in the first path segment is
+// unambiguous when a scheme is present, so it stays a literal colon
+TEST(scheme_present_preserves_colon_in_path) {
+  const sourcemeta::core::URI uri{"urn:foo:bar"};
+  EXPECT_EQ(uri.recompose(), "urn:foo:bar");
+}
+
+// A "//" path is unambiguous when an authority is present, so it is not
+// prefixed with the "/." guard
+TEST(authority_present_preserves_double_slash_path) {
+  const sourcemeta::core::URI uri{"http://host//foo"};
+  EXPECT_EQ(uri.recompose(), "http://host//foo");
+}
+
 TEST(example_2) {
   const sourcemeta::core::URI uri{"https://example.com/foo/../bar"};
   // Without canonicalize(), path with ".." is preserved

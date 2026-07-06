@@ -45,9 +45,23 @@ struct ActiveContext {
 
 // The mutable state shared by the expansion algorithms for the duration of a
 // single top-level expansion.
+// RAII counter that bounds the depth of the mutually recursive expansion and
+// compaction algorithms, decrementing on every exit path
+struct NestingDepthScope {
+  std::size_t &counter;
+  explicit NestingDepthScope(std::size_t &value) : counter{value} {
+    this->counter += 1;
+  }
+  ~NestingDepthScope() { this->counter -= 1; }
+  NestingDepthScope(const NestingDepthScope &) = delete;
+  auto operator=(const NestingDepthScope &) -> NestingDepthScope & = delete;
+  NestingDepthScope(NestingDepthScope &&) = delete;
+  auto operator=(NestingDepthScope &&) -> NestingDepthScope & = delete;
+};
+
 struct ExpansionState {
-  // Bounds the expansion recursion so a deeply nested document cannot overflow
-  // the stack on attacker-controlled input
+  // Bounds the expansion and compaction recursion so a deeply nested document
+  // cannot overflow the stack on attacker-controlled input
   static constexpr std::size_t maximum_depth{1000};
   std::size_t depth{0};
 

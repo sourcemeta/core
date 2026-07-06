@@ -13,6 +13,7 @@ TEST(recompose_double_slash_path_stays_authority_less) {
   sourcemeta::core::URI uri{"a:/.//b"};
   uri.canonicalize();
   const auto recomposed{uri.recompose()};
+  EXPECT_EQ(recomposed, "a:/.//b");
   const sourcemeta::core::URI reparsed{recomposed};
   EXPECT_FALSE(reparsed.host().has_value());
 }

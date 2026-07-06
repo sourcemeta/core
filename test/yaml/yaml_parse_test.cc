@@ -11,7 +11,8 @@ TEST(deeply_nested_flow_is_rejected) {
   try {
     const auto result{sourcemeta::core::parse_yaml(input)};
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_STREQ(error.what(), "Maximum nesting depth exceeded");
   }
 }
 

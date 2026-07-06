@@ -67,7 +67,19 @@ TEST(default_omits_raw_html) {
 TEST(unsafe_mode_passes_raw_html) {
   const auto result{
       sourcemeta::core::markdown_to_html("<div onclick=\"x\">hi</div>", false)};
-  EXPECT_TRUE(result.find("onclick") != std::string::npos);
+  EXPECT_EQ(result, "<div onclick=\"x\">hi</div>\n");
+}
+
+TEST(default_strips_dangerous_link) {
+  const auto result{
+      sourcemeta::core::markdown_to_html("[click](javascript:alert(1))")};
+  EXPECT_EQ(result, "<p><a href=\"\">click</a></p>\n");
+}
+
+TEST(unsafe_mode_keeps_dangerous_link) {
+  const auto result{sourcemeta::core::markdown_to_html(
+      "[click](javascript:alert(1))", false)};
+  EXPECT_EQ(result, "<p><a href=\"javascript:alert(1)\">click</a></p>\n");
 }
 
 TEST(multiple_paragraphs) {
