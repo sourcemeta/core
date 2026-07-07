@@ -225,12 +225,17 @@ auto build_language_collection(const JSON &value) -> JSON {
   for (const auto key : sorted_keys(value)) {
     const auto &member{value.at(key.get())};
     const bool none{key.get() == KEYWORD_NONE};
+    // A null value or array item in a language map is treated as absent
     if (member.is_array()) {
       for (const auto &element : member.as_array()) {
+        if (element.is_null()) {
+          continue;
+        }
+
         assert(element.is_string());
         elements.push_back(language_literal(element, key.get(), none));
       }
-    } else {
+    } else if (!member.is_null()) {
       assert(member.is_string());
       elements.push_back(language_literal(member, key.get(), none));
     }

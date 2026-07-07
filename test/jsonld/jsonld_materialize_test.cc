@@ -1428,6 +1428,126 @@ TEST(language_container_empty) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
+TEST(language_container_null_value) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "label": { "en": null, "fr": "Bonjour" } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/thing"}});
+  map.emplace(
+      sourcemeta::core::Pointer{"label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Language}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/thing",
+      "https://schema.org/name": [
+        { "@value": "Bonjour", "@language": "fr" }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(language_container_null_array_element) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "label": { "en": [ "Hi", null, "Hello" ] } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/thing"}});
+  map.emplace(
+      sourcemeta::core::Pointer{"label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Language}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/thing",
+      "https://schema.org/name": [
+        { "@value": "Hi", "@language": "en" },
+        { "@value": "Hello", "@language": "en" }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(language_container_null_none) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "label": { "@none": null, "en": "Colour" } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/thing"}});
+  map.emplace(
+      sourcemeta::core::Pointer{"label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Language}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/thing",
+      "https://schema.org/name": [
+        { "@value": "Colour", "@language": "en" }
+      ]
+    }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(language_container_all_null) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "label": { "en": null, "fr": [ null ] } })");
+
+  sourcemeta::core::JSONLDAnnotationMap map;
+  map.emplace(sourcemeta::core::Pointer{},
+              sourcemeta::core::JSONLDDescriptor{
+                  .edges = {},
+                  .value = sourcemeta::core::JSONLDNode{
+                      .id = "https://example.com/thing"}});
+  map.emplace(
+      sourcemeta::core::Pointer{"label"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/name", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Language}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    { "@id": "https://example.com/thing" }
+  ])");
+
+  const auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
 TEST(index_container_of_nodes) {
   const auto instance = sourcemeta::core::parse_json(
       R"({ "posts": { "2023": { "title": "A" }, "2024": { "title": "B" } } })");
