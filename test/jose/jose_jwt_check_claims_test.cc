@@ -81,6 +81,37 @@ TEST(issued_at_near_clock_minimum_does_not_underflow) {
   EXPECT_FALSE(error.has_value());
 }
 
+TEST(now_at_clock_maximum_with_skew_does_not_overflow) {
+  // A caller passing now at the clock's maximum, plus a skew, would overflow
+  // the shifted server clock without the saturating guard
+  const auto input{
+      make_token(R"({ "alg": "RS256" })",
+                 R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::time_point::max(), std::chrono::seconds{60})};
+  // now is far past the expiry, so the token is expired
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Expiration);
+}
+
+TEST(negative_clock_skew_is_clamped_to_zero) {
+  // A negative skew is clamped to zero rather than extending validity into the
+  // past, so a not-yet-expired token stays valid
+  const auto input{
+      make_token(R"({ "alg": "RS256" })",
+                 R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1500),
+      std::chrono::seconds{-1000})};
+  EXPECT_FALSE(error.has_value());
+}
+
 TEST(missing_issuer) {
   const auto input{make_token(R"({ "alg": "RS256" })",
                               R"({ "aud": "client", "exp": 2000 })", "sig")};
