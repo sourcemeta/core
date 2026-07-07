@@ -281,8 +281,14 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   // The OpenSSL PEM reader accepts non-canonical PKCS#8 such as trailing bytes
   // past the outer SEQUENCE, so the structure is validated up front to match
   // the other backends (X.690 Section 10.1)
-  const auto der{pem_to_der(pem)};
-  if (!der.has_value() || !parse_pkcs8(der.value()).has_value()) {
+  auto der{pem_to_der(pem)};
+  if (!der.has_value()) {
+    return std::nullopt;
+  }
+
+  // The decoded PKCS#8 holds the whole private key, so it is wiped on return
+  const SecureScope der_scope{der.value()};
+  if (!parse_pkcs8(der.value()).has_value()) {
     return std::nullopt;
   }
 

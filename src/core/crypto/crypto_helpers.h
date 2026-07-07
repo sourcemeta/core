@@ -70,7 +70,8 @@ struct SecureBufferScope {
 
 // Whether one big-endian integer is strictly less than another, comparing by
 // significant length first and then lexicographically once the leading zeros
-// are stripped
+// are stripped. Only for public operands, since it short-circuits on the first
+// differing byte
 inline auto octets_below(const std::string_view value,
                          const std::string_view bound) noexcept -> bool {
   const auto stripped_value{strip_left(value, '\x00')};
@@ -80,6 +81,25 @@ inline auto octets_below(const std::string_view value,
   }
 
   return stripped_value < stripped_bound;
+}
+
+// The same comparison over two equal-length big-endian integers in constant
+// time, by a full-width subtract that borrows out exactly when the first
+// operand is smaller. It inspects every byte, so the timing does not reveal
+// where the operands first differ, which matters when one of them is a secret
+// scalar
+inline auto octets_below_fixed(const std::string_view value,
+                               const std::string_view bound) noexcept -> bool {
+  unsigned int borrow{0};
+  for (std::size_t index = value.size(); index > 0; --index) {
+    const auto value_byte{
+        static_cast<unsigned int>(static_cast<std::uint8_t>(value[index - 1]))};
+    const auto bound_byte{
+        static_cast<unsigned int>(static_cast<std::uint8_t>(bound[index - 1]))};
+    borrow = ((value_byte - bound_byte - borrow) >> 8U) & 1U;
+  }
+
+  return borrow == 1;
 }
 
 // Whether a signature representative, as a big-endian integer, is strictly
@@ -149,11 +169,19 @@ inline auto curve_order_bytes(const EllipticCurve curve) -> std::string {
 }
 
 // Whether an elliptic curve private scalar lies in the valid range [1, n)
-// (SEC 1 Section 3.2.1). Shared so every backend rejects an out-of-range scalar
+// (SEC 1 Section 3.2.1). Shared so every backend rejects an out-of-range
+// scalar. The scalar is secret, so it is compared against the order in constant
+// time over the fixed field width
 inline auto ec_private_scalar_in_range(const std::string_view scalar,
                                        const EllipticCurve curve) -> bool {
-  return !strip_left(scalar, '\x00').empty() &&
-         octets_below(scalar, curve_order_bytes(curve));
+  const auto width{curve_field_bytes(curve)};
+  const auto stripped{strip_left(scalar, '\x00')};
+  if (stripped.empty() || stripped.size() > width) {
+    return false;
+  }
+
+  return octets_below_fixed(pad_left(stripped, width, '\x00'),
+                            curve_order_bytes(curve));
 }
 
 // The public key and signature octet lengths are fixed per curve (RFC 8032
