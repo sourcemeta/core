@@ -653,3 +653,315 @@ TEST(float_tag_just_above_integer_range) {
   EXPECT_TRUE(result.is_real());
   EXPECT_EQ(result.to_real(), 1e19);
 }
+
+// YAML 1.2.2 Section 8.2.1: an empty block sequence entry is a null node rather
+// than being dropped from the sequence.
+TEST(bare_block_sequence_entry_is_null) {
+  const std::string input{"-"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).is_null());
+}
+
+TEST(bare_block_sequence_entry_before_document_end_is_null) {
+  const std::string input{"-\n...\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_TRUE(result.at(0).is_null());
+}
+
+// YAML 1.2.2 Section 6.8: an unknown directive name is reserved and ignored, so
+// a document introduced by one is parsed normally.
+TEST(unknown_directive_is_ignored) {
+  const std::string input{"%YAMLL 1.1\n---\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_null());
+}
+
+TEST(directive_name_prefix_of_yaml_is_reserved) {
+  const std::string input{"%YAMLX 9.9\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.8.1: the version parameter is a major and minor decimal
+// number, so a comment sign without a preceding separation space is invalid.
+TEST(yaml_directive_comment_without_separation_is_rejected) {
+  const std::string input{"%YAML 1.1#foo\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_non_numeric_version_is_rejected) {
+  const std::string input{"%YAML abc\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(yaml_directive_with_comment_is_accepted) {
+  const std::string input{"%YAML 1.2 # a comment\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.1: a tab that follows a space is separation rather than
+// indentation, so it does not make the line invalid.
+TEST(tab_after_space_separation_is_not_indentation) {
+  const std::string input{" \tvalue"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 8.2.1: a nested block sequence that is compact on the same
+// line as its parent entry is indented by spaces, so a tab is invalid.
+TEST(tab_before_compact_nested_sequence_is_rejected) {
+  const std::string input{"-\t-\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(tab_after_space_before_compact_nested_sequence_is_rejected) {
+  const std::string input{"- \t-\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(tab_before_compact_nested_sequence_under_explicit_key_is_rejected) {
+  const std::string input{"?\t-\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A tab after a sequence entry indicator is valid separation when the entry
+// value is a scalar rather than a nested block collection.
+TEST(tab_before_scalar_sequence_entry_is_accepted) {
+  const std::string input{"-\tvalue\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0), sourcemeta::core::JSON{"value"});
+}
+
+TEST(tab_before_negative_number_sequence_entry_is_accepted) {
+  const std::string input{"-\t-1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0), sourcemeta::core::JSON{-1});
+}
+
+// YAML 1.2.2 Section 6.1: a block mapping key establishes its indentation,
+// which is made of spaces, so a tab in the leading whitespace of the key is
+// invalid.
+TEST(tab_in_block_mapping_key_indentation_is_rejected) {
+  const std::string input{"foo:\n  a: 1\n \tb: 2\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(tab_before_scalar_mapping_value_is_accepted) {
+  const std::string input{"foo:\n \tbar\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("foo"), sourcemeta::core::JSON{"bar"});
+}
+
+// YAML 1.2.2 Section 8.2.1: a compact mapping under an explicit key indicator
+// is indented by spaces, so a tab in that separation is invalid.
+TEST(tab_before_compact_mapping_under_explicit_key_is_rejected) {
+  const std::string input{"?\tkey:\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// YAML 1.2.2 Section 7.3.1: an escaped tab in a double-quoted scalar is
+// content, so it survives the folding that strips literal trailing white space.
+TEST(escaped_tab_survives_double_quoted_folding) {
+  const std::string input{"\"1 trailing\\t\n  \ttab\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"1 trailing\t tab"});
+}
+
+TEST(escaped_space_survives_double_quoted_folding) {
+  const std::string input{"\"a\\ \n  b\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a  b"});
+}
+
+// YAML 1.2.2 Section 6.1: a folded double-quoted line that must reach a block
+// indentation cannot use a tab for that indentation.
+TEST(tab_indented_double_quoted_continuation_is_rejected) {
+  const std::string input{"foo: \"bar\n\tbaz\"\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A tab that begins a folded line of a top-level quoted scalar is folding white
+// space rather than indentation, so it is valid.
+TEST(tab_led_fold_in_root_double_quoted_scalar_is_accepted) {
+  const std::string input{
+      "\" 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty \""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{
+                        " 1st non-empty\n2nd non-empty 3rd non-empty "});
+}
+
+// YAML 1.2.2 Section 6.1: the white space of an empty block scalar line is
+// indentation, so a tab before any space, leaving the line blank, is invalid.
+TEST(tab_on_empty_block_scalar_line_is_rejected) {
+  const std::string input{"foo: |\n\t\nbar: 1\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A tab that follows a space on an empty block scalar line is separation rather
+// than indentation, so it is valid.
+TEST(tab_after_space_on_empty_block_scalar_line_is_accepted) {
+  const std::string input{"foo: |\n \t\nbar: 1\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("bar"), sourcemeta::core::JSON{1});
+}
+
+// YAML 1.2.2 Section 8.2: a flow collection nested in a block context continues
+// on following lines only when they are indented past that block context.
+TEST(flow_mapping_content_at_block_indent_is_rejected) {
+  const std::string input{"k: {\nk\n:\nv\n}\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(flow_mapping_content_indented_past_block_is_accepted) {
+  const std::string input{"k: {\n k\n :\n v\n }\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "k": { "k": "v" } })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+TEST(flow_sequence_content_at_block_indent_is_rejected) {
+  const std::string input{"flow: [a,\nb,\nc]\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(top_level_flow_sequence_at_column_one_is_accepted) {
+  const std::string input{"[\nfoo: bar\n]\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON([ { "foo": "bar" } ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 6.1: only spaces count as indentation, so a flow
+// continuation line whose leading white space is a tab is not indented and is
+// rejected in a block context.
+TEST(tab_indented_flow_continuation_line_is_rejected) {
+  const std::string input{"- [\n\tfoo,\n foo\n]\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A tab after enough spaces to clear the flow content indentation is separation
+// rather than indentation, so it is valid.
+TEST(tab_after_flow_indentation_spaces_is_accepted) {
+  const std::string input{"root:\n Flow: [\n  a,\n  \tb ]\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{sourcemeta::core::parse_json(
+      R"JSON({ "root": { "Flow": [ "a", "b" ] } })JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// A tab on a wholly blank line inside a flow collection is not indentation and
+// does not invalidate the following properly indented content.
+TEST(tab_on_blank_flow_line_is_accepted) {
+  const std::string input{"- [\n \t\n foo\n ]\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON([ [ "foo" ] ])JSON")};
+  EXPECT_EQ(result, expected);
+}
+
+// YAML 1.2.2 Section 8.1.1.1: in a literal block scalar, the spaces of a
+// trailing line that are beyond the content indentation are content, even when
+// that line is the last one and ends the input without a line break.
+TEST(literal_block_scalar_trailing_more_indented_line) {
+  const std::string input{"foo: |\n  x\n   "};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("foo"), sourcemeta::core::JSON{"x\n \n"});
+}
