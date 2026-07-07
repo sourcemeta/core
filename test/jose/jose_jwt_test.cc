@@ -28,6 +28,19 @@ TEST(parses_minimal_token) {
   EXPECT_EQ(token.value().signature(), "sig");
 }
 
+TEST(rejects_duplicate_header_parameter) {
+  // RFC 7515 Section 4: the header parameter names must be unique
+  const auto input{
+      make_token(R"({ "alg": "RS256", "alg": "none" })", R"({})", "sig")};
+  EXPECT_FALSE(sourcemeta::core::JWT::from(input).has_value());
+}
+
+TEST(rejects_duplicate_header_parameter_non_alg) {
+  const auto input{make_token(R"({ "alg": "RS256", "kid": "a", "kid": "b" })",
+                              R"({})", "sig")};
+  EXPECT_FALSE(sourcemeta::core::JWT::from(input).has_value());
+}
+
 TEST(signing_input_is_verbatim) {
   const auto input{
       make_token(R"({ "alg": "RS256" })", R"({ "iss": "acme" })", "sig")};

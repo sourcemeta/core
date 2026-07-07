@@ -11,6 +11,7 @@
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
 
 #include <bit>         // std::countl_zero
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <cstring>     // std::memcpy
@@ -230,7 +231,11 @@ auto PublicKey::operator=(PublicKey &&other) noexcept -> PublicKey & {
   return *this;
 }
 
-auto PublicKey::type() const noexcept -> Type { return internal_->kind; }
+auto PublicKey::type() const noexcept -> Type {
+  // A moved-from key holds no state, so reading its kind is a use-after-move
+  assert(internal_ != nullptr);
+  return internal_->kind;
+}
 
 auto make_rsa_public_key(const std::string_view modulus,
                          const std::string_view exponent)

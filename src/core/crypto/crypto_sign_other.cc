@@ -8,6 +8,7 @@
 #include "crypto_pkcs8.h"
 
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint32_t
 #include <optional>    // std::optional, std::nullopt
@@ -242,13 +243,19 @@ auto ecdsa_signature_for_nonce(const Bignum &nonce,
     return std::nullopt;
   }
 
-  // s = k^-1 (z + r * d) mod n
-  const auto s{bignum_mod_multiply(
-      bignum_mod_inverse(nonce, parameters.order),
-      bignum_mod_add(digest_integer,
-                     bignum_mod_multiply(r, private_scalar, parameters.order),
-                     parameters.order),
-      parameters.order)};
+  // s = k^-1 (z + r * d) mod n. The nonce inverse and every partial sum that
+  // mixes in the private scalar d carry secret material, so each is wiped
+  // before returning; the resulting r and s are the public signature
+  auto nonce_inverse{bignum_mod_inverse(nonce, parameters.order)};
+  const SecureBignumScope nonce_inverse_scope{nonce_inverse};
+  auto private_product{
+      bignum_mod_multiply(r, private_scalar, parameters.order)};
+  const SecureBignumScope private_product_scope{private_product};
+  auto shifted_digest{
+      bignum_mod_add(digest_integer, private_product, parameters.order)};
+  const SecureBignumScope shifted_digest_scope{shifted_digest};
+  const auto s{
+      bignum_mod_multiply(nonce_inverse, shifted_digest, parameters.order)};
   if (bignum_is_zero(s)) {
     return std::nullopt;
   }
@@ -271,7 +278,8 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
   const auto order_bytes{(order_bits + 7) / 8};
   const auto digest{digest_message(hash, message)};
   const auto digest_integer{bits2int(digest, order_bits)};
-  const auto private_scalar{bignum_from_bytes(scalar)};
+  auto private_scalar{bignum_from_bytes(scalar)};
+  const SecureBignumScope private_scalar_scope{private_scalar};
   const JacobianPoint generator{.x = parameters.generator_x,
                                 .y = parameters.generator_y,
                                 .z = bignum_from_u64(1)};
@@ -313,9 +321,11 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
       candidate.append(hmac_value);
     }
 
-    const auto signature{ecdsa_signature_for_nonce(
-        bits2int(candidate, order_bits), digest_integer, private_scalar,
-        generator, parameters, field_bytes)};
+    auto nonce{bits2int(candidate, order_bits)};
+    const SecureBignumScope nonce_scope{nonce};
+    const auto signature{ecdsa_signature_for_nonce(nonce, digest_integer,
+                                                   private_scalar, generator,
+                                                   parameters, field_bytes)};
     if (signature.has_value()) {
       return signature;
     }
@@ -379,7 +389,11 @@ auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
   return *this;
 }
 
-auto PrivateKey::type() const noexcept -> Type { return internal_->kind; }
+auto PrivateKey::type() const noexcept -> Type {
+  // A moved-from key holds no state, so reading its kind is a use-after-move
+  assert(internal_ != nullptr);
+  return internal_->kind;
+}
 
 auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   auto der{pem_to_der(pem)};

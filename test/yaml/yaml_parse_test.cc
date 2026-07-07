@@ -1083,3 +1083,19 @@ TEST(tab_after_sufficient_spaces_flow_scalar_continuation_is_accepted) {
   EXPECT_TRUE(result.is_object());
   EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{"x y"});
 }
+
+// YAML 1.2.2 Section 6.1: a tab at the start of a line is invalid indentation
+// regardless of a preceding blank indented line. The per-line indentation state
+// must reset on a line break so the blank line's spaces do not carry over.
+TEST(tab_line_start_after_blank_indented_line_is_rejected) {
+  const std::string input{"a:\n   \n\tb\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 2);
+  } catch (...) {
+    FAIL();
+  }
+}

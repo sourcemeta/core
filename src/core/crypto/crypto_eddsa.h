@@ -13,6 +13,7 @@
 #include <sourcemeta/core/crypto_sha512.h>
 
 #include "crypto_bignum.h"
+#include "crypto_helpers.h"
 #include "crypto_shake256.h"
 
 #include <cstddef>     // std::size_t
@@ -317,17 +318,23 @@ inline auto edwards25519_sign(const std::string_view secret,
   }
 
   const auto parameters{edwards25519()};
-  const auto hashed{sha512_digest(secret)};
+  // The key derivation hash carries both the secret scalar and the nonce
+  // prefix, so it and everything derived from it below is wiped before
+  // returning
+  auto hashed{sha512_digest(secret)};
+  const SecureBufferScope hashed_scope{hashed.data(), hashed.size()};
   const std::string_view digest{reinterpret_cast<const char *>(hashed.data()),
                                 hashed.size()};
 
   // The secret scalar is the pruned first half, the prefix the second half
   std::string scalar_bytes{digest.substr(0, 32)};
+  const SecureScope scalar_bytes_scope{scalar_bytes};
   scalar_bytes.front() = static_cast<char>(
       static_cast<std::uint8_t>(scalar_bytes.front()) & 0xf8u);
   scalar_bytes.back() = static_cast<char>(
       (static_cast<std::uint8_t>(scalar_bytes.back()) & 0x7fu) | 0x40u);
-  const auto scalar_a{bignum_from_bytes_little_endian(scalar_bytes)};
+  auto scalar_a{bignum_from_bytes_little_endian(scalar_bytes)};
+  const SecureBignumScope scalar_a_scope{scalar_a};
   const auto prefix{digest.substr(32)};
 
   const auto public_key{edwards_point_encode(
@@ -336,17 +343,23 @@ inline auto edwards25519_sign(const std::string_view secret,
 
   // r = SHA-512(prefix || M) reduced, then R = [r]B
   std::string nonce_preimage{prefix};
+  const SecureScope nonce_preimage_scope{nonce_preimage};
   nonce_preimage.append(message);
-  const auto nonce_digest{sha512_digest(nonce_preimage)};
+  auto nonce_digest{sha512_digest(nonce_preimage)};
+  const SecureBufferScope nonce_digest_scope{nonce_digest.data(),
+                                             nonce_digest.size()};
   auto scalar_r{bignum_from_bytes_little_endian(
       std::string_view{reinterpret_cast<const char *>(nonce_digest.data()),
                        nonce_digest.size()})};
+  const SecureBignumScope scalar_r_scope{scalar_r};
   bignum_reduce(scalar_r, parameters.order);
   const auto encoded_r{edwards_point_encode(
       edwards_point_scalar_multiply(scalar_r, parameters.base, parameters),
       parameters.prime, 32)};
 
-  // k = SHA-512(R || A || M) reduced, then S = (r + k * a) mod L
+  // k = SHA-512(R || A || M) reduced, then S = (r + k * a) mod L. The k * a
+  // product carries the secret scalar, so it is wiped; r, k, and the resulting
+  // S are the public signature material
   std::string challenge_preimage{encoded_r};
   challenge_preimage.append(public_key);
   challenge_preimage.append(message);
@@ -355,9 +368,11 @@ inline auto edwards25519_sign(const std::string_view secret,
       std::string_view{reinterpret_cast<const char *>(challenge_digest.data()),
                        challenge_digest.size()})};
   bignum_reduce(scalar_k, parameters.order);
-  const auto scalar_s{bignum_mod_add(
-      scalar_r, bignum_mod_multiply(scalar_k, scalar_a, parameters.order),
-      parameters.order)};
+  auto challenge_product{
+      bignum_mod_multiply(scalar_k, scalar_a, parameters.order)};
+  const SecureBignumScope challenge_product_scope{challenge_product};
+  const auto scalar_s{
+      bignum_mod_add(scalar_r, challenge_product, parameters.order)};
 
   const auto scalar_s_big_endian{bignum_to_bytes(scalar_s, 32)};
   std::string signature{encoded_r};
@@ -531,16 +546,22 @@ inline auto edwards448_sign(const std::string_view secret,
   }
 
   const auto parameters{edwards448()};
-  const auto digest{shake256(secret, 114)};
+  // The key derivation hash carries both the secret scalar and the nonce
+  // prefix, so it and everything derived from it below is wiped before
+  // returning
+  auto digest{shake256(secret, 114)};
+  const SecureScope digest_scope{digest};
 
   // The secret scalar is the pruned first half, the prefix the second half
   std::string scalar_bytes{digest.substr(0, 57)};
+  const SecureScope scalar_bytes_scope{scalar_bytes};
   scalar_bytes.front() = static_cast<char>(
       static_cast<std::uint8_t>(scalar_bytes.front()) & 0xfcu);
   scalar_bytes[55] =
       static_cast<char>(static_cast<std::uint8_t>(scalar_bytes[55]) | 0x80u);
   scalar_bytes[56] = '\x00';
-  const auto scalar_a{bignum_from_bytes_little_endian(scalar_bytes)};
+  auto scalar_a{bignum_from_bytes_little_endian(scalar_bytes)};
+  const SecureBignumScope scalar_a_scope{scalar_a};
   const auto prefix{std::string_view{digest}.substr(57)};
 
   const auto public_key{edwards_point_encode(
@@ -554,15 +575,21 @@ inline auto edwards448_sign(const std::string_view secret,
 
   // r = SHAKE256(dom4 || prefix || M) reduced, then R = [r]B
   std::string nonce_preimage{domain};
+  const SecureScope nonce_preimage_scope{nonce_preimage};
   nonce_preimage.append(prefix);
   nonce_preimage.append(message);
-  auto scalar_r{bignum_from_bytes_little_endian(shake256(nonce_preimage, 114))};
+  auto nonce_hash{shake256(nonce_preimage, 114)};
+  const SecureScope nonce_hash_scope{nonce_hash};
+  auto scalar_r{bignum_from_bytes_little_endian(nonce_hash)};
+  const SecureBignumScope scalar_r_scope{scalar_r};
   bignum_reduce(scalar_r, parameters.order);
   const auto encoded_r{edwards_point_encode(
       edwards_point_scalar_multiply(scalar_r, parameters.base, parameters),
       parameters.prime, 57)};
 
-  // k = SHAKE256(dom4 || R || A || M) reduced, then S = (r + k * a) mod L
+  // k = SHAKE256(dom4 || R || A || M) reduced, then S = (r + k * a) mod L. The
+  // k * a product carries the secret scalar, so it is wiped; r, k, and the
+  // resulting S are the public signature material
   std::string challenge_preimage{domain};
   challenge_preimage.append(encoded_r);
   challenge_preimage.append(public_key);
@@ -570,9 +597,11 @@ inline auto edwards448_sign(const std::string_view secret,
   auto scalar_k{
       bignum_from_bytes_little_endian(shake256(challenge_preimage, 114))};
   bignum_reduce(scalar_k, parameters.order);
-  const auto scalar_s{bignum_mod_add(
-      scalar_r, bignum_mod_multiply(scalar_k, scalar_a, parameters.order),
-      parameters.order)};
+  auto challenge_product{
+      bignum_mod_multiply(scalar_k, scalar_a, parameters.order)};
+  const SecureBignumScope challenge_product_scope{challenge_product};
+  const auto scalar_s{
+      bignum_mod_add(scalar_r, challenge_product, parameters.order)};
 
   const auto scalar_s_big_endian{bignum_to_bytes(scalar_s, 57)};
   std::string signature{encoded_r};

@@ -13,6 +13,7 @@
 
 #include <array>       // std::array
 #include <bit>         // std::countl_zero
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <cstring>     // std::memcpy
@@ -349,7 +350,11 @@ auto PrivateKey::operator=(PrivateKey &&other) noexcept -> PrivateKey & {
   return *this;
 }
 
-auto PrivateKey::type() const noexcept -> Type { return internal_->kind; }
+auto PrivateKey::type() const noexcept -> Type {
+  // A moved-from key holds no state, so reading its kind is a use-after-move
+  assert(internal_ != nullptr);
+  return internal_->kind;
+}
 
 auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   auto der{pem_to_der(pem)};
