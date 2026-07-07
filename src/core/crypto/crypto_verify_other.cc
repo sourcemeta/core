@@ -7,6 +7,7 @@
 #include "crypto_helpers.h"
 
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint32_t
 #include <optional>    // std::optional, std::nullopt

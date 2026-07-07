@@ -10,6 +10,7 @@
 #include <openssl/param_build.h> // OSSL_PARAM_*
 #include <openssl/rsa.h> // RSA_PKCS1_PSS_PADDING, RSA_PSS_SALTLEN_DIGEST
 
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string

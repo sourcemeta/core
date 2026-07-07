@@ -13,6 +13,7 @@
 
 #include <array>       // std::array
 #include <bit>         // std::countl_zero
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <cstring>     // std::memcpy

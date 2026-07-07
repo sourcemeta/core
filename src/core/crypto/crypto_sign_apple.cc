@@ -10,6 +10,7 @@
 #include <Security/Security.h>             // Sec*, kSec*
 
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
