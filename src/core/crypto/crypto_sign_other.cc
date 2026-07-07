@@ -238,10 +238,11 @@ auto ecdsa_signature_for_nonce(const Bignum &nonce,
 
   const auto point{
       point_scalar_multiply_constant_time(nonce, generator, parameters)};
-  if (point_is_infinity(point)) {
-    return std::nullopt;
-  }
 
+  // The ladder leaves its projective output fixed-width rather than normalized,
+  // so it does not leak the secret nonce through a value-dependent loop. The
+  // nonce lies in [1, n), so the result is never the point at infinity, and the
+  // r == 0 rejection below is the FIPS 186-4 restart condition regardless
   auto r{point_affine_x_constant_time(point, parameters)};
   bignum_reduce(r, parameters.order);
   if (bignum_is_zero(r)) {

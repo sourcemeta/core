@@ -589,9 +589,6 @@ inline auto point_scalar_multiply_constant_time(
                                       sum, result);
   }
 
-  bignum_normalize(result.x);
-  bignum_normalize(result.y);
-  bignum_normalize(result.z);
   return result;
 }
 

@@ -177,10 +177,8 @@ inline auto edwards_point_encode(const EdwardsPoint &point, const Bignum &prime,
   // secret scalar, so the coordinate recovery is taken in constant time
   const auto field{barrett_context(prime)};
   const auto z_inverse{field_inverse_ct(point.z, field)};
-  auto x{field_mod_multiply_ct(point.x, z_inverse, field)};
-  auto y{field_mod_multiply_ct(point.y, z_inverse, field)};
-  bignum_normalize(x);
-  bignum_normalize(y);
+  const auto x{field_mod_multiply_ct(point.x, z_inverse, field)};
+  const auto y{field_mod_multiply_ct(point.y, z_inverse, field)};
   const auto big_endian{bignum_to_bytes(y, length)};
   std::string encoding{big_endian.rbegin(), big_endian.rend()};
   if (bignum_get_bit(x, 0)) {
@@ -434,11 +432,18 @@ inline auto edwards25519_sign(const std::string_view secret,
       std::string_view{reinterpret_cast<const char *>(challenge_digest.data()),
                        challenge_digest.size()})};
   bignum_reduce(scalar_k, parameters.order);
+  // The k * a product and its sum with the nonce carry the secret scalar and
+  // nonce, so both run over the constant-time field arithmetic modulo the
+  // order; k is public and r, k, and the resulting S are the public signature
+  // material
+  const auto order_field{barrett_context(parameters.order)};
+  auto scalar_a_reduced{barrett_reduce(scalar_a, order_field)};
+  const SecureBignumScope scalar_a_reduced_scope{scalar_a_reduced};
   auto challenge_product{
-      bignum_mod_multiply(scalar_k, scalar_a, parameters.order)};
+      field_mod_multiply_ct(scalar_k, scalar_a_reduced, order_field)};
   const SecureBignumScope challenge_product_scope{challenge_product};
-  const auto scalar_s{
-      bignum_mod_add(scalar_r, challenge_product, parameters.order)};
+  auto scalar_s{field_add_ct(scalar_r, challenge_product, order_field)};
+  bignum_normalize(scalar_s);
 
   const auto scalar_s_big_endian{bignum_to_bytes(scalar_s, 32)};
   std::string signature{encoded_r};
@@ -665,11 +670,18 @@ inline auto edwards448_sign(const std::string_view secret,
   auto scalar_k{
       bignum_from_bytes_little_endian(shake256(challenge_preimage, 114))};
   bignum_reduce(scalar_k, parameters.order);
+  // The k * a product and its sum with the nonce carry the secret scalar and
+  // nonce, so both run over the constant-time field arithmetic modulo the
+  // order; k is public and r, k, and the resulting S are the public signature
+  // material
+  const auto order_field{barrett_context(parameters.order)};
+  auto scalar_a_reduced{barrett_reduce(scalar_a, order_field)};
+  const SecureBignumScope scalar_a_reduced_scope{scalar_a_reduced};
   auto challenge_product{
-      bignum_mod_multiply(scalar_k, scalar_a, parameters.order)};
+      field_mod_multiply_ct(scalar_k, scalar_a_reduced, order_field)};
   const SecureBignumScope challenge_product_scope{challenge_product};
-  const auto scalar_s{
-      bignum_mod_add(scalar_r, challenge_product, parameters.order)};
+  auto scalar_s{field_add_ct(scalar_r, challenge_product, order_field)};
+  bignum_normalize(scalar_s);
 
   const auto scalar_s_big_endian{bignum_to_bytes(scalar_s, 57)};
   std::string signature{encoded_r};
