@@ -27,6 +27,32 @@ struct Bignum {
   std::size_t size{0};
 };
 
+// Overwrite the whole word buffer of a big integer that held secret material,
+// including the words past the current size that intermediate operations wrote,
+// so it does not linger in freed memory. The volatile access stops the compiler
+// from eliding the write as a dead store
+inline auto secure_zero(Bignum &value) noexcept -> void {
+  auto *pointer{reinterpret_cast<volatile unsigned char *>(value.words.data())};
+  for (std::size_t index{0}; index < sizeof(value.words); index += 1) {
+    pointer[index] = 0;
+  }
+
+  value.size = 0;
+}
+
+// Overwrite the referenced big integer when leaving the current scope, so a
+// secret value a local holds is wiped across every return path without
+// threading a manual call through each one
+struct SecureBignumScope {
+  explicit SecureBignumScope(Bignum &value) noexcept : target{value} {}
+  SecureBignumScope(const SecureBignumScope &) = delete;
+  auto operator=(const SecureBignumScope &) -> SecureBignumScope & = delete;
+  SecureBignumScope(SecureBignumScope &&) = delete;
+  auto operator=(SecureBignumScope &&) -> SecureBignumScope & = delete;
+  ~SecureBignumScope() { secure_zero(this->target); }
+  Bignum &target;
+};
+
 inline auto bignum_normalize(Bignum &value) noexcept -> void {
   while (value.size > 0 && value.words[value.size - 1] == 0) {
     value.size -= 1;

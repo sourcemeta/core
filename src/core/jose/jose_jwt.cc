@@ -4,11 +4,12 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
-#include <chrono>      // std::chrono::duration, std::chrono::system_clock
-#include <optional>    // std::optional, std::nullopt
-#include <stdexcept>   // std::out_of_range
-#include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <chrono>        // std::chrono::duration, std::chrono::system_clock
+#include <optional>      // std::optional, std::nullopt
+#include <stdexcept>     // std::out_of_range
+#include <string_view>   // std::string_view
+#include <unordered_set> // std::unordered_set
+#include <utility>       // std::move
 
 namespace {
 using namespace std::string_view_literals;
@@ -98,6 +99,15 @@ auto JWT::parse(const std::string_view input, JWT &result) -> bool {
   if (!header_json.has_value() || !header_json.value().is_object() ||
       !payload_json.has_value() || !payload_json.value().is_object()) {
     return false;
+  }
+
+  // RFC 8725 Section 3.10: a header with duplicate parameters is rejected,
+  // since the JSON layer preserves repeated members rather than collapsing them
+  std::unordered_set<std::string_view> header_parameters;
+  for (const auto &parameter : header_json.value().as_object()) {
+    if (!header_parameters.emplace(parameter.first).second) {
+      return false;
+    }
   }
 
   // The algorithm header parameter is required and must be a string (RFC 7515

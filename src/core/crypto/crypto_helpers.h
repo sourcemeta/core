@@ -50,6 +50,20 @@ struct SecureScope {
   std::string &target;
 };
 
+// The same guard for a raw buffer, so a secret that a fixed-size digest array
+// holds is wiped when leaving the current scope
+struct SecureBufferScope {
+  SecureBufferScope(void *const data, const std::size_t size) noexcept
+      : data{data}, size{size} {}
+  SecureBufferScope(const SecureBufferScope &) = delete;
+  auto operator=(const SecureBufferScope &) -> SecureBufferScope & = delete;
+  SecureBufferScope(SecureBufferScope &&) = delete;
+  auto operator=(SecureBufferScope &&) -> SecureBufferScope & = delete;
+  ~SecureBufferScope() { secure_zero(this->data, this->size); }
+  void *const data;
+  const std::size_t size;
+};
+
 // Whether a signature representative, as a big-endian integer, is strictly
 // less than the modulus. RFC 8017 Section 5.2.2 requires this range check, so
 // that an unreduced signature, which an attacker forges by adding the modulus
