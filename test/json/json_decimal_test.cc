@@ -303,6 +303,13 @@ TEST(less_than_decimal_real) {
   EXPECT_FALSE(real < decimal);
 }
 
+TEST(less_than_integral_decimal_real) {
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"2.0"}};
+  const sourcemeta::core::JSON real{2.5};
+  EXPECT_TRUE(decimal < real);
+  EXPECT_FALSE(real < decimal);
+}
+
 TEST(less_than_or_equal_decimal_real) {
   const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"3.2"}};
   const sourcemeta::core::JSON real{5.5};
@@ -1183,6 +1190,14 @@ TEST(fast_hash_matches_equal_real_integral) {
   const sourcemeta::core::JSON as_real{5.0};
   const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"5"}};
   EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
+}
+
+TEST(fast_hash_matches_equal_real_integral_with_negative_exponent) {
+  const sourcemeta::core::JSON as_real{5.0};
+  const sourcemeta::core::JSON as_decimal{sourcemeta::core::Decimal{"5.0"}};
+  EXPECT_TRUE(as_real == as_decimal);
+  EXPECT_TRUE(as_decimal == as_real);
   EXPECT_EQ(as_real.fast_hash(), as_decimal.fast_hash());
 }
 
