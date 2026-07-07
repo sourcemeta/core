@@ -386,7 +386,15 @@ auto make_rsa_public_key(const std::string_view modulus,
     -> std::optional<PublicKey> {
   const auto stripped_modulus{strip_left(modulus, '\x00')};
   const auto stripped_exponent{strip_left(exponent, '\x00')};
-  if (stripped_modulus.empty() || stripped_exponent.empty() ||
+  // The public exponent must be odd and at least three (RFC 8017 Section 3.1):
+  // an even exponent is not invertible modulo the totient, and e = 1 leaves the
+  // signature equal to the padded message and forges trivially
+  const auto exponent_is_valid{
+      !stripped_exponent.empty() &&
+      (static_cast<std::uint8_t>(stripped_exponent.back()) & 1U) != 0 &&
+      (stripped_exponent.size() > 1 ||
+       static_cast<std::uint8_t>(stripped_exponent.back()) >= 3)};
+  if (stripped_modulus.empty() || !exponent_is_valid ||
       stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
       stripped_exponent.size() > MAXIMUM_KEY_BYTES) {
     return std::nullopt;

@@ -243,19 +243,23 @@ auto ecdsa_signature_for_nonce(const Bignum &nonce,
     return std::nullopt;
   }
 
-  // s = k^-1 (z + r * d) mod n. The nonce inverse and every partial sum that
+  // s = k^-1 (z + r * d) mod n, evaluated over the constant-time field
+  // arithmetic modulo the order. The nonce inverse and every partial sum that
   // mixes in the private scalar d carry secret material, so each is wiped
   // before returning; the resulting r and s are the public signature
-  auto nonce_inverse{bignum_mod_inverse_constant_time(nonce, parameters.order)};
+  const auto order_field{barrett_context(parameters.order)};
+  auto nonce_inverse{field_inverse_ct(nonce, order_field)};
   const SecureBignumScope nonce_inverse_scope{nonce_inverse};
-  auto private_product{
-      bignum_mod_multiply(r, private_scalar, parameters.order)};
+  auto private_reduced{barrett_reduce(private_scalar, order_field)};
+  const SecureBignumScope private_reduced_scope{private_reduced};
+  auto private_product{field_mod_multiply_ct(r, private_reduced, order_field)};
   const SecureBignumScope private_product_scope{private_product};
+  const auto digest_reduced{barrett_reduce(digest_integer, order_field)};
   auto shifted_digest{
-      bignum_mod_add(digest_integer, private_product, parameters.order)};
+      field_add_ct(digest_reduced, private_product, order_field)};
   const SecureBignumScope shifted_digest_scope{shifted_digest};
-  const auto s{
-      bignum_mod_multiply(nonce_inverse, shifted_digest, parameters.order)};
+  auto s{field_mod_multiply_ct(nonce_inverse, shifted_digest, order_field)};
+  bignum_normalize(s);
   if (bignum_is_zero(s)) {
     return std::nullopt;
   }
@@ -529,6 +533,13 @@ auto make_ec_private_key(const EllipticCurve curve,
   if (stripped.empty() || stripped.size() > width ||
       strip_left(coordinate_x, '\x00').size() > width ||
       strip_left(coordinate_y, '\x00').size() > width) {
+    return std::nullopt;
+  }
+
+  // The private scalar must lie in [1, n) (SEC 1 Section 3.2.1). Stripping the
+  // leading zeros above already rejects zero, so only the upper bound remains
+  if (bignum_compare(bignum_from_bytes(stripped),
+                     to_curve_parameters(curve).order) >= 0) {
     return std::nullopt;
   }
 

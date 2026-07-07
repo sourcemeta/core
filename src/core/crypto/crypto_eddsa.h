@@ -6,9 +6,8 @@
 // in extended Edwards coordinates, so that the group law is a single set of
 // complete formulas shared by both curves. Verification consumes only public
 // inputs and stays variable time; the signing paths use the constant-time
-// scalar multiplication and inverse below so they do not leak the secret scalar
-// through control flow. The field arithmetic underneath is not itself constant
-// time, so a residual operand-dependent timing remains
+// scalar multiplication, inverse, and encoding below, evaluated with the
+// constant-time field layer, so they do not depend on the secret scalar
 
 #include <sourcemeta/core/crypto_sha512.h>
 
@@ -108,24 +107,52 @@ inline auto edwards_point_conditional_select(
           .t = bignum_conditional_select(condition, when_true.t, when_false.t)};
 }
 
+// The same complete addition as above evaluated over the constant-time field
+// arithmetic, for the signing path where the operands derive from the secret
+// scalar
+inline auto edwards_point_add_constant_time(
+    const EdwardsPoint &left, const EdwardsPoint &right,
+    const EdwardsParameters &parameters, const BarrettContext &field) noexcept
+    -> EdwardsPoint {
+  const auto a{field_mod_multiply_ct(left.x, right.x, field)};
+  const auto b{field_mod_multiply_ct(left.y, right.y, field)};
+  const auto c{field_mod_multiply_ct(
+      field_mod_multiply_ct(parameters.coefficient_d, left.t, field), right.t,
+      field)};
+  const auto d{field_mod_multiply_ct(left.z, right.z, field)};
+  const auto e{field_subtract_ct(
+      field_mod_multiply_ct(field_add_ct(left.x, left.y, field),
+                            field_add_ct(right.x, right.y, field), field),
+      field_add_ct(a, b, field), field)};
+  const auto f{field_subtract_ct(d, c, field)};
+  const auto g{field_add_ct(d, c, field)};
+  const auto h{field_subtract_ct(
+      b, field_mod_multiply_ct(parameters.coefficient_a, a, field), field)};
+  return EdwardsPoint{.x = field_mod_multiply_ct(e, f, field),
+                      .y = field_mod_multiply_ct(g, h, field),
+                      .z = field_mod_multiply_ct(f, g, field),
+                      .t = field_mod_multiply_ct(e, h, field)};
+}
+
 // For the signing path, where the scalar is secret: a fixed-length
 // double-and-add-always ladder with a masked selection over the complete
-// Edwards formulas, so the per-bit branch does not leak the scalar. The field
-// arithmetic below is not itself constant time, so a residual operand-dependent
-// timing remains
+// Edwards formulas evaluated in constant time, so neither the per-bit branch
+// nor the field arithmetic underneath depends on the scalar
 inline auto edwards_point_scalar_multiply_constant_time(
     const Bignum &scalar, const EdwardsPoint &point,
     const EdwardsParameters &parameters) -> EdwardsPoint {
+  const auto field{barrett_context(parameters.prime)};
   EdwardsPoint result{.x = Bignum{},
                       .y = bignum_from_u64(1),
                       .z = bignum_from_u64(1),
                       .t = Bignum{}};
   const auto scalar_bits{bignum_bit_length(parameters.prime)};
   for (std::size_t index = scalar_bits; index > 0; --index) {
-    result = edwards_point_add(result, result, parameters);
-    const auto sum{edwards_point_add(result, point, parameters)};
-    result = edwards_point_conditional_select(bignum_get_bit(scalar, index - 1),
-                                              sum, result);
+    result = edwards_point_add_constant_time(result, result, parameters, field);
+    const auto sum{
+        edwards_point_add_constant_time(result, point, parameters, field)};
+    result = edwards_point_conditional_select(
+        bignum_get_bit_fixed(scalar, index - 1), sum, result);
   }
 
   return result;
@@ -147,10 +174,13 @@ inline auto edwards_point_equal(const EdwardsPoint &left,
 inline auto edwards_point_encode(const EdwardsPoint &point, const Bignum &prime,
                                  const std::size_t length) -> std::string {
   // Only the signing path encodes points, and its projective z derives from the
-  // secret scalar, so the inverse is taken in constant time
-  const auto z_inverse{bignum_mod_inverse_constant_time(point.z, prime)};
-  const auto x{bignum_mod_multiply(point.x, z_inverse, prime)};
-  const auto y{bignum_mod_multiply(point.y, z_inverse, prime)};
+  // secret scalar, so the coordinate recovery is taken in constant time
+  const auto field{barrett_context(prime)};
+  const auto z_inverse{field_inverse_ct(point.z, field)};
+  auto x{field_mod_multiply_ct(point.x, z_inverse, field)};
+  auto y{field_mod_multiply_ct(point.y, z_inverse, field)};
+  bignum_normalize(x);
+  bignum_normalize(y);
   const auto big_endian{bignum_to_bytes(y, length)};
   std::string encoding{big_endian.rbegin(), big_endian.rend()};
   if (bignum_get_bit(x, 0)) {
