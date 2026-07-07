@@ -53,8 +53,8 @@ struct SecureScope {
 // The same guard for a raw buffer, so a secret that a fixed-size digest array
 // holds is wiped when leaving the current scope
 struct SecureBufferScope {
-  SecureBufferScope(void *const data, const std::size_t size) noexcept
-      : data{data}, size{size} {}
+  SecureBufferScope(void *const buffer, const std::size_t length) noexcept
+      : data{buffer}, size{length} {}
   SecureBufferScope(const SecureBufferScope &) = delete;
   auto operator=(const SecureBufferScope &) -> SecureBufferScope & = delete;
   SecureBufferScope(SecureBufferScope &&) = delete;
