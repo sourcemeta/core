@@ -965,3 +965,74 @@ TEST(literal_block_scalar_trailing_more_indented_line) {
   EXPECT_TRUE(result.is_object());
   EXPECT_EQ(result.at("foo"), sourcemeta::core::JSON{"x\n \n"});
 }
+
+// The %TAG directive is recognized by name, not by a prefix match, so a valid
+// tag directive is still processed after tightening the directive-name parsing.
+TEST(tag_directive_is_accepted) {
+  const std::string input{"%TAG !e! tag:example.com,2000:app/\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+TEST(directive_name_prefix_of_tag_is_reserved) {
+  const std::string input{"%TAGX whatever\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// YAML 1.2.2 Section 6.8.1: the %YAML directive requires a version parameter.
+TEST(yaml_directive_without_version_is_rejected) {
+  const std::string input{"%YAML\n---\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A version has exactly one dot separating the major and minor numbers.
+TEST(yaml_directive_multiple_dot_version_is_rejected) {
+  const std::string input{"%YAML 1.2.3\n--- x\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 1);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// A lower minor version is accepted and processed with the 1.2 machinery.
+TEST(yaml_directive_older_minor_version_is_accepted) {
+  const std::string input{"%YAML 1.1\n--- value\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"value"});
+}
+
+// The escape-protected span also covers the hex and Unicode escape forms, so a
+// tab written as \x09 at a line end survives folding just like \t does.
+TEST(hex_escape_whitespace_survives_double_quoted_folding) {
+  const std::string input{"\"a\\x09\n  b\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a\t b"});
+}
+
+TEST(unicode_escape_whitespace_survives_double_quoted_folding) {
+  const std::string input{"\"a\\u0009\n  b\""};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_EQ(result, sourcemeta::core::JSON{"a\t b"});
+}
+
+// The flow continuation-indent check applies through nesting, so a properly
+// indented nested flow collection is not falsely rejected.
+TEST(nested_flow_collection_indented_past_block_is_accepted) {
+  const std::string input{"key: [ [1],\n       [2] ]\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON({ "key": [ [1], [2] ] })JSON")};
+  EXPECT_EQ(result, expected);
+}
