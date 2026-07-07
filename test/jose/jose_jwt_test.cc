@@ -29,7 +29,7 @@ TEST(parses_minimal_token) {
 }
 
 TEST(rejects_duplicate_header_parameter) {
-  // RFC 8725 Section 3.10: a header with duplicate parameters is rejected
+  // RFC 7515 Section 4: the header parameter names must be unique
   const auto input{
       make_token(R"({ "alg": "RS256", "alg": "none" })", R"({})", "sig")};
   EXPECT_FALSE(sourcemeta::core::JWT::from(input).has_value());

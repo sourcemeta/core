@@ -7,8 +7,8 @@
 
 /// @defgroup crypto Crypto
 /// @brief Cryptographic hashing and HMAC, digital signatures, authenticated
-/// encryption, secure random bytes, constant-time comparison, and Base64 and
-/// UUID helpers.
+/// encryption, random bytes, constant-time comparison, and Base64 and UUID
+/// helpers.
 ///
 /// This functionality is included as follows:
 ///

@@ -101,8 +101,9 @@ auto JWT::parse(const std::string_view input, JWT &result) -> bool {
     return false;
   }
 
-  // RFC 8725 Section 3.10: a header with duplicate parameters is rejected,
-  // since the JSON layer preserves repeated members rather than collapsing them
+  // RFC 7515 Section 4: the header parameter names must be unique, so a header
+  // with a duplicate is rejected, since the JSON layer preserves repeated
+  // members rather than collapsing them
   std::unordered_set<std::string_view> header_parameters;
   for (const auto &parameter : header_json.value().as_object()) {
     if (!header_parameters.emplace(parameter.first).second) {
