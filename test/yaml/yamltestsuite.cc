@@ -59,6 +59,24 @@ auto run_yaml_test_case(const std::filesystem::path &test_directory,
     }
   }
 }
+
+auto register_yaml_test_case(const std::filesystem::path &test_directory,
+                             const std::string &test_name) -> void {
+  // A case that carries an "error" marker must be rejected even when a sample
+  // "in.json" is also present, so the marker takes precedence
+  YAMLTestType type;
+  if (std::filesystem::exists(test_directory / "error")) {
+    type = YAMLTestType::Error;
+  } else if (std::filesystem::exists(test_directory / "in.json")) {
+    type = YAMLTestType::Success;
+  } else {
+    return;
+  }
+
+  sourcemeta::core::test_register(test_name, [test_directory, type]() -> void {
+    run_yaml_test_case(test_directory, type);
+  });
+}
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -73,22 +91,22 @@ auto main(int argc, char **argv) -> int {
     const auto test_directory{entry.path()};
     const auto test_name{test_directory.filename().string()};
 
-    const auto json_file{test_directory / "in.json"};
-    const auto error_file{test_directory / "error"};
-
-    YAMLTestType type;
-    if (std::filesystem::exists(json_file)) {
-      type = YAMLTestType::Success;
-    } else if (std::filesystem::exists(error_file)) {
-      type = YAMLTestType::Error;
+    // A suite entry either holds the case files directly or, for the
+    // multi-document cases, contains one numbered subdirectory per case, which
+    // a non-recursive scan would silently skip
+    if (std::filesystem::exists(test_directory / "in.json") ||
+        std::filesystem::exists(test_directory / "error")) {
+      register_yaml_test_case(test_directory, test_name);
     } else {
-      continue;
+      for (const auto &subentry :
+           std::filesystem::directory_iterator(test_directory)) {
+        if (subentry.is_directory()) {
+          register_yaml_test_case(subentry.path(),
+                                  test_name + "/" +
+                                      subentry.path().filename().string());
+        }
+      }
     }
-
-    sourcemeta::core::test_register(test_name,
-                                    [test_directory, type]() -> void {
-                                      run_yaml_test_case(test_directory, type);
-                                    });
   }
 
   return sourcemeta::core::test_run(argc, argv);
