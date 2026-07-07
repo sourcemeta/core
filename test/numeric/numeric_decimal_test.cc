@@ -3865,6 +3865,34 @@ TEST(small_integral_with_negative_exponent_to_uint64) {
   EXPECT_EQ(value.to_uint64(), 2ULL);
 }
 
+TEST(zero_with_extreme_negative_exponent_to_int64) {
+  const sourcemeta::core::Decimal value{"0e-2147483648"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_TRUE(value.is_int64());
+  EXPECT_EQ(value.to_int64(), 0);
+}
+
+TEST(zero_with_extreme_negative_exponent_to_uint64) {
+  const sourcemeta::core::Decimal value{"0e-2147483648"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_TRUE(value.is_uint64());
+  EXPECT_EQ(value.to_uint64(), 0ULL);
+}
+
+TEST(zero_with_extreme_positive_exponent_to_int64) {
+  const sourcemeta::core::Decimal value{"0e2147483647"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_TRUE(value.is_int64());
+  EXPECT_EQ(value.to_int64(), 0);
+}
+
+TEST(zero_with_extreme_positive_exponent_to_uint64) {
+  const sourcemeta::core::Decimal value{"0e2147483647"};
+  EXPECT_TRUE(value.is_integral());
+  EXPECT_TRUE(value.is_uint64());
+  EXPECT_EQ(value.to_uint64(), 0ULL);
+}
+
 TEST(nan_with_payload_longer_than_storage_saturates) {
   const sourcemeta::core::Decimal value{"NaN99999999999999999999999"};
   EXPECT_TRUE(value.is_nan());

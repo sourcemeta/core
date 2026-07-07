@@ -808,6 +808,13 @@ auto Decimal::to_int64() const -> std::int64_t {
   }
 
   auto coefficient = this->coefficient_;
+
+  // Zero admits arbitrarily extreme exponents, which would otherwise make the
+  // scaling loops below spin for billions of iterations
+  if (coefficient == 0) {
+    return 0;
+  }
+
   auto exponent = this->exponent_;
   while (exponent > 0) {
     coefficient *= 10;
@@ -838,6 +845,13 @@ auto Decimal::to_uint64() const -> std::uint64_t {
   }
 
   auto coefficient = this->coefficient_;
+
+  // Zero admits arbitrarily extreme exponents, which would otherwise make the
+  // scaling loops below spin for billions of iterations
+  if (coefficient == 0) {
+    return 0;
+  }
+
   auto exponent = this->exponent_;
 
   auto result = static_cast<std::uint64_t>(coefficient);
