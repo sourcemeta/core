@@ -754,6 +754,29 @@ inline auto field_inverse_ct(const Bignum &value,
   return result;
 }
 
+// Modular exponentiation for a secret exponent (the RSA private key), in
+// constant time. Unlike the inverse above, the exponent is secret, so the
+// ladder runs a fixed number of steps fixed by the public modulus and blends
+// the per-bit multiply with a masked select rather than a branch. The modulus
+// need not be prime
+inline auto bignum_mod_exp_ct(const Bignum &base, const Bignum &exponent,
+                              const BarrettContext &context) noexcept
+    -> Bignum {
+  Bignum result;
+  result.words[0] = 1;
+  result.size = context.words;
+  const auto reduced_base{barrett_reduce(base, context)};
+  const auto exponent_bits{bignum_bit_length(context.modulus)};
+  for (std::size_t index = exponent_bits; index > 0; --index) {
+    result = field_mod_multiply_ct(result, result, context);
+    const auto product{field_mod_multiply_ct(result, reduced_base, context)};
+    result = bignum_conditional_select(
+        bignum_get_bit_fixed(exponent, index - 1), product, result);
+  }
+
+  return result;
+}
+
 inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)
     -> std::string {
   std::string result(length, '\x00');

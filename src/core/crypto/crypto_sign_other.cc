@@ -212,9 +212,14 @@ auto bits2octets(const std::string_view bits, const Bignum &order,
 auto sign_rsa(const std::string_view modulus,
               const std::string_view private_exponent,
               const std::string_view encoded_message) -> std::string {
-  const auto representative{bignum_mod_exp(bignum_from_bytes(encoded_message),
-                                           bignum_from_bytes(private_exponent),
-                                           bignum_from_bytes(modulus))};
+  // The exponent is the secret private key, so the exponentiation runs in
+  // constant time; the exponent copy it consumes is wiped before returning
+  const auto context{barrett_context(bignum_from_bytes(modulus))};
+  auto exponent{bignum_from_bytes(private_exponent)};
+  const SecureBignumScope exponent_scope{exponent};
+  auto representative{
+      bignum_mod_exp_ct(bignum_from_bytes(encoded_message), exponent, context)};
+  bignum_normalize(representative);
   return bignum_to_bytes(representative, modulus.size());
 }
 
