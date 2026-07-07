@@ -153,7 +153,7 @@ TEST(three_subtag_match) {
 }
 
 TEST(specific_zero_quality_refuses_despite_less_specific_acceptance) {
-  // RFC 9110 Section 12.5.1: the exact "en;q=0" is more specific than "en-US"
+  // RFC 9110 Section 12.4.2: q=0 means not acceptable, so the exact "en;q=0"
   // matching the "en" candidate, so it refuses that candidate despite the
   // higher-quality less specific range
   EXPECT_EQ(sourcemeta::core::http_match_accept_language("en;q=0, en-US;q=1",

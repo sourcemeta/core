@@ -45,9 +45,9 @@ namespace sourcemeta::core {
 /// ```
 ///
 /// The tracker keeps references to the property names of the document it was
-/// populated from, so that document must outlive every `get`, `size`, and
-/// `to_json` call. Querying the tracker after the source document has been
-/// destroyed is undefined behavior.
+/// populated from, so that document must outlive every query against the
+/// tracker. Reading the tracker after the source document has been destroyed is
+/// undefined behavior.
 class SOURCEMETA_CORE_JSONPOINTER_EXPORT PointerPositionTracker {
 public:
   /// The pointer type used to look up positions

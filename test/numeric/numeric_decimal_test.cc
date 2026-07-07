@@ -1437,7 +1437,8 @@ TEST(nan_with_non_digit_payload_is_invalid) {
   try {
     const sourcemeta::core::Decimal value{"NaNxyz"};
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 
@@ -1450,7 +1451,8 @@ TEST(snan_with_non_digit_payload_is_invalid) {
   try {
     const sourcemeta::core::Decimal value{"sNaNz"};
     FAIL();
-  } catch (const sourcemeta::core::DecimalParseError &) {
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
   }
 }
 

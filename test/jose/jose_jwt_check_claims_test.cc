@@ -64,6 +64,23 @@ TEST(not_before_near_clock_minimum_does_not_underflow) {
   EXPECT_FALSE(error.has_value());
 }
 
+TEST(issued_at_near_clock_minimum_does_not_underflow) {
+  const auto minimum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::min())
+                         .count()};
+  const auto payload{
+      std::string{R"({ "iss": "acme", "aud": "client", "exp": 2000, "iat": )"} +
+      std::to_string(minimum + 2.0) + " }"};
+  const auto input{make_token(R"({ "alg": "RS256" })", payload, "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{60})};
+  // The far-past issued-at is not in the future, so the token is valid
+  EXPECT_FALSE(error.has_value());
+}
+
 TEST(missing_issuer) {
   const auto input{make_token(R"({ "alg": "RS256" })",
                               R"({ "aud": "client", "exp": 2000 })", "sig")};
