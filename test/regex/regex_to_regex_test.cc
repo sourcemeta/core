@@ -69,3 +69,25 @@ TEST(pcre_unknown_escape) {
   EXPECT_TRUE(sourcemeta::core::matches(*regex, "abc"));
   EXPECT_FALSE(sourcemeta::core::matches(*regex, "xabc"));
 }
+
+TEST(numbered_backreference) {
+  const auto regex{sourcemeta::core::to_regex("^(a)\\1$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(*regex, "aa"));
+  EXPECT_FALSE(sourcemeta::core::matches(*regex, "ab"));
+  EXPECT_FALSE(sourcemeta::core::matches(*regex, "a"));
+}
+
+TEST(unicode_brace_escape_with_leading_zeros) {
+  const auto regex{sourcemeta::core::to_regex("^\\u{00000041}$")};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(*regex, "A"));
+  EXPECT_FALSE(sourcemeta::core::matches(*regex, "B"));
+}
+
+TEST(oversized_unicode_brace_escape_does_not_overflow) {
+  // A digit run long enough to overflow a 32-bit accumulator must be handled
+  // without undefined behavior
+  const auto regex{sourcemeta::core::to_regex("\\u{FFFFFFFFFFFFFFFFFFFFFFFF}")};
+  EXPECT_FALSE(regex.has_value());
+}

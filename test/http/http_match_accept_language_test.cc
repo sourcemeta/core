@@ -151,3 +151,33 @@ TEST(three_subtag_match) {
                                                          {"en-GB", "en"}),
             "en-GB");
 }
+
+TEST(specific_zero_quality_refuses_despite_less_specific_acceptance) {
+  // RFC 9110 Section 12.4.2: q=0 means not acceptable, so the exact "en;q=0"
+  // matching the "en" candidate, so it refuses that candidate despite the
+  // higher-quality less specific range
+  EXPECT_EQ(sourcemeta::core::http_match_accept_language("en;q=0, en-US;q=1",
+                                                         {"en", "de"}),
+            "");
+}
+
+TEST(specific_quality_governs_over_less_specific_higher_quality) {
+  // The exact "en;q=0.2" governs the "en" candidate over the less specific
+  // "en-US;q=0.9", so "fr;q=0.5" outranks it
+  EXPECT_EQ(sourcemeta::core::http_match_accept_language(
+                "en;q=0.2, en-US;q=0.9, fr;q=0.5", {"en", "fr"}),
+            "fr");
+}
+
+TEST(specific_higher_quality_governs_over_less_specific) {
+  // The exact "en;q=0.9" governs the "en" candidate over "en-US;q=0.1"
+  EXPECT_EQ(sourcemeta::core::http_match_accept_language(
+                "en;q=0.9, en-US;q=0.1", {"en", "de"}),
+            "en");
+}
+
+TEST(specific_zero_quality_alone_refuses_candidate) {
+  EXPECT_EQ(sourcemeta::core::http_match_accept_language("en-US;q=0",
+                                                         {"en-US", "fr"}),
+            "");
+}

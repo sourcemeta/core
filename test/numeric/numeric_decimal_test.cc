@@ -1431,6 +1431,31 @@ TEST(exception_conversion_syntax_invalid_string) {
   }
 }
 
+TEST(nan_with_non_digit_payload_is_invalid) {
+  // The diagnostic payload of a NaN must be digits, so a non-digit payload is
+  // rejected rather than silently accepted
+  try {
+    const sourcemeta::core::Decimal value{"NaNxyz"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
+TEST(nan_with_digit_payload_is_valid) {
+  const sourcemeta::core::Decimal value{"NaN123"};
+  EXPECT_TRUE(value.is_nan());
+}
+
+TEST(snan_with_non_digit_payload_is_invalid) {
+  try {
+    const sourcemeta::core::Decimal value{"sNaNz"};
+    FAIL();
+  } catch (const sourcemeta::core::DecimalParseError &error) {
+    EXPECT_STREQ(error.what(), "Invalid decimal string format");
+  }
+}
+
 TEST(exception_conversion_syntax_empty_string) {
   try {
     const sourcemeta::core::Decimal value{""};

@@ -148,14 +148,19 @@ struct ParsedDecimal {
 };
 
 auto parse_digit_payload(const char *cursor, std::size_t count)
-    -> std::int64_t {
-  // The diagnostic payload of a NaN carries no arithmetic meaning here, so a
+    -> std::optional<std::int64_t> {
+  // The diagnostic payload of a NaN is a sequence of digits, so a non-digit
+  // byte makes the whole token invalid rather than being silently accepted. A
   // payload longer than the storage saturates rather than overflowing, which
   // would otherwise be signed integer overflow (undefined behaviour)
   constexpr auto maximum{
       static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())};
   std::uint64_t payload = 0;
   for (std::size_t index = 0; index < count; index++) {
+    if (cursor[index] < '0' || cursor[index] > '9') {
+      return std::nullopt;
+    }
+
     const auto digit = static_cast<std::uint64_t>(cursor[index] - '0');
     if (payload > (maximum - digit) / 10) {
       return std::numeric_limits<std::int64_t>::max();
@@ -187,10 +192,15 @@ auto parse_special(const char *input, std::size_t length)
   if (remaining >= 3 && (cursor[0] == 'N' || cursor[0] == 'n') &&
       (cursor[1] == 'a' || cursor[1] == 'A') &&
       (cursor[2] == 'N' || cursor[2] == 'n')) {
+    const auto payload{parse_digit_payload(cursor + 3, remaining - 3)};
+    if (!payload.has_value()) {
+      return std::nullopt;
+    }
+
     result.flags = FLAG_NAN | sign_flag;
     result.exponent = 0;
     result.coefficient_high = 0;
-    result.coefficient = parse_digit_payload(cursor + 3, remaining - 3);
+    result.coefficient = payload.value();
     return result;
   }
 
@@ -198,10 +208,15 @@ auto parse_special(const char *input, std::size_t length)
       (cursor[1] == 'N' || cursor[1] == 'n') &&
       (cursor[2] == 'a' || cursor[2] == 'A') &&
       (cursor[3] == 'N' || cursor[3] == 'n')) {
+    const auto payload{parse_digit_payload(cursor + 4, remaining - 4)};
+    if (!payload.has_value()) {
+      return std::nullopt;
+    }
+
     result.flags = FLAG_NAN | FLAG_SNAN | sign_flag;
     result.exponent = 0;
     result.coefficient_high = 0;
-    result.coefficient = parse_digit_payload(cursor + 4, remaining - 4);
+    result.coefficient = payload.value();
     return result;
   }
 
