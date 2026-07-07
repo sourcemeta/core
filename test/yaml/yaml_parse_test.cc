@@ -1092,8 +1092,9 @@ TEST(tab_line_start_after_blank_indented_line_is_rejected) {
   try {
     sourcemeta::core::parse_yaml(input);
     FAIL();
-  } catch (const sourcemeta::core::YAMLParseError &) {
-    // Expected: the tab on the final line is line-start indentation
+  } catch (const sourcemeta::core::YAMLParseError &error) {
+    EXPECT_EQ(error.line(), 3);
+    EXPECT_EQ(error.column(), 2);
   } catch (...) {
     FAIL();
   }
