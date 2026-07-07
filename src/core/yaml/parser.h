@@ -1287,7 +1287,8 @@ private:
           (token->type == TokenType::BlockSequenceEntry &&
            token->column == base_column) ||
           token->type == TokenType::StreamEnd ||
-          token->type == TokenType::DocumentEnd) {
+          token->type == TokenType::DocumentEnd ||
+          token->type == TokenType::DocumentStart) {
         result.push_back(JSON{nullptr});
       } else {
         auto value{this->parse_value(token.value(), JSON::ParseContext::Index,

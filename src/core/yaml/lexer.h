@@ -739,11 +739,18 @@ private:
     pending_newlines++;
     bool line_start{true};
     bool space_in_indent{false};
+    bool leading_space_run{true};
+    // Only spaces count toward indentation, so the leading-space count of the
+    // final continuation line, not its column, drives the indentation check
+    std::size_t space_indent{0};
     while (this->position_ < this->input_.size()) {
       const char character{this->peek()};
       if (character == ' ') {
         if (line_start) {
           space_in_indent = true;
+          if (leading_space_run) {
+            space_indent++;
+          }
         }
         this->advance(1);
       } else if (character == '\t') {
@@ -755,16 +762,23 @@ private:
           throw YAMLParseError{this->line_, this->column_,
                                "Tab characters cannot be used for indentation"};
         }
+        if (line_start) {
+          leading_space_run = false;
+        }
         this->advance(1);
       } else if (character == '\n') {
         pending_newlines++;
         line_start = true;
         space_in_indent = false;
+        leading_space_run = true;
+        space_indent = 0;
         this->advance(1);
       } else if (character == '\r') {
         pending_newlines++;
         line_start = true;
         space_in_indent = false;
+        leading_space_run = true;
+        space_indent = 0;
         this->advance(1);
         if (this->peek() == '\n') {
           this->advance(1);
@@ -773,10 +787,11 @@ private:
         break;
       }
     }
-    this->validate_flow_scalar_continuation();
+    this->validate_flow_scalar_continuation(space_indent);
   }
 
-  auto validate_flow_scalar_continuation() -> void {
+  auto validate_flow_scalar_continuation(const std::size_t space_indent)
+      -> void {
     if (this->position_ >= this->input_.size()) {
       return;
     }
@@ -786,8 +801,7 @@ private:
                            "Document marker inside flow scalar"};
     }
     if (this->flow_level_ == 0 && this->block_indent_ != SIZE_MAX) {
-      const auto current_indent{static_cast<std::size_t>(this->column_ - 1)};
-      if (current_indent <= this->block_indent_) [[unlikely]] {
+      if (space_indent <= this->block_indent_) [[unlikely]] {
         throw YAMLParseError{this->line_, this->column_,
                              "Insufficient indentation in flow scalar"};
       }
@@ -1344,11 +1358,6 @@ private:
     if (chomping == '+') {
       if (style == ScalarStyle::Literal) {
         buffer += trailing_newlines;
-        // YAML 1.2.2 Section 8.1.1.2: keep chomping preserves the line break
-        // that ends an otherwise empty block scalar header
-        if (buffer.empty() && header_line_break) {
-          buffer += '\n';
-        }
       } else {
         if (had_line_break) {
           buffer += '\n';
@@ -1359,6 +1368,13 @@ private:
         if (original) {
           *original += original_trailing;
         }
+      }
+
+      // YAML 1.2.2 Section 8.1.1.2: keep chomping preserves the line break that
+      // ends an otherwise empty block scalar header, in both the literal and
+      // the folded styles
+      if (buffer.empty() && header_line_break) {
+        buffer += '\n';
       }
     } else if (chomping == 'c' && !buffer.empty()) {
       if (style == ScalarStyle::Literal) {

@@ -1036,3 +1036,50 @@ TEST(nested_flow_collection_indented_past_block_is_accepted) {
       sourcemeta::core::parse_json(R"JSON({ "key": [ [1], [2] ] })JSON")};
   EXPECT_EQ(result, expected);
 }
+
+// An empty block sequence entry that sits immediately before a document-end or
+// document-start marker is a null entry, in the loop path as well as the first.
+TEST(empty_sequence_entry_before_document_start_is_null) {
+  std::istringstream stream{"- a\n-\n---\nb\n"};
+  const auto first{sourcemeta::core::parse_yaml(stream)};
+  const sourcemeta::core::JSON expected{
+      sourcemeta::core::parse_json(R"JSON([ "a", null ])JSON")};
+  EXPECT_EQ(first, expected);
+  const auto second{sourcemeta::core::parse_yaml(stream)};
+  EXPECT_EQ(second, sourcemeta::core::JSON{"b"});
+}
+
+// YAML 1.2.2 Section 8.1.1.2: keep chomping of an empty folded block scalar
+// header preserves the header-ending line break, just as the literal style
+// does.
+TEST(folded_block_scalar_keep_empty_preserves_newline) {
+  const std::string input{"- >+\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_array());
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0), sourcemeta::core::JSON{"\n"});
+}
+
+// YAML 1.2.2 Section 6.1: a tab does not count as indentation, so a flow scalar
+// continuation whose spaces only reach the block indentation, followed by a
+// tab, is under-indented and rejected.
+TEST(tab_after_spaces_flow_scalar_continuation_is_rejected) {
+  const std::string input{"a:\n b: \"x\n \ty\"\n"};
+  try {
+    sourcemeta::core::parse_yaml(input);
+    FAIL();
+  } catch (const sourcemeta::core::YAMLParseError &) {
+    // Expected: the continuation reaches only the block indentation with spaces
+  } catch (...) {
+    FAIL();
+  }
+}
+
+// The same continuation indented one space past the block is accepted, with the
+// tab treated as separation.
+TEST(tab_after_sufficient_spaces_flow_scalar_continuation_is_accepted) {
+  const std::string input{"a:\n b: \"x\n  \ty\"\n"};
+  const auto result{sourcemeta::core::parse_yaml(input)};
+  EXPECT_TRUE(result.is_object());
+  EXPECT_EQ(result.at("a").at("b"), sourcemeta::core::JSON{"x y"});
+}
