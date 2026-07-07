@@ -1024,6 +1024,157 @@ TEST(equal_transitivity_holds_at_two_pow_63_boundary) {
   EXPECT_FALSE(as_integer == as_decimal);
 }
 
+TEST(less_than_integer_and_real_fractional_between) {
+  const sourcemeta::core::JSON integer{2};
+  const sourcemeta::core::JSON real{2.5};
+  EXPECT_TRUE(integer < real);
+  EXPECT_FALSE(real < integer);
+}
+
+TEST(less_than_integer_and_real_negative_fractional_between) {
+  const sourcemeta::core::JSON integer{-3};
+  const sourcemeta::core::JSON real{-2.5};
+  EXPECT_TRUE(integer < real);
+  EXPECT_FALSE(real < integer);
+}
+
+TEST(less_than_integer_and_real_equal_value) {
+  const sourcemeta::core::JSON integer{300};
+  const sourcemeta::core::JSON real{300.0};
+  EXPECT_FALSE(integer < real);
+  EXPECT_FALSE(real < integer);
+}
+
+TEST(less_than_integer_beyond_double_precision_and_real) {
+  const sourcemeta::core::JSON integer{
+      static_cast<std::int64_t>(9007199254740993)};
+  const sourcemeta::core::JSON real{9007199254740992.0};
+  EXPECT_TRUE(real < integer);
+  EXPECT_FALSE(integer < real);
+}
+
+TEST(less_than_integer_maximum_and_real_two_pow_63) {
+  const sourcemeta::core::JSON integer{
+      std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::JSON real{9223372036854775808.0};
+  EXPECT_TRUE(integer < real);
+  EXPECT_FALSE(real < integer);
+}
+
+TEST(less_than_integer_minimum_and_real_negative_two_pow_63) {
+  const sourcemeta::core::JSON integer{
+      std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON real{-9223372036854775808.0};
+  EXPECT_FALSE(integer < real);
+  EXPECT_FALSE(real < integer);
+}
+
+TEST(less_than_integer_and_real_beyond_integer_range) {
+  const sourcemeta::core::JSON integer{1};
+  const sourcemeta::core::JSON positive{1e300};
+  const sourcemeta::core::JSON negative{-1e300};
+  EXPECT_TRUE(integer < positive);
+  EXPECT_FALSE(positive < integer);
+  EXPECT_TRUE(negative < integer);
+  EXPECT_FALSE(integer < negative);
+}
+
+TEST(less_than_integer_and_decimal_trailing_zeros) {
+  const sourcemeta::core::JSON integer{3};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"2.0"}};
+  EXPECT_TRUE(decimal < integer);
+  EXPECT_FALSE(integer < decimal);
+}
+
+TEST(less_than_integer_and_decimal_trailing_zeros_equal) {
+  const sourcemeta::core::JSON integer{2};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"2.00"}};
+  EXPECT_FALSE(integer < decimal);
+  EXPECT_FALSE(decimal < integer);
+}
+
+TEST(less_than_integer_maximum_and_decimal_big) {
+  const sourcemeta::core::JSON integer{
+      std::numeric_limits<std::int64_t>::max()};
+  const sourcemeta::core::JSON decimal{
+      sourcemeta::core::Decimal{"123456789012345678901234567890"}};
+  EXPECT_TRUE(integer < decimal);
+  EXPECT_FALSE(decimal < integer);
+}
+
+TEST(less_than_integer_minimum_and_decimal_negative_big) {
+  const sourcemeta::core::JSON integer{
+      std::numeric_limits<std::int64_t>::min()};
+  const sourcemeta::core::JSON decimal{
+      sourcemeta::core::Decimal{"-123456789012345678901234567890"}};
+  EXPECT_TRUE(decimal < integer);
+  EXPECT_FALSE(integer < decimal);
+}
+
+TEST(less_than_real_and_decimal_trailing_zeros_equal) {
+  const sourcemeta::core::JSON real{2.5};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"2.50"}};
+  EXPECT_FALSE(real < decimal);
+  EXPECT_FALSE(decimal < real);
+}
+
+TEST(less_than_real_and_decimal_integral_trailing_zeros_equal) {
+  const sourcemeta::core::JSON real{5.0};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"5.0"}};
+  EXPECT_FALSE(real < decimal);
+  EXPECT_FALSE(decimal < real);
+}
+
+TEST(less_than_real_and_decimal_big) {
+  const sourcemeta::core::JSON real{1e29};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"1e30"}};
+  EXPECT_TRUE(real < decimal);
+  EXPECT_FALSE(decimal < real);
+}
+
+TEST(less_than_real_two_pow_63_and_decimal_equal) {
+  const sourcemeta::core::JSON real{9223372036854775808.0};
+  const sourcemeta::core::JSON decimal{
+      sourcemeta::core::Decimal{"9223372036854775808"}};
+  EXPECT_FALSE(real < decimal);
+  EXPECT_FALSE(decimal < real);
+}
+
+TEST(less_than_real_and_decimal_non_dyadic) {
+  // A double cannot store 2.1 exactly and rounds up to a slightly larger
+  // value, so the exact decimal is strictly smaller
+  const sourcemeta::core::JSON real{2.1};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"2.1"}};
+  EXPECT_TRUE(decimal < real);
+  EXPECT_FALSE(real < decimal);
+}
+
+TEST(ordering_consistency_integral_decimal_and_real) {
+  const sourcemeta::core::JSON real{2.5};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"2.0"}};
+  EXPECT_TRUE(decimal <= real);
+  EXPECT_FALSE(real <= decimal);
+  EXPECT_TRUE(real > decimal);
+  EXPECT_FALSE(decimal > real);
+  EXPECT_TRUE(real >= decimal);
+  EXPECT_FALSE(decimal >= real);
+}
+
+TEST(ordering_consistency_equal_integer_real_decimal) {
+  const sourcemeta::core::JSON integer{5};
+  const sourcemeta::core::JSON real{5.0};
+  const sourcemeta::core::JSON decimal{sourcemeta::core::Decimal{"5.0"}};
+  EXPECT_TRUE(integer <= real);
+  EXPECT_TRUE(real <= decimal);
+  EXPECT_TRUE(integer <= decimal);
+  EXPECT_TRUE(integer >= real);
+  EXPECT_TRUE(real >= decimal);
+  EXPECT_TRUE(integer >= decimal);
+  EXPECT_FALSE(integer > real);
+  EXPECT_FALSE(real > decimal);
+  EXPECT_FALSE(integer > decimal);
+}
+
 TEST(equal_integer_and_string_differ) {
   const sourcemeta::core::JSON left{1};
   const sourcemeta::core::JSON right{"1"};
