@@ -170,18 +170,32 @@ inline auto curve_order_bytes(const EllipticCurve curve) -> std::string {
 
 // Whether an elliptic curve private scalar lies in the valid range [1, n)
 // (SEC 1 Section 3.2.1). Shared so every backend rejects an out-of-range
-// scalar. The scalar is secret, so it is compared against the order in constant
-// time over the fixed field width
+// scalar. The scalar is secret, so it is folded into a fixed-width buffer and
+// compared against the order without any value-dependent short-circuit: the
+// loops always run their full length and accumulate the zero and overflow flags
 inline auto ec_private_scalar_in_range(const std::string_view scalar,
                                        const EllipticCurve curve) -> bool {
   const auto width{curve_field_bytes(curve)};
-  const auto stripped{strip_left(scalar, '\x00')};
-  if (stripped.empty() || stripped.size() > width) {
-    return false;
+  std::string folded(width, '\x00');
+  std::uint8_t overflow{0};
+  for (std::size_t index = 0; index < scalar.size(); ++index) {
+    const auto byte{
+        static_cast<std::uint8_t>(scalar[scalar.size() - 1 - index])};
+    if (index < width) {
+      folded[width - 1 - index] = static_cast<char>(byte);
+    } else {
+      overflow = static_cast<std::uint8_t>(overflow | byte);
+    }
   }
 
-  return octets_below_fixed(pad_left(stripped, width, '\x00'),
-                            curve_order_bytes(curve));
+  std::uint8_t nonzero{0};
+  for (const auto byte : folded) {
+    nonzero =
+        static_cast<std::uint8_t>(nonzero | static_cast<std::uint8_t>(byte));
+  }
+
+  const auto below{octets_below_fixed(folded, curve_order_bytes(curve))};
+  return overflow == 0 && nonzero != 0 && below;
 }
 
 // The public key and signature octet lengths are fixed per curve (RFC 8032
