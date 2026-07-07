@@ -231,13 +231,13 @@ auto ecdsa_signature_for_nonce(const Bignum &nonce,
     return std::nullopt;
   }
 
-  const auto point{point_double_scalar_multiply(
-      nonce, generator, bignum_from_u64(0), generator, parameters)};
+  const auto point{
+      point_scalar_multiply_constant_time(nonce, generator, parameters)};
   if (point_is_infinity(point)) {
     return std::nullopt;
   }
 
-  auto r{point_affine_x(point, parameters)};
+  auto r{point_affine_x_constant_time(point, parameters)};
   bignum_reduce(r, parameters.order);
   if (bignum_is_zero(r)) {
     return std::nullopt;
@@ -246,7 +246,7 @@ auto ecdsa_signature_for_nonce(const Bignum &nonce,
   // s = k^-1 (z + r * d) mod n. The nonce inverse and every partial sum that
   // mixes in the private scalar d carry secret material, so each is wiped
   // before returning; the resulting r and s are the public signature
-  auto nonce_inverse{bignum_mod_inverse(nonce, parameters.order)};
+  auto nonce_inverse{bignum_mod_inverse_constant_time(nonce, parameters.order)};
   const SecureBignumScope nonce_inverse_scope{nonce_inverse};
   auto private_product{
       bignum_mod_multiply(r, private_scalar, parameters.order)};

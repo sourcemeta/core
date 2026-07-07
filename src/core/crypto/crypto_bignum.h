@@ -1,10 +1,12 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_BIGNUM_H_
 #define SOURCEMETA_CORE_CRYPTO_BIGNUM_H_
 
-// Fixed-capacity unsigned big integer arithmetic for the reference
-// signature verification backend. Capacity fits 4096-bit RSA operands
-// and their double-width products. Constant-time execution is not
-// required, since verification consumes only public inputs
+// Fixed-capacity unsigned big integer arithmetic for the reference signature
+// backend. Capacity fits 4096-bit RSA operands and their double-width products.
+// The verification paths consume only public inputs and stay variable time; the
+// signing paths use the constant-time select and inverse below on their secret
+// operands. The multiply and reduce are not themselves constant time, so a
+// residual operand-dependent timing remains
 
 #include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/text.h>
@@ -491,6 +493,37 @@ inline auto bignum_mod_inverse(const Bignum &value,
 
   return bignum_compare(first, one) == 0 ? first_coefficient
                                          : second_coefficient;
+}
+
+// A branch-free select, so a secret condition does not steer control flow. The
+// whole capacity is blended so the running size does not leak the condition
+inline auto bignum_conditional_select(const bool condition,
+                                      const Bignum &when_true,
+                                      const Bignum &when_false) noexcept
+    -> Bignum {
+  const std::uint64_t mask{std::uint64_t{0} -
+                           static_cast<std::uint64_t>(condition)};
+  Bignum result;
+  for (std::size_t index = 0; index < Bignum::capacity; ++index) {
+    result.words[index] =
+        (when_true.words[index] & mask) | (when_false.words[index] & ~mask);
+  }
+
+  const std::size_t size_mask{std::size_t{0} -
+                              static_cast<std::size_t>(condition)};
+  result.size = (when_true.size & size_mask) | (when_false.size & ~size_mask);
+  return result;
+}
+
+// Fermat inverse a^(p-2) mod p for the signing paths: unlike the Euclidean
+// routine above, its iteration count is fixed by the public exponent rather
+// than the secret value being inverted. The modulus must be prime
+inline auto bignum_mod_inverse_constant_time(const Bignum &value,
+                                             const Bignum &modulus) noexcept
+    -> Bignum {
+  auto exponent{modulus};
+  bignum_subtract_in_place(exponent, bignum_from_u64(2));
+  return bignum_mod_exp(value, exponent, modulus);
 }
 
 inline auto bignum_to_bytes(const Bignum &value, const std::size_t length)

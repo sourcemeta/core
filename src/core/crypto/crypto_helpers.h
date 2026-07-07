@@ -39,7 +39,10 @@ inline auto secure_zero(std::string &value) noexcept -> void {
 
 // Overwrite the referenced buffer when leaving the current scope, so secret
 // material a local holds is wiped across every return path without threading a
-// manual call through each one
+// manual call through each one. It clears the buffer the string owns at scope
+// exit, so a reassignment or a growth that reallocates before then can still
+// leave an earlier copy in freed memory, a residual that a wiping allocator
+// would be needed to close
 struct SecureScope {
   explicit SecureScope(std::string &value) noexcept : target{value} {}
   SecureScope(const SecureScope &) = delete;

@@ -1,14 +1,14 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_EDDSA_H_
 #define SOURCEMETA_CORE_CRYPTO_EDDSA_H_
 
-// Edwards-curve signature verification (Ed25519 and Ed448, RFC 8032 Section 5,
-// the pure variants) for the backends without a native EdDSA primitive. Points
-// are kept in extended Edwards coordinates, so that the group law is a single
-// set of complete formulas shared by both curves. Verification consumes only
-// public inputs, but the signing scalar multiplication below is not constant
-// time, so the pure EdDSA signing paths that rely on it (Ed25519 and Ed448 on
-// the Windows backend, Ed448 on the Apple backend) can leak nonce bits through
-// timing. Making these constant time is tracked as a separate hardening task
+// Edwards-curve signatures (Ed25519 and Ed448, RFC 8032 Section 5, the pure
+// variants) for the backends without a native EdDSA primitive. Points are kept
+// in extended Edwards coordinates, so that the group law is a single set of
+// complete formulas shared by both curves. Verification consumes only public
+// inputs and stays variable time; the signing paths use the constant-time
+// scalar multiplication and inverse below so they do not leak the secret scalar
+// through control flow. The field arithmetic underneath is not itself constant
+// time, so a residual operand-dependent timing remains
 
 #include <sourcemeta/core/crypto_sha512.h>
 
@@ -99,6 +99,38 @@ inline auto edwards_point_scalar_multiply(const Bignum &scalar,
   return result;
 }
 
+inline auto edwards_point_conditional_select(
+    const bool condition, const EdwardsPoint &when_true,
+    const EdwardsPoint &when_false) noexcept -> EdwardsPoint {
+  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x),
+          .y = bignum_conditional_select(condition, when_true.y, when_false.y),
+          .z = bignum_conditional_select(condition, when_true.z, when_false.z),
+          .t = bignum_conditional_select(condition, when_true.t, when_false.t)};
+}
+
+// For the signing path, where the scalar is secret: a fixed-length
+// double-and-add-always ladder with a masked selection over the complete
+// Edwards formulas, so the per-bit branch does not leak the scalar. The field
+// arithmetic below is not itself constant time, so a residual operand-dependent
+// timing remains
+inline auto edwards_point_scalar_multiply_constant_time(
+    const Bignum &scalar, const EdwardsPoint &point,
+    const EdwardsParameters &parameters) -> EdwardsPoint {
+  EdwardsPoint result{.x = Bignum{},
+                      .y = bignum_from_u64(1),
+                      .z = bignum_from_u64(1),
+                      .t = Bignum{}};
+  const auto scalar_bits{bignum_bit_length(parameters.prime)};
+  for (std::size_t index = scalar_bits; index > 0; --index) {
+    result = edwards_point_add(result, result, parameters);
+    const auto sum{edwards_point_add(result, point, parameters)};
+    result = edwards_point_conditional_select(bignum_get_bit(scalar, index - 1),
+                                              sum, result);
+  }
+
+  return result;
+}
+
 // Whether two points are equal, compared without leaving projective space by
 // cross-multiplying through the Z factors
 inline auto edwards_point_equal(const EdwardsPoint &left,
@@ -114,7 +146,9 @@ inline auto edwards_point_equal(const EdwardsPoint &left,
 // the final bit (RFC 8032 Section 5.1.2), the inverse of the point decoding
 inline auto edwards_point_encode(const EdwardsPoint &point, const Bignum &prime,
                                  const std::size_t length) -> std::string {
-  const auto z_inverse{bignum_mod_inverse(point.z, prime)};
+  // Only the signing path encodes points, and its projective z derives from the
+  // secret scalar, so the inverse is taken in constant time
+  const auto z_inverse{bignum_mod_inverse_constant_time(point.z, prime)};
   const auto x{bignum_mod_multiply(point.x, z_inverse, prime)};
   const auto y{bignum_mod_multiply(point.y, z_inverse, prime)};
   const auto big_endian{bignum_to_bytes(y, length)};
@@ -337,9 +371,10 @@ inline auto edwards25519_sign(const std::string_view secret,
   const SecureBignumScope scalar_a_scope{scalar_a};
   const auto prefix{digest.substr(32)};
 
-  const auto public_key{edwards_point_encode(
-      edwards_point_scalar_multiply(scalar_a, parameters.base, parameters),
-      parameters.prime, 32)};
+  const auto public_key{
+      edwards_point_encode(edwards_point_scalar_multiply_constant_time(
+                               scalar_a, parameters.base, parameters),
+                           parameters.prime, 32)};
 
   // r = SHA-512(prefix || M) reduced, then R = [r]B
   std::string nonce_preimage{prefix};
@@ -353,9 +388,10 @@ inline auto edwards25519_sign(const std::string_view secret,
                        nonce_digest.size()})};
   const SecureBignumScope scalar_r_scope{scalar_r};
   bignum_reduce(scalar_r, parameters.order);
-  const auto encoded_r{edwards_point_encode(
-      edwards_point_scalar_multiply(scalar_r, parameters.base, parameters),
-      parameters.prime, 32)};
+  const auto encoded_r{
+      edwards_point_encode(edwards_point_scalar_multiply_constant_time(
+                               scalar_r, parameters.base, parameters),
+                           parameters.prime, 32)};
 
   // k = SHA-512(R || A || M) reduced, then S = (r + k * a) mod L. The k * a
   // product carries the secret scalar, so it is wiped; r, k, and the resulting
@@ -564,9 +600,10 @@ inline auto edwards448_sign(const std::string_view secret,
   const SecureBignumScope scalar_a_scope{scalar_a};
   const auto prefix{std::string_view{digest}.substr(57)};
 
-  const auto public_key{edwards_point_encode(
-      edwards_point_scalar_multiply(scalar_a, parameters.base, parameters),
-      parameters.prime, 57)};
+  const auto public_key{
+      edwards_point_encode(edwards_point_scalar_multiply_constant_time(
+                               scalar_a, parameters.base, parameters),
+                           parameters.prime, 57)};
 
   // dom4 is "SigEd448" followed by the zero pre-hash flag and an empty context
   std::string domain{"SigEd448"};
@@ -583,9 +620,10 @@ inline auto edwards448_sign(const std::string_view secret,
   auto scalar_r{bignum_from_bytes_little_endian(nonce_hash)};
   const SecureBignumScope scalar_r_scope{scalar_r};
   bignum_reduce(scalar_r, parameters.order);
-  const auto encoded_r{edwards_point_encode(
-      edwards_point_scalar_multiply(scalar_r, parameters.base, parameters),
-      parameters.prime, 57)};
+  const auto encoded_r{
+      edwards_point_encode(edwards_point_scalar_multiply_constant_time(
+                               scalar_r, parameters.base, parameters),
+                           parameters.prime, 57)};
 
   // k = SHAKE256(dom4 || R || A || M) reduced, then S = (r + k * a) mod L. The
   // k * a product carries the secret scalar, so it is wiped; r, k, and the

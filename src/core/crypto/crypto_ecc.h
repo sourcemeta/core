@@ -1,11 +1,13 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_ECC_H_
 #define SOURCEMETA_CORE_CRYPTO_ECC_H_
 
-// Short Weierstrass elliptic curve arithmetic over the NIST prime curves
-// for the reference signature verification backend. Points are kept in
-// Jacobian coordinates so that scalar multiplication needs a single modular
-// inversion at the end rather than one per step. Constant time execution is
-// not required, since verification consumes only public inputs
+// Short Weierstrass elliptic curve arithmetic over the NIST prime curves for
+// the reference signature backend. Points are kept in Jacobian coordinates so
+// that scalar multiplication needs a single modular inversion at the end rather
+// than one per step. Verification consumes only public inputs and stays
+// variable time; signing uses the constant-time scalar multiplication and
+// inverse below, whose residual timing is the operand dependence of the field
+// arithmetic they call
 
 #include "crypto_bignum.h"
 
@@ -500,6 +502,43 @@ inline auto point_double_scalar_multiply(const Bignum &scalar_one,
 inline auto point_affine_x(const JacobianPoint &point,
                            const EllipticCurveParameters &curve) -> Bignum {
   const auto z_inverse{bignum_mod_inverse(point.z, curve.prime)};
+  const auto z_inverse_squared{field_square(z_inverse, curve)};
+  return field_mod_multiply(point.x, z_inverse_squared, curve);
+}
+
+inline auto point_conditional_select(const bool condition,
+                                     const JacobianPoint &when_true,
+                                     const JacobianPoint &when_false) noexcept
+    -> JacobianPoint {
+  return {.x = bignum_conditional_select(condition, when_true.x, when_false.x),
+          .y = bignum_conditional_select(condition, when_true.y, when_false.y),
+          .z = bignum_conditional_select(condition, when_true.z, when_false.z)};
+}
+
+// For the signing path, where the scalar is the secret nonce: a fixed-length
+// double-and-add-always ladder with a masked selection, so the per-bit branch
+// of the verification ladder does not leak the scalar. The field arithmetic
+// below is not itself constant time, so a residual operand-dependent timing
+// remains
+inline auto point_scalar_multiply_constant_time(
+    const Bignum &scalar, const JacobianPoint &point,
+    const EllipticCurveParameters &curve) -> JacobianPoint {
+  JacobianPoint result{};
+  const auto scalar_bits{bignum_bit_length(curve.order)};
+  for (std::size_t index = scalar_bits; index > 0; --index) {
+    result = point_double(result, curve);
+    const auto sum{point_add(result, point, curve)};
+    result = point_conditional_select(bignum_get_bit(scalar, index - 1), sum,
+                                      result);
+  }
+
+  return result;
+}
+
+inline auto point_affine_x_constant_time(const JacobianPoint &point,
+                                         const EllipticCurveParameters &curve)
+    -> Bignum {
+  const auto z_inverse{bignum_mod_inverse_constant_time(point.z, curve.prime)};
   const auto z_inverse_squared{field_square(z_inverse, curve)};
   return field_mod_multiply(point.x, z_inverse_squared, curve);
 }
