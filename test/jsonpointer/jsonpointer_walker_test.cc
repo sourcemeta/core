@@ -2,6 +2,7 @@
 #include <sourcemeta/core/jsonpointer.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstddef>
 #include <set>
 #include <string>
 #include <vector>

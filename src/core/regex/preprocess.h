@@ -80,6 +80,12 @@ inline auto parse_hex_digits(const std::string &content, std::size_t start,
   int value = 0;
   for (std::size_t offset = 0; offset < count; ++offset) {
     value = (value << 4) | hex_digit_value(content[start + offset]);
+    // Stop once the value is unambiguously past the Unicode range, so a long
+    // "\u{...}" digit run cannot overflow the accumulator. The callers only
+    // care whether the result is a small ASCII value
+    if (value > 0x10FFFF) {
+      return value;
+    }
   }
 
   return value;

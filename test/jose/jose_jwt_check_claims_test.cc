@@ -28,6 +28,42 @@ TEST(valid) {
   EXPECT_FALSE(error.has_value());
 }
 
+TEST(expiration_near_clock_maximum_does_not_overflow) {
+  // A NumericDate just inside the clock's maximum, plus a positive skew, would
+  // overflow the time point if the skew were added to the attacker claim (§4)
+  const auto maximum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::max())
+                         .count()};
+  const auto payload{
+      std::string{R"({ "iss": "acme", "aud": "client", "exp": )"} +
+      std::to_string(maximum - 2.0) + " }"};
+  const auto input{make_token(R"({ "alg": "RS256" })", payload, "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{60})};
+  // The far-future expiry means the token is not expired
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(not_before_near_clock_minimum_does_not_underflow) {
+  const auto minimum{std::chrono::duration_cast<std::chrono::duration<double>>(
+                         std::chrono::system_clock::duration::min())
+                         .count()};
+  const auto payload{
+      std::string{R"({ "iss": "acme", "aud": "client", "exp": 2000, "nbf": )"} +
+      std::to_string(minimum + 2.0) + " }"};
+  const auto input{make_token(R"({ "alg": "RS256" })", payload, "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{60})};
+  // The far-past not-before means the token is already valid
+  EXPECT_FALSE(error.has_value());
+}
+
 TEST(missing_issuer) {
   const auto input{make_token(R"({ "alg": "RS256" })",
                               R"({ "aud": "client", "exp": 2000 })", "sig")};

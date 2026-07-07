@@ -885,6 +885,36 @@ TEST(make_initialize_result_minimal_2025_11_25) {
   EXPECT_EQ(envelope, expected);
 }
 
+TEST(make_initialize_result_missing_protocol_version_is_invalid_params) {
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {}
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+      request, capabilities, server)};
+  EXPECT_TRUE(envelope.defines("error"));
+  EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32602);
+}
+
+TEST(make_initialize_result_non_string_protocol_version_is_invalid_params) {
+  const auto request{sourcemeta::core::parse_json(R"JSON({
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": { "protocolVersion": 123 }
+  })JSON")};
+  const sourcemeta::core::MCPServerCapabilities capabilities;
+  const sourcemeta::core::MCPImplementation server{"srv", "1.0.0", {}, {}, {}};
+  const auto envelope{sourcemeta::core::mcp_make_initialize_result(
+      request, capabilities, server)};
+  EXPECT_TRUE(envelope.defines("error"));
+  EXPECT_EQ(envelope.at("error").at("code").to_integer(), -32602);
+}
+
 TEST(make_initialize_result_with_all_capabilities) {
   const auto request{sourcemeta::core::parse_json(R"JSON({
     "jsonrpc": "2.0",

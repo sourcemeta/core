@@ -38,8 +38,11 @@ auto jwt_check_claims(const JWT &token, const std::string_view expected_issuer,
   // A bearer credential without an expiry is not acceptable for authentication,
   // so the claim is required here even though RFC 7519 makes it optional in
   // general (RFC 9068 Section 2.2)
+  // The skew is applied to the server clock rather than the attacker-controlled
+  // claim, so a NumericDate near the representable bound cannot overflow the
+  // time point arithmetic (the two forms are otherwise equivalent)
   const auto expires_at{token.expires_at()};
-  if (!expires_at.has_value() || now >= expires_at.value() + clock_skew) {
+  if (!expires_at.has_value() || now - clock_skew >= expires_at.value()) {
     return JWTClaimError::Expiration;
   }
 
@@ -49,7 +52,7 @@ auto jwt_check_claims(const JWT &token, const std::string_view expected_issuer,
   const auto &payload{token.payload()};
   if (payload.defines("nbf")) {
     const auto not_before{token.not_before()};
-    if (!not_before.has_value() || now < not_before.value() - clock_skew) {
+    if (!not_before.has_value() || now + clock_skew < not_before.value()) {
       return JWTClaimError::NotBefore;
     }
   }
@@ -58,7 +61,7 @@ auto jwt_check_claims(const JWT &token, const std::string_view expected_issuer,
   // in the future (RFC 7519 Section 4.1.6)
   if (payload.defines("iat")) {
     const auto issued_at{token.issued_at()};
-    if (!issued_at.has_value() || now < issued_at.value() - clock_skew) {
+    if (!issued_at.has_value() || now + clock_skew < issued_at.value()) {
       return JWTClaimError::IssuedAt;
     }
   }

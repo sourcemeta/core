@@ -62,9 +62,13 @@ auto http_match_accept_language(
           if (specificity == 0) {
             return;
           }
-          if (quality > candidate_quality ||
-              (quality == candidate_quality &&
-               specificity > candidate_specificity)) {
+          // RFC 9110 Section 12.5.1: the most specific matching range has
+          // precedence, so its quality governs even when a less specific range
+          // offers a higher one. This makes a q=0 on the most specific match
+          // refuse the candidate rather than be overridden
+          if (specificity > candidate_specificity ||
+              (specificity == candidate_specificity &&
+               quality > candidate_quality)) {
             candidate_quality = quality;
             candidate_specificity = specificity;
           }

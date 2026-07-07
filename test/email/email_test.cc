@@ -387,10 +387,11 @@ TEST(valid_domain_label_63) {
   EXPECT_TRUE(sourcemeta::core::is_idn_email("a@" + std::string(63, 'b')));
 }
 
-// RFC 5321 §4.5.3.1.2 Domain: 255-byte domain is the RFC 1123 cap.
-// RFC 1035 §3.1: IDN strict presentation form caps the domain at 253 octets
+// RFC 5321 §4.5.3.1.3: a 255-octet domain pushes the mailbox past the 254
+// octet total, so the address is rejected even though the domain is within its
+// own 255-octet limit
 TEST(domain_total_255) {
-  EXPECT_TRUE(sourcemeta::core::is_email(
+  EXPECT_FALSE(sourcemeta::core::is_email(
       "a@" + std::string(63, 'b') + "." + std::string(63, 'c') + "." +
       std::string(63, 'd') + "." + std::string(63, 'e')));
   EXPECT_FALSE(sourcemeta::core::is_idn_email(
@@ -1095,10 +1096,11 @@ TEST(invalid_general_dcontent_high_bit) {
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a@[X400:\x80]"));
 }
 
-// RFC 5321 §4.5.3.1: 64-byte Local-part plus "@" plus a 254-byte Domain fits
-// the RFC 1123 cap. RFC 1035 §3.1 caps the IDN domain at 253 octets
+// RFC 5321 §4.5.3.1.3: a 64-byte Local-part plus "@" plus a 254-byte Domain is
+// 319 octets, which exceeds the 254 octet mailbox total even though each
+// component is within its own limit
 TEST(max_length_email) {
-  EXPECT_TRUE(sourcemeta::core::is_email(
+  EXPECT_FALSE(sourcemeta::core::is_email(
       std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
       std::string(63, 'c') + "." + std::string(63, 'd') + "." +
       std::string(62, 'e')));
@@ -1167,10 +1169,12 @@ TEST(valid_dot_string_with_general_literal) {
 
 // RFC 5321 §4.5.3.1.2: an address-literal whose total length equals the
 // 255-octet domain cap (including the surrounding "[" and "]") is accepted
-TEST(valid_address_literal_length_255) {
-  EXPECT_TRUE(
+// RFC 5321 §4.5.3.1.3: the mailbox total is capped at 254 octets, so an
+// address literal that pushes it to 257 is rejected
+TEST(address_literal_over_total_length_rejected) {
+  EXPECT_FALSE(
       sourcemeta::core::is_email("a@[X:" + std::string(251, 'a') + "]"));
-  EXPECT_TRUE(
+  EXPECT_FALSE(
       sourcemeta::core::is_idn_email("a@[X:" + std::string(251, 'a') + "]"));
 }
 
@@ -1498,10 +1502,12 @@ TEST(invalid_general_dcontent_del_byte) {
 // RFC 5321 §4.1.3 + §4.5.3.1.2: a General-address-literal whose Domain total
 // length equals the 255-octet cap ("[" + "Tag" + ":" + 249 dcontent + "]") is
 // accepted
-TEST(valid_general_literal_inner_at_cap) {
-  EXPECT_TRUE(
+// RFC 5321 §4.5.3.1.3: the mailbox total is capped at 254 octets, so this
+// 257 octet address with a long general literal is rejected
+TEST(general_literal_over_total_length_rejected) {
+  EXPECT_FALSE(
       sourcemeta::core::is_email("a@[Tag:" + std::string(249, 'x') + "]"));
-  EXPECT_TRUE(
+  EXPECT_FALSE(
       sourcemeta::core::is_idn_email("a@[Tag:" + std::string(249, 'x') + "]"));
 }
 
@@ -1525,4 +1531,33 @@ TEST(valid_quoted_single_letter_then_minimal_domain) {
 TEST(invalid_dot_then_at) {
   EXPECT_FALSE(sourcemeta::core::is_email("a.@b"));
   EXPECT_FALSE(sourcemeta::core::is_idn_email("a.@b"));
+}
+
+// RFC 5321 §4.5.3.1.3: a path is at most 256 octets including the angle
+// brackets, so a mailbox is at most 254
+TEST(valid_total_length_254) {
+  const auto address{std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
+                     std::string(63, 'b') + "." + std::string(61, 'b')};
+  EXPECT_EQ(address.size(), 254);
+  EXPECT_TRUE(sourcemeta::core::is_email(address));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email(address));
+}
+
+TEST(invalid_total_length_255) {
+  const auto address{std::string(64, 'a') + "@" + std::string(63, 'b') + "." +
+                     std::string(63, 'b') + "." + std::string(62, 'b')};
+  EXPECT_EQ(address.size(), 255);
+  EXPECT_FALSE(sourcemeta::core::is_email(address));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email(address));
+}
+
+// RFC 5321 §4.1.3: IPv4-address-literal has exactly four octets
+TEST(invalid_ipv4_literal_five_octets) {
+  EXPECT_FALSE(sourcemeta::core::is_email("user@[1.1.1.1.1]"));
+  EXPECT_FALSE(sourcemeta::core::is_idn_email("user@[1.1.1.1.1]"));
+}
+
+TEST(valid_ipv4_literal_four_octets) {
+  EXPECT_TRUE(sourcemeta::core::is_email("user@[192.168.1.1]"));
+  EXPECT_TRUE(sourcemeta::core::is_idn_email("user@[192.168.1.1]"));
 }
