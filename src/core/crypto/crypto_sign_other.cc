@@ -538,14 +538,8 @@ auto make_ec_private_key(const EllipticCurve curve,
   // range-checked so that malformed input is rejected as on the other backends
   if (stripped.empty() || stripped.size() > width ||
       strip_left(coordinate_x, '\x00').size() > width ||
-      strip_left(coordinate_y, '\x00').size() > width) {
-    return std::nullopt;
-  }
-
-  // The private scalar must lie in [1, n) (SEC 1 Section 3.2.1). Stripping the
-  // leading zeros above already rejects zero, so only the upper bound remains
-  if (bignum_compare(bignum_from_bytes(stripped),
-                     to_curve_parameters(curve).order) >= 0) {
+      strip_left(coordinate_y, '\x00').size() > width ||
+      !ec_private_scalar_in_range(scalar, curve)) {
     return std::nullopt;
   }
 

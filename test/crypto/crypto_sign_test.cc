@@ -277,6 +277,19 @@ auto ecdsa_signature_verifies(
                                         signature.value());
 }
 
+// Re-wrap a PKCS#8 PEM with a single extra byte appended to its DER, producing
+// an otherwise valid document that is no longer canonical
+auto with_trailing_der_byte(const std::string_view pem) -> std::string {
+  const auto body_begin{pem.find('\n')};
+  const auto body_end{pem.rfind("-----END")};
+  std::string body{pem.substr(body_begin + 1, body_end - body_begin - 1)};
+  std::erase(body, '\n');
+  auto der{sourcemeta::core::base64_decode(body).value()};
+  der.push_back('\x00');
+  return "-----BEGIN PRIVATE KEY-----\n" +
+         sourcemeta::core::base64_encode(der) + "\n-----END PRIVATE KEY-----\n";
+}
+
 } // namespace
 
 TEST(make_private_key_parses_rsa) {
@@ -566,6 +579,15 @@ TEST(make_private_key_rejects_garbage) {
   EXPECT_FALSE(sourcemeta::core::make_private_key("not a pem").has_value());
 }
 
+TEST(make_private_key_rejects_trailing_data) {
+  // The same key with one byte appended past the outer SEQUENCE is not
+  // canonical DER and must be rejected (X.690 Section 10.1)
+  EXPECT_TRUE(sourcemeta::core::make_private_key(RSA_PRIVATE_KEY).has_value());
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   with_trailing_der_byte(RSA_PRIVATE_KEY))
+                   .has_value());
+}
+
 TEST(make_edwards_private_key_rejects_short_ed25519_seed) {
   // Ed25519 requires a 32 byte seed
   EXPECT_FALSE(
@@ -597,5 +619,40 @@ TEST(make_ec_private_key_rejects_oversized_scalar) {
                    std::string(33, '\xff'),
                    sourcemeta::core::hex_to_bytes(P256_QX_HEX).value(),
                    sourcemeta::core::hex_to_bytes(P256_QY_HEX).value())
+                   .has_value());
+}
+
+TEST(make_ec_private_key_rejects_scalar_at_or_above_order) {
+  // A 32 byte scalar of all ones exceeds the P-256 group order, so it is not a
+  // valid private key in the range [1, n) (SEC 1 Section 3.2.1)
+  EXPECT_FALSE(sourcemeta::core::make_ec_private_key(
+                   sourcemeta::core::EllipticCurve::P256,
+                   std::string(32, '\xff'),
+                   sourcemeta::core::hex_to_bytes(P256_QX_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(P256_QY_HEX).value())
+                   .has_value());
+}
+
+TEST(make_rsa_public_key_rejects_unit_exponent) {
+  // e = 1 leaves the signature equal to the padded message (RFC 8017
+  // Section 3.1)
+  EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   std::string{'\x01'})
+                   .has_value());
+}
+
+TEST(make_rsa_public_key_rejects_even_exponent) {
+  // An even public exponent is not invertible modulo the totient
+  EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   std::string{'\x02'})
+                   .has_value());
+}
+
+TEST(make_rsa_public_key_rejects_exponent_at_or_above_modulus) {
+  // The public exponent must satisfy e < n (RFC 8017 Section 3.1)
+  EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(std::string{'\x05'},
+                                                     std::string{'\x07'})
                    .has_value());
 }

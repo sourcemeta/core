@@ -8,6 +8,7 @@
 #include <sourcemeta/core/text.h>
 
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
@@ -67,6 +68,20 @@ struct SecureBufferScope {
   const std::size_t size;
 };
 
+// Whether one big-endian integer is strictly less than another, comparing by
+// significant length first and then lexicographically once the leading zeros
+// are stripped
+inline auto octets_below(const std::string_view value,
+                         const std::string_view bound) noexcept -> bool {
+  const auto stripped_value{strip_left(value, '\x00')};
+  const auto stripped_bound{strip_left(bound, '\x00')};
+  if (stripped_value.size() != stripped_bound.size()) {
+    return stripped_value.size() < stripped_bound.size();
+  }
+
+  return stripped_value < stripped_bound;
+}
+
 // Whether a signature representative, as a big-endian integer, is strictly
 // less than the modulus. RFC 8017 Section 5.2.2 requires this range check, so
 // that an unreduced signature, which an attacker forges by adding the modulus
@@ -74,13 +89,27 @@ struct SecureBufferScope {
 inline auto rsa_signature_in_range(const std::string_view signature,
                                    const std::string_view modulus) noexcept
     -> bool {
-  const auto value{strip_left(signature, '\x00')};
-  const auto bound{strip_left(modulus, '\x00')};
-  if (value.size() != bound.size()) {
-    return value.size() < bound.size();
+  return octets_below(signature, modulus);
+}
+
+// Whether an RSA public exponent is acceptable for the modulus: odd and in the
+// range [3, n) (RFC 8017 Section 3.1). An even exponent is not invertible
+// modulo the totient, e = 1 leaves the signature equal to the padded message
+// and forges trivially, and an exponent at or above the modulus is not a valid
+// key. Shared so every backend rejects such keys, not just the reference one
+inline auto
+rsa_public_exponent_acceptable(const std::string_view exponent,
+                               const std::string_view modulus) noexcept
+    -> bool {
+  const auto stripped{strip_left(exponent, '\x00')};
+  if (stripped.empty() ||
+      (static_cast<std::uint8_t>(stripped.back()) & 1U) == 0 ||
+      (stripped.size() == 1 &&
+       static_cast<std::uint8_t>(stripped.back()) < 3)) {
+    return false;
   }
 
-  return value < bound;
+  return octets_below(exponent, modulus);
 }
 
 inline auto curve_field_bytes(const EllipticCurve curve) noexcept
@@ -95,6 +124,36 @@ inline auto curve_field_bytes(const EllipticCurve curve) noexcept
   }
 
   std::unreachable();
+}
+
+// The group order of each NIST prime curve as big-endian octets (FIPS 186-4
+// Appendix D.1.2), so a private scalar can be range-checked against it
+inline auto curve_order_bytes(const EllipticCurve curve) -> std::string {
+  switch (curve) {
+    case EllipticCurve::P256:
+      return hex_to_bytes("ffffffff00000000ffffffffffffffffbce6faada7179e84"
+                          "f3b9cac2fc632551")
+          .value();
+    case EllipticCurve::P384:
+      return hex_to_bytes("ffffffffffffffffffffffffffffffffffffffffffffffff"
+                          "c7634d81f4372ddf581a0db248b0a77aecec196accc52973")
+          .value();
+    case EllipticCurve::P521:
+      return hex_to_bytes("01fffffffffffffffffffffffffffffffffffffffffffffff"
+                          "ffffffffffffffffffa51868783bf2f966b7fcc0148f709a5"
+                          "d03bb5c9b8899c47aebb6fb71e91386409")
+          .value();
+  }
+
+  std::unreachable();
+}
+
+// Whether an elliptic curve private scalar lies in the valid range [1, n)
+// (SEC 1 Section 3.2.1). Shared so every backend rejects an out-of-range scalar
+inline auto ec_private_scalar_in_range(const std::string_view scalar,
+                                       const EllipticCurve curve) -> bool {
+  return !strip_left(scalar, '\x00').empty() &&
+         octets_below(scalar, curve_order_bytes(curve));
 }
 
 // The public key and signature octet lengths are fixed per curve (RFC 8032

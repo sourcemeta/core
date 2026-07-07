@@ -427,6 +427,10 @@ auto make_ec_private_key(const EllipticCurve curve,
                          const std::string_view coordinate_x,
                          const std::string_view coordinate_y)
     -> std::optional<PrivateKey> {
+  if (!ec_private_scalar_in_range(scalar, curve)) {
+    return std::nullopt;
+  }
+
   const auto field_bytes{curve_field_bytes(curve)};
   const auto pair{native_ec_private_key_components(curve, field_bytes, scalar,
                                                    coordinate_x, coordinate_y)};
