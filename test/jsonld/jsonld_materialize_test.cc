@@ -2012,3 +2012,41 @@ TEST(weak_collection_defaults_undescribed_scalar_elements) {
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
+
+TEST(duplicate_annotations_first_one_wins) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "name": "Ada" })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/person"}});
+  annotations.emplace_back(sourcemeta::core::Pointer{"name"},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/ignored"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"name"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/ignored", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "https://example.com/ignored"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/person",
+      "https://schema.org/name": [ { "@value": "Ada" } ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}

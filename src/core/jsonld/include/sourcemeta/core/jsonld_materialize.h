@@ -134,8 +134,9 @@ using JSONLDWeakAnnotationList = JSONLDBasicAnnotationList<WeakPointer>;
 /// @ingroup jsonld
 ///
 /// Materialize an instance into expanded JSON-LD using an annotation list that
-/// assigns JSON-LD semantics to instance positions. The result is always a JSON
-/// array. For example:
+/// assigns JSON-LD semantics to instance positions. An undescribed member of a
+/// collection defaults to a plain literal, or to an unordered collection for a
+/// nested array. The result is always a JSON array. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>
@@ -170,8 +171,9 @@ auto jsonld_materialize(const JSON &instance,
 ///
 /// Materialize an instance into expanded JSON-LD using a weak annotation list
 /// whose positions are non-owning views into strings owned elsewhere. The
-/// backing strings must outlive the call. The result is always a JSON array.
-/// For example:
+/// backing strings must outlive the call. An undescribed member of a
+/// collection defaults to a plain literal, or to an unordered collection for a
+/// nested array. The result is always a JSON array. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/json.h>

@@ -10,9 +10,9 @@
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-// The catalog dimensions set how many annotation entries the annotations
-// carries and how many instance positions materialization visits, so they are
-// the knobs to turn when stress testing this functionality
+// The catalog dimensions set how many entries the annotation list carries
+// and how many instance positions materialization visits, so they are the
+// knobs to turn when stress testing this functionality
 static constexpr std::size_t catalog_member_count{256};
 static constexpr std::size_t authors_per_member{3};
 static constexpr std::size_t keywords_per_member{3};
