@@ -263,7 +263,8 @@ auto make_rsa_public_key(const std::string_view modulus,
   const auto stripped_exponent{strip_left(exponent, '\x00')};
   if (stripped_modulus.empty() || stripped_exponent.empty() ||
       stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
-      stripped_exponent.size() > MAXIMUM_KEY_BYTES) {
+      stripped_exponent.size() > MAXIMUM_KEY_BYTES ||
+      !rsa_public_exponent_acceptable(exponent, modulus)) {
     return std::nullopt;
   }
 

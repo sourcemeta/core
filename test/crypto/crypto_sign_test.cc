@@ -200,6 +200,36 @@ static const std::string RFC6979_P256_SIGNATURE_HEX{
     "efd48b2aacb6a8fd1140dd9cd45e81d69d2c877b56aaf991c34d0ea84eaf3716"
     "f7cb1c942d657c41d436c7a1b6e29f65f3e900dbb9aff4064dc4ab2f843acda8"};
 
+// RFC 6979 Appendix A.2.6: the NIST P-384 example key and the deterministic
+// ECDSA signature it produces over the same message with SHA-384
+static const std::string RFC6979_P384_D_HEX{
+    "6b9d3dad2e1b8c1c05b19875b6659f4de23c3b667bf297ba9aa47740787137d8"
+    "96d5724e4c70a825f872c9ea60d2edf5"};
+static const std::string RFC6979_P384_QX_HEX{
+    "ec3a4e415b4e19a4568618029f427fa5da9a8bc4ae92e02e06aae5286b300c64"
+    "def8f0ea9055866064a254515480bc13"};
+static const std::string RFC6979_P384_QY_HEX{
+    "8015d9b72d7d57244ea8ef9ac0c621896708a59367f9dfb9f54ca84b3f1c9db1"
+    "288b231c3ae0d4fe7344fd2533264720"};
+static const std::string RFC6979_P384_SIGNATURE_HEX{
+    "94edbb92a5ecb8aad4736e56c691916b3f88140666ce9fa73d64c4ea95ad133c"
+    "81a648152e44acf96e36dd1e80fabe46"
+    "99ef4aeb15f178cea1fe40db2603138f130e740a19624526203b6351d0a3a94f"
+    "a329c145786e679e7b82c71a38628ac8"};
+
+// The same keys signing a second message draw a different deterministic nonce,
+// so these exercise the signing scalar multiplication and inverse over another
+// secret value (RFC 6979 Appendix A.2.5 and A.2.6, message "test")
+static const std::string RFC6979_TEST_MESSAGE{"test"};
+static const std::string RFC6979_P256_TEST_SIGNATURE_HEX{
+    "f1abb023518351cd71d881567b1ea663ed3efcf6c5132b354f28d3b0b7d38367"
+    "019f4113742a2b14bd25926b49c649155f267e60d3814b4c0cc84250e46f0083"};
+static const std::string RFC6979_P384_TEST_SIGNATURE_HEX{
+    "8203b63d3c853e8d77227fb377bcf7b7b772e97892a80f36ab775d509d7a5feb"
+    "0542a7f0812998da8f1dd3ca3cf023db"
+    "ddd0760448d42d8a43af45af836fce4de8be06b485e9b61b827c2f13173923e0"
+    "6a739f040649a667bf3b828246baa5a5"};
+
 // Edwards keys as their raw seed and public key, with the deterministic Ed448
 // signature over the message (RFC 8032 uses no randomization for Ed448)
 static const std::string ED25519_SEED_HEX{
@@ -245,6 +275,19 @@ auto ecdsa_signature_verifies(
   return signature.has_value() && public_key.has_value() &&
          sourcemeta::core::ecdsa_verify(public_key.value(), hash, MESSAGE,
                                         signature.value());
+}
+
+// Re-wrap a PKCS#8 PEM with a single extra byte appended to its DER, producing
+// an otherwise valid document that is no longer canonical
+auto with_trailing_der_byte(const std::string_view pem) -> std::string {
+  const auto body_begin{pem.find('\n')};
+  const auto body_end{pem.rfind("-----END")};
+  std::string body{pem.substr(body_begin + 1, body_end - body_begin - 1)};
+  std::erase(body, '\n');
+  auto der{sourcemeta::core::base64_decode(body).value()};
+  der.push_back('\x00');
+  return "-----BEGIN PRIVATE KEY-----\n" +
+         sourcemeta::core::base64_encode(der) + "\n-----END PRIVATE KEY-----\n";
 }
 
 } // namespace
@@ -431,6 +474,69 @@ TEST(ecdsa_deterministic_nonce_matches_rfc6979_known_answer) {
   }
 }
 
+TEST(ecdsa_p384_deterministic_nonce_matches_rfc6979_known_answer) {
+  const auto key{sourcemeta::core::make_ec_private_key(
+      sourcemeta::core::EllipticCurve::P384,
+      sourcemeta::core::hex_to_bytes(RFC6979_P384_D_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P384_QX_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P384_QY_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  const auto first{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
+      RFC6979_MESSAGE)};
+  const auto second{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
+      RFC6979_MESSAGE)};
+  EXPECT_TRUE(first.has_value());
+  // A backend that derives the nonce deterministically (RFC 6979) produces the
+  // same signature twice, and only then is the published known answer
+  // reproducible. Randomized backends are covered by the round-trip tests
+  if (first.has_value() && first == second) {
+    EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
+              RFC6979_P384_SIGNATURE_HEX);
+  }
+}
+
+TEST(ecdsa_p256_deterministic_nonce_matches_rfc6979_second_message) {
+  const auto key{sourcemeta::core::make_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::hex_to_bytes(RFC6979_P256_D_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P256_QX_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P256_QY_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  const auto first{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      RFC6979_TEST_MESSAGE)};
+  const auto second{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      RFC6979_TEST_MESSAGE)};
+  EXPECT_TRUE(first.has_value());
+  if (first.has_value() && first == second) {
+    EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
+              RFC6979_P256_TEST_SIGNATURE_HEX);
+  }
+}
+
+TEST(ecdsa_p384_deterministic_nonce_matches_rfc6979_second_message) {
+  const auto key{sourcemeta::core::make_ec_private_key(
+      sourcemeta::core::EllipticCurve::P384,
+      sourcemeta::core::hex_to_bytes(RFC6979_P384_D_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P384_QX_HEX).value(),
+      sourcemeta::core::hex_to_bytes(RFC6979_P384_QY_HEX).value())};
+  EXPECT_TRUE(key.has_value());
+  const auto first{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
+      RFC6979_TEST_MESSAGE)};
+  const auto second{sourcemeta::core::ecdsa_sign(
+      key.value(), sourcemeta::core::SignatureHashFunction::SHA384,
+      RFC6979_TEST_MESSAGE)};
+  EXPECT_TRUE(first.has_value());
+  if (first.has_value() && first == second) {
+    EXPECT_EQ(sourcemeta::core::bytes_to_hex(first.value()),
+              RFC6979_P384_TEST_SIGNATURE_HEX);
+  }
+}
+
 TEST(ed25519_signature_verifies) {
   const auto key{sourcemeta::core::make_edwards_private_key(
       sourcemeta::core::EdwardsCurve::Ed25519,
@@ -473,6 +579,15 @@ TEST(make_private_key_rejects_garbage) {
   EXPECT_FALSE(sourcemeta::core::make_private_key("not a pem").has_value());
 }
 
+TEST(make_private_key_rejects_trailing_data) {
+  // The same key with one byte appended past the outer SEQUENCE is not
+  // canonical DER and must be rejected (X.690 Section 10.1)
+  EXPECT_TRUE(sourcemeta::core::make_private_key(RSA_PRIVATE_KEY).has_value());
+  EXPECT_FALSE(sourcemeta::core::make_private_key(
+                   with_trailing_der_byte(RSA_PRIVATE_KEY))
+                   .has_value());
+}
+
 TEST(make_edwards_private_key_rejects_short_ed25519_seed) {
   // Ed25519 requires a 32 byte seed
   EXPECT_FALSE(
@@ -504,5 +619,40 @@ TEST(make_ec_private_key_rejects_oversized_scalar) {
                    std::string(33, '\xff'),
                    sourcemeta::core::hex_to_bytes(P256_QX_HEX).value(),
                    sourcemeta::core::hex_to_bytes(P256_QY_HEX).value())
+                   .has_value());
+}
+
+TEST(make_ec_private_key_rejects_scalar_at_or_above_order) {
+  // A 32 byte scalar of all ones exceeds the P-256 group order, so it is not a
+  // valid private key in the range [1, n) (SEC 1 Section 3.2.1)
+  EXPECT_FALSE(sourcemeta::core::make_ec_private_key(
+                   sourcemeta::core::EllipticCurve::P256,
+                   std::string(32, '\xff'),
+                   sourcemeta::core::hex_to_bytes(P256_QX_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(P256_QY_HEX).value())
+                   .has_value());
+}
+
+TEST(make_rsa_public_key_rejects_unit_exponent) {
+  // e = 1 leaves the signature equal to the padded message (RFC 8017
+  // Section 3.1)
+  EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   std::string{'\x01'})
+                   .has_value());
+}
+
+TEST(make_rsa_public_key_rejects_even_exponent) {
+  // An even public exponent is not invertible modulo the totient
+  EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   std::string{'\x02'})
+                   .has_value());
+}
+
+TEST(make_rsa_public_key_rejects_exponent_at_or_above_modulus) {
+  // The public exponent must satisfy e < n (RFC 8017 Section 3.1)
+  EXPECT_FALSE(sourcemeta::core::make_rsa_public_key(std::string{'\x05'},
+                                                     std::string{'\x07'})
                    .has_value());
 }

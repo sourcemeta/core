@@ -212,9 +212,14 @@ auto bits2octets(const std::string_view bits, const Bignum &order,
 auto sign_rsa(const std::string_view modulus,
               const std::string_view private_exponent,
               const std::string_view encoded_message) -> std::string {
-  const auto representative{bignum_mod_exp(bignum_from_bytes(encoded_message),
-                                           bignum_from_bytes(private_exponent),
-                                           bignum_from_bytes(modulus))};
+  // The exponent is the secret private key, so the exponentiation runs in
+  // constant time; the exponent copy it consumes is wiped before returning
+  const auto context{barrett_context(bignum_from_bytes(modulus))};
+  auto exponent{bignum_from_bytes(private_exponent)};
+  const SecureBignumScope exponent_scope{exponent};
+  auto representative{
+      bignum_mod_exp_ct(bignum_from_bytes(encoded_message), exponent, context)};
+  bignum_normalize(representative);
   return bignum_to_bytes(representative, modulus.size());
 }
 
@@ -231,31 +236,36 @@ auto ecdsa_signature_for_nonce(const Bignum &nonce,
     return std::nullopt;
   }
 
-  const auto point{point_double_scalar_multiply(
-      nonce, generator, bignum_from_u64(0), generator, parameters)};
-  if (point_is_infinity(point)) {
-    return std::nullopt;
-  }
+  const auto point{
+      point_scalar_multiply_constant_time(nonce, generator, parameters)};
 
-  auto r{point_affine_x(point, parameters)};
+  // The ladder leaves its projective output fixed-width rather than normalized,
+  // so it does not leak the secret nonce through a value-dependent loop. The
+  // nonce lies in [1, n), so the result is never the point at infinity, and the
+  // r == 0 rejection below is the FIPS 186-4 restart condition regardless
+  auto r{point_affine_x_constant_time(point, parameters)};
   bignum_reduce(r, parameters.order);
   if (bignum_is_zero(r)) {
     return std::nullopt;
   }
 
-  // s = k^-1 (z + r * d) mod n. The nonce inverse and every partial sum that
+  // s = k^-1 (z + r * d) mod n, evaluated over the constant-time field
+  // arithmetic modulo the order. The nonce inverse and every partial sum that
   // mixes in the private scalar d carry secret material, so each is wiped
   // before returning; the resulting r and s are the public signature
-  auto nonce_inverse{bignum_mod_inverse(nonce, parameters.order)};
+  const auto order_field{barrett_context(parameters.order)};
+  auto nonce_inverse{field_inverse_ct(nonce, order_field)};
   const SecureBignumScope nonce_inverse_scope{nonce_inverse};
-  auto private_product{
-      bignum_mod_multiply(r, private_scalar, parameters.order)};
+  auto private_reduced{barrett_reduce(private_scalar, order_field)};
+  const SecureBignumScope private_reduced_scope{private_reduced};
+  auto private_product{field_mod_multiply_ct(r, private_reduced, order_field)};
   const SecureBignumScope private_product_scope{private_product};
+  const auto digest_reduced{barrett_reduce(digest_integer, order_field)};
   auto shifted_digest{
-      bignum_mod_add(digest_integer, private_product, parameters.order)};
+      field_add_ct(digest_reduced, private_product, order_field)};
   const SecureBignumScope shifted_digest_scope{shifted_digest};
-  const auto s{
-      bignum_mod_multiply(nonce_inverse, shifted_digest, parameters.order)};
+  auto s{field_mod_multiply_ct(nonce_inverse, shifted_digest, order_field)};
+  bignum_normalize(s);
   if (bignum_is_zero(s)) {
     return std::nullopt;
   }
@@ -528,7 +538,8 @@ auto make_ec_private_key(const EllipticCurve curve,
   // range-checked so that malformed input is rejected as on the other backends
   if (stripped.empty() || stripped.size() > width ||
       strip_left(coordinate_x, '\x00').size() > width ||
-      strip_left(coordinate_y, '\x00').size() > width) {
+      strip_left(coordinate_y, '\x00').size() > width ||
+      !ec_private_scalar_in_range(scalar, curve)) {
     return std::nullopt;
   }
 
