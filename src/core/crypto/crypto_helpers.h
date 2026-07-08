@@ -177,6 +177,8 @@ inline auto ec_private_scalar_in_range(const std::string_view scalar,
                                        const EllipticCurve curve) -> bool {
   const auto width{curve_field_bytes(curve)};
   std::string folded(width, '\x00');
+  // The buffer holds a copy of the secret scalar, so it is wiped on return
+  const SecureScope folded_scope{folded};
   std::uint8_t overflow{0};
   for (std::size_t index = 0; index < scalar.size(); ++index) {
     const auto byte{
@@ -194,8 +196,13 @@ inline auto ec_private_scalar_in_range(const std::string_view scalar,
         static_cast<std::uint8_t>(nonzero | static_cast<std::uint8_t>(byte));
   }
 
+  // The three conditions are combined bitwise rather than with a short-circuit,
+  // so the secret overflow and zero flags do not steer a branch
   const auto below{octets_below_fixed(folded, curve_order_bytes(curve))};
-  return overflow == 0 && nonzero != 0 && below;
+  const auto within{static_cast<unsigned int>(overflow == 0) &
+                    static_cast<unsigned int>(nonzero != 0) &
+                    static_cast<unsigned int>(below)};
+  return within != 0;
 }
 
 // The public key and signature octet lengths are fixed per curve (RFC 8032
