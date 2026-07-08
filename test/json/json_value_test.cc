@@ -398,6 +398,62 @@ TEST(try_at_fail) {
   EXPECT_FALSE(result);
 }
 
+TEST(try_at_mutable) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
+  EXPECT_TRUE(document.is_object());
+  const auto result = document.try_at("foo");
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 5);
+  result->into(sourcemeta::core::JSON{7});
+  EXPECT_EQ(document.at("foo").to_integer(), 7);
+}
+
+TEST(try_at_mutable_fail) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
+  EXPECT_TRUE(document.is_object());
+  const auto result = document.try_at("boo");
+  EXPECT_FALSE(result);
+}
+
+TEST(try_at_mutable_string_view) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
+  EXPECT_TRUE(document.is_object());
+  const sourcemeta::core::JSON::StringView key{"foo"};
+  const auto result = document.try_at(key);
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 5);
+  result->into(sourcemeta::core::JSON{7});
+  EXPECT_EQ(document.at("foo").to_integer(), 7);
+}
+
+TEST(try_at_mutable_with_hash) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
+  EXPECT_TRUE(document.is_object());
+  const auto result = document.try_at("foo", document.as_object().hash("foo"));
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 5);
+  result->into(sourcemeta::core::JSON{7});
+  EXPECT_EQ(document.at("foo").to_integer(), 7);
+}
+
+TEST(try_at_mutable_with_hash_fail) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
+  EXPECT_TRUE(document.is_object());
+  const auto result = document.try_at("boo", document.as_object().hash("boo"));
+  EXPECT_FALSE(result);
+}
+
+TEST(try_at_mutable_string_view_with_hash) {
+  sourcemeta::core::JSON document = sourcemeta::core::parse_json("{\"foo\":5}");
+  EXPECT_TRUE(document.is_object());
+  const sourcemeta::core::JSON::StringView key{"foo"};
+  const auto result = document.try_at(key, document.as_object().hash(key));
+  EXPECT_TRUE(result);
+  EXPECT_EQ(result->to_integer(), 5);
+  result->into(sourcemeta::core::JSON{7});
+  EXPECT_EQ(document.at("foo").to_integer(), 7);
+}
+
 TEST(unordered_set_with_custom_hash) {
   std::unordered_set<sourcemeta::core::JSON,
                      sourcemeta::core::HashJSON<sourcemeta::core::JSON>>

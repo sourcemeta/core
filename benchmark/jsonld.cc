@@ -10,16 +10,14 @@
 #include <sourcemeta/core/jsonld.h>
 #include <sourcemeta/core/jsonpointer.h>
 
-// The catalog dimensions set how many annotation entries the map carries and
-// how many instance positions materialization visits, so they are the knobs
-// to turn when stress testing this functionality
+// The catalog dimensions set how many entries the annotation list carries
+// and how many instance positions materialization visits, so they are the
+// knobs to turn when stress testing this functionality
 static constexpr std::size_t catalog_member_count{256};
 static constexpr std::size_t authors_per_member{3};
 static constexpr std::size_t keywords_per_member{3};
-static constexpr std::size_t identifiers_per_member{3};
-static constexpr std::size_t annotations_per_member{
-    19 + (authors_per_member * 2) + keywords_per_member +
-    identifiers_per_member};
+static constexpr std::size_t annotations_per_member{19 +
+                                                    (authors_per_member * 2)};
 static constexpr std::size_t total_annotation_count{
     2 + (catalog_member_count * annotations_per_member)};
 
@@ -32,8 +30,6 @@ static const sourcemeta::core::JSON::String authors_key{"authors"};
 static const sourcemeta::core::JSON::String name_key{"name"};
 static const sourcemeta::core::JSON::String keywords_key{"keywords"};
 static const sourcemeta::core::JSON::String identifiers_key{"identifiers"};
-static const sourcemeta::core::JSON::String doi_key{"doi"};
-static const sourcemeta::core::JSON::String oclc_key{"oclc"};
 static const sourcemeta::core::JSON::String price_key{"price"};
 static const sourcemeta::core::JSON::String currency_key{"currency"};
 static const sourcemeta::core::JSON::String value_key{"value"};
@@ -168,99 +164,86 @@ static auto make_catalog() -> sourcemeta::core::JSON {
   return catalog;
 }
 
-static auto populate_member(sourcemeta::core::JSONLDWeakAnnotationMap &map,
-                            const std::size_t index) -> void {
+static auto
+populate_member(sourcemeta::core::JSONLDWeakAnnotationList &annotations,
+                const std::size_t index) -> void {
   using sourcemeta::core::WeakPointer;
-  map.emplace(WeakPointer{std::cref(members_key), index},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {},
-                  .value = sourcemeta::core::JSONLDNode{
-                      .id = "urn:isbn:978-0-" + std::to_string(index),
-                      .types = {"https://schema.org/Book"}}});
-  map.emplace(WeakPointer{std::cref(members_key), index, std::cref(isbn_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/isbn", false}},
-                  .value = sourcemeta::core::JSONLDLiteral{}});
-  map.emplace(
+  annotations.emplace_back(
+      WeakPointer{std::cref(members_key), index},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {},
+          .value = sourcemeta::core::JSONLDNode{
+              .id = "urn:isbn:978-0-" + std::to_string(index),
+              .types = {"https://schema.org/Book"}}});
+  annotations.emplace_back(
+      WeakPointer{std::cref(members_key), index, std::cref(isbn_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/isbn", false}},
+          .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(title_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/name", false}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Language}});
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(abstract_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/abstract", false}},
           .value = sourcemeta::core::JSONLDLiteral{
               .language = "en",
               .direction = sourcemeta::core::JSONLDDirection::LTR}});
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(date_published_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/datePublished", false}},
           .value = sourcemeta::core::JSONLDLiteral{
               .datatype = "http://www.w3.org/2001/XMLSchema#date"}});
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(authors_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/author", false}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::List}});
   for (std::size_t offset = 0; offset < authors_per_member; offset += 1) {
-    map.emplace(WeakPointer{std::cref(members_key), index,
-                            std::cref(authors_key), offset},
-                sourcemeta::core::JSONLDDescriptor{
-                    .edges = {},
-                    .value = sourcemeta::core::JSONLDNode{
-                        .id = "https://example.com/people/person-" +
-                              std::to_string(index * 10 + offset),
-                        .types = {"https://schema.org/Person"}}});
-    map.emplace(WeakPointer{std::cref(members_key), index,
-                            std::cref(authors_key), offset,
-                            std::cref(name_key)},
-                sourcemeta::core::JSONLDDescriptor{
-                    .edges = {{"https://schema.org/name", false}},
-                    .value = sourcemeta::core::JSONLDLiteral{}});
+    annotations.emplace_back(
+        WeakPointer{std::cref(members_key), index, std::cref(authors_key),
+                    offset},
+        sourcemeta::core::JSONLDDescriptor{
+            .edges = {},
+            .value = sourcemeta::core::JSONLDNode{
+                .id = "https://example.com/people/person-" +
+                      std::to_string(index * 10 + offset),
+                .types = {"https://schema.org/Person"}}});
+    annotations.emplace_back(WeakPointer{std::cref(members_key), index,
+                                         std::cref(authors_key), offset,
+                                         std::cref(name_key)},
+                             sourcemeta::core::JSONLDDescriptor{
+                                 .edges = {{"https://schema.org/name", false}},
+                                 .value = sourcemeta::core::JSONLDLiteral{}});
   }
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(keywords_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/keywords", false}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
-  for (std::size_t offset = 0; offset < keywords_per_member; offset += 1) {
-    map.emplace(WeakPointer{std::cref(members_key), index,
-                            std::cref(keywords_key), offset},
-                sourcemeta::core::JSONLDDescriptor{
-                    .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
-  }
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(identifiers_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/identifier", false}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
-  map.emplace(WeakPointer{std::cref(members_key), index,
-                          std::cref(identifiers_key), std::cref(isbn_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
-  map.emplace(WeakPointer{std::cref(members_key), index,
-                          std::cref(identifiers_key), std::cref(doi_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
-  map.emplace(WeakPointer{std::cref(members_key), index,
-                          std::cref(identifiers_key), std::cref(oclc_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
 
-  map.emplace(WeakPointer{std::cref(members_key), index, std::cref(price_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/offers", false}},
-                  .value = sourcemeta::core::JSONLDNode{}});
-  map.emplace(
+  annotations.emplace_back(
+      WeakPointer{std::cref(members_key), index, std::cref(price_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/offers", false}},
+          .value = sourcemeta::core::JSONLDNode{}});
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(price_key),
                   std::cref(currency_key)},
       sourcemeta::core::JSONLDDescriptor{
@@ -268,59 +251,63 @@ static auto populate_member(sourcemeta::core::JSONLDWeakAnnotationMap &map,
           .value = sourcemeta::core::JSONLDReference{
               .id = "https://www.iso.org/iso-4217/" + currency_code(index),
               .types = {"https://schema.org/Currency"}}});
-  map.emplace(WeakPointer{std::cref(members_key), index, std::cref(price_key),
-                          std::cref(value_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/price", false}},
-                  .value = sourcemeta::core::JSONLDLiteral{
-                      .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+  annotations.emplace_back(
+      WeakPointer{std::cref(members_key), index, std::cref(price_key),
+                  std::cref(value_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/price", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(publisher_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/publisher", false}},
           .value = sourcemeta::core::JSONLDNode{
               .id = "https://example.com/org/" + std::to_string(index),
               .types = {"https://schema.org/Organization"}}});
-  map.emplace(WeakPointer{std::cref(members_key), index,
-                          std::cref(publisher_key), std::cref(name_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/name", false}},
-                  .value = sourcemeta::core::JSONLDLiteral{}});
-  map.emplace(WeakPointer{std::cref(members_key), index,
-                          std::cref(publisher_key), std::cref(url_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/url", false}},
-                  .value = sourcemeta::core::JSONLDLiteral{
-                      .datatype = "http://www.w3.org/2001/XMLSchema#anyURI"}});
+  annotations.emplace_back(WeakPointer{std::cref(members_key), index,
+                                       std::cref(publisher_key),
+                                       std::cref(name_key)},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(
+      WeakPointer{std::cref(members_key), index, std::cref(publisher_key),
+                  std::cref(url_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/url", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#anyURI"}});
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(series_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/hasPart", true}},
           .value = sourcemeta::core::JSONLDNode{
               .id = "https://example.com/series/" + std::to_string(index),
               .types = {"https://schema.org/CreativeWorkSeries"}}});
-  map.emplace(WeakPointer{std::cref(members_key), index, std::cref(series_key),
-                          std::cref(name_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/name", false}},
-                  .value = sourcemeta::core::JSONLDLiteral{}});
+  annotations.emplace_back(WeakPointer{std::cref(members_key), index,
+                                       std::cref(series_key),
+                                       std::cref(name_key)},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {{"https://schema.org/name", false}},
+                               .value = sourcemeta::core::JSONLDLiteral{}});
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(metadata_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://schema.org/additionalProperty", false}},
           .value = sourcemeta::core::JSONLDLiteral{.json = true}});
 
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(provenance_key)},
       sourcemeta::core::JSONLDDescriptor{
           .edges = {{"https://www.w3.org/ns/prov#has_provenance", false}},
           .value = sourcemeta::core::JSONLDNode{
               .id = "https://example.com/provenance/" + std::to_string(index),
               .graph = true}});
-  map.emplace(
+  annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(provenance_key),
                   std::cref(generated_by_key)},
       sourcemeta::core::JSONLDDescriptor{
@@ -328,48 +315,49 @@ static auto populate_member(sourcemeta::core::JSONLDWeakAnnotationMap &map,
           .value = sourcemeta::core::JSONLDLiteral{}});
 }
 
-static auto
-populate_annotation_map(sourcemeta::core::JSONLDWeakAnnotationMap &map)
-    -> void {
-  map.reserve(total_annotation_count);
-  map.emplace(sourcemeta::core::WeakPointer{},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {},
-                  .value = sourcemeta::core::JSONLDNode{
-                      .id = "https://example.com/catalog",
-                      .types = {"https://schema.org/DataCatalog"}}});
-  map.emplace(sourcemeta::core::WeakPointer{std::cref(members_key)},
-              sourcemeta::core::JSONLDDescriptor{
-                  .edges = {{"https://schema.org/dataset", false}},
-                  .value = sourcemeta::core::JSONLDCollection{
-                      .container = sourcemeta::core::JSONLDContainer::Set}});
+static auto populate_annotation_list(
+    sourcemeta::core::JSONLDWeakAnnotationList &annotations) -> void {
+  annotations.reserve(total_annotation_count);
+  annotations.emplace_back(
+      sourcemeta::core::WeakPointer{},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {},
+          .value = sourcemeta::core::JSONLDNode{
+              .id = "https://example.com/catalog",
+              .types = {"https://schema.org/DataCatalog"}}});
+  annotations.emplace_back(
+      sourcemeta::core::WeakPointer{std::cref(members_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/dataset", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Set}});
   for (std::size_t index = 0; index < catalog_member_count; index += 1) {
-    populate_member(map, index);
+    populate_member(annotations, index);
   }
 }
 
-static void JSONLD_Catalog_Annotation_Map_Populate(benchmark::State &state) {
+static void JSONLD_Catalog_Annotation_List_Populate(benchmark::State &state) {
   for (auto _ : state) {
-    sourcemeta::core::JSONLDWeakAnnotationMap map;
-    populate_annotation_map(map);
-    assert(map.size() == total_annotation_count);
-    benchmark::DoNotOptimize(map);
+    sourcemeta::core::JSONLDWeakAnnotationList annotations;
+    populate_annotation_list(annotations);
+    assert(annotations.size() == total_annotation_count);
+    benchmark::DoNotOptimize(annotations);
   }
 }
 
 static void JSONLD_Catalog_Materialize(benchmark::State &state) {
   const auto instance{make_catalog()};
-  sourcemeta::core::JSONLDWeakAnnotationMap map;
-  populate_annotation_map(map);
-  assert(map.size() == total_annotation_count);
+  sourcemeta::core::JSONLDWeakAnnotationList annotations;
+  populate_annotation_list(annotations);
+  assert(annotations.size() == total_annotation_count);
 
   for (auto _ : state) {
-    auto result{sourcemeta::core::jsonld_materialize(instance, map)};
+    auto result{sourcemeta::core::jsonld_materialize(instance, annotations)};
     assert(result.is_array());
     assert(!result.empty());
     benchmark::DoNotOptimize(result);
   }
 }
 
-BENCHMARK(JSONLD_Catalog_Annotation_Map_Populate);
+BENCHMARK(JSONLD_Catalog_Annotation_List_Populate);
 BENCHMARK(JSONLD_Catalog_Materialize);
