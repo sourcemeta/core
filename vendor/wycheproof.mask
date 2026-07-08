@@ -179,10 +179,8 @@ testvectors_v1/hmac_sha3_224_test.json
 testvectors_v1/hmac_sha3_256_test.json
 testvectors_v1/hmac_sha3_384_test.json
 testvectors_v1/hmac_sha3_512_test.json
-testvectors_v1/hmac_sha384_test.json
 testvectors_v1/hmac_sha512_224_test.json
 testvectors_v1/hmac_sha512_256_test.json
-testvectors_v1/hmac_sha512_test.json
 testvectors_v1/hmac_sm3_test.json
 testvectors_v1/json_web_crypto_test.json
 testvectors_v1/json_web_encryption_test.json
