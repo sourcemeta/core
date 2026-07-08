@@ -53,7 +53,7 @@ TEST(signing_input_is_verbatim) {
 }
 
 TEST(unrecognized_algorithm_still_parses) {
-  const auto input{make_token(R"({ "alg": "HS256" })", R"({})", "sig")};
+  const auto input{make_token(R"({ "alg": "none" })", R"({})", "sig")};
   const auto token{sourcemeta::core::JWT::from(input)};
   EXPECT_TRUE(token.has_value());
   EXPECT_FALSE(token.value().algorithm().has_value());

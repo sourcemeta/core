@@ -65,7 +65,7 @@ TEST(skips_unsupported_key) {
              { "kty": "RSA", "n": ")" JOSE_TEST_RSA_MODULUS
       R"(", "e": "AQAB", "alg": "RS256",
                "kid": "good" },
-             { "kty": "oct", "k": "dGVzdA" } ] })")};
+             { "kty": "unsupported" } ] })")};
   const auto keys{sourcemeta::core::JWKS::from(document)};
   EXPECT_TRUE(keys.has_value());
   EXPECT_EQ(keys.value().size(), 1);
@@ -121,7 +121,7 @@ TEST(skips_non_object_entries) {
 
 TEST(rejects_all_keys_unsupported) {
   const auto document{sourcemeta::core::parse_json(
-      R"({ "keys": [ { "kty": "oct", "k": "dGVzdA" } ] })")};
+      R"({ "keys": [ { "kty": "unsupported" } ] })")};
   EXPECT_FALSE(sourcemeta::core::JWKS::from(document).has_value());
 }
 

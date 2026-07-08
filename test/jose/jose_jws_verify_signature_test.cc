@@ -41,6 +41,13 @@ constexpr std::string_view RSA_JWK_OTHER_ALGORITHM{
     R"JSON({ "kty": "RSA", "n": "g6AMCEh4IMEnWr_9s8s-uUPXOWm1Zt2h4nV2ZCWsZRHnQg-SzmkNDw3SqUF9nLbjCz_HlElABwe9XZ8gfwVGKr3TNHcaTS_QQNGzX6WndznyQKvoEL3BkvMAk-p-CzUpW4XzAl7iwdpOjxh8iFAR-pOcdvCzEcwEVkwlcVL1IDXN_oFxfpldOA94Ljcp4fA0FmsTo74x93el3hzfgHYSt1UeHQkrjQwmfecbjVHpDHmpqcaAmgWpKHYnWa0WZJ5t-cm17UIydct-lEUKne_bqoUHuyqakJG6fLHbunxc0CRxqcV5r_i64D0vMDsdu3I1YehoOj9CDvzE8rKGeSA8Mw", "e": "AQAB", "alg": "RS384" })JSON"};
 constexpr std::string_view EC_JWK{
     R"JSON({ "kty": "EC", "crv": "P-256", "x": "uEMPr85yIqQEqUAOF7f-jpo0LA9tnUXj1q6HzanBnJs", "y": "JHRc8vYEaVwcjH20LqwKfehDU2JGg43Sx56GcEgfbXY" })JSON"};
+// The RFC 7515 Appendix A.1 example key and signing input
+constexpr std::string_view OCT_JWK{
+    R"JSON({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})JSON"};
+constexpr std::string_view RFC7515_A1_SIGNING_INPUT{
+    "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
+    "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlL"
+    "mNvbS9pc19yb290Ijp0cnVlfQ"};
 constexpr std::string_view EDDSA_SIGNING_INPUT{
     "eyJhbGciOiJFZERTQSJ9.RXhhbXBsZSBvZiBFZDI1NTE5IHNpZ25pbmc"};
 constexpr std::string_view EDDSA_SIGNATURE{
@@ -175,5 +182,87 @@ TEST(eddsa_key_type_mismatch) {
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
       sourcemeta::core::JWSAlgorithm::EdDSA, EDDSA_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(jws_verify_signature_hs256_known_answer) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::base64url_decode(
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(jws_verify_signature_hs256_rejects_tampered_input) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::base64url_decode(
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS256, "eyJhbGciOiJIUzI1NiJ9.tampered",
+      signature.value(), key.value()));
+}
+
+TEST(jws_verify_signature_hs256_rejects_truncated_signature) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::base64url_decode(
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
+      std::string_view{signature.value()}.substr(0, 16), key.value()));
+}
+
+TEST(jws_verify_signature_hs256_rejects_rsa_key) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(RSA_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::base64url_decode(
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(jws_verify_signature_rs256_rejects_oct_key) {
+  const auto key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::base64url_decode(
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::RS256, RFC7515_A1_SIGNING_INPUT,
+      signature.value(), key.value()));
+}
+
+TEST(jws_verify_signature_hs512_rejects_short_secret) {
+  const auto key{sourcemeta::core::JWK::from(sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"})"))};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS512, RFC7515_A1_SIGNING_INPUT,
+      std::string(64, 'x'), key.value()));
+}
+
+TEST(jws_verify_signature_hs256_key_declaring_other_algorithm) {
+  const auto key{sourcemeta::core::JWK::from(sourcemeta::core::parse_json(
+      R"({"kty":"oct","alg":"HS512","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ)"
+      R"(-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})"))};
+  EXPECT_TRUE(key.has_value());
+  const auto signature{sourcemeta::core::base64url_decode(
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
       signature.value(), key.value()));
 }

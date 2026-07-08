@@ -70,7 +70,7 @@ TEST(rejects_missing_key_type) {
 
 TEST(rejects_unsupported_key_type) {
   const auto document{
-      sourcemeta::core::parse_json(R"({ "kty": "oct", "k": "dGVzdA" })")};
+      sourcemeta::core::parse_json(R"({ "kty": "unsupported" })")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
 
@@ -421,4 +421,48 @@ TEST(ignores_algorithm_not_matching_curve) {
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().algorithm().has_value());
+}
+
+TEST(jwk_oct_valid) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
+      R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(), sourcemeta::core::JWK::Type::Octet);
+  EXPECT_EQ(key.value().secret().size(), 64);
+  EXPECT_TRUE(key.value().public_key() == nullptr);
+}
+
+TEST(jwk_oct_with_key_id) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","kid":"018c0ae5-4d9b-471b-bfd6-eef314bc7037",)"
+      R"("k":"hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"})")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().key_id().has_value());
+  EXPECT_EQ(key.value().key_id().value(),
+            "018c0ae5-4d9b-471b-bfd6-eef314bc7037");
+  EXPECT_EQ(key.value().secret().size(), 32);
+}
+
+TEST(jwk_oct_missing_key_value) {
+  const auto document{sourcemeta::core::parse_json(R"({"kty":"oct"})")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(jwk_oct_non_string_key_value) {
+  const auto document{sourcemeta::core::parse_json(R"({"kty":"oct","k":123})")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(jwk_oct_invalid_base64url_key_value) {
+  const auto document{
+      sourcemeta::core::parse_json(R"({"kty":"oct","k":"!!!"})")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
+}
+
+TEST(jwk_oct_empty_key_value) {
+  const auto document{sourcemeta::core::parse_json(R"({"kty":"oct","k":""})")};
+  EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }

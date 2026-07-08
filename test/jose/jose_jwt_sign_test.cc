@@ -14,6 +14,11 @@ static const std::string EC_PUBLIC_JWK{
     R"("x":"2TARGSWq8F97iq3Ng48wCEN26cxzy8OCzbFa-6ZfnaI",)"
     R"("y":"5lkzZqhWOkc2m2zJOotl6K3_x6-TSs9OnzQKwb35DxQ"})"};
 
+// The RFC 7515 Appendix A.1 example symmetric key
+static const std::string OCT_JWK{
+    R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
+    R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})"};
+
 TEST(jwt_sign_round_trips_through_the_token_layer) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
@@ -82,4 +87,23 @@ TEST(jwt_sign_rejects_unsupported_algorithm) {
                    sourcemeta::core::parse_json(R"({"iss":"acme"})"),
                    key.value())
                    .has_value());
+}
+
+TEST(jwt_sign_hs256_round_trips) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto token_string{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": "client", "exp": 2000000000 })"),
+      key.value())};
+  EXPECT_TRUE(token_string.has_value());
+  const auto token{sourcemeta::core::JWT::from(token_string.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verification_key{
+      sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(verification_key.has_value());
+  EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(token.value(),
+                                                     verification_key.value()));
 }
