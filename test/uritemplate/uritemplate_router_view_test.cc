@@ -9,6 +9,7 @@
 #include <cstring>    // std::memset
 #include <filesystem> // std::filesystem::path, std::filesystem::remove, std::filesystem::temp_directory_path
 #include <fstream>    // std::ifstream
+#include <iterator>   // std::istreambuf_iterator
 #include <span>       // std::span
 #include <string>     // std::string
 #include <string_view>  // std::string_view
@@ -717,6 +718,27 @@ TEST(corrupt_empty_data) {
   const sourcemeta::core::URITemplateRouterView view{nullptr, 0};
   EXPECT_ROUTER_MATCH(view, "/users", 0, 0, captures);
   EXPECT_EQ(captures.size(), 0);
+}
+
+TEST_F(URITemplateRouterViewTest, matches_from_unaligned_external_buffer) {
+  {
+    sourcemeta::core::URITemplateRouter router;
+    router.add("/users", "op_1", 1);
+    sourcemeta::core::URITemplateRouterView::save(router, this->path);
+  }
+
+  std::ifstream input{this->path, std::ios::binary};
+  const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>{input},
+                                        std::istreambuf_iterator<char>{}};
+
+  // Offset the serialized bytes by one so the pointer the view receives is not
+  // aligned to the over-aligned node type
+  std::vector<std::uint8_t> misaligned(bytes.size() + 1);
+  std::memcpy(misaligned.data() + 1, bytes.data(), bytes.size());
+
+  const sourcemeta::core::URITemplateRouterView view{misaligned.data() + 1,
+                                                     bytes.size()};
+  EXPECT_ROUTER_MATCH(view, "/users", 1, 0, captures);
 }
 
 TEST(corrupt_too_small_for_header) {
