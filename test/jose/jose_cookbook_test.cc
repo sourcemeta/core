@@ -38,6 +38,8 @@ auto cookbook_public_key(const sourcemeta::core::JSON &source_key)
     key.assign("crv", source_key.at("crv"));
     key.assign("x", source_key.at("x"));
     key.assign("y", source_key.at("y"));
+  } else if (type == "oct") {
+    key.assign("k", source_key.at("k"));
   } else {
     return std::nullopt;
   }
@@ -93,12 +95,12 @@ auto sign_example(const sourcemeta::core::JSON &document) -> bool {
 } // namespace
 
 auto main(int argc, char **argv) -> int {
-  // The single-signature asymmetric examples, which are the complete set our
-  // compact engine supports. The HMAC, detached, and general serialization
-  // examples are masked out of the vendored tree
-  constexpr std::array<std::string_view, 3> examples{
+  // The single-signature compact examples, which our engine runs in full. The
+  // detached, unprotected-header, and general serialization examples stay
+  // masked out of the vendored tree
+  constexpr std::array<std::string_view, 4> examples{
       {"4_1.rsa_v15_signature.json", "4_2.rsa-pss_signature.json",
-       "4_3.ecdsa_signature.json"}};
+       "4_3.ecdsa_signature.json", "4_4.hmac-sha2_integrity_protection.json"}};
 
   for (const auto example : examples) {
     const auto name{std::filesystem::path{example}.stem().string()};

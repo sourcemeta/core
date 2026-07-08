@@ -199,3 +199,47 @@ TEST(jwk_private_ec_private_key_signs_and_verifies) {
       public_key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
       message, signature.value()));
 }
+
+TEST(jwk_private_oct_valid) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
+      R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})")};
+  const auto key{sourcemeta::core::JWKPrivate::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_EQ(key.value().type(), sourcemeta::core::JWKPrivate::Type::Octet);
+  EXPECT_EQ(key.value().secret().size(), 64);
+  EXPECT_TRUE(key.value().private_key() == nullptr);
+}
+
+TEST(jwk_private_oct_with_key_id) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({"kty":"oct","kid":"018c0ae5-4d9b-471b-bfd6-eef314bc7037",)"
+      R"("k":"hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"})")};
+  const auto key{sourcemeta::core::JWKPrivate::from(document)};
+  EXPECT_TRUE(key.has_value());
+  EXPECT_TRUE(key.value().key_id().has_value());
+  EXPECT_EQ(key.value().key_id().value(),
+            "018c0ae5-4d9b-471b-bfd6-eef314bc7037");
+  EXPECT_EQ(key.value().secret().size(), 32);
+}
+
+TEST(jwk_private_oct_missing_key_value) {
+  const auto document{sourcemeta::core::parse_json(R"({"kty":"oct"})")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_oct_non_string_key_value) {
+  const auto document{sourcemeta::core::parse_json(R"({"kty":"oct","k":123})")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_oct_invalid_base64url_key_value) {
+  const auto document{
+      sourcemeta::core::parse_json(R"({"kty":"oct","k":"!!!"})")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(jwk_private_oct_empty_key_value) {
+  const auto document{sourcemeta::core::parse_json(R"({"kty":"oct","k":""})")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}

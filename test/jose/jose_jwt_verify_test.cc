@@ -51,6 +51,9 @@ constexpr std::string_view SIGNED_TOKEN{
     "1m2MvKsm647PuXqhYOKlZkHOvkIV0RV8cLJ56_gDVjj7TlKQgwbTdW_"
     "71QLwLWRFGftU2EAWuqayTSpPeUA6kB4sfn7JNsweqDs7uev30m6y8BE9uzwzHuuovaN1cZz0o"
     "TAGXcx64sfbPs6HEMp5_FoU0SccxArAbnHSjA"};
+// The RFC 7515 Appendix A.1 example symmetric key
+constexpr std::string_view OCT_JWK{
+    R"JSON({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})JSON"};
 constexpr std::string_view SIGNED_KEYS{
     R"JSON({ "keys": [ { "kty": "RSA", "n": "oHTpl-jfNfBuXmBp58sW8s_77UP6j2jA0mjjKjhDkxhp7Agk-xLNGgfPCS_bjdZ6YU6FGeab8uVjkSgo9_0OCJUaF4vzEGwXmNuGawANxnZtiYjWvbJlq-2mn_L7rsqGQcSkMmyM0g4aX7dF8wB6DVrXShJ78fcrNtpeoU72YGEdjehA8qVclDFwBdpCGynxxnWJePk72lQb6gkVMqKMc3jBF8GkWf8oP_sjss-fpOjSUMR1c8_0JlTYWO46KWOZa0EO2t8H1V3imMyzbhoxRd_qZHmo46gJkG-ZdebjX0vGQllaCwu0z4kLcXIfAZhqPEkdssDGhC_txwJuhaPDFQ", "e": "AQAB" } ] })JSON"};
 } // namespace
@@ -223,4 +226,54 @@ TEST(type_mismatch) {
       std::chrono::seconds{0}, std::nullopt, "application/example")};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
+}
+
+TEST(jwt_verify_hs256_full_round_trip) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto token_string{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": "client", "exp": 2000000000 })"),
+      key.value())};
+  EXPECT_TRUE(token_string.has_value());
+  const auto token{sourcemeta::core::JWT::from(token_string.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto keys{sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(
+      R"({ "keys": [ {"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ)"
+      R"(-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"} ] })"))};
+  EXPECT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::HS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1500000000))};
+  EXPECT_FALSE(error.has_value());
+}
+
+TEST(jwt_verify_hs256_rejected_when_not_allowed) {
+  const auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(OCT_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto token_string{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": "client", "exp": 2000000000 })"),
+      key.value())};
+  EXPECT_TRUE(token_string.has_value());
+  const auto token{sourcemeta::core::JWT::from(token_string.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto keys{sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(
+      R"({ "keys": [ {"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ)"
+      R"(-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"} ] })"))};
+  EXPECT_TRUE(keys.has_value());
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::RS256}};
+  const auto error{sourcemeta::core::jwt_verify(
+      token.value(), keys.value(), allowed, "acme", "client",
+      std::chrono::system_clock::from_time_t(1500000000))};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(),
+            sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
 }

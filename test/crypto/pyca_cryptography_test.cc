@@ -63,6 +63,11 @@ auto to_curve(const std::string_view name) -> std::optional<CurveParameters> {
 // that returns a hex string through this alias
 using DigestFunction = auto (*)(const std::string_view) -> std::string;
 
+// The MAC functions are overloaded, so the registrars name the variant that
+// returns a hex string through this alias
+using MacFunction = auto (*)(const std::string_view, const std::string_view)
+    -> std::string;
+
 // Every vector in this file reduces to running a closure that asserts on data
 // captured at registration time, so a single runner carrying that closure
 // stands in for every mechanism
@@ -259,7 +264,8 @@ auto register_sha_tests(const std::filesystem::path &directory,
 }
 
 auto register_hmac_tests(const std::filesystem::path &file_path,
-                         const std::string &suite_name) -> void {
+                         const std::string &suite_name,
+                         const MacFunction function) -> void {
   std::string key_hex;
   std::string message_hex;
   std::uint64_t case_count{0};
@@ -281,10 +287,10 @@ auto register_hmac_tests(const std::filesystem::path &file_path,
       const auto current_message{message_hex};
       case_count += 1;
       register_case(suite_name, "case_" + std::to_string(case_count), [=]() {
-        EXPECT_EQ(sourcemeta::core::hmac_sha256(
-                      sourcemeta::core::hex_to_bytes(current_key).value(),
-                      sourcemeta::core::hex_to_bytes(current_message).value()),
-                  expected_tag);
+        EXPECT_EQ(
+            function(sourcemeta::core::hex_to_bytes(current_key).value(),
+                     sourcemeta::core::hex_to_bytes(current_message).value()),
+            expected_tag);
       });
     }
   });
@@ -766,7 +772,14 @@ auto main(int argc, char **argv) -> int {
                      static_cast<DigestFunction>(sourcemeta::core::sha512));
 
   register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha256.txt",
-                      "PyCA_Cryptography_HMAC_SHA256");
+                      "PyCA_Cryptography_HMAC_SHA256",
+                      sourcemeta::core::hmac_sha256);
+  register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha384.txt",
+                      "PyCA_Cryptography_HMAC_SHA384",
+                      sourcemeta::core::hmac_sha384);
+  register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha512.txt",
+                      "PyCA_Cryptography_HMAC_SHA512",
+                      sourcemeta::core::hmac_sha512);
 
   const auto rsa_path{suite_path / "asymmetric" / "RSA" / "FIPS_186-2"};
   register_rsa_sigver15_tests(rsa_path / "SigVer15_186-3.rsp");

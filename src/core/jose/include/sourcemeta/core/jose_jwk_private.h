@@ -40,7 +40,9 @@ public:
     /// The elliptic-curve key type.
     EllipticCurve,
     /// The Edwards-curve octet key pair type.
-    OctetKeyPair
+    OctetKeyPair,
+    /// The symmetric octet sequence key type.
+    Octet
   };
 
   /// A key exclusively owns its parsed private key, so it is move-only.
@@ -100,6 +102,14 @@ public:
     return this->private_key_.has_value() ? &*this->private_key_ : nullptr;
   }
 
+  // Symmetric keys carry their raw secret rather than a parsed platform key
+  // (RFC 7518 Section 6.4), and knowing the secret is required for both
+  // producing and checking an HMAC, so the private key class carries it
+  /// The raw symmetric secret, empty for asymmetric keys.
+  [[nodiscard]] auto secret() const noexcept -> std::string_view {
+    return this->secret_;
+  }
+
 private:
   JWKPrivate() = default;
   static auto parse(const JSON &value, JWKPrivate &result) -> bool;
@@ -112,6 +122,7 @@ private:
   std::optional<JWSAlgorithm> algorithm_;
   std::string curve_;
   std::optional<PrivateKey> private_key_;
+  std::string secret_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

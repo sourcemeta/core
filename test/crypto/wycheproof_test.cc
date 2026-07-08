@@ -269,15 +269,22 @@ auto register_ecdsa_tests(const std::filesystem::path &path,
   }
 }
 
+// The MAC functions are overloaded, so the registrars name the variant that
+// returns a hex string through this alias
+using MacFunction = auto (*)(const std::string_view, const std::string_view)
+    -> std::string;
+
 auto register_hmac_tests(const std::filesystem::path &path,
-                         const std::string &suite_name) -> void {
+                         const std::string &suite_name,
+                         const MacFunction function) -> void {
   const auto document{load(path)};
   const auto stem{path.stem().string()};
   for (const auto &group : document.at("testGroups").as_array()) {
     // The tag is the leading bytes of the digest, truncated to the group tag
-    // size (RFC 2104 Section 5)
-    const auto tag_bytes{
-        static_cast<std::size_t>(group.at("tagSize").to_integer()) / 8};
+    // size (RFC 2104 Section 5). The size arrives in bits and each hex
+    // character encodes four of them
+    const auto tag_characters{
+        static_cast<std::size_t>(group.at("tagSize").to_integer()) / 4};
     for (const auto &test : group.at("tests").as_array()) {
       const auto expected{test.at("result").to_string() == "valid"};
       const std::string key_hex{test.at("key").to_string()};
@@ -290,11 +297,8 @@ auto register_hmac_tests(const std::filesystem::path &path,
             const auto message{sourcemeta::core::hex_to_bytes(message_hex)};
             auto got{false};
             if (key.has_value() && message.has_value()) {
-              const auto digest{sourcemeta::core::hmac_sha256_digest(
-                  key.value(), message.value())};
-              const auto computed{sourcemeta::core::bytes_to_hex(
-                  {reinterpret_cast<const char *>(digest.data()), tag_bytes})};
-              got = computed == tag_hex;
+              const auto computed{function(key.value(), message.value())};
+              got = computed.substr(0, tag_characters) == tag_hex;
             }
 
             EXPECT_EQ(got, expected);
@@ -433,7 +437,11 @@ auto main(int argc, char **argv) -> int {
   }
 
   register_hmac_tests(vectors / "hmac_sha256_test.json",
-                      "Wycheproof_HMAC_SHA256");
+                      "Wycheproof_HMAC_SHA256", sourcemeta::core::hmac_sha256);
+  register_hmac_tests(vectors / "hmac_sha384_test.json",
+                      "Wycheproof_HMAC_SHA384", sourcemeta::core::hmac_sha384);
+  register_hmac_tests(vectors / "hmac_sha512_test.json",
+                      "Wycheproof_HMAC_SHA512", sourcemeta::core::hmac_sha512);
 
   register_eddsa_tests(vectors / "ed25519_test.json", "Wycheproof_EdDSA",
                        sourcemeta::core::EdwardsCurve::Ed25519);
