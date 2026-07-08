@@ -60,6 +60,11 @@ auto fill_node(JSON &node, const JSON &instance_object, PointerT &pointer,
                const AnnotationRange<PointerT> &range,
                std::vector<JSON> &standalone) -> void;
 
+template <typename PointerT>
+auto materialize_member(const JSON &value, PointerT &pointer,
+                        const AnnotationRange<PointerT> &range,
+                        std::vector<JSON> &standalone) -> std::optional<JSON>;
+
 // Append an object key to the pointer, copying it for an owning pointer and
 // taking a non-owning view for a weak pointer.
 template <typename PointerT>
@@ -100,23 +105,24 @@ auto types_to_array(const std::vector<JSON::String> &types) -> JSON {
 
 // The property array of node under the given predicate, creating it as needed.
 auto property_target(JSON &node, const JSON::StringView predicate) -> JSON & {
-  if (!node.defines(predicate)) {
-    node.assign_assume_new(JSON::String{predicate}, JSON::make_array());
+  const auto hash{node.as_object().hash(predicate)};
+  const auto existing{node.try_at(predicate, hash)};
+  if (existing != nullptr) {
+    return *existing;
   }
-  return node.at(predicate);
+  return node.assign_assume_new(JSON::String{predicate}, JSON::make_array(),
+                                hash);
 }
 
 // The property array nested under @reverse and the given predicate.
 auto reverse_target(JSON &node, const JSON::StringView predicate) -> JSON & {
-  if (!node.defines(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)) {
-    node.assign_assume_new(JSON::String{KEYWORD_REVERSE}, JSON::make_object(),
-                           KEYWORD_REVERSE_HASH);
-  }
-  auto &reverse{node.at(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)};
-  if (!reverse.defines(predicate)) {
-    reverse.assign_assume_new(JSON::String{predicate}, JSON::make_array());
-  }
-  return reverse.at(predicate);
+  const auto existing{node.try_at(KEYWORD_REVERSE, KEYWORD_REVERSE_HASH)};
+  auto &reverse{existing != nullptr
+                    ? *existing
+                    : node.assign_assume_new(JSON::String{KEYWORD_REVERSE},
+                                             JSON::make_object(),
+                                             KEYWORD_REVERSE_HASH)};
+  return property_target(reverse, predicate);
 }
 
 // Attach a value under a single edge. A set, represented as a bare array,
@@ -197,9 +203,9 @@ auto build_collection(const JSON &value, PointerT &pointer,
   auto iterator{range.begin};
   for (std::size_t index = 0; index < value.size(); index += 1) {
     pointer.push_back(index);
-    auto element{materialize_value(value.at(index), pointer,
-                                   child_range(iterator, range.end, pointer),
-                                   standalone)};
+    auto element{materialize_member(value.at(index), pointer,
+                                    child_range(iterator, range.end, pointer),
+                                    standalone)};
     pointer.pop_back();
     if (!element.has_value()) {
       continue;
@@ -285,9 +291,9 @@ auto build_index_collection(const JSON &value, PointerT &pointer,
   auto iterator{range.begin};
   for (const auto key : sorted_keys(value)) {
     push_property(pointer, key.get());
-    auto element{materialize_value(value.at(key.get()), pointer,
-                                   child_range(iterator, range.end, pointer),
-                                   standalone)};
+    auto element{materialize_member(value.at(key.get()), pointer,
+                                    child_range(iterator, range.end, pointer),
+                                    standalone)};
     pointer.pop_back();
     if (!element.has_value()) {
       continue;
@@ -303,6 +309,31 @@ auto build_index_collection(const JSON &value, PointerT &pointer,
     }
   }
   return elements;
+}
+
+// An undescribed collection member still materializes with a default kind, a
+// scalar as a plain literal and a nested array as an unordered collection.
+// An undescribed object member keeps the anonymous node treatment of any
+// other position.
+template <typename PointerT>
+auto materialize_member(const JSON &value, PointerT &pointer,
+                        const AnnotationRange<PointerT> &range,
+                        std::vector<JSON> &standalone) -> std::optional<JSON> {
+  const auto described{range.begin != range.end &&
+                       (*range.begin)->pointer.size() == pointer.size()};
+  if (described || value.is_object()) {
+    return materialize_value(value, pointer, range, standalone);
+  }
+
+  if (value.is_null()) {
+    return std::nullopt;
+  }
+
+  if (value.is_array()) {
+    return build_collection(value, pointer, range, standalone, false);
+  }
+
+  return materialize_literal(JSONLDLiteral{}, value);
 }
 
 template <typename PointerT>

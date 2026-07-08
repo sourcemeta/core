@@ -16,10 +16,8 @@
 static constexpr std::size_t catalog_member_count{256};
 static constexpr std::size_t authors_per_member{3};
 static constexpr std::size_t keywords_per_member{3};
-static constexpr std::size_t identifiers_per_member{3};
-static constexpr std::size_t annotations_per_member{
-    19 + (authors_per_member * 2) + keywords_per_member +
-    identifiers_per_member};
+static constexpr std::size_t annotations_per_member{19 +
+                                                    (authors_per_member * 2)};
 static constexpr std::size_t total_annotation_count{
     2 + (catalog_member_count * annotations_per_member)};
 
@@ -32,8 +30,6 @@ static const sourcemeta::core::JSON::String authors_key{"authors"};
 static const sourcemeta::core::JSON::String name_key{"name"};
 static const sourcemeta::core::JSON::String keywords_key{"keywords"};
 static const sourcemeta::core::JSON::String identifiers_key{"identifiers"};
-static const sourcemeta::core::JSON::String doi_key{"doi"};
-static const sourcemeta::core::JSON::String oclc_key{"oclc"};
 static const sourcemeta::core::JSON::String price_key{"price"};
 static const sourcemeta::core::JSON::String currency_key{"currency"};
 static const sourcemeta::core::JSON::String value_key{"value"};
@@ -234,13 +230,6 @@ populate_member(sourcemeta::core::JSONLDWeakAnnotationList &annotations,
           .edges = {{"https://schema.org/keywords", false}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Set}});
-  for (std::size_t offset = 0; offset < keywords_per_member; offset += 1) {
-    annotations.emplace_back(
-        WeakPointer{std::cref(members_key), index, std::cref(keywords_key),
-                    offset},
-        sourcemeta::core::JSONLDDescriptor{
-            .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
-  }
 
   annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(identifiers_key)},
@@ -248,21 +237,6 @@ populate_member(sourcemeta::core::JSONLDWeakAnnotationList &annotations,
           .edges = {{"https://schema.org/identifier", false}},
           .value = sourcemeta::core::JSONLDCollection{
               .container = sourcemeta::core::JSONLDContainer::Index}});
-  annotations.emplace_back(
-      WeakPointer{std::cref(members_key), index, std::cref(identifiers_key),
-                  std::cref(isbn_key)},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
-  annotations.emplace_back(
-      WeakPointer{std::cref(members_key), index, std::cref(identifiers_key),
-                  std::cref(doi_key)},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
-  annotations.emplace_back(
-      WeakPointer{std::cref(members_key), index, std::cref(identifiers_key),
-                  std::cref(oclc_key)},
-      sourcemeta::core::JSONLDDescriptor{
-          .edges = {}, .value = sourcemeta::core::JSONLDLiteral{}});
 
   annotations.emplace_back(
       WeakPointer{std::cref(members_key), index, std::cref(price_key)},

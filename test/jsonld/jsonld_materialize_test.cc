@@ -929,7 +929,7 @@ TEST(empty_unordered_collection_adds_no_property) {
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
 
-TEST(collection_with_undescribed_elements_skips_them) {
+TEST(collection_defaults_undescribed_scalar_elements) {
   const auto instance = sourcemeta::core::parse_json(
       R"({ "authors": [ "Ada", "Unknown", "Alan" ] })");
 
@@ -958,7 +958,171 @@ TEST(collection_with_undescribed_elements_skips_them) {
     {
       "@id": "https://example.com/book",
       "https://schema.org/author": [
-        { "@list": [ { "@value": "Ada" }, { "@value": "Alan" } ] }
+        { "@list": [
+          { "@value": "Ada" }, { "@value": "Unknown" }, { "@value": "Alan" }
+        ] }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(unordered_collection_defaults_all_undescribed_elements) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "keywords": [ "reference", "standards", true, 5 ] })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/book"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"keywords"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/keywords", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Set}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/keywords": [
+        { "@value": "reference" },
+        { "@value": "standards" },
+        { "@value": true },
+        { "@value": 5 }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(index_collection_defaults_undescribed_members) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "identifiers": { "doi": "10.1000/1", "isbn": "978-0" } })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/book"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"identifiers"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/identifier", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Index}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/identifier": [
+        { "@value": "10.1000/1" },
+        { "@value": "978-0" }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(collection_defaults_nested_undescribed_array_as_set) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "groups": [ [ "a", "b" ], "c" ] })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"groups"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/member", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Set}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/member": [
+        { "@value": "a" }, { "@value": "b" }, { "@value": "c" }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(collection_undescribed_object_element_is_still_dropped) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "keywords": [ "reference", { "label": "extra" } ] })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/book"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"keywords"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/keywords", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Set}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/keywords": [ { "@value": "reference" } ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(collection_null_element_is_still_dropped) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "keywords": [ "reference", null, "standards" ] })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::Pointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/book"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"keywords"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/keywords", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Set}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/keywords": [
+        { "@value": "reference" }, { "@value": "standards" }
       ]
     }
   ])");
@@ -1807,6 +1971,40 @@ TEST(index_container_empty) {
 
   const auto expected = sourcemeta::core::parse_json(R"([
     { "@id": "https://example.com/blog" }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(weak_collection_defaults_undescribed_scalar_elements) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "keywords": [ "reference", "standards" ] })");
+
+  const sourcemeta::core::JSON::String keywords_key{"keywords"};
+
+  sourcemeta::core::JSONLDWeakAnnotationList annotations;
+  annotations.emplace_back(sourcemeta::core::WeakPointer{},
+                           sourcemeta::core::JSONLDDescriptor{
+                               .edges = {},
+                               .value = sourcemeta::core::JSONLDNode{
+                                   .id = "https://example.com/book"}});
+  annotations.emplace_back(
+      sourcemeta::core::WeakPointer{std::cref(keywords_key)},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://schema.org/keywords", false}},
+          .value = sourcemeta::core::JSONLDCollection{
+              .container = sourcemeta::core::JSONLDContainer::Set}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/book",
+      "https://schema.org/keywords": [
+        { "@value": "reference" }, { "@value": "standards" }
+      ]
+    }
   ])");
 
   const auto result{
