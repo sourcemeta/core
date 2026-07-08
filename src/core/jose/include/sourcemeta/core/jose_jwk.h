@@ -22,8 +22,9 @@ namespace sourcemeta::core {
 
 /// @ingroup jose
 /// A parsed public JSON Web Key (RFC 7517), restricted to RSA, elliptic curve,
-/// and octet key pair (RFC 8037) keys. The key owns its decoded material, so
-/// the source JSON document does not need to outlive it. For example:
+/// octet key pair (RFC 8037), and symmetric octet (RFC 7518 Section 6.4) keys.
+/// The key owns its decoded material, so the source JSON document does not need
+/// to outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jose.h>

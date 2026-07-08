@@ -44,7 +44,7 @@ constexpr std::string_view EC_JWK{
 // The RFC 7515 Appendix A.1 example key and signing input
 constexpr std::string_view OCT_JWK{
     R"JSON({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})JSON"};
-constexpr std::string_view HS256_SIGNING_INPUT{
+constexpr std::string_view RFC7515_A1_SIGNING_INPUT{
     "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
     "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlL"
     "mNvbS9pc19yb290Ijp0cnVlfQ"};
@@ -193,7 +193,7 @@ TEST(jws_verify_signature_hs256_known_answer) {
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
   EXPECT_TRUE(signature.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS256, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
@@ -217,7 +217,7 @@ TEST(jws_verify_signature_hs256_rejects_truncated_signature) {
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
   EXPECT_TRUE(signature.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS256, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
       std::string_view{signature.value()}.substr(0, 16), key.value()));
 }
 
@@ -229,7 +229,7 @@ TEST(jws_verify_signature_hs256_rejects_rsa_key) {
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
   EXPECT_TRUE(signature.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS256, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
@@ -241,7 +241,7 @@ TEST(jws_verify_signature_rs256_rejects_oct_key) {
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
   EXPECT_TRUE(signature.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::RS256, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::RS256, RFC7515_A1_SIGNING_INPUT,
       signature.value(), key.value()));
 }
 
@@ -250,7 +250,7 @@ TEST(jws_verify_signature_hs512_rejects_short_secret) {
       R"({"kty":"oct","k":"hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"})"))};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS512, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS512, RFC7515_A1_SIGNING_INPUT,
       std::string(64, 'x'), key.value()));
 }
 
@@ -263,6 +263,6 @@ TEST(jws_verify_signature_hs256_key_declaring_other_algorithm) {
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")};
   EXPECT_TRUE(signature.has_value());
   EXPECT_FALSE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS256, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS256, RFC7515_A1_SIGNING_INPUT,
       signature.value(), key.value()));
 }

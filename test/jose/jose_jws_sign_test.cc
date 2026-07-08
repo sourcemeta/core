@@ -32,7 +32,7 @@ static const std::string EC_PUBLIC_JWK{
 static const std::string OCT_JWK{
     R"({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T)"
     R"(-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})"};
-static const std::string_view HS256_SIGNING_INPUT{
+static const std::string_view RFC7515_A1_SIGNING_INPUT{
     "eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9."
     "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlL"
     "mNvbS9pc19yb290Ijp0cnVlfQ"};
@@ -110,8 +110,9 @@ TEST(jws_sign_hs256_known_answer) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OCT_JWK))};
   EXPECT_TRUE(key.has_value());
-  const auto signature{sourcemeta::core::jws_sign(
-      sourcemeta::core::JWSAlgorithm::HS256, HS256_SIGNING_INPUT, key.value())};
+  const auto signature{
+      sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::HS256,
+                                 RFC7515_A1_SIGNING_INPUT, key.value())};
   EXPECT_TRUE(signature.has_value());
   EXPECT_EQ(sourcemeta::core::base64url_encode(signature.value()),
             "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
@@ -121,15 +122,16 @@ TEST(jws_sign_hs384_round_trips) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OCT_JWK))};
   EXPECT_TRUE(key.has_value());
-  const auto signature{sourcemeta::core::jws_sign(
-      sourcemeta::core::JWSAlgorithm::HS384, HS256_SIGNING_INPUT, key.value())};
+  const auto signature{
+      sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::HS384,
+                                 RFC7515_A1_SIGNING_INPUT, key.value())};
   EXPECT_TRUE(signature.has_value());
   EXPECT_EQ(signature.value().size(), 48);
   const auto public_key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
   EXPECT_TRUE(public_key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS384, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS384, RFC7515_A1_SIGNING_INPUT,
       signature.value(), public_key.value()));
 }
 
@@ -137,23 +139,25 @@ TEST(jws_sign_hs512_round_trips) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OCT_JWK))};
   EXPECT_TRUE(key.has_value());
-  const auto signature{sourcemeta::core::jws_sign(
-      sourcemeta::core::JWSAlgorithm::HS512, HS256_SIGNING_INPUT, key.value())};
+  const auto signature{
+      sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::HS512,
+                                 RFC7515_A1_SIGNING_INPUT, key.value())};
   EXPECT_TRUE(signature.has_value());
   EXPECT_EQ(signature.value().size(), 64);
   const auto public_key{
       sourcemeta::core::JWK::from(sourcemeta::core::parse_json(OCT_JWK))};
   EXPECT_TRUE(public_key.has_value());
   EXPECT_TRUE(sourcemeta::core::jws_verify_signature(
-      sourcemeta::core::JWSAlgorithm::HS512, HS256_SIGNING_INPUT,
+      sourcemeta::core::JWSAlgorithm::HS512, RFC7515_A1_SIGNING_INPUT,
       signature.value(), public_key.value()));
 }
 
 TEST(jws_sign_hs256_rejects_asymmetric_key) {
   const auto key{sourcemeta::core::JWKPrivate::from_pem(EC_PRIVATE_KEY_PEM)};
   EXPECT_TRUE(key.has_value());
-  const auto signature{sourcemeta::core::jws_sign(
-      sourcemeta::core::JWSAlgorithm::HS256, HS256_SIGNING_INPUT, key.value())};
+  const auto signature{
+      sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::HS256,
+                                 RFC7515_A1_SIGNING_INPUT, key.value())};
   EXPECT_FALSE(signature.has_value());
 }
 
@@ -161,8 +165,9 @@ TEST(jws_sign_es256_rejects_oct_key) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OCT_JWK))};
   EXPECT_TRUE(key.has_value());
-  const auto signature{sourcemeta::core::jws_sign(
-      sourcemeta::core::JWSAlgorithm::ES256, HS256_SIGNING_INPUT, key.value())};
+  const auto signature{
+      sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::ES256,
+                                 RFC7515_A1_SIGNING_INPUT, key.value())};
   EXPECT_FALSE(signature.has_value());
 }
 
@@ -170,7 +175,8 @@ TEST(jws_sign_hs512_rejects_short_secret) {
   const auto key{sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(
       R"({"kty":"oct","k":"hJtXIZ2uSN5kbQfbtTNWbpdmhkV8FJG-Onbc6mxCcYg"})"))};
   EXPECT_TRUE(key.has_value());
-  const auto signature{sourcemeta::core::jws_sign(
-      sourcemeta::core::JWSAlgorithm::HS512, HS256_SIGNING_INPUT, key.value())};
+  const auto signature{
+      sourcemeta::core::jws_sign(sourcemeta::core::JWSAlgorithm::HS512,
+                                 RFC7515_A1_SIGNING_INPUT, key.value())};
   EXPECT_FALSE(signature.has_value());
 }

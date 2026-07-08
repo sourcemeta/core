@@ -19,9 +19,10 @@ namespace sourcemeta::core {
 
 /// @ingroup jose
 /// A parsed private JSON Web Key (RFC 7517), the private counterpart to a
-/// public one, restricted to RSA, elliptic curve, and octet key pair (RFC 8037)
-/// keys. The key owns its decoded material, so neither the source JSON document
-/// nor the source PEM needs to outlive it. For example:
+/// public one, restricted to RSA, elliptic curve, octet key pair (RFC 8037),
+/// and symmetric octet (RFC 7518 Section 6.4) keys. The key owns its decoded
+/// material, so neither the source JSON document nor the source PEM needs to
+/// outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jose.h>
