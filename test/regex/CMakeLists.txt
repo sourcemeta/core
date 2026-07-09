@@ -1,8 +1,8 @@
 sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME regex
   SOURCES
     regex_matches_if_valid_test.cc
-    regex_matches_ecma262_test.cc
-    regex_matches_rfc9485_test.cc
+    regex_permissive_matches_ecma262_test.cc
+    regex_permissive_matches_rfc9485_test.cc
     regex_is_ecma_test.cc
     regex_to_regex_test.cc
     regex_test.cc)

@@ -70,12 +70,19 @@ enum class RegexIndex : std::uint8_t {
 #endif
 
 /// @ingroup regex
+/// The dialects that a regular expression pattern can be interpreted with.
+enum class RegexDialect : std::uint8_t {
+  /// A permissive superset of ECMA 262 with PCRE2 extensions
+  Permissive
+};
+
+/// @ingroup regex
 ///
 /// Compile a regular expression from a string. If the regular expression is
 /// invalid, no value is returned. In this function:
 ///
-/// - Regexes are NOT automatically anchored
-/// - Regexes assume `DOTALL`
+/// - Permissive regexes are NOT automatically anchored
+/// - Permissive regexes assume `DOTALL`
 /// - Regexes assume Unicode
 /// - Regexes are case sensitive
 /// - No matching happens (only boolean validation)
@@ -87,11 +94,14 @@ enum class RegexIndex : std::uint8_t {
 /// #include <cassert>
 ///
 /// const sourcemeta::core::Regex regex{
-///   sourcemeta::core::to_regex("^foo")};
+///   sourcemeta::core::to_regex("^foo",
+///     sourcemeta::core::RegexDialect::Permissive)};
 /// assert(regex.has_value());
 /// ```
 SOURCEMETA_CORE_REGEX_EXPORT
-auto to_regex(const std::string_view pattern) -> std::optional<Regex>;
+auto to_regex(const std::string_view pattern,
+              const RegexDialect dialect = RegexDialect::Permissive)
+    -> std::optional<Regex>;
 
 /// @ingroup regex
 ///
@@ -123,7 +133,9 @@ auto matches(const Regex &regex, const std::string_view value) -> bool;
 /// ```
 SOURCEMETA_CORE_REGEX_EXPORT
 auto matches_if_valid(const std::string_view pattern,
-                      const std::string_view value) -> bool;
+                      const std::string_view value,
+                      const RegexDialect dialect = RegexDialect::Permissive)
+    -> bool;
 
 /// @ingroup regex
 ///
