@@ -1054,3 +1054,65 @@ TEST(rfc9485_invalid_utf8_in_class) {
                    "[\xF0\x9F]", sourcemeta::core::RegexDialect::IRegexp)
                    .has_value());
 }
+
+TEST(rfc9485_matches_mapped_quantified_caret_rejected) {
+  // NOTE: This test deviates from RFC 9485, whose grammar permits a
+  // quantifier on an unescaped caret. We follow the RFC 9485 Section 5.4
+  // engine mapping instead, under which a quantified caret is not a valid
+  // expression, exactly as in the Section 5.3 ECMAScript mapping
+  const auto regex{sourcemeta::core::to_regex(
+      "^*", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(rfc9485_matches_mapped_quantified_dollar_rejected) {
+  // NOTE: This test deviates from RFC 9485, whose grammar permits a
+  // quantifier on an unescaped dollar. We follow the RFC 9485 Section 5.4
+  // engine mapping instead, under which a quantified dollar is not a valid
+  // expression, exactly as in the Section 5.3 ECMAScript mapping
+  const auto regex{sourcemeta::core::to_regex(
+      "a$?", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(rfc9485_matches_empty_group) {
+  const auto regex{sourcemeta::core::to_regex(
+      "()", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_matches_quantifier_zero_bounds) {
+  const auto regex{sourcemeta::core::to_regex(
+      "a{0,0}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
+
+TEST(rfc9485_invalid_double_brace_quantifier) {
+  const auto regex{sourcemeta::core::to_regex(
+      "a{2}{3}", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(rfc9485_invalid_category_as_range_start) {
+  const auto regex{sourcemeta::core::to_regex(
+      "[\\p{Lu}-z]", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(rfc9485_invalid_close_bracket_first_in_class) {
+  const auto regex{sourcemeta::core::to_regex(
+      "[]-a]", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_FALSE(regex.has_value());
+}
+
+TEST(rfc9485_matches_class_double_dash) {
+  const auto regex{sourcemeta::core::to_regex(
+      "[--]", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
+}
