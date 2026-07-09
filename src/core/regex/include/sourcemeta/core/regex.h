@@ -73,7 +73,13 @@ enum class RegexIndex : std::uint8_t {
 /// The dialects that a regular expression pattern can be interpreted with.
 enum class RegexDialect : std::uint8_t {
   /// A permissive superset of ECMA 262 with PCRE2 extensions
-  Permissive
+  Permissive,
+  /// Strict RFC 9485 I-Regexp, where any pattern outside the grammar is
+  /// rejected and matching considers the whole input. Patterns are
+  /// interpreted through the RFC 9485 Section 5.4 engine mapping, so an
+  /// unescaped caret or dollar acts as an assertion instead of a literal
+  /// and rejects quantification
+  IRegexp
 };
 
 /// @ingroup regex
@@ -83,6 +89,7 @@ enum class RegexDialect : std::uint8_t {
 ///
 /// - Permissive regexes are NOT automatically anchored
 /// - Permissive regexes assume `DOTALL`
+/// - RFC 9485 regexes match the whole input
 /// - Regexes assume Unicode
 /// - Regexes are case sensitive
 /// - No matching happens (only boolean validation)
