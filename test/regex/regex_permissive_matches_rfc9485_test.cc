@@ -6,7 +6,8 @@
 TEST(rfc9485_edge_dollar_literal) {
   // NOTE: This test deviates from RFC 9485, which allows $ as literal in
   // middle. We prefer ECMA-262 compliance where $ is ALWAYS an assertion.
-  const auto regex{sourcemeta::core::to_regex("a$b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a$b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a$b"));
   // In ECMA-262, $ is always an end assertion, never a literal
@@ -19,7 +20,8 @@ TEST(rfc9485_edge_dollar_literal) {
 TEST(rfc9485_preprocessing_escaped_backslash_dollar) {
   // NOTE: This test deviates from RFC 9485, which treats $ as literal in
   // middle. We prefer ECMA-262 compliance where $ is ALWAYS an assertion.
-  const auto regex{sourcemeta::core::to_regex("\\\\$foo")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\\\$foo", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\$foo"));
   // In ECMA-262: \\ = literal backslash, $ = end assertion, foo = literal "foo"
@@ -30,7 +32,8 @@ TEST(rfc9485_preprocessing_escaped_backslash_dollar) {
 }
 
 TEST(rfc9485_literal_single_char) {
-  const auto regex{sourcemeta::core::to_regex("a")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -39,7 +42,8 @@ TEST(rfc9485_literal_single_char) {
 }
 
 TEST(rfc9485_literal_sequence) {
-  const auto regex{sourcemeta::core::to_regex("hello")};
+  const auto regex{sourcemeta::core::to_regex(
+      "hello", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("hello"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "hello"));
@@ -48,7 +52,8 @@ TEST(rfc9485_literal_sequence) {
 }
 
 TEST(rfc9485_dot_wildcard) {
-  const auto regex{sourcemeta::core::to_regex("a.c")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a.c", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a.c"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
@@ -58,7 +63,8 @@ TEST(rfc9485_dot_wildcard) {
 }
 
 TEST(rfc9485_quantifier_star) {
-  const auto regex{sourcemeta::core::to_regex("ab*c")};
+  const auto regex{sourcemeta::core::to_regex(
+      "ab*c", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("ab*c"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ac"));
@@ -69,7 +75,8 @@ TEST(rfc9485_quantifier_star) {
 }
 
 TEST(rfc9485_quantifier_plus) {
-  const auto regex{sourcemeta::core::to_regex("ab+c")};
+  const auto regex{sourcemeta::core::to_regex(
+      "ab+c", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("ab+c"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
@@ -79,7 +86,8 @@ TEST(rfc9485_quantifier_plus) {
 }
 
 TEST(rfc9485_quantifier_question) {
-  const auto regex{sourcemeta::core::to_regex("ab?c")};
+  const auto regex{sourcemeta::core::to_regex(
+      "ab?c", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("ab?c"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ac"));
@@ -88,7 +96,8 @@ TEST(rfc9485_quantifier_question) {
 }
 
 TEST(rfc9485_quantifier_exact) {
-  const auto regex{sourcemeta::core::to_regex("a{3}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{3}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{3}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aaa"));
@@ -97,7 +106,8 @@ TEST(rfc9485_quantifier_exact) {
 }
 
 TEST(rfc9485_quantifier_at_least) {
-  const auto regex{sourcemeta::core::to_regex("a{2,}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{2,}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aa"));
@@ -107,7 +117,8 @@ TEST(rfc9485_quantifier_at_least) {
 }
 
 TEST(rfc9485_quantifier_range) {
-  const auto regex{sourcemeta::core::to_regex("a{2,4}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{2,4}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,4}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aa"));
@@ -118,7 +129,8 @@ TEST(rfc9485_quantifier_range) {
 }
 
 TEST(rfc9485_alternation_simple) {
-  const auto regex{sourcemeta::core::to_regex("cat|dog")};
+  const auto regex{sourcemeta::core::to_regex(
+      "cat|dog", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("cat|dog"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "cat"));
@@ -127,7 +139,8 @@ TEST(rfc9485_alternation_simple) {
 }
 
 TEST(rfc9485_alternation_multiple) {
-  const auto regex{sourcemeta::core::to_regex("red|green|blue")};
+  const auto regex{sourcemeta::core::to_regex(
+      "red|green|blue", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("red|green|blue"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "red"));
@@ -137,7 +150,8 @@ TEST(rfc9485_alternation_multiple) {
 }
 
 TEST(rfc9485_alternation_empty_branch) {
-  const auto regex{sourcemeta::core::to_regex("a|")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a|", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a|"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -146,7 +160,8 @@ TEST(rfc9485_alternation_empty_branch) {
 }
 
 TEST(rfc9485_charclass_simple) {
-  const auto regex{sourcemeta::core::to_regex("[abc]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[abc]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[abc]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -156,7 +171,8 @@ TEST(rfc9485_charclass_simple) {
 }
 
 TEST(rfc9485_charclass_range) {
-  const auto regex{sourcemeta::core::to_regex("[a-z]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a-z]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -167,7 +183,8 @@ TEST(rfc9485_charclass_range) {
 }
 
 TEST(rfc9485_charclass_multiple_ranges) {
-  const auto regex{sourcemeta::core::to_regex("[a-zA-Z0-9]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a-zA-Z0-9]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-zA-Z0-9]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -177,7 +194,8 @@ TEST(rfc9485_charclass_multiple_ranges) {
 }
 
 TEST(rfc9485_charclass_negated) {
-  const auto regex{sourcemeta::core::to_regex("[^abc]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[^abc]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^abc]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "d"));
@@ -188,7 +206,8 @@ TEST(rfc9485_charclass_negated) {
 }
 
 TEST(rfc9485_charclass_dash_at_start) {
-  const auto regex{sourcemeta::core::to_regex("[-abc]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[-abc]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-abc]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
@@ -197,7 +216,8 @@ TEST(rfc9485_charclass_dash_at_start) {
 }
 
 TEST(rfc9485_charclass_dash_at_end) {
-  const auto regex{sourcemeta::core::to_regex("[abc-]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[abc-]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[abc-]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
@@ -206,7 +226,8 @@ TEST(rfc9485_charclass_dash_at_end) {
 }
 
 TEST(rfc9485_escape_left_paren) {
-  const auto regex{sourcemeta::core::to_regex("\\(test")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\(test", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\(test"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "(test"));
@@ -214,7 +235,8 @@ TEST(rfc9485_escape_left_paren) {
 }
 
 TEST(rfc9485_escape_right_paren) {
-  const auto regex{sourcemeta::core::to_regex("test\\)")};
+  const auto regex{sourcemeta::core::to_regex(
+      "test\\)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("test\\)"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "test)"));
@@ -222,7 +244,8 @@ TEST(rfc9485_escape_right_paren) {
 }
 
 TEST(rfc9485_escape_left_bracket) {
-  const auto regex{sourcemeta::core::to_regex("\\[test")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\[test", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\[test"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "[test"));
@@ -230,7 +253,8 @@ TEST(rfc9485_escape_left_bracket) {
 }
 
 TEST(rfc9485_escape_right_bracket) {
-  const auto regex{sourcemeta::core::to_regex("test\\]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "test\\]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("test\\]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "test]"));
@@ -238,7 +262,8 @@ TEST(rfc9485_escape_right_bracket) {
 }
 
 TEST(rfc9485_escape_left_brace) {
-  const auto regex{sourcemeta::core::to_regex("\\{test")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\{test", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\{test"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "{test"));
@@ -246,7 +271,8 @@ TEST(rfc9485_escape_left_brace) {
 }
 
 TEST(rfc9485_escape_right_brace) {
-  const auto regex{sourcemeta::core::to_regex("test\\}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "test\\}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("test\\}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "test}"));
@@ -254,7 +280,8 @@ TEST(rfc9485_escape_right_brace) {
 }
 
 TEST(rfc9485_escape_asterisk) {
-  const auto regex{sourcemeta::core::to_regex("a\\*b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\*b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\*b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a*b"));
@@ -263,7 +290,8 @@ TEST(rfc9485_escape_asterisk) {
 }
 
 TEST(rfc9485_escape_plus) {
-  const auto regex{sourcemeta::core::to_regex("a\\+b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\+b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\+b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a+b"));
@@ -271,7 +299,8 @@ TEST(rfc9485_escape_plus) {
 }
 
 TEST(rfc9485_escape_question) {
-  const auto regex{sourcemeta::core::to_regex("a\\?b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\?b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\?b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a?b"));
@@ -279,7 +308,8 @@ TEST(rfc9485_escape_question) {
 }
 
 TEST(rfc9485_escape_dot) {
-  const auto regex{sourcemeta::core::to_regex("a\\.b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\.b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\.b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a.b"));
@@ -287,7 +317,8 @@ TEST(rfc9485_escape_dot) {
 }
 
 TEST(rfc9485_escape_dash) {
-  const auto regex{sourcemeta::core::to_regex("a\\-b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\-b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\-b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a-b"));
@@ -295,7 +326,8 @@ TEST(rfc9485_escape_dash) {
 }
 
 TEST(rfc9485_escape_newline) {
-  const auto regex{sourcemeta::core::to_regex("a\\nb")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\nb", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\nb"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a\nb"));
@@ -303,7 +335,8 @@ TEST(rfc9485_escape_newline) {
 }
 
 TEST(rfc9485_escape_carriage_return) {
-  const auto regex{sourcemeta::core::to_regex("a\\rb")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\rb", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\rb"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a\rb"));
@@ -311,7 +344,8 @@ TEST(rfc9485_escape_carriage_return) {
 }
 
 TEST(rfc9485_escape_tab) {
-  const auto regex{sourcemeta::core::to_regex("a\\tb")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\tb", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\tb"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a\tb"));
@@ -319,7 +353,8 @@ TEST(rfc9485_escape_tab) {
 }
 
 TEST(rfc9485_unicode_property_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\p{L}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{L}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{L}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -331,7 +366,8 @@ TEST(rfc9485_unicode_property_letter) {
 }
 
 TEST(rfc9485_unicode_property_uppercase_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Lu}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Lu}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lu}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
@@ -341,7 +377,8 @@ TEST(rfc9485_unicode_property_uppercase_letter) {
 }
 
 TEST(rfc9485_unicode_property_lowercase_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Ll}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Ll}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Ll}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -351,7 +388,8 @@ TEST(rfc9485_unicode_property_lowercase_letter) {
 }
 
 TEST(rfc9485_unicode_property_titlecase_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Lt}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Lt}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lt}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u01C5"));
@@ -359,7 +397,8 @@ TEST(rfc9485_unicode_property_titlecase_letter) {
 }
 
 TEST(rfc9485_unicode_property_modifier_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Lm}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Lm}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lm}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u02B0"));
@@ -367,7 +406,8 @@ TEST(rfc9485_unicode_property_modifier_letter) {
 }
 
 TEST(rfc9485_unicode_property_other_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Lo}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Lo}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lo}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "中"));
@@ -375,7 +415,8 @@ TEST(rfc9485_unicode_property_other_letter) {
 }
 
 TEST(rfc9485_unicode_property_mark) {
-  const auto regex{sourcemeta::core::to_regex("\\p{M}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{M}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{M}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u0300"));
@@ -383,7 +424,8 @@ TEST(rfc9485_unicode_property_mark) {
 }
 
 TEST(rfc9485_unicode_property_nonspacing_mark) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Mn}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Mn}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Mn}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u0300"));
@@ -391,7 +433,8 @@ TEST(rfc9485_unicode_property_nonspacing_mark) {
 }
 
 TEST(rfc9485_unicode_property_spacing_mark) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Mc}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Mc}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Mc}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u0903"));
@@ -399,7 +442,8 @@ TEST(rfc9485_unicode_property_spacing_mark) {
 }
 
 TEST(rfc9485_unicode_property_enclosing_mark) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Me}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Me}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Me}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u0488"));
@@ -407,7 +451,8 @@ TEST(rfc9485_unicode_property_enclosing_mark) {
 }
 
 TEST(rfc9485_unicode_property_number) {
-  const auto regex{sourcemeta::core::to_regex("\\p{N}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{N}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{N}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "0"));
@@ -417,7 +462,8 @@ TEST(rfc9485_unicode_property_number) {
 }
 
 TEST(rfc9485_unicode_property_decimal_number) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Nd}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Nd}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Nd}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "0"));
@@ -427,7 +473,8 @@ TEST(rfc9485_unicode_property_decimal_number) {
 }
 
 TEST(rfc9485_unicode_property_letter_number) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Nl}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Nl}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Nl}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u2160"));
@@ -435,7 +482,8 @@ TEST(rfc9485_unicode_property_letter_number) {
 }
 
 TEST(rfc9485_unicode_property_other_number) {
-  const auto regex{sourcemeta::core::to_regex("\\p{No}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{No}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{No}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u00B2"));
@@ -443,7 +491,8 @@ TEST(rfc9485_unicode_property_other_number) {
 }
 
 TEST(rfc9485_unicode_property_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{P}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{P}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{P}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "!"));
@@ -453,7 +502,8 @@ TEST(rfc9485_unicode_property_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_connector_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Pc}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Pc}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pc}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "_"));
@@ -461,7 +511,8 @@ TEST(rfc9485_unicode_property_connector_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_dash_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Pd}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Pd}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pd}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
@@ -469,7 +520,8 @@ TEST(rfc9485_unicode_property_dash_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_open_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Ps}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Ps}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Ps}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "("));
@@ -478,7 +530,8 @@ TEST(rfc9485_unicode_property_open_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_close_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Pe}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Pe}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pe}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ")"));
@@ -487,7 +540,8 @@ TEST(rfc9485_unicode_property_close_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_initial_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Pi}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Pi}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pi}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u00AB"));
@@ -495,7 +549,8 @@ TEST(rfc9485_unicode_property_initial_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_final_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Pf}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Pf}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Pf}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u00BB"));
@@ -503,7 +558,8 @@ TEST(rfc9485_unicode_property_final_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_other_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Po}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Po}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Po}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "!"));
@@ -512,7 +568,8 @@ TEST(rfc9485_unicode_property_other_punctuation) {
 }
 
 TEST(rfc9485_unicode_property_separator) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Z}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Z}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Z}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " "));
@@ -521,7 +578,8 @@ TEST(rfc9485_unicode_property_separator) {
 }
 
 TEST(rfc9485_unicode_property_space_separator) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Zs}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Zs}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Zs}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), " "));
@@ -530,7 +588,8 @@ TEST(rfc9485_unicode_property_space_separator) {
 }
 
 TEST(rfc9485_unicode_property_line_separator) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Zl}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Zl}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Zl}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u2028"));
@@ -538,7 +597,8 @@ TEST(rfc9485_unicode_property_line_separator) {
 }
 
 TEST(rfc9485_unicode_property_paragraph_separator) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Zp}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Zp}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Zp}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u2029"));
@@ -546,7 +606,8 @@ TEST(rfc9485_unicode_property_paragraph_separator) {
 }
 
 TEST(rfc9485_unicode_property_symbol) {
-  const auto regex{sourcemeta::core::to_regex("\\p{S}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{S}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{S}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
@@ -556,7 +617,8 @@ TEST(rfc9485_unicode_property_symbol) {
 }
 
 TEST(rfc9485_unicode_property_math_symbol) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Sm}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Sm}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Sm}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "+"));
@@ -565,7 +627,8 @@ TEST(rfc9485_unicode_property_math_symbol) {
 }
 
 TEST(rfc9485_unicode_property_currency_symbol) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Sc}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Sc}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Sc}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "$"));
@@ -574,7 +637,8 @@ TEST(rfc9485_unicode_property_currency_symbol) {
 }
 
 TEST(rfc9485_unicode_property_modifier_symbol) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Sk}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Sk}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Sk}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^"));
@@ -582,7 +646,8 @@ TEST(rfc9485_unicode_property_modifier_symbol) {
 }
 
 TEST(rfc9485_unicode_property_other_symbol) {
-  const auto regex{sourcemeta::core::to_regex("\\p{So}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{So}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{So}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "©"));
@@ -590,7 +655,8 @@ TEST(rfc9485_unicode_property_other_symbol) {
 }
 
 TEST(rfc9485_unicode_property_other) {
-  const auto regex{sourcemeta::core::to_regex("\\p{C}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{C}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{C}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), std::string(1, '\0')));
@@ -598,7 +664,8 @@ TEST(rfc9485_unicode_property_other) {
 }
 
 TEST(rfc9485_unicode_property_control) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Cc}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Cc}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cc}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), std::string(1, '\0')));
@@ -607,7 +674,8 @@ TEST(rfc9485_unicode_property_control) {
 }
 
 TEST(rfc9485_unicode_property_format) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Cf}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Cf}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cf}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\u00AD"));
@@ -615,13 +683,15 @@ TEST(rfc9485_unicode_property_format) {
 }
 
 TEST(rfc9485_unicode_property_unassigned) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Cn}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Cn}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Cn}"));
 }
 
 TEST(rfc9485_unicode_property_private_use) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Co}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Co}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Co}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\uE000"));
@@ -629,7 +699,8 @@ TEST(rfc9485_unicode_property_private_use) {
 }
 
 TEST(rfc9485_unicode_property_complement_letter) {
-  const auto regex{sourcemeta::core::to_regex("\\P{L}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\P{L}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{L}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "5"));
@@ -638,7 +709,8 @@ TEST(rfc9485_unicode_property_complement_letter) {
 }
 
 TEST(rfc9485_unicode_property_complement_number) {
-  const auto regex{sourcemeta::core::to_regex("\\P{N}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\P{N}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{N}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -647,7 +719,8 @@ TEST(rfc9485_unicode_property_complement_number) {
 }
 
 TEST(rfc9485_unicode_property_complement_punctuation) {
-  const auto regex{sourcemeta::core::to_regex("\\P{P}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\P{P}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{P}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -656,7 +729,8 @@ TEST(rfc9485_unicode_property_complement_punctuation) {
 }
 
 TEST(rfc9485_group_simple) {
-  const auto regex{sourcemeta::core::to_regex("(ab)c")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(ab)c", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(ab)c"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
@@ -664,7 +738,8 @@ TEST(rfc9485_group_simple) {
 }
 
 TEST(rfc9485_group_nested) {
-  const auto regex{sourcemeta::core::to_regex("((ab)c)")};
+  const auto regex{sourcemeta::core::to_regex(
+      "((ab)c)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((ab)c)"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
@@ -672,7 +747,8 @@ TEST(rfc9485_group_nested) {
 }
 
 TEST(rfc9485_group_with_quantifier) {
-  const auto regex{sourcemeta::core::to_regex("(ab)+")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(ab)+", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(ab)+"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
@@ -682,7 +758,8 @@ TEST(rfc9485_group_with_quantifier) {
 }
 
 TEST(rfc9485_group_with_alternation) {
-  const auto regex{sourcemeta::core::to_regex("(cat|dog)s")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(cat|dog)s", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(cat|dog)s"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "cats"));
@@ -691,7 +768,8 @@ TEST(rfc9485_group_with_alternation) {
 }
 
 TEST(rfc9485_complex_email_like) {
-  const auto regex{sourcemeta::core::to_regex("[a-z]+@[a-z]+\\.[a-z]+")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a-z]+@[a-z]+\\.[a-z]+", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z]+@[a-z]+\\.[a-z]+"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "user@example.com"));
@@ -700,7 +778,8 @@ TEST(rfc9485_complex_email_like) {
 }
 
 TEST(rfc9485_complex_identifier) {
-  const auto regex{sourcemeta::core::to_regex("[a-zA-Z_][a-zA-Z0-9_]*")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a-zA-Z_][a-zA-Z0-9_]*", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-zA-Z_][a-zA-Z0-9_]*"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "variable1"));
@@ -710,7 +789,8 @@ TEST(rfc9485_complex_identifier) {
 }
 
 TEST(rfc9485_complex_unicode_word) {
-  const auto regex{sourcemeta::core::to_regex("\\p{L}+")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{L}+", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{L}+"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "hello"));
@@ -720,7 +800,8 @@ TEST(rfc9485_complex_unicode_word) {
 }
 
 TEST(rfc9485_complex_mixed_quantifiers) {
-  const auto regex{sourcemeta::core::to_regex("a{2,3}b+c*")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{2,3}b+c*", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{2,3}b+c*"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aab"));
@@ -731,7 +812,8 @@ TEST(rfc9485_complex_mixed_quantifiers) {
 }
 
 TEST(rfc9485_complex_nested_groups_quantifiers) {
-  const auto regex{sourcemeta::core::to_regex("((ab)+c)*")};
+  const auto regex{sourcemeta::core::to_regex(
+      "((ab)+c)*", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((ab)+c)*"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
@@ -742,7 +824,8 @@ TEST(rfc9485_complex_nested_groups_quantifiers) {
 }
 
 TEST(rfc9485_edge_empty_pattern) {
-  const auto regex{sourcemeta::core::to_regex("")};
+  const auto regex{sourcemeta::core::to_regex(
+      "", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(""));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
@@ -750,7 +833,8 @@ TEST(rfc9485_edge_empty_pattern) {
 }
 
 TEST(rfc9485_edge_alternation_empty_first) {
-  const auto regex{sourcemeta::core::to_regex("|abc")};
+  const auto regex{sourcemeta::core::to_regex(
+      "|abc", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("|abc"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
@@ -759,7 +843,8 @@ TEST(rfc9485_edge_alternation_empty_first) {
 }
 
 TEST(rfc9485_edge_alternation_empty_middle) {
-  const auto regex{sourcemeta::core::to_regex("a||b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a||b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a||b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -769,7 +854,8 @@ TEST(rfc9485_edge_alternation_empty_middle) {
 }
 
 TEST(rfc9485_edge_alternation_all_empty) {
-  const auto regex{sourcemeta::core::to_regex("||")};
+  const auto regex{sourcemeta::core::to_regex(
+      "||", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("||"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
@@ -777,7 +863,8 @@ TEST(rfc9485_edge_alternation_all_empty) {
 }
 
 TEST(rfc9485_edge_escape_backslash) {
-  const auto regex{sourcemeta::core::to_regex("a\\\\b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\\\b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\\\b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a\\b"));
@@ -785,7 +872,8 @@ TEST(rfc9485_edge_escape_backslash) {
 }
 
 TEST(rfc9485_edge_escape_pipe) {
-  const auto regex{sourcemeta::core::to_regex("a\\|b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\|b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\|b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a|b"));
@@ -793,14 +881,16 @@ TEST(rfc9485_edge_escape_pipe) {
 }
 
 TEST(rfc9485_edge_caret_literal) {
-  const auto regex{sourcemeta::core::to_regex("a\\^b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a\\^b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\^b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a^b"));
 }
 
 TEST(rfc9485_edge_quantifier_zero_exact) {
-  const auto regex{sourcemeta::core::to_regex("a{0}b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{0}b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0}b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
@@ -808,7 +898,8 @@ TEST(rfc9485_edge_quantifier_zero_exact) {
 }
 
 TEST(rfc9485_edge_quantifier_zero_or_more) {
-  const auto regex{sourcemeta::core::to_regex("a{0,}b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{0,}b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0,}b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
@@ -817,7 +908,8 @@ TEST(rfc9485_edge_quantifier_zero_or_more) {
 }
 
 TEST(rfc9485_edge_quantifier_zero_to_n) {
-  const auto regex{sourcemeta::core::to_regex("a{0,3}b")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{0,3}b", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{0,3}b"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "b"));
@@ -828,7 +920,8 @@ TEST(rfc9485_edge_quantifier_zero_to_n) {
 }
 
 TEST(rfc9485_edge_nested_groups_deep) {
-  const auto regex{sourcemeta::core::to_regex("(((a)))")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(((a)))", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(((a)))"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -836,7 +929,8 @@ TEST(rfc9485_edge_nested_groups_deep) {
 }
 
 TEST(rfc9485_edge_charclass_only_dash) {
-  const auto regex{sourcemeta::core::to_regex("[-]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[-]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
@@ -844,7 +938,8 @@ TEST(rfc9485_edge_charclass_only_dash) {
 }
 
 TEST(rfc9485_edge_charclass_dash_both_ends) {
-  const auto regex{sourcemeta::core::to_regex("[-a-]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[-a-]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[-a-]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "-"));
@@ -853,7 +948,8 @@ TEST(rfc9485_edge_charclass_dash_both_ends) {
 }
 
 TEST(rfc9485_edge_charclass_mixed_content) {
-  const auto regex{sourcemeta::core::to_regex("[a-z\\p{N}._-]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a-z\\p{N}._-]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-z\\p{N}._-]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -866,7 +962,8 @@ TEST(rfc9485_edge_charclass_mixed_content) {
 }
 
 TEST(rfc9485_edge_charclass_escaped_bracket) {
-  const auto regex{sourcemeta::core::to_regex("[\\[\\]]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[\\[\\]]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\[\\]]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "["));
@@ -875,7 +972,8 @@ TEST(rfc9485_edge_charclass_escaped_bracket) {
 }
 
 TEST(rfc9485_edge_charclass_multiple_ranges) {
-  const auto regex{sourcemeta::core::to_regex("[a-cA-C0-2]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a-cA-C0-2]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a-cA-C0-2]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -893,7 +991,8 @@ TEST(rfc9485_edge_charclass_multiple_ranges) {
 }
 
 TEST(rfc9485_edge_group_with_alternation_quantified) {
-  const auto regex{sourcemeta::core::to_regex("(a|b){2}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(a|b){2}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(a|b){2}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "aa"));
@@ -904,7 +1003,8 @@ TEST(rfc9485_edge_group_with_alternation_quantified) {
 }
 
 TEST(rfc9485_edge_multiple_dots) {
-  const auto regex{sourcemeta::core::to_regex("...")};
+  const auto regex{sourcemeta::core::to_regex(
+      "...", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("..."));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
@@ -914,7 +1014,8 @@ TEST(rfc9485_edge_multiple_dots) {
 }
 
 TEST(rfc9485_edge_quantifier_large_range) {
-  const auto regex{sourcemeta::core::to_regex("a{100,200}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a{100,200}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a{100,200}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), std::string(100, 'a')));
@@ -924,7 +1025,8 @@ TEST(rfc9485_edge_quantifier_large_range) {
 }
 
 TEST(rfc9485_edge_alternation_with_groups) {
-  const auto regex{sourcemeta::core::to_regex("(abc)|(def)|(ghi)")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(abc)|(def)|(ghi)", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(abc)|(def)|(ghi)"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
@@ -934,7 +1036,8 @@ TEST(rfc9485_edge_alternation_with_groups) {
 }
 
 TEST(rfc9485_edge_charclass_with_unicode_properties) {
-  const auto regex{sourcemeta::core::to_regex("[\\p{Lu}\\p{Nd}]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[\\p{Lu}\\p{Nd}]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\p{Lu}\\p{Nd}]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
@@ -944,8 +1047,9 @@ TEST(rfc9485_edge_charclass_with_unicode_properties) {
 }
 
 TEST(rfc9485_all_major_categories_combined) {
-  const auto regex{sourcemeta::core::to_regex(
-      "[\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{S}\\p{C}]")};
+  const auto regex{
+      sourcemeta::core::to_regex("[\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{S}\\p{C}]",
+                                 sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
       "[\\p{L}\\p{M}\\p{N}\\p{P}\\p{Z}\\p{S}\\p{C}]"));
@@ -957,7 +1061,8 @@ TEST(rfc9485_all_major_categories_combined) {
 }
 
 TEST(rfc9485_complement_all_major_categories) {
-  const auto regex{sourcemeta::core::to_regex("\\P{L}\\P{N}\\P{P}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\P{L}\\P{N}\\P{P}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\P{L}\\P{N}\\P{P}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "   "));
@@ -965,7 +1070,8 @@ TEST(rfc9485_complement_all_major_categories) {
 }
 
 TEST(rfc9485_edge_nested_quantifiers_group) {
-  const auto regex{sourcemeta::core::to_regex("((a+)+)+")};
+  const auto regex{sourcemeta::core::to_regex(
+      "((a+)+)+", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("((a+)+)+"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -975,7 +1081,8 @@ TEST(rfc9485_edge_nested_quantifiers_group) {
 }
 
 TEST(rfc9485_edge_charclass_negated_with_range) {
-  const auto regex{sourcemeta::core::to_regex("[^a-z]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[^a-z]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[^a-z]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
@@ -986,7 +1093,8 @@ TEST(rfc9485_edge_charclass_negated_with_range) {
 }
 
 TEST(rfc9485_edge_consecutive_alternations) {
-  const auto regex{sourcemeta::core::to_regex("a|b|c|d|e")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a|b|c|d|e", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a|b|c|d|e"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -998,7 +1106,8 @@ TEST(rfc9485_edge_consecutive_alternations) {
 }
 
 TEST(rfc9485_edge_group_quantifier_zero_or_one) {
-  const auto regex{sourcemeta::core::to_regex("(abc)?")};
+  const auto regex{sourcemeta::core::to_regex(
+      "(abc)?", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(abc)?"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
@@ -1007,7 +1116,8 @@ TEST(rfc9485_edge_group_quantifier_zero_or_one) {
 }
 
 TEST(rfc9485_edge_mixed_quantifiers_sequence) {
-  const auto regex{sourcemeta::core::to_regex("a?b+c*d{2}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "a?b+c*d{2}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a?b+c*d{2}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "bdd"));
@@ -1018,7 +1128,8 @@ TEST(rfc9485_edge_mixed_quantifiers_sequence) {
 }
 
 TEST(rfc9485_edge_unicode_in_alternation) {
-  const auto regex{sourcemeta::core::to_regex("\\p{Lu}|\\p{Ll}|\\p{Nd}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\p{Lu}|\\p{Ll}|\\p{Nd}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\p{Lu}|\\p{Ll}|\\p{Nd}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "A"));
@@ -1028,7 +1139,8 @@ TEST(rfc9485_edge_unicode_in_alternation) {
 }
 
 TEST(rfc9485_edge_charclass_single_char) {
-  const auto regex{sourcemeta::core::to_regex("[a]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[a]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[a]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
@@ -1036,8 +1148,9 @@ TEST(rfc9485_edge_charclass_single_char) {
 }
 
 TEST(rfc9485_edge_complex_real_world_email_subset) {
-  const auto regex{sourcemeta::core::to_regex(
-      "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z]{2,}")};
+  const auto regex{
+      sourcemeta::core::to_regex("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z]{2,}",
+                                 sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
       "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z]{2,}"));
@@ -1049,7 +1162,8 @@ TEST(rfc9485_edge_complex_real_world_email_subset) {
 }
 
 TEST(rfc9485_edge_complex_real_world_hex_color) {
-  const auto regex{sourcemeta::core::to_regex("#[0-9a-fA-F]{6}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "#[0-9a-fA-F]{6}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("#[0-9a-fA-F]{6}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "#FF5733"));
@@ -1060,7 +1174,8 @@ TEST(rfc9485_edge_complex_real_world_hex_color) {
 
 TEST(rfc9485_edge_complex_real_world_uuid_partial) {
   const auto regex{sourcemeta::core::to_regex(
-      "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")};
+      "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+      sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(
       "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"));
@@ -1070,7 +1185,8 @@ TEST(rfc9485_edge_complex_real_world_uuid_partial) {
 }
 
 TEST(rfc9485_preprocessing_literal_backslash_p) {
-  const auto regex{sourcemeta::core::to_regex("\\\\p\\{L\\}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\\\p\\{L\\}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\p\\{L\\}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\p{L}"));
@@ -1078,7 +1194,8 @@ TEST(rfc9485_preprocessing_literal_backslash_p) {
 }
 
 TEST(rfc9485_preprocessing_literal_backslash_P) {
-  const auto regex{sourcemeta::core::to_regex("\\\\P\\{N\\}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\\\P\\{N\\}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\P\\{N\\}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\P{N}"));
@@ -1086,7 +1203,8 @@ TEST(rfc9485_preprocessing_literal_backslash_P) {
 }
 
 TEST(rfc9485_preprocessing_mixed_escaped_and_unicode) {
-  const auto regex{sourcemeta::core::to_regex("\\\\p\\{L\\} \\p{L}")};
+  const auto regex{sourcemeta::core::to_regex(
+      "\\\\p\\{L\\} \\p{L}", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("\\\\p\\{L\\} \\p{L}"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\\p{L} A"));
@@ -1094,7 +1212,8 @@ TEST(rfc9485_preprocessing_mixed_escaped_and_unicode) {
 }
 
 TEST(rfc9485_quantifier_star_any_string) {
-  const auto regex{sourcemeta::core::to_regex(".*")};
+  const auto regex{sourcemeta::core::to_regex(
+      ".*", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(".*"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foobar"));
@@ -1102,7 +1221,8 @@ TEST(rfc9485_quantifier_star_any_string) {
 }
 
 TEST(rfc9485_quantifier_plus_non_empty) {
-  const auto regex{sourcemeta::core::to_regex(".+")};
+  const auto regex{sourcemeta::core::to_regex(
+      ".+", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma(".+"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "foobar"));
@@ -1110,21 +1230,24 @@ TEST(rfc9485_quantifier_plus_non_empty) {
 }
 
 TEST(rfc9485_dot_matches_newline) {
-  const auto regex{sourcemeta::core::to_regex(".")};
+  const auto regex{sourcemeta::core::to_regex(
+      ".", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("."));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\n"));
 }
 
 TEST(rfc9485_dot_matches_carriage_return) {
-  const auto regex{sourcemeta::core::to_regex(".")};
+  const auto regex{sourcemeta::core::to_regex(
+      ".", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("."));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\r"));
 }
 
 TEST(rfc9485_unicode_range_4byte_deseret) {
-  const auto regex{sourcemeta::core::to_regex("[\\u{10400}-\\u{1044F}]")};
+  const auto regex{sourcemeta::core::to_regex(
+      "[\\u{10400}-\\u{1044F}]", sourcemeta::core::RegexDialect::Permissive)};
   EXPECT_TRUE(regex.has_value());
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("[\\u{10400}-\\u{1044F}]"));
   EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "\U00010400"));

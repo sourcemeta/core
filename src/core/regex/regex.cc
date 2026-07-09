@@ -15,7 +15,9 @@
 
 namespace sourcemeta::core {
 
-auto to_regex(const std::string_view pattern) -> std::optional<Regex> {
+auto to_regex(const std::string_view pattern,
+              [[maybe_unused]] const RegexDialect dialect)
+    -> std::optional<Regex> {
   if (pattern == ".*" || pattern == "^.*$" || pattern == "^(.*)$" ||
       pattern == "(.*)" || pattern == "[\\s\\S]*" || pattern == "^[\\s\\S]*$") {
     return RegexTypeNoop{};
@@ -128,8 +130,9 @@ auto matches(const Regex &regex, const std::string_view value) -> bool {
 }
 
 auto matches_if_valid(const std::string_view pattern,
-                      const std::string_view value) -> bool {
-  const auto regex{to_regex(pattern)};
+                      const std::string_view value, const RegexDialect dialect)
+    -> bool {
+  const auto regex{to_regex(pattern, dialect)};
   return regex.has_value() && matches(regex.value(), value);
 }
 
