@@ -31,8 +31,11 @@ inline auto is_iregexp_single_char_escape(const char character) -> bool {
          (character >= 0x7B && character <= 0x7D);
 }
 
-// charProp = IsCategory, where IsCategory enumerates the Unicode general
-// categories and nothing else, deliberately omitting Cs
+// charProp = IsCategory, where the Others production is %s"C" with an
+// optional second letter drawn from c, f, n, and o, so the bare major
+// category conforms while the surrogate form does not. Accepting the major
+// category cannot reintroduce surrogates, as they have no representation in
+// well formed UTF-8 input
 inline auto is_iregexp_category(const std::string_view name) -> bool {
   if (name.empty() || name.size() > 2) {
     return false;
