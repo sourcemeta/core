@@ -296,7 +296,7 @@ TEST(jsonpath_filter_match_dot_accepts_line_separator) {
   EXPECT_EQ(nodes.size(), 1);
 }
 
-TEST(jsonpath_filter_less_than_decimal) {
+TEST(jsonpath_filter_greater_than_decimal) {
   const auto document{sourcemeta::core::parse_json(
       R"JSON([ { "a": 1e400 }, { "a": 5 } ])JSON")};
   const sourcemeta::core::JSONPath path{"$[?@.a > 100]"};
@@ -304,7 +304,7 @@ TEST(jsonpath_filter_less_than_decimal) {
   EXPECT_EQ(nodes.size(), 1);
 }
 
-TEST(jsonpath_filter_less_than_exact_beyond_double_precision) {
+TEST(jsonpath_filter_greater_than_exact_beyond_double_precision) {
   const auto document{sourcemeta::core::parse_json(
       R"JSON([ { "a": 9007199254740993 }, { "a": 9007199254740991 } ])JSON")};
   const sourcemeta::core::JSONPath path{"$[?@.a > 9007199254740992.0]"};
