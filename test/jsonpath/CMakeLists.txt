@@ -3,7 +3,8 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonpath
     jsonpath_parse_test.cc
     jsonpath_evaluate_test.cc
     jsonpath_filter_test.cc
-    jsonpath_normalize_test.cc)
+    jsonpath_normalize_test.cc
+    jsonpath_json_auto_test.cc)
 
 target_link_libraries(sourcemeta_core_jsonpath_unit
   PRIVATE sourcemeta::core::json)
