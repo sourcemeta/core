@@ -2,12 +2,11 @@
 #define SOURCEMETA_CORE_JSONPATH_PARSER_H_
 
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/jsonpath.h>
 #include <sourcemeta/core/jsonpath_error.h>
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
-
-#include "grammar.h"
 
 #include <cassert>      // assert
 #include <charconv>     // std::from_chars
@@ -33,14 +32,14 @@ class JSONPathParser {
 public:
   JSONPathParser(const std::string_view input) : input_{input} {}
 
-  auto parse() -> JSONPathQuery {
+  auto parse() -> JSONPath::Query {
     // jsonpath-query = root-identifier segments
     if (this->at_end() || this->peek() != '$') {
       this->fail();
     }
 
     this->position_ += 1;
-    JSONPathQuery result;
+    JSONPath::Query result;
     bool singular{true};
     result.segments = this->parse_segments(singular);
     if (!this->at_end()) {
@@ -120,8 +119,8 @@ private:
   }
 
   // segments = *(S segment)
-  auto parse_segments(bool &singular) -> std::vector<JSONPathSegment> {
-    std::vector<JSONPathSegment> segments;
+  auto parse_segments(bool &singular) -> std::vector<JSONPath::Segment> {
+    std::vector<JSONPath::Segment> segments;
     while (true) {
       const auto saved{this->position_};
       this->skip_whitespace();
@@ -137,8 +136,8 @@ private:
   }
 
   // segment = child-segment / descendant-segment
-  auto parse_segment(bool &singular) -> JSONPathSegment {
-    JSONPathSegment segment;
+  auto parse_segment(bool &singular) -> JSONPath::Segment {
+    JSONPath::Segment segment;
     segment.descendant = false;
     if (this->peek() == '[') {
       this->parse_bracketed_selection(segment, singular);
@@ -160,7 +159,7 @@ private:
         this->parse_bracketed_selection(segment, singular);
       } else if (this->peek() == '*') {
         this->position_ += 1;
-        segment.selectors.emplace_back(SelectorWildcard{});
+        segment.selectors.emplace_back(JSONPath::SelectorWildcard{});
       } else {
         segment.selectors.emplace_back(this->parse_shorthand_name());
       }
@@ -177,7 +176,7 @@ private:
     if (this->peek() == '*') {
       this->position_ += 1;
       singular = false;
-      segment.selectors.emplace_back(SelectorWildcard{});
+      segment.selectors.emplace_back(JSONPath::SelectorWildcard{});
     } else {
       segment.selectors.emplace_back(this->parse_shorthand_name());
     }
@@ -188,7 +187,7 @@ private:
   // bracketed-selection = "[" S selector *(S "," S selector) S "]"
   // Whitespace and multiple selectors disqualify the enclosing query from
   // the stricter singular-query grammar of RFC 9535 Section 2.3.5.1
-  auto parse_bracketed_selection(JSONPathSegment &segment, bool &singular)
+  auto parse_bracketed_selection(JSONPath::Segment &segment, bool &singular)
       -> void {
     this->position_ += 1;
     bool internal_whitespace{this->skip_whitespace()};
@@ -218,7 +217,7 @@ private:
 
   // selector = name-selector / wildcard-selector / slice-selector /
   // index-selector / filter-selector
-  auto parse_selector(bool &singular) -> Selector {
+  auto parse_selector(bool &singular) -> JSONPath::Selector {
     if (this->at_end()) {
       this->fail();
     }
@@ -227,13 +226,13 @@ private:
     if (character == '"' || character == '\'') {
       auto name{this->parse_string_literal()};
       const auto hash{JSON::Object::hash(name)};
-      return SelectorName{.name = std::move(name), .hash = hash};
+      return JSONPath::SelectorName{.name = std::move(name), .hash = hash};
     }
 
     if (character == '*') {
       this->position_ += 1;
       singular = false;
-      return SelectorWildcard{};
+      return JSONPath::SelectorWildcard{};
     }
 
     if (character == '?') {
@@ -241,7 +240,7 @@ private:
       this->position_ += 1;
       singular = false;
       this->skip_whitespace();
-      return SelectorFilter{this->parse_logical_or()};
+      return JSONPath::SelectorFilter{this->parse_logical_or()};
     }
 
     if (character == ':') {
@@ -260,14 +259,15 @@ private:
       }
 
       this->position_ = saved;
-      return SelectorIndex{value};
+      return JSONPath::SelectorIndex{value};
     }
 
     this->fail();
   }
 
-  auto parse_slice(const std::optional<std::int64_t> start) -> SelectorSlice {
-    SelectorSlice slice;
+  auto parse_slice(const std::optional<std::int64_t> start)
+      -> JSONPath::SelectorSlice {
+    JSONPath::SelectorSlice slice;
     slice.start = start;
     slice.step = 1;
     assert(this->peek() == ':');
@@ -464,7 +464,7 @@ private:
   }
 
   // member-name-shorthand = name-first *name-char
-  auto parse_shorthand_name() -> SelectorName {
+  auto parse_shorthand_name() -> JSONPath::SelectorName {
     JSON::String name;
     if (this->at_end()) {
       this->fail();
@@ -494,12 +494,12 @@ private:
     }
 
     const auto hash{JSON::Object::hash(name)};
-    return SelectorName{.name = std::move(name), .hash = hash};
+    return JSONPath::SelectorName{.name = std::move(name), .hash = hash};
   }
 
   // logical-or-expr = logical-and-expr *(S "||" S logical-and-expr)
-  auto parse_logical_or() -> FilterExpression {
-    std::vector<FilterExpression> children;
+  auto parse_logical_or() -> JSONPath::FilterExpression {
+    std::vector<JSONPath::FilterExpression> children;
     children.push_back(this->parse_logical_and());
     while (true) {
       const auto saved{this->position_};
@@ -520,12 +520,13 @@ private:
       return std::move(children.front());
     }
 
-    return FilterExpression{FilterDisjunction{std::move(children)}};
+    return JSONPath::FilterExpression{
+        JSONPath::FilterDisjunction{std::move(children)}};
   }
 
   // logical-and-expr = basic-expr *(S "&&" S basic-expr)
-  auto parse_logical_and() -> FilterExpression {
-    std::vector<FilterExpression> children;
+  auto parse_logical_and() -> JSONPath::FilterExpression {
+    std::vector<JSONPath::FilterExpression> children;
     children.push_back(this->parse_basic_expression());
     while (true) {
       const auto saved{this->position_};
@@ -546,11 +547,12 @@ private:
       return std::move(children.front());
     }
 
-    return FilterExpression{FilterConjunction{std::move(children)}};
+    return JSONPath::FilterExpression{
+        JSONPath::FilterConjunction{std::move(children)}};
   }
 
   // basic-expr = paren-expr / comparison-expr / test-expr
-  auto parse_basic_expression() -> FilterExpression {
+  auto parse_basic_expression() -> JSONPath::FilterExpression {
     if (this->at_end()) {
       this->fail();
     }
@@ -564,13 +566,13 @@ private:
       }
 
       if (this->peek() == '(') {
-        std::vector<FilterExpression> children;
+        std::vector<JSONPath::FilterExpression> children;
         children.push_back(this->parse_parenthesized());
-        return FilterExpression{
-            FilterNegation{.children = std::move(children)}};
+        return JSONPath::FilterExpression{
+            JSONPath::FilterNegation{.children = std::move(children)}};
       }
 
-      return FilterExpression{this->parse_test(true)};
+      return JSONPath::FilterExpression{this->parse_test(true)};
     }
 
     if (character == '(') {
@@ -581,7 +583,7 @@ private:
   }
 
   // paren-expr = [logical-not-op S] "(" S logical-expr S ")"
-  auto parse_parenthesized() -> FilterExpression {
+  auto parse_parenthesized() -> JSONPath::FilterExpression {
     assert(this->peek() == '(');
     this->position_ += 1;
     this->skip_whitespace();
@@ -596,23 +598,25 @@ private:
   }
 
   // test-expr = [logical-not-op S] (filter-query / function-expr)
-  auto parse_test(const bool negated) -> FilterTest {
+  auto parse_test(const bool negated) -> JSONPath::FilterTest {
     if (this->peek() == '@' || this->peek() == '$') {
       bool singular{true};
       auto query{this->parse_filter_query(singular)};
-      return FilterTest{.negated = negated, .subject = std::move(query)};
+      return JSONPath::FilterTest{.negated = negated,
+                                  .subject = std::move(query)};
     }
 
     if (is_lower_alpha(this->peek())) {
       auto call{this->parse_function()};
       // RFC 9535 Section 2.4.3: a test expression admits functions whose
       // declared result is of logical or nodes type only
-      if (call.function != FilterFunctionName::Match &&
-          call.function != FilterFunctionName::Search) {
+      if (call.function != JSONPath::FilterFunctionName::Match &&
+          call.function != JSONPath::FilterFunctionName::Search) {
         this->fail();
       }
 
-      return FilterTest{.negated = negated, .subject = std::move(call)};
+      return JSONPath::FilterTest{.negated = negated,
+                                  .subject = std::move(call)};
     }
 
     this->fail();
@@ -634,7 +638,7 @@ private:
   }
 
   // comparison-op = "==" / "!=" / "<=" / ">=" / "<" / ">"
-  auto parse_comparison_operator() -> FilterComparisonOperator {
+  auto parse_comparison_operator() -> JSONPath::FilterComparisonOperator {
     const char character{this->peek()};
     if (character == '=' || character == '!') {
       this->position_ += 1;
@@ -643,8 +647,8 @@ private:
       }
 
       this->position_ += 1;
-      return character == '=' ? FilterComparisonOperator::Equal
-                              : FilterComparisonOperator::NotEqual;
+      return character == '=' ? JSONPath::FilterComparisonOperator::Equal
+                              : JSONPath::FilterComparisonOperator::NotEqual;
     }
 
     if (character == '<' || character == '>') {
@@ -655,18 +659,18 @@ private:
       }
 
       if (character == '<') {
-        return inclusive ? FilterComparisonOperator::LessEqual
-                         : FilterComparisonOperator::Less;
+        return inclusive ? JSONPath::FilterComparisonOperator::LessEqual
+                         : JSONPath::FilterComparisonOperator::Less;
       }
 
-      return inclusive ? FilterComparisonOperator::GreaterEqual
-                       : FilterComparisonOperator::Greater;
+      return inclusive ? JSONPath::FilterComparisonOperator::GreaterEqual
+                       : JSONPath::FilterComparisonOperator::Greater;
     }
 
     this->fail();
   }
 
-  auto parse_comparison_or_test() -> FilterExpression {
+  auto parse_comparison_or_test() -> JSONPath::FilterExpression {
     const char character{this->peek()};
     if (character == '@' || character == '$') {
       bool singular{true};
@@ -683,15 +687,15 @@ private:
         const auto operation{this->parse_comparison_operator()};
         this->skip_whitespace();
         auto right{this->parse_comparable()};
-        return FilterExpression{
-            FilterComparison{.left = FilterOperand{.value = std::move(query)},
-                             .operation = operation,
-                             .right = std::move(right)}};
+        return JSONPath::FilterExpression{JSONPath::FilterComparison{
+            .left = JSONPath::FilterOperand{.value = std::move(query)},
+            .operation = operation,
+            .right = std::move(right)}};
       }
 
       this->position_ = saved;
-      return FilterExpression{
-          FilterTest{.negated = false, .subject = std::move(query)}};
+      return JSONPath::FilterExpression{
+          JSONPath::FilterTest{.negated = false, .subject = std::move(query)}};
     }
 
     if (character == '"' || character == '\'' || character == '-' ||
@@ -705,10 +709,10 @@ private:
       const auto operation{this->parse_comparison_operator()};
       this->skip_whitespace();
       auto right{this->parse_comparable()};
-      return FilterExpression{
-          FilterComparison{.left = FilterOperand{.value = std::move(literal)},
-                           .operation = operation,
-                           .right = std::move(right)}};
+      return JSONPath::FilterExpression{JSONPath::FilterComparison{
+          .left = JSONPath::FilterOperand{.value = std::move(literal)},
+          .operation = operation,
+          .right = std::move(right)}};
     }
 
     if (is_lower_alpha(character)) {
@@ -716,47 +720,52 @@ private:
       const auto saved{this->position_};
       this->skip_whitespace();
       if (this->comparison_operator_ahead()) {
-        if (std::holds_alternative<FilterFunctionCall>(operand.value) &&
+        if (std::holds_alternative<JSONPath::FilterFunctionCall>(
+                operand.value) &&
             !is_value_type_function(
-                std::get<FilterFunctionCall>(operand.value))) {
+                std::get<JSONPath::FilterFunctionCall>(operand.value))) {
           this->fail();
         }
 
         const auto operation{this->parse_comparison_operator()};
         this->skip_whitespace();
         auto right{this->parse_comparable()};
-        return FilterExpression{FilterComparison{.left = std::move(operand),
-                                                 .operation = operation,
-                                                 .right = std::move(right)}};
+        return JSONPath::FilterExpression{
+            JSONPath::FilterComparison{.left = std::move(operand),
+                                       .operation = operation,
+                                       .right = std::move(right)}};
       }
 
       this->position_ = saved;
-      if (!std::holds_alternative<FilterFunctionCall>(operand.value)) {
+      if (!std::holds_alternative<JSONPath::FilterFunctionCall>(
+              operand.value)) {
         // A literal is not a valid test expression
         this->fail();
       }
 
-      auto call{std::move(std::get<FilterFunctionCall>(operand.value))};
-      if (call.function != FilterFunctionName::Match &&
-          call.function != FilterFunctionName::Search) {
+      auto call{
+          std::move(std::get<JSONPath::FilterFunctionCall>(operand.value))};
+      if (call.function != JSONPath::FilterFunctionName::Match &&
+          call.function != JSONPath::FilterFunctionName::Search) {
         this->fail();
       }
 
-      return FilterExpression{
-          FilterTest{.negated = false, .subject = std::move(call)}};
+      return JSONPath::FilterExpression{
+          JSONPath::FilterTest{.negated = false, .subject = std::move(call)}};
     }
 
     this->fail();
   }
 
-  static auto is_value_type_function(const FilterFunctionCall &call) -> bool {
-    return call.function == FilterFunctionName::Length ||
-           call.function == FilterFunctionName::Count ||
-           call.function == FilterFunctionName::Value;
+  static auto is_value_type_function(const JSONPath::FilterFunctionCall &call)
+      -> bool {
+    return call.function == JSONPath::FilterFunctionName::Length ||
+           call.function == JSONPath::FilterFunctionName::Count ||
+           call.function == JSONPath::FilterFunctionName::Value;
   }
 
   // comparable = literal / singular-query / function-expr
-  auto parse_comparable() -> FilterOperand {
+  auto parse_comparable() -> JSONPath::FilterOperand {
     if (this->at_end()) {
       this->fail();
     }
@@ -769,19 +778,19 @@ private:
         this->fail();
       }
 
-      return FilterOperand{.value = std::move(query)};
+      return JSONPath::FilterOperand{.value = std::move(query)};
     }
 
     if (character == '"' || character == '\'' || character == '-' ||
         is_digit(character)) {
-      return FilterOperand{.value = this->parse_filter_literal()};
+      return JSONPath::FilterOperand{.value = this->parse_filter_literal()};
     }
 
     if (is_lower_alpha(character)) {
       auto operand{this->parse_keyword_or_function()};
-      if (std::holds_alternative<FilterFunctionCall>(operand.value) &&
+      if (std::holds_alternative<JSONPath::FilterFunctionCall>(operand.value) &&
           !is_value_type_function(
-              std::get<FilterFunctionCall>(operand.value))) {
+              std::get<JSONPath::FilterFunctionCall>(operand.value))) {
         this->fail();
       }
 
@@ -872,8 +881,8 @@ private:
   }
 
   // filter-query = rel-query / jsonpath-query
-  auto parse_filter_query(bool &singular) -> FilterQuery {
-    FilterQuery query;
+  auto parse_filter_query(bool &singular) -> JSONPath::FilterQuery {
+    JSONPath::FilterQuery query;
     query.relative = this->peek() == '@';
     this->position_ += 1;
     query.segments = this->parse_segments(singular);
@@ -891,24 +900,24 @@ private:
     return this->input_.substr(begin, this->position_ - begin);
   }
 
-  auto parse_keyword_or_function() -> FilterOperand {
+  auto parse_keyword_or_function() -> JSONPath::FilterOperand {
     const auto saved{this->position_};
     const auto identifier{this->parse_identifier()};
     if (!this->at_end() && this->peek() == '(') {
       this->position_ = saved;
-      return FilterOperand{.value = this->parse_function()};
+      return JSONPath::FilterOperand{.value = this->parse_function()};
     }
 
     if (identifier == "true") {
-      return FilterOperand{.value = JSON{true}};
+      return JSONPath::FilterOperand{.value = JSON{true}};
     }
 
     if (identifier == "false") {
-      return FilterOperand{.value = JSON{false}};
+      return JSONPath::FilterOperand{.value = JSON{false}};
     }
 
     if (identifier == "null") {
-      return FilterOperand{.value = JSON{nullptr}};
+      return JSONPath::FilterOperand{.value = JSON{nullptr}};
     }
 
     this->fail();
@@ -916,19 +925,19 @@ private:
 
   // function-expr = function-name "(" S [function-argument
   //   *(S "," S function-argument)] S ")"
-  auto parse_function() -> FilterFunctionCall {
+  auto parse_function() -> JSONPath::FilterFunctionCall {
     const auto identifier{this->parse_identifier()};
-    FilterFunctionCall call;
+    JSONPath::FilterFunctionCall call;
     if (identifier == "length") {
-      call.function = FilterFunctionName::Length;
+      call.function = JSONPath::FilterFunctionName::Length;
     } else if (identifier == "count") {
-      call.function = FilterFunctionName::Count;
+      call.function = JSONPath::FilterFunctionName::Count;
     } else if (identifier == "match") {
-      call.function = FilterFunctionName::Match;
+      call.function = JSONPath::FilterFunctionName::Match;
     } else if (identifier == "search") {
-      call.function = FilterFunctionName::Search;
+      call.function = JSONPath::FilterFunctionName::Search;
     } else if (identifier == "value") {
-      call.function = FilterFunctionName::Value;
+      call.function = JSONPath::FilterFunctionName::Value;
     } else {
       this->fail();
     }
@@ -965,7 +974,7 @@ private:
     return call;
   }
 
-  auto parse_function_argument() -> FilterOperand {
+  auto parse_function_argument() -> JSONPath::FilterOperand {
     if (this->at_end()) {
       this->fail();
     }
@@ -973,12 +982,13 @@ private:
     const char character{this->peek()};
     if (character == '@' || character == '$') {
       bool singular{true};
-      return FilterOperand{.value = this->parse_filter_query(singular)};
+      return JSONPath::FilterOperand{.value =
+                                         this->parse_filter_query(singular)};
     }
 
     if (character == '"' || character == '\'' || character == '-' ||
         is_digit(character)) {
-      return FilterOperand{.value = this->parse_filter_literal()};
+      return JSONPath::FilterOperand{.value = this->parse_filter_literal()};
     }
 
     if (is_lower_alpha(character)) {
@@ -991,40 +1001,42 @@ private:
     this->fail();
   }
 
-  [[nodiscard]] static auto is_value_type_operand(const FilterOperand &operand)
-      -> bool {
+  [[nodiscard]] static auto
+  is_value_type_operand(const JSONPath::FilterOperand &operand) -> bool {
     if (std::holds_alternative<JSON>(operand.value)) {
       return true;
     }
 
-    if (std::holds_alternative<FilterQuery>(operand.value)) {
-      return std::get<FilterQuery>(operand.value).singular;
+    if (std::holds_alternative<JSONPath::FilterQuery>(operand.value)) {
+      return std::get<JSONPath::FilterQuery>(operand.value).singular;
     }
 
-    return is_value_type_function(std::get<FilterFunctionCall>(operand.value));
+    return is_value_type_function(
+        std::get<JSONPath::FilterFunctionCall>(operand.value));
   }
 
   // RFC 9535 Section 2.4.3: "the function's arguments need to be well-typed
   // against the declared parameter types"
-  auto check_function(FilterFunctionCall &call) -> void {
+  auto check_function(JSONPath::FilterFunctionCall &call) -> void {
     switch (call.function) {
-      case FilterFunctionName::Length:
+      case JSONPath::FilterFunctionName::Length:
         if (call.arguments.size() != 1 ||
             !is_value_type_operand(call.arguments.front())) {
           this->fail();
         }
 
         return;
-      case FilterFunctionName::Count:
-      case FilterFunctionName::Value:
-        if (call.arguments.size() != 1 || !std::holds_alternative<FilterQuery>(
-                                              call.arguments.front().value)) {
+      case JSONPath::FilterFunctionName::Count:
+      case JSONPath::FilterFunctionName::Value:
+        if (call.arguments.size() != 1 ||
+            !std::holds_alternative<JSONPath::FilterQuery>(
+                call.arguments.front().value)) {
           this->fail();
         }
 
         return;
-      case FilterFunctionName::Match:
-      case FilterFunctionName::Search:
+      case JSONPath::FilterFunctionName::Match:
+      case JSONPath::FilterFunctionName::Search:
         if (call.arguments.size() != 2 ||
             !is_value_type_operand(call.arguments.front()) ||
             !is_value_type_operand(call.arguments.back())) {
@@ -1035,7 +1047,7 @@ private:
             std::get<JSON>(call.arguments.back().value).is_string()) {
           call.compiled =
               to_regex(std::get<JSON>(call.arguments.back().value).to_string(),
-                       call.function == FilterFunctionName::Match
+                       call.function == JSONPath::FilterFunctionName::Match
                            ? RegexDialect::IRegexp
                            : RegexDialect::IRegexpSearch);
         }
@@ -1050,7 +1062,7 @@ private:
 
 } // namespace
 
-inline auto parse_jsonpath(const std::string_view input) -> JSONPathQuery {
+inline auto parse_jsonpath(const std::string_view input) -> JSONPath::Query {
   JSONPathParser parser{input};
   return parser.parse();
 }

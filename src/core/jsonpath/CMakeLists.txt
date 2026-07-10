@@ -1,6 +1,6 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME jsonpath
   PRIVATE_HEADERS error.h
-  SOURCES jsonpath.cc grammar.h parser.h evaluator.h)
+  SOURCES jsonpath.cc parser.h)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME jsonpath)
