@@ -250,18 +250,18 @@ auto evaluate_value_function(const FilterFunctionCall &call,
 inline auto evaluate_operand(const FilterOperand &operand,
                              const JSON &candidate, const JSON &root)
     -> FilterValue {
-  if (std::holds_alternative<JSON>(operand)) {
-    return FilterValue{&std::get<JSON>(operand)};
+  if (std::holds_alternative<JSON>(operand.value)) {
+    return FilterValue{&std::get<JSON>(operand.value)};
   }
 
-  if (std::holds_alternative<FilterQuery>(operand)) {
-    const auto *result{
-        resolve_singular(std::get<FilterQuery>(operand), candidate, root)};
+  if (std::holds_alternative<FilterQuery>(operand.value)) {
+    const auto *result{resolve_singular(std::get<FilterQuery>(operand.value),
+                                        candidate, root)};
     return result == nullptr ? FilterValue{} : FilterValue{result};
   }
 
-  return evaluate_value_function(
-      *std::get<std::unique_ptr<FilterFunctionCall>>(operand), candidate, root);
+  return evaluate_value_function(std::get<FilterFunctionCall>(operand.value),
+                                 candidate, root);
 }
 
 inline auto evaluate_value_function(const FilterFunctionCall &call,
@@ -297,7 +297,7 @@ inline auto evaluate_value_function(const FilterFunctionCall &call,
     }
     // RFC 9535 Section 2.4.5: the count function yields the number of nodes
     case FilterFunctionName::Count: {
-      const auto &query{std::get<FilterQuery>(call.arguments.front())};
+      const auto &query{std::get<FilterQuery>(call.arguments.front().value)};
       std::int64_t count{0};
       filter_query_visit(query.segments, 0, query.relative ? candidate : root,
                          root, [&count](const JSON &) -> bool {
@@ -309,7 +309,7 @@ inline auto evaluate_value_function(const FilterFunctionCall &call,
     // RFC 9535 Section 2.4.8: the value function yields the value of a
     // single node and nothing otherwise
     case FilterFunctionName::Value: {
-      const auto &query{std::get<FilterQuery>(call.arguments.front())};
+      const auto &query{std::get<FilterQuery>(call.arguments.front().value)};
       const JSON *single{nullptr};
       std::size_t count{0};
       filter_query_visit(query.segments, 0, query.relative ? candidate : root,
@@ -338,8 +338,8 @@ inline auto evaluate_logical_function(const FilterFunctionCall &call,
     return false;
   }
 
-  if (std::holds_alternative<JSON>(call.arguments.back()) &&
-      std::get<JSON>(call.arguments.back()).is_string()) {
+  if (std::holds_alternative<JSON>(call.arguments.back().value) &&
+      std::get<JSON>(call.arguments.back().value).is_string()) {
     return call.compiled.has_value() &&
            matches(call.compiled.value(), subject->to_string());
   }
@@ -442,8 +442,7 @@ inline auto filter_matches(const FilterExpression &expression,
                                    [](const JSON &) -> bool { return false; });
     } else {
       result = evaluate_logical_function(
-          *std::get<std::unique_ptr<FilterFunctionCall>>(test.subject),
-          candidate, root);
+          std::get<FilterFunctionCall>(test.subject), candidate, root);
     }
 
     return test.negated ? !result : result;
@@ -471,8 +470,9 @@ inline auto filter_matches(const FilterExpression &expression,
     return false;
   }
 
-  return !filter_matches(*std::get<FilterNegation>(expression.value).child,
-                         candidate, root);
+  return !filter_matches(
+      std::get<FilterNegation>(expression.value).children.front(), candidate,
+      root);
 }
 
 auto evaluate_segments(const std::vector<JSONPathSegment> &segments,

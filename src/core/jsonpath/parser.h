@@ -14,7 +14,6 @@
 #include <cstddef>      // std::size_t
 #include <cstdint>      // std::int64_t, std::uint32_t
 #include <cstdlib>      // std::strtod
-#include <memory>       // std::make_unique, std::unique_ptr
 #include <optional>     // std::optional, std::nullopt
 #include <string>       // std::string
 #include <string_view>  // std::string_view
@@ -565,9 +564,10 @@ private:
       }
 
       if (this->peek() == '(') {
-        auto inner{this->parse_parenthesized()};
-        return FilterExpression{FilterNegation{
-            std::make_unique<FilterExpression>(std::move(inner))}};
+        std::vector<FilterExpression> children;
+        children.push_back(this->parse_parenthesized());
+        return FilterExpression{
+            FilterNegation{.children = std::move(children)}};
       }
 
       return FilterExpression{this->parse_test(true)};
@@ -607,8 +607,8 @@ private:
       auto call{this->parse_function()};
       // RFC 9535 Section 2.4.3: a test expression admits functions whose
       // declared result is of logical or nodes type only
-      if (call->function != FilterFunctionName::Match &&
-          call->function != FilterFunctionName::Search) {
+      if (call.function != FilterFunctionName::Match &&
+          call.function != FilterFunctionName::Search) {
         this->fail();
       }
 
@@ -684,7 +684,7 @@ private:
         this->skip_whitespace();
         auto right{this->parse_comparable()};
         return FilterExpression{
-            FilterComparison{.left = FilterOperand{std::move(query)},
+            FilterComparison{.left = FilterOperand{.value = std::move(query)},
                              .operation = operation,
                              .right = std::move(right)}};
       }
@@ -706,7 +706,7 @@ private:
       this->skip_whitespace();
       auto right{this->parse_comparable()};
       return FilterExpression{
-          FilterComparison{.left = FilterOperand{std::move(literal)},
+          FilterComparison{.left = FilterOperand{.value = std::move(literal)},
                            .operation = operation,
                            .right = std::move(right)}};
     }
@@ -716,10 +716,9 @@ private:
       const auto saved{this->position_};
       this->skip_whitespace();
       if (this->comparison_operator_ahead()) {
-        if (std::holds_alternative<std::unique_ptr<FilterFunctionCall>>(
-                operand) &&
+        if (std::holds_alternative<FilterFunctionCall>(operand.value) &&
             !is_value_type_function(
-                *std::get<std::unique_ptr<FilterFunctionCall>>(operand))) {
+                std::get<FilterFunctionCall>(operand.value))) {
           this->fail();
         }
 
@@ -732,16 +731,14 @@ private:
       }
 
       this->position_ = saved;
-      if (!std::holds_alternative<std::unique_ptr<FilterFunctionCall>>(
-              operand)) {
+      if (!std::holds_alternative<FilterFunctionCall>(operand.value)) {
         // A literal is not a valid test expression
         this->fail();
       }
 
-      auto call{
-          std::move(std::get<std::unique_ptr<FilterFunctionCall>>(operand))};
-      if (call->function != FilterFunctionName::Match &&
-          call->function != FilterFunctionName::Search) {
+      auto call{std::move(std::get<FilterFunctionCall>(operand.value))};
+      if (call.function != FilterFunctionName::Match &&
+          call.function != FilterFunctionName::Search) {
         this->fail();
       }
 
@@ -772,20 +769,19 @@ private:
         this->fail();
       }
 
-      return FilterOperand{std::move(query)};
+      return FilterOperand{.value = std::move(query)};
     }
 
     if (character == '"' || character == '\'' || character == '-' ||
         is_digit(character)) {
-      return FilterOperand{this->parse_filter_literal()};
+      return FilterOperand{.value = this->parse_filter_literal()};
     }
 
     if (is_lower_alpha(character)) {
       auto operand{this->parse_keyword_or_function()};
-      if (std::holds_alternative<std::unique_ptr<FilterFunctionCall>>(
-              operand) &&
+      if (std::holds_alternative<FilterFunctionCall>(operand.value) &&
           !is_value_type_function(
-              *std::get<std::unique_ptr<FilterFunctionCall>>(operand))) {
+              std::get<FilterFunctionCall>(operand.value))) {
         this->fail();
       }
 
@@ -900,19 +896,19 @@ private:
     const auto identifier{this->parse_identifier()};
     if (!this->at_end() && this->peek() == '(') {
       this->position_ = saved;
-      return FilterOperand{this->parse_function()};
+      return FilterOperand{.value = this->parse_function()};
     }
 
     if (identifier == "true") {
-      return FilterOperand{JSON{true}};
+      return FilterOperand{.value = JSON{true}};
     }
 
     if (identifier == "false") {
-      return FilterOperand{JSON{false}};
+      return FilterOperand{.value = JSON{false}};
     }
 
     if (identifier == "null") {
-      return FilterOperand{JSON{nullptr}};
+      return FilterOperand{.value = JSON{nullptr}};
     }
 
     this->fail();
@@ -920,19 +916,19 @@ private:
 
   // function-expr = function-name "(" S [function-argument
   //   *(S "," S function-argument)] S ")"
-  auto parse_function() -> std::unique_ptr<FilterFunctionCall> {
+  auto parse_function() -> FilterFunctionCall {
     const auto identifier{this->parse_identifier()};
-    auto call{std::make_unique<FilterFunctionCall>()};
+    FilterFunctionCall call;
     if (identifier == "length") {
-      call->function = FilterFunctionName::Length;
+      call.function = FilterFunctionName::Length;
     } else if (identifier == "count") {
-      call->function = FilterFunctionName::Count;
+      call.function = FilterFunctionName::Count;
     } else if (identifier == "match") {
-      call->function = FilterFunctionName::Match;
+      call.function = FilterFunctionName::Match;
     } else if (identifier == "search") {
-      call->function = FilterFunctionName::Search;
+      call.function = FilterFunctionName::Search;
     } else if (identifier == "value") {
-      call->function = FilterFunctionName::Value;
+      call.function = FilterFunctionName::Value;
     } else {
       this->fail();
     }
@@ -949,7 +945,7 @@ private:
 
     if (this->peek() != ')') {
       while (true) {
-        call->arguments.push_back(this->parse_function_argument());
+        call.arguments.push_back(this->parse_function_argument());
         this->skip_whitespace();
         if (!this->at_end() && this->peek() == ',') {
           this->position_ += 1;
@@ -965,7 +961,7 @@ private:
     }
 
     this->position_ += 1;
-    this->check_function(*call);
+    this->check_function(call);
     return call;
   }
 
@@ -977,12 +973,12 @@ private:
     const char character{this->peek()};
     if (character == '@' || character == '$') {
       bool singular{true};
-      return FilterOperand{this->parse_filter_query(singular)};
+      return FilterOperand{.value = this->parse_filter_query(singular)};
     }
 
     if (character == '"' || character == '\'' || character == '-' ||
         is_digit(character)) {
-      return FilterOperand{this->parse_filter_literal()};
+      return FilterOperand{.value = this->parse_filter_literal()};
     }
 
     if (is_lower_alpha(character)) {
@@ -997,16 +993,15 @@ private:
 
   [[nodiscard]] static auto is_value_type_operand(const FilterOperand &operand)
       -> bool {
-    if (std::holds_alternative<JSON>(operand)) {
+    if (std::holds_alternative<JSON>(operand.value)) {
       return true;
     }
 
-    if (std::holds_alternative<FilterQuery>(operand)) {
-      return std::get<FilterQuery>(operand).singular;
+    if (std::holds_alternative<FilterQuery>(operand.value)) {
+      return std::get<FilterQuery>(operand.value).singular;
     }
 
-    return is_value_type_function(
-        *std::get<std::unique_ptr<FilterFunctionCall>>(operand));
+    return is_value_type_function(std::get<FilterFunctionCall>(operand.value));
   }
 
   // RFC 9535 Section 2.4.3: "the function's arguments need to be well-typed
@@ -1022,8 +1017,8 @@ private:
         return;
       case FilterFunctionName::Count:
       case FilterFunctionName::Value:
-        if (call.arguments.size() != 1 ||
-            !std::holds_alternative<FilterQuery>(call.arguments.front())) {
+        if (call.arguments.size() != 1 || !std::holds_alternative<FilterQuery>(
+                                              call.arguments.front().value)) {
           this->fail();
         }
 
@@ -1036,10 +1031,10 @@ private:
           this->fail();
         }
 
-        if (std::holds_alternative<JSON>(call.arguments.back()) &&
-            std::get<JSON>(call.arguments.back()).is_string()) {
+        if (std::holds_alternative<JSON>(call.arguments.back().value) &&
+            std::get<JSON>(call.arguments.back().value).is_string()) {
           call.compiled =
-              to_regex(std::get<JSON>(call.arguments.back()).to_string(),
+              to_regex(std::get<JSON>(call.arguments.back().value).to_string(),
                        call.function == FilterFunctionName::Match
                            ? RegexDialect::IRegexp
                            : RegexDialect::IRegexpSearch);

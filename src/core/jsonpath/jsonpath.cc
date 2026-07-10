@@ -4,35 +4,18 @@
 #include "grammar.h"
 #include "parser.h"
 
-#include <memory>  // std::make_unique
-#include <string>  // std::to_string
-#include <utility> // std::move
-#include <vector>  // std::vector
+#include <string> // std::to_string
 
 namespace sourcemeta::core {
 
 JSONPath::JSONPath(const JSON::StringView expression)
-    : internal_{std::make_unique<JSONPathQuery>(parse_jsonpath(expression))} {}
-
-JSONPath::~JSONPath() = default;
-JSONPath::JSONPath(JSONPath &&other) noexcept = default;
-auto JSONPath::operator=(JSONPath &&other) noexcept -> JSONPath & = default;
+    : query_{parse_jsonpath(expression)} {}
 
 auto JSONPath::evaluate(const JSON &document, const Callback &callback) const
     -> void {
   EvaluationState state{
       .root = &document, .callback = &callback, .location = WeakPointer{}};
-  evaluate_segments(this->internal_->segments, 0, document, state);
-}
-
-auto JSONPath::evaluate(const JSON &document) const -> std::vector<Node> {
-  std::vector<Node> result;
-  this->evaluate(
-      document,
-      [&result](const JSON &value, const WeakPointer &location) -> void {
-        result.push_back({.value = &value, .location = location});
-      });
-  return result;
+  evaluate_segments(this->query_.segments, 0, document, state);
 }
 
 auto JSONPath::normalize(const WeakPointer &location) -> JSON::String {

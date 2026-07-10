@@ -10,7 +10,25 @@
 
 namespace {
 
-auto values_match(const std::vector<sourcemeta::core::JSONPath::Node> &nodes,
+struct ResultNode {
+  const sourcemeta::core::JSON *value;
+  sourcemeta::core::WeakPointer location;
+};
+
+auto evaluate_nodes(const sourcemeta::core::JSONPath &path,
+                    const sourcemeta::core::JSON &document)
+    -> std::vector<ResultNode> {
+  std::vector<ResultNode> result;
+  path.evaluate(
+      document,
+      [&result](const sourcemeta::core::JSON &value,
+                const sourcemeta::core::WeakPointer &location) -> void {
+        result.push_back({&value, location});
+      });
+  return result;
+}
+
+auto values_match(const std::vector<ResultNode> &nodes,
                   const sourcemeta::core::JSON &expected) -> bool {
   const auto &array{expected.as_array()};
   if (nodes.size() != array.size()) {
@@ -26,7 +44,7 @@ auto values_match(const std::vector<sourcemeta::core::JSONPath::Node> &nodes,
   return true;
 }
 
-auto paths_match(const std::vector<sourcemeta::core::JSONPath::Node> &nodes,
+auto paths_match(const std::vector<ResultNode> &nodes,
                  const sourcemeta::core::JSON &expected) -> bool {
   const auto &array{expected.as_array()};
   if (nodes.size() != array.size()) {
@@ -59,7 +77,7 @@ auto run_jsonpath_test_case(const sourcemeta::core::JSON &test_case) -> void {
   }
 
   const sourcemeta::core::JSONPath path{selector};
-  const auto nodes{path.evaluate(test_case.at("document"))};
+  const auto nodes{evaluate_nodes(path, test_case.at("document"))};
   const auto *result{test_case.try_at("result")};
   if (result != nullptr) {
     EXPECT_TRUE(values_match(nodes, *result));
