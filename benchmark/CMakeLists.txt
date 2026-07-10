@@ -12,6 +12,10 @@ if(SOURCEMETA_CORE_JSONPOINTER)
   list(APPEND BENCHMARK_SOURCES jsonpointer.cc)
 endif()
 
+if(SOURCEMETA_CORE_JSONPATH)
+  list(APPEND BENCHMARK_SOURCES jsonpath.cc)
+endif()
+
 if(SOURCEMETA_CORE_URITEMPLATE)
   list(APPEND BENCHMARK_SOURCES uritemplate.cc)
 endif()
@@ -55,6 +59,12 @@ if(BENCHMARK_SOURCES)
   if(SOURCEMETA_CORE_JSONPOINTER)
     target_link_libraries(sourcemeta_core_benchmark
       PRIVATE sourcemeta::core::jsonpointer)
+  endif()
+
+  if(SOURCEMETA_CORE_JSONPATH)
+    target_link_libraries(sourcemeta_core_benchmark
+      PRIVATE sourcemeta::core::jsonpath sourcemeta::core::json
+              sourcemeta::core::jsonpointer)
   endif()
 
   if(SOURCEMETA_CORE_URITEMPLATE)
