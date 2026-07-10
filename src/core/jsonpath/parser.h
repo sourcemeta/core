@@ -4,21 +4,19 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/jsonpath.h>
 #include <sourcemeta/core/jsonpath_error.h>
+#include <sourcemeta/core/numeric.h>
 #include <sourcemeta/core/regex.h>
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
-#include <cassert>      // assert
-#include <charconv>     // std::from_chars
-#include <cstddef>      // std::size_t
-#include <cstdint>      // std::int64_t, std::uint32_t
-#include <cstdlib>      // std::strtod
-#include <optional>     // std::optional, std::nullopt
-#include <string>       // std::string
-#include <string_view>  // std::string_view
-#include <system_error> // std::errc
-#include <utility>      // std::move
-#include <variant>      // std::get, std::holds_alternative
+#include <cassert>     // assert
+#include <cstddef>     // std::size_t
+#include <cstdint>     // std::int64_t, std::uint32_t
+#include <optional>    // std::optional, std::nullopt
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
+#include <variant>     // std::get, std::holds_alternative
 
 namespace sourcemeta::core {
 
@@ -61,19 +59,6 @@ private:
   [[nodiscard]] auto peek() const -> char {
     assert(!this->at_end());
     return this->input_[this->position_];
-  }
-
-  static auto is_digit(const char character) -> bool {
-    return character >= '0' && character <= '9';
-  }
-
-  static auto is_lower_alpha(const char character) -> bool {
-    return character >= 'a' && character <= 'z';
-  }
-
-  static auto is_alpha(const char character) -> bool {
-    return (character >= 'a' && character <= 'z') ||
-           (character >= 'A' && character <= 'Z');
   }
 
   // S = *( %x20 / %x09 / %x0A / %x0D )
@@ -320,16 +305,14 @@ private:
       this->position_ += 1;
     }
 
-    std::int64_t value{0};
-    const auto outcome{std::from_chars(this->input_.data() + begin,
-                                       this->input_.data() + this->position_,
-                                       value)};
-    if (outcome.ec != std::errc{} || value > JSONPATH_MAXIMUM_INTEGER ||
-        value < -JSONPATH_MAXIMUM_INTEGER) {
+    const auto value{
+        to_int64_t(this->input_.substr(begin, this->position_ - begin))};
+    if (!value.has_value() || value.value() > JSONPATH_MAXIMUM_INTEGER ||
+        value.value() < -JSONPATH_MAXIMUM_INTEGER) {
       this->fail();
     }
 
-    return value;
+    return value.value();
   }
 
   // string-literal = %x22 *double-quoted %x22 / %x27 *single-quoted %x27
@@ -606,7 +589,7 @@ private:
                                   .subject = std::move(query)};
     }
 
-    if (is_lower_alpha(this->peek())) {
+    if (is_alpha(this->peek()) && is_lowercase(this->peek())) {
       auto call{this->parse_function()};
       // RFC 9535 Section 2.4.3: a test expression admits functions whose
       // declared result is of logical or nodes type only
@@ -715,7 +698,7 @@ private:
           .right = std::move(right)}};
     }
 
-    if (is_lower_alpha(character)) {
+    if (is_alpha(character) && is_lowercase(character)) {
       auto operand{this->parse_keyword_or_function()};
       const auto saved{this->position_};
       this->skip_whitespace();
@@ -786,7 +769,7 @@ private:
       return JSONPath::FilterOperand{.value = this->parse_filter_literal()};
     }
 
-    if (is_lower_alpha(character)) {
+    if (is_alpha(character) && is_lowercase(character)) {
       auto operand{this->parse_keyword_or_function()};
       if (std::holds_alternative<JSONPath::FilterFunctionCall>(operand.value) &&
           !is_value_type_function(
@@ -865,19 +848,21 @@ private:
 
     const auto text{this->input_.substr(begin, this->position_ - begin)};
     if (!real) {
-      std::int64_t value{0};
-      const auto outcome{
-          std::from_chars(text.data(), text.data() + text.size(), value)};
-      if (outcome.ec != std::errc{} || value > JSONPATH_MAXIMUM_INTEGER ||
-          value < -JSONPATH_MAXIMUM_INTEGER) {
+      const auto value{to_int64_t(text)};
+      if (!value.has_value() || value.value() > JSONPATH_MAXIMUM_INTEGER ||
+          value.value() < -JSONPATH_MAXIMUM_INTEGER) {
         this->fail();
       }
 
-      return JSON{value};
+      return JSON{value.value()};
     }
 
-    const std::string buffer{text};
-    return JSON{std::strtod(buffer.c_str(), nullptr)};
+    const auto value{to_double(text)};
+    if (!value.has_value()) {
+      this->fail();
+    }
+
+    return JSON{value.value()};
   }
 
   // filter-query = rel-query / jsonpath-query
@@ -892,8 +877,9 @@ private:
 
   auto parse_identifier() -> std::string_view {
     const auto begin{this->position_};
-    while (!this->at_end() && (is_lower_alpha(this->peek()) ||
-                               is_digit(this->peek()) || this->peek() == '_')) {
+    while (!this->at_end() &&
+           ((is_alpha(this->peek()) && is_lowercase(this->peek())) ||
+            is_digit(this->peek()) || this->peek() == '_')) {
       this->position_ += 1;
     }
 
@@ -991,7 +977,7 @@ private:
       return JSONPath::FilterOperand{.value = this->parse_filter_literal()};
     }
 
-    if (is_lower_alpha(character)) {
+    if (is_alpha(character) && is_lowercase(character)) {
       return this->parse_keyword_or_function();
     }
 

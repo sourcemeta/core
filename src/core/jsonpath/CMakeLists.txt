@@ -13,6 +13,8 @@ target_link_libraries(sourcemeta_core_jsonpath PUBLIC
 target_link_libraries(sourcemeta_core_jsonpath PUBLIC
   sourcemeta::core::regex)
 target_link_libraries(sourcemeta_core_jsonpath PRIVATE
+  sourcemeta::core::numeric)
+target_link_libraries(sourcemeta_core_jsonpath PRIVATE
   sourcemeta::core::text)
 target_link_libraries(sourcemeta_core_jsonpath PRIVATE
   sourcemeta::core::unicode)

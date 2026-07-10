@@ -1,4 +1,5 @@
 #include <sourcemeta/core/jsonpath.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/unicode.h>
 
 #include "parser.h"
@@ -679,13 +680,8 @@ auto JSONPath::normalize(const WeakPointer &location) -> JSON::String {
             break;
           default:
             if (static_cast<unsigned char>(character) < 0x20) {
-              constexpr JSON::StringView hexadecimal{"0123456789abcdef"};
               result += "\\u00";
-              result +=
-                  hexadecimal[(static_cast<unsigned char>(character) >> 4) &
-                              0xF];
-              result +=
-                  hexadecimal[static_cast<unsigned char>(character) & 0xF];
+              result += bytes_to_hex(JSON::StringView{&character, 1});
             } else {
               result += character;
             }
