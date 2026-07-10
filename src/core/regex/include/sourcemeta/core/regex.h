@@ -92,7 +92,8 @@ enum class RegexDialect : std::uint8_t {
 ///
 /// - Permissive regexes are NOT automatically anchored
 /// - Permissive regexes assume `DOTALL`
-/// - RFC 9485 regexes match the whole input
+/// - RFC 9485 regexes match the whole input, except in the search dialect,
+///   which matches any substring
 /// - Regexes assume Unicode
 /// - Regexes are case sensitive
 /// - No matching happens (only boolean validation)
