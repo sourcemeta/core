@@ -367,18 +367,20 @@ inline auto iregexp_branches(const std::string_view pattern,
 
 // Validate a pattern against the RFC 9485 grammar and produce the equivalent
 // engine pattern following the RFC 9485 Section 5.4 mapping, which encloses
-// the translation "in \A(?: and )\z"
-inline auto translate_iregexp(const std::string_view pattern)
+// the translation "in \A(?: and )\z". Skipping the enclosure yields substring
+// search semantics instead of whole input matching
+inline auto translate_iregexp(const std::string_view pattern,
+                              const bool anchored)
     -> std::optional<std::string> {
   std::string result;
   result.reserve(pattern.size() + 8);
-  result += "\\A(?:";
+  result += anchored ? "\\A(?:" : "(?:";
   std::size_t position{0};
   if (!iregexp_branches(pattern, position, result, 0)) {
     return std::nullopt;
   }
 
-  result += ")\\z";
+  result += anchored ? ")\\z" : ")";
   return result;
 }
 

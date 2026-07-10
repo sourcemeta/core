@@ -79,7 +79,10 @@ enum class RegexDialect : std::uint8_t {
   /// interpreted through the RFC 9485 Section 5.4 engine mapping, so an
   /// unescaped caret or dollar acts as an assertion instead of a literal
   /// and rejects quantification
-  IRegexp
+  IRegexp,
+  /// Like the strict RFC 9485 dialect, except that matching considers any
+  /// substring of the input
+  IRegexpSearch
 };
 
 /// @ingroup regex
