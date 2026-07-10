@@ -180,10 +180,26 @@ auto filter_matches(const JSONPath::FilterExpression &expression,
 
 // The underlying containers are contiguous, so iterating through raw
 // pointers instead of iterators keeps the hot traversal loops free of the
-// unoptimized iterator call chains of debug builds
-inline auto first_member(const JSON::Object &object)
-    -> const JSON::Object::Entry * {
-  return object.empty() ? nullptr : &*object.cbegin();
+// unoptimized iterator call chains of debug builds. Empty containers yield
+// an empty range of null pointers without any pointer arithmetic
+inline auto member_range(const JSON::Object &object)
+    -> std::pair<const JSON::Object::Entry *, const JSON::Object::Entry *> {
+  if (object.empty()) {
+    return {nullptr, nullptr};
+  }
+
+  const auto *begin{&*object.cbegin()};
+  return {begin, begin + object.size()};
+}
+
+inline auto element_range(const JSON::Array &array)
+    -> std::pair<const JSON *, const JSON *> {
+  if (array.size() == 0) {
+    return {nullptr, nullptr};
+  }
+
+  const auto *begin{&*array.cbegin()};
+  return {begin, begin + array.size()};
 }
 
 inline auto first_element(const JSON::Array &array) -> const JSON * {
@@ -267,6 +283,24 @@ auto filter_query_visit_iterative(
       continue;
     }
 
+    if (!segment.descendant &&
+        segment.kind == JSONPath::SegmentKind::SingleIndex) {
+      if (type == JSON::Type::Array) {
+        const auto *entry{
+            std::get_if<JSONPath::SelectorIndex>(segment.selectors.data())};
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        const auto index{entry->index < 0 ? entry->index + size : entry->index};
+        if (index >= 0 && index < size) {
+          pool.push_back(
+              {.node = first_element(array) + static_cast<std::size_t>(index),
+               .cursor = item.cursor + 1});
+        }
+      }
+
+      continue;
+    }
+
     const auto mark{pool.size()};
     const auto *selector{segment.selectors.data()};
     const auto *const selectors_end{selector + segment.selectors.size()};
@@ -286,16 +320,14 @@ auto filter_query_visit_iterative(
         case JSONPath::SelectorKind::Wildcard:
           if (type == JSON::Type::Object) {
             const auto &object{current.as_object()};
-            const auto *member{first_member(object)};
-            const auto *const members_end{member + object.size()};
+            auto [member, members_end]{member_range(object)};
             for (; member != members_end; ++member) {
               pool.push_back(
                   {.node = &member->second, .cursor = item.cursor + 1});
             }
           } else if (type == JSON::Type::Array) {
             const auto &array{current.as_array()};
-            const auto *element{first_element(array)};
-            const auto *const elements_end{element + array.size()};
+            auto [element, elements_end]{element_range(array)};
             for (; element != elements_end; ++element) {
               pool.push_back({.node = element, .cursor = item.cursor + 1});
             }
@@ -351,8 +383,7 @@ auto filter_query_visit_iterative(
           const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
           if (type == JSON::Type::Object) {
             const auto &object{current.as_object()};
-            const auto *member{first_member(object)};
-            const auto *const members_end{member + object.size()};
+            auto [member, members_end]{member_range(object)};
             for (; member != members_end; ++member) {
               if (filter_matches(entry->expression, member->second, root)) {
                 pool.push_back(
@@ -361,8 +392,7 @@ auto filter_query_visit_iterative(
             }
           } else if (type == JSON::Type::Array) {
             const auto &array{current.as_array()};
-            const auto *element{first_element(array)};
-            const auto *const elements_end{element + array.size()};
+            auto [element, elements_end]{element_range(array)};
             for (; element != elements_end; ++element) {
               if (filter_matches(entry->expression, *element, root)) {
                 pool.push_back({.node = element, .cursor = item.cursor + 1});
@@ -378,15 +408,13 @@ auto filter_query_visit_iterative(
     if (segment.descendant) {
       if (type == JSON::Type::Object) {
         const auto &object{current.as_object()};
-        const auto *member{first_member(object)};
-        const auto *const members_end{member + object.size()};
+        auto [member, members_end]{member_range(object)};
         for (; member != members_end; ++member) {
           pool.push_back({.node = &member->second, .cursor = item.cursor});
         }
       } else if (type == JSON::Type::Array) {
         const auto &array{current.as_array()};
-        const auto *element{first_element(array)};
-        const auto *const elements_end{element + array.size()};
+        auto [element, elements_end]{element_range(array)};
         for (; element != elements_end; ++element) {
           pool.push_back({.node = element, .cursor = item.cursor});
         }
@@ -437,6 +465,25 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
     return true;
   }
 
+  if (!segment.descendant &&
+      segment.kind == JSONPath::SegmentKind::SingleIndex) {
+    if (type == JSON::Type::Array) {
+      const auto *entry{
+          std::get_if<JSONPath::SelectorIndex>(segment.selectors.data())};
+      const auto &array{current.as_array()};
+      const auto size{static_cast<std::int64_t>(array.size())};
+      const auto index{entry->index < 0 ? entry->index + size : entry->index};
+      if (index >= 0 && index < size) {
+        return filter_query_visit(
+            segments, cursor + 1,
+            *(first_element(array) + static_cast<std::size_t>(index)), root,
+            visitor, depth + 1);
+      }
+    }
+
+    return true;
+  }
+
   const auto *selector{segment.selectors.data()};
   const auto *const selectors_end{selector + segment.selectors.size()};
   for (; selector != selectors_end; ++selector) {
@@ -457,8 +504,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
       case JSONPath::SelectorKind::Wildcard:
         if (type == JSON::Type::Object) {
           const auto &object{current.as_object()};
-          const auto *member{first_member(object)};
-          const auto *const members_end{member + object.size()};
+          auto [member, members_end]{member_range(object)};
           for (; member != members_end; ++member) {
             if (!filter_query_visit(segments, cursor + 1, member->second, root,
                                     visitor, depth + 1)) {
@@ -467,8 +513,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           }
         } else if (type == JSON::Type::Array) {
           const auto &array{current.as_array()};
-          const auto *element{first_element(array)};
-          const auto *const elements_end{element + array.size()};
+          auto [element, elements_end]{element_range(array)};
           for (; element != elements_end; ++element) {
             if (!filter_query_visit(segments, cursor + 1, *element, root,
                                     visitor, depth + 1)) {
@@ -535,8 +580,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
         const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
         if (type == JSON::Type::Object) {
           const auto &object{current.as_object()};
-          const auto *member{first_member(object)};
-          const auto *const members_end{member + object.size()};
+          auto [member, members_end]{member_range(object)};
           for (; member != members_end; ++member) {
             if (filter_matches(entry->expression, member->second, root) &&
                 !filter_query_visit(segments, cursor + 1, member->second, root,
@@ -546,8 +590,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
           }
         } else if (type == JSON::Type::Array) {
           const auto &array{current.as_array()};
-          const auto *element{first_element(array)};
-          const auto *const elements_end{element + array.size()};
+          auto [element, elements_end]{element_range(array)};
           for (; element != elements_end; ++element) {
             if (filter_matches(entry->expression, *element, root) &&
                 !filter_query_visit(segments, cursor + 1, *element, root,
@@ -565,8 +608,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
   if (segment.descendant) {
     if (type == JSON::Type::Object) {
       const auto &object{current.as_object()};
-      const auto *member{first_member(object)};
-      const auto *const members_end{member + object.size()};
+      auto [member, members_end]{member_range(object)};
       for (; member != members_end; ++member) {
         if (!filter_query_visit(segments, cursor, member->second, root, visitor,
                                 depth + 1)) {
@@ -575,8 +617,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
       }
     } else if (type == JSON::Type::Array) {
       const auto &array{current.as_array()};
-      const auto *element{first_element(array)};
-      const auto *const elements_end{element + array.size()};
+      auto [element, elements_end]{element_range(array)};
       for (; element != elements_end; ++element) {
         if (!filter_query_visit(segments, cursor, *element, root, visitor,
                                 depth + 1)) {
@@ -930,6 +971,24 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
       continue;
     }
 
+    if (!segment.descendant &&
+        segment.kind == JSONPath::SegmentKind::SingleIndex) {
+      if (type == JSON::Type::Array) {
+        const auto *entry{
+            std::get_if<JSONPath::SelectorIndex>(segment.selectors.data())};
+        const auto &array{current.as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
+        const auto index{entry->index < 0 ? entry->index + size : entry->index};
+        if (index >= 0 && index < size) {
+          stack.push_visit_index(
+              first_element(array) + static_cast<std::size_t>(index),
+              item.cursor + 1, child_depth, static_cast<std::size_t>(index));
+        }
+      }
+
+      continue;
+    }
+
     // Steps are appended in document order and then reversed, so the stack
     // pops them back in document order with every subtree fully processed
     // before its next sibling
@@ -953,8 +1012,7 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
         case JSONPath::SelectorKind::Wildcard:
           if (type == JSON::Type::Object) {
             const auto &object{current.as_object()};
-            const auto *member{first_member(object)};
-            const auto *const members_end{member + object.size()};
+            auto [member, members_end]{member_range(object)};
             for (; member != members_end; ++member) {
               stack.push_visit_property(&member->second, item.cursor + 1,
                                         child_depth, member->first,
@@ -962,8 +1020,7 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
             }
           } else if (type == JSON::Type::Array) {
             const auto &array{current.as_array()};
-            const auto *element{first_element(array)};
-            const auto *const elements_end{element + array.size()};
+            auto [element, elements_end]{element_range(array)};
             for (std::size_t index{0}; element != elements_end;
                  ++element, ++index) {
               stack.push_visit_index(element, item.cursor + 1, child_depth,
@@ -1024,8 +1081,7 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
           const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
           if (type == JSON::Type::Object) {
             const auto &object{current.as_object()};
-            const auto *member{first_member(object)};
-            const auto *const members_end{member + object.size()};
+            auto [member, members_end]{member_range(object)};
             for (; member != members_end; ++member) {
               if (filter_matches(entry->expression, member->second,
                                  *state.root)) {
@@ -1036,8 +1092,7 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
             }
           } else if (type == JSON::Type::Array) {
             const auto &array{current.as_array()};
-            const auto *element{first_element(array)};
-            const auto *const elements_end{element + array.size()};
+            auto [element, elements_end]{element_range(array)};
             for (std::size_t index{0}; element != elements_end;
                  ++element, ++index) {
               if (filter_matches(entry->expression, *element, *state.root)) {
@@ -1055,16 +1110,14 @@ inline auto evaluate_query(const std::vector<JSONPath::Segment> &segments,
     if (segment.descendant) {
       if (type == JSON::Type::Object) {
         const auto &object{current.as_object()};
-        const auto *member{first_member(object)};
-        const auto *const members_end{member + object.size()};
+        auto [member, members_end]{member_range(object)};
         for (; member != members_end; ++member) {
           stack.push_visit_property(&member->second, item.cursor, child_depth,
                                     member->first, member->hash);
         }
       } else if (type == JSON::Type::Array) {
         const auto &array{current.as_array()};
-        const auto *element{first_element(array)};
-        const auto *const elements_end{element + array.size()};
+        auto [element, elements_end]{element_range(array)};
         for (std::size_t index{0}; element != elements_end;
              ++element, ++index) {
           stack.push_visit_index(element, item.cursor, child_depth, index);
@@ -1105,6 +1158,26 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
     return;
   }
 
+  if (segment.kind == JSONPath::SegmentKind::SingleIndex) {
+    if (type == JSON::Type::Array) {
+      const auto *entry{
+          std::get_if<JSONPath::SelectorIndex>(segment.selectors.data())};
+      const auto &array{current.as_array()};
+      const auto size{static_cast<std::int64_t>(array.size())};
+      const auto index{entry->index < 0 ? entry->index + size : entry->index};
+      if (index >= 0 && index < size) {
+        state.frames.push_index(static_cast<std::size_t>(index));
+        evaluate_segments(
+            segments, cursor + 1,
+            *(first_element(array) + static_cast<std::size_t>(index)), state,
+            depth);
+        state.frames.pop();
+      }
+    }
+
+    return;
+  }
+
   const auto *selector{segment.selectors.data()};
   const auto *const selectors_end{selector + segment.selectors.size()};
   for (; selector != selectors_end; ++selector) {
@@ -1125,8 +1198,7 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
       case JSONPath::SelectorKind::Wildcard:
         if (type == JSON::Type::Object) {
           const auto &object{current.as_object()};
-          const auto *member{first_member(object)};
-          const auto *const members_end{member + object.size()};
+          auto [member, members_end]{member_range(object)};
           for (; member != members_end; ++member) {
             state.frames.push_property(member->first, member->hash);
             evaluate_segments(segments, cursor + 1, member->second, state,
@@ -1135,8 +1207,7 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
           }
         } else if (type == JSON::Type::Array) {
           const auto &array{current.as_array()};
-          const auto *element{first_element(array)};
-          const auto *const elements_end{element + array.size()};
+          auto [element, elements_end]{element_range(array)};
           for (std::size_t index{0}; element != elements_end;
                ++element, ++index) {
             state.frames.push_index(index);
@@ -1202,8 +1273,7 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
         const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
         if (type == JSON::Type::Object) {
           const auto &object{current.as_object()};
-          const auto *member{first_member(object)};
-          const auto *const members_end{member + object.size()};
+          auto [member, members_end]{member_range(object)};
           for (; member != members_end; ++member) {
             if (filter_matches(entry->expression, member->second,
                                *state.root)) {
@@ -1215,8 +1285,7 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
           }
         } else if (type == JSON::Type::Array) {
           const auto &array{current.as_array()};
-          const auto *element{first_element(array)};
-          const auto *const elements_end{element + array.size()};
+          auto [element, elements_end]{element_range(array)};
           for (std::size_t index{0}; element != elements_end;
                ++element, ++index) {
             if (filter_matches(entry->expression, *element, *state.root)) {
@@ -1240,12 +1309,19 @@ inline auto evaluate_descendant(const std::vector<JSONPath::Segment> &segments,
                                 const std::size_t cursor, const JSON &current,
                                 EvaluationState &state, const std::size_t depth)
     -> void {
+  // The descendant recursion advances on document depth without passing
+  // through the segment dispatcher, so it needs its own handoff to the
+  // iterative tier
+  if (depth >= JSONPATH_EVALUATION_RECURSION_LIMIT) {
+    evaluate_query(segments, cursor, current, state);
+    return;
+  }
+
   evaluate_selectors(segments, cursor, current, state, depth);
   const auto type{current.type()};
   if (type == JSON::Type::Object) {
     const auto &object{current.as_object()};
-    const auto *member{first_member(object)};
-    const auto *const members_end{member + object.size()};
+    auto [member, members_end]{member_range(object)};
     for (; member != members_end; ++member) {
       state.frames.push_property(member->first, member->hash);
       evaluate_descendant(segments, cursor, member->second, state, depth + 1);
@@ -1253,8 +1329,7 @@ inline auto evaluate_descendant(const std::vector<JSONPath::Segment> &segments,
     }
   } else if (type == JSON::Type::Array) {
     const auto &array{current.as_array()};
-    const auto *element{first_element(array)};
-    const auto *const elements_end{element + array.size()};
+    auto [element, elements_end]{element_range(array)};
     for (std::size_t index{0}; element != elements_end; ++element, ++index) {
       state.frames.push_index(index);
       evaluate_descendant(segments, cursor, *element, state, depth + 1);
