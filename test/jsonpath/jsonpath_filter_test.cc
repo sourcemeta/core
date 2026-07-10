@@ -312,6 +312,56 @@ TEST(jsonpath_filter_less_than_exact_beyond_double_precision) {
   EXPECT_EQ(nodes.size(), 1);
 }
 
+TEST(jsonpath_filter_match_literal_caret) {
+  // NOTE: RFC 9485 Section 4 normatively makes an unescaped caret a literal
+  // character, unlike the not normative Section 5 engine mappings that the
+  // compliance suite anchor cases codify
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ "^ab", "^abc", "ab", "abc" ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?match(@, '^ab.*')]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(nodes.at(0).value->to_string(), "^ab");
+  EXPECT_EQ(nodes.at(1).value->to_string(), "^abc");
+}
+
+TEST(jsonpath_filter_match_literal_middle_dollar) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ "a$b", "ab" ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?match(@, 'a$b')]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_string(), "a$b");
+}
+
+TEST(jsonpath_filter_match_dollar_in_class) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ "a$b", "ab" ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?match(@, 'a[$]b')]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_string(), "a$b");
+}
+
+TEST(jsonpath_filter_match_quantified_caret) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ "^^", "", "a" ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?match(@, '^*')]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 2);
+  EXPECT_EQ(nodes.at(0).value->to_string(), "^^");
+  EXPECT_EQ(nodes.at(1).value->to_string(), "");
+}
+
+TEST(jsonpath_filter_search_literal_dollar) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON([ "xab$cx", "xabcx" ])JSON")};
+  const sourcemeta::core::JSONPath path{"$[?search(@, 'ab$c')]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_string(), "xab$cx");
+}
+
 TEST(jsonpath_filter_current_node_comparison) {
   const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 5, 10 ])JSON")};
   const sourcemeta::core::JSONPath path{"$[?@ > 4]"};

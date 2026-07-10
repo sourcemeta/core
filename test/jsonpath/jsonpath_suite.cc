@@ -125,8 +125,20 @@ auto main(int argc, char **argv) -> int {
     auto prefix{std::filesystem::relative(file, base)};
     prefix.replace_extension();
     for (const auto &test_case : document.at("tests").as_array()) {
+      const auto &name{test_case.at("name").to_string()};
+      // NOTE: These two cases codify the RFC 9485 Section 5 engine mappings,
+      // which declare themselves not normative and under which an unescaped
+      // caret or dollar sign acts as an assertion. RFC 9485 Section 4
+      // normatively makes them literal characters and RFC 9535 defers to
+      // RFC 9485 by reference, so this implementation deliberately
+      // disagrees with these cases
+      if (prefix.generic_string() == "functions/match" &&
+          (name == "explicit caret" || name == "explicit dollar")) {
+        continue;
+      }
+
       sourcemeta::core::test_register(
-          prefix.generic_string() + ": " + test_case.at("name").to_string(),
+          prefix.generic_string() + ": " + name,
           [test_case]() -> void { run_jsonpath_test_case(test_case); });
     }
   }
