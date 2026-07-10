@@ -362,6 +362,21 @@ TEST(jsonpath_filter_search_literal_dollar) {
   EXPECT_EQ(nodes.at(0).value->to_string(), "xab$cx");
 }
 
+TEST(jsonpath_filter_existence_deep_document) {
+  std::string text{"[ "};
+  for (std::size_t index = 0; index < 10000; ++index) {
+    text += "{\"a\":";
+  }
+
+  text += "{\"leaf\":1}";
+  text += std::string(10000, '}');
+  text += ", { \"b\": 2 } ]";
+  const auto document{sourcemeta::core::parse_json(text)};
+  const sourcemeta::core::JSONPath path{"$[?@..leaf]"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+}
+
 TEST(jsonpath_filter_current_node_comparison) {
   const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 5, 10 ])JSON")};
   const sourcemeta::core::JSONPath path{"$[?@ > 4]"};

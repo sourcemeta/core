@@ -106,10 +106,29 @@ private:
         break;
       }
 
-      segments.push_back(this->parse_segment(singular));
+      auto segment{this->parse_segment(singular)};
+      segment.kind = classify_segment(segment);
+      segments.push_back(std::move(segment));
     }
 
     return segments;
+  }
+
+  [[nodiscard]] static auto classify_segment(const JSONPath::Segment &segment)
+      -> JSONPath::SegmentKind {
+    if (segment.selectors.size() != 1) {
+      return JSONPath::SegmentKind::General;
+    }
+
+    switch (static_cast<JSONPath::SelectorKind>(
+        segment.selectors.front().index())) {
+      case JSONPath::SelectorKind::Name:
+        return JSONPath::SegmentKind::SingleName;
+      case JSONPath::SelectorKind::Index:
+        return JSONPath::SegmentKind::SingleIndex;
+      default:
+        return JSONPath::SegmentKind::General;
+    }
   }
 
   // segment = child-segment / descendant-segment

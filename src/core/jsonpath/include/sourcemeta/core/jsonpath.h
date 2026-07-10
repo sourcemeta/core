@@ -223,10 +223,22 @@ public:
   };
 #endif
 
+  /// The precomputed shape of a query segment
+  enum class SegmentKind : std::uint8_t {
+    /// A single name selector applied to children
+    SingleName,
+    /// A single index selector applied to children
+    SingleIndex,
+    /// Any other combination of selectors
+    General
+  };
+
   /// A step in a query
   struct Segment {
     /// Whether the segment also applies to every descendant of its input
     bool descendant;
+    /// The precomputed shape of the segment for fast dispatching
+    SegmentKind kind;
     /// The selectors the segment applies
     std::vector<Selector> selectors;
   };

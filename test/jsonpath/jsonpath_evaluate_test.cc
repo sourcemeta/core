@@ -229,6 +229,39 @@ TEST(jsonpath_evaluate_escaped_name_decodes) {
   EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
 }
 
+TEST(jsonpath_evaluate_descendant_deep_document) {
+  std::string text;
+  for (std::size_t index = 0; index < 10000; ++index) {
+    text += "{\"a\":";
+  }
+
+  text += "{\"leaf\":1}";
+  text += std::string(10000, '}');
+  const auto document{sourcemeta::core::parse_json(text)};
+  const sourcemeta::core::JSONPath path{"$..leaf"};
+  const auto nodes{evaluate_nodes(path, document)};
+  EXPECT_EQ(nodes.size(), 1);
+  EXPECT_EQ(nodes.at(0).value->to_integer(), 1);
+}
+
+TEST(jsonpath_evaluate_deep_name_chain_document) {
+  std::string text;
+  for (std::size_t index = 0; index < 10000; ++index) {
+    text += "[";
+  }
+
+  text += "1";
+  text += std::string(10000, ']');
+  const auto document{sourcemeta::core::parse_json(text)};
+  const sourcemeta::core::JSONPath path{"$..*"};
+  std::size_t count{0};
+  path.evaluate(document, [&count](const sourcemeta::core::JSON &,
+                                   const sourcemeta::core::WeakPointer &) {
+    count += 1;
+  });
+  EXPECT_EQ(count, 10000);
+}
+
 TEST(jsonpath_evaluate_copy_construction) {
   const auto document{sourcemeta::core::parse_json(R"JSON({ "a": 1 })JSON")};
   const sourcemeta::core::JSONPath original{"$.a"};
