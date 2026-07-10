@@ -26,6 +26,11 @@ namespace {
 // values" bounds every int production
 constexpr std::int64_t JSONPATH_MAXIMUM_INTEGER{9007199254740991};
 
+// RFC 9535 Section 4.1: crafted queries must not "trigger surprisingly
+// high, possibly exponential, CPU usage or ... stack overflow", so the
+// recursive filter expression productions are capped in nesting depth
+constexpr std::size_t JSONPATH_MAXIMUM_NESTING_DEPTH{64};
+
 class JSONPathParser {
 public:
   JSONPathParser(const std::string_view input) : input_{input} {}
@@ -482,6 +487,14 @@ private:
 
   // logical-or-expr = logical-and-expr *(S "||" S logical-and-expr)
   auto parse_logical_or() -> JSONPath::FilterExpression {
+    // Every cycle in the filter grammar, through parentheses, nested filter
+    // selectors, or function arguments, passes through this production or
+    // the function one, so guarding both bounds the parser recursion
+    this->depth_ += 1;
+    if (this->depth_ > JSONPATH_MAXIMUM_NESTING_DEPTH) {
+      this->fail();
+    }
+
     std::vector<JSONPath::FilterExpression> children;
     children.push_back(this->parse_logical_and());
     while (true) {
@@ -499,6 +512,7 @@ private:
       }
     }
 
+    this->depth_ -= 1;
     if (children.size() == 1) {
       return std::move(children.front());
     }
@@ -912,6 +926,11 @@ private:
   // function-expr = function-name "(" S [function-argument
   //   *(S "," S function-argument)] S ")"
   auto parse_function() -> JSONPath::FilterFunctionCall {
+    this->depth_ += 1;
+    if (this->depth_ > JSONPATH_MAXIMUM_NESTING_DEPTH) {
+      this->fail();
+    }
+
     const auto identifier{this->parse_identifier()};
     JSONPath::FilterFunctionCall call;
     if (identifier == "length") {
@@ -957,6 +976,7 @@ private:
 
     this->position_ += 1;
     this->check_function(call);
+    this->depth_ -= 1;
     return call;
   }
 
@@ -1044,6 +1064,7 @@ private:
 
   std::string_view input_;
   std::size_t position_{0};
+  std::size_t depth_{0};
 };
 
 } // namespace

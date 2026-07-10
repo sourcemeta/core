@@ -1,6 +1,9 @@
 #include <sourcemeta/core/jsonpath.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstddef>
+#include <string>
+
 #define EXPECT_JSONPATH_PARSE_ERROR(input, expected_column)                    \
   try {                                                                        \
     const sourcemeta::core::JSONPath path{input};                              \
@@ -263,6 +266,58 @@ TEST(jsonpath_parse_filter_number_negative_zero_allowed) {
 
 TEST(jsonpath_parse_filter_number_real_allowed) {
   EXPECT_JSONPATH_VALID("$[?@.a == 1.5e-2]");
+}
+
+TEST(jsonpath_parse_deep_parenthesis_nesting_rejected) {
+  std::string expression{"$[?"};
+  expression += std::string(100, '(');
+  expression += "@.a";
+  expression += std::string(100, ')');
+  expression += "]";
+  try {
+    const sourcemeta::core::JSONPath path{expression};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_TRUE(error.column() > 0);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(jsonpath_parse_deep_filter_nesting_rejected) {
+  std::string expression{"$"};
+  for (std::size_t index = 0; index < 100; ++index) {
+    expression += "[?@";
+  }
+
+  expression += std::string(100, ']');
+  try {
+    const sourcemeta::core::JSONPath path{expression};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_TRUE(error.column() > 0);
+  } catch (...) {
+    FAIL();
+  }
+}
+
+TEST(jsonpath_parse_deep_function_nesting_rejected) {
+  std::string expression{"$[?"};
+  for (std::size_t index = 0; index < 100; ++index) {
+    expression += "length(";
+  }
+
+  expression += "@.a";
+  expression += std::string(100, ')');
+  expression += " == 1]";
+  try {
+    const sourcemeta::core::JSONPath path{expression};
+    FAIL();
+  } catch (const sourcemeta::core::JSONPathParseError &error) {
+    EXPECT_TRUE(error.column() > 0);
+  } catch (...) {
+    FAIL();
+  }
 }
 
 TEST(jsonpath_parse_invalid_selector_character) {
