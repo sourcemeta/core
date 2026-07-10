@@ -75,10 +75,8 @@ enum class RegexDialect : std::uint8_t {
   /// A permissive superset of ECMA 262 with PCRE2 extensions
   Permissive,
   /// Strict RFC 9485 I-Regexp, where any pattern outside the grammar is
-  /// rejected and matching considers the whole input. Patterns are
-  /// interpreted through the RFC 9485 Section 5.4 engine mapping, so an
-  /// unescaped caret or dollar acts as an assertion instead of a literal
-  /// and rejects quantification
+  /// rejected, matching considers the whole input, and an unescaped caret
+  /// or dollar sign is an ordinary character
   IRegexp,
   /// Like the strict RFC 9485 dialect, except that matching considers any
   /// substring of the input

@@ -65,50 +65,56 @@ TEST(rfc9485_matches_empty_branches_only) {
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "x"));
 }
 
-TEST(rfc9485_matches_mapped_leading_caret) {
+TEST(rfc9485_matches_literal_leading_caret) {
   const auto regex{sourcemeta::core::to_regex(
       "^ab.*", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "^ab"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^ab"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
 }
 
-TEST(rfc9485_matches_mapped_trailing_dollar) {
+TEST(rfc9485_matches_literal_trailing_dollar) {
   const auto regex{sourcemeta::core::to_regex(
       ".*bc$", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc"));
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "bc$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "abc$"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "bc$"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "abc"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "bc$x"));
 }
 
-TEST(rfc9485_matches_mapped_trailing_dollar_before_final_newline) {
+TEST(rfc9485_matches_literal_dollar_at_end) {
   const auto regex{sourcemeta::core::to_regex(
       "ab$", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "ab$"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab\n"));
 }
 
-TEST(rfc9485_matches_mapped_middle_caret_never_matches) {
-  // NOTE: This test deviates from RFC 9485, which treats an unescaped caret
-  // as a literal character. We follow the RFC 9485 Section 5.4 engine
-  // mapping instead, where a caret in the middle of a pattern never matches
+TEST(rfc9485_matches_literal_middle_caret) {
   const auto regex{sourcemeta::core::to_regex(
       "a^b", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a^b"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a^b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
-TEST(rfc9485_matches_mapped_middle_dollar_never_matches) {
-  // NOTE: This test deviates from RFC 9485, which treats an unescaped dollar
-  // as a literal character. We follow the RFC 9485 Section 5.4 engine
-  // mapping instead, where a dollar in the middle of a pattern never matches
+TEST(rfc9485_matches_literal_middle_dollar) {
   const auto regex{sourcemeta::core::to_regex(
       "a$b", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
-  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a$b"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a$b"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
+}
+
+TEST(rfc9485_matches_dollar_in_class) {
+  const auto regex{sourcemeta::core::to_regex(
+      "a[$]b", sourcemeta::core::RegexDialect::IRegexp)};
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a$b"));
   EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "ab"));
 }
 
@@ -1055,24 +1061,23 @@ TEST(rfc9485_invalid_utf8_in_class) {
                    .has_value());
 }
 
-TEST(rfc9485_matches_mapped_quantified_caret_rejected) {
-  // NOTE: This test deviates from RFC 9485, whose grammar permits a
-  // quantifier on an unescaped caret. We follow the RFC 9485 Section 5.4
-  // engine mapping instead, under which a quantified caret is not a valid
-  // expression, exactly as in the Section 5.3 ECMAScript mapping
+TEST(rfc9485_matches_quantified_caret) {
   const auto regex{sourcemeta::core::to_regex(
       "^*", sourcemeta::core::RegexDialect::IRegexp)};
-  EXPECT_FALSE(regex.has_value());
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), ""));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "^^^"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a"));
 }
 
-TEST(rfc9485_matches_mapped_quantified_dollar_rejected) {
-  // NOTE: This test deviates from RFC 9485, whose grammar permits a
-  // quantifier on an unescaped dollar. We follow the RFC 9485 Section 5.4
-  // engine mapping instead, under which a quantified dollar is not a valid
-  // expression, exactly as in the Section 5.3 ECMAScript mapping
+TEST(rfc9485_matches_quantified_dollar) {
   const auto regex{sourcemeta::core::to_regex(
       "a$?", sourcemeta::core::RegexDialect::IRegexp)};
-  EXPECT_FALSE(regex.has_value());
+  EXPECT_TRUE(regex.has_value());
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a"));
+  EXPECT_TRUE(sourcemeta::core::matches(regex.value(), "a$"));
+  EXPECT_FALSE(sourcemeta::core::matches(regex.value(), "a$$"));
 }
 
 TEST(rfc9485_matches_empty_group) {

@@ -47,13 +47,10 @@ auto to_regex(const std::string_view pattern, const RegexDialect dialect)
     }
 
     // Grouping in RFC 9485 carries no capturing semantics, as matching is
-    // strictly Boolean, so capturing is disabled altogether. The dollar
-    // option keeps a trailing dollar from also matching before a final
-    // newline, mirroring the ECMA 262 interpretation that the RFC mapping
-    // is defined against
-    return compile_pcre2(translated.value(),
-                         PCRE2_UTF | PCRE2_UCP | PCRE2_DOLLAR_ENDONLY |
-                             PCRE2_NO_AUTO_CAPTURE | PCRE2_MATCH_INVALID_UTF);
+    // strictly Boolean, so capturing is disabled altogether
+    return compile_pcre2(translated.value(), PCRE2_UTF | PCRE2_UCP |
+                                                 PCRE2_NO_AUTO_CAPTURE |
+                                                 PCRE2_MATCH_INVALID_UTF);
   }
 
   if (pattern == ".*" || pattern == "^.*$" || pattern == "^(.*)$" ||

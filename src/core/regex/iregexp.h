@@ -347,6 +347,14 @@ inline auto iregexp_branches(const std::string_view pattern,
       }
 
       quantifiable = true;
+    } else if (character == '^' || character == '$') {
+      // RFC 9485 Section 4 defers to XSD semantics, where the caret and the
+      // dollar sign are ordinary characters, so they are escaped for the
+      // engine instead of acting as assertions
+      output += '\\';
+      output += character;
+      position += 1;
+      quantifiable = true;
     } else if (character == ']' || character == '}') {
       // NormalChar excludes both closing delimiters, so they may only
       // appear escaped
