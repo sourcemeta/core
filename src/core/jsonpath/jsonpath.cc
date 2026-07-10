@@ -18,29 +18,89 @@ namespace sourcemeta::core {
 
 namespace {
 
+// One step of the current traversal location. The full pointer is only
+// materialized when a result node fires, so the walk itself performs raw
+// stores instead of token constructions
+struct LocationFrame {
+  const JSON::String *property;
+  JSON::Object::hash_type hash;
+  std::size_t index;
+};
+
+class LocationStack {
+public:
+  LocationStack() { this->storage_.resize(this->capacity_); }
+
+  auto push_property(const JSON::String &property,
+                     const JSON::Object::hash_type hash) -> void {
+    if (this->depth_ == this->capacity_) {
+      this->grow();
+    }
+
+    auto &frame{*(this->storage_.data() + this->depth_)};
+    frame.property = &property;
+    frame.hash = hash;
+    this->depth_ += 1;
+  }
+
+  auto push_index(const std::size_t index) -> void {
+    if (this->depth_ == this->capacity_) {
+      this->grow();
+    }
+
+    auto &frame{*(this->storage_.data() + this->depth_)};
+    frame.property = nullptr;
+    frame.index = index;
+    this->depth_ += 1;
+  }
+
+  auto pop() -> void { this->depth_ -= 1; }
+
+  auto materialize(WeakPointer &location) const -> void {
+    location.pop_back(location.size());
+    const auto *frame{this->storage_.data()};
+    const auto *const frames_end{frame + this->depth_};
+    for (; frame != frames_end; ++frame) {
+      if (frame->property == nullptr) {
+        location.emplace_back(frame->index);
+      } else {
+        location.emplace_back(std::cref(*frame->property), frame->hash);
+      }
+    }
+  }
+
+private:
+  auto grow() -> void {
+    this->capacity_ *= 2;
+    this->storage_.resize(this->capacity_);
+  }
+
+  std::size_t depth_{0};
+  std::size_t capacity_{64};
+  std::vector<LocationFrame> storage_;
+};
+
 struct EvaluationState {
   const JSON *root;
   const JSONPath::Callback *callback;
+  LocationStack frames;
   WeakPointer location;
 };
 
-// The value of a comparable during evaluation: absent, borrowed from the
-// document or the compiled query, or computed by a function
-using FilterValue = std::variant<std::monostate, const JSON *, JSON>;
-
-auto filter_value_pointer(const FilterValue &value) -> const JSON * {
-  switch (value.index()) {
-    case 0:
-      return nullptr;
-    case 1:
-      return *std::get_if<const JSON *>(&value);
-    default:
-      return std::get_if<JSON>(&value);
-  }
-}
-
 auto filter_matches(const JSONPath::FilterExpression &expression,
                     const JSON &candidate, const JSON &root) -> bool;
+
+// The underlying containers are contiguous, so iterating through raw
+// pointers instead of iterators keeps the hot traversal loops free of the
+// unoptimized iterator call chains of debug builds
+inline auto first_member(const JSON::Object &object)
+    -> const JSON::Object::Entry * {
+  return object.empty() ? nullptr : &*object.cbegin();
+}
+
+inline auto first_element(const JSON::Array &array) -> const JSON * {
+  return array.size() == 0 ? nullptr : &*array.cbegin();
+}
 
 // RFC 9535 Section 2.3.4.2.2: slice expression bounds against a concrete
 // array length, where an omitted start or end defaults according to the
@@ -80,8 +140,12 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
     return visitor(current);
   }
 
-  const auto &segment{segments[cursor]};
-  for (const auto &selector : segment.selectors) {
+  const auto &segment{*(segments.data() + cursor)};
+  const auto type{current.type()};
+  const auto *selector_cursor{segment.selectors.data()};
+  const auto *const selectors_end{selector_cursor + segment.selectors.size()};
+  for (; selector_cursor != selectors_end; ++selector_cursor) {
+    const auto &selector{*selector_cursor};
     switch (static_cast<JSONPath::SelectorKind>(selector.index())) {
       case JSONPath::SelectorKind::Name: {
         const auto *entry{std::get_if<JSONPath::SelectorName>(&selector)};
@@ -96,7 +160,7 @@ auto filter_query_visit(const std::vector<JSONPath::Segment> &segments,
         break;
       }
       case JSONPath::SelectorKind::Wildcard:
-        if (current.is_object()) {
+        if (type == JSON::Type::Object) {
           for (const auto &member : current.as_object()) {
             if (!filter_query_visit(segments, cursor + 1, member.second, root,
                                     visitor)) {
@@ -213,21 +277,24 @@ inline auto resolve_singular(const JSONPath::FilterQuery &query,
                              const JSON &candidate, const JSON &root)
     -> const JSON * {
   const auto *current{query.relative ? &candidate : &root};
-  for (const auto &segment : query.segments) {
-    assert(!segment.descendant);
-    assert(segment.selectors.size() == 1);
-    const auto &selector{segment.selectors.front()};
-    if (std::holds_alternative<JSONPath::SelectorName>(selector)) {
-      const auto *entry{std::get_if<JSONPath::SelectorName>(&selector)};
+  const auto *segment{query.segments.data()};
+  const auto *const segments_end{segment + query.segments.size()};
+  for (; segment != segments_end; ++segment) {
+    assert(!segment->descendant);
+    assert(segment->selectors.size() == 1);
+    const auto *selector{segment->selectors.data()};
+    if (selector->index() == 0) {
+      const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
       current = current->is_object() ? current->try_at(entry->name, entry->hash)
                                      : nullptr;
     } else {
-      const auto *entry{std::get_if<JSONPath::SelectorIndex>(&selector)};
+      const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
       if (current->is_array()) {
-        const auto size{static_cast<std::int64_t>(current->as_array().size())};
+        const auto &array{current->as_array()};
+        const auto size{static_cast<std::int64_t>(array.size())};
         const auto index{entry->index < 0 ? entry->index + size : entry->index};
         current = index >= 0 && index < size
-                      ? &current->at(static_cast<std::size_t>(index))
+                      ? first_element(array) + static_cast<std::size_t>(index)
                       : nullptr;
       } else {
         current = nullptr;
@@ -243,56 +310,60 @@ inline auto resolve_singular(const JSONPath::FilterQuery &query,
 }
 
 auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
-                             const JSON &candidate, const JSON &root)
-    -> FilterValue;
+                             const JSON &candidate, const JSON &root,
+                             std::optional<JSON> &storage) -> const JSON *;
 
+// The value of a comparable during evaluation is a borrowed pointer, or no
+// pointer for the special result Nothing. Computed function results live in
+// the caller provided storage
 inline auto evaluate_operand(const JSONPath::FilterOperand &operand,
-                             const JSON &candidate, const JSON &root)
-    -> FilterValue {
-  if (std::holds_alternative<JSON>(operand.value)) {
-    return FilterValue{&std::get<JSON>(operand.value)};
+                             const JSON &candidate, const JSON &root,
+                             std::optional<JSON> &storage) -> const JSON * {
+  switch (operand.value.index()) {
+    case 0:
+      return std::get_if<JSON>(&operand.value);
+    case 1:
+      return resolve_singular(
+          *std::get_if<JSONPath::FilterQuery>(&operand.value), candidate, root);
+    default:
+      return evaluate_value_function(
+          *std::get_if<JSONPath::FilterFunctionCall>(&operand.value), candidate,
+          root, storage);
   }
-
-  if (std::holds_alternative<JSONPath::FilterQuery>(operand.value)) {
-    const auto *result{resolve_singular(
-        std::get<JSONPath::FilterQuery>(operand.value), candidate, root)};
-    return result == nullptr ? FilterValue{} : FilterValue{result};
-  }
-
-  return evaluate_value_function(
-      std::get<JSONPath::FilterFunctionCall>(operand.value), candidate, root);
 }
 
 inline auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
-                                    const JSON &candidate, const JSON &root)
-    -> FilterValue {
+                                    const JSON &candidate, const JSON &root,
+                                    std::optional<JSON> &storage)
+    -> const JSON * {
   switch (call.function) {
     // RFC 9535 Section 2.4.4: the length function counts string characters,
     // array elements, or object members, and is nothing for anything else
     case JSONPath::FilterFunctionName::Length: {
-      const auto value{
-          evaluate_operand(call.arguments.front(), candidate, root)};
-      const auto *target{filter_value_pointer(value)};
+      std::optional<JSON> argument_storage;
+      const auto *target{evaluate_operand(call.arguments.front(), candidate,
+                                          root, argument_storage)};
       if (target == nullptr) {
-        return FilterValue{};
+        return nullptr;
       }
 
       if (target->is_string()) {
-        return FilterValue{JSON{static_cast<std::int64_t>(
-            utf8_codepoint_count(target->to_string()))}};
+        storage.emplace(static_cast<std::int64_t>(
+            utf8_codepoint_count(target->to_string())));
+        return &storage.value();
       }
 
       if (target->is_array()) {
-        return FilterValue{
-            JSON{static_cast<std::int64_t>(target->as_array().size())}};
+        storage.emplace(static_cast<std::int64_t>(target->as_array().size()));
+        return &storage.value();
       }
 
       if (target->is_object()) {
-        return FilterValue{
-            JSON{static_cast<std::int64_t>(target->as_object().size())}};
+        storage.emplace(static_cast<std::int64_t>(target->as_object().size()));
+        return &storage.value();
       }
 
-      return FilterValue{};
+      return nullptr;
     }
     // RFC 9535 Section 2.4.5: the count function yields the number of nodes
     case JSONPath::FilterFunctionName::Count: {
@@ -304,7 +375,8 @@ inline auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
                            count += 1;
                            return true;
                          });
-      return FilterValue{JSON{count}};
+      storage.emplace(count);
+      return &storage.value();
     }
     // RFC 9535 Section 2.4.8: the value function yields the value of a
     // single node and nothing otherwise
@@ -319,11 +391,11 @@ inline auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
                            count += 1;
                            return count < 2;
                          });
-      return count == 1 ? FilterValue{single} : FilterValue{};
+      return count == 1 ? single : nullptr;
     }
     default:
       assert(false);
-      return FilterValue{};
+      return nullptr;
   }
 }
 
@@ -333,8 +405,9 @@ inline auto evaluate_value_function(const JSONPath::FilterFunctionCall &call,
 inline auto evaluate_logical_function(const JSONPath::FilterFunctionCall &call,
                                       const JSON &candidate, const JSON &root)
     -> bool {
-  const auto input{evaluate_operand(call.arguments.front(), candidate, root)};
-  const auto *subject{filter_value_pointer(input)};
+  std::optional<JSON> input_storage;
+  const auto *subject{
+      evaluate_operand(call.arguments.front(), candidate, root, input_storage)};
   if (subject == nullptr || !subject->is_string()) {
     return false;
   }
@@ -345,8 +418,9 @@ inline auto evaluate_logical_function(const JSONPath::FilterFunctionCall &call,
            matches(call.compiled.value(), subject->to_string());
   }
 
-  const auto pattern{evaluate_operand(call.arguments.back(), candidate, root)};
-  const auto *expression{filter_value_pointer(pattern)};
+  std::optional<JSON> pattern_storage;
+  const auto *expression{evaluate_operand(call.arguments.back(), candidate,
+                                          root, pattern_storage)};
   if (expression == nullptr || !expression->is_string()) {
     return false;
   }
@@ -390,25 +464,25 @@ inline auto filter_less(const JSON *left, const JSON *right) -> bool {
 
 inline auto filter_compare(const JSONPath::FilterComparison &comparison,
                            const JSON &candidate, const JSON &root) -> bool {
-  const auto left{evaluate_operand(comparison.left, candidate, root)};
-  const auto right{evaluate_operand(comparison.right, candidate, root)};
-  const auto *left_value{filter_value_pointer(left)};
-  const auto *right_value{filter_value_pointer(right)};
+  std::optional<JSON> left_storage;
+  std::optional<JSON> right_storage;
+  const auto *left{
+      evaluate_operand(comparison.left, candidate, root, left_storage)};
+  const auto *right{
+      evaluate_operand(comparison.right, candidate, root, right_storage)};
   switch (comparison.operation) {
     case JSONPath::FilterComparisonOperator::Equal:
-      return filter_equals(left_value, right_value);
+      return filter_equals(left, right);
     case JSONPath::FilterComparisonOperator::NotEqual:
-      return !filter_equals(left_value, right_value);
+      return !filter_equals(left, right);
     case JSONPath::FilterComparisonOperator::Less:
-      return filter_less(left_value, right_value);
+      return filter_less(left, right);
     case JSONPath::FilterComparisonOperator::LessEqual:
-      return filter_less(left_value, right_value) ||
-             filter_equals(left_value, right_value);
+      return filter_less(left, right) || filter_equals(left, right);
     case JSONPath::FilterComparisonOperator::Greater:
-      return filter_less(right_value, left_value);
+      return filter_less(right, left);
     case JSONPath::FilterComparisonOperator::GreaterEqual:
-      return filter_less(right_value, left_value) ||
-             filter_equals(left_value, right_value);
+      return filter_less(right, left) || filter_equals(left, right);
   }
 
   assert(false);
@@ -417,56 +491,63 @@ inline auto filter_compare(const JSONPath::FilterComparison &comparison,
 
 inline auto filter_matches(const JSONPath::FilterExpression &expression,
                            const JSON &candidate, const JSON &root) -> bool {
-  if (std::holds_alternative<JSONPath::FilterComparison>(expression.value)) {
-    return filter_compare(
-        std::get<JSONPath::FilterComparison>(expression.value), candidate,
-        root);
-  }
-
-  if (std::holds_alternative<JSONPath::FilterTest>(expression.value)) {
-    const auto &test{std::get<JSONPath::FilterTest>(expression.value)};
-    bool result{false};
-    if (std::holds_alternative<JSONPath::FilterQuery>(test.subject)) {
-      const auto &query{std::get<JSONPath::FilterQuery>(test.subject)};
-      result = !filter_query_visit(query.segments, 0,
-                                   query.relative ? candidate : root, root,
-                                   [](const JSON &) -> bool { return false; });
-    } else {
-      result = evaluate_logical_function(
-          std::get<JSONPath::FilterFunctionCall>(test.subject), candidate,
-          root);
-    }
-
-    return test.negated ? !result : result;
-  }
-
-  if (std::holds_alternative<JSONPath::FilterConjunction>(expression.value)) {
-    const auto &conjunction{
-        std::get<JSONPath::FilterConjunction>(expression.value)};
-    for (const auto &child : conjunction.children) {
-      if (!filter_matches(child, candidate, root)) {
-        return false;
+  switch (
+      static_cast<JSONPath::FilterExpressionKind>(expression.value.index())) {
+    case JSONPath::FilterExpressionKind::Comparison:
+      return filter_compare(
+          *std::get_if<JSONPath::FilterComparison>(&expression.value),
+          candidate, root);
+    case JSONPath::FilterExpressionKind::Test: {
+      const auto &test{*std::get_if<JSONPath::FilterTest>(&expression.value)};
+      bool result{false};
+      if (test.subject.index() == 0) {
+        const auto &query{*std::get_if<JSONPath::FilterQuery>(&test.subject)};
+        result = !filter_query_visit(
+            query.segments, 0, query.relative ? candidate : root, root,
+            [](const JSON &) -> bool { return false; });
+      } else {
+        result = evaluate_logical_function(
+            *std::get_if<JSONPath::FilterFunctionCall>(&test.subject),
+            candidate, root);
       }
+
+      return test.negated ? !result : result;
     }
-
-    return true;
-  }
-
-  if (std::holds_alternative<JSONPath::FilterDisjunction>(expression.value)) {
-    const auto &disjunction{
-        std::get<JSONPath::FilterDisjunction>(expression.value)};
-    for (const auto &child : disjunction.children) {
-      if (filter_matches(child, candidate, root)) {
-        return true;
+    case JSONPath::FilterExpressionKind::Conjunction: {
+      const auto &conjunction{
+          *std::get_if<JSONPath::FilterConjunction>(&expression.value)};
+      const auto *child{conjunction.children.data()};
+      const auto *const children_end{child + conjunction.children.size()};
+      for (; child != children_end; ++child) {
+        if (!filter_matches(*child, candidate, root)) {
+          return false;
+        }
       }
-    }
 
-    return false;
+      return true;
+    }
+    case JSONPath::FilterExpressionKind::Disjunction: {
+      const auto &disjunction{
+          *std::get_if<JSONPath::FilterDisjunction>(&expression.value)};
+      const auto *child{disjunction.children.data()};
+      const auto *const children_end{child + disjunction.children.size()};
+      for (; child != children_end; ++child) {
+        if (filter_matches(*child, candidate, root)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+    case JSONPath::FilterExpressionKind::Negation:
+      return !filter_matches(
+          std::get_if<JSONPath::FilterNegation>(&expression.value)
+              ->children.front(),
+          candidate, root);
   }
 
-  return !filter_matches(
-      std::get<JSONPath::FilterNegation>(expression.value).children.front(),
-      candidate, root);
+  assert(false);
+  return false;
 }
 
 auto evaluate_segments(const std::vector<JSONPath::Segment> &segments,
@@ -476,80 +557,94 @@ auto evaluate_segments(const std::vector<JSONPath::Segment> &segments,
 inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
                                const std::size_t cursor, const JSON &current,
                                EvaluationState &state) -> void {
-  for (const auto &selector : segments[cursor].selectors) {
-    switch (static_cast<JSONPath::SelectorKind>(selector.index())) {
+  const auto &segment{*(segments.data() + cursor)};
+  const auto type{current.type()};
+  const auto *selector{segment.selectors.data()};
+  const auto *const selectors_end{selector + segment.selectors.size()};
+  for (; selector != selectors_end; ++selector) {
+    switch (static_cast<JSONPath::SelectorKind>(selector->index())) {
       case JSONPath::SelectorKind::Name: {
-        const auto *entry{std::get_if<JSONPath::SelectorName>(&selector)};
-        if (current.is_object()) {
+        const auto *entry{std::get_if<JSONPath::SelectorName>(selector)};
+        if (type == JSON::Type::Object) {
           const auto *child{current.try_at(entry->name, entry->hash)};
           if (child != nullptr) {
-            state.location.emplace_back(std::cref(entry->name), entry->hash);
+            state.frames.push_property(entry->name, entry->hash);
             evaluate_segments(segments, cursor + 1, *child, state);
-            state.location.pop_back();
+            state.frames.pop();
           }
         }
 
         break;
       }
       case JSONPath::SelectorKind::Wildcard:
-        if (current.is_object()) {
-          for (const auto &member : current.as_object()) {
-            state.location.emplace_back(std::cref(member.first), member.hash);
-            evaluate_segments(segments, cursor + 1, member.second, state);
-            state.location.pop_back();
+        if (type == JSON::Type::Object) {
+          const auto &object{current.as_object()};
+          const auto *member{first_member(object)};
+          const auto *const members_end{member + object.size()};
+          for (; member != members_end; ++member) {
+            state.frames.push_property(member->first, member->hash);
+            evaluate_segments(segments, cursor + 1, member->second, state);
+            state.frames.pop();
           }
-        } else if (current.is_array()) {
-          const auto size{current.as_array().size()};
-          for (std::size_t index = 0; index < size; ++index) {
-            state.location.emplace_back(index);
-            evaluate_segments(segments, cursor + 1, current.at(index), state);
-            state.location.pop_back();
+        } else if (type == JSON::Type::Array) {
+          const auto &array{current.as_array()};
+          const auto *element{first_element(array)};
+          const auto *const elements_end{element + array.size()};
+          for (std::size_t index{0}; element != elements_end;
+               ++element, ++index) {
+            state.frames.push_index(index);
+            evaluate_segments(segments, cursor + 1, *element, state);
+            state.frames.pop();
           }
         }
 
         break;
       case JSONPath::SelectorKind::Index: {
-        const auto *entry{std::get_if<JSONPath::SelectorIndex>(&selector)};
-        if (current.is_array()) {
-          const auto size{static_cast<std::int64_t>(current.as_array().size())};
+        const auto *entry{std::get_if<JSONPath::SelectorIndex>(selector)};
+        if (type == JSON::Type::Array) {
+          const auto &array{current.as_array()};
+          const auto size{static_cast<std::int64_t>(array.size())};
           const auto index{entry->index < 0 ? entry->index + size
                                             : entry->index};
           if (index >= 0 && index < size) {
-            state.location.emplace_back(static_cast<std::size_t>(index));
-            evaluate_segments(segments, cursor + 1,
-                              current.at(static_cast<std::size_t>(index)),
-                              state);
-            state.location.pop_back();
+            state.frames.push_index(static_cast<std::size_t>(index));
+            evaluate_segments(
+                segments, cursor + 1,
+                *(first_element(array) + static_cast<std::size_t>(index)),
+                state);
+            state.frames.pop();
           }
         }
 
         break;
       }
       case JSONPath::SelectorKind::Slice: {
-        const auto *entry{std::get_if<JSONPath::SelectorSlice>(&selector)};
-        if (current.is_array()) {
-          const auto size{static_cast<std::int64_t>(current.as_array().size())};
+        const auto *entry{std::get_if<JSONPath::SelectorSlice>(selector)};
+        if (type == JSON::Type::Array) {
+          const auto &array{current.as_array()};
+          const auto size{static_cast<std::int64_t>(array.size())};
           std::int64_t lower{0};
           std::int64_t upper{0};
           if (!slice_bounds(*entry, size, lower, upper)) {
             break;
           }
 
+          const auto *const base{first_element(array)};
           if (entry->step > 0) {
             for (auto index{lower}; index < upper; index += entry->step) {
-              state.location.emplace_back(static_cast<std::size_t>(index));
+              state.frames.push_index(static_cast<std::size_t>(index));
               evaluate_segments(segments, cursor + 1,
-                                current.at(static_cast<std::size_t>(index)),
+                                *(base + static_cast<std::size_t>(index)),
                                 state);
-              state.location.pop_back();
+              state.frames.pop();
             }
           } else {
             for (auto index{upper}; index > lower; index += entry->step) {
-              state.location.emplace_back(static_cast<std::size_t>(index));
+              state.frames.push_index(static_cast<std::size_t>(index));
               evaluate_segments(segments, cursor + 1,
-                                current.at(static_cast<std::size_t>(index)),
+                                *(base + static_cast<std::size_t>(index)),
                                 state);
-              state.location.pop_back();
+              state.frames.pop();
             }
           }
         }
@@ -557,23 +652,29 @@ inline auto evaluate_selectors(const std::vector<JSONPath::Segment> &segments,
         break;
       }
       case JSONPath::SelectorKind::Filter: {
-        const auto *entry{std::get_if<JSONPath::SelectorFilter>(&selector)};
-        if (current.is_object()) {
-          for (const auto &member : current.as_object()) {
-            if (filter_matches(entry->expression, member.second, *state.root)) {
-              state.location.emplace_back(std::cref(member.first), member.hash);
-              evaluate_segments(segments, cursor + 1, member.second, state);
-              state.location.pop_back();
+        const auto *entry{std::get_if<JSONPath::SelectorFilter>(selector)};
+        if (type == JSON::Type::Object) {
+          const auto &object{current.as_object()};
+          const auto *member{first_member(object)};
+          const auto *const members_end{member + object.size()};
+          for (; member != members_end; ++member) {
+            if (filter_matches(entry->expression, member->second,
+                               *state.root)) {
+              state.frames.push_property(member->first, member->hash);
+              evaluate_segments(segments, cursor + 1, member->second, state);
+              state.frames.pop();
             }
           }
-        } else if (current.is_array()) {
-          const auto size{current.as_array().size()};
-          for (std::size_t index = 0; index < size; ++index) {
-            if (filter_matches(entry->expression, current.at(index),
-                               *state.root)) {
-              state.location.emplace_back(index);
-              evaluate_segments(segments, cursor + 1, current.at(index), state);
-              state.location.pop_back();
+        } else if (type == JSON::Type::Array) {
+          const auto &array{current.as_array()};
+          const auto *element{first_element(array)};
+          const auto *const elements_end{element + array.size()};
+          for (std::size_t index{0}; element != elements_end;
+               ++element, ++index) {
+            if (filter_matches(entry->expression, *element, *state.root)) {
+              state.frames.push_index(index);
+              evaluate_segments(segments, cursor + 1, *element, state);
+              state.frames.pop();
             }
           }
         }
@@ -591,18 +692,24 @@ inline auto evaluate_descendant(const std::vector<JSONPath::Segment> &segments,
                                 const std::size_t cursor, const JSON &current,
                                 EvaluationState &state) -> void {
   evaluate_selectors(segments, cursor, current, state);
-  if (current.is_object()) {
-    for (const auto &member : current.as_object()) {
-      state.location.emplace_back(std::cref(member.first), member.hash);
-      evaluate_descendant(segments, cursor, member.second, state);
-      state.location.pop_back();
+  const auto type{current.type()};
+  if (type == JSON::Type::Object) {
+    const auto &object{current.as_object()};
+    const auto *member{first_member(object)};
+    const auto *const members_end{member + object.size()};
+    for (; member != members_end; ++member) {
+      state.frames.push_property(member->first, member->hash);
+      evaluate_descendant(segments, cursor, member->second, state);
+      state.frames.pop();
     }
-  } else if (current.is_array()) {
-    const auto size{current.as_array().size()};
-    for (std::size_t index = 0; index < size; ++index) {
-      state.location.emplace_back(index);
-      evaluate_descendant(segments, cursor, current.at(index), state);
-      state.location.pop_back();
+  } else if (type == JSON::Type::Array) {
+    const auto &array{current.as_array()};
+    const auto *element{first_element(array)};
+    const auto *const elements_end{element + array.size()};
+    for (std::size_t index{0}; element != elements_end; ++element, ++index) {
+      state.frames.push_index(index);
+      evaluate_descendant(segments, cursor, *element, state);
+      state.frames.pop();
     }
   }
 }
@@ -611,6 +718,7 @@ inline auto evaluate_segments(const std::vector<JSONPath::Segment> &segments,
                               const std::size_t cursor, const JSON &current,
                               EvaluationState &state) -> void {
   if (cursor == segments.size()) {
+    state.frames.materialize(state.location);
     (*state.callback)(current, state.location);
     return;
   }
@@ -629,8 +737,11 @@ JSONPath::JSONPath(const JSON::StringView expression)
 
 auto JSONPath::evaluate(const JSON &document, const Callback &callback) const
     -> void {
-  EvaluationState state{
-      .root = &document, .callback = &callback, .location = WeakPointer{}};
+  EvaluationState state{.root = &document,
+                        .callback = &callback,
+                        .frames = LocationStack{},
+                        .location = WeakPointer{}};
+  state.location.reserve(32);
   evaluate_segments(this->query_.segments, 0, document, state);
 }
 

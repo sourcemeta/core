@@ -181,6 +181,18 @@ public:
     std::vector<FilterExpression> children;
   };
 
+#if !defined(DOXYGEN)
+  // For fast internal dispatching. It must stay in sync with the expression
+  // variant below
+  enum class FilterExpressionKind : std::uint8_t {
+    Comparison = 0,
+    Test,
+    Conjunction,
+    Disjunction,
+    Negation
+  };
+#endif
+
   /// A logical expression within a filter selector
   struct FilterExpression {
     /// The comparison, test, or combination this expression stands for
