@@ -377,24 +377,12 @@ inline auto filter_less(const JSON *left, const JSON *right) -> bool {
     return false;
   }
 
-  const bool left_number{left->is_integer() || left->is_real()};
-  const bool right_number{right->is_integer() || right->is_real()};
-  if (left_number && right_number) {
-    if (left->is_integer() && right->is_integer()) {
-      return left->to_integer() < right->to_integer();
-    }
-
-    const auto left_value{left->is_integer()
-                              ? static_cast<double>(left->to_integer())
-                              : left->to_real()};
-    const auto right_value{right->is_integer()
-                               ? static_cast<double>(right->to_integer())
-                               : right->to_real()};
-    return left_value < right_value;
-  }
-
-  if (left->is_string() && right->is_string()) {
-    return left->to_string() < right->to_string();
+  // RFC 9535 Section 2.3.5.2.2: ordering applies only when both sides are
+  // numbers or both sides are strings. The value comparison itself orders
+  // numbers of different representations by exact value
+  if ((left->is_number() && right->is_number()) ||
+      (left->is_string() && right->is_string())) {
+    return *left < *right;
   }
 
   return false;

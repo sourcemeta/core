@@ -83,25 +83,12 @@ private:
     return consumed;
   }
 
-  // Copy one full UTF-8 encoded code point, rejecting malformed sequences
+  // Copy one full UTF-8 encoded code point, rejecting malformed sequences,
+  // overlong encodings, surrogates, and code points beyond U+10FFFF
   auto copy_character(JSON::String &output) -> void {
-    const auto lead{static_cast<unsigned char>(this->peek())};
-    if (lead < 0x80) {
-      output += static_cast<char>(lead);
-      this->position_ += 1;
-      return;
-    }
-
-    const auto size{utf8_lead_byte_size(lead)};
-    if (size == 0 || this->position_ + size > this->input_.size()) {
+    const auto size{utf8_codepoint_length(this->input_, this->position_)};
+    if (size == 0) {
       this->fail();
-    }
-
-    for (std::size_t offset{1}; offset < size; ++offset) {
-      if (!is_utf8_continuation(static_cast<unsigned char>(
-              this->input_[this->position_ + offset]))) {
-        this->fail();
-      }
     }
 
     output.append(this->input_.substr(this->position_, size));

@@ -268,6 +268,18 @@ TEST(jsonpath_parse_filter_number_real_allowed) {
   EXPECT_JSONPATH_VALID("$[?@.a == 1.5e-2]");
 }
 
+TEST(jsonpath_parse_overlong_utf8_in_name){
+    EXPECT_JSONPATH_PARSE_ERROR("$['\xE0\x80\xAF']", 4)}
+
+TEST(jsonpath_parse_surrogate_utf8_in_name){
+    EXPECT_JSONPATH_PARSE_ERROR("$['\xED\xA0\x80']", 4)}
+
+TEST(jsonpath_parse_utf8_beyond_unicode_in_name){
+    EXPECT_JSONPATH_PARSE_ERROR("$['\xF4\x90\x80\x80']", 4)}
+
+TEST(jsonpath_parse_overlong_utf8_in_shorthand){
+    EXPECT_JSONPATH_PARSE_ERROR("$.\xE0\x80\xAF", 3)}
+
 TEST(jsonpath_parse_deep_parenthesis_nesting_rejected) {
   std::string expression{"$[?"};
   expression += std::string(100, '(');

@@ -38,6 +38,10 @@ private:
   std::uint64_t column_;
 };
 
+#if defined(_MSC_VER)
+#pragma warning(default : 4251 4275)
+#endif
+
 } // namespace sourcemeta::core
 
 #endif
