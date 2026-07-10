@@ -347,6 +347,20 @@ inline auto iregexp_branches(const std::string_view pattern,
       }
 
       quantifiable = true;
+    } else if (character == '^' || character == '$') {
+      // RFC 9485 Section 4 defers to XSD semantics, where the caret and the
+      // dollar sign outside character classes are ordinary characters, so
+      // they are escaped for the engine instead of acting as assertions. A
+      // leading caret inside a character class remains the negation marker
+      // per the grammar. Note that the Section 5 engine mappings, which are
+      // "not normative" by their own introduction, pass these characters
+      // through unescaped and therefore silently give them assertion
+      // semantics, which is why most implementations and some test suites
+      // disagree with the normative behavior implemented here
+      output += '\\';
+      output += character;
+      position += 1;
+      quantifiable = true;
     } else if (character == ']' || character == '}') {
       // NormalChar excludes both closing delimiters, so they may only
       // appear escaped
