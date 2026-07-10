@@ -76,7 +76,7 @@ enum class RegexDialect : std::uint8_t {
   Permissive,
   /// Strict RFC 9485 I-Regexp, where any pattern outside the grammar is
   /// rejected, matching considers the whole input, and an unescaped caret
-  /// or dollar sign is an ordinary character
+  /// or dollar sign outside a character class is an ordinary character
   IRegexp,
   /// Like the strict RFC 9485 dialect, except that matching considers any
   /// substring of the input

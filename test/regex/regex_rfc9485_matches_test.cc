@@ -66,6 +66,12 @@ TEST(rfc9485_matches_empty_branches_only) {
 }
 
 TEST(rfc9485_matches_literal_leading_caret) {
+  // NOTE: RFC 9485 Section 4 normatively makes an unescaped caret and
+  // dollar sign literal characters. The non normative Section 5 engine
+  // mappings silently turn them into assertions, so most implementations
+  // and the JSONPath compliance suite anchor cases disagree with the
+  // behavior asserted here. We deliberately implement the normative
+  // semantics, which is also what RFC 9535 requires by reference
   const auto regex{sourcemeta::core::to_regex(
       "^ab.*", sourcemeta::core::RegexDialect::IRegexp)};
   EXPECT_TRUE(regex.has_value());
