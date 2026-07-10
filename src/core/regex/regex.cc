@@ -39,8 +39,9 @@ auto compile_pcre2(const std::string &pattern, const std::uint32_t options)
 
 auto to_regex(const std::string_view pattern, const RegexDialect dialect)
     -> std::optional<Regex> {
-  if (dialect == RegexDialect::IRegexp) {
-    const auto translated{translate_iregexp(pattern)};
+  if (dialect != RegexDialect::Permissive) {
+    const auto translated{
+        translate_iregexp(pattern, dialect == RegexDialect::IRegexp)};
     if (!translated.has_value()) {
       return std::nullopt;
     }
