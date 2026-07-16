@@ -20,7 +20,9 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
     jsonpointer_fragment_to_pointer_test.cc
     jsonpointer_concat_test.cc
     jsonpointer_starts_with_test.cc
+    jsonpointer_starts_with_strict_test.cc
     jsonpointer_starts_with_initial_test.cc
+    jsonpointer_shares_prefix_test.cc
     jsonpointer_json_auto_test.cc
     jsonpointer_rebase_test.cc
     jsonpointer_remove_test.cc
