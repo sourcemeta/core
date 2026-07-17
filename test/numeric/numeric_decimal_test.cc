@@ -3441,6 +3441,32 @@ TEST(reduce_negative) {
   EXPECT_EQ(value.reduce(), expected);
 }
 
+// Stripping a trailing zero from a multiple word coefficient must borrow the
+// low digit of every higher word into the word below
+TEST(reduce_big_coefficient_trailing_zero) {
+  const sourcemeta::core::Decimal value{"123456789012345678901234567890"};
+  const auto result{value.reduce()};
+  EXPECT_EQ(result, value);
+  EXPECT_EQ(result.to_scientific_string(),
+            "1.2345678901234567890123456789e+29");
+}
+
+TEST(reduce_big_coefficient_zero_low_word) {
+  const sourcemeta::core::Decimal value{"123456789012000000000000000000000"};
+  const auto result{value.reduce()};
+  EXPECT_EQ(result, value);
+  EXPECT_EQ(result.to_scientific_string(), "1.23456789012e+32");
+}
+
+TEST(reduce_heap_coefficient_trailing_zeros) {
+  const sourcemeta::core::Decimal value{
+      "55555555555555555555555555555555555555500"};
+  const auto result{value.reduce()};
+  EXPECT_EQ(result, value);
+  EXPECT_EQ(result.to_scientific_string(),
+            "5.55555555555555555555555555555555555555e+40");
+}
+
 TEST(reduce_infinity) {
   EXPECT_TRUE(sourcemeta::core::Decimal::infinity().reduce().is_infinite());
 }
