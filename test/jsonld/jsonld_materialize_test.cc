@@ -3374,3 +3374,732 @@ TEST(string_literal_with_decimal_datatype) {
   EXPECT_EQ(result, expected);
   EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
 }
+
+TEST(minimum_integer_literal_with_integer_datatype) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "value": -9223372036854775808 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "-9223372036854775808",
+          "@type": "http://www.w3.org/2001/XMLSchema#integer"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(maximum_integer_literal_with_integer_datatype) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "value": 9223372036854775807 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "9223372036854775807",
+          "@type": "http://www.w3.org/2001/XMLSchema#integer"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(zero_integer_literal_with_decimal_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 0 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(zero_integer_literal_with_double_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 0 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0.0E0",
+          "@type": "http://www.w3.org/2001/XMLSchema#double"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(minimum_integer_literal_with_double_datatype) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "value": -9223372036854775808 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "-9.223372036854776E18",
+          "@type": "http://www.w3.org/2001/XMLSchema#double"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(integer_literal_with_float_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 42 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#float"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "4.2E1",
+          "@type": "http://www.w3.org/2001/XMLSchema#float"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// The largest finite double expands to 309 digits, close to the
+// serialisation buffer bound. The digits are the exact expansion of the
+// stored value, which ties in length with the zero padded seventeen digit
+// spelling and denotes the value precisely
+TEST(maximum_real_literal_with_decimal_datatype) {
+  auto instance{sourcemeta::core::JSON::make_object()};
+  instance.assign("value", sourcemeta::core::JSON{1.7976931348623157e308});
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// The smallest subnormal double expands to the deepest possible
+// fraction
+TEST(subnormal_real_literal_with_decimal_datatype) {
+  auto instance{sourcemeta::core::JSON::make_object()};
+  instance.assign("value", sourcemeta::core::JSON{5e-324});
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(negative_large_decimal_literal_with_decimal_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": -1e21 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "-1000000000000000000000",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(negative_fraction_decimal_literal_with_decimal_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": -1e-20 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "-0.00000000000000000001",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(interior_point_decimal_literal_with_decimal_datatype) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "value": 123.4567890123456789 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "123.4567890123456789",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// Trailing zeros normalize away so that the same value always produces
+// the same literal regardless of the written quantum
+TEST(trailing_zeros_decimal_literal_with_decimal_datatype) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "value": 1.8500000000000000000 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "1.85",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(trailing_zeros_integer_decimal_literal_with_integer_datatype) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "value": 12300000000000000000000000 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#integer"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "12300000000000000000000000",
+          "@type": "http://www.w3.org/2001/XMLSchema#integer"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(zero_decimal_literal_with_decimal_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 0e0 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(zero_decimal_literal_with_double_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 0e0 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0.0E0",
+          "@type": "http://www.w3.org/2001/XMLSchema#double"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// A magnitude beyond the double range cannot borrow the scientific
+// canonical form, so the exact expansion is the deterministic fallback
+TEST(overflowing_decimal_literal_with_double_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 1e309 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "@type": "http://www.w3.org/2001/XMLSchema#double"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(underflowing_decimal_literal_with_double_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 1e-400 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+          "@type": "http://www.w3.org/2001/XMLSchema#double"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(high_precision_fraction_decimal_literal_with_decimal_datatype) {
+  const auto instance = sourcemeta::core::parse_json(
+      R"({ "value": 0.1234567890123456789012345678901234567890123456789 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "0.1234567890123456789012345678901234567890123456789",
+          "@type": "http://www.w3.org/2001/XMLSchema#decimal"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+TEST(maximum_double_decimal_literal_with_double_datatype) {
+  const auto instance =
+      sourcemeta::core::parse_json(R"({ "value": 1.7976931348623157e308 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#double"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        {
+          "@value": "1.797693134862316E308",
+          "@type": "http://www.w3.org/2001/XMLSchema#double"
+        }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// An opaque JSON literal takes precedence, so an accompanying datatype is
+// ignored and the value stays native
+TEST(json_literal_ignores_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": 0.5 })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal",
+              .json = true}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc",
+      "https://example.com/value": [
+        { "@value": 0.5, "@type": "@json" }
+      ]
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
+
+// A null value asserts nothing, so no literal is produced at all
+TEST(null_literal_with_decimal_datatype) {
+  const auto instance = sourcemeta::core::parse_json(R"({ "value": null })");
+
+  sourcemeta::core::JSONLDAnnotationList annotations;
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{},
+      sourcemeta::core::JSONLDDescriptor{.edges = {},
+                                         .value = sourcemeta::core::JSONLDNode{
+                                             .id = "https://example.com/doc"}});
+  annotations.emplace_back(
+      sourcemeta::core::Pointer{"value"},
+      sourcemeta::core::JSONLDDescriptor{
+          .edges = {{"https://example.com/value", false}},
+          .value = sourcemeta::core::JSONLDLiteral{
+              .datatype = "http://www.w3.org/2001/XMLSchema#decimal"}});
+
+  const auto expected = sourcemeta::core::parse_json(R"([
+    {
+      "@id": "https://example.com/doc"
+    }
+  ])");
+
+  const auto result{
+      sourcemeta::core::jsonld_materialize(instance, annotations)};
+  EXPECT_EQ(result, expected);
+  EXPECT_TRUE(sourcemeta::core::jsonld_is_expanded(result));
+}
