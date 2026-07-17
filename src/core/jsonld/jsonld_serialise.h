@@ -109,12 +109,27 @@ inline auto fixed_lexical_form(const double value) -> JSON::String {
           static_cast<std::size_t>(conversion.ptr - buffer.data())};
 }
 
+// The most extreme decimal exponent that still expands to an exponent-free
+// spelling. A tiny exponent notation input would otherwise demand an
+// expansion of up to two billion digits, so magnitudes beyond this bound
+// produce no result and the native value passes through untouched
+inline constexpr std::int64_t MAXIMUM_EXPANSION_EXPONENT{10000};
+
 // The exact exponent-free expansion of an arbitrary precision decimal, with
 // trailing zeros stripped so that the spelling is minimal. The expansion is
 // assembled once into a preallocated result out of views over the scientific
 // form
-inline auto fixed_lexical_form(const Decimal &value) -> JSON::String {
+inline auto fixed_lexical_form(const Decimal &value)
+    -> std::optional<JSON::String> {
   assert(value.is_finite());
+  if (!value.is_zero()) {
+    const auto magnitude{value.logb().to_int64()};
+    if (magnitude > MAXIMUM_EXPANSION_EXPONENT ||
+        magnitude < -MAXIMUM_EXPANSION_EXPONENT) {
+      return std::nullopt;
+    }
+  }
+
   const auto scientific{value.reduce().to_scientific_string()};
   const JSON::StringView view{scientific};
   const auto exponent_marker{view.find('e')};
@@ -136,7 +151,7 @@ inline auto fixed_lexical_form(const Decimal &value) -> JSON::String {
     exponent.remove_prefix(1);
   }
   std::int32_t adjusted{0};
-  const auto conversion{std::from_chars(
+  [[maybe_unused]] const auto conversion{std::from_chars(
       exponent.data(), exponent.data() + exponent.size(), adjusted)};
   assert(conversion.ec == std::errc{});
 
