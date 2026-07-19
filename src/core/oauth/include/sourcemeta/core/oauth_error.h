@@ -94,7 +94,14 @@ enum class OAuthBearerError : std::uint8_t {
   InvalidToken,
   /// The token does not carry the scope the request requires (RFC 6750
   /// Section 3.1).
-  InsufficientScope
+  InsufficientScope,
+  /// The DPoP proof accompanying the request is missing or invalid, returned
+  /// only under the `DPoP` scheme (RFC 9449 Section 7.1).
+  InvalidDPoPProof,
+  /// The request must be retried with a DPoP proof that carries a nonce the
+  /// resource server supplies, returned only under the `DPoP` scheme (RFC 9449
+  /// Section 7.2).
+  UseDPoPNonce
 };
 
 /// @ingroup oauth

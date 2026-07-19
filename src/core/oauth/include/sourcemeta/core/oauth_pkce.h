@@ -91,15 +91,19 @@ auto to_oauth_pkce_method(const std::string_view value) noexcept
 
 /// @ingroup oauth
 /// Mint a new PKCE code verifier, the base64url encoding of 32
-/// cryptographically random octets (RFC 7636 Section 4.1). The result is secret
-/// material, so wipe it once the exchange completes. For example:
+/// cryptographically random octets (RFC 7636 Section 4.1). The 43 bytes are not
+/// null terminated, so pass them onward as a view of `data()` and `size()`
+/// rather than as a C string. The result is secret material, so wipe it once
+/// the exchange completes. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
 /// #include <cassert>
+/// #include <string_view>
 ///
 /// const auto verifier{sourcemeta::core::oauth_pkce_verifier()};
-/// assert(verifier.size() == 43);
+/// const std::string_view view{verifier.data(), verifier.size()};
+/// assert(view.size() == 43);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_pkce_verifier() -> std::array<char, 43>;
@@ -126,7 +130,8 @@ auto oauth_pkce_challenge(const std::string_view verifier)
 /// Verify a presented code verifier against a stored code challenge and its
 /// method, under the given profile, returning the pairing outcome. An empty
 /// verifier or challenge means the value is absent. The final verifier against
-/// challenge comparison is constant time. For example:
+/// challenge comparison is constant time over their bytes once their lengths
+/// match. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

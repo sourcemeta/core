@@ -73,6 +73,10 @@ auto oauth_error_code(const OAuthBearerError error) noexcept
       return "invalid_token";
     case OAuthBearerError::InsufficientScope:
       return "insufficient_scope";
+    case OAuthBearerError::InvalidDPoPProof:
+      return "invalid_dpop_proof";
+    case OAuthBearerError::UseDPoPNonce:
+      return "use_dpop_nonce";
   }
 
   std::unreachable();
@@ -158,6 +162,10 @@ auto to_oauth_bearer_error(const std::string_view code) noexcept
     return OAuthBearerError::InvalidToken;
   } else if (code == "insufficient_scope") {
     return OAuthBearerError::InsufficientScope;
+  } else if (code == "invalid_dpop_proof") {
+    return OAuthBearerError::InvalidDPoPProof;
+  } else if (code == "use_dpop_nonce") {
+    return OAuthBearerError::UseDPoPNonce;
   } else {
     return std::nullopt;
   }

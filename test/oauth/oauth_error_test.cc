@@ -207,6 +207,12 @@ TEST(serialize_bearer_error_codes) {
   EXPECT_EQ(sourcemeta::core::oauth_error_code(
                 sourcemeta::core::OAuthBearerError::InsufficientScope),
             "insufficient_scope");
+  EXPECT_EQ(sourcemeta::core::oauth_error_code(
+                sourcemeta::core::OAuthBearerError::InvalidDPoPProof),
+            "invalid_dpop_proof");
+  EXPECT_EQ(sourcemeta::core::oauth_error_code(
+                sourcemeta::core::OAuthBearerError::UseDPoPNonce),
+            "use_dpop_nonce");
 }
 
 TEST(parse_bearer_error_codes) {
@@ -225,6 +231,16 @@ TEST(parse_bearer_error_codes) {
   EXPECT_TRUE(insufficient_scope.has_value());
   EXPECT_TRUE(insufficient_scope.value() ==
               sourcemeta::core::OAuthBearerError::InsufficientScope);
+  const auto invalid_dpop_proof{
+      sourcemeta::core::to_oauth_bearer_error("invalid_dpop_proof")};
+  EXPECT_TRUE(invalid_dpop_proof.has_value());
+  EXPECT_TRUE(invalid_dpop_proof.value() ==
+              sourcemeta::core::OAuthBearerError::InvalidDPoPProof);
+  const auto use_dpop_nonce{
+      sourcemeta::core::to_oauth_bearer_error("use_dpop_nonce")};
+  EXPECT_TRUE(use_dpop_nonce.has_value());
+  EXPECT_TRUE(use_dpop_nonce.value() ==
+              sourcemeta::core::OAuthBearerError::UseDPoPNonce);
 }
 
 TEST(parse_bearer_error_rejects_an_unknown_code) {

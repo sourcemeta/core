@@ -21,10 +21,11 @@ namespace sourcemeta::core {
 /// const auto profile{sourcemeta::core::OAuthProfile::Strict};
 /// ```
 enum class OAuthProfile : std::uint8_t {
-  /// The default. Rejects the `plain` PKCE method, requires exact redirect URI
-  /// matching, and refuses bearer tokens outside the `Authorization` header.
+  /// The default, selecting the OAuth 2.1 and RFC 9700 hardening. Each function
+  /// that takes a profile applies the part of that hardening it governs. Today
+  /// that is the PKCE method check, where the strict profile rejects `plain`.
   Strict,
-  /// Accepts the RFC 6749 behaviours the strict profile refuses, for
+  /// Selects the RFC 6749 behaviours the strict profile refuses, for
   /// interoperability with deployments that predate the hardening.
   Compatible
 };

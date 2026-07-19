@@ -10,6 +10,7 @@
 #include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
+#include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
 
@@ -40,16 +41,16 @@ auto to_oauth_pkce_method(const std::string_view value) noexcept
 
 auto oauth_pkce_verifier() -> std::array<char, 43> {
   // The verifier is the base64url of 32 random octets, so both the entropy and
-  // the encoded form are secret and are wiped before returning. The caller owns
-  // the returned value and is responsible for wiping it in turn
-  std::array<std::uint8_t, 32> entropy{};
-  random_bytes(std::span<std::uint8_t>{entropy});
+  // the encoded form are secret. The scope guard wipes the entropy on every
+  // exit, including an exception while encoding. The caller owns the returned
+  // value and is responsible for wiping it in turn
+  std::string entropy(32, '\x00');
+  const SecureStringScope entropy_scope{entropy};
+  random_bytes(
+      std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(entropy.data()),
+                              entropy.size()}); // NOLINT
   SecureString encoded;
-  base64url_encode(std::string_view{reinterpret_cast<const char *>( // NOLINT
-                                        entropy.data()),
-                                    entropy.size()},
-                   encoded);
-  secure_zero(entropy.data(), entropy.size());
+  base64url_encode(entropy, encoded);
 
   std::array<char, 43> result{};
   std::ranges::copy(std::string_view{encoded}, result.begin());
