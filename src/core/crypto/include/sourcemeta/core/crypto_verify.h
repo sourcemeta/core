@@ -120,7 +120,9 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT make_eddsa_public_key(
 /// The public components of an RSA key, as raw big-endian bytes in minimal
 /// form.
 struct RSAPublicComponents {
+  /// The RSA modulus.
   std::string modulus;
+  /// The RSA public exponent.
   std::string exponent;
 };
 
@@ -128,8 +130,11 @@ struct RSAPublicComponents {
 /// The public coordinates of an elliptic curve key, each padded to the curve
 /// field width, together with the curve they belong to.
 struct ECPublicComponents {
+  /// The curve the coordinates belong to.
   EllipticCurve curve;
+  /// The x coordinate.
   std::string x;
+  /// The y coordinate.
   std::string y;
 };
 
@@ -137,7 +142,9 @@ struct ECPublicComponents {
 /// The public point of an Edwards-curve key, together with the curve it
 /// belongs to.
 struct EdwardsPublicComponents {
+  /// The curve the point belongs to.
   EdwardsCurve curve;
+  /// The encoded public point.
   std::string point;
 };
 

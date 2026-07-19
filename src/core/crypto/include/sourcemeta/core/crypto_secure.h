@@ -73,12 +73,14 @@ inline auto secure_zero(std::string &value) noexcept -> void {
 /// assert(secret == std::string(7, '\x00'));
 /// ```
 struct SecureStringScope {
+  /// Capture the string to wipe when leaving the current scope.
   explicit SecureStringScope(std::string &value) noexcept : target{value} {}
   SecureStringScope(const SecureStringScope &) = delete;
   auto operator=(const SecureStringScope &) -> SecureStringScope & = delete;
   SecureStringScope(SecureStringScope &&) = delete;
   auto operator=(SecureStringScope &&) -> SecureStringScope & = delete;
   ~SecureStringScope() { secure_zero(this->target); }
+  /// The captured string, whose storage is wiped at scope exit.
   std::string &target;
 };
 

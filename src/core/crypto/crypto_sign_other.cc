@@ -488,7 +488,9 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
           .elliptic_curve = {},
           .edwards_seed = {},
           .edwards_curve = {},
-          .rsa_pss_restricted = parsed->rsa_pss_restricted}};
+          .rsa_pss_restricted = parsed->rsa_pss_restricted,
+          .coordinate_x = {},
+          .coordinate_y = {}}};
     }
     case PKCS8KeyKind::EllipticCurve: {
       // RFC 5915 Section 3: ECPrivateKey is a SEQUENCE whose second field is
@@ -545,7 +547,9 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
                                    .scalar = {},
                                    .elliptic_curve = {},
                                    .edwards_seed = std::string{seed->content},
-                                   .edwards_curve = parsed->edwards_curve}};
+                                   .edwards_curve = parsed->edwards_curve,
+                                   .coordinate_x = {},
+                                   .coordinate_y = {}}};
     }
   }
 
@@ -595,7 +599,9 @@ auto make_edwards_private_key(const EdwardsCurve curve,
                                              .scalar = {},
                                              .elliptic_curve = {},
                                              .edwards_seed = std::string{seed},
-                                             .edwards_curve = curve}};
+                                             .edwards_curve = curve,
+                                             .coordinate_x = {},
+                                             .coordinate_y = {}}};
 }
 
 auto rsassa_pkcs1_v15_sign(const PrivateKey &key,
