@@ -15,13 +15,13 @@
 namespace sourcemeta::core {
 
 /// @ingroup oauth
-/// The PKCE code challenge transformation method (RFC 7636 Section 4.3).
+/// The PKCE code challenge transformation method (RFC 7636 Section 4.2).
 enum class OAuthPKCEMethod : std::uint8_t {
   /// The SHA-256 transformation, the only method the strict profile permits
   /// (RFC 7636 Section 4.2).
   S256,
   /// The identity transformation, permitted only under the compatible profile
-  /// (RFC 7636 Section 4.4).
+  /// (RFC 7636 Section 4.2).
   Plain
 };
 
@@ -54,8 +54,8 @@ enum class OAuthPKCEOutcome : std::uint8_t {
   MalformedVerifier,
   /// The stored challenge violates the code challenge syntax, either the wrong
   /// length for its method or a character outside the allowed set (RFC 7636
-  /// Sections 4.2 and 4.3). A syntactically valid challenge that simply does
-  /// not correspond to the verifier is a `Mismatch`, not this.
+  /// Section 4.2). A syntactically valid challenge that simply does not
+  /// correspond to the verifier is a `Mismatch`, not this.
   MalformedChallenge
 };
 

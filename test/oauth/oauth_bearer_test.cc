@@ -312,3 +312,79 @@ TEST(challenge_parameter_rejects_a_missing_comma_between_challenges) {
                    R"(Bearer realm="x" DPoP algs="y")", "DPoP", "algs")
                    .has_value());
 }
+
+TEST(challenge_parameter_rejects_an_escaped_closing_quote) {
+  // RFC 9110 Section 5.6.4: the backslash forms a quoted-pair with the final
+  // quote, so the quoted-string is never closed and the header is malformed
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter(
+                   "Bearer realm=\"abc\\\"", "Bearer", "realm")
+                   .has_value());
+}
+
+TEST(challenge_parameter_keeps_a_literal_space_in_a_quoted_value) {
+  // RFC 9110 Section 5.6.4: qdtext admits a bare SP, so a space inside the
+  // quotes is part of the value rather than a delimiter
+  const auto realm{sourcemeta::core::oauth_challenge_parameter(
+      R"(Bearer realm="a b")", "Bearer", "realm")};
+  EXPECT_TRUE(realm.has_value());
+  EXPECT_EQ(realm.value(), "a b");
+}
+
+TEST(challenge_parameter_finds_a_bare_value_with_token_punctuation) {
+  // RFC 9110 Section 5.6.2: "!" and "#" are tchar, so they belong to a bare
+  // token value rather than ending it
+  const auto error{sourcemeta::core::oauth_challenge_parameter(
+      "Bearer error=a!b#c", "Bearer", "error")};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), "a!b#c");
+}
+
+TEST(challenge_parameter_skips_a_trailing_token68_challenge) {
+  // RFC 7235 Section 2.1: a token68 challenge that ends the header is skipped
+  // whole, so a lookup that reaches past it simply finds nothing
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter(
+                   R"(Bearer realm="x", Negotiate YWJj==)", "Bearer", "error")
+                   .has_value());
+}
+
+TEST(challenge_parameter_tolerates_whitespace_before_a_separating_comma) {
+  // RFC 9110 Section 5.6.1: optional whitespace may surround the comma, so a
+  // space between an empty challenge and the comma is harmless
+  const auto algs{sourcemeta::core::oauth_challenge_parameter(
+      R"(Bearer , DPoP algs="ES256")", "DPoP", "algs")};
+  EXPECT_TRUE(algs.has_value());
+  EXPECT_EQ(algs.value(), "ES256");
+}
+
+TEST(challenge_parameter_tolerates_whitespace_around_a_separating_comma) {
+  // RFC 9110 Section 5.6.1: optional whitespace may surround the comma between
+  // two parameters of the same challenge
+  const auto error{sourcemeta::core::oauth_challenge_parameter(
+      R"(Bearer realm="x" , error="y")", "Bearer", "error")};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), "y");
+}
+
+TEST(challenge_parameter_treats_a_second_scheme_without_a_comma_as_a_scheme) {
+  // RFC 7235 Section 4.1: a token that is not followed by "=" is a new scheme
+  // rather than a parameter, so the parameter binds to the second scheme
+  const auto basic{sourcemeta::core::oauth_challenge_parameter(
+      R"(Bearer Basic realm="x")", "Basic", "realm")};
+  EXPECT_TRUE(basic.has_value());
+  EXPECT_EQ(basic.value(), "x");
+  EXPECT_FALSE(sourcemeta::core::oauth_challenge_parameter(
+                   R"(Bearer Basic realm="x")", "Bearer", "realm")
+                   .has_value());
+}
+
+TEST(challenge_parameter_returns_nothing_for_a_scheme_only_header) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_challenge_parameter("Bearer", "Bearer", "realm")
+          .has_value());
+}
+
+TEST(challenge_parameter_returns_nothing_for_a_comma_only_header) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_challenge_parameter(" , , ", "Bearer", "realm")
+          .has_value());
+}

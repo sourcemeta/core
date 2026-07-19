@@ -27,7 +27,7 @@ inline auto oauth_is_pkce_verifier(const std::string_view value) noexcept
          oauth_is_unreserved_string(value);
 }
 
-// RFC 7636 Section 4.3: "code-challenge = 43*128unreserved"
+// RFC 7636 Section 4.2: "code-challenge = 43*128unreserved"
 inline auto oauth_is_pkce_challenge(const std::string_view value) noexcept
     -> bool {
   return value.size() >= 43 && value.size() <= 128 &&

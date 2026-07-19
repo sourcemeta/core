@@ -100,7 +100,7 @@ enum class OAuthBearerError : std::uint8_t {
   InvalidDPoPProof,
   /// The request must be retried with a DPoP proof that carries a nonce the
   /// resource server supplies, returned only under the `DPoP` scheme (RFC 9449
-  /// Section 7.2).
+  /// Section 9).
   UseDPoPNonce
 };
 

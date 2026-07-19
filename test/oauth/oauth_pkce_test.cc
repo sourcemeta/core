@@ -136,7 +136,7 @@ TEST(verify_rejects_a_verifier_with_an_invalid_character) {
 }
 
 TEST(verify_rejects_an_s256_challenge_with_an_invalid_character) {
-  // 43 characters, but "+" is not in the unreserved set (RFC 7636 Section 4.3).
+  // 43 characters, but "+" is not in the unreserved set (RFC 7636 Section 4.2).
   EXPECT_TRUE(sourcemeta::core::oauth_pkce_verify(
                   APPENDIX_B_VERIFIER,
                   "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-c+",
@@ -164,6 +164,30 @@ TEST(verify_rejects_a_malformed_plain_challenge_under_compatible) {
                   sourcemeta::core::OAuthPKCEMethod::Plain,
                   sourcemeta::core::OAuthProfile::Compatible) ==
               sourcemeta::core::OAuthPKCEOutcome::MalformedChallenge);
+}
+
+TEST(verify_rejects_a_plain_challenge_of_the_wrong_length) {
+  // A plain challenge is the verifier itself, so it must also satisfy the
+  // 43 character minimum (RFC 7636 Section 4.2), and a 42 character value
+  // cannot
+  const std::string challenge(42, 'a');
+  EXPECT_TRUE(sourcemeta::core::oauth_pkce_verify(
+                  APPENDIX_B_VERIFIER, challenge,
+                  sourcemeta::core::OAuthPKCEMethod::Plain,
+                  sourcemeta::core::OAuthProfile::Compatible) ==
+              sourcemeta::core::OAuthPKCEOutcome::MalformedChallenge);
+}
+
+TEST(verify_accepts_a_verifier_with_all_unreserved_punctuation) {
+  // RFC 7636 Section 4.1 draws the verifier from the RFC 3986 unreserved set,
+  // so
+  // "-", ".", "_", and "~" are all valid, none of which the Appendix B vector
+  // exercises together
+  const std::string verifier{"abcdefghij-klmnopqrst.uvwxyzABCDEFG_HIJKL~M"};
+  EXPECT_TRUE(sourcemeta::core::oauth_pkce_verify(
+                  verifier, verifier, sourcemeta::core::OAuthPKCEMethod::Plain,
+                  sourcemeta::core::OAuthProfile::Compatible) ==
+              sourcemeta::core::OAuthPKCEOutcome::Match);
 }
 
 TEST(verify_accepts_a_verifier_at_the_maximum_length) {
