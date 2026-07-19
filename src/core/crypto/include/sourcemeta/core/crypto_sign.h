@@ -108,10 +108,9 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT make_rsa_private_key(
 
 /// @ingroup crypto
 /// Derive the public key from a private key, returning no value when the public
-/// part cannot be produced, including for Edwards-curve keys, whose public
-/// derivation is not yet supported. The derived key exports its components
-/// through the public component functions, so a private key parsed from a PEM
-/// document can still be rendered to a public key. For example:
+/// part cannot be produced. The derived key exports its components through the
+/// public component functions, so a private key parsed from a PEM document can
+/// still be rendered to a public key. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
@@ -120,8 +119,7 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT make_rsa_private_key(
 /// const auto key{sourcemeta::core::make_private_key(pem)};
 /// assert(key.has_value());
 /// const auto public_key{sourcemeta::core::derive_public_key(key.value())};
-/// assert(!public_key.has_value() || public_key.value().type() ==
-///        sourcemeta::core::PublicKey::Type::RSA);
+/// assert(public_key.has_value());
 /// ```
 auto SOURCEMETA_CORE_CRYPTO_EXPORT derive_public_key(const PrivateKey &key)
     -> std::optional<PublicKey>;

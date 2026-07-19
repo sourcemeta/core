@@ -111,7 +111,16 @@ TEST(public_jwk_of_a_symmetric_key_is_absent) {
   const auto key{sourcemeta::core::JWK::from(document)};
   EXPECT_TRUE(key.has_value());
   EXPECT_FALSE(key.value().public_jwk().has_value());
-  EXPECT_FALSE(key.value().thumbprint().has_value());
+}
+
+TEST(thumbprint_of_a_symmetric_key_hashes_the_secret) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON({ "kty": "oct", "k": "c2VjcmV0LWtleS12YWx1ZQ" })JSON")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  const auto thumbprint{key.value().thumbprint()};
+  EXPECT_TRUE(thumbprint.has_value());
+  EXPECT_EQ(thumbprint.value(), "piCdA_rPHG0sBzkvGUiX6uQMVeusQOdzxKHSfyoeZ3A");
 }
 
 TEST(pem_rsa_private_key_thumbprint_matches_its_public_jwk) {

@@ -10,6 +10,17 @@
 
 namespace {
 
+// The minimal big-endian magnitude of an integer, so the RSA members serialize
+// and thumbprint as the Base64urlUInt form RFC 7518 Section 2 requires, with no
+// leading zero octets, regardless of how the source JWK padded them
+auto minimal(std::string_view value) -> std::string_view {
+  while (!value.empty() && value.front() == '\x00') {
+    value.remove_prefix(1);
+  }
+
+  return value;
+}
+
 // The public members are mutually exclusive by construction, so a non-empty
 // modulus identifies an RSA key, a non-empty coordinate an elliptic curve key,
 // and a non-empty point an octet key pair. All empty means a symmetric key or
@@ -26,8 +37,8 @@ auto build_public_jwk(const std::string_view curve,
   if (!modulus.empty()) {
     auto object{JSON::make_object()};
     object.assign("kty", JSON{std::string{"RSA"}});
-    object.assign("n", JSON{base64url_encode(modulus)});
-    object.assign("e", JSON{base64url_encode(exponent)});
+    object.assign("n", JSON{base64url_encode(minimal(modulus))});
+    object.assign("e", JSON{base64url_encode(minimal(exponent))});
     return object;
   }
 
@@ -54,20 +65,18 @@ auto build_public_jwk(const std::string_view curve,
 // RFC 7638 Section 3: the hash input is a JSON object of the required members
 // only, in lexicographic member order, with no whitespace, the values being
 // the base64url component strings, which contain no character JSON must escape
-auto build_thumbprint(const std::string_view curve,
-                      const std::string_view modulus,
-                      const std::string_view exponent,
-                      const std::string_view coordinate_x,
-                      const std::string_view coordinate_y,
-                      const std::string_view point)
-    -> std::optional<std::string> {
+auto build_thumbprint(
+    const std::string_view curve, const std::string_view modulus,
+    const std::string_view exponent, const std::string_view coordinate_x,
+    const std::string_view coordinate_y, const std::string_view point,
+    const std::string_view secret) -> std::optional<std::string> {
   using sourcemeta::core::base64url_encode;
   std::string canonical;
   if (!modulus.empty()) {
     canonical.append(R"({"e":")");
-    canonical.append(base64url_encode(exponent));
+    canonical.append(base64url_encode(minimal(exponent)));
     canonical.append(R"(","kty":"RSA","n":")");
-    canonical.append(base64url_encode(modulus));
+    canonical.append(base64url_encode(minimal(modulus)));
     canonical.append(R"("})");
   } else if (!coordinate_x.empty()) {
     canonical.append(R"({"crv":")");
@@ -83,6 +92,11 @@ auto build_thumbprint(const std::string_view curve,
     canonical.append(R"(","kty":"OKP","x":")");
     canonical.append(base64url_encode(point));
     canonical.append(R"("})");
+  } else if (!secret.empty()) {
+    // RFC 7638 Section 3.2.1: the octet sequence thumbprint is over the secret
+    canonical.append(R"({"k":")");
+    canonical.append(base64url_encode(secret));
+    canonical.append(R"(","kty":"oct"})");
   } else {
     return std::nullopt;
   }
@@ -106,7 +120,7 @@ auto JWK::public_jwk() const -> std::optional<JSON> {
 auto JWK::thumbprint() const -> std::optional<std::string> {
   return build_thumbprint(this->curve_, this->modulus_, this->exponent_,
                           this->coordinate_x_, this->coordinate_y_,
-                          this->public_point_);
+                          this->public_point_, this->secret_);
 }
 
 auto JWKPrivate::public_jwk() const -> std::optional<JSON> {
@@ -118,7 +132,7 @@ auto JWKPrivate::public_jwk() const -> std::optional<JSON> {
 auto JWKPrivate::thumbprint() const -> std::optional<std::string> {
   return build_thumbprint(this->curve_, this->modulus_, this->exponent_,
                           this->coordinate_x_, this->coordinate_y_,
-                          this->public_point_);
+                          this->public_point_, this->secret_);
 }
 
 } // namespace sourcemeta::core

@@ -361,11 +361,22 @@ auto ec_public_from_scalar(const EllipticCurve curve,
   const JacobianPoint generator{.x = parameters.generator_x,
                                 .y = parameters.generator_y,
                                 .z = bignum_from_u64(1)};
+  auto scalar_number{bignum_from_bytes(scalar)};
+  const SecureBignumScope scalar_scope{scalar_number};
+  // The complete-formula ladder returns a projective point, whose affine
+  // coordinates are X / Z and Y / Z, not the Jacobian X / Z^2 and Y / Z^3, so
+  // the normalization mirrors the constant-time affine recovery of the signing
+  // path rather than the Jacobian point_to_affine
   const auto product{point_scalar_multiply_constant_time(
-      bignum_from_bytes(scalar), generator, parameters)};
-  const auto affine{point_to_affine(product, parameters)};
-  return {bignum_to_bytes(affine.x, parameters.field_bytes),
-          bignum_to_bytes(affine.y, parameters.field_bytes)};
+      scalar_number, generator, parameters)};
+  const auto field{barrett_context(parameters.prime)};
+  const auto z_inverse{field_inverse_ct(product.z, field)};
+  auto coordinate_x{field_mod_multiply_ct(product.x, z_inverse, field)};
+  auto coordinate_y{field_mod_multiply_ct(product.y, z_inverse, field)};
+  bignum_normalize(coordinate_x);
+  bignum_normalize(coordinate_y);
+  return {bignum_to_bytes(coordinate_x, parameters.field_bytes),
+          bignum_to_bytes(coordinate_y, parameters.field_bytes)};
 }
 
 } // namespace
@@ -383,8 +394,9 @@ struct PrivateKey::Internal {
   EdwardsCurve edwards_curve;
   bool rsa_pss_restricted{false};
   // The public coordinates, kept so the public key can be recovered without
-  // recomputing the point from the scalar. Empty for a key parsed from a PEM
-  // document, which carries only the scalar on this backend
+  // recomputing the point from the scalar. A key parsed from a PEM document,
+  // which carries only the scalar on this backend, recomputes them at parse
+  // time, so they are populated for every elliptic curve private key
   std::string coordinate_x;
   std::string coordinate_y;
 };
@@ -517,7 +529,8 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
         return std::nullopt;
       }
 
-      const auto padded_scalar{pad_left(stripped_scalar, scalar_width, '\x00')};
+      auto padded_scalar{pad_left(stripped_scalar, scalar_width, '\x00')};
+      const SecureStringScope padded_scalar_scope{padded_scalar};
       auto point{ec_public_from_scalar(parsed->curve, padded_scalar)};
       return PrivateKey{
           new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
@@ -685,8 +698,9 @@ auto derive_public_key(const PrivateKey &key) -> std::optional<PublicKey> {
     case PrivateKey::Type::RSA:
       return make_rsa_public_key(internal->modulus, internal->public_exponent);
     case PrivateKey::Type::EllipticCurve:
-      // A key parsed from a PEM document keeps only the scalar on this backend,
-      // so its public point cannot be recovered without recomputing it
+      // The public coordinates are populated for every elliptic curve private
+      // key, whether supplied directly or recomputed from a PEM scalar at parse
+      // time, so the guard is a defensive check rather than a common path
       if (internal->coordinate_x.empty()) {
         return std::nullopt;
       }

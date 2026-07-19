@@ -64,8 +64,8 @@ public:
   [[nodiscard]] static auto from(JSON &&value) -> std::optional<JWKPrivate>;
 
   /// Parse a private key from an unencrypted PKCS#8 PEM document (RFC 5958),
-  /// returning no value on invalid input. The key identifier, algorithm, and
-  /// curve are left unset, as a PEM document carries no such metadata.
+  /// returning no value on invalid input. The key identifier and algorithm are
+  /// left unset, as a PEM document carries no such metadata.
   [[nodiscard]] static auto from_pem(const std::string_view pem)
       -> std::optional<JWKPrivate>;
 
@@ -117,8 +117,8 @@ public:
   [[nodiscard]] auto public_jwk() const -> std::optional<JSON>;
 
   /// The SHA-256 JSON Web Key thumbprint of this key (RFC 7638),
-  /// base64url-encoded, returning no value for a symmetric key or a key whose
-  /// public part could not be recovered.
+  /// base64url-encoded, returning no value for a key whose public part could
+  /// not be recovered.
   [[nodiscard]] auto thumbprint() const -> std::optional<std::string>;
 
 private:

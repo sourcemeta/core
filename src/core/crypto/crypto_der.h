@@ -117,13 +117,44 @@ inline auto der_append_unsigned_integer(std::string &output,
   output.append(value);
 }
 
+// The minimal big-endian magnitude of a canonical non-negative DER INTEGER
+// (ITU-T X.690 Section 8.3), returning no value for an empty, negative, or
+// non-canonically sign-prefixed value, so a malformed integer cannot be
+// silently reinterpreted as a different positive number
+inline auto der_unsigned_integer(std::string_view content)
+    -> std::optional<std::string_view> {
+  if (content.empty()) {
+    return std::nullopt;
+  }
+
+  // A leading octet with the high bit set encodes a negative value, and a
+  // leading zero octet is only canonical when the next octet would otherwise
+  // be read as negative
+  if (static_cast<unsigned char>(content.front()) >= 0x80) {
+    return std::nullopt;
+  }
+
+  if (content.size() >= 2 && content.front() == '\x00' &&
+      static_cast<unsigned char>(content[1]) < 0x80) {
+    return std::nullopt;
+  }
+
+  while (!content.empty() && content.front() == '\x00') {
+    content.remove_prefix(1);
+  }
+
+  return content;
+}
+
 // Read the modulus and public exponent from a PKCS#1 RSAPublicKey structure
-// (RFC 8017 Appendix A.1.1), a DER SEQUENCE of the two integers, each returned
-// as its minimal big-endian magnitude with any leading sign octet removed
+// (RFC 8017 Appendix A.1.1), a DER SEQUENCE of exactly the two integers, each
+// returned as its minimal big-endian magnitude. Trailing bytes at either level
+// are rejected so the input parses as exactly that structure
 inline auto der_read_rsa_public_key(const std::string_view der)
     -> std::optional<std::pair<std::string, std::string>> {
   const auto sequence{der_read(der)};
-  if (!sequence.has_value() || sequence->tag != 0x30) {
+  if (!sequence.has_value() || sequence->tag != 0x30 ||
+      !sequence->rest.empty()) {
     return std::nullopt;
   }
 
@@ -133,21 +164,19 @@ inline auto der_read_rsa_public_key(const std::string_view der)
   }
 
   const auto exponent{der_read(modulus->rest)};
-  if (!exponent.has_value() || exponent->tag != 0x02) {
+  if (!exponent.has_value() || exponent->tag != 0x02 ||
+      !exponent->rest.empty()) {
     return std::nullopt;
   }
 
-  auto modulus_value{modulus->content};
-  while (!modulus_value.empty() && modulus_value.front() == '\x00') {
-    modulus_value.remove_prefix(1);
+  const auto modulus_value{der_unsigned_integer(modulus->content)};
+  const auto exponent_value{der_unsigned_integer(exponent->content)};
+  if (!modulus_value.has_value() || !exponent_value.has_value()) {
+    return std::nullopt;
   }
 
-  auto exponent_value{exponent->content};
-  while (!exponent_value.empty() && exponent_value.front() == '\x00') {
-    exponent_value.remove_prefix(1);
-  }
-
-  return std::pair{std::string{modulus_value}, std::string{exponent_value}};
+  return std::pair{std::string{modulus_value.value()},
+                   std::string{exponent_value.value()}};
 }
 
 } // namespace sourcemeta::core

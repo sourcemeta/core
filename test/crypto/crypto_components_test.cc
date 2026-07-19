@@ -112,6 +112,36 @@ TEST(derive_public_key_from_ec_private_matches_coordinates) {
   EXPECT_EQ(components.value().y, coordinate_y.value());
 }
 
+TEST(derive_public_key_from_ec_pem_produces_a_verifying_public_key) {
+  const std::string pem{
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgUJlZcx3akefhQkHy\n"
+      "hdm0LyliIIFyGpXJmWGGe30hqBChRANCAAQrQCBl4pxLtKex84zvju8dntvZF1Dm\n"
+      "etJQhjqZwh81vCWJlgdqoA+F3pQN4jrapP2//GNWJ1pM+Yd7xZoDhKZI\n"
+      "-----END PRIVATE KEY-----\n"};
+  const auto private_key{sourcemeta::core::make_private_key(pem)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{
+      sourcemeta::core::derive_public_key(private_key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  const auto components{
+      sourcemeta::core::ec_public_components(public_key.value())};
+  EXPECT_TRUE(components.has_value());
+  // The derived coordinates must form the public key that verifies a signature
+  // the private key produces, which self-consistent thumbprint checks miss
+  const auto rebuilt{sourcemeta::core::make_ec_public_key(
+      components.value().curve, components.value().x, components.value().y)};
+  EXPECT_TRUE(rebuilt.has_value());
+  const std::string message{"public key derivation verification message"};
+  const auto signature{sourcemeta::core::ecdsa_sign(
+      private_key.value(), sourcemeta::core::SignatureHashFunction::SHA256,
+      message)};
+  EXPECT_TRUE(signature.has_value());
+  EXPECT_TRUE(sourcemeta::core::ecdsa_verify(
+      rebuilt.value(), sourcemeta::core::SignatureHashFunction::SHA256, message,
+      signature.value()));
+}
+
 TEST(derive_public_key_from_ed25519_private_matches_public) {
   const auto seed{sourcemeta::core::hex_to_bytes(ED25519_SEED_HEX)};
   const auto expected{sourcemeta::core::hex_to_bytes(ED25519_PUBLIC_HEX)};

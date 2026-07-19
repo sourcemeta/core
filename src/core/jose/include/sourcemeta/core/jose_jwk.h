@@ -119,7 +119,7 @@ public:
   [[nodiscard]] auto public_jwk() const -> std::optional<JSON>;
 
   /// The SHA-256 JSON Web Key thumbprint of this key (RFC 7638),
-  /// base64url-encoded, returning no value for a symmetric key.
+  /// base64url-encoded.
   [[nodiscard]] auto thumbprint() const -> std::optional<std::string>;
 
 private:
