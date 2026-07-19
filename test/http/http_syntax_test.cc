@@ -289,3 +289,41 @@ TEST(scan_quoted_string_accumulates_into_shared_storage) {
   EXPECT_EQ(first, R"(a"a)");
   EXPECT_EQ(second, R"(b"b)");
 }
+
+TEST(scan_quoted_string_unescapes_a_space) {
+  // RFC 9110 Section 5.6.4: quoted-pair admits SP, so an escaped space is
+  // literal content
+  std::string storage;
+  std::string_view value;
+  const auto next{sourcemeta::core::http_scan_quoted_string(R"("a\ b")", 0,
+                                                            storage, value)};
+  EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(value, "a b");
+}
+
+TEST(scan_quoted_string_unescapes_a_horizontal_tab) {
+  // RFC 9110 Section 5.6.4: quoted-pair admits HTAB
+  std::string storage;
+  std::string_view value;
+  std::string input{"\"a\\"};
+  input.push_back('\t');
+  input.push_back('"');
+  const auto next{
+      sourcemeta::core::http_scan_quoted_string(input, 0, storage, value)};
+  EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(value, std::string_view{"a\t"});
+}
+
+TEST(scan_quoted_string_unescapes_obs_text) {
+  // RFC 9110 Section 5.6.4: quoted-pair admits obs-text
+  std::string storage;
+  std::string_view value;
+  std::string input{"\"a\\"};
+  input.push_back('\x80');
+  input.push_back('"');
+  const auto next{
+      sourcemeta::core::http_scan_quoted_string(input, 0, storage, value)};
+  EXPECT_TRUE(next.has_value());
+  EXPECT_EQ(value.size(), 2);
+  EXPECT_EQ(static_cast<unsigned char>(value.back()), 0x80);
+}
