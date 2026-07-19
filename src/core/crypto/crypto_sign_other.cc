@@ -2,6 +2,7 @@
 #include <sourcemeta/core/text.h>
 
 #include "crypto_bignum.h"
+#include "crypto_der.h"
 #include "crypto_ecc.h"
 #include "crypto_eddsa.h"
 #include "crypto_helpers.h"
@@ -481,23 +482,28 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
         return std::nullopt;
       }
 
-      const auto stripped_modulus{strip_left(modulus->content, '\x00')};
-      const auto stripped_private_exponent{
-          strip_left(private_exponent->content, '\x00')};
-      if (stripped_modulus.empty() ||
-          stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
-          stripped_private_exponent.size() > MAXIMUM_KEY_BYTES ||
-          !rsa_public_exponent_acceptable(public_exponent->content,
-                                          modulus->content)) {
+      // Decode each field as a canonical non-negative DER INTEGER, so a
+      // negative or non-canonically encoded value cannot be silently
+      // reinterpreted as a different positive number and used for signing
+      const auto modulus_value{der_unsigned_integer(modulus->content)};
+      const auto public_exponent_value{
+          der_unsigned_integer(public_exponent->content)};
+      const auto private_exponent_value{
+          der_unsigned_integer(private_exponent->content)};
+      if (!modulus_value.has_value() || !public_exponent_value.has_value() ||
+          !private_exponent_value.has_value() || modulus_value->empty() ||
+          modulus_value->size() > MAXIMUM_KEY_BYTES ||
+          private_exponent_value->size() > MAXIMUM_KEY_BYTES ||
+          !rsa_public_exponent_acceptable(public_exponent_value.value(),
+                                          modulus_value.value())) {
         return std::nullopt;
       }
 
       return PrivateKey{new PrivateKey::Internal{
           .kind = PrivateKey::Type::RSA,
-          .modulus = std::string{stripped_modulus},
-          .public_exponent =
-              std::string{strip_left(public_exponent->content, '\x00')},
-          .private_exponent = std::string{stripped_private_exponent},
+          .modulus = std::string{modulus_value.value()},
+          .public_exponent = std::string{public_exponent_value.value()},
+          .private_exponent = std::string{private_exponent_value.value()},
           .scalar = {},
           .elliptic_curve = {},
           .edwards_seed = {},

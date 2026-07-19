@@ -58,6 +58,9 @@ inline auto read_public_point(EVP_PKEY *key) -> std::optional<std::string> {
     return std::nullopt;
   }
 
+  // The second call reports how many octets it actually wrote, which can be
+  // fewer than the buffer, so the string is trimmed to avoid trailing zeros
+  point.resize(length);
   return point;
 }
 

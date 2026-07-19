@@ -10,6 +10,7 @@
 
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
@@ -110,6 +111,22 @@ inline auto curve_field_bytes(const EllipticCurve curve) noexcept
   }
 
   std::unreachable();
+}
+
+// The inverse mapping, identifying the curve from its field width, so a backend
+// that reports a key only by coordinate size resolves it the same way
+inline auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
+    -> std::optional<EllipticCurve> {
+  switch (field_bytes) {
+    case 32:
+      return EllipticCurve::P256;
+    case 48:
+      return EllipticCurve::P384;
+    case 66:
+      return EllipticCurve::P521;
+    default:
+      return std::nullopt;
+  }
 }
 
 // The group order of each NIST prime curve as big-endian octets (FIPS 186-4

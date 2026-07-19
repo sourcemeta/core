@@ -1,10 +1,8 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_WINDOWS_H_
 #define SOURCEMETA_CORE_CRYPTO_WINDOWS_H_
 
-// CNG key export helpers shared by the signing and verification backends, so
-// the curve mapping and the native blob export stay single-sourced
-
-#include <sourcemeta/core/crypto_verify.h>
+// CNG key export helper shared by the signing and verification backends, so the
+// native blob export stays single-sourced
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -13,25 +11,10 @@
 
 #include <bcrypt.h> // BCryptExportKey, BCRYPT_KEY_HANDLE, BCRYPT_SUCCESS
 
-#include <cstddef>  // std::size_t
 #include <optional> // std::optional, std::nullopt
 #include <string>   // std::string
 
 namespace sourcemeta::core {
-
-inline auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
-    -> std::optional<EllipticCurve> {
-  switch (field_bytes) {
-    case 32:
-      return EllipticCurve::P256;
-    case 48:
-      return EllipticCurve::P384;
-    case 66:
-      return EllipticCurve::P521;
-    default:
-      return std::nullopt;
-  }
-}
 
 // Export a native key blob, sizing the buffer in a first call and filling it in
 // a second

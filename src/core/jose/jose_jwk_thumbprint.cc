@@ -73,6 +73,9 @@ auto build_thumbprint(
     const std::string_view secret) -> std::optional<std::string> {
   using sourcemeta::core::base64url_encode;
   std::string canonical;
+  // The canonical form embeds the secret for a symmetric key, so its storage is
+  // wiped on every return path once the digest no longer needs it
+  const sourcemeta::core::SecureStringScope canonical_scope{canonical};
   if (!modulus.empty()) {
     canonical.append(R"({"e":")");
     canonical.append(base64url_encode(minimal(exponent)));

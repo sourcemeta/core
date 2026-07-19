@@ -69,6 +69,21 @@ TEST(rsa_thumbprint_normalizes_a_non_minimal_exponent) {
   EXPECT_EQ(thumbprint.value(), "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
 }
 
+TEST(rsa_thumbprint_normalizes_a_non_minimal_modulus) {
+  // The modulus carries a spurious leading zero octet, which must normalize to
+  // the same thumbprint as the canonical encoding of RFC 7638 Section 3.1
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "RSA",
+    "n": "ANL8e2oKHmxnEErrj4iyV2abTfZ53a0Jm1xKbNmogBW1oTO_C4VseHG23wALVU_Os8LtUSu2jxRcboQ0dS-rUqHPwSRAj3m1ikV4wWQohVeJ96JJ44TLLZ-uLWf9lvuSbBmOB3OZ_cgVwK8Jfd5are_0TecOgn9IeEMkOb_uuWBo0EdPxQ1tkL86mN-vEEDInALWkqs7PCiWYJ2G_XO3dM4HQGR87uqjEL0S-YWo659Z_dQmzqWyEg9PKjS8q3ZLfmxU1oQCOLzEBYelnmbtHzOJRXdjXEcK91z5LCDR2kPhv8QZ4iKm8NC7NYxeOPnLBQrq_pBIFPGsGqScyp6gyoM",
+    "e": "AQAB"
+  })JSON")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  const auto thumbprint{key.value().thumbprint()};
+  EXPECT_TRUE(thumbprint.has_value());
+  EXPECT_EQ(thumbprint.value(), "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+}
+
 TEST(public_jwk_of_an_ec_public_key_round_trips) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "kty": "EC", "crv": "P-256",
@@ -121,11 +136,12 @@ TEST(ec_private_and_public_keys_share_a_thumbprint) {
 }
 
 TEST(from_rejects_an_ec_private_key_whose_public_does_not_match) {
-  // The final octet of x is altered, so the stored public point no longer
-  // corresponds to the private scalar d and the keypair is inconsistent
+  // The final base64url character of x carries significant bits, so the decoded
+  // public point no longer corresponds to the private scalar d and the keypair
+  // is inconsistent
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "kty": "EC", "crv": "P-256",
-    "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D5",
+    "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7Dw",
     "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
     "d": "870MB6gfuTJ4HtUnUvYMyJpr5eUZNP4Bk43bVdj3eAE"
   })JSON")};

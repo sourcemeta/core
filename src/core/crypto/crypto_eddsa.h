@@ -189,6 +189,18 @@ inline auto edwards_point_encode(const EdwardsPoint &point, const Bignum &prime,
   return encoding;
 }
 
+// The public key is the encoded base point multiplied by the pruned secret
+// scalar (RFC 8032 Sections 5.1.5 and 5.2.5). The multiplication is
+// constant-time because the scalar is secret, though the resulting point is
+// public
+inline auto edwards_public_key_point(const Bignum &scalar,
+                                     const EdwardsParameters &parameters,
+                                     const std::size_t length) -> std::string {
+  return edwards_point_encode(edwards_point_scalar_multiply_constant_time(
+                                  scalar, parameters.base, parameters),
+                              parameters.prime, length);
+}
+
 // Recover an Ed25519 point from its 32-byte encoding (RFC 8032 Section 5.1.3),
 // returning no value when the encoding does not name a point on the curve
 inline auto edwards25519_decode_point(const std::string_view encoding,
@@ -400,9 +412,7 @@ inline auto edwards25519_public_key(const std::string_view secret)
   edwards25519_prune_scalar(scalar_bytes);
   auto scalar_a{bignum_from_bytes_little_endian(scalar_bytes)};
   const SecureBignumScope scalar_a_scope{scalar_a};
-  return edwards_point_encode(edwards_point_scalar_multiply_constant_time(
-                                  scalar_a, parameters.base, parameters),
-                              parameters.prime, 32);
+  return edwards_public_key_point(scalar_a, parameters, 32);
 }
 
 inline auto edwards25519_sign(const std::string_view secret,
@@ -429,10 +439,7 @@ inline auto edwards25519_sign(const std::string_view secret,
   const SecureBignumScope scalar_a_scope{scalar_a};
   const auto prefix{digest.substr(32)};
 
-  const auto public_key{
-      edwards_point_encode(edwards_point_scalar_multiply_constant_time(
-                               scalar_a, parameters.base, parameters),
-                           parameters.prime, 32)};
+  const auto public_key{edwards_public_key_point(scalar_a, parameters, 32)};
 
   // r = SHA-512(prefix || M) reduced, then R = [r]B
   std::string nonce_preimage{prefix};
@@ -666,9 +673,7 @@ inline auto edwards448_public_key(const std::string_view secret)
   edwards448_prune_scalar(scalar_bytes);
   auto scalar_a{bignum_from_bytes_little_endian(scalar_bytes)};
   const SecureBignumScope scalar_a_scope{scalar_a};
-  return edwards_point_encode(edwards_point_scalar_multiply_constant_time(
-                                  scalar_a, parameters.base, parameters),
-                              parameters.prime, 57);
+  return edwards_public_key_point(scalar_a, parameters, 57);
 }
 
 inline auto edwards448_sign(const std::string_view secret,
@@ -693,10 +698,7 @@ inline auto edwards448_sign(const std::string_view secret,
   const SecureBignumScope scalar_a_scope{scalar_a};
   const auto prefix{std::string_view{digest}.substr(57)};
 
-  const auto public_key{
-      edwards_point_encode(edwards_point_scalar_multiply_constant_time(
-                               scalar_a, parameters.base, parameters),
-                           parameters.prime, 57)};
+  const auto public_key{edwards_public_key_point(scalar_a, parameters, 57)};
 
   // dom4 is "SigEd448" followed by the zero pre-hash flag and an empty context
   std::string domain{"SigEd448"};

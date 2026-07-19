@@ -89,7 +89,9 @@ public:
 
   // Elliptic curve keys (RFC 7518 Section 6.2) and octet key pairs (RFC 8037
   // Section 2) carry a curve name, which the elliptic curve algorithms pin to
-  // exactly one curve. It is empty for keys parsed from a PEM document
+  // exactly one curve. A key parsed from a PEM document carries it once its
+  // public part has been recovered, and it stays empty for a key that carries
+  // no curve, such as an RSA or symmetric key
   /// The curve this key is pinned to, empty when it carries none.
   [[nodiscard]] auto curve() const noexcept -> std::string_view {
     return this->curve_;
