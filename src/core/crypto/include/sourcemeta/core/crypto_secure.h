@@ -199,7 +199,17 @@ public:
 
   /// Append a view of bytes.
   auto append(const std::string_view value) -> void {
-    this->buffer_.insert(this->buffer_.end(), value.begin(), value.end());
+    if (this->buffer_.size() + value.size() <= this->buffer_.capacity()) {
+      // No reallocation happens, so a source that aliases this storage stays
+      // valid and its range is disjoint from the appended tail
+      this->buffer_.insert(this->buffer_.end(), value.begin(), value.end());
+    } else {
+      // A reallocation would invalidate a source that aliases this storage, so
+      // the bytes are taken through an independent buffer first
+      const std::vector<char, SecureAllocator<char>> copy(value.begin(),
+                                                          value.end());
+      this->buffer_.insert(this->buffer_.end(), copy.begin(), copy.end());
+    }
   }
 
   /// Append a run of a repeated byte.

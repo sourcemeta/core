@@ -49,3 +49,20 @@ TEST(secure_string_grows_across_a_reallocation) {
   EXPECT_EQ(secret.front(), 'a');
   EXPECT_EQ(secret.back(), 'b');
 }
+
+TEST(secure_string_appends_a_view_of_itself) {
+  sourcemeta::core::SecureString secret{"hunter2"};
+  secret.reserve(14);
+  secret.append(std::string_view{secret});
+  EXPECT_TRUE(secret == "hunter2hunter2");
+}
+
+TEST(secure_string_appends_a_view_of_itself_across_a_reallocation) {
+  sourcemeta::core::SecureString secret{"abcdef"};
+  secret.reserve(6);
+  secret.append(std::string_view{secret});
+  secret.append(std::string_view{secret});
+  EXPECT_EQ(secret.size(), 24);
+  EXPECT_EQ(secret.front(), 'a');
+  EXPECT_EQ(secret.back(), 'f');
+}
