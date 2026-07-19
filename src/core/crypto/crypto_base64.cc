@@ -36,8 +36,9 @@ constexpr std::array<std::uint8_t, 256> BASE64_DECODE_TABLE{
 constexpr std::array<std::uint8_t, 256> BASE64URL_DECODE_TABLE{
     build_decode_table(BASE64URL_ALPHABET)};
 
+template <typename Output>
 auto encode(const std::string_view input, const std::string_view alphabet,
-            const bool padding, std::string &output) -> void {
+            const bool padding, Output &output) -> void {
   std::size_t index{0};
   while (index + 3 <= input.size()) {
     const std::uint32_t first{static_cast<std::uint8_t>(input[index])};
@@ -184,6 +185,12 @@ auto base64url_encode(const std::string_view input) -> std::string {
   result.reserve(((input.size() + 2) / 3) * 4);
   encode(input, BASE64URL_ALPHABET, false, result);
   return result;
+}
+
+auto base64url_encode(const std::string_view input, SecureString &output)
+    -> void {
+  output.reserve(output.size() + ((input.size() + 2) / 3) * 4);
+  encode(input, BASE64URL_ALPHABET, false, output);
 }
 
 auto base64url_decode(const std::string_view input)

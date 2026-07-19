@@ -5,6 +5,8 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <sourcemeta/core/crypto_secure.h>
+
 #include <optional>    // std::optional
 #include <ostream>     // std::ostream
 #include <string>      // std::string
@@ -83,6 +85,22 @@ base64url_encode(const std::string_view input, std::ostream &output) -> void;
 /// ```
 auto SOURCEMETA_CORE_CRYPTO_EXPORT
 base64url_encode(const std::string_view input) -> std::string;
+
+/// @ingroup crypto
+/// Append the unpadded Base64url encoding (RFC 4648 Section 5) of a byte
+/// sequence to a wiping string, so that encoding a secret does not leave it in
+/// an intermediate buffer. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::SecureString result;
+/// sourcemeta::core::base64url_encode("fo", result);
+/// assert(result == "Zm8");
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT
+base64url_encode(const std::string_view input, SecureString &output) -> void;
 
 /// @ingroup crypto
 /// Decode an unpadded Base64url string (RFC 4648 Section 5), returning no

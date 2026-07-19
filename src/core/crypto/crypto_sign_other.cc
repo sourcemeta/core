@@ -166,16 +166,19 @@ auto hash_sizes(const SignatureHashFunction hash) -> HashSizes {
 }
 
 // HMAC (RFC 2104) keyed on the signature hash function, the primitive that the
-// deterministic nonce generator is built on
+// deterministic nonce generator is built on. The key, the block-sized pads, and
+// the result all derive from the private key, so they are kept in wiping
+// storage
 auto hmac(const SignatureHashFunction hash, const std::string_view key,
-          const std::string_view message) -> std::string {
+          const std::string_view message) -> SecureString {
   const auto block_bytes{hash_sizes(hash).block_bytes};
-  std::string block_key{key.size() > block_bytes ? digest_message(hash, key)
-                                                 : std::string{key}};
+  SecureString block_key{key.size() > block_bytes
+                             ? secure_digest_message(hash, key)
+                             : SecureString{key}};
   block_key.resize(block_bytes, '\x00');
 
-  std::string inner_input(block_bytes, '\x00');
-  std::string outer_input(block_bytes, '\x00');
+  SecureString inner_input(block_bytes, '\x00');
+  SecureString outer_input(block_bytes, '\x00');
   for (std::size_t index{0}; index < block_bytes; ++index) {
     const auto byte{static_cast<unsigned char>(block_key[index])};
     inner_input[index] = static_cast<char>(byte ^ 0x36u);
@@ -183,8 +186,8 @@ auto hmac(const SignatureHashFunction hash, const std::string_view key,
   }
 
   inner_input.append(message);
-  outer_input.append(digest_message(hash, inner_input));
-  return digest_message(hash, outer_input);
+  outer_input.append(secure_digest_message(hash, inner_input));
+  return secure_digest_message(hash, outer_input);
 }
 
 // RFC 6979 Section 2.3.2 bits2int, which is also the FIPS 186-4 Section 6.4
@@ -301,15 +304,13 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
       bits2octets(digest, parameters.order, order_bits, order_bytes)};
 
   // RFC 6979 Section 3.2 steps b to g: seed the HMAC generator. The generator
-  // state and the private octets are derived from the private key, so each is
-  // wiped when leaving this function
+  // state and the private octets are derived from the private key, so they are
+  // held in wiping storage that clears itself on every reassignment and on the
+  // way out of this function
   const auto output_bytes{hash_sizes(hash).output_bytes};
-  std::string hmac_value(output_bytes, '\x01');
-  const SecureStringScope hmac_value_scope{hmac_value};
-  std::string hmac_key(output_bytes, '\x00');
-  const SecureStringScope hmac_key_scope{hmac_key};
-  std::string seed{hmac_value};
-  const SecureStringScope seed_scope{seed};
+  SecureString hmac_value(output_bytes, '\x01');
+  SecureString hmac_key(output_bytes, '\x00');
+  SecureString seed{hmac_value};
   seed.push_back('\x00');
   seed.append(private_octets);
   seed.append(hashed_octets);
@@ -324,9 +325,8 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
 
   for (std::size_t attempt = 0; attempt < 256; ++attempt) {
     // RFC 6979 Section 3.2 step h.2: draw enough output to cover the order. The
-    // candidate is the secret nonce, so it is wiped when the attempt ends
-    std::string candidate;
-    const SecureStringScope candidate_scope{candidate};
+    // candidate is the secret nonce, so it too lives in wiping storage
+    SecureString candidate;
     while (candidate.size() * 8 < order_bits) {
       hmac_value = hmac(hash, hmac_key, hmac_value);
       candidate.append(hmac_value);
@@ -342,8 +342,7 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
     }
 
     // RFC 6979 Section 3.2 step h: reseed before the next candidate
-    std::string reseed{hmac_value};
-    const SecureStringScope reseed_scope{reseed};
+    SecureString reseed{hmac_value};
     reseed.push_back('\x00');
     hmac_key = hmac(hash, hmac_key, reseed);
     hmac_value = hmac(hash, hmac_key, hmac_value);

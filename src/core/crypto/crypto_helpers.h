@@ -234,6 +234,33 @@ inline auto digest_message(const SignatureHashFunction hash,
   std::unreachable();
 }
 
+// The same digest returned in wiping storage, for the secret-bearing hashing of
+// the deterministic nonce generator, where the message and the result derive
+// from the private key
+inline auto secure_digest_message(const SignatureHashFunction hash,
+                                  const std::string_view message)
+    -> SecureString {
+  switch (hash) {
+    case SignatureHashFunction::SHA256: {
+      auto digest{sha256_digest(message)};
+      const SecureBufferScope digest_scope{digest.data(), digest.size()};
+      return {reinterpret_cast<const char *>(digest.data()), digest.size()};
+    }
+    case SignatureHashFunction::SHA384: {
+      auto digest{sha384_digest(message)};
+      const SecureBufferScope digest_scope{digest.data(), digest.size()};
+      return {reinterpret_cast<const char *>(digest.data()), digest.size()};
+    }
+    case SignatureHashFunction::SHA512: {
+      auto digest{sha512_digest(message)};
+      const SecureBufferScope digest_scope{digest.data(), digest.size()};
+      return {reinterpret_cast<const char *>(digest.data()), digest.size()};
+    }
+  }
+
+  std::unreachable();
+}
+
 } // namespace sourcemeta::core
 
 #endif

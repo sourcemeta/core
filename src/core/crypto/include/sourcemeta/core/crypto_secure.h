@@ -6,7 +6,8 @@
 #endif
 
 #include <cstddef> // std::size_t
-#include <string>  // std::string
+#include <new>     // operator new, operator delete
+#include <string>  // std::string, std::char_traits
 
 namespace sourcemeta::core {
 
@@ -83,6 +84,69 @@ struct SecureStringScope {
   /// The captured string, whose storage is wiped at scope exit.
   std::string &target;
 };
+
+/// @ingroup crypto
+/// A standard allocator that wipes every block it owns before releasing it, so
+/// a secret the storage held does not survive in freed memory. The deallocation
+/// covers the whole block, so a reallocation, a reassignment, or the
+/// destruction of the owner all clear the earlier bytes, closing the residue
+/// that the scope-based cleanup above cannot reach on its own. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <vector>
+///
+/// std::vector<char, sourcemeta::core::SecureAllocator<char>> secret;
+/// secret.push_back('x');
+/// ```
+template <typename T> struct SecureAllocator {
+  /// The type of object this allocator hands out storage for.
+  using value_type = T;
+
+  /// Construct an allocator, which holds no state of its own.
+  SecureAllocator() noexcept = default;
+
+  /// Construct from an allocator for another type, as the containers require.
+  template <typename Other>
+  constexpr SecureAllocator(const SecureAllocator<Other> &) noexcept {}
+
+  /// Allocate storage for the given number of objects.
+  [[nodiscard]] auto allocate(const std::size_t count) -> T * {
+    return static_cast<T *>(::operator new(count * sizeof(T)));
+  }
+
+  /// Wipe and release the storage of the given number of objects.
+  auto deallocate(T *const pointer, const std::size_t count) noexcept -> void {
+    secure_zero(pointer, count * sizeof(T));
+    ::operator delete(pointer);
+  }
+
+  /// Every instance is interchangeable, since the allocator holds no state.
+  template <typename Other>
+  auto operator==(const SecureAllocator<Other> &) const noexcept -> bool {
+    return true;
+  }
+
+  /// Every instance is interchangeable, since the allocator holds no state.
+  template <typename Other>
+  auto operator!=(const SecureAllocator<Other> &) const noexcept -> bool {
+    return false;
+  }
+};
+
+/// @ingroup crypto
+/// A string that wipes its heap storage whenever it is released, so a secret it
+/// held does not linger after a growth, a reassignment, or its destruction. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+///
+/// sourcemeta::core::SecureString secret{"hunter2"};
+/// secret.append("!");
+/// ```
+using SecureString =
+    std::basic_string<char, std::char_traits<char>, SecureAllocator<char>>;
 
 } // namespace sourcemeta::core
 

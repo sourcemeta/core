@@ -72,10 +72,9 @@ auto build_thumbprint(
     const std::string_view coordinate_y, const std::string_view point,
     const std::string_view secret) -> std::optional<std::string> {
   using sourcemeta::core::base64url_encode;
-  std::string canonical;
-  // The canonical form embeds the secret for a symmetric key, so its storage is
-  // wiped on every return path once the digest no longer needs it
-  const sourcemeta::core::SecureStringScope canonical_scope{canonical};
+  // The canonical form embeds the secret for a symmetric key, so it is held in
+  // wiping storage that clears itself on every growth and on the way out
+  sourcemeta::core::SecureString canonical;
   if (!modulus.empty()) {
     canonical.append(R"({"e":")");
     canonical.append(base64url_encode(minimal(exponent)));
@@ -97,9 +96,10 @@ auto build_thumbprint(
     canonical.append(base64url_encode(point));
     canonical.append(R"("})");
   } else if (!secret.empty()) {
-    // RFC 7638 Section 3.2.1: the octet sequence thumbprint is over the secret
+    // RFC 7638 Section 3.2.1: the octet sequence thumbprint is over the secret,
+    // encoded straight into the wiping buffer so it leaves no intermediate copy
     canonical.append(R"({"k":")");
-    canonical.append(base64url_encode(secret));
+    base64url_encode(secret, canonical);
     canonical.append(R"(","kty":"oct"})");
   } else {
     return std::nullopt;
