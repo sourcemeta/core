@@ -5,9 +5,12 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
-#include <cstddef> // std::size_t
-#include <new>     // operator new, operator delete
-#include <string>  // std::string, std::char_traits
+#include <cstddef>     // std::size_t
+#include <limits>      // std::numeric_limits
+#include <new>         // operator new, operator delete, std::align_val_t
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <vector>      // std::vector
 
 namespace sourcemeta::core {
 
@@ -112,13 +115,18 @@ template <typename T> struct SecureAllocator {
 
   /// Allocate storage for the given number of objects.
   [[nodiscard]] auto allocate(const std::size_t count) -> T * {
-    return static_cast<T *>(::operator new(count * sizeof(T)));
+    if (count > std::numeric_limits<std::size_t>::max() / sizeof(T)) {
+      throw std::bad_array_new_length{};
+    }
+
+    return static_cast<T *>(
+        ::operator new(count * sizeof(T), std::align_val_t{alignof(T)}));
   }
 
   /// Wipe and release the storage of the given number of objects.
   auto deallocate(T *const pointer, const std::size_t count) noexcept -> void {
     secure_zero(pointer, count * sizeof(T));
-    ::operator delete(pointer);
+    ::operator delete(pointer, std::align_val_t{alignof(T)});
   }
 
   /// Every instance is interchangeable, since the allocator holds no state.
@@ -135,9 +143,9 @@ template <typename T> struct SecureAllocator {
 };
 
 /// @ingroup crypto
-/// A string that wipes its heap storage whenever it is released, so a secret it
-/// held does not linger after a growth, a reassignment, or its destruction. For
-/// example:
+/// A string whose bytes always live in heap storage that is wiped on release,
+/// so a secret it holds never survives a growth, a reassignment, or its
+/// destruction, and never lingers in an inline buffer. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
@@ -145,8 +153,94 @@ template <typename T> struct SecureAllocator {
 /// sourcemeta::core::SecureString secret{"hunter2"};
 /// secret.append("!");
 /// ```
-using SecureString =
-    std::basic_string<char, std::char_traits<char>, SecureAllocator<char>>;
+class SecureString {
+public:
+  /// The type that counts and indexes the held bytes.
+  using size_type = std::vector<char, SecureAllocator<char>>::size_type;
+
+  /// Construct an empty string.
+  SecureString() = default;
+
+  /// Construct from a view of bytes.
+  SecureString(const std::string_view value)
+      : buffer_(value.begin(), value.end()) {}
+
+  /// Construct from a pointer and a length.
+  SecureString(const char *const data, const size_type length)
+      : buffer_(data, data + length) {}
+
+  /// Construct a run of a repeated byte.
+  SecureString(const size_type count, const char value)
+      : buffer_(count, value) {}
+
+  /// The number of bytes held.
+  [[nodiscard]] auto size() const noexcept -> size_type {
+    return this->buffer_.size();
+  }
+
+  /// Whether no bytes are held.
+  [[nodiscard]] auto empty() const noexcept -> bool {
+    return this->buffer_.empty();
+  }
+
+  /// Reserve storage for at least the given number of bytes.
+  auto reserve(const size_type capacity) -> void {
+    this->buffer_.reserve(capacity);
+  }
+
+  /// Resize to the given number of bytes, padding new ones with the given
+  /// value.
+  auto resize(const size_type count, const char value) -> void {
+    this->buffer_.resize(count, value);
+  }
+
+  /// Append a single byte.
+  auto push_back(const char value) -> void { this->buffer_.push_back(value); }
+
+  /// Append a view of bytes.
+  auto append(const std::string_view value) -> void {
+    this->buffer_.insert(this->buffer_.end(), value.begin(), value.end());
+  }
+
+  /// Append a run of a repeated byte.
+  auto append(const size_type count, const char value) -> void {
+    this->buffer_.insert(this->buffer_.end(), count, value);
+  }
+
+  /// A reference to the byte at the given index.
+  [[nodiscard]] auto operator[](const size_type index) noexcept -> char & {
+    return this->buffer_[index];
+  }
+
+  /// The byte at the given index.
+  [[nodiscard]] auto operator[](const size_type index) const noexcept -> char {
+    return this->buffer_[index];
+  }
+
+  /// The first byte.
+  [[nodiscard]] auto front() const noexcept -> char {
+    return this->buffer_.front();
+  }
+
+  /// The last byte.
+  [[nodiscard]] auto back() const noexcept -> char {
+    return this->buffer_.back();
+  }
+
+  /// A view over the held bytes.
+  [[nodiscard]] operator std::string_view() const noexcept {
+    return {this->buffer_.data(), this->buffer_.size()};
+  }
+
+  /// Whether the held bytes equal the given view.
+  [[nodiscard]] auto operator==(const std::string_view other) const noexcept
+      -> bool {
+    return std::string_view{*this} == other;
+  }
+
+private:
+  std::vector<char, SecureAllocator<char>> buffer_;
+};
 
 } // namespace sourcemeta::core
 

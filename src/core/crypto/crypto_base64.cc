@@ -189,8 +189,11 @@ auto base64url_encode(const std::string_view input) -> std::string {
 
 auto base64url_encode(const std::string_view input, SecureString &output)
     -> void {
-  output.reserve(output.size() + ((input.size() + 2) / 3) * 4);
-  encode(input, BASE64URL_ALPHABET, false, output);
+  // The input is copied first so that growing the output cannot invalidate it
+  // when the two alias the same storage
+  const SecureString input_copy{input};
+  output.reserve(output.size() + ((input_copy.size() + 2) / 3) * 4);
+  encode(std::string_view{input_copy}, BASE64URL_ALPHABET, false, output);
 }
 
 auto base64url_decode(const std::string_view input)
