@@ -2,7 +2,7 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
   PRIVATE_HEADERS sha256.h hmac_sha256.h hmac_sha384.h hmac_sha512.h sha384.h
     sha512.h sha1.h
     fnv128.h
-    uuid.h crc32.h base64.h verify.h sign.h aes_gcm.h
+    uuid.h crc32.h base64.h secure.h verify.h sign.h aes_gcm.h
   SOURCES crypto_sha256.cc crypto_hmac_sha256.cc crypto_hmac_sha384.cc
     crypto_hmac_sha512.cc
     crypto_sha384.cc

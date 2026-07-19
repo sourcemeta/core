@@ -186,6 +186,42 @@ auto verify_rsa(BCRYPT_KEY_HANDLE key,
       static_cast<ULONG>(signature.size()), BCRYPT_PAD_PKCS1));
 }
 
+auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
+    -> std::optional<sourcemeta::core::EllipticCurve> {
+  switch (field_bytes) {
+    case 32:
+      return sourcemeta::core::EllipticCurve::P256;
+    case 48:
+      return sourcemeta::core::EllipticCurve::P384;
+    case 66:
+      return sourcemeta::core::EllipticCurve::P521;
+    default:
+      return std::nullopt;
+  }
+}
+
+// Export a native key blob, sizing the buffer in a first call and filling it in
+// a second
+auto export_key_blob(BCRYPT_KEY_HANDLE key, LPCWSTR blob_type)
+    -> std::optional<std::string> {
+  ULONG size{0};
+  if (!BCRYPT_SUCCESS(
+          BCryptExportKey(key, nullptr, blob_type, nullptr, 0, &size, 0))) {
+    return std::nullopt;
+  }
+
+  std::string blob;
+  blob.resize(size);
+  if (!BCRYPT_SUCCESS(BCryptExportKey(
+          key, nullptr, blob_type,
+          reinterpret_cast<unsigned char *>(blob.data()), size, &size, 0))) {
+    return std::nullopt;
+  }
+
+  blob.resize(size);
+  return blob;
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -368,6 +404,73 @@ auto eddsa_verify(const PublicKey &key, const std::string_view message,
   }
 
   std::unreachable();
+}
+
+auto rsa_public_components(const PublicKey &key)
+    -> std::optional<RSAPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::RSA) {
+    return std::nullopt;
+  }
+
+  const auto blob{export_key_blob(internal->key, BCRYPT_RSAPUBLIC_BLOB)};
+  if (!blob.has_value() || blob->size() < sizeof(BCRYPT_RSAKEY_BLOB)) {
+    return std::nullopt;
+  }
+
+  BCRYPT_RSAKEY_BLOB header{};
+  std::memcpy(&header, blob->data(), sizeof(header));
+  // The public blob is the header followed by the exponent then the modulus
+  const std::size_t offset{sizeof(header)};
+  if (blob->size() < offset + header.cbPublicExp + header.cbModulus) {
+    return std::nullopt;
+  }
+
+  const auto exponent{blob->substr(offset, header.cbPublicExp)};
+  const auto modulus{
+      blob->substr(offset + header.cbPublicExp, header.cbModulus)};
+  return RSAPublicComponents{
+      .modulus = std::string{strip_left(modulus, '\x00')},
+      .exponent = std::string{strip_left(exponent, '\x00')}};
+}
+
+auto ec_public_components(const PublicKey &key)
+    -> std::optional<ECPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::EllipticCurve) {
+    return std::nullopt;
+  }
+
+  const auto curve{ec_curve_from_field_bytes(internal->field_bytes)};
+  const auto blob{export_key_blob(internal->key, BCRYPT_ECCPUBLIC_BLOB)};
+  if (!curve.has_value() || !blob.has_value() ||
+      blob->size() < sizeof(BCRYPT_ECCKEY_BLOB)) {
+    return std::nullopt;
+  }
+
+  BCRYPT_ECCKEY_BLOB header{};
+  std::memcpy(&header, blob->data(), sizeof(header));
+  // The public blob is the header followed by the two fixed-width coordinates
+  const std::size_t offset{sizeof(header)};
+  const std::size_t width{header.cbKey};
+  if (width != internal->field_bytes || blob->size() < offset + (width * 2)) {
+    return std::nullopt;
+  }
+
+  return ECPublicComponents{.curve = curve.value(),
+                            .x = blob->substr(offset, width),
+                            .y = blob->substr(offset + width, width)};
+}
+
+auto edwards_public_components(const PublicKey &key)
+    -> std::optional<EdwardsPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::Edwards) {
+    return std::nullopt;
+  }
+
+  return EdwardsPublicComponents{.curve = internal->edwards_curve,
+                                 .point = internal->edwards_point};
 }
 
 } // namespace sourcemeta::core

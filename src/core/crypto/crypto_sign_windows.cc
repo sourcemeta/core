@@ -302,6 +302,40 @@ auto sign_hash(BCRYPT_KEY_HANDLE key, void *padding,
   return signature;
 }
 
+auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
+    -> std::optional<sourcemeta::core::EllipticCurve> {
+  switch (field_bytes) {
+    case 32:
+      return sourcemeta::core::EllipticCurve::P256;
+    case 48:
+      return sourcemeta::core::EllipticCurve::P384;
+    case 66:
+      return sourcemeta::core::EllipticCurve::P521;
+    default:
+      return std::nullopt;
+  }
+}
+
+auto export_key_blob(BCRYPT_KEY_HANDLE key, LPCWSTR blob_type)
+    -> std::optional<std::string> {
+  ULONG size{0};
+  if (!BCRYPT_SUCCESS(
+          BCryptExportKey(key, nullptr, blob_type, nullptr, 0, &size, 0))) {
+    return std::nullopt;
+  }
+
+  std::string blob;
+  blob.resize(size);
+  if (!BCRYPT_SUCCESS(BCryptExportKey(
+          key, nullptr, blob_type,
+          reinterpret_cast<unsigned char *>(blob.data()), size, &size, 0))) {
+    return std::nullopt;
+  }
+
+  blob.resize(size);
+  return blob;
+}
+
 } // namespace
 
 namespace sourcemeta::core {
@@ -363,7 +397,7 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   }
 
   // The decoded PKCS#8 holds the whole private key, so it is wiped on return
-  const SecureScope der_scope{der.value()};
+  const SecureStringScope der_scope{der.value()};
   const auto parsed{parse_pkcs8(der.value())};
   if (!parsed.has_value()) {
     return std::nullopt;
@@ -522,6 +556,65 @@ auto eddsa_sign(const PrivateKey &key, const std::string_view message)
       return edwards25519_sign(internal->edwards_seed, message);
     case EdwardsCurve::Ed448:
       return edwards448_sign(internal->edwards_seed, message);
+  }
+
+  std::unreachable();
+}
+
+auto derive_public_key(const PrivateKey &key) -> std::optional<PublicKey> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr) {
+    return std::nullopt;
+  }
+
+  switch (internal->kind) {
+    case PrivateKey::Type::RSA: {
+      const auto blob{export_key_blob(internal->key, BCRYPT_RSAPUBLIC_BLOB)};
+      if (!blob.has_value() || blob->size() < sizeof(BCRYPT_RSAKEY_BLOB)) {
+        return std::nullopt;
+      }
+
+      BCRYPT_RSAKEY_BLOB header{};
+      std::memcpy(&header, blob->data(), sizeof(header));
+      const std::size_t offset{sizeof(header)};
+      if (blob->size() < offset + header.cbPublicExp + header.cbModulus) {
+        return std::nullopt;
+      }
+
+      return make_rsa_public_key(
+          blob->substr(offset + header.cbPublicExp, header.cbModulus),
+          blob->substr(offset, header.cbPublicExp));
+    }
+    case PrivateKey::Type::EllipticCurve: {
+      const auto curve{ec_curve_from_field_bytes(internal->field_bytes)};
+      const auto blob{export_key_blob(internal->key, BCRYPT_ECCPUBLIC_BLOB)};
+      if (!curve.has_value() || !blob.has_value() ||
+          blob->size() < sizeof(BCRYPT_ECCKEY_BLOB)) {
+        return std::nullopt;
+      }
+
+      BCRYPT_ECCKEY_BLOB header{};
+      std::memcpy(&header, blob->data(), sizeof(header));
+      const std::size_t offset{sizeof(header)};
+      const std::size_t width{header.cbKey};
+      if (width != internal->field_bytes ||
+          blob->size() < offset + (width * 2)) {
+        return std::nullopt;
+      }
+
+      return make_ec_public_key(curve.value(), blob->substr(offset, width),
+                                blob->substr(offset + width, width));
+    }
+    case PrivateKey::Type::Edwards: {
+      const auto point{internal->edwards_curve == EdwardsCurve::Ed25519
+                           ? edwards25519_public_key(internal->edwards_seed)
+                           : edwards448_public_key(internal->edwards_seed)};
+      if (!point.has_value()) {
+        return std::nullopt;
+      }
+
+      return make_eddsa_public_key(internal->edwards_curve, point.value());
+    }
   }
 
   std::unreachable();

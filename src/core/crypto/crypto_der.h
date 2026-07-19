@@ -8,6 +8,7 @@
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::pair
 
 namespace sourcemeta::core {
 
@@ -114,6 +115,39 @@ inline auto der_append_unsigned_integer(std::string &output,
   }
 
   output.append(value);
+}
+
+// Read the modulus and public exponent from a PKCS#1 RSAPublicKey structure
+// (RFC 8017 Appendix A.1.1), a DER SEQUENCE of the two integers, each returned
+// as its minimal big-endian magnitude with any leading sign octet removed
+inline auto der_read_rsa_public_key(const std::string_view der)
+    -> std::optional<std::pair<std::string, std::string>> {
+  const auto sequence{der_read(der)};
+  if (!sequence.has_value() || sequence->tag != 0x30) {
+    return std::nullopt;
+  }
+
+  const auto modulus{der_read(sequence->content)};
+  if (!modulus.has_value() || modulus->tag != 0x02) {
+    return std::nullopt;
+  }
+
+  const auto exponent{der_read(modulus->rest)};
+  if (!exponent.has_value() || exponent->tag != 0x02) {
+    return std::nullopt;
+  }
+
+  auto modulus_value{modulus->content};
+  while (!modulus_value.empty() && modulus_value.front() == '\x00') {
+    modulus_value.remove_prefix(1);
+  }
+
+  auto exponent_value{exponent->content};
+  while (!exponent_value.empty() && exponent_value.front() == '\x00') {
+    exponent_value.remove_prefix(1);
+  }
+
+  return std::pair{std::string{modulus_value}, std::string{exponent_value}};
 }
 
 } // namespace sourcemeta::core

@@ -295,7 +295,7 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
                                 .z = bignum_from_u64(1)};
 
   auto private_octets{bignum_to_bytes(private_scalar, order_bytes)};
-  const SecureScope private_octets_scope{private_octets};
+  const SecureStringScope private_octets_scope{private_octets};
   const auto hashed_octets{
       bits2octets(digest, parameters.order, order_bits, order_bytes)};
 
@@ -304,11 +304,11 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
   // wiped when leaving this function
   const auto output_bytes{hash_sizes(hash).output_bytes};
   std::string hmac_value(output_bytes, '\x01');
-  const SecureScope hmac_value_scope{hmac_value};
+  const SecureStringScope hmac_value_scope{hmac_value};
   std::string hmac_key(output_bytes, '\x00');
-  const SecureScope hmac_key_scope{hmac_key};
+  const SecureStringScope hmac_key_scope{hmac_key};
   std::string seed{hmac_value};
-  const SecureScope seed_scope{seed};
+  const SecureStringScope seed_scope{seed};
   seed.push_back('\x00');
   seed.append(private_octets);
   seed.append(hashed_octets);
@@ -325,7 +325,7 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
     // RFC 6979 Section 3.2 step h.2: draw enough output to cover the order. The
     // candidate is the secret nonce, so it is wiped when the attempt ends
     std::string candidate;
-    const SecureScope candidate_scope{candidate};
+    const SecureStringScope candidate_scope{candidate};
     while (candidate.size() * 8 < order_bits) {
       hmac_value = hmac(hash, hmac_key, hmac_value);
       candidate.append(hmac_value);
@@ -342,13 +342,30 @@ auto sign_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
 
     // RFC 6979 Section 3.2 step h: reseed before the next candidate
     std::string reseed{hmac_value};
-    const SecureScope reseed_scope{reseed};
+    const SecureStringScope reseed_scope{reseed};
     reseed.push_back('\x00');
     hmac_key = hmac(hash, hmac_key, reseed);
     hmac_value = hmac(hash, hmac_key, hmac_value);
   }
 
   return std::nullopt;
+}
+
+// The public point [d]G of an elliptic curve private key recovered from its
+// scalar, so a key parsed from a PEM document, which carries only the scalar on
+// this backend, can still expose its public JWK
+auto ec_public_from_scalar(const EllipticCurve curve,
+                           const std::string_view scalar)
+    -> std::pair<std::string, std::string> {
+  const auto parameters{to_curve_parameters(curve)};
+  const JacobianPoint generator{.x = parameters.generator_x,
+                                .y = parameters.generator_y,
+                                .z = bignum_from_u64(1)};
+  const auto product{point_scalar_multiply_constant_time(
+      bignum_from_bytes(scalar), generator, parameters)};
+  const auto affine{point_to_affine(product, parameters)};
+  return {bignum_to_bytes(affine.x, parameters.field_bytes),
+          bignum_to_bytes(affine.y, parameters.field_bytes)};
 }
 
 } // namespace
@@ -365,6 +382,11 @@ struct PrivateKey::Internal {
   std::string edwards_seed;
   EdwardsCurve edwards_curve;
   bool rsa_pss_restricted{false};
+  // The public coordinates, kept so the public key can be recovered without
+  // recomputing the point from the scalar. Empty for a key parsed from a PEM
+  // document, which carries only the scalar on this backend
+  std::string coordinate_x;
+  std::string coordinate_y;
 };
 
 PrivateKey::PrivateKey(Internal *internal) noexcept : internal_{internal} {}
@@ -412,7 +434,7 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
   }
 
   // The decoded PKCS#8 holds the whole private key, so it is wiped on return
-  const SecureScope der_scope{der.value()};
+  const SecureStringScope der_scope{der.value()};
   const auto parsed{parse_pkcs8(der.value())};
   if (!parsed.has_value()) {
     return std::nullopt;
@@ -493,16 +515,19 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
         return std::nullopt;
       }
 
-      return PrivateKey{new PrivateKey::Internal{
-          .kind = PrivateKey::Type::EllipticCurve,
-          .modulus = {},
-          .public_exponent = {},
-          .private_exponent = {},
-          .scalar =
-              std::string{pad_left(stripped_scalar, scalar_width, '\x00')},
-          .elliptic_curve = parsed->curve,
-          .edwards_seed = {},
-          .edwards_curve = {}}};
+      const auto padded_scalar{pad_left(stripped_scalar, scalar_width, '\x00')};
+      auto point{ec_public_from_scalar(parsed->curve, padded_scalar)};
+      return PrivateKey{
+          new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                                   .modulus = {},
+                                   .public_exponent = {},
+                                   .private_exponent = {},
+                                   .scalar = padded_scalar,
+                                   .elliptic_curve = parsed->curve,
+                                   .edwards_seed = {},
+                                   .edwards_curve = {},
+                                   .coordinate_x = std::move(point.first),
+                                   .coordinate_y = std::move(point.second)}};
     }
     case PKCS8KeyKind::Edwards: {
       const auto seed{der_read(parsed->key)};
@@ -551,7 +576,9 @@ auto make_ec_private_key(const EllipticCurve curve,
       .scalar = std::string{pad_left(stripped, width, '\x00')},
       .elliptic_curve = curve,
       .edwards_seed = {},
-      .edwards_curve = {}}};
+      .edwards_curve = {},
+      .coordinate_x = std::string{coordinate_x},
+      .coordinate_y = std::string{coordinate_y}}};
 }
 
 auto make_edwards_private_key(const EdwardsCurve curve,
@@ -637,6 +664,39 @@ auto eddsa_sign(const PrivateKey &key, const std::string_view message)
       return edwards25519_sign(internal->edwards_seed, message);
     case EdwardsCurve::Ed448:
       return edwards448_sign(internal->edwards_seed, message);
+  }
+
+  std::unreachable();
+}
+
+auto derive_public_key(const PrivateKey &key) -> std::optional<PublicKey> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr) {
+    return std::nullopt;
+  }
+
+  switch (internal->kind) {
+    case PrivateKey::Type::RSA:
+      return make_rsa_public_key(internal->modulus, internal->public_exponent);
+    case PrivateKey::Type::EllipticCurve:
+      // A key parsed from a PEM document keeps only the scalar on this backend,
+      // so its public point cannot be recovered without recomputing it
+      if (internal->coordinate_x.empty()) {
+        return std::nullopt;
+      }
+
+      return make_ec_public_key(internal->elliptic_curve,
+                                internal->coordinate_x, internal->coordinate_y);
+    case PrivateKey::Type::Edwards: {
+      const auto point{internal->edwards_curve == EdwardsCurve::Ed25519
+                           ? edwards25519_public_key(internal->edwards_seed)
+                           : edwards448_public_key(internal->edwards_seed)};
+      if (!point.has_value()) {
+        return std::nullopt;
+      }
+
+      return make_eddsa_public_key(internal->edwards_curve, point.value());
+    }
   }
 
   std::unreachable();

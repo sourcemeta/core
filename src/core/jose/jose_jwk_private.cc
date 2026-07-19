@@ -109,6 +109,8 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
     }
 
     result.type_ = Type::RSA;
+    result.modulus_ = modulus.value();
+    result.exponent_ = public_exponent.value();
     parsed_key = make_rsa_private_key(modulus.value(), public_exponent.value(),
                                       private_exponent.value(), prime1.value(),
                                       prime2.value(), exponent1.value(),
@@ -140,6 +142,8 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
 
     result.type_ = Type::EllipticCurve;
     result.curve_ = curve->to_string();
+    result.coordinate_x_ = coordinate_x.value();
+    result.coordinate_y_ = coordinate_y.value();
     parsed_key = make_ec_private_key(jwk_to_elliptic_curve(result.curve_),
                                      scalar.value(), coordinate_x.value(),
                                      coordinate_y.value());
@@ -166,6 +170,7 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
 
     result.type_ = Type::OctetKeyPair;
     result.curve_ = curve->to_string();
+    result.public_point_ = public_key.value();
     parsed_key = make_edwards_private_key(jwk_to_edwards_curve(result.curve_),
                                           seed.value());
   } else if (key_type_value == "oct") {
@@ -252,6 +257,43 @@ auto JWKPrivate::from_pem(const std::string_view pem)
   }
 
   result.private_key_ = std::move(parsed_key);
+
+  // A PEM document carries no encoded public members, so recover them from the
+  // parsed key to support public serialization and thumbprints
+  const auto public_key{derive_public_key(result.private_key_.value())};
+  if (public_key.has_value()) {
+    switch (public_key.value().type()) {
+      case PublicKey::Type::RSA: {
+        const auto components{rsa_public_components(public_key.value())};
+        if (components.has_value()) {
+          result.modulus_ = components.value().modulus;
+          result.exponent_ = components.value().exponent;
+        }
+
+        break;
+      }
+      case PublicKey::Type::EllipticCurve: {
+        const auto components{ec_public_components(public_key.value())};
+        if (components.has_value()) {
+          result.curve_ = elliptic_curve_to_jwk(components.value().curve);
+          result.coordinate_x_ = components.value().x;
+          result.coordinate_y_ = components.value().y;
+        }
+
+        break;
+      }
+      case PublicKey::Type::Edwards: {
+        const auto components{edwards_public_components(public_key.value())};
+        if (components.has_value()) {
+          result.curve_ = edwards_curve_to_jwk(components.value().curve);
+          result.public_point_ = components.value().point;
+        }
+
+        break;
+      }
+    }
+  }
+
   return result;
 }
 

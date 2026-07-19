@@ -111,6 +111,16 @@ public:
     return this->secret_;
   }
 
+  /// Serialize the public part of this key as a JSON Web Key (RFC 7517),
+  /// returning no value for a symmetric key, which has no public form, or for a
+  /// key parsed from a PEM document whose public part could not be recovered.
+  [[nodiscard]] auto public_jwk() const -> std::optional<JSON>;
+
+  /// The SHA-256 JSON Web Key thumbprint of this key (RFC 7638),
+  /// base64url-encoded, returning no value for a symmetric key or a key whose
+  /// public part could not be recovered.
+  [[nodiscard]] auto thumbprint() const -> std::optional<std::string>;
+
 private:
   JWKPrivate() = default;
   static auto parse(const JSON &value, JWKPrivate &result) -> bool;
@@ -124,6 +134,11 @@ private:
   std::string curve_;
   std::optional<PrivateKey> private_key_;
   std::string secret_;
+  std::string modulus_;
+  std::string exponent_;
+  std::string coordinate_x_;
+  std::string coordinate_y_;
+  std::string public_point_;
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

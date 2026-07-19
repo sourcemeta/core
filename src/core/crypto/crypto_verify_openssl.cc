@@ -185,6 +185,62 @@ auto encode_ecdsa_signature(const std::string_view raw_signature,
   return length;
 }
 
+// The platform reports the curve under its canonical name rather than the JWK
+// alias the key was built with, so both are accepted
+auto ec_curve_from_group_name(const std::string_view name) noexcept
+    -> std::optional<sourcemeta::core::EllipticCurve> {
+  if (name == "P-256" || name == "prime256v1") {
+    return sourcemeta::core::EllipticCurve::P256;
+  } else if (name == "P-384" || name == "secp384r1") {
+    return sourcemeta::core::EllipticCurve::P384;
+  } else if (name == "P-521" || name == "secp521r1") {
+    return sourcemeta::core::EllipticCurve::P521;
+  } else {
+    return std::nullopt;
+  }
+}
+
+// A big-endian minimal-length byte string of a bignum, as the JWK members and
+// the signature range check expect
+auto bignum_to_bytes(const BIGNUM *number) -> std::string {
+  std::string result(static_cast<std::size_t>(BN_num_bytes(number)), '\x00');
+  BN_bn2bin(number, reinterpret_cast<unsigned char *>(result.data()));
+  return result;
+}
+
+// Read the fixed-width uncompressed public point of an elliptic curve or
+// Edwards curve key from the native handle
+auto read_public_point(EVP_PKEY *key) -> std::optional<std::string> {
+  std::size_t length{0};
+  if (EVP_PKEY_get_octet_string_param(key, OSSL_PKEY_PARAM_PUB_KEY, nullptr, 0,
+                                      &length) != 1) {
+    return std::nullopt;
+  }
+
+  std::string point(length, '\x00');
+  if (EVP_PKEY_get_octet_string_param(
+          key, OSSL_PKEY_PARAM_PUB_KEY,
+          reinterpret_cast<unsigned char *>(point.data()), point.size(),
+          &length) != 1) {
+    return std::nullopt;
+  }
+
+  return point;
+}
+
+auto read_ec_curve(EVP_PKEY *key)
+    -> std::optional<sourcemeta::core::EllipticCurve> {
+  std::array<char, 64> group{};
+  std::size_t length{0};
+  if (EVP_PKEY_get_utf8_string_param(key, OSSL_PKEY_PARAM_GROUP_NAME,
+                                     group.data(), group.size(),
+                                     &length) != 1) {
+    return std::nullopt;
+  }
+
+  return ec_curve_from_group_name(std::string_view{group.data(), length});
+}
+
 auto verify_rsa(EVP_PKEY *key,
                 const sourcemeta::core::SignatureHashFunction hash,
                 const std::string_view message,
@@ -405,6 +461,71 @@ auto eddsa_verify(const PublicKey &key, const std::string_view message,
   }
 
   return result;
+}
+
+auto rsa_public_components(const PublicKey &key)
+    -> std::optional<RSAPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::RSA) {
+    return std::nullopt;
+  }
+
+  BIGNUM *modulus{nullptr};
+  BIGNUM *exponent{nullptr};
+  if (EVP_PKEY_get_bn_param(internal->key, OSSL_PKEY_PARAM_RSA_N, &modulus) !=
+          1 ||
+      EVP_PKEY_get_bn_param(internal->key, OSSL_PKEY_PARAM_RSA_E, &exponent) !=
+          1) {
+    BN_free(modulus);
+    BN_free(exponent);
+    return std::nullopt;
+  }
+
+  RSAPublicComponents result{.modulus = bignum_to_bytes(modulus),
+                             .exponent = bignum_to_bytes(exponent)};
+  BN_free(modulus);
+  BN_free(exponent);
+  return result;
+}
+
+auto ec_public_components(const PublicKey &key)
+    -> std::optional<ECPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::EllipticCurve) {
+    return std::nullopt;
+  }
+
+  const auto curve{read_ec_curve(internal->key)};
+  const auto point{read_public_point(internal->key)};
+  if (!curve.has_value() || !point.has_value() ||
+      point->size() != 1 + (internal->field_bytes * 2) ||
+      point->front() != '\x04') {
+    return std::nullopt;
+  }
+
+  return ECPublicComponents{
+      .curve = curve.value(),
+      .x = point->substr(1, internal->field_bytes),
+      .y = point->substr(1 + internal->field_bytes, internal->field_bytes)};
+}
+
+auto edwards_public_components(const PublicKey &key)
+    -> std::optional<EdwardsPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::Edwards) {
+    return std::nullopt;
+  }
+
+  const auto point{read_public_point(internal->key)};
+  if (!point.has_value()) {
+    return std::nullopt;
+  }
+
+  const auto curve{internal->signature_bytes ==
+                           eddsa_signature_bytes(EdwardsCurve::Ed25519)
+                       ? EdwardsCurve::Ed25519
+                       : EdwardsCurve::Ed448};
+  return EdwardsPublicComponents{.curve = curve, .point = point.value()};
 }
 
 } // namespace sourcemeta::core

@@ -182,6 +182,39 @@ auto encode_ecdsa_signature(const std::string_view raw_signature)
   return der;
 }
 
+auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
+    -> std::optional<sourcemeta::core::EllipticCurve> {
+  switch (field_bytes) {
+    case 32:
+      return sourcemeta::core::EllipticCurve::P256;
+    case 48:
+      return sourcemeta::core::EllipticCurve::P384;
+    case 66:
+      return sourcemeta::core::EllipticCurve::P521;
+    default:
+      return std::nullopt;
+  }
+}
+
+// Copy the platform's external representation of a key, the PKCS#1 structure
+// for RSA and the X9.63 uncompressed point for elliptic curve keys
+auto copy_external_representation(SecKeyRef key) -> std::optional<std::string> {
+  CFErrorRef error{nullptr};
+  auto data{SecKeyCopyExternalRepresentation(key, &error)};
+  if (data == nullptr) {
+    if (error != nullptr) {
+      CFRelease(error);
+    }
+
+    return std::nullopt;
+  }
+
+  std::string result{reinterpret_cast<const char *>(CFDataGetBytePtr(data)),
+                     static_cast<std::size_t>(CFDataGetLength(data))};
+  CFRelease(data);
+  return result;
+}
+
 auto verify_with_algorithm(SecKeyRef key, const SecKeyAlgorithm algorithm,
                            const std::string_view message,
                            const std::string_view signature) -> bool {
@@ -370,6 +403,64 @@ auto eddsa_verify(const PublicKey &key, const std::string_view message,
   }
 
   std::unreachable();
+}
+
+auto rsa_public_components(const PublicKey &key)
+    -> std::optional<RSAPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::RSA) {
+    return std::nullopt;
+  }
+
+  const auto der{copy_external_representation(internal->key)};
+  if (!der.has_value()) {
+    return std::nullopt;
+  }
+
+  auto components{der_read_rsa_public_key(der.value())};
+  if (!components.has_value()) {
+    return std::nullopt;
+  }
+
+  return RSAPublicComponents{.modulus = std::move(components->first),
+                             .exponent = std::move(components->second)};
+}
+
+auto ec_public_components(const PublicKey &key)
+    -> std::optional<ECPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::EllipticCurve) {
+    return std::nullopt;
+  }
+
+  const auto curve{ec_curve_from_field_bytes(internal->field_bytes)};
+  if (!curve.has_value()) {
+    return std::nullopt;
+  }
+
+  // The X9.63 uncompressed point is the 0x04 lead byte followed by the two
+  // fixed-width coordinates
+  const auto point{copy_external_representation(internal->key)};
+  if (!point.has_value() || point->size() != 1 + (internal->field_bytes * 2) ||
+      point->front() != '\x04') {
+    return std::nullopt;
+  }
+
+  return ECPublicComponents{
+      .curve = curve.value(),
+      .x = point->substr(1, internal->field_bytes),
+      .y = point->substr(1 + internal->field_bytes, internal->field_bytes)};
+}
+
+auto edwards_public_components(const PublicKey &key)
+    -> std::optional<EdwardsPublicComponents> {
+  const auto *internal{key.internal()};
+  if (internal == nullptr || internal->kind != PublicKey::Type::Edwards) {
+    return std::nullopt;
+  }
+
+  return EdwardsPublicComponents{.curve = internal->edwards_curve,
+                                 .point = internal->edwards_point};
 }
 
 } // namespace sourcemeta::core

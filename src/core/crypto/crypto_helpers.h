@@ -1,6 +1,7 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_HELPERS_H_
 #define SOURCEMETA_CORE_CRYPTO_HELPERS_H_
 
+#include <sourcemeta/core/crypto_secure.h>
 #include <sourcemeta/core/crypto_sha256.h>
 #include <sourcemeta/core/crypto_sha384.h>
 #include <sourcemeta/core/crypto_sha512.h>
@@ -18,41 +19,6 @@ namespace sourcemeta::core {
 // The largest RSA key any backend accepts, so that every backend agrees on
 // the range of valid key sizes
 inline constexpr std::size_t MAXIMUM_KEY_BYTES{512};
-
-// Overwrite a buffer that held secret material so it does not linger in freed
-// memory. The volatile access stops the compiler from eliding the write as a
-// dead store
-inline auto secure_zero(void *const data, const std::size_t size) noexcept
-    -> void {
-  if (data == nullptr) {
-    return;
-  }
-
-  auto *pointer{static_cast<volatile unsigned char *>(data)};
-  for (std::size_t index{0}; index < size; index += 1) {
-    pointer[index] = 0;
-  }
-}
-
-inline auto secure_zero(std::string &value) noexcept -> void {
-  secure_zero(value.data(), value.size());
-}
-
-// Overwrite the referenced buffer when leaving the current scope, so secret
-// material a local holds is wiped across every return path without threading a
-// manual call through each one. It clears the buffer the string owns at scope
-// exit, so a reassignment or a growth that reallocates before then can still
-// leave an earlier copy in freed memory, a residual that a wiping allocator
-// would be needed to close
-struct SecureScope {
-  explicit SecureScope(std::string &value) noexcept : target{value} {}
-  SecureScope(const SecureScope &) = delete;
-  auto operator=(const SecureScope &) -> SecureScope & = delete;
-  SecureScope(SecureScope &&) = delete;
-  auto operator=(SecureScope &&) -> SecureScope & = delete;
-  ~SecureScope() { secure_zero(this->target); }
-  std::string &target;
-};
 
 // The same guard for a raw buffer, so a secret that a fixed-size digest array
 // holds is wiped when leaving the current scope
@@ -178,7 +144,7 @@ inline auto ec_private_scalar_in_range(const std::string_view scalar,
   const auto width{curve_field_bytes(curve)};
   std::string folded(width, '\x00');
   // The buffer holds a copy of the secret scalar, so it is wiped on return
-  const SecureScope folded_scope{folded};
+  const SecureStringScope folded_scope{folded};
   std::uint8_t overflow{0};
   for (std::size_t index = 0; index < scalar.size(); ++index) {
     const auto byte{
