@@ -1,6 +1,5 @@
 #include <sourcemeta/core/oauth_error.h>
 
-#include <cstdint>     // std::uint16_t
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
@@ -181,16 +180,16 @@ auto to_oauth_registration_error(const std::string_view code) noexcept
 
 auto oauth_token_error_status(const OAuthTokenError error,
                               const bool authenticated_via_header) noexcept
-    -> std::uint16_t {
+    -> HTTPStatus {
   // RFC 6749 Section 5.2: "If the client attempted to authenticate via the
   // 'Authorization' request header field, the authorization server MUST respond
   // with an HTTP 401 (Unauthorized) status code and include the
   // WWW-Authenticate response header field"
   if (error == OAuthTokenError::InvalidClient && authenticated_via_header) {
-    return 401;
+    return HTTP_STATUS_UNAUTHORIZED;
   }
 
-  return 400;
+  return HTTP_STATUS_BAD_REQUEST;
 }
 
 } // namespace sourcemeta::core

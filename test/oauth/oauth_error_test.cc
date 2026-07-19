@@ -285,19 +285,22 @@ TEST(parse_registration_error_rejects_an_unknown_code) {
 }
 
 TEST(token_error_status_is_401_for_header_client_authentication_failure) {
-  EXPECT_EQ(sourcemeta::core::oauth_token_error_status(
-                sourcemeta::core::OAuthTokenError::InvalidClient, true),
-            401);
+  const auto status{sourcemeta::core::oauth_token_error_status(
+      sourcemeta::core::OAuthTokenError::InvalidClient, true)};
+  EXPECT_EQ(status.code, 401);
+  EXPECT_EQ(status.phrase, "Unauthorized");
 }
 
 TEST(token_error_status_is_400_for_body_client_authentication_failure) {
-  EXPECT_EQ(sourcemeta::core::oauth_token_error_status(
-                sourcemeta::core::OAuthTokenError::InvalidClient, false),
-            400);
+  const auto status{sourcemeta::core::oauth_token_error_status(
+      sourcemeta::core::OAuthTokenError::InvalidClient, false)};
+  EXPECT_EQ(status.code, 400);
+  EXPECT_EQ(status.phrase, "Bad Request");
 }
 
 TEST(token_error_status_is_400_for_other_header_errors) {
   EXPECT_EQ(sourcemeta::core::oauth_token_error_status(
-                sourcemeta::core::OAuthTokenError::InvalidGrant, true),
+                sourcemeta::core::OAuthTokenError::InvalidGrant, true)
+                .code,
             400);
 }

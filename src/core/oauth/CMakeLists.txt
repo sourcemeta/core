@@ -9,7 +9,7 @@ target_link_libraries(sourcemeta_core_oauth
 target_link_libraries(sourcemeta_core_oauth
   PUBLIC sourcemeta::core::jose)
 target_link_libraries(sourcemeta_core_oauth
-  PRIVATE sourcemeta::core::http)
+  PUBLIC sourcemeta::core::http)
 target_link_libraries(sourcemeta_core_oauth
   PRIVATE sourcemeta::core::uri)
 target_link_libraries(sourcemeta_core_oauth

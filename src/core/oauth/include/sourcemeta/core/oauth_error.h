@@ -5,7 +5,9 @@
 #include <sourcemeta/core/oauth_export.h>
 #endif
 
-#include <cstdint>     // std::uint8_t, std::uint16_t
+#include <sourcemeta/core/http.h>
+
+#include <cstdint>     // std::uint8_t
 #include <exception>   // std::exception
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
@@ -231,25 +233,27 @@ auto to_oauth_registration_error(const std::string_view code) noexcept
     -> std::optional<OAuthRegistrationError>;
 
 /// @ingroup oauth
-/// The HTTP status code for a token endpoint error response. It is 400 in
-/// general, but 401 for a client authentication failure when the client
-/// authenticated through the `Authorization` header, since that response must
-/// then carry a `WWW-Authenticate` challenge (RFC 6749 Section 5.2). For
-/// example:
+/// The HTTP status for a token endpoint error response. It is 400 Bad Request
+/// in general, but 401 Unauthorized for a client authentication failure when
+/// the client authenticated through the `Authorization` header, since that
+/// response must then carry a `WWW-Authenticate` challenge (RFC 6749
+/// Section 5.2). For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
 /// #include <cassert>
 ///
 /// assert(sourcemeta::core::oauth_token_error_status(
-///            sourcemeta::core::OAuthTokenError::InvalidClient, true) == 401);
+///            sourcemeta::core::OAuthTokenError::InvalidClient, true).code ==
+///        401);
 /// assert(sourcemeta::core::oauth_token_error_status(
-///            sourcemeta::core::OAuthTokenError::InvalidGrant, true) == 400);
+///            sourcemeta::core::OAuthTokenError::InvalidGrant, true).code ==
+///        400);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_token_error_status(const OAuthTokenError error,
                               const bool authenticated_via_header) noexcept
-    -> std::uint16_t;
+    -> HTTPStatus;
 
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251 4275)
