@@ -62,6 +62,18 @@ TEST(encode_stream_overload_empty) {
   EXPECT_EQ(output.str(), "");
 }
 
+TEST(encode_secure_string_overload_appends) {
+  sourcemeta::core::SecureString output{"prefix:"};
+  sourcemeta::core::base64url_encode("foobar", output);
+  EXPECT_TRUE(output == "prefix:Zm9vYmFy");
+}
+
+TEST(encode_secure_string_overload_empty) {
+  sourcemeta::core::SecureString output;
+  sourcemeta::core::base64url_encode("", output);
+  EXPECT_TRUE(output.empty());
+}
+
 TEST(decode_rfc4648_empty) {
   const auto result{sourcemeta::core::base64url_decode("")};
   EXPECT_TRUE(result.has_value());
