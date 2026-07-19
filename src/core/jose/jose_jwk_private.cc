@@ -224,9 +224,12 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
   // A private JWK carries the public key beside the private key (RFC 7518
   // Section 6.2.2, RFC 8037 Section 2). For the curve types, reject a document
   // whose stored public part does not correspond to its private part, verified
-  // through a signature the private key produces and the public key checks, so
-  // a serialized public JWK or thumbprint can never advertise a key that fails
-  // to verify the private key's own signatures
+  // through a signature the private key produces and the public key checks. For
+  // elliptic curve keys the platform key construction additionally binds the
+  // coordinates to the scalar, closing the gap where a crafted point could
+  // satisfy one precomputed signature on a deterministic backend. RSA
+  // correspondence is not checked here, so an inconsistent RSA key instead
+  // stays null and fails to sign
   if (result.type_ == Type::EllipticCurve ||
       result.type_ == Type::OctetKeyPair) {
     if (!result.private_key_.has_value()) {

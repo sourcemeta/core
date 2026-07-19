@@ -186,8 +186,6 @@ auto encode_ecdsa_signature(const std::string_view raw_signature,
   return length;
 }
 
-// The platform reports the curve under its canonical name rather than the JWK
-// alias the key was built with, so both are accepted
 auto verify_rsa(EVP_PKEY *key,
                 const sourcemeta::core::SignatureHashFunction hash,
                 const std::string_view message,

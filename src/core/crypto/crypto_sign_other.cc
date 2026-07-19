@@ -491,6 +491,7 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
           der_unsigned_integer(private_exponent->content)};
       if (!modulus_value.has_value() || !public_exponent_value.has_value() ||
           !private_exponent_value.has_value() || modulus_value->empty() ||
+          private_exponent_value->empty() ||
           modulus_value->size() > MAXIMUM_KEY_BYTES ||
           private_exponent_value->size() > MAXIMUM_KEY_BYTES ||
           !rsa_public_exponent_acceptable(public_exponent_value.value(),
@@ -588,8 +589,6 @@ auto make_ec_private_key(const EllipticCurve curve,
     -> std::optional<PrivateKey> {
   const auto stripped{strip_left(scalar, '\x00')};
   const auto width{curve_field_bytes(curve)};
-  // The scalar alone drives signing here, but the public coordinates are still
-  // range-checked so that malformed input is rejected as on the other backends
   if (stripped.empty() || stripped.size() > width ||
       strip_left(coordinate_x, '\x00').size() > width ||
       strip_left(coordinate_y, '\x00').size() > width ||
@@ -597,17 +596,31 @@ auto make_ec_private_key(const EllipticCurve curve,
     return std::nullopt;
   }
 
-  return PrivateKey{new PrivateKey::Internal{
-      .kind = PrivateKey::Type::EllipticCurve,
-      .modulus = {},
-      .public_exponent = {},
-      .private_exponent = {},
-      .scalar = std::string{pad_left(stripped, width, '\x00')},
-      .elliptic_curve = curve,
-      .edwards_seed = {},
-      .edwards_curve = {},
-      .coordinate_x = std::string{coordinate_x},
-      .coordinate_y = std::string{coordinate_y}}};
+  auto padded_scalar{pad_left(stripped, width, '\x00')};
+  const SecureStringScope padded_scalar_scope{padded_scalar};
+  // The stored public point must be the one the scalar actually generates, so a
+  // document pairing the scalar with a different or off-curve public key is
+  // rejected rather than trusted. A signature-based correspondence check cannot
+  // catch this on a deterministic backend, where an attacker can craft a valid
+  // point that verifies one precomputed signature (a duplicate-signature
+  // key-selection attack), so the point is recomputed and compared directly
+  const auto expected{ec_public_from_scalar(curve, padded_scalar)};
+  if (pad_left(coordinate_x, width, '\x00') != expected.first ||
+      pad_left(coordinate_y, width, '\x00') != expected.second) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .modulus = {},
+                               .public_exponent = {},
+                               .private_exponent = {},
+                               .scalar = std::string{padded_scalar},
+                               .elliptic_curve = curve,
+                               .edwards_seed = {},
+                               .edwards_curve = {},
+                               .coordinate_x = expected.first,
+                               .coordinate_y = expected.second}};
 }
 
 auto make_edwards_private_key(const EdwardsCurve curve,

@@ -20,6 +20,14 @@ static const std::string P256_QX_HEX{
 static const std::string P256_QY_HEX{
     "7903fe1008b8bc99a41ae9e95628bc64f2f1b20c2d7e9f5177a3c294d4462299"};
 
+// A NIST P-384 public point, so the wider field width is exercised too
+static const std::string P384_QX_HEX{
+    "f3fe7867cd5320449ad98b477d19946ed3488a56c89662fce74ff51afaac5ab6"
+    "0854755c5af8367f916b67accaa444d1"};
+static const std::string P384_QY_HEX{
+    "0de9485115027c8dea96c921cda5b071e24c1985ad658284fcac8e4d5abe8362"
+    "10824b5b4142f383d8e7cc62b7842028"};
+
 // The Ed25519 and Ed448 seeds and public keys from the signing test vectors
 static const std::string ED25519_SEED_HEX{
     "741ec35ce5e07089ca782f88de00d8103a1cd8e8b116acd8afd922c01bee7867"};
@@ -72,6 +80,21 @@ TEST(edwards_public_components_returns_point_and_curve) {
   EXPECT_TRUE(components.value().curve ==
               sourcemeta::core::EdwardsCurve::Ed25519);
   EXPECT_EQ(components.value().point, point.value());
+}
+
+TEST(ec_public_components_round_trips_with_p384_curve) {
+  const auto coordinate_x{sourcemeta::core::hex_to_bytes(P384_QX_HEX)};
+  const auto coordinate_y{sourcemeta::core::hex_to_bytes(P384_QY_HEX)};
+  const auto key{sourcemeta::core::make_ec_public_key(
+      sourcemeta::core::EllipticCurve::P384, coordinate_x.value(),
+      coordinate_y.value())};
+  EXPECT_TRUE(key.has_value());
+  const auto components{sourcemeta::core::ec_public_components(key.value())};
+  EXPECT_TRUE(components.has_value());
+  EXPECT_TRUE(components.value().curve ==
+              sourcemeta::core::EllipticCurve::P384);
+  EXPECT_EQ(components.value().x, coordinate_x.value());
+  EXPECT_EQ(components.value().y, coordinate_y.value());
 }
 
 TEST(ec_public_components_on_an_rsa_key_is_absent) {

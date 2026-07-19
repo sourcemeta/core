@@ -135,10 +135,48 @@ TEST(ec_private_and_public_keys_share_a_thumbprint) {
   EXPECT_EQ(private_key.value().thumbprint(), public_key.value().thumbprint());
 }
 
+TEST(p384_private_key_thumbprint_matches_its_public_jwk) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "EC", "crv": "P-384",
+    "x": "8_54Z81TIESa2YtHfRmUbtNIilbIlmL850_1GvqsWrYIVHVcWvg2f5FrZ6zKpETR",
+    "y": "DelIURUCfI3qlskhzaWwceJMGYWtZYKE_KyOTVq-g2IQgktbQULzg9jnzGK3hCAo",
+    "d": "F3mh3L5nX68mFZmjqCz8IZOB7XTmlccFsiFTYlhCqz3sQkJzYpiVVbZz5fZ6b-P4"
+  })JSON")};
+  const auto private_key{sourcemeta::core::JWKPrivate::from(document)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto thumbprint{private_key.value().thumbprint()};
+  EXPECT_TRUE(thumbprint.has_value());
+  EXPECT_EQ(thumbprint.value(), "gFMq2zUYUzS8eaZBIMsxTR9NiL_eR8m-fibuUK5nAjI");
+}
+
+TEST(okp_thumbprint_of_rfc8037_appendix_a3) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "OKP", "crv": "Ed25519",
+    "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+  })JSON")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  const auto thumbprint{key.value().thumbprint()};
+  EXPECT_TRUE(thumbprint.has_value());
+  EXPECT_EQ(thumbprint.value(), "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k");
+}
+
 TEST(from_rejects_an_ec_private_key_whose_public_does_not_match) {
-  // The final base64url character of x carries significant bits, so the decoded
-  // public point no longer corresponds to the private scalar d and the keypair
-  // is inconsistent
+  // x and y are a valid P-256 point taken from a different keypair, so they lie
+  // on the curve yet do not correspond to the private scalar d, exercising the
+  // keypair correspondence check rather than mere point validation
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "EC", "crv": "P-256",
+    "x": "Lq6c92s9afFN_qPMJI93GAqRWUY9YQ2lj1dpGaZFzUs",
+    "y": "tluidfRc_YZ8FfYBQuyM2v3DWjwgL4o1jfUA-9A4neo",
+    "d": "870MB6gfuTJ4HtUnUvYMyJpr5eUZNP4Bk43bVdj3eAE"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(from_rejects_an_ec_private_key_with_an_off_curve_public_key) {
+  // The altered final byte of x yields a point that is not on the P-256 curve,
+  // so the platform rejects it before any signature check
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "kty": "EC", "crv": "P-256",
     "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7Dw",
@@ -146,6 +184,27 @@ TEST(from_rejects_an_ec_private_key_whose_public_does_not_match) {
     "d": "870MB6gfuTJ4HtUnUvYMyJpr5eUZNP4Bk43bVdj3eAE"
   })JSON")};
   EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(from_rejects_an_okp_private_key_whose_public_does_not_match) {
+  // The private seed is the RFC 8037 Appendix A.3 key, but x is a different
+  // valid Ed25519 public key, so the stored public part does not match d
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "OKP", "crv": "Ed25519",
+    "x": "4UNDE7Ru4eg1LifBVkWZ_OtHQ96VfrwOhnatZIn4uUY",
+    "d": "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(from_accepts_a_consistent_okp_private_key) {
+  // RFC 8037 Appendix A.3: x is the public key derived from the seed d
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "OKP", "crv": "Ed25519",
+    "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "d": "nWGxne_9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::JWKPrivate::from(document).has_value());
 }
 
 TEST(from_accepts_a_consistent_ec_private_key) {

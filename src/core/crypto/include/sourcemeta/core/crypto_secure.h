@@ -6,6 +6,7 @@
 #endif
 
 #include <cstddef>     // std::size_t
+#include <functional>  // std::less
 #include <limits>      // std::numeric_limits
 #include <new>         // operator new, operator delete, std::align_val_t
 #include <string>      // std::string
@@ -60,10 +61,12 @@ inline auto secure_zero(std::string &value) noexcept -> void {
 /// @ingroup crypto
 /// Overwrite the referenced string when leaving the current scope, so secret
 /// material a local holds is wiped across every return path without threading
-/// a manual call through each one. It clears the storage the string owns at
-/// scope exit, so a reassignment or a growth that reallocates before then can
-/// still leave an earlier copy in freed memory, a residual that a wiping
-/// allocator would be needed to close. For example:
+/// a manual call through each one. It clears only the live bytes the string
+/// owns at scope exit, so a reassignment, an in-place shrink, or a growth that
+/// reallocates before then can still leave earlier bytes in freed memory or in
+/// the capacity beyond the final length, a residual that only a wiping
+/// allocator closes. Prefer a wiping string for secrets that change size. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
@@ -143,9 +146,12 @@ template <typename T> struct SecureAllocator {
 };
 
 /// @ingroup crypto
-/// A string whose bytes always live in heap storage that is wiped on release,
-/// so a secret it holds never survives a growth, a reassignment, or its
-/// destruction, and never lingers in an inline buffer. For example:
+/// A string whose bytes always live in heap storage that is wiped whenever it
+/// is released, so a secret it holds never reaches freed memory when the string
+/// reallocates on growth, is reassigned, or is destroyed, and never lingers in
+/// an inline buffer. Bytes abandoned by an in-place shrink stay in the still
+/// owned block only until that block is next reallocated or freed, when they
+/// too are wiped. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
@@ -199,12 +205,21 @@ public:
 
   /// Append a view of bytes.
   auto append(const std::string_view value) -> void {
-    // Inserting a range whose iterators point into this container is undefined
-    // whether or not it reallocates, so the bytes are always taken through an
-    // independent buffer that wipes itself
-    const std::vector<char, SecureAllocator<char>> copy(value.begin(),
-                                                        value.end());
-    this->buffer_.insert(this->buffer_.end(), copy.begin(), copy.end());
+    // Inserting a range whose iterators point into this container is undefined,
+    // so a view that aliases the storage is taken through an independent buffer
+    // that wipes itself, while an independent view is inserted directly. The
+    // ordering uses the total order over pointers, which is defined even for
+    // pointers into different objects
+    const char *const first{this->buffer_.data()};
+    const std::less<const char *> before{};
+    if (!before(value.data(), first) &&
+        before(value.data(), first + this->buffer_.size())) {
+      const std::vector<char, SecureAllocator<char>> copy(value.begin(),
+                                                          value.end());
+      this->buffer_.insert(this->buffer_.end(), copy.begin(), copy.end());
+    } else {
+      this->buffer_.insert(this->buffer_.end(), value.begin(), value.end());
+    }
   }
 
   /// Append a run of a repeated byte.

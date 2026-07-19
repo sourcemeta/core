@@ -240,8 +240,6 @@ auto encode_ecdsa_signature(const std::string_view der,
   return raw;
 }
 
-// The platform reports the curve under its canonical name rather than the JWK
-// alias the key was built with, so both are accepted
 } // namespace
 
 namespace sourcemeta::core {
