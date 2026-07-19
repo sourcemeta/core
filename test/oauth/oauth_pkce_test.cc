@@ -168,8 +168,8 @@ TEST(verify_rejects_a_malformed_plain_challenge_under_compatible) {
 
 TEST(verify_rejects_a_plain_challenge_of_the_wrong_length) {
   // A plain challenge is the verifier itself, so it must also satisfy the
-  // 43 character minimum (RFC 7636 Section 4.2), and a 42 character value
-  // cannot
+  // 43 character minimum (RFC 7636 Section 4.2), which a 42 character value
+  // fails
   const std::string challenge(42, 'a');
   EXPECT_TRUE(sourcemeta::core::oauth_pkce_verify(
                   APPENDIX_B_VERIFIER, challenge,
