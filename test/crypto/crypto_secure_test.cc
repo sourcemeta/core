@@ -66,3 +66,15 @@ TEST(secure_string_appends_a_view_of_itself_across_a_reallocation) {
   EXPECT_EQ(secret.front(), 'a');
   EXPECT_EQ(secret.back(), 'f');
 }
+
+TEST(secure_string_appends_an_empty_view_of_an_empty_string) {
+  sourcemeta::core::SecureString secret;
+  secret.append(std::string_view{secret});
+  EXPECT_TRUE(secret.empty());
+}
+
+TEST(secure_string_appends_an_empty_view) {
+  sourcemeta::core::SecureString secret{"data"};
+  secret.append(std::string_view{});
+  EXPECT_TRUE(secret == "data");
+}

@@ -212,7 +212,7 @@ public:
     // pointers into different objects
     const char *const first{this->buffer_.data()};
     const std::less<const char *> before{};
-    if (!before(value.data(), first) &&
+    if (!this->buffer_.empty() && !before(value.data(), first) &&
         before(value.data(), first + this->buffer_.size())) {
       const std::vector<char, SecureAllocator<char>> copy(value.begin(),
                                                           value.end());

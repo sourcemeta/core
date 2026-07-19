@@ -605,8 +605,10 @@ auto make_ec_private_key(const EllipticCurve curve,
   // point that verifies one precomputed signature (a duplicate-signature
   // key-selection attack), so the point is recomputed and compared directly
   const auto expected{ec_public_from_scalar(curve, padded_scalar)};
-  if (pad_left(coordinate_x, width, '\x00') != expected.first ||
-      pad_left(coordinate_y, width, '\x00') != expected.second) {
+  if (pad_left(strip_left(coordinate_x, '\x00'), width, '\x00') !=
+          expected.first ||
+      pad_left(strip_left(coordinate_y, '\x00'), width, '\x00') !=
+          expected.second) {
     return std::nullopt;
   }
 
