@@ -11,6 +11,8 @@
 
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
 
+#include "crypto_windows.h"
+
 #include <array>       // std::array
 #include <bit>         // std::countl_zero
 #include <cassert>     // assert
@@ -300,40 +302,6 @@ auto sign_hash(BCRYPT_KEY_HANDLE key, void *padding,
 
   signature.resize(length);
   return signature;
-}
-
-auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
-    -> std::optional<sourcemeta::core::EllipticCurve> {
-  switch (field_bytes) {
-    case 32:
-      return sourcemeta::core::EllipticCurve::P256;
-    case 48:
-      return sourcemeta::core::EllipticCurve::P384;
-    case 66:
-      return sourcemeta::core::EllipticCurve::P521;
-    default:
-      return std::nullopt;
-  }
-}
-
-auto export_key_blob(BCRYPT_KEY_HANDLE key, LPCWSTR blob_type)
-    -> std::optional<std::string> {
-  ULONG size{0};
-  if (!BCRYPT_SUCCESS(
-          BCryptExportKey(key, nullptr, blob_type, nullptr, 0, &size, 0))) {
-    return std::nullopt;
-  }
-
-  std::string blob;
-  blob.resize(size);
-  if (!BCRYPT_SUCCESS(BCryptExportKey(
-          key, nullptr, blob_type,
-          reinterpret_cast<unsigned char *>(blob.data()), size, &size, 0))) {
-    return std::nullopt;
-  }
-
-  blob.resize(size);
-  return blob;
 }
 
 } // namespace

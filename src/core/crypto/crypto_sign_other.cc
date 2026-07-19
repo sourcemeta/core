@@ -486,7 +486,9 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
           strip_left(private_exponent->content, '\x00')};
       if (stripped_modulus.empty() ||
           stripped_modulus.size() > MAXIMUM_KEY_BYTES ||
-          stripped_private_exponent.size() > MAXIMUM_KEY_BYTES) {
+          stripped_private_exponent.size() > MAXIMUM_KEY_BYTES ||
+          !rsa_public_exponent_acceptable(public_exponent->content,
+                                          modulus->content)) {
         return std::nullopt;
       }
 
@@ -531,6 +533,11 @@ auto make_private_key(const std::string_view pem) -> std::optional<PrivateKey> {
 
       auto padded_scalar{pad_left(stripped_scalar, scalar_width, '\x00')};
       const SecureStringScope padded_scalar_scope{padded_scalar};
+      // A scalar at or above the curve order is not a valid private key, so it
+      // is rejected before it drives the public point recovery
+      if (!ec_private_scalar_in_range(padded_scalar, parsed->curve)) {
+        return std::nullopt;
+      }
       auto point{ec_public_from_scalar(parsed->curve, padded_scalar)};
       return PrivateKey{
           new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,

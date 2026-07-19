@@ -2,6 +2,7 @@
 #include <sourcemeta/core/text.h>
 
 #include "crypto_helpers.h"
+#include "crypto_openssl.h"
 
 #include <openssl/bn.h>          // BN_*
 #include <openssl/core_names.h>  // OSSL_PKEY_PARAM_*
@@ -187,60 +188,6 @@ auto encode_ecdsa_signature(const std::string_view raw_signature,
 
 // The platform reports the curve under its canonical name rather than the JWK
 // alias the key was built with, so both are accepted
-auto ec_curve_from_group_name(const std::string_view name) noexcept
-    -> std::optional<sourcemeta::core::EllipticCurve> {
-  if (name == "P-256" || name == "prime256v1") {
-    return sourcemeta::core::EllipticCurve::P256;
-  } else if (name == "P-384" || name == "secp384r1") {
-    return sourcemeta::core::EllipticCurve::P384;
-  } else if (name == "P-521" || name == "secp521r1") {
-    return sourcemeta::core::EllipticCurve::P521;
-  } else {
-    return std::nullopt;
-  }
-}
-
-// A big-endian minimal-length byte string of a bignum, as the JWK members and
-// the signature range check expect
-auto bignum_to_bytes(const BIGNUM *number) -> std::string {
-  std::string result(static_cast<std::size_t>(BN_num_bytes(number)), '\x00');
-  BN_bn2bin(number, reinterpret_cast<unsigned char *>(result.data()));
-  return result;
-}
-
-// Read the fixed-width uncompressed public point of an elliptic curve or
-// Edwards curve key from the native handle
-auto read_public_point(EVP_PKEY *key) -> std::optional<std::string> {
-  std::size_t length{0};
-  if (EVP_PKEY_get_octet_string_param(key, OSSL_PKEY_PARAM_PUB_KEY, nullptr, 0,
-                                      &length) != 1) {
-    return std::nullopt;
-  }
-
-  std::string point(length, '\x00');
-  if (EVP_PKEY_get_octet_string_param(
-          key, OSSL_PKEY_PARAM_PUB_KEY,
-          reinterpret_cast<unsigned char *>(point.data()), point.size(),
-          &length) != 1) {
-    return std::nullopt;
-  }
-
-  return point;
-}
-
-auto read_ec_curve(EVP_PKEY *key)
-    -> std::optional<sourcemeta::core::EllipticCurve> {
-  std::array<char, 64> group{};
-  std::size_t length{0};
-  if (EVP_PKEY_get_utf8_string_param(key, OSSL_PKEY_PARAM_GROUP_NAME,
-                                     group.data(), group.size(),
-                                     &length) != 1) {
-    return std::nullopt;
-  }
-
-  return ec_curve_from_group_name(std::string_view{group.data(), length});
-}
-
 auto verify_rsa(EVP_PKEY *key,
                 const sourcemeta::core::SignatureHashFunction hash,
                 const std::string_view message,

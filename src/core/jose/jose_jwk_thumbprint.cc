@@ -12,9 +12,10 @@ namespace {
 
 // The minimal big-endian magnitude of an integer, so the RSA members serialize
 // and thumbprint as the Base64urlUInt form RFC 7518 Section 2 requires, with no
-// leading zero octets, regardless of how the source JWK padded them
+// leading zero octets, regardless of how the source JWK padded them. A single
+// octet is kept so the value zero stays a valid member rather than an empty one
 auto minimal(std::string_view value) -> std::string_view {
-  while (!value.empty() && value.front() == '\x00') {
+  while (value.size() > 1 && value.front() == '\x00') {
     value.remove_prefix(1);
   }
 

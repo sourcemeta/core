@@ -1,6 +1,7 @@
 #include <sourcemeta/core/crypto_verify.h>
 #include <sourcemeta/core/text.h>
 
+#include "crypto_apple.h"
 #include "crypto_der.h"
 #include "crypto_eddsa.h"
 #include "crypto_eddsa_apple.h"
@@ -180,39 +181,6 @@ auto encode_ecdsa_signature(const std::string_view raw_signature)
   sourcemeta::core::der_append_length(der, body.size());
   der.append(body);
   return der;
-}
-
-auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
-    -> std::optional<sourcemeta::core::EllipticCurve> {
-  switch (field_bytes) {
-    case 32:
-      return sourcemeta::core::EllipticCurve::P256;
-    case 48:
-      return sourcemeta::core::EllipticCurve::P384;
-    case 66:
-      return sourcemeta::core::EllipticCurve::P521;
-    default:
-      return std::nullopt;
-  }
-}
-
-// Copy the platform's external representation of a key, the PKCS#1 structure
-// for RSA and the X9.63 uncompressed point for elliptic curve keys
-auto copy_external_representation(SecKeyRef key) -> std::optional<std::string> {
-  CFErrorRef error{nullptr};
-  auto data{SecKeyCopyExternalRepresentation(key, &error)};
-  if (data == nullptr) {
-    if (error != nullptr) {
-      CFRelease(error);
-    }
-
-    return std::nullopt;
-  }
-
-  std::string result{reinterpret_cast<const char *>(CFDataGetBytePtr(data)),
-                     static_cast<std::size_t>(CFDataGetLength(data))};
-  CFRelease(data);
-  return result;
 }
 
 auto verify_with_algorithm(SecKeyRef key, const SecKeyAlgorithm algorithm,

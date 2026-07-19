@@ -22,7 +22,8 @@ if(SOURCEMETA_CORE_CRYPTO_USE_SYSTEM_OPENSSL)
     crypto_sha384_openssl.cc
     crypto_sha512_openssl.cc crypto_random_openssl.cc
     crypto_verify_openssl.cc crypto_secure_equals_openssl.cc
-    crypto_sign_openssl.cc crypto_aes_gcm_openssl.cc)
+    crypto_sign_openssl.cc crypto_aes_gcm_openssl.cc
+    crypto_openssl.h crypto_pkcs8.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE OpenSSL::Crypto)
 elseif(APPLE)
   enable_language(OBJCXX)
@@ -113,8 +114,8 @@ elseif(APPLE)
     crypto_verify_apple.cc crypto_secure_equals_apple.cc
     crypto_sign_apple.cc crypto_aes_gcm_apple.cc
     crypto_eddsa_cryptokit.mm "${CRYPTOKIT_OBJECT}"
-    crypto_eddsa.h crypto_eddsa_apple.h crypto_aes_apple.h crypto_bignum.h
-    crypto_shake256.h crypto_pkcs8.h)
+    crypto_eddsa.h crypto_eddsa_apple.h crypto_apple.h crypto_aes_apple.h
+    crypto_bignum.h crypto_shake256.h crypto_pkcs8.h)
 
   # The generated Objective-C interface header lives in the build tree
   target_include_directories(sourcemeta_core_crypto
@@ -142,6 +143,7 @@ elseif(WIN32)
     crypto_sha512_windows.cc crypto_random_windows.cc
     crypto_verify_windows.cc crypto_secure_equals_generic.cc
     crypto_sign_windows.cc crypto_aes_gcm_windows.cc crypto_eddsa.h
+    crypto_windows.h
     crypto_bignum.h crypto_ecc.h crypto_shake256.h crypto_pkcs8.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
 else()

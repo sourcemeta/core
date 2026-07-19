@@ -220,6 +220,45 @@ auto JWKPrivate::parse(const JSON &value, JWKPrivate &result) -> bool {
   // reuses it. A key that cannot be turned into one stays null and simply fails
   // to sign
   result.private_key_ = std::move(parsed_key);
+
+  // A private JWK carries the public key beside the private key (RFC 7518
+  // Section 6.2.2, RFC 8037 Section 2). For the curve types, reject a document
+  // whose stored public part does not correspond to its private part, verified
+  // through a signature the private key produces and the public key checks, so
+  // a serialized public JWK or thumbprint can never advertise a key that fails
+  // to verify the private key's own signatures
+  if (result.type_ == Type::EllipticCurve ||
+      result.type_ == Type::OctetKeyPair) {
+    if (!result.private_key_.has_value()) {
+      return false;
+    }
+
+    using namespace std::string_view_literals;
+    const auto probe{"sourcemeta core JWK keypair consistency probe"sv};
+    bool consistent{false};
+    if (result.type_ == Type::EllipticCurve) {
+      const auto public_key{
+          make_ec_public_key(jwk_to_elliptic_curve(result.curve_),
+                             result.coordinate_x_, result.coordinate_y_)};
+      const auto signature{ecdsa_sign(result.private_key_.value(),
+                                      SignatureHashFunction::SHA256, probe)};
+      consistent =
+          public_key.has_value() && signature.has_value() &&
+          ecdsa_verify(public_key.value(), SignatureHashFunction::SHA256, probe,
+                       signature.value());
+    } else {
+      const auto public_key{make_eddsa_public_key(
+          jwk_to_edwards_curve(result.curve_), result.public_point_)};
+      const auto signature{eddsa_sign(result.private_key_.value(), probe)};
+      consistent = public_key.has_value() && signature.has_value() &&
+                   eddsa_verify(public_key.value(), probe, signature.value());
+    }
+
+    if (!consistent) {
+      return false;
+    }
+  }
+
   return true;
 }
 

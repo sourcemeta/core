@@ -54,6 +54,21 @@ TEST(thumbprint_of_rfc7638_section_3_1_rsa_example) {
   EXPECT_EQ(thumbprint.value(), "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
 }
 
+TEST(rsa_thumbprint_normalizes_a_non_minimal_exponent) {
+  // The exponent carries a spurious leading zero octet (AAEAAQ decodes to
+  // 00 01 00 01), which must normalize to the same thumbprint as AQAB
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "RSA",
+    "n": "0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw",
+    "e": "AAEAAQ"
+  })JSON")};
+  const auto key{sourcemeta::core::JWK::from(document)};
+  EXPECT_TRUE(key.has_value());
+  const auto thumbprint{key.value().thumbprint()};
+  EXPECT_TRUE(thumbprint.has_value());
+  EXPECT_EQ(thumbprint.value(), "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs");
+}
+
 TEST(public_jwk_of_an_ec_public_key_round_trips) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "kty": "EC", "crv": "P-256",
@@ -103,6 +118,28 @@ TEST(ec_private_and_public_keys_share_a_thumbprint) {
   EXPECT_TRUE(private_key.has_value());
   EXPECT_TRUE(public_key.has_value());
   EXPECT_EQ(private_key.value().thumbprint(), public_key.value().thumbprint());
+}
+
+TEST(from_rejects_an_ec_private_key_whose_public_does_not_match) {
+  // The final octet of x is altered, so the stored public point no longer
+  // corresponds to the private scalar d and the keypair is inconsistent
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "EC", "crv": "P-256",
+    "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D5",
+    "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+    "d": "870MB6gfuTJ4HtUnUvYMyJpr5eUZNP4Bk43bVdj3eAE"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
+}
+
+TEST(from_accepts_a_consistent_ec_private_key) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "kty": "EC", "crv": "P-256",
+    "x": "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
+    "y": "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
+    "d": "870MB6gfuTJ4HtUnUvYMyJpr5eUZNP4Bk43bVdj3eAE"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::JWKPrivate::from(document).has_value());
 }
 
 TEST(public_jwk_of_a_symmetric_key_is_absent) {
