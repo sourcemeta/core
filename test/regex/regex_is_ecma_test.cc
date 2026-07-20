@@ -177,6 +177,42 @@ TEST(valid_negative_lookbehind) {
   EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<!foo)bar"));
 }
 
+TEST(invalid_possessive_range_quantifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{2,3}+"));
+}
+
+TEST(invalid_possessive_exact_quantifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{3}+"));
+}
+
+TEST(invalid_possessive_open_quantifier) {
+  EXPECT_FALSE(sourcemeta::core::is_regex_ecma("a{3,}+"));
+}
+
+TEST(valid_plus_after_literal_brace) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a}+"));
+}
+
+TEST(valid_plus_after_escaped_brace_quantifier) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("a\\{2,3}+"));
+}
+
+TEST(valid_variable_width_lookbehind) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<=a+)b"));
+}
+
+TEST(valid_variable_width_negative_lookbehind) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<!a+)b"));
+}
+
+TEST(valid_bounded_variable_width_lookbehind) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<=a{2,5})b"));
+}
+
+TEST(valid_nested_variable_width_lookbehind) {
+  EXPECT_TRUE(sourcemeta::core::is_regex_ecma("(?<=(?<=a)b)c"));
+}
+
 TEST(valid_dot_star) { EXPECT_TRUE(sourcemeta::core::is_regex_ecma(".*")); }
 
 TEST(valid_anchored_dot_star) {
