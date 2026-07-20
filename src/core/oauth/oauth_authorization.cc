@@ -113,6 +113,8 @@ auto oauth_parse_authorization_response(const std::string_view query,
   bool has_state{false};
   bool has_iss{false};
   bool has_error{false};
+  bool has_error_description{false};
+  bool has_error_uri{false};
   for (const auto &parameter : parsed) {
     const auto name{parameter.first};
     const auto value{parameter.second};
@@ -153,6 +155,24 @@ auto oauth_parse_authorization_response(const std::string_view query,
 
       has_error = true;
       if (!oauth_form_decode_into(value, storage, result.error)) {
+        return false;
+      }
+    } else if (name == "error_description") {
+      if (has_error_description) {
+        return false;
+      }
+
+      has_error_description = true;
+      if (!oauth_form_decode_into(value, storage, result.error_description)) {
+        return false;
+      }
+    } else if (name == "error_uri") {
+      if (has_error_uri) {
+        return false;
+      }
+
+      has_error_uri = true;
+      if (!oauth_form_decode_into(value, storage, result.error_uri)) {
         return false;
       }
     }

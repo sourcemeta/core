@@ -4,6 +4,7 @@
 #include <chrono>      // std::chrono
 #include <memory>      // std::make_shared
 #include <optional>    // std::optional, std::nullopt
+#include <stdexcept>   // std::runtime_error
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -334,4 +335,14 @@ TEST(metadata_provider_backs_off_after_a_failed_fetch) {
   *clock_now += std::chrono::minutes{6};
   EXPECT_TRUE(provider.metadata() == nullptr);
   EXPECT_EQ(fetch_count, 2);
+}
+
+TEST(metadata_provider_treats_a_throwing_fetcher_as_a_failure) {
+  sourcemeta::core::OAuthMetadataProvider provider{
+      "https://example.com",
+      sourcemeta::core::OAuthWellKnownKind::AuthorizationServer,
+      [](std::string_view) -> Fetch {
+        throw std::runtime_error{"transport failure"};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
 }

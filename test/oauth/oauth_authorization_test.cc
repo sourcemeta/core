@@ -357,3 +357,22 @@ TEST(parse_authorization_response_bare_key_without_equals) {
   EXPECT_TRUE(response.code.empty());
   EXPECT_EQ(response.state, "x");
 }
+
+TEST(parse_authorization_response_reads_error_details) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_response(
+      "error=access_denied&error_description=User%20denied"
+      "&error_uri=https%3A%2F%2Fx%2Fe&state=xyz",
+      storage, response));
+  EXPECT_EQ(response.error, "access_denied");
+  EXPECT_EQ(response.error_description, "User denied");
+  EXPECT_EQ(response.error_uri, "https://x/e");
+}
+
+TEST(parse_authorization_response_rejects_a_duplicate_error_description) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
+      "error_description=a&error_description=b", storage, response));
+}

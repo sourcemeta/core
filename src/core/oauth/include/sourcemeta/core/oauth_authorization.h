@@ -121,6 +121,12 @@ struct OAuthAuthorizationResponse {
   std::string_view iss;
   /// The error code of a failure response (RFC 6749 Section 4.1.2.1).
   std::string_view error;
+  /// The human-readable error description of a failure response (RFC 6749
+  /// Section 4.1.2.1).
+  std::string_view error_description;
+  /// The URI of a human-readable error page for a failure response (RFC 6749
+  /// Section 4.1.2.1).
+  std::string_view error_uri;
 };
 
 /// @ingroup oauth

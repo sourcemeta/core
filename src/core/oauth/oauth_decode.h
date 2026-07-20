@@ -26,8 +26,14 @@ inline auto oauth_form_decode_into(const std::string_view value,
 
   // The caller must have reserved enough headroom for the raw value, since
   // decoding only shrinks, so this append never reallocates and a prior
-  // borrowed view into the arena stays valid
+  // borrowed view into the arena stays valid. The assert catches a violation
+  // loudly under test, and the guard fails closed rather than dangle a view if
+  // the contract is ever broken in a release build
   assert(arena.capacity() - arena.size() >= value.size());
+  if (arena.capacity() - arena.size() < value.size()) {
+    return false;
+  }
+
   const auto base{arena.size()};
   if (!URI::unescape_form(value, arena)) {
     return false;

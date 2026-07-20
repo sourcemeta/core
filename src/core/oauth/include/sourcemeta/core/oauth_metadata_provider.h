@@ -27,7 +27,11 @@ namespace sourcemeta::core {
 /// document through an injected transport, and caches it with a freshness-aware
 /// refresh. It is meant to be constructed once per issuer at startup, since a
 /// per-request instance defeats the caching. Reads take a snapshot, so a
-/// returned document is immune to a concurrent refresh. For example:
+/// returned document is immune to a concurrent refresh. The kind must be an
+/// authorization server kind, either `AuthorizationServer` or an OpenID Connect
+/// configuration form, since a protected resource document is not an
+/// authorization server metadata document and would never validate. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -72,7 +76,9 @@ public:
   /// test.
   using Clock = std::function<std::chrono::system_clock::time_point()>;
 
-  /// Tunables for the caching policy.
+  /// Tunables for the caching policy. The `minimum_ttl` must not exceed the
+  /// `maximum_ttl`, since an advertised lifetime is clamped low first then
+  /// high.
   struct Options {
     /// The lifetime to assume when the transport advertises none.
     std::chrono::seconds fallback_ttl{std::chrono::hours{1}};

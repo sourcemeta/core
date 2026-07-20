@@ -4,9 +4,11 @@
 #include <sourcemeta/core/oauth_metadata.h>
 
 #include <algorithm> // std::max, std::min
+#include <cassert>   // assert
 #include <chrono>    // std::chrono::seconds, std::chrono::system_clock
 #include <memory>    // std::make_shared, std::shared_ptr
 #include <mutex>     // std::scoped_lock
+#include <optional>  // std::optional
 #include <string>    // std::string
 #include <utility>   // std::move
 
@@ -44,7 +46,11 @@ OAuthMetadataProvider::OAuthMetadataProvider(std::string issuer,
                                              Fetcher fetcher, Options options,
                                              Clock clock)
     : issuer_{std::move(issuer)}, kind_{kind}, fetcher_{std::move(fetcher)},
-      options_{options}, clock_{std::move(clock)} {}
+      options_{options}, clock_{std::move(clock)} {
+  // A protected resource document is not authorization server metadata, so it
+  // would never validate and the provider would permanently return no value
+  assert(kind != OAuthWellKnownKind::ProtectedResource);
+}
 
 auto OAuthMetadataProvider::install_locked(
     const OAuthWellKnownKind kind,
@@ -54,7 +60,16 @@ auto OAuthMetadataProvider::install_locked(
     return false;
   }
 
-  const auto fetched{this->fetcher_(url)};
+  std::optional<FetchResult> fetched;
+  try {
+    fetched = this->fetcher_(url);
+  } catch (...) {
+    // A fetcher signals failure by returning no value, but a throwing transport
+    // is treated as just another failed retrieval, so a misbehaving fetcher can
+    // never escape a metadata lookup
+    return false;
+  }
+
   if (!fetched.has_value()) {
     return false;
   }
