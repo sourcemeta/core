@@ -385,13 +385,29 @@ auto OAuthDPoPReplayStore::check_and_insert(
   std::erase_if(this->entries_, [now](const Entry &entry) -> bool {
     return entry.expiry <= now;
   });
-  for (const auto &entry : this->entries_) {
-    if (entry.digest == digest) {
+
+  // Scan once for a replay, tracking the entry closest to expiry so it can be
+  // evicted if the store is at capacity and this identifier is new
+  std::size_t earliest{0};
+  for (std::size_t index{0}; index < this->entries_.size(); index += 1) {
+    if (this->entries_[index].digest == digest) {
       return false;
+    }
+
+    if (this->entries_[index].expiry < this->entries_[earliest].expiry) {
+      earliest = index;
     }
   }
 
-  this->entries_.push_back(Entry{.digest = digest, .expiry = now + window});
+  const Entry entry{.digest = digest, .expiry = now + window};
+  // A bounded store cannot grow without limit, so at capacity the entry closest
+  // to expiry, with the least replay protection left, gives up its slot
+  if (this->entries_.size() >= this->capacity_ && !this->entries_.empty()) {
+    this->entries_[earliest] = entry;
+  } else {
+    this->entries_.push_back(entry);
+  }
+
   return true;
 }
 

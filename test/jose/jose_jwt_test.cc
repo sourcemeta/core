@@ -41,6 +41,19 @@ TEST(rejects_duplicate_header_parameter_non_alg) {
   EXPECT_FALSE(sourcemeta::core::JWT::from(input).has_value());
 }
 
+TEST(rejects_duplicate_payload_claim) {
+  // RFC 7519 Section 4: the claim names must be unique
+  const auto input{make_token(R"({ "alg": "RS256" })",
+                              R"({ "iss": "a", "iss": "b" })", "sig")};
+  EXPECT_FALSE(sourcemeta::core::JWT::from(input).has_value());
+}
+
+TEST(rejects_duplicate_unregistered_payload_claim) {
+  const auto input{make_token(R"({ "alg": "RS256" })",
+                              R"({ "htu": "a", "htu": "b" })", "sig")};
+  EXPECT_FALSE(sourcemeta::core::JWT::from(input).has_value());
+}
+
 TEST(signing_input_is_verbatim) {
   const auto input{
       make_token(R"({ "alg": "RS256" })", R"({ "iss": "acme" })", "sig")};

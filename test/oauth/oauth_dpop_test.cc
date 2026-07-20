@@ -275,6 +275,28 @@ TEST(verify_rejects_a_malformed_proof) {
             sourcemeta::core::OAuthDPoPError::Malformed);
 }
 
+TEST(verify_rejects_a_proof_with_a_duplicate_claim) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", sourcemeta::core::parse_json(EC_PUBLIC_JWK));
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST",)"
+      R"("htu":"https://server.example.com/token",)"
+      R"("htu":"https://evil.example/token","iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
+                proof.value(), "POST", "https://server.example.com/token",
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthDPoPError::Malformed);
+}
+
 TEST(verify_rejects_a_wrong_method) {
   auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
@@ -933,6 +955,29 @@ TEST(replay_store_separator_prevents_ambiguity) {
                                      FIXED_TIME, std::chrono::seconds{300}));
   EXPECT_TRUE(store.check_and_insert("a", "https://server.example.com/bc",
                                      FIXED_TIME, std::chrono::seconds{300}));
+}
+
+TEST(replay_store_evicts_the_earliest_at_capacity) {
+  sourcemeta::core::OAuthDPoPReplayStore store{2};
+  EXPECT_TRUE(store.check_and_insert("first",
+                                     "https://server.example.com/token",
+                                     FIXED_TIME, std::chrono::seconds{100}));
+  EXPECT_TRUE(store.check_and_insert(
+      "second", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{1}, std::chrono::seconds{100}));
+  EXPECT_TRUE(store.check_and_insert(
+      "third", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
+  EXPECT_EQ(store.size(FIXED_TIME + std::chrono::seconds{2}), 2);
+  EXPECT_FALSE(store.check_and_insert(
+      "second", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
+  EXPECT_FALSE(store.check_and_insert(
+      "third", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
+  EXPECT_TRUE(store.check_and_insert(
+      "first", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
 }
 
 TEST(confirmation_has_a_single_member) {

@@ -238,9 +238,11 @@ auto oauth_dpop_verify(const std::string_view proof,
 /// @ingroup oauth
 /// An in-memory store of the proof identifiers seen within their acceptance
 /// window, to reject a replayed DPoP proof at one target (RFC 9449
-/// Section 11.1). A store instance is safe to share across threads, and it
-/// holds a hash of each identifier rather than the identifier itself. For
-/// example:
+/// Section 11.1). A store instance is safe to share across threads, it holds a
+/// hash of each identifier rather than the identifier itself, and it is bounded
+/// to a fixed capacity so an attacker minting distinct proofs cannot exhaust
+/// memory. When full, the entry closest to expiry is evicted, which the
+/// acceptance window backstops (RFC 9449 Section 4.3 check 11). For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -257,8 +259,14 @@ auto oauth_dpop_verify(const std::string_view proof,
 /// ```
 class SOURCEMETA_CORE_OAUTH_EXPORT OAuthDPoPReplayStore {
 public:
-  /// Construct an empty store.
-  OAuthDPoPReplayStore() = default;
+  /// The default maximum number of live entries a store retains.
+  static constexpr std::size_t DEFAULT_CAPACITY{131072};
+
+  /// Construct an empty store with the given maximum number of live entries,
+  /// beyond which the entry closest to expiry is evicted to make room.
+  explicit OAuthDPoPReplayStore(
+      const std::size_t capacity = DEFAULT_CAPACITY) noexcept
+      : capacity_{capacity == 0 ? DEFAULT_CAPACITY : capacity} {}
 
   /// A store owns a mutex, so it is neither copied nor moved.
   OAuthDPoPReplayStore(const OAuthDPoPReplayStore &) = delete;
@@ -271,7 +279,7 @@ public:
   /// Record a proof identifier at a target and report whether it is new,
   /// returning false for one already seen within its window, which is a replay
   /// (RFC 9449 Section 11.1). Entries whose window has elapsed by the given
-  /// time are pruned.
+  /// time are pruned, and at capacity the entry closest to expiry is evicted.
   [[nodiscard]] auto
   check_and_insert(const std::string_view identifier,
                    const std::string_view target,
@@ -290,6 +298,7 @@ private:
     std::chrono::system_clock::time_point expiry;
   };
 
+  std::size_t capacity_;
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251)
 #endif
