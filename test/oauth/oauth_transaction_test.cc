@@ -24,7 +24,12 @@ TEST(transaction_check_accepts_a_valid_callback) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "SplxlOBeZQQYbYS6WxSbIA", .state = "xyz", .iss = "", .error = ""};
+      .code = "SplxlOBeZQQYbYS6WxSbIA",
+      .state = "xyz",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -37,7 +42,12 @@ TEST(transaction_check_rejects_a_state_mismatch) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "different", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "different",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -50,7 +60,12 @@ TEST(transaction_check_rejects_a_missing_state) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -66,7 +81,12 @@ TEST(transaction_check_accepts_a_matching_received_uri) {
       .issuer = "",
       .redirect_uri = "https://client.example/cb"};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "xyz", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "xyz",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown,
@@ -82,7 +102,12 @@ TEST(transaction_check_rejects_a_received_uri_mismatch) {
       .issuer = "",
       .redirect_uri = "https://client.example/cb"};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "xyz", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "xyz",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown,
@@ -98,7 +123,12 @@ TEST(transaction_check_requires_iss_when_supported) {
       .issuer = "https://server.example",
       .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "xyz", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "xyz",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Supported,
@@ -117,7 +147,9 @@ TEST(transaction_check_accepts_a_matching_iss_when_supported) {
       .code = "abc",
       .state = "xyz",
       .iss = "https://server.example",
-      .error = ""};
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Supported,
@@ -136,7 +168,9 @@ TEST(transaction_check_rejects_a_mismatched_iss_when_supported) {
       .code = "abc",
       .state = "xyz",
       .iss = "https://evil.example",
-      .error = ""};
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Supported,
@@ -155,7 +189,9 @@ TEST(transaction_check_validates_a_present_iss_when_unknown) {
       .code = "abc",
       .state = "xyz",
       .iss = "https://evil.example",
-      .error = ""};
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -171,7 +207,12 @@ TEST(transaction_check_ignores_an_absent_iss_when_unknown) {
       .issuer = "https://server.example",
       .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "xyz", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "xyz",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -190,7 +231,9 @@ TEST(transaction_check_ignores_a_present_iss_when_not_supported) {
       .code = "abc",
       .state = "xyz",
       .iss = "https://evil.example",
-      .error = ""};
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::NotSupported,
@@ -203,7 +246,12 @@ TEST(transaction_check_reports_a_decline) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "", .state = "xyz", .iss = "", .error = "access_denied"};
+      .code = "",
+      .state = "xyz",
+      .iss = "",
+      .error = "access_denied",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -216,7 +264,12 @@ TEST(transaction_check_reports_a_missing_code) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "", .state = "xyz", .iss = "", .error = ""};
+      .code = "",
+      .state = "xyz",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -231,7 +284,12 @@ TEST(transaction_check_validates_state_before_a_decline) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "", .state = "wrong", .iss = "", .error = "access_denied"};
+      .code = "",
+      .state = "wrong",
+      .iss = "",
+      .error = "access_denied",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -244,7 +302,12 @@ TEST(transaction_check_state_of_a_different_length_fails) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "xyz", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "xy", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "xy",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -257,7 +320,12 @@ TEST(transaction_check_empty_transaction_state_rejects) {
   const sourcemeta::core::OAuthTransaction transaction{
       .state = "", .code_verifier = "", .issuer = "", .redirect_uri = ""};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "anything", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "anything",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
@@ -273,7 +341,12 @@ TEST(transaction_check_state_takes_precedence_over_received_uri) {
       .issuer = "",
       .redirect_uri = "https://client.example/cb"};
   const sourcemeta::core::OAuthAuthorizationResponse response{
-      .code = "abc", .state = "wrong", .iss = "", .error = ""};
+      .code = "abc",
+      .state = "wrong",
+      .iss = "",
+      .error = "",
+      .error_description = "",
+      .error_uri = ""};
   std::string_view code;
   const auto error{sourcemeta::core::oauth_transaction_check(
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown,
