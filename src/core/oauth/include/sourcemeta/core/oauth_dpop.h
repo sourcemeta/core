@@ -81,7 +81,8 @@ public:
       -> bool;
 
   /// Record the most recent nonce a server issued through its response header,
-  /// to be included in later proofs to that server (RFC 9449 Section 8).
+  /// to be included in later proofs to that server, ignoring a malformed nonce
+  /// rather than echoing it (RFC 9449 Section 8).
   auto observe(const std::string_view server, const std::string_view nonce)
       -> void;
 
@@ -120,8 +121,7 @@ private:
 ///        "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I");
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-[[nodiscard]] auto oauth_dpop_confirmation(const std::string_view thumbprint)
-    -> JSON;
+auto oauth_dpop_confirmation(const std::string_view thumbprint) -> JSON;
 
 /// @ingroup oauth
 /// The JSON Web Key thumbprint of the key a DPoP proof is signed with (RFC 9449
@@ -137,7 +137,7 @@ SOURCEMETA_CORE_OAUTH_EXPORT
 /// assert(!thumbprint.has_value() || !thumbprint.value().empty());
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-[[nodiscard]] auto oauth_dpop_proof_thumbprint(const std::string_view proof)
+auto oauth_dpop_proof_thumbprint(const std::string_view proof)
     -> std::optional<std::string>;
 
 /// @ingroup oauth
@@ -228,10 +228,12 @@ struct OAuthDPoPVerifyOptions {
 ///        error.value() == sourcemeta::core::OAuthDPoPError::Expired);
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-[[nodiscard]] auto oauth_dpop_verify(
-    const std::string_view proof, const std::string_view method,
-    const std::string_view url, const std::chrono::system_clock::time_point now,
-    const OAuthDPoPVerifyOptions &options) -> std::optional<OAuthDPoPError>;
+auto oauth_dpop_verify(const std::string_view proof,
+                       const std::string_view method,
+                       const std::string_view url,
+                       const std::chrono::system_clock::time_point now,
+                       const OAuthDPoPVerifyOptions &options)
+    -> std::optional<OAuthDPoPError>;
 
 /// @ingroup oauth
 /// An in-memory store of the proof identifiers seen within their acceptance
@@ -276,8 +278,9 @@ public:
                    const std::chrono::system_clock::time_point now,
                    const std::chrono::seconds window) -> bool;
 
-  /// The number of live entries, after pruning those whose window has elapsed
-  /// by the given time.
+  /// The number of entries whose window has not elapsed by the given time,
+  /// counted without modifying the store, since expired entries are pruned when
+  /// the next one is recorded.
   [[nodiscard]] auto size(const std::chrono::system_clock::time_point now) const
       -> std::size_t;
 
@@ -310,8 +313,7 @@ private:
 /// assert(!sourcemeta::core::oauth_is_valid_dpop_nonce(""));
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
-[[nodiscard]] auto
-oauth_is_valid_dpop_nonce(const std::string_view value) noexcept -> bool;
+auto oauth_is_valid_dpop_nonce(const std::string_view value) noexcept -> bool;
 
 } // namespace sourcemeta::core
 

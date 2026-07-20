@@ -212,7 +212,8 @@ TEST(verify_accepts_an_allowed_algorithm) {
                             "https://server.example.com/token", "", FIXED_TIME,
                             proof));
 
-  const std::array allowed{sourcemeta::core::JWSAlgorithm::ES256};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::ES256}};
   sourcemeta::core::OAuthDPoPVerifyOptions options;
   options.allowed_algorithms = allowed;
   EXPECT_FALSE(sourcemeta::core::oauth_dpop_verify(
@@ -419,7 +420,8 @@ TEST(verify_rejects_an_algorithm_outside_policy) {
                             "https://server.example.com/token", "", FIXED_TIME,
                             proof));
 
-  const std::array allowed{sourcemeta::core::JWSAlgorithm::ES384};
+  const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
+      {sourcemeta::core::JWSAlgorithm::ES384}};
   sourcemeta::core::OAuthDPoPVerifyOptions options;
   options.allowed_algorithms = allowed;
   EXPECT_EQ(sourcemeta::core::oauth_dpop_verify(
@@ -966,4 +968,48 @@ TEST(proofer_rejects_an_unparseable_target) {
   std::string proof;
   EXPECT_FALSE(proofer.proof("https://server.example.com", "POST", "not a url",
                              "", FIXED_TIME, proof));
+}
+
+TEST(proofer_rejects_a_symmetric_algorithm) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  sourcemeta::core::OAuthDPoPProofer proofer{
+      std::move(key.value()), sourcemeta::core::JWSAlgorithm::HS256};
+  std::string proof;
+  EXPECT_FALSE(proofer.proof("https://server.example.com", "POST",
+                             "https://server.example.com/token", "", FIXED_TIME,
+                             proof));
+  EXPECT_TRUE(proof.empty());
+}
+
+TEST(proofer_ignores_a_malformed_observed_nonce) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  sourcemeta::core::OAuthDPoPProofer proofer{
+      std::move(key.value()), sourcemeta::core::JWSAlgorithm::ES256};
+  proofer.observe("https://server.example.com", "bad nonce");
+  std::string proof;
+  EXPECT_TRUE(proofer.proof("https://server.example.com", "POST",
+                            "https://server.example.com/token", "", FIXED_TIME,
+                            proof));
+
+  const auto token{sourcemeta::core::JWT::from(proof)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(token.value().payload().defines("nonce"));
+}
+
+TEST(proof_thumbprint_rejects_a_private_key_in_the_header) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto header{
+      sourcemeta::core::parse_json(R"({"typ":"dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", sourcemeta::core::parse_json(EC_PRIVATE_JWK));
+  const auto payload{sourcemeta::core::parse_json(R"({"jti":"x"})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_dpop_proof_thumbprint(proof.value()).has_value());
 }

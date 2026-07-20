@@ -1,6 +1,7 @@
 #include <sourcemeta/core/oauth_dpop.h>
 
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/jose_algorithm.h>
 #include <sourcemeta/core/jose_jwk.h>
 #include <sourcemeta/core/jose_jwt.h>
 #include <sourcemeta/core/jose_sign.h>
@@ -19,7 +20,7 @@
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
-#include <utility>     // std::move, std::unreachable
+#include <utility>     // std::move
 #include <vector>      // std::erase_if
 
 namespace sourcemeta::core {
@@ -39,63 +40,16 @@ const auto HASH_ATH{JSON::Object::hash("ath"sv)};
 const auto HASH_NONCE{JSON::Object::hash("nonce"sv)};
 const auto HASH_JKT{JSON::Object::hash("jkt"sv)};
 
-// RFC 7515 Section 4.1.1: the "alg" header value each algorithm serializes to
-auto dpop_algorithm_name(const JWSAlgorithm algorithm) -> std::string_view {
-  switch (algorithm) {
-    case JWSAlgorithm::RS256:
-      return "RS256";
-    case JWSAlgorithm::RS384:
-      return "RS384";
-    case JWSAlgorithm::RS512:
-      return "RS512";
-    case JWSAlgorithm::PS256:
-      return "PS256";
-    case JWSAlgorithm::PS384:
-      return "PS384";
-    case JWSAlgorithm::PS512:
-      return "PS512";
-    case JWSAlgorithm::ES256:
-      return "ES256";
-    case JWSAlgorithm::ES384:
-      return "ES384";
-    case JWSAlgorithm::ES512:
-      return "ES512";
-    case JWSAlgorithm::EdDSA:
-      return "EdDSA";
-    case JWSAlgorithm::HS256:
-      return "HS256";
-    case JWSAlgorithm::HS384:
-      return "HS384";
-    case JWSAlgorithm::HS512:
-      return "HS512";
-  }
-
-  std::unreachable();
-}
-
-// RFC 9449 Section 4.2: the DPoP algorithm MUST NOT be a symmetric one, so the
-// message authentication code algorithms are the ones to exclude
-auto dpop_is_asymmetric(const JWSAlgorithm algorithm) noexcept -> bool {
-  switch (algorithm) {
-    case JWSAlgorithm::RS256:
-    case JWSAlgorithm::RS384:
-    case JWSAlgorithm::RS512:
-    case JWSAlgorithm::PS256:
-    case JWSAlgorithm::PS384:
-    case JWSAlgorithm::PS512:
-    case JWSAlgorithm::ES256:
-    case JWSAlgorithm::ES384:
-    case JWSAlgorithm::ES512:
-    case JWSAlgorithm::EdDSA:
-      return true;
-    case JWSAlgorithm::HS256:
-    case JWSAlgorithm::HS384:
-    case JWSAlgorithm::HS512:
-      return false;
-  }
-
-  std::unreachable();
-}
+// The private JSON Web Key members whose presence marks a private key (RFC 7518
+// Sections 6.2.2 and 6.3.2, RFC 8037 Section 2, RFC 7518 Section 6.4)
+const auto HASH_D{JSON::Object::hash("d"sv)};
+const auto HASH_P{JSON::Object::hash("p"sv)};
+const auto HASH_Q{JSON::Object::hash("q"sv)};
+const auto HASH_DP{JSON::Object::hash("dp"sv)};
+const auto HASH_DQ{JSON::Object::hash("dq"sv)};
+const auto HASH_QI{JSON::Object::hash("qi"sv)};
+const auto HASH_OTH{JSON::Object::hash("oth"sv)};
+const auto HASH_K{JSON::Object::hash("k"sv)};
 
 // RFC 9449 Section 4.2: the HTTP target URI without query and fragment, with
 // the syntax and scheme normalization Section 4.3 recommends applied so the
@@ -138,12 +92,16 @@ auto dpop_access_token_hash(const std::string_view access_token)
 }
 
 // RFC 9449 Section 4.3 check 7: the public key MUST NOT contain a private key,
-// whose presence is marked by any private JSON Web Key member (RFC 7518
-// Sections 6.2.2 and 6.3.2, RFC 8037 Section 2, RFC 7518 Section 6.4)
+// whose presence is marked by any private JSON Web Key member
 auto dpop_has_private_material(const JSON &key) -> bool {
-  return key.defines("d") || key.defines("p") || key.defines("q") ||
-         key.defines("dp") || key.defines("dq") || key.defines("qi") ||
-         key.defines("oth") || key.defines("k");
+  return key.try_at("d"sv, HASH_D) != nullptr ||
+         key.try_at("p"sv, HASH_P) != nullptr ||
+         key.try_at("q"sv, HASH_Q) != nullptr ||
+         key.try_at("dp"sv, HASH_DP) != nullptr ||
+         key.try_at("dq"sv, HASH_DQ) != nullptr ||
+         key.try_at("qi"sv, HASH_QI) != nullptr ||
+         key.try_at("oth"sv, HASH_OTH) != nullptr ||
+         key.try_at("k"sv, HASH_K) != nullptr;
 }
 
 } // namespace
@@ -157,6 +115,12 @@ auto OAuthDPoPProofer::proof(const std::string_view server,
                              const std::string_view access_token,
                              const std::chrono::system_clock::time_point now,
                              std::string &sink) -> bool {
+  // RFC 9449 Section 4.2: a DPoP proof MUST be signed with an asymmetric
+  // algorithm, so a symmetric one yields no proof rather than an invalid one
+  if (!jws_algorithm_is_asymmetric(this->algorithm_)) {
+    return false;
+  }
+
   auto target{dpop_normalize_target(url)};
   if (!target.has_value()) {
     return false;
@@ -169,7 +133,7 @@ auto OAuthDPoPProofer::proof(const std::string_view server,
 
   auto header{JSON::make_object()};
   header.assign_assume_new("typ", JSON{"dpop+jwt"}, HASH_TYP);
-  header.assign_assume_new("alg", JSON{dpop_algorithm_name(this->algorithm_)},
+  header.assign_assume_new("alg", JSON{jws_algorithm_name(this->algorithm_)},
                            HASH_ALG);
   header.assign_assume_new("jwk", std::move(public_key.value()), HASH_JWK);
 
@@ -211,6 +175,12 @@ auto OAuthDPoPProofer::proof(const std::string_view server,
 
 auto OAuthDPoPProofer::observe(const std::string_view server,
                                const std::string_view nonce) -> void {
+  // RFC 9449 Section 8.1: a nonce is a non-empty string of the nonce character
+  // set, so a malformed one is dropped rather than echoed into a later proof
+  if (!oauth_is_valid_dpop_nonce(nonce)) {
+    return;
+  }
+
   const std::scoped_lock lock{this->mutex_};
   this->nonces_.insert_or_assign(std::string{server}, std::string{nonce});
 }
@@ -239,6 +209,12 @@ auto oauth_dpop_proof_thumbprint(const std::string_view proof)
 
   const auto *key{header.try_at("jwk"sv, HASH_JWK)};
   if (key == nullptr || !key->is_object()) {
+    return std::nullopt;
+  }
+
+  // RFC 9449 Section 4.3 check 7: a proof whose embedded key carries private
+  // material is invalid, so no thumbprint is derived to bind or match against
+  if (dpop_has_private_material(*key)) {
     return std::nullopt;
   }
 
@@ -277,7 +253,8 @@ auto oauth_dpop_verify(const std::string_view proof,
 
   // Check 5: an asymmetric algorithm, not none, within local policy
   const auto algorithm{parsed.algorithm()};
-  if (!algorithm.has_value() || !dpop_is_asymmetric(algorithm.value())) {
+  if (!algorithm.has_value() ||
+      !jws_algorithm_is_asymmetric(algorithm.value())) {
     return OAuthDPoPError::UnsupportedAlgorithm;
   }
 
