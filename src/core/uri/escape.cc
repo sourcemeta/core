@@ -67,4 +67,35 @@ auto URI::unescape(const std::string_view input) -> std::string {
   return result;
 }
 
+auto URI::unescape_form(const std::string_view input, std::string &output)
+    -> bool {
+  const auto base{output.size()};
+  output.reserve(base + input.size());
+  for (std::size_t position = 0; position < input.size();) {
+    const auto character{input[position]};
+    if (character == '+') {
+      output += ' ';
+      position += 1;
+    } else if (character == URI_PERCENT) {
+      const auto high{position + 2 < input.size()
+                          ? hex_digit_value(input[position + 1])
+                          : static_cast<std::int8_t>(-1)};
+      const auto low{high < 0 ? static_cast<std::int8_t>(-1)
+                              : hex_digit_value(input[position + 2])};
+      if (low < 0) {
+        output.resize(base);
+        return false;
+      }
+
+      output += static_cast<char>((high << 4) | low);
+      position += 3;
+    } else {
+      output += character;
+      position += 1;
+    }
+  }
+
+  return true;
+}
+
 } // namespace sourcemeta::core

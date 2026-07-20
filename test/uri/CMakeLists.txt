@@ -32,6 +32,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME uri
     uri_canonicalize_test.cc
     uri_escape_test.cc
     uri_unescape_test.cc
+    uri_unescape_form_test.cc
     uri_normalize_path_test.cc
     uri_resolve_from_test.cc
     uri_relative_to_test.cc

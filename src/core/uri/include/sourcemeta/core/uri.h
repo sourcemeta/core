@@ -807,6 +807,26 @@ public:
   /// ```
   [[nodiscard]] static auto unescape(std::string_view input) -> std::string;
 
+  /// Decode an "application/x-www-form-urlencoded" component (RFC 6749 Appendix
+  /// B and the HTML URL-encoded form syntax), appending the decoded bytes to
+  /// the output. Each "+" becomes a space and each "%" followed by two
+  /// hexadecimal digits becomes its octet. A "%" that is not followed by two
+  /// hexadecimal digits is rejected, returning false with the output restored
+  /// to its original contents. The output must not alias the input. For
+  /// example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/uri.h>
+  /// #include <cassert>
+  /// #include <string>
+  ///
+  /// std::string output;
+  /// assert(sourcemeta::core::URI::unescape_form("a+b%2Fc", output));
+  /// assert(output == "a b/c");
+  /// ```
+  [[nodiscard]] static auto unescape_form(std::string_view input,
+                                          std::string &output) -> bool;
+
   /// Remove the "." and ".." segments from a URI path per RFC 3986 Section
   /// 5.2.4, preserving leading ".." segments in a relative path. For example:
   ///
