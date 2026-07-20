@@ -799,3 +799,44 @@ TEST(well_known_url_rejects_an_empty_host) {
       url));
   EXPECT_TRUE(url.empty());
 }
+
+TEST(resource_metadata_rejects_a_port_above_the_limit) {
+  // The port fits the RFC 3986 grammar but exceeds what a URI can hold, so
+  // parsing must be reported as an invalid document rather than escaping as an
+  // exception
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com:99999999999999/path"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com:99999999999999/path")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_a_port_above_the_limit) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com:99999999999999",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com:99999999999999")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(well_known_url_rejects_a_port_above_the_limit) {
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_well_known_url(
+      "https://example.com:99999999999999",
+      sourcemeta::core::OAuthWellKnownKind::ProtectedResource, url));
+  EXPECT_TRUE(url.empty());
+}
+
+TEST(resource_metadata_accepts_the_maximum_port) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com:4294967295/path"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com:4294967295/path")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().resource(),
+            "https://api.example.com:4294967295/path");
+}
