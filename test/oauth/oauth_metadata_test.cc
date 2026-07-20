@@ -446,3 +446,25 @@ TEST(well_known_url_multi_segment_path) {
   EXPECT_EQ(url,
             "https://example.com/.well-known/oauth-authorization-server/a/b/c");
 }
+
+TEST(server_metadata_rejects_an_empty_authority_issuer) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https:///path",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https:///path")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_an_empty_signing_alg_list) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "token_endpoint_auth_methods_supported": [ "private_key_jwt" ],
+    "token_endpoint_auth_signing_alg_values_supported": []
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}

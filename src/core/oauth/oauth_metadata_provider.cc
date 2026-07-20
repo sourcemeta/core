@@ -97,10 +97,13 @@ auto OAuthMetadataProvider::metadata()
     -> std::shared_ptr<const OAuthServerMetadata> {
   const auto now{this->clock_()};
   const std::scoped_lock lock{this->mutex_};
-  if (this->metadata_ == nullptr || now >= this->next_refresh_) {
-    // A failed refresh leaves the last good document in place, so a stale
-    // snapshot is served rather than none
-    if (!this->fetch_and_install_locked(now) && this->metadata_ != nullptr) {
+  // The refresh deadline starts at the epoch, so the first call always
+  // retrieves. Gating solely on it, rather than also on an absent document,
+  // means a failed retrieval backs off for the minimum lifetime instead of
+  // being retried on every call during an outage, whether or not a prior good
+  // document exists to serve meanwhile
+  if (now >= this->next_refresh_) {
+    if (!this->fetch_and_install_locked(now)) {
       this->next_refresh_ = now + this->options_.minimum_ttl;
     }
   }

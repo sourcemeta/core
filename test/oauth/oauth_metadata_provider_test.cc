@@ -309,3 +309,29 @@ TEST(metadata_provider_returns_the_same_snapshot_within_the_ttl) {
   const auto second{provider.metadata()};
   EXPECT_TRUE(first == second);
 }
+
+TEST(metadata_provider_backs_off_after_a_failed_fetch) {
+  int fetch_count{0};
+  const auto clock_now{std::make_shared<std::chrono::system_clock::time_point>(
+      std::chrono::system_clock::time_point{})};
+  sourcemeta::core::OAuthMetadataProvider provider{
+      "https://example.com",
+      sourcemeta::core::OAuthWellKnownKind::AuthorizationServer,
+      [&fetch_count](std::string_view) -> Fetch {
+        fetch_count += 1;
+        return std::nullopt;
+      },
+      sourcemeta::core::OAuthMetadataProvider::Options{},
+      [clock_now]() { return *clock_now; }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(fetch_count, 1);
+  // A second call within the minimum lifetime does not re-fetch during the
+  // outage, even though the document has never been retrieved
+  *clock_now += std::chrono::seconds{10};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(fetch_count, 1);
+  // Once the minimum lifetime elapses the fetch is retried
+  *clock_now += std::chrono::minutes{6};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+  EXPECT_EQ(fetch_count, 2);
+}

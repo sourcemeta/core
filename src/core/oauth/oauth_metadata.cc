@@ -38,9 +38,12 @@ const auto HASH_ISS_SUPPORTED{
     JSON::Object::hash("authorization_response_iss_parameter_supported"sv)};
 
 auto is_valid_issuer(const std::string_view issuer) -> bool {
-  // RFC 8414 Section 2: the issuer is an https URL with no query or fragment
+  // RFC 8414 Section 2: the issuer is an https URL with no query or fragment,
+  // and a non-empty authority (RFC 3986 Section 3.2), so the character after
+  // the scheme must not already end the host
   static constexpr std::string_view scheme{"https://"};
   return issuer.starts_with(scheme) && issuer.size() > scheme.size() &&
+         issuer[scheme.size()] != '/' &&
          issuer.find('#') == std::string_view::npos &&
          issuer.find('?') == std::string_view::npos;
 }
@@ -100,7 +103,8 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
   }
 
   // RFC 8414 Section 2: a signing algorithm list is REQUIRED alongside the JWT
-  // authentication methods, and "none" MUST NOT appear in it
+  // authentication methods, "none" MUST NOT appear in it, and Section 3.2
+  // forbids a zero-element array, so an empty list is also invalid
   if (array_member_contains(data, "token_endpoint_auth_methods_supported"sv,
                             HASH_TOKEN_AUTH_METHODS, "private_key_jwt") ||
       array_member_contains(data, "token_endpoint_auth_methods_supported"sv,
@@ -109,7 +113,7 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
         data.try_at("token_endpoint_auth_signing_alg_values_supported"sv,
                     HASH_TOKEN_AUTH_ALGS)};
     if (algorithms == nullptr || !algorithms->is_array() ||
-        algorithms->contains("none")) {
+        algorithms->empty() || algorithms->contains("none")) {
       throw OAuthMetadataParseError{};
     }
   }

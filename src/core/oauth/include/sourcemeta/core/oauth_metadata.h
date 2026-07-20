@@ -67,11 +67,13 @@ auto oauth_well_known_url(const std::string_view identifier,
 /// An authorization server metadata document (RFC 8414), owning its JSON. The
 /// document is validated on construction against the issuer it was retrieved
 /// for: the issuer must match by exact code points and be a valid issuer
-/// identifier, `response_types_supported` must be present, and an
-/// authentication method that needs a signing algorithm list must carry one
-/// without `none`. Accessors apply the specification defaults, and any member
-/// without a typed accessor is reachable through the underlying document. For
-/// example:
+/// identifier, `response_types_supported` must be present and non-empty, and an
+/// authentication method that needs a signing algorithm list must carry a
+/// non-empty one without `none`. Accessors apply the specification defaults,
+/// and any member without a typed accessor is reachable through the underlying
+/// document. A string accessor returns a view into the owned document, valid
+/// for the lifetime of this object, so a view taken before the object is moved
+/// from must not be used afterward. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

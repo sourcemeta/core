@@ -15,8 +15,9 @@
 namespace sourcemeta::core {
 
 /// @ingroup oauth
-/// The secrets minted for one authorization code flow, each the base64url of 32
-/// random octets. Both are secret and are serialized by the caller, such as
+/// The secrets minted for one authorization code flow, each the base64url
+/// encoding of 32 random octets. Both are secret and are serialized by the
+/// caller, such as
 /// into a sealed cookie, and wiped once the flow completes. The 43 bytes of
 /// each are not null terminated.
 struct OAuthTransactionSecrets {
@@ -97,11 +98,13 @@ auto oauth_transaction_mint() -> OAuthTransactionSecrets;
 /// state in constant time, the received URI when one is supplied, the issuer,
 /// whether the server declined, and finally the presence of a code. Pass an
 /// empty `received_uri` to skip that check. The state check always defends
-/// against cross-site request forgery, but mix-up defense (RFC 9207) needs at
-/// least one of a non-empty `received_uri` or an `issuer_support` other than
-/// `NotSupported`, so a caller talking to more than one authorization server
-/// must supply one of them (RFC 8252 Section 8.10, RFC 9207 Section 2.4). For
-/// example:
+/// against cross-site request forgery. Guaranteed mix-up defense needs a
+/// non-empty `received_uri` (RFC 8252 Section 8.10) or an `issuer_support` of
+/// `Supported`, which makes a missing `iss` fatal (RFC 9207 Section 2.4). With
+/// `Unknown` the `iss` is validated only when present, so a server that omits
+/// it is not caught, and with `NotSupported` it is ignored entirely. A caller
+/// talking to more than one authorization server must therefore supply one of
+/// those two. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

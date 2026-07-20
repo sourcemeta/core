@@ -43,7 +43,7 @@ TEST(transaction_check_rejects_a_state_mismatch) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::State);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }
 
 TEST(transaction_check_rejects_a_missing_state) {
@@ -56,7 +56,7 @@ TEST(transaction_check_rejects_a_missing_state) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::State);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }
 
 TEST(transaction_check_accepts_a_matching_received_uri) {
@@ -88,8 +88,7 @@ TEST(transaction_check_rejects_a_received_uri_mismatch) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown,
       "https://client.example/other", code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() ==
-              sourcemeta::core::OAuthCallbackError::ReceivedURI);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::ReceivedURI);
 }
 
 TEST(transaction_check_requires_iss_when_supported) {
@@ -105,7 +104,7 @@ TEST(transaction_check_requires_iss_when_supported) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Supported,
       "", code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::Issuer);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::Issuer);
 }
 
 TEST(transaction_check_accepts_a_matching_iss_when_supported) {
@@ -143,7 +142,7 @@ TEST(transaction_check_rejects_a_mismatched_iss_when_supported) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Supported,
       "", code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::Issuer);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::Issuer);
 }
 
 TEST(transaction_check_validates_a_present_iss_when_unknown) {
@@ -162,7 +161,7 @@ TEST(transaction_check_validates_a_present_iss_when_unknown) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::Issuer);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::Issuer);
 }
 
 TEST(transaction_check_ignores_an_absent_iss_when_unknown) {
@@ -210,7 +209,7 @@ TEST(transaction_check_reports_a_decline) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::Declined);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::Declined);
 }
 
 TEST(transaction_check_reports_a_missing_code) {
@@ -223,8 +222,7 @@ TEST(transaction_check_reports_a_missing_code) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() ==
-              sourcemeta::core::OAuthCallbackError::MissingCode);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::MissingCode);
 }
 
 TEST(transaction_check_validates_state_before_a_decline) {
@@ -239,7 +237,7 @@ TEST(transaction_check_validates_state_before_a_decline) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::State);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }
 
 TEST(transaction_check_state_of_a_different_length_fails) {
@@ -252,7 +250,7 @@ TEST(transaction_check_state_of_a_different_length_fails) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::State);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }
 
 TEST(transaction_check_empty_transaction_state_rejects) {
@@ -265,7 +263,7 @@ TEST(transaction_check_empty_transaction_state_rejects) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown, "",
       code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::State);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }
 
 TEST(transaction_check_state_takes_precedence_over_received_uri) {
@@ -281,5 +279,5 @@ TEST(transaction_check_state_takes_precedence_over_received_uri) {
       transaction, response, sourcemeta::core::OAuthIssuerSupport::Unknown,
       "https://client.example/other", code)};
   EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error.value() == sourcemeta::core::OAuthCallbackError::State);
+  EXPECT_EQ(error.value(), sourcemeta::core::OAuthCallbackError::State);
 }

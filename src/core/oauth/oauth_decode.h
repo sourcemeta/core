@@ -3,6 +3,7 @@
 
 #include <sourcemeta/core/uri.h>
 
+#include <cassert>     // assert
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -23,6 +24,10 @@ inline auto oauth_form_decode_into(const std::string_view value,
     return true;
   }
 
+  // The caller must have reserved enough headroom for the raw value, since
+  // decoding only shrinks, so this append never reallocates and a prior
+  // borrowed view into the arena stays valid
+  assert(arena.capacity() - arena.size() >= value.size());
   const auto base{arena.size()};
   if (!URI::unescape_form(value, arena)) {
     return false;
