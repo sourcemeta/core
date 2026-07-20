@@ -824,8 +824,8 @@ public:
   /// assert(sourcemeta::core::URI::unescape_form("a+b%2Fc", output));
   /// assert(output == "a b/c");
   /// ```
-  static auto unescape_form(std::string_view input, std::string &output)
-      -> bool;
+  [[nodiscard]] static auto unescape_form(std::string_view input,
+                                          std::string &output) -> bool;
 
   /// Remove the "." and ".." segments from a URI path per RFC 3986 Section
   /// 5.2.4, preserving leading ".." segments in a relative path. For example:
