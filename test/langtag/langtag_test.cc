@@ -451,3 +451,127 @@ TEST(whitespace) {
   EXPECT_FALSE(sourcemeta::core::is_langtag("en "));
   EXPECT_FALSE(sourcemeta::core::is_langtag("en US"));
 }
+
+// RFC 5646 Section 2.1.1: a lowercase primary language subtag is canonical
+TEST(canonical_simple_language) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("en"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("mas"));
+}
+
+// RFC 5646 Section 2.1.1: the primary language subtag is lowercase
+TEST(canonical_uppercase_language_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("EN"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("En"));
+}
+
+// RFC 5646 Section 2.1.1: a four-letter subtag at the start of the tag is a
+// primary language, not a script, so it stays lowercase
+TEST(canonical_four_letter_language_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("aaaa"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("Aaaa"));
+}
+
+// RFC 5646 Section 2.1.1: region subtags are uppercase
+TEST(canonical_region_uppercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("en-GB"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("de-DE"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-gb"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-Gb"));
+}
+
+// RFC 5646 Section 2.1.1: numeric region subtags carry no casing
+TEST(canonical_numeric_region) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("es-419"));
+}
+
+// RFC 5646 Section 2.1.1: script subtags are titlecase
+TEST(canonical_script_titlecase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("zh-Hant"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("zh-hant"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("zh-HANT"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("zh-hANT"));
+}
+
+// RFC 5646 Section 2.1.1: titlecase script and uppercase region together
+TEST(canonical_script_and_region) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("zh-Hant-HK"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("sr-Latn-RS"));
+}
+
+// RFC 5646 Section 2.1.1: extended language subtags are lowercase
+TEST(canonical_extlang_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("zh-yue-Hant-CN"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("zh-YUE"));
+}
+
+// RFC 5646 Section 2.1.1: variant subtags are lowercase
+TEST(canonical_variant_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("sl-rozaj-biske"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("sl-ROZAJ"));
+}
+
+// RFC 5646 Section 2.1.1: a digit-led variant keeps its letters lowercase
+TEST(canonical_digit_led_variant) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("de-CH-1901"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("de-1abc"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("de-1ABC"));
+}
+
+// RFC 5646 Section 2.1.1: extension singletons are lowercase
+TEST(canonical_singleton_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("en-a-bbb"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-A-bbb"));
+}
+
+// RFC 5646 Section 2.1.1: extension subtags are lowercase
+TEST(canonical_extension_subtags_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("en-US-u-islamcal"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-a-BBB"));
+}
+
+// RFC 5646 Section 2.1.1: two-letter and four-letter subtags that occur after
+// a singleton stay lowercase, as in the examples of that section
+TEST(canonical_after_singleton_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("en-CA-x-ca"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("az-Latn-x-latn"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-CA-x-CA"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("az-Latn-x-Latn"));
+}
+
+// RFC 5646 Section 2.1.1: private use tags are lowercase throughout
+TEST(canonical_private_use_lowercase) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("x-foo"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("x-ab"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("X-foo"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("x-FOO"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("x-AB"));
+}
+
+// RFC 5646 Appendix A: a well-formed private use sequence with uppercase
+// subtags is not canonical
+TEST(canonical_rfc_private_use_examples) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("de-CH-x-phonebk"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("az-Arab-x-AYB"));
+}
+
+// RFC 5646 Section 2.2.8: the registry deprecates every irregular
+// grandfathered tag in favour of a canonical replacement
+TEST(canonical_irregular_grandfathered_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-GB-oed"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("i-klingon"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("sgn-BE-FR"));
+}
+
+// RFC 5646 Section 2.2.8: the regular grandfathered tags match the grammar
+// and are already lowercase
+TEST(canonical_regular_grandfathered) {
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("zh-min-nan"));
+  EXPECT_TRUE(sourcemeta::core::is_canonical_langtag("art-lojban"));
+}
+
+// RFC 5646 Section 2.1: a canonical tag is first of all a language tag
+TEST(canonical_malformed_rejected) {
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag(""));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("en-"));
+  EXPECT_FALSE(sourcemeta::core::is_canonical_langtag("de-419-DE"));
+}
