@@ -65,6 +65,57 @@ TEST(is_b64token_rejects_invalid_credentials) {
   EXPECT_FALSE(sourcemeta::core::http_is_b64token("a,b"));
 }
 
+TEST(is_token_accepts_valid_tokens) {
+  EXPECT_TRUE(sourcemeta::core::http_is_token("Bearer"));
+  EXPECT_TRUE(sourcemeta::core::http_is_token("DPoP"));
+  EXPECT_TRUE(sourcemeta::core::http_is_token("a!#$%&'*+-.^_`|~0Z"));
+}
+
+TEST(is_token_rejects_empty_and_separators) {
+  EXPECT_FALSE(sourcemeta::core::http_is_token(""));
+  EXPECT_FALSE(sourcemeta::core::http_is_token("has space"));
+  EXPECT_FALSE(sourcemeta::core::http_is_token("a\"b"));
+  EXPECT_FALSE(sourcemeta::core::http_is_token("a,b"));
+  EXPECT_FALSE(sourcemeta::core::http_is_token("a=b"));
+}
+
+TEST(encode_quoted_string_wraps_a_plain_value) {
+  std::string sink;
+  EXPECT_TRUE(sourcemeta::core::http_encode_quoted_string("example", sink));
+  EXPECT_EQ(sink, R"("example")");
+}
+
+TEST(encode_quoted_string_escapes_quote_and_backslash) {
+  std::string sink;
+  EXPECT_TRUE(sourcemeta::core::http_encode_quoted_string(R"(a"b\c)", sink));
+  EXPECT_EQ(sink, R"("a\"b\\c")");
+}
+
+TEST(encode_quoted_string_allows_htab_and_obs_text) {
+  std::string value{"a\tb"};
+  value.push_back('\x80');
+  std::string sink;
+  EXPECT_TRUE(sourcemeta::core::http_encode_quoted_string(value, sink));
+  std::string expected{"\"a\tb"};
+  expected.push_back('\x80');
+  expected.push_back('"');
+  EXPECT_EQ(sink, expected);
+}
+
+TEST(encode_quoted_string_rejects_a_control_character) {
+  std::string value{"a"};
+  value.push_back('\n');
+  std::string sink{"prefix"};
+  EXPECT_FALSE(sourcemeta::core::http_encode_quoted_string(value, sink));
+  EXPECT_EQ(sink, "prefix");
+}
+
+TEST(encode_quoted_string_appends_to_an_existing_sink) {
+  std::string sink{"realm="};
+  EXPECT_TRUE(sourcemeta::core::http_encode_quoted_string("x", sink));
+  EXPECT_EQ(sink, R"(realm="x")");
+}
+
 TEST(trim_leading_ows_removes_spaces_and_tabs) {
   EXPECT_EQ(sourcemeta::core::http_trim_leading_ows("  x"), "x");
   EXPECT_EQ(sourcemeta::core::http_trim_leading_ows("\t x"), "x");

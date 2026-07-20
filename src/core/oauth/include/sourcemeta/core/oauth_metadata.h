@@ -160,6 +160,83 @@ private:
   JSON data_;
 };
 
+/// @ingroup oauth
+/// A protected resource metadata document (RFC 9728), owning its JSON. The
+/// document is validated on construction against the resource it was retrieved
+/// for: `resource` must be present, a valid resource identifier (an https URL
+/// with no fragment, a query tolerated), and identical by code points to the
+/// expected resource (RFC 9728 Section 3.3). Pass the resource identifier the
+/// well-known URL was derived from, or, for the `WWW-Authenticate`
+/// `resource_metadata` flow, the URL the request was made to (the Section 3.3
+/// second check). Only the plain JSON members are read, so a `signed_metadata`
+/// statement (RFC 9728 Section 2.2) is not processed. A string accessor returns
+/// a view into the owned document, valid for the lifetime of this object. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <sourcemeta/core/json.h>
+/// #include <cassert>
+///
+/// auto document{sourcemeta::core::parse_json(R"JSON({
+///   "resource": "https://api.example",
+///   "authorization_servers": [ "https://auth.example" ]
+/// })JSON")};
+/// const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+///     std::move(document), "https://api.example")};
+/// assert(metadata.has_value());
+/// assert(metadata.value().first_authorization_server().value() ==
+///        "https://auth.example");
+/// ```
+class SOURCEMETA_CORE_OAUTH_EXPORT OAuthResourceMetadata {
+public:
+  /// Construct and validate a metadata document for an expected resource,
+  /// throwing when it is invalid. The document is moved in.
+  OAuthResourceMetadata(JSON &&data, const std::string_view resource);
+
+  /// Construct and validate a metadata document for an expected resource,
+  /// returning no value when it is invalid. The document is moved in.
+  [[nodiscard]] static auto from(JSON &&data, const std::string_view resource)
+      -> std::optional<OAuthResourceMetadata>;
+
+  /// The resource identifier (RFC 9728 Section 2).
+  [[nodiscard]] auto resource() const -> std::string_view;
+
+  /// The first authorization server that can issue tokens for the resource,
+  /// which a client resolves to its metadata (RFC 9728 Section 5), or no value
+  /// when none is listed.
+  [[nodiscard]] auto first_authorization_server() const
+      -> std::optional<std::string_view>;
+
+  /// Whether an authorization server issuer is listed (RFC 9728 Section 2).
+  [[nodiscard]] auto
+  supports_authorization_server(const std::string_view value) const -> bool;
+
+  /// The JWK Set document location for the resource's own keys (RFC 9728
+  /// Section 2).
+  [[nodiscard]] auto jwks_uri() const -> std::optional<std::string_view>;
+
+  /// Whether a bearer token presentation method is listed (RFC 9728 Section 2),
+  /// where an explicit empty list means none is supported. Absence is
+  /// unspecified rather than unsupported, so this returns false then.
+  [[nodiscard]] auto supports_bearer_method(const std::string_view value) const
+      -> bool;
+
+  /// Whether a scope is listed for the resource (RFC 9728 Section 2).
+  [[nodiscard]] auto supports_scope(const std::string_view value) const -> bool;
+
+  /// Whether the resource requires DPoP-bound access tokens, defaulting to
+  /// false when absent (RFC 9728 Section 2).
+  [[nodiscard]] auto dpop_bound_access_tokens_required() const -> bool;
+
+  /// The underlying document, for reaching members without a typed accessor
+  /// such as the internationalized names.
+  [[nodiscard]] auto data() const -> const JSON &;
+
+private:
+  JSON data_;
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

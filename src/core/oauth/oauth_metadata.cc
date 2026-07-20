@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth_error.h>
+#include <sourcemeta/core/uri.h>
 
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -36,16 +37,42 @@ const auto HASH_TOKEN_AUTH_ALGS{
     JSON::Object::hash("token_endpoint_auth_signing_alg_values_supported"sv)};
 const auto HASH_ISS_SUPPORTED{
     JSON::Object::hash("authorization_response_iss_parameter_supported"sv)};
+const auto HASH_RESOURCE{JSON::Object::hash("resource"sv)};
+const auto HASH_AUTHORIZATION_SERVERS{
+    JSON::Object::hash("authorization_servers"sv)};
+const auto HASH_BEARER_METHODS{
+    JSON::Object::hash("bearer_methods_supported"sv)};
+const auto HASH_SCOPES_SUPPORTED{JSON::Object::hash("scopes_supported"sv)};
+const auto HASH_DPOP_BOUND_REQUIRED{
+    JSON::Object::hash("dpop_bound_access_tokens_required"sv)};
+const auto HASH_RESOURCE_SIGNING_ALGS{
+    JSON::Object::hash("resource_signing_alg_values_supported"sv)};
+
+auto try_parse_uri(const std::string_view value) -> std::optional<URI> {
+  // The grammar check rejects a malformed URI without constructing one, but it
+  // leaves the port unbounded (RFC 3986 Section 3.2.3) while construction
+  // rejects a port above 32 bits, so the construction can still throw and is
+  // guarded rather than assumed to succeed
+  if (!URI::is_uri(value)) {
+    return std::nullopt;
+  }
+
+  try {
+    return URI{value};
+  } catch (const URIParseError &) {
+    return std::nullopt;
+  }
+}
 
 auto is_valid_issuer(const std::string_view issuer) -> bool {
-  // RFC 8414 Section 2: the issuer is an https URL with no query or fragment,
-  // and a non-empty authority (RFC 3986 Section 3.2), so the character after
-  // the scheme must not already end the host
-  static constexpr std::string_view scheme{"https://"};
-  return issuer.starts_with(scheme) && issuer.size() > scheme.size() &&
-         issuer[scheme.size()] != '/' &&
-         issuer.find('#') == std::string_view::npos &&
-         issuer.find('?') == std::string_view::npos;
+  // RFC 8414 Section 2: the issuer is an https URL with a non-empty host
+  // (RFC 3986 Section 3.2) and no query or fragment. The scheme is matched by
+  // code points to reject a non-canonical case
+  const auto uri{try_parse_uri(issuer)};
+  return uri.has_value() && uri->scheme().has_value() &&
+         uri->scheme().value() == "https" && uri->host().has_value() &&
+         !uri->host().value().empty() && !uri->query().has_value() &&
+         !uri->fragment().has_value();
 }
 
 auto string_member(const JSON &data, const JSON::StringView name,
@@ -72,6 +99,17 @@ auto array_member_contains(const JSON &data, const JSON::StringView name,
 
   const auto *member{data.try_at(name, hash)};
   return member != nullptr && member->is_array() && member->contains(value);
+}
+
+auto is_valid_resource(const std::string_view resource) -> bool {
+  // RFC 9728 Section 1.2 and RFC 8707 Section 2: the resource is an https URL
+  // with a non-empty host (RFC 3986 Section 3.2) and no fragment, a query
+  // tolerated unlike an issuer. The scheme is matched by code points to reject
+  // a non-canonical case
+  const auto uri{try_parse_uri(resource)};
+  return uri.has_value() && uri->scheme().has_value() &&
+         uri->scheme().value() == "https" && uri->host().has_value() &&
+         !uri->host().value().empty() && !uri->fragment().has_value();
 }
 
 auto validated_server_metadata(JSON &&data, const std::string_view issuer)
@@ -121,17 +159,55 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
   return std::move(data);
 }
 
+auto validated_resource_metadata(JSON &&data, const std::string_view resource)
+    -> JSON {
+  if (!data.is_object()) {
+    throw OAuthMetadataParseError{};
+  }
+
+  const auto *resource_member{data.try_at("resource"sv, HASH_RESOURCE)};
+  if (resource_member == nullptr || !resource_member->is_string()) {
+    throw OAuthMetadataParseError{};
+  }
+
+  // RFC 9728 Section 3.3: the resource in the document must be a valid resource
+  // identifier and identical by code points to the one the document was
+  // retrieved for, the impersonation defense
+  const auto resource_value{std::string_view{resource_member->to_string()}};
+  if (resource_value != resource || !is_valid_resource(resource_value)) {
+    throw OAuthMetadataParseError{};
+  }
+
+  // RFC 9728 Section 2: "none" MUST NOT appear in the resource signing
+  // algorithms, and Section 3.2 forbids a zero-element array
+  const auto *algorithms{data.try_at("resource_signing_alg_values_supported"sv,
+                                     HASH_RESOURCE_SIGNING_ALGS)};
+  if (algorithms != nullptr &&
+      (!algorithms->is_array() || algorithms->empty() ||
+       algorithms->contains("none"))) {
+    throw OAuthMetadataParseError{};
+  }
+
+  return std::move(data);
+}
+
 } // namespace
 
 auto oauth_well_known_url(const std::string_view identifier,
                           const OAuthWellKnownKind kind, std::string &sink)
     -> bool {
   static constexpr std::string_view scheme{"https://"};
-  // Reject a missing scheme, a fragment, or an empty authority, where the
-  // character after the scheme already ends the host (RFC 3986 Section 3.2)
-  if (!identifier.starts_with(scheme) || identifier.size() == scheme.size() ||
-      identifier[scheme.size()] == '/' || identifier[scheme.size()] == '?' ||
+  // Reject a missing scheme or a fragment, then require a non-empty host so an
+  // authority such as ":443" with no host is not accepted (RFC 3986
+  // Section 3.2)
+  if (!identifier.starts_with(scheme) ||
       identifier.find('#') != std::string_view::npos) {
+    return false;
+  }
+
+  const auto parsed{try_parse_uri(identifier)};
+  if (!parsed.has_value() || !parsed->host().has_value() ||
+      parsed->host().value().empty()) {
     return false;
   }
 
@@ -310,5 +386,78 @@ auto OAuthServerMetadata::supports_token_endpoint_auth_method(
 }
 
 auto OAuthServerMetadata::data() const -> const JSON & { return this->data_; }
+
+OAuthResourceMetadata::OAuthResourceMetadata(JSON &&data,
+                                             const std::string_view resource)
+    : data_{validated_resource_metadata(std::move(data), resource)} {}
+
+auto OAuthResourceMetadata::from(JSON &&data, const std::string_view resource)
+    -> std::optional<OAuthResourceMetadata> {
+  try {
+    return OAuthResourceMetadata{std::move(data), resource};
+  } catch (const OAuthMetadataParseError &) {
+    return std::nullopt;
+  }
+}
+
+auto OAuthResourceMetadata::resource() const -> std::string_view {
+  return string_member(this->data_, "resource"sv, HASH_RESOURCE).value();
+}
+
+auto OAuthResourceMetadata::first_authorization_server() const
+    -> std::optional<std::string_view> {
+  if (!this->data_.is_object()) {
+    return std::nullopt;
+  }
+
+  const auto *member{this->data_.try_at("authorization_servers"sv,
+                                        HASH_AUTHORIZATION_SERVERS)};
+  if (member == nullptr || !member->is_array()) {
+    return std::nullopt;
+  }
+
+  for (const auto &element : member->as_array()) {
+    if (element.is_string()) {
+      return std::string_view{element.to_string()};
+    }
+  }
+
+  return std::nullopt;
+}
+
+auto OAuthResourceMetadata::supports_authorization_server(
+    const std::string_view value) const -> bool {
+  return array_member_contains(this->data_, "authorization_servers"sv,
+                               HASH_AUTHORIZATION_SERVERS, value);
+}
+
+auto OAuthResourceMetadata::jwks_uri() const
+    -> std::optional<std::string_view> {
+  return string_member(this->data_, "jwks_uri"sv, HASH_JWKS_URI);
+}
+
+auto OAuthResourceMetadata::supports_bearer_method(
+    const std::string_view value) const -> bool {
+  return array_member_contains(this->data_, "bearer_methods_supported"sv,
+                               HASH_BEARER_METHODS, value);
+}
+
+auto OAuthResourceMetadata::supports_scope(const std::string_view value) const
+    -> bool {
+  return array_member_contains(this->data_, "scopes_supported"sv,
+                               HASH_SCOPES_SUPPORTED, value);
+}
+
+auto OAuthResourceMetadata::dpop_bound_access_tokens_required() const -> bool {
+  if (!this->data_.is_object()) {
+    return false;
+  }
+
+  const auto *member{this->data_.try_at("dpop_bound_access_tokens_required"sv,
+                                        HASH_DPOP_BOUND_REQUIRED)};
+  return member != nullptr && member->is_boolean() && member->to_boolean();
+}
+
+auto OAuthResourceMetadata::data() const -> const JSON & { return this->data_; }
 
 } // namespace sourcemeta::core

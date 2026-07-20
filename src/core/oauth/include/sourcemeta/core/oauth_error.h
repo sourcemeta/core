@@ -262,6 +262,24 @@ auto oauth_token_error_status(const OAuthTokenError error,
                               const bool authenticated_via_header) noexcept
     -> HTTPStatus;
 
+/// @ingroup oauth
+/// The HTTP status a protected resource returns for a bearer error, as the
+/// SHOULD-level recommendation of RFC 6750 Section 3.1: 400 for a malformed
+/// request, 401 for an invalid token, and 403 for insufficient scope. The DPoP
+/// resource codes accompany a 401 (RFC 9449 Section 7). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::oauth_bearer_error_status(
+///            sourcemeta::core::OAuthBearerError::InsufficientScope).code ==
+///        403);
+/// ```
+SOURCEMETA_CORE_OAUTH_EXPORT
+auto oauth_bearer_error_status(const OAuthBearerError error) noexcept
+    -> HTTPStatus;
+
 #if defined(_MSC_VER)
 #pragma warning(disable : 4251 4275)
 #endif
