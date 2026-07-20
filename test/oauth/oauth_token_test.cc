@@ -244,3 +244,116 @@ TEST(build_token_request_client_credentials_with_two_resources) {
   EXPECT_TRUE(body == "grant_type=client_credentials&scope=read"
                       "&resource=https%3A%2F%2Fa&resource=https%3A%2F%2Fb");
 }
+
+TEST(parse_token_request_reads_the_authorization_code_grant) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
+      "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA"
+      "&redirect_uri=https%3A%2F%2Fc.example%2Fcb&code_verifier=abc",
+      storage, request, [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.grant_type, "authorization_code");
+  EXPECT_EQ(request.code, "SplxlOBeZQQYbYS6WxSbIA");
+  EXPECT_EQ(request.redirect_uri, "https://c.example/cb");
+  EXPECT_EQ(request.code_verifier, "abc");
+}
+
+TEST(parse_token_request_reads_the_refresh_grant) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
+      "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA&scope="
+      "read",
+      storage, request, [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.grant_type, "refresh_token");
+  EXPECT_EQ(request.refresh_token, "tGzv3JOkF0XG5Qx2TlKWIA");
+  EXPECT_EQ(request.scope, "read");
+}
+
+TEST(parse_token_request_rejects_a_duplicate_parameter) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_token_request(
+      "grant_type=a&grant_type=b", storage, request,
+      [](std::string_view, std::string_view) {}));
+}
+
+TEST(parse_token_request_surfaces_other_parameters_through_the_callback) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  std::string collected;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
+      "grant_type=client_credentials&resource=https%3A%2F%2Fa.example"
+      "&audience=urn%3Aexample&client_id=s6BhdRkqt3",
+      storage, request,
+      [&collected](std::string_view name, std::string_view value) {
+        collected.append(name);
+        collected.push_back('=');
+        collected.append(value);
+        collected.push_back(';');
+      }));
+  EXPECT_EQ(request.grant_type, "client_credentials");
+  EXPECT_EQ(collected, "resource=https://a.example;audience=urn:example;"
+                       "client_id=s6BhdRkqt3;");
+}
+
+TEST(parse_token_request_leaves_absent_fields_empty) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
+      "grant_type=client_credentials", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_TRUE(request.code.empty());
+  EXPECT_TRUE(request.refresh_token.empty());
+  EXPECT_TRUE(request.scope.empty());
+}
+
+TEST(make_token_response_emits_the_required_members) {
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "2YotnFZFEjr1zCsicMWpAA";
+  grant.token_type = "Bearer";
+  grant.expires_in = std::chrono::seconds{3600};
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_EQ(response.at("access_token").to_string(), "2YotnFZFEjr1zCsicMWpAA");
+  EXPECT_EQ(response.at("token_type").to_string(), "Bearer");
+  EXPECT_EQ(response.at("expires_in").to_integer(), 3600);
+  EXPECT_FALSE(response.defines("refresh_token"));
+  EXPECT_FALSE(response.defines("scope"));
+}
+
+TEST(make_token_response_emits_a_refresh_token) {
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "a";
+  grant.token_type = "Bearer";
+  grant.refresh_token = "tGzv3JOkF0XG5Qx2TlKWIA";
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_EQ(response.at("refresh_token").to_string(), "tGzv3JOkF0XG5Qx2TlKWIA");
+}
+
+TEST(make_token_response_emits_scope_when_it_differs) {
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "a";
+  grant.token_type = "Bearer";
+  grant.scope = "read";
+  grant.requested_scope = "read write";
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_EQ(response.at("scope").to_string(), "read");
+}
+
+TEST(make_token_response_omits_scope_when_it_matches) {
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "a";
+  grant.token_type = "Bearer";
+  grant.scope = "read";
+  grant.requested_scope = "read";
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_FALSE(response.defines("scope"));
+}
+
+TEST(make_token_error_response_emits_the_error) {
+  const auto response{sourcemeta::core::oauth_make_token_error_response(
+      "invalid_grant", "The code expired", "")};
+  EXPECT_EQ(response.at("error").to_string(), "invalid_grant");
+  EXPECT_EQ(response.at("error_description").to_string(), "The code expired");
+  EXPECT_FALSE(response.defines("error_uri"));
+}

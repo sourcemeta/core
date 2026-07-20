@@ -376,3 +376,202 @@ TEST(parse_authorization_response_rejects_a_duplicate_error_description) {
   EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_response(
       "error_description=a&error_description=b", storage, response));
 }
+
+TEST(parse_request_reads_the_recognized_parameters) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "response_type=code&client_id=s6BhdRkqt3&redirect_uri=https%3A%2F%2Fc."
+      "example"
+      "%2Fcb&scope=openid&state=xyz",
+      storage, request, [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.response_type, "code");
+  EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+  EXPECT_EQ(request.redirect_uri, "https://c.example/cb");
+  EXPECT_EQ(request.scope, "openid");
+  EXPECT_EQ(request.state, "xyz");
+}
+
+TEST(parse_request_rejects_a_duplicate_parameter) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "client_id=a&client_id=b", storage, request,
+      [](std::string_view, std::string_view) {}));
+}
+
+TEST(parse_request_defaults_the_challenge_method_to_plain) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "code_challenge=abc", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.code_challenge, "abc");
+  EXPECT_EQ(request.code_challenge_method, "plain");
+}
+
+TEST(parse_request_keeps_an_explicit_challenge_method) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "code_challenge=abc&code_challenge_method=S256", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.code_challenge_method, "S256");
+}
+
+TEST(parse_request_surfaces_resources_and_extras_through_the_callback) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  std::string collected;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "resource=https%3A%2F%2Fa.example&resource=https%3A%2F%2Fb.example&nonce="
+      "n1",
+      storage, request,
+      [&collected](std::string_view name, std::string_view value) {
+        collected.append(name);
+        collected.push_back('=');
+        collected.append(value);
+        collected.push_back(';');
+      }));
+  EXPECT_EQ(collected,
+            "resource=https://a.example;resource=https://b.example;nonce=n1;");
+}
+
+TEST(parse_request_ignores_an_unknown_challenge_method_without_a_challenge) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "code_challenge_method=S256", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.code_challenge_method, "S256");
+  EXPECT_TRUE(request.code_challenge.empty());
+}
+
+TEST(redirect_uri_matches_an_exact_uri) {
+  EXPECT_TRUE(sourcemeta::core::oauth_redirect_uri_matches(
+      "https://client.example/cb", "https://client.example/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_a_different_path) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "https://client.example/cb", "https://client.example/other",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_allows_a_loopback_port_to_vary) {
+  EXPECT_TRUE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:49152/cb", "http://127.0.0.1:51004/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_allows_a_loopback_ipv6_port_to_vary) {
+  EXPECT_TRUE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://[::1]:49152/cb", "http://[::1]:51004/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_a_loopback_with_a_different_path) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:49152/cb", "http://127.0.0.1:51004/other",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_localhost_port_variation_under_strict) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://localhost:49152/cb", "http://localhost:51004/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_allows_localhost_port_variation_under_compatible) {
+  EXPECT_TRUE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://localhost:49152/cb", "http://localhost:51004/cb",
+      sourcemeta::core::OAuthProfile::Compatible));
+}
+
+TEST(redirect_uri_rejects_a_non_loopback_host_port_variation) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://example.com:49152/cb", "http://example.com:51004/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(is_private_use_scheme_accepts_a_reverse_domain) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_private_use_scheme("com.example.app"));
+}
+
+TEST(is_private_use_scheme_rejects_a_scheme_without_a_period) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_private_use_scheme("myapp"));
+}
+
+TEST(is_private_use_scheme_rejects_a_leading_non_alpha) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_private_use_scheme("1com.example"));
+}
+
+TEST(is_private_use_scheme_rejects_an_invalid_character) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_private_use_scheme("com.exa mple"));
+}
+
+TEST(build_authorization_redirect_emits_code_and_state) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "SplxlOBeZQQYbYS6WxSbIA";
+  response.state = "xyz";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response, url));
+  EXPECT_EQ(url, "https://client.example/cb?code=SplxlOBeZQQYbYS6WxSbIA"
+                 "&state=xyz");
+}
+
+TEST(build_authorization_redirect_emits_a_valid_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.iss = "https://server.example";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response, url));
+  EXPECT_EQ(url, "https://client.example/cb?code=abc"
+                 "&iss=https%3A%2F%2Fserver.example");
+}
+
+TEST(build_authorization_redirect_rejects_an_invalid_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.iss = "https://server.example?x=1";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response, url));
+  EXPECT_TRUE(url.empty());
+}
+
+TEST(build_authorization_redirect_rejects_a_missing_code) {
+  const sourcemeta::core::OAuthAuthorizationResponse response;
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response, url));
+}
+
+TEST(build_authorization_redirect_honors_an_existing_query) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb?ui=1", response, url));
+  EXPECT_EQ(url, "https://client.example/cb?ui=1&code=abc");
+}
+
+TEST(build_authorization_error_redirect_emits_error_and_state) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.state = "xyz";
+  response.error = "access_denied";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb", response, url));
+  EXPECT_EQ(url, "https://client.example/cb?error=access_denied&state=xyz");
+}
+
+TEST(build_authorization_error_redirect_rejects_a_missing_error) {
+  const sourcemeta::core::OAuthAuthorizationResponse response;
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb", response, url));
+}

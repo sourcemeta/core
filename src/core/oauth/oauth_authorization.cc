@@ -1,9 +1,13 @@
 #include <sourcemeta/core/oauth_authorization.h>
 
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include "oauth_decode.h"
+#include "oauth_syntax.h"
 
+#include <functional>  // std::function
+#include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -25,6 +29,54 @@ auto oauth_append_parameter(std::string &sink, char &separator,
   URI::escape(name, sink);
   sink.push_back('=');
   URI::escape(value, sink);
+}
+
+auto assign_scalar(const std::string_view value, std::string &storage,
+                   bool &seen, std::string_view &field) -> bool {
+  // RFC 6749 Section 3.1: "Request and response parameters MUST NOT be included
+  // more than once", so a second occurrence of a recognized parameter fails
+  if (seen) {
+    return false;
+  }
+
+  seen = true;
+  return oauth_form_decode_into(value, storage, field);
+}
+
+struct HttpAuthority {
+  std::string_view host;
+  std::string_view rest;
+};
+
+// Split an "http://" URI into its host and the remainder after the authority,
+// discarding the port, without constructing a URI (RFC 3986 Section 3.2)
+auto split_http_authority(const std::string_view value)
+    -> std::optional<HttpAuthority> {
+  static constexpr std::string_view prefix{"http://"};
+  if (!value.starts_with(prefix)) {
+    return std::nullopt;
+  }
+
+  const auto after{value.substr(prefix.size())};
+  const auto path_position{after.find('/')};
+  const auto authority{after.substr(0, path_position)};
+  const auto rest{path_position == std::string_view::npos
+                      ? std::string_view{}
+                      : after.substr(path_position)};
+
+  std::string_view host;
+  if (authority.starts_with('[')) {
+    const auto close{authority.find(']')};
+    if (close == std::string_view::npos) {
+      return std::nullopt;
+    }
+
+    host = authority.substr(0, close + 1);
+  } else {
+    host = authority.substr(0, authority.find(':'));
+  }
+
+  return HttpAuthority{.host = host, .rest = rest};
 }
 
 } // namespace
@@ -98,6 +150,199 @@ auto oauth_build_authorization_url(const std::string_view endpoint,
   for (const auto &parameter : request.extra) {
     oauth_append_parameter(sink, separator, parameter.name, parameter.value);
   }
+}
+
+auto oauth_parse_authorization_request(
+    const std::string_view query, std::string &storage,
+    OAuthAuthorizationRequest &result,
+    const std::function<void(std::string_view, std::string_view)> &on_other)
+    -> bool {
+  result = {};
+  // A single up-front reserve keeps every later decode from reallocating the
+  // arena and dangling an earlier borrowed view (design convention 1)
+  storage.reserve(storage.size() + query.size());
+  const URI::Query parsed{query};
+  bool has_response_type{false};
+  bool has_client_id{false};
+  bool has_redirect_uri{false};
+  bool has_scope{false};
+  bool has_state{false};
+  bool has_code_challenge{false};
+  bool has_code_challenge_method{false};
+  bool has_request_uri{false};
+  bool has_dpop_jkt{false};
+  for (const auto &parameter : parsed) {
+    const auto name{parameter.first};
+    const auto value{parameter.second};
+    bool valid{true};
+    if (name == "response_type") {
+      valid = assign_scalar(value, storage, has_response_type,
+                            result.response_type);
+    } else if (name == "client_id") {
+      valid = assign_scalar(value, storage, has_client_id, result.client_id);
+    } else if (name == "redirect_uri") {
+      valid =
+          assign_scalar(value, storage, has_redirect_uri, result.redirect_uri);
+    } else if (name == "scope") {
+      valid = assign_scalar(value, storage, has_scope, result.scope);
+    } else if (name == "state") {
+      valid = assign_scalar(value, storage, has_state, result.state);
+    } else if (name == "code_challenge") {
+      valid = assign_scalar(value, storage, has_code_challenge,
+                            result.code_challenge);
+    } else if (name == "code_challenge_method") {
+      valid = assign_scalar(value, storage, has_code_challenge_method,
+                            result.code_challenge_method);
+    } else if (name == "request_uri") {
+      valid =
+          assign_scalar(value, storage, has_request_uri, result.request_uri);
+    } else if (name == "dpop_jkt") {
+      valid = assign_scalar(value, storage, has_dpop_jkt, result.dpop_jkt);
+    } else {
+      // Repeatable resource indicators (RFC 8707) and extension parameters are
+      // surfaced with their decoded value rather than stored on the result
+      std::string_view decoded;
+      valid = oauth_form_decode_into(value, storage, decoded);
+      if (valid) {
+        on_other(name, decoded);
+      }
+    }
+
+    if (!valid) {
+      return false;
+    }
+  }
+
+  // RFC 7636 Section 4.3: "If the client does not send the
+  // code_challenge_method parameter ... the default code_challenge_method value
+  // is plain", which the strict profile must still see in order to reject
+  if (has_code_challenge && !has_code_challenge_method) {
+    result.code_challenge_method = "plain";
+  }
+
+  return true;
+}
+
+auto oauth_redirect_uri_matches(const std::string_view registered,
+                                const std::string_view presented,
+                                const OAuthProfile profile) -> bool {
+  // RFC 6749 Section 3.1.2.3: the default is an exact match of the two URIs
+  if (registered == presented) {
+    return true;
+  }
+
+  const auto registered_parts{split_http_authority(registered)};
+  const auto presented_parts{split_http_authority(presented)};
+  if (!registered_parts.has_value() || !presented_parts.has_value()) {
+    return false;
+  }
+
+  // RFC 8252 Section 7.3: for a loopback http redirect the client may vary the
+  // port, so the two match when only the port differs. RFC 8252 Section 8.3 and
+  // OAuth 2.1 Section 8.4.2 keep "localhost" out of the loopback set under the
+  // strict profile
+  const auto host{registered_parts.value().host};
+  const bool loopback{
+      host == "127.0.0.1" || host == "[::1]" ||
+      (profile == OAuthProfile::Compatible && host == "localhost")};
+  return loopback && host == presented_parts.value().host &&
+         registered_parts.value().rest == presented_parts.value().rest;
+}
+
+auto oauth_is_private_use_scheme(const std::string_view scheme) noexcept
+    -> bool {
+  // RFC 3986 Section 3.1: "scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )"
+  if (scheme.empty() || !is_alpha(scheme.front())) {
+    return false;
+  }
+
+  // RFC 8252 Section 7.1 and Section 8.4: a private-use scheme is a reverse
+  // domain name, so it must contain at least one period
+  bool has_period{false};
+  for (const auto character : scheme) {
+    if (!is_alphanum(character) && character != '+' && character != '-' &&
+        character != '.') {
+      return false;
+    }
+
+    if (character == '.') {
+      has_period = true;
+    }
+  }
+
+  return has_period;
+}
+
+auto oauth_build_authorization_redirect(
+    const std::string_view redirect_uri,
+    const OAuthAuthorizationResponse &response, std::string &sink) -> bool {
+  // A success response carries the code, and RFC 9207 Section 2 constrains the
+  // issuer syntax when one is echoed
+  if (response.code.empty()) {
+    return false;
+  }
+
+  if (!response.iss.empty() && !oauth_is_issuer_identifier(response.iss)) {
+    return false;
+  }
+
+  sink.reserve(sink.size() + redirect_uri.size() + response.code.size() +
+               response.state.size() + response.iss.size() + 32);
+  sink.append(redirect_uri);
+  char separator{redirect_uri.find('?') == std::string_view::npos ? '?' : '&'};
+  oauth_append_parameter(sink, separator, "code", response.code);
+  // RFC 6749 Section 4.1.2: state is returned when the request carried one,
+  // which the caller reflects by setting it
+  if (!response.state.empty()) {
+    oauth_append_parameter(sink, separator, "state", response.state);
+  }
+
+  if (!response.iss.empty()) {
+    oauth_append_parameter(sink, separator, "iss", response.iss);
+  }
+
+  return true;
+}
+
+auto oauth_build_authorization_error_redirect(
+    const std::string_view redirect_uri,
+    const OAuthAuthorizationResponse &response, std::string &sink) -> bool {
+  // RFC 6749 Section 4.1.2.1: this builder must not be called when the redirect
+  // URI or client identifier failed validation, since the error is then shown
+  // to the resource owner rather than redirected. An error response carries the
+  // error code
+  if (response.error.empty()) {
+    return false;
+  }
+
+  if (!response.iss.empty() && !oauth_is_issuer_identifier(response.iss)) {
+    return false;
+  }
+
+  sink.reserve(sink.size() + redirect_uri.size() + response.error.size() +
+               response.error_description.size() + response.error_uri.size() +
+               response.state.size() + response.iss.size() + 64);
+  sink.append(redirect_uri);
+  char separator{redirect_uri.find('?') == std::string_view::npos ? '?' : '&'};
+  oauth_append_parameter(sink, separator, "error", response.error);
+  if (!response.error_description.empty()) {
+    oauth_append_parameter(sink, separator, "error_description",
+                           response.error_description);
+  }
+
+  if (!response.error_uri.empty()) {
+    oauth_append_parameter(sink, separator, "error_uri", response.error_uri);
+  }
+
+  if (!response.state.empty()) {
+    oauth_append_parameter(sink, separator, "state", response.state);
+  }
+
+  if (!response.iss.empty()) {
+    oauth_append_parameter(sink, separator, "iss", response.iss);
+  }
+
+  return true;
 }
 
 auto oauth_parse_authorization_response(const std::string_view query,

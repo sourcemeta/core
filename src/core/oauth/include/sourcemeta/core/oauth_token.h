@@ -10,8 +10,10 @@
 #include <sourcemeta/core/oauth_authorization.h>
 
 #include <chrono>      // std::chrono::seconds
+#include <functional>  // std::function
 #include <optional>    // std::optional
 #include <span>        // std::span
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -89,6 +91,60 @@ auto oauth_build_token_request_client_credentials(
     -> void;
 
 /// @ingroup oauth
+/// A non-owning view of a token request at the authorization server (RFC 6749
+/// Section 4.1.3, Section 4.4.2, Section 6). Every field borrows from the input
+/// or the decode arena, and an absent parameter is an empty view. The grant
+/// type is surfaced as its raw value so a server can tell a missing grant from
+/// an unsupported one.
+struct OAuthTokenRequest {
+  /// The grant type (RFC 6749 Section 4.1.3).
+  std::string_view grant_type;
+  /// The authorization code, for the authorization code grant (RFC 6749
+  /// Section 4.1.3).
+  std::string_view code;
+  /// The redirection endpoint echoed for the authorization code grant (RFC 6749
+  /// Section 4.1.3), surfaced unconditionally.
+  std::string_view redirect_uri;
+  /// The PKCE code verifier (RFC 7636 Section 4.5).
+  std::string_view code_verifier;
+  /// The refresh token, for the refresh grant (RFC 6749 Section 6).
+  std::string_view refresh_token;
+  /// The space-delimited requested scope (RFC 6749 Section 3.3).
+  std::string_view scope;
+};
+
+/// @ingroup oauth
+/// Parse the body of a token request at the authorization server (RFC 6749
+/// Section 4.1.3) into the result, returning whether it is well formed. Each
+/// recognized value is form-decoded, borrowing from the input when it carries
+/// no escape and otherwise from the storage arena, which the caller owns and
+/// reuses across parses. A duplicated recognized parameter is a failure
+/// (RFC 6749 Section 3.1). Every repeatable `resource` and `audience` and every
+/// unrecognized parameter, including the client authentication parameters, is
+/// passed to the callback with its decoded value rather than stored on the
+/// result. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <cassert>
+/// #include <string>
+///
+/// std::string storage;
+/// sourcemeta::core::OAuthTokenRequest request;
+/// assert(sourcemeta::core::oauth_parse_token_request(
+///     "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA", storage,
+///     request, [](std::string_view, std::string_view) {}));
+/// assert(request.grant_type == "authorization_code");
+/// assert(request.code == "SplxlOBeZQQYbYS6WxSbIA");
+/// ```
+SOURCEMETA_CORE_OAUTH_EXPORT
+auto oauth_parse_token_request(
+    const std::string_view body, std::string &storage,
+    OAuthTokenRequest &result,
+    const std::function<void(std::string_view, std::string_view)> &on_other)
+    -> bool;
+
+/// @ingroup oauth
 /// A non-owning view over a token endpoint success response (RFC 6749
 /// Section 5.1) held in a caller-owned JSON value. The value must outlive the
 /// view, and the token accessors return views into it, which are secret and
@@ -143,6 +199,64 @@ public:
 private:
   const JSON *data_;
 };
+
+/// @ingroup oauth
+/// The token a server grants, for building a token endpoint success response
+/// (RFC 6749 Section 5.1). Every field borrows from the caller, an empty scalar
+/// is omitted, and the two scope fields decide whether a scope is emitted.
+struct OAuthTokenGrant {
+  /// The issued access token (RFC 6749 Section 5.1).
+  std::string_view access_token;
+  /// The token type, such as `Bearer` (RFC 6749 Section 7.1).
+  std::string_view token_type;
+  /// The lifetime of the access token, omitted when absent (RFC 6749
+  /// Section 5.1).
+  std::optional<std::chrono::seconds> expires_in;
+  /// The issued refresh token, omitted when absent (RFC 6749 Section 5.1).
+  std::string_view refresh_token;
+  /// The granted scope (RFC 6749 Section 3.3).
+  std::string_view scope;
+  /// The scope the client requested, used to decide whether the granted scope
+  /// must be emitted (RFC 6749 Section 5.1).
+  std::string_view requested_scope;
+};
+
+/// @ingroup oauth
+/// Build a token endpoint success response document (RFC 6749 Section 5.1). The
+/// access token and token type are always emitted, the lifetime and refresh
+/// token when present, and the scope only when it differs from the requested
+/// scope, which is when it is REQUIRED (RFC 6749 Section 5.1). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::OAuthTokenGrant grant;
+/// grant.access_token = "2YotnFZFEjr1zCsicMWpAA";
+/// grant.token_type = "Bearer";
+/// const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+/// assert(response.at("token_type").to_string() == "Bearer");
+/// ```
+SOURCEMETA_CORE_OAUTH_EXPORT
+auto oauth_make_token_response(const OAuthTokenGrant &grant) -> JSON;
+
+/// @ingroup oauth
+/// Build a token endpoint error response document (RFC 6749 Section 5.2). The
+/// error code is always emitted, and the description and URI when present. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <cassert>
+///
+/// const auto response{sourcemeta::core::oauth_make_token_error_response(
+///     "invalid_grant", "", "")};
+/// assert(response.at("error").to_string() == "invalid_grant");
+/// ```
+SOURCEMETA_CORE_OAUTH_EXPORT
+auto oauth_make_token_error_response(const std::string_view error,
+                                     const std::string_view error_description,
+                                     const std::string_view error_uri) -> JSON;
 
 } // namespace sourcemeta::core
 

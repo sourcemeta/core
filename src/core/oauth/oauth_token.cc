@@ -2,13 +2,18 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/text.h>
+#include <sourcemeta/core/uri.h>
 
+#include "oauth_decode.h"
 #include "oauth_encode.h"
 
 #include <chrono>      // std::chrono::seconds
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::int64_t
+#include <functional>  // std::function
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
+#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -44,6 +49,17 @@ auto oauth_append_resources(SecureString &sink,
   for (const auto &resource : resources) {
     oauth_append_form_parameter(sink, resource.name, resource.value);
   }
+}
+
+auto assign_token_scalar(const std::string_view value, std::string &storage,
+                         bool &seen, std::string_view &field) -> bool {
+  // RFC 6749 Section 3.1: a recognized parameter must not appear twice
+  if (seen) {
+    return false;
+  }
+
+  seen = true;
+  return oauth_form_decode_into(value, storage, field);
 }
 
 } // namespace
@@ -166,5 +182,100 @@ auto OAuthTokenResponse::has_scope(const std::string_view value) const -> bool {
 }
 
 auto OAuthTokenResponse::data() const -> const JSON & { return *this->data_; }
+
+auto oauth_parse_token_request(
+    const std::string_view body, std::string &storage,
+    OAuthTokenRequest &result,
+    const std::function<void(std::string_view, std::string_view)> &on_other)
+    -> bool {
+  result = {};
+  // A single up-front reserve keeps every later decode from reallocating the
+  // arena and dangling an earlier borrowed view (design convention 1)
+  storage.reserve(storage.size() + body.size());
+  const URI::Query parsed{body};
+  bool has_grant_type{false};
+  bool has_code{false};
+  bool has_redirect_uri{false};
+  bool has_code_verifier{false};
+  bool has_refresh_token{false};
+  bool has_scope{false};
+  for (const auto &parameter : parsed) {
+    const auto name{parameter.first};
+    const auto value{parameter.second};
+    bool valid{true};
+    if (name == "grant_type") {
+      valid = assign_token_scalar(value, storage, has_grant_type,
+                                  result.grant_type);
+    } else if (name == "code") {
+      valid = assign_token_scalar(value, storage, has_code, result.code);
+    } else if (name == "redirect_uri") {
+      valid = assign_token_scalar(value, storage, has_redirect_uri,
+                                  result.redirect_uri);
+    } else if (name == "code_verifier") {
+      valid = assign_token_scalar(value, storage, has_code_verifier,
+                                  result.code_verifier);
+    } else if (name == "refresh_token") {
+      valid = assign_token_scalar(value, storage, has_refresh_token,
+                                  result.refresh_token);
+    } else if (name == "scope") {
+      valid = assign_token_scalar(value, storage, has_scope, result.scope);
+    } else {
+      // Repeatable resource and audience indicators, and every other parameter
+      // including the client authentication ones, are surfaced with their
+      // decoded value rather than stored on the result
+      std::string_view decoded;
+      valid = oauth_form_decode_into(value, storage, decoded);
+      if (valid) {
+        on_other(name, decoded);
+      }
+    }
+
+    if (!valid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+auto oauth_make_token_response(const OAuthTokenGrant &grant) -> JSON {
+  auto response{JSON::make_object()};
+  // RFC 6749 Section 5.1: access_token and token_type are REQUIRED
+  response.assign("access_token", JSON{grant.access_token});
+  response.assign("token_type", JSON{grant.token_type});
+  if (grant.expires_in.has_value()) {
+    response.assign("expires_in", JSON{static_cast<std::int64_t>(
+                                      grant.expires_in.value().count())});
+  }
+
+  if (!grant.refresh_token.empty()) {
+    response.assign("refresh_token", JSON{grant.refresh_token});
+  }
+
+  // RFC 6749 Section 5.1: the scope is OPTIONAL when identical to the requested
+  // scope and REQUIRED otherwise, so it is emitted only when it differs
+  if (!grant.scope.empty() && grant.scope != grant.requested_scope) {
+    response.assign("scope", JSON{grant.scope});
+  }
+
+  return response;
+}
+
+auto oauth_make_token_error_response(const std::string_view error,
+                                     const std::string_view error_description,
+                                     const std::string_view error_uri) -> JSON {
+  auto response{JSON::make_object()};
+  // RFC 6749 Section 5.2: error is REQUIRED
+  response.assign("error", JSON{error});
+  if (!error_description.empty()) {
+    response.assign("error_description", JSON{error_description});
+  }
+
+  if (!error_uri.empty()) {
+    response.assign("error_uri", JSON{error_uri});
+  }
+
+  return response;
+}
 
 } // namespace sourcemeta::core

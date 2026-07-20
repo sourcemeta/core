@@ -1,13 +1,33 @@
 #include <sourcemeta/core/oauth_client_authentication.h>
 
 #include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include "oauth_encode.h"
 
+#include <cstddef>     // std::size_t
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
+
+namespace {
+
+// Form-decode a value into the wiping arena and view it there. The value never
+// aliases the arena, and the arena must be reserved up front so no append
+// reallocates and an earlier view into it stays valid
+auto decode_into_secure(const std::string_view value, SecureString &storage,
+                        std::string_view &result) -> bool {
+  const auto base{storage.size()};
+  if (!URI::unescape_form(value, storage)) {
+    return false;
+  }
+
+  result = std::string_view{storage}.substr(base);
+  return true;
+}
+
+} // namespace
 
 auto oauth_client_secret_basic(const std::string_view client_id,
                                const std::string_view client_secret,
@@ -35,6 +55,131 @@ auto oauth_client_secret_post(const std::string_view client_id,
 auto oauth_client_id_only(const std::string_view client_id, SecureString &sink)
     -> void {
   oauth_append_form_parameter(sink, "client_id", client_id);
+}
+
+auto oauth_parse_client_authentication(const std::string_view authorization,
+                                       const std::string_view body,
+                                       SecureString &storage,
+                                       OAuthClientCredentials &credentials)
+    -> bool {
+  credentials = {};
+  credentials.method = OAuthClientAuthenticationMethod::None;
+  // A single up-front reserve keeps every later decode from reallocating the
+  // arena and dangling an earlier borrowed view. Every decoded value is at most
+  // its raw length, so the two inputs bound the total
+  storage.reserve(storage.size() + authorization.size() + body.size());
+
+  bool basic_present{false};
+  std::string_view basic_id;
+  std::string_view basic_secret;
+  const auto scheme_end{authorization.find(' ')};
+  if (scheme_end != std::string_view::npos &&
+      equals_ignore_case(authorization.substr(0, scheme_end), "Basic")) {
+    basic_present = true;
+    // RFC 7235 Section 2.1: the scheme is followed by one or more spaces before
+    // the credential
+    auto token_start{scheme_end};
+    while (token_start < authorization.size() &&
+           authorization[token_start] == ' ') {
+      token_start += 1;
+    }
+
+    // RFC 6749 Section 2.3.1: the credential is the Base64 of the percent
+    // encoded identifier and secret joined by a colon, so a decode failure or a
+    // missing colon is a malformed request. The decoded credential is secret,
+    // so it lands in a local wiping string
+    SecureString credential;
+    if (!base64_decode(authorization.substr(token_start), credential)) {
+      return false;
+    }
+
+    const std::string_view decoded{credential};
+    const auto colon{decoded.find(':')};
+    if (colon == std::string_view::npos ||
+        !decode_into_secure(decoded.substr(0, colon), storage, basic_id) ||
+        !decode_into_secure(decoded.substr(colon + 1), storage, basic_secret)) {
+      return false;
+    }
+  }
+
+  bool has_client_id{false};
+  bool has_client_secret{false};
+  bool has_assertion{false};
+  bool has_assertion_type{false};
+  std::string_view body_client_id;
+  std::string_view body_client_secret;
+  std::string_view body_assertion;
+  std::string_view body_assertion_type;
+  const URI::Query parsed{body};
+  for (const auto &parameter : parsed) {
+    const auto name{parameter.first};
+    const auto value{parameter.second};
+    bool valid{true};
+    // RFC 6749 Section 3.1: a recognized parameter must not appear twice
+    if (name == "client_id") {
+      valid = !has_client_id;
+      has_client_id = true;
+      valid = valid && decode_into_secure(value, storage, body_client_id);
+    } else if (name == "client_secret") {
+      valid = !has_client_secret;
+      has_client_secret = true;
+      valid = valid && decode_into_secure(value, storage, body_client_secret);
+    } else if (name == "client_assertion") {
+      valid = !has_assertion;
+      has_assertion = true;
+      valid = valid && decode_into_secure(value, storage, body_assertion);
+    } else if (name == "client_assertion_type") {
+      valid = !has_assertion_type;
+      has_assertion_type = true;
+      valid = valid && decode_into_secure(value, storage, body_assertion_type);
+    }
+
+    if (!valid) {
+      return false;
+    }
+  }
+
+  // RFC 6749 Section 2.3 and RFC 7521 Section 4.2.1: a request must use exactly
+  // one authentication mechanism, and the assertion parameters count as one, so
+  // presenting more than one is invalid_request. A bare body client_id is
+  // identification, not a mechanism (RFC 6749 Section 3.2.1)
+  const bool assertion_present{has_assertion || has_assertion_type};
+  const auto mechanisms{static_cast<int>(basic_present) +
+                        static_cast<int>(has_client_secret) +
+                        static_cast<int>(assertion_present)};
+  if (mechanisms > 1) {
+    return false;
+  }
+
+  // RFC 6749 Section 2.3.1: a Basic username and a body client_id must agree
+  if (basic_present && has_client_id && basic_id != body_client_id) {
+    return false;
+  }
+
+  // RFC 7521 Section 4.2: the assertion mechanism needs both parameters
+  if (assertion_present && !(has_assertion && has_assertion_type)) {
+    return false;
+  }
+
+  if (basic_present) {
+    credentials.method = OAuthClientAuthenticationMethod::Basic;
+    credentials.client_id = basic_id;
+    credentials.client_secret = basic_secret;
+  } else if (has_client_secret) {
+    credentials.method = OAuthClientAuthenticationMethod::Post;
+    credentials.client_id = body_client_id;
+    credentials.client_secret = body_client_secret;
+  } else if (assertion_present) {
+    credentials.method = OAuthClientAuthenticationMethod::Assertion;
+    credentials.client_id = body_client_id;
+    credentials.assertion = body_assertion;
+    credentials.assertion_type = body_assertion_type;
+  } else if (has_client_id) {
+    credentials.method = OAuthClientAuthenticationMethod::Public;
+    credentials.client_id = body_client_id;
+  }
+
+  return true;
 }
 
 } // namespace sourcemeta::core
