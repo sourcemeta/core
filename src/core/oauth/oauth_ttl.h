@@ -8,9 +8,9 @@
 namespace sourcemeta::core {
 
 // Clamp an advertised freshness lifetime into the honored range, or fall back
-// when the transport advertised none. The low bound is applied before the high
-// bound, so a minimum above the maximum yields the minimum rather than being
-// undefined
+// when the transport advertised none. The upper and lower limits are applied
+// as separate comparisons, so an inverted band whose minimum exceeds its
+// maximum stays well defined with the minimum taking precedence
 inline auto oauth_clamp_ttl(const std::optional<std::chrono::seconds> max_age,
                             const std::chrono::seconds fallback,
                             const std::chrono::seconds minimum,
