@@ -6,6 +6,7 @@
 #include <sourcemeta/core/oauth_random.h>
 #include <sourcemeta/core/uri.h>
 
+#include "oauth_authorization_parse.h"
 #include "oauth_encode.h"
 #include "oauth_json.h"
 
@@ -34,8 +35,9 @@ constexpr std::string_view REQUEST_URI_PREFIX{
 
 auto oauth_build_par_request(const OAuthAuthorizationRequest &request,
                              SecureString &sink) -> void {
-  // RFC 6749 Section 4.1.1: the authorization code flow is the default response
-  // type, and the client may override it through the request
+  // RFC 6749 Section 4.1.1: the authorization code flow is the response type
+  // this builder assumes when the request names none, and the client may
+  // override it
   oauth_append_form_parameter(sink, "response_type",
                               request.response_type.empty()
                                   ? std::string_view{"code"}
@@ -66,12 +68,19 @@ auto oauth_build_par_request(const OAuthAuthorizationRequest &request,
     oauth_append_form_parameter(sink, "dpop_jkt", request.dpop_jkt);
   }
 
+  // RFC 9126 Section 2.1: a pushed request MUST NOT provide request_uri, so it
+  // is dropped even when a caller routes it through the repeatable or extension
+  // parameters rather than the dedicated field
   for (const auto &resource : request.resources) {
-    oauth_append_form_parameter(sink, resource.name, resource.value);
+    if (resource.name != "request_uri") {
+      oauth_append_form_parameter(sink, resource.name, resource.value);
+    }
   }
 
   for (const auto &parameter : request.extra) {
-    oauth_append_form_parameter(sink, parameter.name, parameter.value);
+    if (parameter.name != "request_uri") {
+      oauth_append_form_parameter(sink, parameter.name, parameter.value);
+    }
   }
 }
 
@@ -79,8 +88,10 @@ auto oauth_build_par_authorization_url(const std::string_view endpoint,
                                        const std::string_view client_id,
                                        const std::string_view request_uri,
                                        std::string &sink) -> void {
+  // A lower bound over the endpoint, the two keys and separators, and the raw
+  // value lengths, over which percent-escaping only ever grows
   sink.reserve(sink.size() + endpoint.size() + client_id.size() +
-               request_uri.size() + 32);
+               request_uri.size() + 128);
   sink.append(endpoint);
   // The separator before the first parameter: '?' opens a query the endpoint
   // lacks, nothing when the endpoint already ends its query, and '&' continues
@@ -124,17 +135,15 @@ auto OAuthPARResponse::expires_in() const
 auto OAuthPARResponse::data() const -> const JSON & { return *this->data_; }
 
 auto oauth_parse_par_request(
-    const std::string_view body, std::string &storage,
+    const std::string_view body, SecureString &storage,
     OAuthAuthorizationRequest &result,
     const std::function<void(std::string_view, std::string_view)> &on_other)
     -> bool {
-  if (!oauth_parse_authorization_request(body, storage, result, on_other)) {
-    return false;
-  }
-
   // RFC 9126 Section 2.1: "The request_uri authorization request parameter is
-  // one exception, and it MUST NOT be provided."
-  return result.request_uri.empty();
+  // one exception, and it MUST NOT be provided", so the shared parse rejects it
+  // on presence, whatever its value, and the body decodes into wiping storage
+  // because it may carry a client secret
+  return oauth_parse_authorization_into(body, storage, result, on_other, true);
 }
 
 auto oauth_par_request_uri() -> std::string {

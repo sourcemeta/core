@@ -3,6 +3,7 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
+#include "oauth_authorization_parse.h"
 #include "oauth_decode.h"
 #include "oauth_syntax.h"
 
@@ -29,25 +30,6 @@ auto oauth_append_parameter(std::string &sink, char &separator,
   URI::escape(name, sink);
   sink.push_back('=');
   URI::escape(value, sink);
-}
-
-auto assign_scalar(const std::string_view value, std::string &storage,
-                   bool &seen, std::string_view &field) -> bool {
-  // RFC 6749 Section 3.1: "Parameters sent without a value MUST be treated as
-  // if they were omitted", so an empty occurrence neither counts as a duplicate
-  // nor marks the parameter present
-  if (value.empty()) {
-    return true;
-  }
-
-  // RFC 6749 Section 3.1: "Request and response parameters MUST NOT be included
-  // more than once", so a second occurrence of a recognized parameter fails
-  if (seen) {
-    return false;
-  }
-
-  seen = true;
-  return oauth_form_decode_into(value, storage, field);
 }
 
 struct HttpAuthority {
@@ -176,77 +158,8 @@ auto oauth_parse_authorization_request(
     OAuthAuthorizationRequest &result,
     const std::function<void(std::string_view, std::string_view)> &on_other)
     -> bool {
-  result = {};
-  // A single up-front reserve keeps every later decode from reallocating the
-  // arena and dangling an earlier borrowed view (design convention 1)
-  storage.reserve(storage.size() + query.size());
-  const URI::Query parsed{query};
-  bool has_response_type{false};
-  bool has_client_id{false};
-  bool has_redirect_uri{false};
-  bool has_scope{false};
-  bool has_state{false};
-  bool has_code_challenge{false};
-  bool has_code_challenge_method{false};
-  bool has_request_uri{false};
-  bool has_dpop_jkt{false};
-  for (const auto &parameter : parsed) {
-    // RFC 6749 Appendix B: the application/x-www-form-urlencoded format encodes
-    // names too, so a name is decoded before it is recognized, and a malformed
-    // escape fails the parse
-    std::string_view name;
-    if (!oauth_form_decode_into(parameter.first, storage, name)) {
-      return false;
-    }
-
-    const auto value{parameter.second};
-    bool valid{true};
-    if (name == "response_type") {
-      valid = assign_scalar(value, storage, has_response_type,
-                            result.response_type);
-    } else if (name == "client_id") {
-      valid = assign_scalar(value, storage, has_client_id, result.client_id);
-    } else if (name == "redirect_uri") {
-      valid =
-          assign_scalar(value, storage, has_redirect_uri, result.redirect_uri);
-    } else if (name == "scope") {
-      valid = assign_scalar(value, storage, has_scope, result.scope);
-    } else if (name == "state") {
-      valid = assign_scalar(value, storage, has_state, result.state);
-    } else if (name == "code_challenge") {
-      valid = assign_scalar(value, storage, has_code_challenge,
-                            result.code_challenge);
-    } else if (name == "code_challenge_method") {
-      valid = assign_scalar(value, storage, has_code_challenge_method,
-                            result.code_challenge_method);
-    } else if (name == "request_uri") {
-      valid =
-          assign_scalar(value, storage, has_request_uri, result.request_uri);
-    } else if (name == "dpop_jkt") {
-      valid = assign_scalar(value, storage, has_dpop_jkt, result.dpop_jkt);
-    } else {
-      // Repeatable resource indicators (RFC 8707) and extension parameters are
-      // surfaced with their decoded value rather than stored on the result
-      std::string_view decoded;
-      valid = oauth_form_decode_into(value, storage, decoded);
-      if (valid) {
-        on_other(name, decoded);
-      }
-    }
-
-    if (!valid) {
-      return false;
-    }
-  }
-
-  // RFC 7636 Section 4.3: "If the client does not send the
-  // code_challenge_method parameter ... the default code_challenge_method value
-  // is plain", which the strict profile must still see in order to reject
-  if (has_code_challenge && !has_code_challenge_method) {
-    result.code_challenge_method = "plain";
-  }
-
-  return true;
+  return oauth_parse_authorization_into(query, storage, result, on_other,
+                                        false);
 }
 
 auto oauth_redirect_uri_matches(const std::string_view registered,

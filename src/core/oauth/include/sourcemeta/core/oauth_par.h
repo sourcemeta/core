@@ -21,10 +21,11 @@ namespace sourcemeta::core {
 /// Append a pushed authorization request body (RFC 9126 Section 2.1) to the
 /// sink. Every authorization request parameter is emitted except the
 /// `request_uri`, which a pushed request MUST NOT carry, and the `client_id`,
-/// which the client authentication builder the caller composes into the same
-/// sink supplies. The `response_type` defaults to the authorization code flow.
-/// The body may carry a client secret, so the sink is a wiping string, appended
-/// to and never cleared. For example:
+/// which client authentication supplies, in the body for a public client or the
+/// `client_secret_post` method and in the `Authorization` header for the
+/// `client_secret_basic` method. The `response_type` defaults to the
+/// authorization code flow. The body may carry a client secret, so the sink is
+/// a wiping string, appended to and never cleared. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -112,23 +113,22 @@ private:
 /// authorization request rules, and additionally rejects a `request_uri`
 /// parameter, which a pushed request MUST NOT provide, and every other
 /// parameter, such as the client authentication ones, is passed to the
-/// callback. For example:
+/// callback. The body may carry a client secret, so it is decoded into a wiping
+/// arena the caller owns and reuses. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
-/// #include <string>
 /// #include <cassert>
 ///
-/// std::string storage;
+/// sourcemeta::core::SecureString storage;
 /// sourcemeta::core::OAuthAuthorizationRequest request;
 /// assert(sourcemeta::core::oauth_parse_par_request(
 ///     "response_type=code&client_id=s6BhdRkqt3", storage, request,
 ///     [](std::string_view, std::string_view) {}));
 /// assert(request.response_type == "code");
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_parse_par_request(
-    const std::string_view body, std::string &storage,
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_parse_par_request(
+    const std::string_view body, SecureString &storage,
     OAuthAuthorizationRequest &result,
     const std::function<void(std::string_view, std::string_view)> &on_other)
     -> bool;
@@ -146,8 +146,8 @@ auto oauth_parse_par_request(
 /// const auto request_uri{sourcemeta::core::oauth_par_request_uri()};
 /// assert(request_uri.starts_with("urn:ietf:params:oauth:request_uri:"));
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_par_request_uri() -> std::string;
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_par_request_uri()
+    -> std::string;
 
 /// @ingroup oauth
 /// Build a pushed authorization request response document (RFC 9126
@@ -163,9 +163,9 @@ auto oauth_par_request_uri() -> std::string;
 ///     "urn:ietf:params:oauth:request_uri:6esc", std::chrono::seconds{60})};
 /// assert(response.value().at("expires_in").to_integer() == 60);
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_make_par_response(const std::string_view request_uri,
-                             const std::chrono::seconds expires_in)
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto
+oauth_make_par_response(const std::string_view request_uri,
+                        const std::chrono::seconds expires_in)
     -> std::optional<JSON>;
 
 /// @ingroup oauth
@@ -185,10 +185,9 @@ auto oauth_make_par_response(const std::string_view request_uri,
 ///        "abc");
 /// assert(!sourcemeta::core::oauth_par_dpop_binding("abc", "xyz").has_value());
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_par_dpop_binding(
-    const std::string_view dpop_jkt,
-    const std::optional<std::string_view> proof_thumbprint)
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto
+oauth_par_dpop_binding(const std::string_view dpop_jkt,
+                       const std::optional<std::string_view> proof_thumbprint)
     -> std::optional<std::string_view>;
 
 } // namespace sourcemeta::core

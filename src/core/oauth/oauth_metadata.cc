@@ -520,6 +520,14 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
     return std::nullopt;
   }
 
+  // RFC 9126 Section 5: requiring pushed authorization requests without
+  // advertising the endpoint to submit them to yields a document a client
+  // cannot comply with
+  if (config.require_pushed_authorization_requests &&
+      config.pushed_authorization_request_endpoint.empty()) {
+    return std::nullopt;
+  }
+
   // RFC 8414 Section 2: "none" MUST NOT appear in the signing algorithm list
   // unconditionally, the list is REQUIRED alongside the JWT authentication
   // methods, and Section 3.2 forbids a zero-element array, so the document
