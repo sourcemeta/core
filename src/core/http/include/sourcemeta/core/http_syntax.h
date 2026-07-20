@@ -115,6 +115,72 @@ inline auto http_is_b64token(const std::string_view value) noexcept -> bool {
 }
 
 /// @ingroup http
+/// Whether a string is a well-formed token (RFC 9110 Section 5.6.2), at least
+/// one token character and nothing else. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::http_is_token("Bearer"));
+/// assert(!sourcemeta::core::http_is_token("has space"));
+/// ```
+inline auto http_is_token(const std::string_view value) noexcept -> bool {
+  if (value.empty()) {
+    return false;
+  }
+
+  for (const auto character : value) {
+    if (!http_is_tchar(character)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/// @ingroup http
+/// Append a string to the sink as a quoted-string (RFC 9110 Section 5.6.4),
+/// wrapping it in double quotes and escaping any double quote or backslash,
+/// returning whether it was encodable. Nothing is appended when the string
+/// carries a byte no quoted-string admits, such as a control character, which
+/// keeps a value from injecting into a header. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <string>
+///
+/// std::string sink;
+/// assert(sourcemeta::core::http_encode_quoted_string(R"(a"b)", sink));
+/// assert(sink == R"("a\"b")");
+/// ```
+inline auto http_encode_quoted_string(const std::string_view value,
+                                      std::string &sink) -> bool {
+  for (const auto character : value) {
+    const auto byte{static_cast<unsigned char>(character)};
+    // RFC 9110 Section 5.6.4: qdtext and quoted-pair admit HTAB, SP through
+    // VCHAR, and obs-text, so every other control character (CR and LF among
+    // them) makes the value unencodable
+    if (byte != 0x09 && (byte < 0x20 || byte == 0x7F)) {
+      return false;
+    }
+  }
+
+  sink.push_back('"');
+  for (const auto character : value) {
+    if (character == '"' || character == '\\') {
+      sink.push_back('\\');
+    }
+
+    sink.push_back(character);
+  }
+
+  sink.push_back('"');
+  return true;
+}
+
+/// @ingroup http
 /// The view with any leading optional whitespace removed (RFC 9110
 /// Section 5.6.3). For example:
 ///

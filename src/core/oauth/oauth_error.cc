@@ -200,4 +200,22 @@ auto oauth_token_error_status(const OAuthTokenError error,
   return HTTP_STATUS_BAD_REQUEST;
 }
 
+auto oauth_bearer_error_status(const OAuthBearerError error) noexcept
+    -> HTTPStatus {
+  // RFC 6750 Section 3.1 SHOULD-level status mapping, with the DPoP resource
+  // codes accompanying a 401 (RFC 9449 Section 7)
+  switch (error) {
+    case OAuthBearerError::InvalidRequest:
+      return HTTP_STATUS_BAD_REQUEST;
+    case OAuthBearerError::InvalidToken:
+    case OAuthBearerError::InvalidDPoPProof:
+    case OAuthBearerError::UseDPoPNonce:
+      return HTTP_STATUS_UNAUTHORIZED;
+    case OAuthBearerError::InsufficientScope:
+      return HTTP_STATUS_FORBIDDEN;
+  }
+
+  std::unreachable();
+}
+
 } // namespace sourcemeta::core

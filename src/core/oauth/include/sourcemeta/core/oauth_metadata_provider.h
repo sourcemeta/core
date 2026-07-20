@@ -135,6 +135,93 @@ private:
   std::chrono::system_clock::time_point next_refresh_{};
 };
 
+/// @ingroup oauth
+/// A long-lived, cached resolver of protected resource metadata (RFC 9728),
+/// the resource-side counterpart of the authorization server provider. It
+/// derives the well-known URL from a resource identifier, retrieves and
+/// validates the document through an injected transport, and caches it with a
+/// freshness-aware refresh. It is meant to be constructed once per resource at
+/// startup, since a per-request instance defeats the caching. Reads take a
+/// snapshot, so a returned document is immune to a concurrent refresh. For
+/// example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <optional>
+///
+/// sourcemeta::core::OAuthResourceMetadataProvider provider{
+///     "https://api.example",
+///     [](std::string_view) -> std::optional<
+///         sourcemeta::core::OAuthResourceMetadataProvider::FetchResult> {
+///       return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+///           .body = R"JSON({"resource":"https://api.example",
+///                          "authorization_servers":["https://auth.example"]})JSON",
+///           .max_age = std::nullopt};
+///     }};
+/// const auto metadata{provider.metadata()};
+/// ```
+class SOURCEMETA_CORE_OAUTH_EXPORT OAuthResourceMetadataProvider {
+public:
+  /// The outcome of one metadata retrieval, shared with the authorization
+  /// server provider.
+  using FetchResult = OAuthMetadataProvider::FetchResult;
+
+  /// A pluggable transport that turns a URL into raw metadata bytes plus an
+  /// optional freshness hint, shared with the authorization server provider.
+  using Fetcher = OAuthMetadataProvider::Fetcher;
+
+  /// A source of the current time, shared with the authorization server
+  /// provider.
+  using Clock = OAuthMetadataProvider::Clock;
+
+  /// Tunables for the caching policy, shared with the authorization server
+  /// provider.
+  using Options = OAuthMetadataProvider::Options;
+
+  /// Construct a provider for a resource with an injected transport, using the
+  /// default policy and the system clock.
+  OAuthResourceMetadataProvider(std::string resource, Fetcher fetcher);
+  /// Construct a provider overriding the caching policy.
+  OAuthResourceMetadataProvider(std::string resource, Fetcher fetcher,
+                                Options options);
+  /// Construct a provider overriding the policy and the clock.
+  OAuthResourceMetadataProvider(std::string resource, Fetcher fetcher,
+                                Options options, Clock clock);
+
+  /// The provider owns a lock guarding its cache, so it is neither copyable nor
+  /// movable. Store it behind a pointer or construct it in place.
+  OAuthResourceMetadataProvider(const OAuthResourceMetadataProvider &) = delete;
+  auto operator=(const OAuthResourceMetadataProvider &)
+      -> OAuthResourceMetadataProvider & = delete;
+  OAuthResourceMetadataProvider(OAuthResourceMetadataProvider &&) = delete;
+  auto operator=(OAuthResourceMetadataProvider &&)
+      -> OAuthResourceMetadataProvider & = delete;
+
+  /// The cached metadata, retrieving it on the first call and refreshing it
+  /// once its freshness lifetime has elapsed. A failed refresh keeps serving
+  /// the last good document, and no value is returned only when the document
+  /// has never been retrieved successfully. The result is a snapshot immune to
+  /// a concurrent refresh.
+  [[nodiscard]] auto metadata() -> std::shared_ptr<const OAuthResourceMetadata>;
+
+  /// Force an immediate retrieval regardless of freshness, serving the RFC 9728
+  /// Section 5.2 recommendation to re-retrieve on a challenge. A failed
+  /// retrieval keeps the last good document.
+  [[nodiscard]] auto refresh() -> std::shared_ptr<const OAuthResourceMetadata>;
+
+private:
+  auto fetch_and_install_locked(const std::chrono::system_clock::time_point now)
+      -> bool;
+
+  const std::string resource_;
+  const Fetcher fetcher_;
+  const Options options_;
+  const Clock clock_;
+  std::mutex mutex_;
+  std::shared_ptr<const OAuthResourceMetadata> metadata_;
+  std::chrono::system_clock::time_point next_refresh_{};
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif

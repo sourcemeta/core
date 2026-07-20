@@ -1,4 +1,5 @@
 #include <sourcemeta/core/http.h>
+#include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/test.h>
 
@@ -387,4 +388,311 @@ TEST(challenge_parameter_returns_nothing_for_a_comma_only_header) {
   EXPECT_FALSE(
       sourcemeta::core::oauth_challenge_parameter(" , , ", "Bearer", "realm")
           .has_value());
+}
+
+TEST(build_challenge_bearer_realm_and_error) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = "example";
+  challenge.error = "invalid_token";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_EQ(header, R"(Bearer realm="example", error="invalid_token")");
+}
+
+TEST(build_challenge_full_bearer) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = "example";
+  challenge.error = "invalid_token";
+  challenge.error_description = "The access token expired";
+  challenge.error_uri = "https://server.example/errors/token";
+  challenge.resource_metadata =
+      "https://resource.example/.well-known/oauth-protected-resource";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_EQ(
+      header,
+      R"(Bearer realm="example", error="invalid_token", )"
+      R"(error_description="The access token expired", )"
+      R"(error_uri="https://server.example/errors/token", )"
+      R"(resource_metadata="https://resource.example/.well-known/oauth-protected-resource")");
+}
+
+TEST(build_challenge_dpop_with_algs) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.error = "invalid_token";
+  challenge.algs = "ES256 PS256";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("DPoP", challenge, header));
+  EXPECT_EQ(header, R"(DPoP error="invalid_token", algs="ES256 PS256")");
+}
+
+TEST(build_challenge_scope_is_quoted) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.scope = "read write";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_EQ(header, R"(Bearer scope="read write")");
+}
+
+TEST(build_challenge_escapes_quote_and_backslash) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = R"(say "hi" a\b)";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_EQ(header, R"(Bearer realm="say \"hi\" a\\b")");
+}
+
+TEST(build_challenge_rejects_a_control_character) {
+  sourcemeta::core::OAuthChallenge challenge;
+  std::string realm{"a"};
+  realm.push_back('\r');
+  realm.push_back('\n');
+  realm.append("b");
+  challenge.realm = realm;
+  std::string header;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_TRUE(header.empty());
+}
+
+TEST(build_challenge_rejects_an_empty_challenge) {
+  const sourcemeta::core::OAuthChallenge challenge;
+  std::string header;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_TRUE(header.empty());
+}
+
+TEST(build_challenge_rejects_a_non_token_scheme) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = "example";
+  std::string header;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_build_challenge("Bea rer", challenge, header));
+  EXPECT_TRUE(header.empty());
+}
+
+TEST(build_challenge_appends_to_an_existing_sink) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = "example";
+  std::string header{"WWW-Authenticate: "};
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_EQ(header, R"(WWW-Authenticate: Bearer realm="example")");
+}
+
+TEST(build_challenge_round_trips_through_the_parser) {
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = "example";
+  challenge.resource_metadata = "https://resource.example/.well-known/x";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  const auto resource_metadata{sourcemeta::core::oauth_challenge_parameter(
+      header, "Bearer", "resource_metadata")};
+  EXPECT_TRUE(resource_metadata.has_value());
+  EXPECT_EQ(resource_metadata.value(),
+            "https://resource.example/.well-known/x");
+}
+
+TEST(has_audience_matches_a_single_string) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": "https://api.example.com"
+  })JSON")};
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_a_different_single_string) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": "https://api.example.com"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_audience(
+      claims, "https://other.example.com"));
+}
+
+TEST(has_audience_matches_a_member_of_an_array) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": [ "https://a.example.com", "https://api.example.com" ]
+  })JSON")};
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_a_non_member_of_an_array) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": [ "https://a.example.com", "https://b.example.com" ]
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_when_the_claim_is_absent) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "sub": "user"
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_when_the_claims_are_not_an_object) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON([ "aud" ])JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_compares_by_code_points) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": "https://api.example.com/"
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(is_dpop_bound_detects_a_confirmation_thumbprint) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_a_missing_confirmation) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "sub": "user"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_a_confirmation_without_a_thumbprint) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": { "x5t#S256": "abc" }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_a_non_string_thumbprint) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": { "jkt": 42 }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_a_non_object_confirmation) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": "opaque"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_when_the_claims_are_not_an_object) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON("cnf")JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(build_challenge_rejects_when_a_later_value_is_invalid) {
+  // Every value is validated before anything is appended, so a valid realm
+  // does not leak into the sink when a later value is rejected
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = "example";
+  std::string algs{"ES256"};
+  algs.push_back('\n');
+  challenge.algs = algs;
+  std::string header;
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_TRUE(header.empty());
+}
+
+TEST(build_challenge_emits_a_whitespace_only_value) {
+  // A single space is not empty and is a valid quoted-string byte, so it is a
+  // present parameter rather than an omitted one
+  sourcemeta::core::OAuthChallenge challenge;
+  challenge.realm = " ";
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  EXPECT_EQ(header, R"(Bearer realm=" ")");
+}
+
+TEST(build_challenge_allows_obs_text_in_a_value) {
+  // RFC 9110 Section 5.6.4: obs-text is admitted in a quoted-string, so a byte
+  // above 0x7F is emitted verbatim rather than rejected
+  sourcemeta::core::OAuthChallenge challenge;
+  std::string realm{"a"};
+  realm.push_back('\x80');
+  challenge.realm = realm;
+  std::string header;
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
+  std::string expected{R"(Bearer realm="a)"};
+  expected.push_back('\x80');
+  expected.push_back('"');
+  EXPECT_EQ(header, expected);
+}
+
+TEST(has_audience_matches_despite_a_non_string_array_element) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": [ 42, "https://api.example.com" ]
+  })JSON")};
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_an_empty_array) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": []
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_a_numeric_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": 42
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_an_object_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": { "value": "https://api.example.com" }
+  })JSON")};
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_has_audience(claims, "https://api.example.com"));
+}
+
+TEST(has_audience_rejects_an_empty_audience_argument) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "aud": ""
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_has_audience(claims, ""));
+}
+
+TEST(is_dpop_bound_treats_an_empty_thumbprint_as_present) {
+  // The check is presence and type only, so an empty confirmation thumbprint
+  // still counts as DPoP-bound
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": { "jkt": "" }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_an_array_confirmation) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": [ "jkt" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
+}
+
+TEST(is_dpop_bound_rejects_an_empty_confirmation) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "cnf": {}
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oauth_is_dpop_bound(claims));
 }

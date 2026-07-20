@@ -468,3 +468,296 @@ TEST(server_metadata_rejects_an_empty_signing_alg_list) {
       std::move(document), "https://example.com")};
   EXPECT_FALSE(metadata.has_value());
 }
+
+TEST(resource_metadata_parses_a_valid_document) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": [ "https://auth.example.com" ],
+    "jwks_uri": "https://api.example.com/jwks",
+    "scopes_supported": [ "read", "write" ],
+    "bearer_methods_supported": [ "header" ],
+    "dpop_bound_access_tokens_required": true
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().resource(), "https://api.example.com");
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "https://auth.example.com");
+  EXPECT_TRUE(metadata.value().jwks_uri().has_value());
+  EXPECT_EQ(metadata.value().jwks_uri().value(),
+            "https://api.example.com/jwks");
+  EXPECT_TRUE(metadata.value().dpop_bound_access_tokens_required());
+}
+
+TEST(resource_metadata_rejects_a_missing_resource) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "authorization_servers": [ "https://auth.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_non_string_resource) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": 42
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_mismatched_resource) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://other.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_non_https_resource) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "http://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "http://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_resource_with_a_fragment) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com/path#section"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com/path#section")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_allows_a_resource_with_a_query) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com/path?tenant=a"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com/path?tenant=a")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().resource(),
+            "https://api.example.com/path?tenant=a");
+}
+
+TEST(resource_metadata_rejects_an_empty_authority) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https:///path"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https:///path")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_signing_alg_none) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "resource_signing_alg_values_supported": [ "RS256", "none" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_an_empty_signing_alg_list) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "resource_signing_alg_values_supported": []
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_first_authorization_server_when_absent) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+}
+
+TEST(resource_metadata_supports_authorization_server) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": [ "https://a.example.com", "https://b.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(
+      metadata.value().supports_authorization_server("https://b.example.com"));
+  EXPECT_FALSE(
+      metadata.value().supports_authorization_server("https://c.example.com"));
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "https://a.example.com");
+}
+
+TEST(resource_metadata_supports_bearer_method) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "bearer_methods_supported": [ "header", "body" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_bearer_method("header"));
+  EXPECT_FALSE(metadata.value().supports_bearer_method("query"));
+}
+
+TEST(resource_metadata_bearer_method_absent_is_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+}
+
+TEST(resource_metadata_supports_scope) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "scopes_supported": [ "read", "write" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().supports_scope("read"));
+  EXPECT_FALSE(metadata.value().supports_scope("admin"));
+}
+
+TEST(resource_metadata_dpop_bound_required_defaults_to_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
+}
+
+TEST(resource_metadata_data_exposes_untyped_members) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "resource_name": "Example API"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().data().defines("resource_name"));
+}
+
+TEST(resource_metadata_rejects_an_uppercase_scheme) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "HTTPS://api.example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "HTTPS://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_resource_with_a_space) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api example.com"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_first_authorization_server_skips_non_strings) {
+  // The first string element is returned, so a leading non-string is skipped
+  // rather than aborting the search
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": [ 42, "https://auth.example.com" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_TRUE(metadata.value().first_authorization_server().has_value());
+  EXPECT_EQ(metadata.value().first_authorization_server().value(),
+            "https://auth.example.com");
+}
+
+TEST(resource_metadata_first_authorization_server_all_non_strings) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": [ 1, 2, 3 ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+}
+
+TEST(resource_metadata_first_authorization_server_empty_array) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "authorization_servers": []
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().first_authorization_server().has_value());
+}
+
+TEST(resource_metadata_rejects_a_non_object) {
+  auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2, 3 ])JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_a_non_array_signing_algs) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "resource_signing_alg_values_supported": "RS256"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_dpop_bound_wrong_type_is_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "dpop_bound_access_tokens_required": "true"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().dpop_bound_access_tokens_required());
+}
+
+TEST(resource_metadata_empty_bearer_methods_is_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://api.example.com",
+    "bearer_methods_supported": []
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://api.example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_FALSE(metadata.value().supports_bearer_method("header"));
+}
+
+TEST(resource_metadata_accepts_userinfo_and_port) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://user@api.example.com:8443/path"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://user@api.example.com:8443/path")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().resource(),
+            "https://user@api.example.com:8443/path");
+}

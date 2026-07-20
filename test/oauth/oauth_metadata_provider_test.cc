@@ -14,10 +14,18 @@ using Fetch =
     std::optional<sourcemeta::core::OAuthMetadataProvider::FetchResult>;
 
 constexpr std::string_view SERVER_DOCUMENT{R"JSON({
-    "issuer": "https://example.com",
-    "response_types_supported": [ "code" ],
-    "token_endpoint": "https://example.com/token"
-  })JSON"};
+  "issuer": "https://example.com",
+  "response_types_supported": [ "code" ],
+  "token_endpoint": "https://example.com/token"
+})JSON"};
+
+using ResourceFetch =
+    std::optional<sourcemeta::core::OAuthResourceMetadataProvider::FetchResult>;
+
+constexpr std::string_view RESOURCE_DOCUMENT{R"JSON({
+  "resource": "https://api.example.com",
+  "authorization_servers": [ "https://example.com" ]
+})JSON"};
 
 } // namespace
 
@@ -345,4 +353,180 @@ TEST(metadata_provider_treats_a_throwing_fetcher_as_a_failure) {
         throw std::runtime_error{"transport failure"};
       }};
   EXPECT_TRUE(provider.metadata() == nullptr);
+}
+
+TEST(resource_metadata_provider_fetches_on_first_call) {
+  int fetch_count{0};
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [&fetch_count](std::string_view) -> ResourceFetch {
+        fetch_count += 1;
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  const auto metadata{provider.metadata()};
+  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_EQ(metadata->resource(), "https://api.example.com");
+  EXPECT_EQ(metadata->first_authorization_server().value(),
+            "https://example.com");
+  EXPECT_EQ(fetch_count, 1);
+}
+
+TEST(resource_metadata_provider_derives_the_protected_resource_url) {
+  std::string seen;
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [&seen](std::string_view url) -> ResourceFetch {
+        seen = std::string{url};
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  const auto metadata{provider.metadata()};
+  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_EQ(seen,
+            "https://api.example.com/.well-known/oauth-protected-resource");
+}
+
+TEST(resource_metadata_provider_caches_within_the_ttl) {
+  int fetch_count{0};
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [&fetch_count](std::string_view) -> ResourceFetch {
+        fetch_count += 1;
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  const auto first{provider.metadata()};
+  const auto second{provider.metadata()};
+  EXPECT_TRUE(first != nullptr);
+  EXPECT_TRUE(second != nullptr);
+  EXPECT_EQ(fetch_count, 1);
+}
+
+TEST(resource_metadata_provider_refreshes_after_the_ttl) {
+  int fetch_count{0};
+  const auto clock_now{std::make_shared<std::chrono::system_clock::time_point>(
+      std::chrono::system_clock::time_point{})};
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [&fetch_count](std::string_view) -> ResourceFetch {
+        fetch_count += 1;
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      },
+      sourcemeta::core::OAuthResourceMetadataProvider::Options{},
+      [clock_now]() { return *clock_now; }};
+  const auto first{provider.metadata()};
+  EXPECT_EQ(fetch_count, 1);
+  *clock_now += std::chrono::hours{2};
+  const auto second{provider.metadata()};
+  EXPECT_TRUE(second != nullptr);
+  EXPECT_EQ(fetch_count, 2);
+}
+
+TEST(resource_metadata_provider_serves_stale_on_a_failed_refresh) {
+  int fetch_count{0};
+  const auto clock_now{std::make_shared<std::chrono::system_clock::time_point>(
+      std::chrono::system_clock::time_point{})};
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [&fetch_count](std::string_view) -> ResourceFetch {
+        fetch_count += 1;
+        if (fetch_count == 1) {
+          return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+              .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+        }
+
+        return std::nullopt;
+      },
+      sourcemeta::core::OAuthResourceMetadataProvider::Options{},
+      [clock_now]() { return *clock_now; }};
+  const auto first{provider.metadata()};
+  EXPECT_TRUE(first != nullptr);
+  *clock_now += std::chrono::hours{2};
+  const auto second{provider.metadata()};
+  EXPECT_TRUE(second != nullptr);
+  EXPECT_EQ(second->resource(), "https://api.example.com");
+  EXPECT_EQ(fetch_count, 2);
+}
+
+TEST(resource_metadata_provider_returns_null_before_any_success) {
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [](std::string_view) -> ResourceFetch { return std::nullopt; }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+}
+
+TEST(resource_metadata_provider_treats_a_throwing_fetcher_as_a_failure) {
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com", [](std::string_view) -> ResourceFetch {
+        throw std::runtime_error{"transport failure"};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+}
+
+TEST(resource_metadata_provider_rejects_a_mismatched_resource) {
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://other.example.com", [](std::string_view) -> ResourceFetch {
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+}
+
+TEST(resource_metadata_provider_refresh_forces_a_refetch) {
+  int fetch_count{0};
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com",
+      [&fetch_count](std::string_view) -> ResourceFetch {
+        fetch_count += 1;
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = std::string{RESOURCE_DOCUMENT}, .max_age = std::nullopt};
+      }};
+  const auto first{provider.metadata()};
+  EXPECT_EQ(fetch_count, 1);
+  const auto refreshed{provider.refresh()};
+  EXPECT_TRUE(refreshed != nullptr);
+  EXPECT_EQ(fetch_count, 2);
+}
+
+TEST(resource_metadata_provider_rejects_a_malformed_json_body) {
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com", [](std::string_view) -> ResourceFetch {
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = "{not valid json", .max_age = std::nullopt};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+}
+
+TEST(resource_metadata_provider_returns_null_on_a_validation_failure) {
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com", [](std::string_view) -> ResourceFetch {
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = R"JSON({
+              "resource": "https://api.example.com",
+              "resource_signing_alg_values_supported": [ "none" ]
+            })JSON",
+            .max_age = std::nullopt};
+      }};
+  EXPECT_TRUE(provider.metadata() == nullptr);
+}
+
+TEST(resource_metadata_provider_derives_a_url_for_a_resource_with_a_path) {
+  std::string seen;
+  sourcemeta::core::OAuthResourceMetadataProvider provider{
+      "https://api.example.com/tenant",
+      [&seen](std::string_view url) -> ResourceFetch {
+        seen = std::string{url};
+        return sourcemeta::core::OAuthResourceMetadataProvider::FetchResult{
+            .body = R"JSON({
+              "resource": "https://api.example.com/tenant"
+            })JSON",
+            .max_age = std::nullopt};
+      }};
+  const auto metadata{provider.metadata()};
+  EXPECT_TRUE(metadata != nullptr);
+  EXPECT_EQ(
+      seen,
+      "https://api.example.com/.well-known/oauth-protected-resource/tenant");
 }

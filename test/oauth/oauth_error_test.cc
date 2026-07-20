@@ -320,3 +320,26 @@ TEST(token_error_status_is_400_for_other_header_errors) {
                 .code,
             400);
 }
+
+TEST(bearer_error_status_mapping) {
+  EXPECT_EQ(sourcemeta::core::oauth_bearer_error_status(
+                sourcemeta::core::OAuthBearerError::InvalidRequest)
+                .code,
+            400);
+  EXPECT_EQ(sourcemeta::core::oauth_bearer_error_status(
+                sourcemeta::core::OAuthBearerError::InvalidToken)
+                .code,
+            401);
+  EXPECT_EQ(sourcemeta::core::oauth_bearer_error_status(
+                sourcemeta::core::OAuthBearerError::InsufficientScope)
+                .code,
+            403);
+  EXPECT_EQ(sourcemeta::core::oauth_bearer_error_status(
+                sourcemeta::core::OAuthBearerError::InvalidDPoPProof)
+                .code,
+            401);
+  EXPECT_EQ(sourcemeta::core::oauth_bearer_error_status(
+                sourcemeta::core::OAuthBearerError::UseDPoPNonce)
+                .code,
+            401);
+}
