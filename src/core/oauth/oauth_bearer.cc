@@ -190,8 +190,9 @@ auto oauth_build_challenge(const std::string_view scheme,
        {"algs", challenge.algs}}};
 
   // The challenge is rendered into a scratch buffer so that a later unencodable
-  // value, or a scheme-only challenge with no parameter, leaves the sink
-  // untouched
+  // value leaves the sink untouched. A challenge with no parameter is a bare
+  // scheme, which RFC 7235 Section 2.1 permits and RFC 9449 Section 7.1 uses
+  // for a DPoP challenge with no parameters
   std::string rendered;
   bool first{true};
   for (const auto &[name, value] : parameters) {
@@ -209,10 +210,6 @@ auto oauth_build_challenge(const std::string_view scheme,
     }
 
     first = false;
-  }
-
-  if (first) {
-    return false;
   }
 
   sink.reserve(sink.size() + scheme.size() + rendered.size());

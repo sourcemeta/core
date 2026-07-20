@@ -460,12 +460,22 @@ TEST(build_challenge_rejects_a_control_character) {
   EXPECT_TRUE(header.empty());
 }
 
-TEST(build_challenge_rejects_an_empty_challenge) {
+TEST(build_challenge_emits_a_bare_scheme_for_an_empty_challenge) {
+  // RFC 9449 Section 7.1: a DPoP challenge may carry no parameters, so a bare
+  // scheme is a valid challenge rather than a rejected one
   const sourcemeta::core::OAuthChallenge challenge;
   std::string header;
-  EXPECT_FALSE(
-      sourcemeta::core::oauth_build_challenge("Bearer", challenge, header));
-  EXPECT_TRUE(header.empty());
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("DPoP", challenge, header));
+  EXPECT_EQ(header, "DPoP");
+}
+
+TEST(build_challenge_emits_a_bare_scheme_into_an_existing_sink) {
+  const sourcemeta::core::OAuthChallenge challenge;
+  std::string header{"Bearer realm=\"x\", "};
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_build_challenge("DPoP", challenge, header));
+  EXPECT_EQ(header, R"(Bearer realm="x", DPoP)");
 }
 
 TEST(build_challenge_rejects_a_non_token_scheme) {

@@ -761,3 +761,41 @@ TEST(resource_metadata_accepts_userinfo_and_port) {
   EXPECT_EQ(metadata.value().resource(),
             "https://user@api.example.com:8443/path");
 }
+
+TEST(resource_metadata_rejects_an_empty_host) {
+  // https://:443/path has an authority but no host, so it is not a valid
+  // resource identifier (RFC 3986 Section 3.2)
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://:443/path"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://:443/path")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(resource_metadata_rejects_an_empty_host_with_userinfo) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "resource": "https://user@:443/path"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthResourceMetadata::from(
+      std::move(document), "https://user@:443/path")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(server_metadata_rejects_an_empty_host) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://:443",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://:443")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(well_known_url_rejects_an_empty_host) {
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_well_known_url(
+      "https://:443", sourcemeta::core::OAuthWellKnownKind::ProtectedResource,
+      url));
+  EXPECT_TRUE(url.empty());
+}

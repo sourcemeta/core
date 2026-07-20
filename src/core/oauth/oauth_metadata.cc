@@ -49,15 +49,19 @@ const auto HASH_RESOURCE_SIGNING_ALGS{
     JSON::Object::hash("resource_signing_alg_values_supported"sv)};
 
 auto is_valid_issuer(const std::string_view issuer) -> bool {
-  // RFC 8414 Section 2: the issuer is an https URL with no query or fragment,
-  // and a non-empty authority (RFC 3986 Section 3.2), so the character after
-  // the scheme must not already end the host. The full RFC 3986 grammar is
-  // enforced first, then the scheme, query, and fragment constraints on top
-  static constexpr std::string_view scheme{"https://"};
-  return URI::is_uri(issuer) && issuer.starts_with(scheme) &&
-         issuer.size() > scheme.size() && issuer[scheme.size()] != '/' &&
-         issuer.find('#') == std::string_view::npos &&
-         issuer.find('?') == std::string_view::npos;
+  // RFC 8414 Section 2: the issuer is an https URL with a non-empty host
+  // (RFC 3986 Section 3.2) and no query or fragment. The full RFC 3986 grammar
+  // is checked first so that constructing the URI to inspect its parts cannot
+  // throw, and the scheme is matched by code points to reject a non-canonical
+  // case
+  if (!URI::is_uri(issuer)) {
+    return false;
+  }
+
+  const URI uri{issuer};
+  return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+         uri.host().has_value() && !uri.host().value().empty() &&
+         !uri.query().has_value() && !uri.fragment().has_value();
 }
 
 auto string_member(const JSON &data, const JSON::StringView name,
@@ -88,14 +92,18 @@ auto array_member_contains(const JSON &data, const JSON::StringView name,
 
 auto is_valid_resource(const std::string_view resource) -> bool {
   // RFC 9728 Section 1.2 and RFC 8707 Section 2: the resource is an https URL
-  // with no fragment, a query tolerated unlike an issuer, and a non-empty
-  // authority (RFC 3986 Section 3.2). The full RFC 3986 grammar is enforced
-  // first, then the scheme, fragment, and authority constraints on top
-  static constexpr std::string_view scheme{"https://"};
-  return URI::is_uri(resource) && resource.starts_with(scheme) &&
-         resource.size() > scheme.size() && resource[scheme.size()] != '/' &&
-         resource[scheme.size()] != '?' &&
-         resource.find('#') == std::string_view::npos;
+  // with a non-empty host (RFC 3986 Section 3.2) and no fragment, a query
+  // tolerated unlike an issuer. The full RFC 3986 grammar is checked first so
+  // that constructing the URI to inspect its parts cannot throw, and the scheme
+  // is matched by code points to reject a non-canonical case
+  if (!URI::is_uri(resource)) {
+    return false;
+  }
+
+  const URI uri{resource};
+  return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+         uri.host().has_value() && !uri.host().value().empty() &&
+         !uri.fragment().has_value();
 }
 
 auto validated_server_metadata(JSON &&data, const std::string_view issuer)
@@ -183,11 +191,17 @@ auto oauth_well_known_url(const std::string_view identifier,
                           const OAuthWellKnownKind kind, std::string &sink)
     -> bool {
   static constexpr std::string_view scheme{"https://"};
-  // Reject a missing scheme, a fragment, or an empty authority, where the
-  // character after the scheme already ends the host (RFC 3986 Section 3.2)
-  if (!identifier.starts_with(scheme) || identifier.size() == scheme.size() ||
-      identifier[scheme.size()] == '/' || identifier[scheme.size()] == '?' ||
-      identifier.find('#') != std::string_view::npos) {
+  // Reject a missing scheme or a fragment, then require a non-empty host so an
+  // authority such as ":443" with no host is not accepted (RFC 3986
+  // Section 3.2)
+  if (!identifier.starts_with(scheme) ||
+      identifier.find('#') != std::string_view::npos ||
+      !URI::is_uri(identifier)) {
+    return false;
+  }
+
+  const URI parsed{identifier};
+  if (!parsed.host().has_value() || parsed.host().value().empty()) {
     return false;
   }
 

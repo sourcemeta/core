@@ -84,14 +84,17 @@ struct OAuthChallenge {
 /// Build a `WWW-Authenticate` challenge for a scheme and append it to the sink,
 /// returning whether a challenge was produced (RFC 7235 Section 4.1). Each
 /// present parameter is emitted as a quoted-string with the double quote and
-/// backslash escaped (RFC 9110 Section 5.6.4). Nothing is appended and false is
-/// returned when the scheme is not a token, a value carries a control character
-/// that would allow header injection, or no parameter is present, since a
-/// scheme-only challenge is invalid (RFC 6750 Section 3). Only header safety is
-/// enforced, so keeping each value within the tighter character set its own
-/// attribute defines (RFC 6750 Section 3) is the caller's responsibility. It is
-/// a pure function, so a resource server builds its fixed challenge once and
-/// caches it. For example:
+/// backslash escaped (RFC 9110 Section 5.6.4). A challenge with no parameter
+/// yields a bare scheme, which RFC 7235 Section 2.1 permits and a DPoP
+/// challenge may use (RFC 9449 Section 7.1), so the `Bearer` scheme's own rule
+/// that it carry at least one parameter (RFC 6750 Section 3) is the caller's
+/// responsibility. Nothing is appended and false is returned only when the
+/// scheme is not a token or a value carries a control character that would
+/// allow header injection. Only header safety is enforced, so keeping each
+/// value within the tighter character set its own attribute defines (RFC 6750
+/// Section 3) is likewise the caller's responsibility. It is a pure function,
+/// so a resource server builds its fixed challenge once and caches it. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
