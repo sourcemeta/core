@@ -181,3 +181,33 @@ TEST(decode_rejects_nonzero_pad_bits_two_characters) {
 TEST(decode_rejects_nonzero_pad_bits_three_characters) {
   EXPECT_FALSE(sourcemeta::core::base64_decode("Zm9=").has_value());
 }
+
+TEST(encode_secure_string_overload_appends) {
+  sourcemeta::core::SecureString output{"prefix:"};
+  sourcemeta::core::base64_encode("foobar", output);
+  EXPECT_TRUE(output == "prefix:Zm9vYmFy");
+}
+
+TEST(encode_secure_string_overload_pads) {
+  sourcemeta::core::SecureString output;
+  sourcemeta::core::base64_encode("foo", output);
+  EXPECT_TRUE(output == "Zm9v");
+}
+
+TEST(encode_secure_string_overload_single_padding) {
+  sourcemeta::core::SecureString output;
+  sourcemeta::core::base64_encode("fooba", output);
+  EXPECT_TRUE(output == "Zm9vYmE=");
+}
+
+TEST(encode_secure_string_overload_double_padding) {
+  sourcemeta::core::SecureString output;
+  sourcemeta::core::base64_encode("foob", output);
+  EXPECT_TRUE(output == "Zm9vYg==");
+}
+
+TEST(encode_secure_string_overload_empty) {
+  sourcemeta::core::SecureString output;
+  sourcemeta::core::base64_encode("", output);
+  EXPECT_TRUE(output.empty());
+}

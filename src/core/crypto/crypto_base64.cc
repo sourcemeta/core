@@ -171,6 +171,14 @@ auto base64_encode(const std::string_view input) -> std::string {
   return result;
 }
 
+auto base64_encode(const std::string_view input, SecureString &output) -> void {
+  // The input is copied first so that growing the output cannot invalidate it
+  // when the two alias the same storage
+  const SecureString input_copy{input};
+  output.reserve(output.size() + ((input_copy.size() + 2) / 3) * 4);
+  encode(std::string_view{input_copy}, BASE64_ALPHABET, true, output);
+}
+
 auto base64_decode(const std::string_view input) -> std::optional<std::string> {
   return decode(input, BASE64_DECODE_TABLE, true);
 }
