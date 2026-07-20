@@ -116,10 +116,6 @@ private:
   const JSON *data_;
 };
 
-#if defined(_MSC_VER)
-#pragma warning(default : 4251)
-#endif
-
 /// @ingroup oauth
 /// What a device flow client does after a token endpoint error (RFC 8628
 /// Section 3.5).
@@ -146,7 +142,7 @@ enum class OAuthDevicePollDecision : std::uint8_t {
 ///
 /// sourcemeta::core::OAuthDevicePoller poller{
 ///     std::chrono::seconds{5}, std::chrono::seconds{1800},
-///     std::chrono::system_clock::time_point{}};
+///     std::chrono::steady_clock::now()};
 /// assert(poller.observe(sourcemeta::core::OAuthTokenError::SlowDown) ==
 ///        sourcemeta::core::OAuthDevicePollDecision::Continue);
 /// assert(poller.interval() == std::chrono::seconds{10});
@@ -154,18 +150,19 @@ enum class OAuthDevicePollDecision : std::uint8_t {
 class SOURCEMETA_CORE_OAUTH_EXPORT OAuthDevicePoller {
 public:
   /// Construct a poller with the interval and lifetime the device authorization
-  /// response advertised, from a starting time. An interval of zero or less
-  /// defaults to five seconds (RFC 8628 Section 3.5).
+  /// response advertised, from a starting time. A steady clock is used so wall
+  /// clock adjustments cannot shorten or extend the lifetime. An interval of
+  /// zero or less defaults to five seconds (RFC 8628 Section 3.5).
   OAuthDevicePoller(const std::chrono::seconds interval,
                     const std::chrono::seconds lifetime,
-                    const std::chrono::system_clock::time_point start) noexcept;
+                    const std::chrono::steady_clock::time_point start) noexcept;
 
   /// The current polling interval, which a `slow_down` error grows.
   [[nodiscard]] auto interval() const noexcept -> std::chrono::seconds;
 
   /// Whether the codes have expired locally by the given time.
   [[nodiscard]] auto
-  expired(const std::chrono::system_clock::time_point now) const noexcept
+  expired(const std::chrono::steady_clock::time_point now) const noexcept
       -> bool;
 
   /// Interpret a token endpoint error, permanently adding five seconds to the
@@ -177,13 +174,21 @@ public:
 private:
   std::chrono::seconds interval_;
   std::chrono::seconds lifetime_;
-  std::chrono::system_clock::time_point start_;
+  std::chrono::steady_clock::time_point start_;
 };
 
+#if defined(_MSC_VER)
+#pragma warning(default : 4251)
+#endif
+
 /// @ingroup oauth
-/// Build a device authorization response document (RFC 8628 Section 3.2). The
-/// verification URI complete is emitted when present, and the interval when it
-/// differs from the default. For example:
+/// Build a device authorization response document (RFC 8628 Section 3.2),
+/// returning no value when a required part is missing: an empty device code,
+/// user code, or verification URI, or a non-positive `expires_in`, which is a
+/// REQUIRED positive lifetime. The verification URI complete is emitted when
+/// present, and the interval only when it is positive and differs from the
+/// default, so a client never sees a zero or negative polling delay. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -194,7 +199,7 @@ private:
 /// response{sourcemeta::core::oauth_make_device_authorization_response(
 ///     "GmRh", "WDJB-MJHT", "https://example.com/device", "",
 ///     std::chrono::seconds{1800}, std::chrono::seconds{5})};
-/// assert(response.at("user_code").to_string() == "WDJB-MJHT");
+/// assert(response.value().at("user_code").to_string() == "WDJB-MJHT");
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_make_device_authorization_response(
@@ -202,7 +207,7 @@ auto oauth_make_device_authorization_response(
     const std::string_view verification_uri,
     const std::string_view verification_uri_complete,
     const std::chrono::seconds expires_in, const std::chrono::seconds interval)
-    -> JSON;
+    -> std::optional<JSON>;
 
 /// @ingroup oauth
 /// Mint a device flow user code, eight characters from the RFC 8628 Section 6.1

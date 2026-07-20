@@ -50,8 +50,7 @@ TEST(build_token_request_exchange_emits_a_minimal_body) {
 }
 
 TEST(build_token_request_exchange_emits_the_actor_pair_and_extras) {
-  const std::array<sourcemeta::core::OAuthParameter, 1> audiences{
-      {{"audience", "https://api.example"}}};
+  const std::array<std::string_view, 1> audiences{{"https://api.example"}};
   sourcemeta::core::OAuthTokenExchangeRequest request;
   request.subject_token = "subj";
   request.subject_token_type = sourcemeta::core::OAUTH_TOKEN_TYPE_ACCESS_TOKEN;
@@ -106,8 +105,7 @@ TEST(token_exchange_valid_rejects_a_subject_token_without_a_type) {
 }
 
 TEST(build_token_request_exchange_emits_resources_and_requested_type) {
-  const std::array<sourcemeta::core::OAuthParameter, 1> resources{
-      {{"resource", "https://api.example/foo"}}};
+  const std::array<std::string_view, 1> resources{{"https://api.example/foo"}};
   sourcemeta::core::OAuthTokenExchangeRequest request;
   request.subject_token = "subj";
   request.subject_token_type = sourcemeta::core::OAUTH_TOKEN_TYPE_ACCESS_TOKEN;

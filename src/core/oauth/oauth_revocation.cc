@@ -8,14 +8,13 @@
 #include "oauth_encode.h"
 
 #include <functional>  // std::function
-#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
 
 namespace {
 
-auto assign_lookup_scalar(const std::string_view value, std::string &storage,
+auto assign_lookup_scalar(const std::string_view value, SecureString &storage,
                           bool &seen, std::string_view &field) -> bool {
   // RFC 6749 Section 3.2: an empty value is treated as omitted, and a
   // recognized parameter must not appear twice
@@ -28,7 +27,7 @@ auto assign_lookup_scalar(const std::string_view value, std::string &storage,
   }
 
   seen = true;
-  return oauth_form_decode_into(value, storage, field);
+  return oauth_form_decode_into_secure(value, storage, field);
 }
 
 } // namespace
@@ -43,7 +42,7 @@ auto oauth_build_revocation_request(const std::string_view token,
 }
 
 auto oauth_parse_revocation_request(
-    const std::string_view body, std::string &storage,
+    const std::string_view body, SecureString &storage,
     OAuthTokenLookupRequest &result,
     const std::function<void(std::string_view, std::string_view)> &on_other)
     -> bool {
@@ -59,7 +58,7 @@ auto oauth_parse_revocation_request(
     // names too, so a name is decoded before it is recognized, and a malformed
     // escape fails the parse
     std::string_view name;
-    if (!oauth_form_decode_into(parameter.first, storage, name)) {
+    if (!oauth_form_decode_into_secure(parameter.first, storage, name)) {
       return false;
     }
 
@@ -72,7 +71,7 @@ auto oauth_parse_revocation_request(
                                    result.token_type_hint);
     } else {
       std::string_view decoded;
-      valid = oauth_form_decode_into(value, storage, decoded);
+      valid = oauth_form_decode_into_secure(value, storage, decoded);
       if (valid) {
         on_other(name, decoded);
       }

@@ -1,7 +1,6 @@
 #ifndef SOURCEMETA_CORE_OAUTH_ENCODE_H_
 #define SOURCEMETA_CORE_OAUTH_ENCODE_H_
 
-#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/uri.h>
 
 #include <string_view> // std::string_view

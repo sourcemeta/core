@@ -4,6 +4,7 @@
 #include <sourcemeta/core/json.h>
 
 #include "oauth_encode.h"
+#include "oauth_json.h"
 
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
@@ -17,11 +18,11 @@ using namespace std::literals::string_view_literals;
 
 const auto HASH_ISSUED_TOKEN_TYPE{JSON::Object::hash("issued_token_type"sv)};
 
-auto oauth_append_parameters(SecureString &sink,
-                             const std::span<const OAuthParameter> parameters)
+auto oauth_append_repeated(SecureString &sink, const std::string_view name,
+                           const std::span<const std::string_view> values)
     -> void {
-  for (const auto &parameter : parameters) {
-    oauth_append_form_parameter(sink, parameter.name, parameter.value);
+  for (const auto value : values) {
+    oauth_append_form_parameter(sink, name, value);
   }
 }
 
@@ -62,24 +63,17 @@ auto oauth_build_token_request_exchange(
     oauth_append_form_parameter(sink, "scope", request.scope);
   }
 
-  oauth_append_parameters(sink, request.audiences);
-  oauth_append_parameters(sink, request.resources);
+  // RFC 8693 Section 2.1 and RFC 8707 Section 2: each audience and resource is
+  // emitted under its fixed parameter name, so the caller supplies only values
+  oauth_append_repeated(sink, "audience", request.audiences);
+  oauth_append_repeated(sink, "resource", request.resources);
   return true;
 }
 
 auto oauth_issued_token_type(const JSON &response)
     -> std::optional<std::string_view> {
-  if (!response.is_object()) {
-    return std::nullopt;
-  }
-
-  const auto *member{
-      response.try_at("issued_token_type"sv, HASH_ISSUED_TOKEN_TYPE)};
-  if (member == nullptr || !member->is_string()) {
-    return std::nullopt;
-  }
-
-  return std::string_view{member->to_string()};
+  return oauth_json_string_member(response, "issued_token_type"sv,
+                                  HASH_ISSUED_TOKEN_TYPE);
 }
 
 } // namespace sourcemeta::core

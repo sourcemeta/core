@@ -52,14 +52,14 @@ TEST(device_authorization_response_defaults_the_interval) {
 TEST(device_poller_defaults_a_zero_interval_to_five_seconds) {
   const sourcemeta::core::OAuthDevicePoller poller{
       std::chrono::seconds{0}, std::chrono::seconds{1800},
-      std::chrono::system_clock::time_point{}};
+      std::chrono::steady_clock::time_point{}};
   EXPECT_EQ(poller.interval(), std::chrono::seconds{5});
 }
 
 TEST(device_poller_slow_down_grows_the_interval_and_continues) {
   sourcemeta::core::OAuthDevicePoller poller{
       std::chrono::seconds{5}, std::chrono::seconds{1800},
-      std::chrono::system_clock::time_point{}};
+      std::chrono::steady_clock::time_point{}};
   EXPECT_EQ(poller.observe(sourcemeta::core::OAuthTokenError::SlowDown),
             sourcemeta::core::OAuthDevicePollDecision::Continue);
   EXPECT_EQ(poller.interval(), std::chrono::seconds{10});
@@ -71,7 +71,7 @@ TEST(device_poller_slow_down_grows_the_interval_and_continues) {
 TEST(device_poller_maps_the_terminal_errors) {
   sourcemeta::core::OAuthDevicePoller poller{
       std::chrono::seconds{5}, std::chrono::seconds{1800},
-      std::chrono::system_clock::time_point{}};
+      std::chrono::steady_clock::time_point{}};
   EXPECT_EQ(
       poller.observe(sourcemeta::core::OAuthTokenError::AuthorizationPending),
       sourcemeta::core::OAuthDevicePollDecision::Continue);
@@ -86,10 +86,10 @@ TEST(device_poller_maps_the_terminal_errors) {
 TEST(device_poller_reports_local_expiry) {
   const sourcemeta::core::OAuthDevicePoller poller{
       std::chrono::seconds{5}, std::chrono::seconds{1800},
-      std::chrono::system_clock::time_point{}};
-  EXPECT_FALSE(poller.expired(std::chrono::system_clock::time_point{} +
+      std::chrono::steady_clock::time_point{}};
+  EXPECT_FALSE(poller.expired(std::chrono::steady_clock::time_point{} +
                               std::chrono::seconds{1799}));
-  EXPECT_TRUE(poller.expired(std::chrono::system_clock::time_point{} +
+  EXPECT_TRUE(poller.expired(std::chrono::steady_clock::time_point{} +
                              std::chrono::seconds{1800}));
 }
 
@@ -98,10 +98,10 @@ TEST(make_device_authorization_response_emits_the_members) {
       sourcemeta::core::oauth_make_device_authorization_response(
           "GmRh", "WDJB-MJHT", "https://example.com/device", "",
           std::chrono::seconds{1800}, std::chrono::seconds{5})};
-  EXPECT_EQ(response.at("user_code").to_string(), "WDJB-MJHT");
-  EXPECT_EQ(response.at("expires_in").to_integer(), 1800);
-  EXPECT_FALSE(response.defines("interval"));
-  EXPECT_FALSE(response.defines("verification_uri_complete"));
+  EXPECT_EQ(response.value().at("user_code").to_string(), "WDJB-MJHT");
+  EXPECT_EQ(response.value().at("expires_in").to_integer(), 1800);
+  EXPECT_FALSE(response.value().defines("interval"));
+  EXPECT_FALSE(response.value().defines("verification_uri_complete"));
 }
 
 TEST(device_user_code_mints_from_the_alphabet) {
@@ -141,7 +141,7 @@ TEST(device_user_code_matches_folds_the_stored_side_and_length) {
 TEST(device_poller_defaults_a_negative_interval_to_five_seconds) {
   const sourcemeta::core::OAuthDevicePoller poller{
       std::chrono::seconds{-3}, std::chrono::seconds{1800},
-      std::chrono::system_clock::time_point{}};
+      std::chrono::steady_clock::time_point{}};
   EXPECT_EQ(poller.interval(), std::chrono::seconds{5});
 }
 
@@ -164,7 +164,52 @@ TEST(make_device_authorization_response_emits_a_non_default_interval) {
           "GmRh", "WDJB-MJHT", "https://example.com/device",
           "https://example.com/device?user_code=WDJB-MJHT",
           std::chrono::seconds{1800}, std::chrono::seconds{7})};
-  EXPECT_TRUE(response.defines("interval"));
-  EXPECT_EQ(response.at("interval").to_integer(), 7);
-  EXPECT_TRUE(response.defines("verification_uri_complete"));
+  EXPECT_TRUE(response.value().defines("interval"));
+  EXPECT_EQ(response.value().at("interval").to_integer(), 7);
+  EXPECT_TRUE(response.value().defines("verification_uri_complete"));
+}
+
+TEST(make_device_authorization_response_requires_the_mandatory_members) {
+  EXPECT_FALSE(sourcemeta::core::oauth_make_device_authorization_response(
+                   "", "WDJB-MJHT", "https://example.com/device", "",
+                   std::chrono::seconds{1800}, std::chrono::seconds{5})
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::oauth_make_device_authorization_response(
+                   "GmRh", "", "https://example.com/device", "",
+                   std::chrono::seconds{1800}, std::chrono::seconds{5})
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::oauth_make_device_authorization_response(
+                   "GmRh", "WDJB-MJHT", "", "", std::chrono::seconds{1800},
+                   std::chrono::seconds{5})
+                   .has_value());
+}
+
+TEST(make_device_authorization_response_rejects_a_non_positive_lifetime) {
+  EXPECT_FALSE(sourcemeta::core::oauth_make_device_authorization_response(
+                   "GmRh", "WDJB-MJHT", "https://example.com/device", "",
+                   std::chrono::seconds{0}, std::chrono::seconds{5})
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::oauth_make_device_authorization_response(
+                   "GmRh", "WDJB-MJHT", "https://example.com/device", "",
+                   std::chrono::seconds{-1}, std::chrono::seconds{5})
+                   .has_value());
+}
+
+TEST(device_authorization_response_rejects_a_negative_lifetime) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": -1
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(device_authorization_response_defaults_a_negative_interval) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": 1800,
+    "interval": -3
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_EQ(response.interval(), std::chrono::seconds{5});
 }

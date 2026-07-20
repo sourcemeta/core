@@ -7,7 +7,6 @@
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/oauth_authorization.h>
 
 #include <optional>    // std::optional
 #include <span>        // std::span
@@ -43,7 +42,8 @@ inline constexpr std::string_view OAUTH_TOKEN_TYPE_JWT{
 /// @ingroup oauth
 /// The parameters of a token exchange request (RFC 8693 Section 2.1). Every
 /// field is a non-owning view, an empty scalar is omitted, and the spans carry
-/// the repeatable audience and resource indicators.
+/// the repeatable audience and resource indicator values, each emitted under
+/// its fixed parameter name.
 struct OAuthTokenExchangeRequest {
   /// The security token that represents the subject, REQUIRED (RFC 8693
   /// Section 2.1).
@@ -59,12 +59,12 @@ struct OAuthTokenExchangeRequest {
   std::string_view requested_token_type;
   /// The space-delimited requested scope (RFC 6749 Section 3.3).
   std::string_view scope;
-  /// The repeatable logical audience names of the target service (RFC 8693
-  /// Section 2.1).
-  std::span<const OAuthParameter> audiences;
+  /// The repeatable logical audience names of the target service, each emitted
+  /// as an `audience` parameter (RFC 8693 Section 2.1).
+  std::span<const std::string_view> audiences;
   /// The repeatable resource indicators, each an absolute URI without a
-  /// fragment (RFC 8707 Section 2).
-  std::span<const OAuthParameter> resources;
+  /// fragment emitted as a `resource` parameter (RFC 8707 Section 2).
+  std::span<const std::string_view> resources;
 };
 
 /// @ingroup oauth
@@ -115,8 +115,9 @@ auto oauth_build_token_request_exchange(
 
 /// @ingroup oauth
 /// The type of the token a token exchange response issued (RFC 8693
-/// Section 2.2.1), or no value when absent. It is REQUIRED on a successful
-/// response, so its absence marks a malformed one. For example:
+/// Section 2.2.1), or no value when absent. The result borrows from the
+/// response, which must outlive it. It is REQUIRED on a successful response, so
+/// its absence marks a malformed one. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

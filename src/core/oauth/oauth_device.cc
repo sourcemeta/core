@@ -5,11 +5,13 @@
 #include <sourcemeta/core/text.h>
 
 #include "oauth_encode.h"
+#include "oauth_json.h"
 
 #include <array>       // std::array
-#include <chrono>      // std::chrono::seconds, std::chrono::system_clock
+#include <chrono>      // std::chrono::seconds, std::chrono::steady_clock
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::int64_t, std::uint8_t
+#include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
 #include <string>      // std::string
@@ -34,36 +36,6 @@ const auto HASH_VERIFICATION_URI_COMPLETE{
     JSON::Object::hash("verification_uri_complete"sv)};
 const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
 const auto HASH_INTERVAL{JSON::Object::hash("interval"sv)};
-
-auto string_member(const JSON &data, const JSON::StringView name,
-                   const JSON::Object::hash_type hash)
-    -> std::optional<std::string_view> {
-  if (!data.is_object()) {
-    return std::nullopt;
-  }
-
-  const auto *member{data.try_at(name, hash)};
-  if (member == nullptr || !member->is_string()) {
-    return std::nullopt;
-  }
-
-  return std::string_view{member->to_string()};
-}
-
-auto seconds_member(const JSON &data, const JSON::StringView name,
-                    const JSON::Object::hash_type hash)
-    -> std::optional<std::chrono::seconds> {
-  if (!data.is_object()) {
-    return std::nullopt;
-  }
-
-  const auto *member{data.try_at(name, hash)};
-  if (member == nullptr || !member->is_integer()) {
-    return std::nullopt;
-  }
-
-  return std::chrono::seconds{member->to_integer()};
-}
 
 auto normalize_user_code(const std::string_view value) -> std::string {
   std::string result;
@@ -121,36 +93,43 @@ OAuthDeviceAuthorizationResponse::OAuthDeviceAuthorizationResponse(
 
 auto OAuthDeviceAuthorizationResponse::device_code() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "device_code"sv, HASH_DEVICE_CODE);
+  return oauth_json_string_member(*this->data_, "device_code"sv,
+                                  HASH_DEVICE_CODE);
 }
 
 auto OAuthDeviceAuthorizationResponse::user_code() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "user_code"sv, HASH_USER_CODE);
+  return oauth_json_string_member(*this->data_, "user_code"sv, HASH_USER_CODE);
 }
 
 auto OAuthDeviceAuthorizationResponse::verification_uri() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "verification_uri"sv,
-                       HASH_VERIFICATION_URI);
+  return oauth_json_string_member(*this->data_, "verification_uri"sv,
+                                  HASH_VERIFICATION_URI);
 }
 
 auto OAuthDeviceAuthorizationResponse::verification_uri_complete() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "verification_uri_complete"sv,
-                       HASH_VERIFICATION_URI_COMPLETE);
+  return oauth_json_string_member(*this->data_, "verification_uri_complete"sv,
+                                  HASH_VERIFICATION_URI_COMPLETE);
 }
 
 auto OAuthDeviceAuthorizationResponse::expires_in() const
     -> std::optional<std::chrono::seconds> {
-  return seconds_member(*this->data_, "expires_in"sv, HASH_EXPIRES_IN);
+  return oauth_json_seconds_member(*this->data_, "expires_in"sv,
+                                   HASH_EXPIRES_IN);
 }
 
 auto OAuthDeviceAuthorizationResponse::interval() const
     -> std::chrono::seconds {
-  // RFC 8628 Section 3.2: absent interval means the default polling interval
-  return seconds_member(*this->data_, "interval"sv, HASH_INTERVAL)
-      .value_or(DEFAULT_INTERVAL);
+  // RFC 8628 Section 3.2: absent interval means the default, and a non-positive
+  // interval is malformed, so it also falls back to the default rather than
+  // driving overly aggressive polling
+  const auto value{
+      oauth_json_seconds_member(*this->data_, "interval"sv, HASH_INTERVAL)};
+  return (value.has_value() && value.value() > std::chrono::seconds{0})
+             ? value.value()
+             : DEFAULT_INTERVAL;
 }
 
 auto OAuthDeviceAuthorizationResponse::data() const -> const JSON & {
@@ -159,7 +138,7 @@ auto OAuthDeviceAuthorizationResponse::data() const -> const JSON & {
 
 OAuthDevicePoller::OAuthDevicePoller(
     const std::chrono::seconds interval, const std::chrono::seconds lifetime,
-    const std::chrono::system_clock::time_point start) noexcept
+    const std::chrono::steady_clock::time_point start) noexcept
     : interval_{interval > std::chrono::seconds{0} ? interval
                                                    : DEFAULT_INTERVAL},
       lifetime_{lifetime}, start_{start} {}
@@ -169,8 +148,11 @@ auto OAuthDevicePoller::interval() const noexcept -> std::chrono::seconds {
 }
 
 auto OAuthDevicePoller::expired(
-    const std::chrono::system_clock::time_point now) const noexcept -> bool {
-  return now >= this->start_ + this->lifetime_;
+    const std::chrono::steady_clock::time_point now) const noexcept -> bool {
+  // Comparing the elapsed duration against the lifetime, rather than a
+  // start-plus-lifetime deadline, keeps a large lifetime from overflowing
+  return std::chrono::duration_cast<std::chrono::seconds>(now - this->start_) >=
+         this->lifetime_;
 }
 
 auto OAuthDevicePoller::observe(const OAuthTokenError error) noexcept
@@ -178,8 +160,16 @@ auto OAuthDevicePoller::observe(const OAuthTokenError error) noexcept
   switch (error) {
     case OAuthTokenError::SlowDown:
       // RFC 8628 Section 3.5: slow_down permanently increases the interval by
-      // five seconds
-      this->interval_ += std::chrono::seconds{5};
+      // five seconds, saturating rather than overflowing a maximal interval
+      if (this->interval_ <
+          std::chrono::seconds{
+              std::numeric_limits<std::chrono::seconds::rep>::max() - 5}) {
+        this->interval_ += std::chrono::seconds{5};
+      } else {
+        this->interval_ = std::chrono::seconds{
+            std::numeric_limits<std::chrono::seconds::rep>::max()};
+      }
+
       return OAuthDevicePollDecision::Continue;
     case OAuthTokenError::AuthorizationPending:
       return OAuthDevicePollDecision::Continue;
@@ -197,7 +187,15 @@ auto oauth_make_device_authorization_response(
     const std::string_view verification_uri,
     const std::string_view verification_uri_complete,
     const std::chrono::seconds expires_in, const std::chrono::seconds interval)
-    -> JSON {
+    -> std::optional<JSON> {
+  // RFC 8628 Section 3.2: device_code, user_code, verification_uri, and a
+  // positive expires_in lifetime are REQUIRED, so a missing one yields no
+  // document rather than an unusable response
+  if (device_code.empty() || user_code.empty() || verification_uri.empty() ||
+      expires_in <= std::chrono::seconds{0}) {
+    return std::nullopt;
+  }
+
   auto response{JSON::make_object()};
   response.assign_assume_new("device_code", JSON{device_code},
                              HASH_DEVICE_CODE);
@@ -213,9 +211,10 @@ auto oauth_make_device_authorization_response(
   response.assign_assume_new(
       "expires_in", JSON{static_cast<std::int64_t>(expires_in.count())},
       HASH_EXPIRES_IN);
-  // RFC 8628 Section 3.2: the interval is emitted only when it differs from the
-  // default the client would otherwise assume
-  if (interval != DEFAULT_INTERVAL) {
+  // RFC 8628 Section 3.2: the interval is emitted only when it is positive and
+  // differs from the default the client would otherwise assume, so a client
+  // never receives a zero or negative polling delay
+  if (interval > std::chrono::seconds{0} && interval != DEFAULT_INTERVAL) {
     response.assign_assume_new(
         "interval", JSON{static_cast<std::int64_t>(interval.count())},
         HASH_INTERVAL);

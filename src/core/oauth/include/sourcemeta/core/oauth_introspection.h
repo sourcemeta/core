@@ -7,7 +7,6 @@
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/oauth_revocation.h>
 
 #include <chrono>      // std::chrono::seconds
 #include <optional>    // std::optional

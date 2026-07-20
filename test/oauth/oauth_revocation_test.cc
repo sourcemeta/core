@@ -20,7 +20,7 @@ TEST(build_revocation_request_emits_a_hint) {
 }
 
 TEST(parse_revocation_request_reads_the_token_and_hint) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_revocation_request(
       "token=45ghiukldjahdnhzdauz&token_type_hint=access_token", storage,
@@ -30,7 +30,7 @@ TEST(parse_revocation_request_reads_the_token_and_hint) {
 }
 
 TEST(parse_revocation_request_rejects_a_missing_token) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   EXPECT_FALSE(sourcemeta::core::oauth_parse_revocation_request(
       "token_type_hint=access_token", storage, request,
@@ -38,7 +38,7 @@ TEST(parse_revocation_request_rejects_a_missing_token) {
 }
 
 TEST(parse_revocation_request_surfaces_client_auth_through_the_callback) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   std::string collected;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_revocation_request(
@@ -76,14 +76,14 @@ TEST(revocation_outcome_treats_other_statuses_as_error) {
 }
 
 TEST(parse_revocation_request_rejects_an_empty_token_value) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   EXPECT_FALSE(sourcemeta::core::oauth_parse_revocation_request(
       "token=", storage, request, [](std::string_view, std::string_view) {}));
 }
 
 TEST(parse_revocation_request_rejects_a_duplicate_token) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   EXPECT_FALSE(sourcemeta::core::oauth_parse_revocation_request(
       "token=abc&token=def", storage, request,
@@ -91,7 +91,7 @@ TEST(parse_revocation_request_rejects_a_duplicate_token) {
 }
 
 TEST(parse_revocation_request_decodes_a_percent_encoded_name) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_revocation_request(
       "%74oken=abc", storage, request,
@@ -100,7 +100,7 @@ TEST(parse_revocation_request_decodes_a_percent_encoded_name) {
 }
 
 TEST(parse_revocation_request_rejects_a_malformed_escape) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenLookupRequest request;
   EXPECT_FALSE(sourcemeta::core::oauth_parse_revocation_request(
       "token=%zz", storage, request,

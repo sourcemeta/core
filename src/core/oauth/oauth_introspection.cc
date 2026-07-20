@@ -4,6 +4,7 @@
 #include <sourcemeta/core/json.h>
 
 #include "oauth_encode.h"
+#include "oauth_json.h"
 
 #include <chrono>      // std::chrono::seconds
 #include <optional>    // std::optional, std::nullopt
@@ -26,36 +27,6 @@ const auto HASH_JTI{JSON::Object::hash("jti"sv)};
 const auto HASH_EXP{JSON::Object::hash("exp"sv)};
 const auto HASH_IAT{JSON::Object::hash("iat"sv)};
 const auto HASH_NBF{JSON::Object::hash("nbf"sv)};
-
-auto string_member(const JSON &data, const JSON::StringView name,
-                   const JSON::Object::hash_type hash)
-    -> std::optional<std::string_view> {
-  if (!data.is_object()) {
-    return std::nullopt;
-  }
-
-  const auto *member{data.try_at(name, hash)};
-  if (member == nullptr || !member->is_string()) {
-    return std::nullopt;
-  }
-
-  return std::string_view{member->to_string()};
-}
-
-auto seconds_member(const JSON &data, const JSON::StringView name,
-                    const JSON::Object::hash_type hash)
-    -> std::optional<std::chrono::seconds> {
-  if (!data.is_object()) {
-    return std::nullopt;
-  }
-
-  const auto *member{data.try_at(name, hash)};
-  if (member == nullptr || !member->is_integer()) {
-    return std::nullopt;
-  }
-
-  return std::chrono::seconds{member->to_integer()};
-}
 
 } // namespace
 
@@ -87,52 +58,53 @@ auto OAuthIntrospectionResponse::active() const noexcept -> bool {
 
 auto OAuthIntrospectionResponse::scope() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "scope"sv, HASH_SCOPE);
+  return oauth_json_string_member(*this->data_, "scope"sv, HASH_SCOPE);
 }
 
 auto OAuthIntrospectionResponse::client_id() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "client_id"sv, HASH_CLIENT_ID);
+  return oauth_json_string_member(*this->data_, "client_id"sv, HASH_CLIENT_ID);
 }
 
 auto OAuthIntrospectionResponse::username() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "username"sv, HASH_USERNAME);
+  return oauth_json_string_member(*this->data_, "username"sv, HASH_USERNAME);
 }
 
 auto OAuthIntrospectionResponse::token_type() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "token_type"sv, HASH_TOKEN_TYPE);
+  return oauth_json_string_member(*this->data_, "token_type"sv,
+                                  HASH_TOKEN_TYPE);
 }
 
 auto OAuthIntrospectionResponse::subject() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "sub"sv, HASH_SUB);
+  return oauth_json_string_member(*this->data_, "sub"sv, HASH_SUB);
 }
 
 auto OAuthIntrospectionResponse::issuer() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "iss"sv, HASH_ISS);
+  return oauth_json_string_member(*this->data_, "iss"sv, HASH_ISS);
 }
 
 auto OAuthIntrospectionResponse::jti() const
     -> std::optional<std::string_view> {
-  return string_member(*this->data_, "jti"sv, HASH_JTI);
+  return oauth_json_string_member(*this->data_, "jti"sv, HASH_JTI);
 }
 
 auto OAuthIntrospectionResponse::expiration() const
     -> std::optional<std::chrono::seconds> {
-  return seconds_member(*this->data_, "exp"sv, HASH_EXP);
+  return oauth_json_seconds_member(*this->data_, "exp"sv, HASH_EXP);
 }
 
 auto OAuthIntrospectionResponse::issued_at() const
     -> std::optional<std::chrono::seconds> {
-  return seconds_member(*this->data_, "iat"sv, HASH_IAT);
+  return oauth_json_seconds_member(*this->data_, "iat"sv, HASH_IAT);
 }
 
 auto OAuthIntrospectionResponse::not_before() const
     -> std::optional<std::chrono::seconds> {
-  return seconds_member(*this->data_, "nbf"sv, HASH_NBF);
+  return oauth_json_seconds_member(*this->data_, "nbf"sv, HASH_NBF);
 }
 
 auto OAuthIntrospectionResponse::data() const -> const JSON & {

@@ -10,7 +10,6 @@
 
 #include <cstdint>     // std::uint8_t
 #include <functional>  // std::function
-#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -61,17 +60,17 @@ auto oauth_build_revocation_request(const std::string_view token,
 
 /// @ingroup oauth
 /// Parse a token revocation request body (RFC 7009 Section 2.1) into the
-/// result, returning whether it is well formed. The token is required, values
-/// are form-decoded through the arena the caller owns, a duplicated parameter
-/// fails (RFC 6749 Section 3.2), and every other parameter, such as the client
-/// authentication ones, is passed to the callback. For example:
+/// result, returning whether it is well formed. The token is required, a
+/// duplicated parameter fails (RFC 6749 Section 3.2), and every other
+/// parameter, such as the client authentication ones, is passed to the
+/// callback. The token is secret, so it is decoded into a wiping arena the
+/// caller owns and reuses, and which must not alias the body. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
 /// #include <cassert>
-/// #include <string>
 ///
-/// std::string storage;
+/// sourcemeta::core::SecureString storage;
 /// sourcemeta::core::OAuthTokenLookupRequest request;
 /// assert(sourcemeta::core::oauth_parse_revocation_request(
 ///     "token=45ghiukldjahdnhzdauz&token_type_hint=refresh_token", storage,
@@ -80,7 +79,7 @@ auto oauth_build_revocation_request(const std::string_view token,
 /// ```
 SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_parse_revocation_request(
-    const std::string_view body, std::string &storage,
+    const std::string_view body, SecureString &storage,
     OAuthTokenLookupRequest &result,
     const std::function<void(std::string_view, std::string_view)> &on_other)
     -> bool;
