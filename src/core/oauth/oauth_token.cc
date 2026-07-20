@@ -211,8 +211,9 @@ auto oauth_parse_token_request(
   bool has_refresh_token{false};
   bool has_scope{false};
   for (const auto &parameter : parsed) {
-    // RFC 6749 Section 4.1.3: names are form-urlencoded too, so a name is
-    // decoded before it is recognized, and a malformed escape fails the parse
+    // RFC 6749 Appendix B: the application/x-www-form-urlencoded format encodes
+    // names too, so a name is decoded before it is recognized, and a malformed
+    // escape fails the parse
     std::string_view name;
     if (!oauth_form_decode_into(parameter.first, storage, name)) {
       return false;

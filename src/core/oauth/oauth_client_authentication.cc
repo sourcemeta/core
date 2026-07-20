@@ -130,8 +130,9 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
   std::string_view body_assertion_type;
   const URI::Query parsed{body};
   for (const auto &parameter : parsed) {
-    // RFC 6749 Section 4.1.3: names are form-urlencoded too, so a name is
-    // decoded before it is recognized, and a malformed escape fails the parse
+    // RFC 6749 Appendix B: the application/x-www-form-urlencoded format encodes
+    // names too, so a name is decoded before it is recognized, and a malformed
+    // escape fails the parse
     std::string_view name;
     if (!decode_into_secure(parameter.first, storage, name)) {
       return false;
