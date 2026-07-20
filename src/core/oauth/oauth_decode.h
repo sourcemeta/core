@@ -1,6 +1,7 @@
 #ifndef SOURCEMETA_CORE_OAUTH_DECODE_H_
 #define SOURCEMETA_CORE_OAUTH_DECODE_H_
 
+#include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/uri.h>
 
 #include <cassert>     // assert
@@ -34,6 +35,24 @@ inline auto oauth_form_decode_into(const std::string_view value,
     return false;
   }
 
+  const auto base{arena.size()};
+  if (!URI::unescape_form(value, arena)) {
+    return false;
+  }
+
+  result = std::string_view{arena}.substr(base);
+  return true;
+}
+
+// Decode one "application/x-www-form-urlencoded" value into a wiping arena, for
+// a request whose values are secret such as a token. Unlike the borrowing
+// variant it always appends, so the decoded view lands in the wiping arena
+// rather than the caller's buffer, and the value never aliases the arena. The
+// arena MUST be reserved up front to at least the total raw length so no append
+// reallocates and a prior view into it stays valid
+inline auto oauth_form_decode_into_secure(const std::string_view value,
+                                          SecureString &arena,
+                                          std::string_view &result) -> bool {
   const auto base{arena.size()};
   if (!URI::unescape_form(value, arena)) {
     return false;

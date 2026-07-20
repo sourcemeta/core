@@ -4,6 +4,7 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
+#include "oauth_decode.h"
 #include "oauth_encode.h"
 
 #include <cstddef>     // std::size_t
@@ -12,20 +13,6 @@
 namespace sourcemeta::core {
 
 namespace {
-
-// Form-decode a value into the wiping arena and view it there. The value never
-// aliases the arena, and the arena must be reserved up front so no append
-// reallocates and an earlier view into it stays valid
-auto decode_into_secure(const std::string_view value, SecureString &storage,
-                        std::string_view &result) -> bool {
-  const auto base{storage.size()};
-  if (!URI::unescape_form(value, storage)) {
-    return false;
-  }
-
-  result = std::string_view{storage}.substr(base);
-  return true;
-}
 
 auto assign_secure_scalar(const std::string_view value, SecureString &storage,
                           bool &seen, std::string_view &field) -> bool {
@@ -42,7 +29,7 @@ auto assign_secure_scalar(const std::string_view value, SecureString &storage,
   }
 
   seen = true;
-  return decode_into_secure(value, storage, field);
+  return oauth_form_decode_into_secure(value, storage, field);
 }
 
 } // namespace
@@ -114,8 +101,10 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
     const std::string_view decoded{credential};
     const auto colon{decoded.find(':')};
     if (colon == std::string_view::npos ||
-        !decode_into_secure(decoded.substr(0, colon), storage, basic_id) ||
-        !decode_into_secure(decoded.substr(colon + 1), storage, basic_secret)) {
+        !oauth_form_decode_into_secure(decoded.substr(0, colon), storage,
+                                       basic_id) ||
+        !oauth_form_decode_into_secure(decoded.substr(colon + 1), storage,
+                                       basic_secret)) {
       return false;
     }
   }
@@ -130,10 +119,11 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
   std::string_view body_assertion_type;
   const URI::Query parsed{body};
   for (const auto &parameter : parsed) {
-    // RFC 6749 Section 4.1.3: names are form-urlencoded too, so a name is
-    // decoded before it is recognized, and a malformed escape fails the parse
+    // RFC 6749 Appendix B: the application/x-www-form-urlencoded format encodes
+    // names too, so a name is decoded before it is recognized, and a malformed
+    // escape fails the parse
     std::string_view name;
-    if (!decode_into_secure(parameter.first, storage, name)) {
+    if (!oauth_form_decode_into_secure(parameter.first, storage, name)) {
       return false;
     }
 
