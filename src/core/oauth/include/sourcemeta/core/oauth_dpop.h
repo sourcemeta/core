@@ -120,8 +120,8 @@ private:
 /// assert(confirmation.at("jkt").to_string() ==
 ///        "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I");
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_dpop_confirmation(const std::string_view thumbprint) -> JSON;
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto
+oauth_dpop_confirmation(const std::string_view thumbprint) -> JSON;
 
 /// @ingroup oauth
 /// The JSON Web Key thumbprint of the key a DPoP proof is signed with (RFC 9449
@@ -136,8 +136,8 @@ auto oauth_dpop_confirmation(const std::string_view thumbprint) -> JSON;
 /// const auto thumbprint{sourcemeta::core::oauth_dpop_proof_thumbprint(proof)};
 /// assert(!thumbprint.has_value() || !thumbprint.value().empty());
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_dpop_proof_thumbprint(const std::string_view proof)
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto
+oauth_dpop_proof_thumbprint(const std::string_view proof)
     -> std::optional<std::string>;
 
 /// @ingroup oauth
@@ -227,13 +227,10 @@ struct OAuthDPoPVerifyOptions {
 /// assert(!error.has_value() ||
 ///        error.value() == sourcemeta::core::OAuthDPoPError::Expired);
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_dpop_verify(const std::string_view proof,
-                       const std::string_view method,
-                       const std::string_view url,
-                       const std::chrono::system_clock::time_point now,
-                       const OAuthDPoPVerifyOptions &options)
-    -> std::optional<OAuthDPoPError>;
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_dpop_verify(
+    const std::string_view proof, const std::string_view method,
+    const std::string_view url, const std::chrono::system_clock::time_point now,
+    const OAuthDPoPVerifyOptions &options) -> std::optional<OAuthDPoPError>;
 
 /// @ingroup oauth
 /// An in-memory store of the proof identifiers seen within their acceptance
@@ -321,8 +318,8 @@ private:
 /// assert(sourcemeta::core::oauth_is_valid_dpop_nonce("eyJ7S_zG.eyJH0-Z.HX4w"));
 /// assert(!sourcemeta::core::oauth_is_valid_dpop_nonce(""));
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_is_valid_dpop_nonce(const std::string_view value) noexcept -> bool;
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto
+oauth_is_valid_dpop_nonce(const std::string_view value) noexcept -> bool;
 
 } // namespace sourcemeta::core
 

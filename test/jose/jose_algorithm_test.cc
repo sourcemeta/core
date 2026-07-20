@@ -55,25 +55,43 @@ TEST(to_jws_algorithm_hs512) {
   EXPECT_EQ(result.value(), sourcemeta::core::JWSAlgorithm::HS512);
 }
 
-TEST(jws_algorithm_name_rs256) {
+TEST(jws_algorithm_name_covers_every_algorithm) {
   EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
                 sourcemeta::core::JWSAlgorithm::RS256),
             "RS256");
-}
-
-TEST(jws_algorithm_name_es256) {
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::RS384),
+            "RS384");
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::RS512),
+            "RS512");
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::PS256),
+            "PS256");
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::PS384),
+            "PS384");
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::PS512),
+            "PS512");
   EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
                 sourcemeta::core::JWSAlgorithm::ES256),
             "ES256");
-}
-
-TEST(jws_algorithm_name_eddsa) {
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::ES384),
+            "ES384");
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::ES512),
+            "ES512");
   EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
                 sourcemeta::core::JWSAlgorithm::EdDSA),
             "EdDSA");
-}
-
-TEST(jws_algorithm_name_hs512) {
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::HS256),
+            "HS256");
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
+                sourcemeta::core::JWSAlgorithm::HS384),
+            "HS384");
   EXPECT_EQ(sourcemeta::core::jws_algorithm_name(
                 sourcemeta::core::JWSAlgorithm::HS512),
             "HS512");
@@ -87,24 +105,27 @@ TEST(jws_algorithm_name_round_trips) {
             sourcemeta::core::JWSAlgorithm::PS384);
 }
 
-TEST(jws_algorithm_is_asymmetric_ec) {
-  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
-      sourcemeta::core::JWSAlgorithm::ES256));
-}
-
-TEST(jws_algorithm_is_asymmetric_rsa) {
+TEST(jws_algorithm_is_asymmetric_covers_every_algorithm) {
   EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
       sourcemeta::core::JWSAlgorithm::RS256));
   EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::RS384));
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::RS512));
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::PS256));
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::PS384));
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
       sourcemeta::core::JWSAlgorithm::PS512));
-}
-
-TEST(jws_algorithm_is_asymmetric_eddsa) {
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::ES256));
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::ES384));
+  EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
+      sourcemeta::core::JWSAlgorithm::ES512));
   EXPECT_TRUE(sourcemeta::core::jws_algorithm_is_asymmetric(
       sourcemeta::core::JWSAlgorithm::EdDSA));
-}
-
-TEST(jws_algorithm_is_asymmetric_rejects_mac) {
   EXPECT_FALSE(sourcemeta::core::jws_algorithm_is_asymmetric(
       sourcemeta::core::JWSAlgorithm::HS256));
   EXPECT_FALSE(sourcemeta::core::jws_algorithm_is_asymmetric(
