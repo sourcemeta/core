@@ -1,6 +1,10 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME oauth
-  PRIVATE_HEADERS error.h profile.h pkce.h bearer.h
-  SOURCES oauth_error.cc oauth_pkce.cc oauth_bearer.cc oauth_syntax.h)
+  PRIVATE_HEADERS error.h profile.h pkce.h bearer.h random.h authorization.h
+    token.h client_authentication.h transaction.h metadata.h metadata_provider.h
+  SOURCES oauth_error.cc oauth_pkce.cc oauth_bearer.cc oauth_syntax.h
+    oauth_random.cc oauth_authorization.cc oauth_encode.h oauth_decode.h
+    oauth_token.cc oauth_client_authentication.cc oauth_transaction.cc
+    oauth_metadata.cc oauth_metadata_provider.cc)
 
 target_link_libraries(sourcemeta_core_oauth
   PUBLIC sourcemeta::core::json)

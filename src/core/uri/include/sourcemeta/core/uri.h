@@ -5,6 +5,8 @@
 #include <sourcemeta/core/uri_export.h>
 #endif
 
+#include <sourcemeta/core/text.h>
+
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/uri_error.h>
 // NOLINTEND(misc-include-cleaner)
@@ -778,10 +780,11 @@ public:
   [[nodiscard]] static auto escape(std::string_view input,
                                    bool maybe_encoded = false) -> std::string;
 
-  /// Percent-encode a string per RFC 3986, appending the result to an existing
-  /// string rather than allocating a new one, optionally treating the input as
-  /// possibly already encoded. The output must not alias the input. For
-  /// example:
+  /// Percent-encode a string per RFC 3986, appending the result to a string
+  /// like output sink rather than allocating a new string. Besides a
+  /// `std::string` the sink can be a wiping string for secret material. The
+  /// input can optionally be treated as possibly already encoded. The output
+  /// must not alias the input. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -792,8 +795,44 @@ public:
   /// sourcemeta::core::URI::escape("foo bar", output);
   /// assert(output == "key=foo%20bar");
   /// ```
-  static auto escape(std::string_view input, std::string &output,
-                     bool maybe_encoded = false) -> void;
+  template <typename Output>
+  static auto escape(const std::string_view input, Output &output,
+                     const bool maybe_encoded = false) -> void {
+    output.reserve(output.size() + input.size() * 3);
+    for (std::size_t position = 0; position < input.size();) {
+      auto byte{static_cast<unsigned char>(input[position])};
+      std::size_t advance{1};
+      // Treat the input as possibly already encoded by decoding each valid
+      // escape before re-encoding, so a valid escape survives and a needlessly
+      // encoded unreserved octet is decoded
+      if (maybe_encoded && input[position] == '%' &&
+          position + 2 < input.size()) {
+        const auto high{hex_digit_value(input[position + 1])};
+        const auto low{high < 0 ? static_cast<std::int8_t>(-1)
+                                : hex_digit_value(input[position + 2])};
+        if (low >= 0) {
+          byte = static_cast<unsigned char>((high << 4) | low);
+          advance = 3;
+        }
+      }
+
+      position += advance;
+      // RFC 3986 Section 2.3: the unreserved set passes through unescaped
+      if (is_alphanum(static_cast<char>(byte)) || byte == '-' || byte == '.' ||
+          byte == '_' || byte == '~') {
+        output.push_back(static_cast<char>(byte));
+      } else {
+        // RFC 3986 Section 2.1: percent-encode with uppercase hexadecimal
+        const auto high{static_cast<unsigned char>((byte >> 4U) & 0x0FU)};
+        const auto low{static_cast<unsigned char>(byte & 0x0FU)};
+        output.push_back('%');
+        output.push_back(
+            static_cast<char>(high < 10 ? '0' + high : 'A' + high - 10));
+        output.push_back(
+            static_cast<char>(low < 10 ? '0' + low : 'A' + low - 10));
+      }
+    }
+  }
 
   /// Percent-decode every escape sequence in a string per RFC 3986, leaving
   /// malformed sequences untouched. For example:
