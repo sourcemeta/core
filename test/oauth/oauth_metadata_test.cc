@@ -2,8 +2,10 @@
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/test.h>
 
-#include <string>  // std::string
-#include <utility> // std::move
+#include <array>       // std::array
+#include <string>      // std::string
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 TEST(well_known_url_authorization_server_without_a_path) {
   std::string url;
@@ -839,4 +841,190 @@ TEST(resource_metadata_accepts_the_maximum_port) {
   EXPECT_TRUE(metadata.has_value());
   EXPECT_EQ(metadata.value().resource(),
             "https://api.example.com:4294967295/path");
+}
+
+TEST(make_server_metadata_emits_the_required_members) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(document.value().at("issuer").to_string(),
+            "https://server.example");
+  EXPECT_EQ(document.value().at("response_types_supported").size(), 1);
+  EXPECT_EQ(document.value().at("response_types_supported").at(0).to_string(),
+            "code");
+}
+
+TEST(make_server_metadata_emits_endpoints_and_arrays) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 2> grant_types{
+      {"authorization_code", "refresh_token"}};
+  const std::array<std::string_view, 1> challenge_methods{{"S256"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  config.code_challenge_methods_supported = challenge_methods;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(document.value().at("authorization_endpoint").to_string(),
+            "https://server.example/authorize");
+  EXPECT_EQ(document.value().at("token_endpoint").to_string(),
+            "https://server.example/token");
+  EXPECT_EQ(document.value().at("grant_types_supported").size(), 2);
+  EXPECT_EQ(
+      document.value().at("code_challenge_methods_supported").at(0).to_string(),
+      "S256");
+}
+
+TEST(make_server_metadata_rejects_an_invalid_issuer) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "http://server.example";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_empty_response_types) {
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_omits_absent_members) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_FALSE(document.value().defines("registration_endpoint"));
+  EXPECT_FALSE(document.value().defines("jwks_uri"));
+  EXPECT_FALSE(document.value().defines("scopes_supported"));
+  EXPECT_FALSE(document.value().defines("grant_types_supported"));
+}
+
+TEST(make_server_metadata_rejects_jwt_auth_without_signing_algs) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> auth_methods{{"private_key_jwt"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_methods_supported = auth_methods;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_accepts_jwt_auth_with_signing_algs) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> auth_methods{{"private_key_jwt"}};
+  const std::array<std::string_view, 1> algs{{"RS256"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_methods_supported = auth_methods;
+  config.token_endpoint_auth_signing_alg_values_supported = algs;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(document.value()
+                .at("token_endpoint_auth_signing_alg_values_supported")
+                .at(0)
+                .to_string(),
+            "RS256");
+}
+
+TEST(make_server_metadata_rejects_jwt_auth_with_a_none_alg) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> auth_methods{{"client_secret_jwt"}};
+  const std::array<std::string_view, 2> algs{{"HS256", "none"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_methods_supported = auth_methods;
+  config.token_endpoint_auth_signing_alg_values_supported = algs;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_an_issuer_with_a_query) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example?x=1";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_a_missing_authorization_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_a_missing_token_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_allows_a_missing_token_endpoint_for_implicit_only) {
+  const std::array<std::string_view, 1> response_types{{"token"}};
+  const std::array<std::string_view, 1> grant_types{{"implicit"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.response_types_supported = response_types;
+  config.grant_types_supported = grant_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_FALSE(document.value().defines("token_endpoint"));
+}
+
+TEST(make_server_metadata_rejects_none_without_jwt_methods) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> algs{{"none"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_signing_alg_values_supported = algs;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_a_non_https_jwks_uri) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.jwks_uri = "http://server.example/jwks";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
 }

@@ -4,7 +4,11 @@
 #include <sourcemeta/core/oauth_error.h>
 #include <sourcemeta/core/uri.h>
 
+#include "oauth_syntax.h"
+
+#include <algorithm>   // std::ranges::find
 #include <optional>    // std::optional, std::nullopt
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move
@@ -48,33 +52,6 @@ const auto HASH_DPOP_BOUND_REQUIRED{
 const auto HASH_RESOURCE_SIGNING_ALGS{
     JSON::Object::hash("resource_signing_alg_values_supported"sv)};
 
-auto try_parse_uri(const std::string_view value) -> std::optional<URI> {
-  // The grammar check rejects a malformed URI without constructing one, but it
-  // leaves the port unbounded (RFC 3986 Section 3.2.3) while construction
-  // rejects a port above 32 bits, so the construction can still throw and is
-  // guarded rather than assumed to succeed
-  if (!URI::is_uri(value)) {
-    return std::nullopt;
-  }
-
-  try {
-    return URI{value};
-  } catch (const URIParseError &) {
-    return std::nullopt;
-  }
-}
-
-auto is_valid_issuer(const std::string_view issuer) -> bool {
-  // RFC 8414 Section 2: the issuer is an https URL with a non-empty host
-  // (RFC 3986 Section 3.2) and no query or fragment. The scheme is matched by
-  // code points to reject a non-canonical case
-  const auto uri{try_parse_uri(issuer)};
-  return uri.has_value() && uri->scheme().has_value() &&
-         uri->scheme().value() == "https" && uri->host().has_value() &&
-         !uri->host().value().empty() && !uri->query().has_value() &&
-         !uri->fragment().has_value();
-}
-
 auto string_member(const JSON &data, const JSON::StringView name,
                    const JSON::Object::hash_type hash)
     -> std::optional<std::string_view> {
@@ -101,17 +78,6 @@ auto array_member_contains(const JSON &data, const JSON::StringView name,
   return member != nullptr && member->is_array() && member->contains(value);
 }
 
-auto is_valid_resource(const std::string_view resource) -> bool {
-  // RFC 9728 Section 1.2 and RFC 8707 Section 2: the resource is an https URL
-  // with a non-empty host (RFC 3986 Section 3.2) and no fragment, a query
-  // tolerated unlike an issuer. The scheme is matched by code points to reject
-  // a non-canonical case
-  const auto uri{try_parse_uri(resource)};
-  return uri.has_value() && uri->scheme().has_value() &&
-         uri->scheme().value() == "https" && uri->host().has_value() &&
-         !uri->host().value().empty() && !uri->fragment().has_value();
-}
-
 auto validated_server_metadata(JSON &&data, const std::string_view issuer)
     -> JSON {
   if (!data.is_object()) {
@@ -126,7 +92,7 @@ auto validated_server_metadata(JSON &&data, const std::string_view issuer)
   // RFC 8414 Section 3.3: the issuer in the document must be identical by code
   // points to the one the document was retrieved for, the impersonation defense
   const auto issuer_value{std::string_view{issuer_member->to_string()}};
-  if (issuer_value != issuer || !is_valid_issuer(issuer_value)) {
+  if (issuer_value != issuer || !oauth_is_issuer_identifier(issuer_value)) {
     throw OAuthMetadataParseError{};
   }
 
@@ -174,7 +140,8 @@ auto validated_resource_metadata(JSON &&data, const std::string_view resource)
   // identifier and identical by code points to the one the document was
   // retrieved for, the impersonation defense
   const auto resource_value{std::string_view{resource_member->to_string()}};
-  if (resource_value != resource || !is_valid_resource(resource_value)) {
+  if (resource_value != resource ||
+      !oauth_is_resource_identifier(resource_value)) {
     throw OAuthMetadataParseError{};
   }
 
@@ -205,7 +172,7 @@ auto oauth_well_known_url(const std::string_view identifier,
     return false;
   }
 
-  const auto parsed{try_parse_uri(identifier)};
+  const auto parsed{oauth_try_parse_uri(identifier)};
   if (!parsed.has_value() || !parsed->host().has_value() ||
       parsed->host().value().empty()) {
     return false;
@@ -459,5 +426,121 @@ auto OAuthResourceMetadata::dpop_bound_access_tokens_required() const -> bool {
 }
 
 auto OAuthResourceMetadata::data() const -> const JSON & { return this->data_; }
+
+namespace {
+
+auto assign_scalar_member(JSON &object, const JSON::StringView name,
+                          const JSON::Object::hash_type hash,
+                          const std::string_view value) -> void {
+  if (!value.empty()) {
+    object.assign_assume_new(std::string{name}, JSON{value}, hash);
+  }
+}
+
+auto assign_array_member(JSON &object, const JSON::StringView name,
+                         const JSON::Object::hash_type hash,
+                         const std::span<const std::string_view> values)
+    -> void {
+  // RFC 8414 Section 3.2: "Claims with zero elements MUST be omitted", so an
+  // empty list is not emitted
+  if (values.empty()) {
+    return;
+  }
+
+  auto array{JSON::make_array()};
+  for (const auto value : values) {
+    array.push_back(JSON{value});
+  }
+
+  object.assign_assume_new(std::string{name}, std::move(array), hash);
+}
+
+auto span_contains(const std::span<const std::string_view> values,
+                   const std::string_view target) -> bool {
+  return std::ranges::find(values, target) != values.end();
+}
+
+} // namespace
+
+auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
+    -> std::optional<JSON> {
+  // RFC 8414 Section 2: issuer and a non-empty response_types_supported are
+  // REQUIRED, and the issuer must be a valid issuer identifier
+  if (!oauth_is_issuer_identifier(config.issuer) ||
+      config.response_types_supported.empty()) {
+    return std::nullopt;
+  }
+
+  // RFC 8414 Section 2: the authorization endpoint is REQUIRED once a response
+  // type is advertised, and the token endpoint unless the only grant type is
+  // the implicit one, and every advertised URL is an https location. A present
+  // scalar that is not a valid https URL, or a missing required endpoint, would
+  // yield an unusable discovery document
+  const bool token_endpoint_needed{
+      config.grant_types_supported.empty() ||
+      std::ranges::any_of(config.grant_types_supported,
+                          [](const std::string_view grant) -> bool {
+                            return grant != "implicit";
+                          })};
+  const bool token_endpoint_required_and_valid{
+      token_endpoint_needed
+          ? oauth_is_resource_identifier(config.token_endpoint)
+          : config.token_endpoint.empty() ||
+                oauth_is_resource_identifier(config.token_endpoint)};
+  if (!oauth_is_resource_identifier(config.authorization_endpoint) ||
+      !token_endpoint_required_and_valid ||
+      (!config.registration_endpoint.empty() &&
+       !oauth_is_resource_identifier(config.registration_endpoint)) ||
+      (!config.jwks_uri.empty() &&
+       !oauth_is_resource_identifier(config.jwks_uri))) {
+    return std::nullopt;
+  }
+
+  // RFC 8414 Section 2: "none" MUST NOT appear in the signing algorithm list
+  // unconditionally, the list is REQUIRED alongside the JWT authentication
+  // methods, and Section 3.2 forbids a zero-element array, so the document
+  // would otherwise be rejected by its own parser
+  if (span_contains(config.token_endpoint_auth_signing_alg_values_supported,
+                    "none")) {
+    return std::nullopt;
+  }
+
+  if ((span_contains(config.token_endpoint_auth_methods_supported,
+                     "private_key_jwt") ||
+       span_contains(config.token_endpoint_auth_methods_supported,
+                     "client_secret_jwt")) &&
+      config.token_endpoint_auth_signing_alg_values_supported.empty()) {
+    return std::nullopt;
+  }
+
+  auto document{JSON::make_object()};
+  document.assign_assume_new("issuer", JSON{config.issuer}, HASH_ISSUER);
+  assign_scalar_member(document, "authorization_endpoint",
+                       HASH_AUTHORIZATION_ENDPOINT,
+                       config.authorization_endpoint);
+  assign_scalar_member(document, "token_endpoint", HASH_TOKEN_ENDPOINT,
+                       config.token_endpoint);
+  assign_scalar_member(document, "registration_endpoint",
+                       HASH_REGISTRATION_ENDPOINT,
+                       config.registration_endpoint);
+  assign_scalar_member(document, "jwks_uri", HASH_JWKS_URI, config.jwks_uri);
+  assign_array_member(document, "response_types_supported", HASH_RESPONSE_TYPES,
+                      config.response_types_supported);
+  assign_array_member(document, "grant_types_supported", HASH_GRANT_TYPES,
+                      config.grant_types_supported);
+  assign_array_member(document, "code_challenge_methods_supported",
+                      HASH_CODE_CHALLENGE_METHODS,
+                      config.code_challenge_methods_supported);
+  assign_array_member(document, "token_endpoint_auth_methods_supported",
+                      HASH_TOKEN_AUTH_METHODS,
+                      config.token_endpoint_auth_methods_supported);
+  assign_array_member(document,
+                      "token_endpoint_auth_signing_alg_values_supported",
+                      HASH_TOKEN_AUTH_ALGS,
+                      config.token_endpoint_auth_signing_alg_values_supported);
+  assign_array_member(document, "scopes_supported", HASH_SCOPES_SUPPORTED,
+                      config.scopes_supported);
+  return document;
+}
 
 } // namespace sourcemeta::core

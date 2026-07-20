@@ -74,6 +74,24 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_decode(const std::string_view input)
     -> std::optional<std::string>;
 
 /// @ingroup crypto
+/// Decode a Base64 string (RFC 4648 Section 4) into a wiping string, for a
+/// decoded value that is secret such as a client credential, returning whether
+/// the input is a canonical padded encoding. On success the decoded bytes are
+/// appended, and on failure the output is left with its original contents, so a
+/// reused buffer never keeps a partial decode. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::SecureString result;
+/// assert(sourcemeta::core::base64_decode("Zm9vYmFy", result));
+/// assert(result == "foobar");
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_decode(const std::string_view input,
+                                                 SecureString &output) -> bool;
+
+/// @ingroup crypto
 /// Encode a byte sequence using unpadded Base64url (RFC 4648 Section 5) into a
 /// stream. For example:
 ///

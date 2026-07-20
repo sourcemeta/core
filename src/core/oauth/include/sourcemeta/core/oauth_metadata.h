@@ -9,6 +9,7 @@
 
 #include <cstdint>     // std::uint8_t
 #include <optional>    // std::optional
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -240,6 +241,71 @@ private:
 #if defined(_MSC_VER)
 #pragma warning(default : 4251)
 #endif
+
+/// @ingroup oauth
+/// The configuration an authorization server publishes as its metadata
+/// (RFC 8414 Section 2), each field a non-owning view. An empty scalar and a
+/// zero-element array are omitted, since RFC 8414 Section 3.2 forbids a
+/// zero-element array in the response.
+struct OAuthServerMetadataConfig {
+  /// The issuer identifier (RFC 8414 Section 2), REQUIRED.
+  std::string_view issuer;
+  /// The authorization endpoint (RFC 8414 Section 2).
+  std::string_view authorization_endpoint;
+  /// The token endpoint (RFC 8414 Section 2).
+  std::string_view token_endpoint;
+  /// The dynamic client registration endpoint (RFC 8414 Section 2).
+  std::string_view registration_endpoint;
+  /// The JWK Set document location (RFC 8414 Section 2).
+  std::string_view jwks_uri;
+  /// The supported response types (RFC 8414 Section 2), REQUIRED and non-empty.
+  std::span<const std::string_view> response_types_supported;
+  /// The supported grant types (RFC 8414 Section 2).
+  std::span<const std::string_view> grant_types_supported;
+  /// The supported PKCE code challenge methods (RFC 8414 Section 2, RFC 7636).
+  std::span<const std::string_view> code_challenge_methods_supported;
+  /// The supported token endpoint authentication methods (RFC 8414 Section 2).
+  std::span<const std::string_view> token_endpoint_auth_methods_supported;
+  /// The supported JWS algorithms for the `private_key_jwt` and
+  /// `client_secret_jwt` token endpoint authentication methods (RFC 8414
+  /// Section 2). REQUIRED and must exclude `none` when either of those methods
+  /// is advertised.
+  std::span<const std::string_view>
+      token_endpoint_auth_signing_alg_values_supported;
+  /// The supported scopes (RFC 8414 Section 2).
+  std::span<const std::string_view> scopes_supported;
+};
+
+/// @ingroup oauth
+/// Build an authorization server metadata document for the well-known endpoint
+/// (RFC 8414 Section 2), returning no value when the document would be
+/// unusable: the issuer is not a valid issuer identifier, the required response
+/// types are empty, the required authorization endpoint or (unless only the
+/// implicit grant is offered) token endpoint is missing, any advertised
+/// endpoint or JWK Set location is not a valid https URL, the signing algorithm
+/// list contains `none`, or a JWT token endpoint authentication method is
+/// advertised without a non-empty signing algorithm list. Each present scalar
+/// and each non-empty array is emitted, and a zero-element array is omitted
+/// (RFC 8414 Section 3.2). For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/oauth.h>
+/// #include <array>
+/// #include <cassert>
+/// #include <string_view>
+///
+/// const std::array<std::string_view, 1> response_types{{"code"}};
+/// sourcemeta::core::OAuthServerMetadataConfig config;
+/// config.issuer = "https://server.example";
+/// config.response_types_supported = response_types;
+/// const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+/// assert(document.has_value());
+/// assert(document.value().at("issuer").to_string() ==
+///        "https://server.example");
+/// ```
+SOURCEMETA_CORE_OAUTH_EXPORT
+auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
+    -> std::optional<JSON>;
 
 } // namespace sourcemeta::core
 

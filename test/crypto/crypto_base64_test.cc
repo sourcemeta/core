@@ -211,3 +211,28 @@ TEST(encode_secure_string_overload_empty) {
   sourcemeta::core::base64_encode("", output);
   EXPECT_TRUE(output.empty());
 }
+
+TEST(decode_secure_string_overload_foobar) {
+  sourcemeta::core::SecureString output;
+  EXPECT_TRUE(sourcemeta::core::base64_decode("Zm9vYmFy", output));
+  EXPECT_TRUE(output == "foobar");
+}
+
+TEST(decode_secure_string_overload_appends) {
+  sourcemeta::core::SecureString output{"x:"};
+  EXPECT_TRUE(sourcemeta::core::base64_decode("Zm9v", output));
+  EXPECT_TRUE(output == "x:foo");
+}
+
+TEST(decode_secure_string_overload_rejects_invalid) {
+  sourcemeta::core::SecureString output;
+  EXPECT_FALSE(sourcemeta::core::base64_decode("Zm9vYmFy=", output));
+}
+
+TEST(decode_secure_string_overload_leaves_output_unchanged_on_failure) {
+  // "Zm9v" decodes to "foo", then the invalid group fails, so the partial
+  // decode is rolled back and the prior buffer contents survive
+  sourcemeta::core::SecureString output{"prefix"};
+  EXPECT_FALSE(sourcemeta::core::base64_decode("Zm9v!!!!", output));
+  EXPECT_TRUE(output == "prefix");
+}
