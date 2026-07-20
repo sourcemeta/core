@@ -116,8 +116,14 @@ auto OAuthDeviceAuthorizationResponse::verification_uri_complete() const
 
 auto OAuthDeviceAuthorizationResponse::expires_in() const
     -> std::optional<std::chrono::seconds> {
-  return oauth_json_seconds_member(*this->data_, "expires_in"sv,
-                                   HASH_EXPIRES_IN);
+  // RFC 8628 Section 3.2: expires_in is a REQUIRED positive lifetime, so a zero
+  // or negative value is malformed and reported as absent rather than surfacing
+  // as an immediate expiry to a poller
+  const auto value{
+      oauth_json_seconds_member(*this->data_, "expires_in"sv, HASH_EXPIRES_IN)};
+  return (value.has_value() && value.value() > std::chrono::seconds{0})
+             ? value
+             : std::nullopt;
 }
 
 auto OAuthDeviceAuthorizationResponse::interval() const
@@ -149,6 +155,13 @@ auto OAuthDevicePoller::interval() const noexcept -> std::chrono::seconds {
 
 auto OAuthDevicePoller::expired(
     const std::chrono::steady_clock::time_point now) const noexcept -> bool {
+  // A time before the start has not elapsed anything, and truncating its
+  // negative sub-second difference to zero would otherwise read as expired for
+  // a zero lifetime
+  if (now < this->start_) {
+    return false;
+  }
+
   // Comparing the elapsed duration against the lifetime, rather than a
   // start-plus-lifetime deadline, keeps a large lifetime from overflowing
   return std::chrono::duration_cast<std::chrono::seconds>(now - this->start_) >=

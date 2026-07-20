@@ -103,7 +103,8 @@ public:
   /// The verification URI with the user code included (RFC 8628 Section 3.2).
   [[nodiscard]] auto verification_uri_complete() const
       -> std::optional<std::string_view>;
-  /// The lifetime of the device and user codes (RFC 8628 Section 3.2).
+  /// The lifetime of the device and user codes, no value when non-positive
+  /// (RFC 8628 Section 3.2).
   [[nodiscard]] auto expires_in() const -> std::optional<std::chrono::seconds>;
   /// The minimum polling interval, defaulting to five seconds when absent
   /// (RFC 8628 Section 3.2).

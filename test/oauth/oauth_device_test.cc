@@ -204,6 +204,36 @@ TEST(device_authorization_response_rejects_a_negative_lifetime) {
   EXPECT_FALSE(response.expires_in().has_value());
 }
 
+TEST(device_authorization_response_rejects_a_zero_lifetime) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device", "expires_in": 0
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(device_authorization_response_rejects_an_overflowing_lifetime) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "device_code": "GmRh", "user_code": "WDJB-MJHT",
+    "verification_uri": "https://example.com/device",
+    "expires_in": 9223372036854775807
+  })JSON")};
+  const sourcemeta::core::OAuthDeviceAuthorizationResponse response{document};
+  EXPECT_TRUE(response.expires_in().value() ==
+              std::chrono::seconds{9223372036854775807});
+}
+
+TEST(device_poller_does_not_expire_before_the_start) {
+  const sourcemeta::core::OAuthDevicePoller poller{
+      std::chrono::seconds{5}, std::chrono::seconds{0},
+      std::chrono::steady_clock::time_point{} + std::chrono::seconds{100}};
+  EXPECT_FALSE(poller.expired(std::chrono::steady_clock::time_point{} +
+                              std::chrono::seconds{50}));
+  EXPECT_TRUE(poller.expired(std::chrono::steady_clock::time_point{} +
+                             std::chrono::seconds{100}));
+}
+
 TEST(device_authorization_response_defaults_a_negative_interval) {
   const auto document{sourcemeta::core::parse_json(R"JSON({
     "device_code": "GmRh", "user_code": "WDJB-MJHT",
