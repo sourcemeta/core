@@ -1,0 +1,246 @@
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/oauth.h>
+#include <sourcemeta/core/test.h>
+
+#include <array>  // std::array
+#include <chrono> // std::chrono::seconds
+
+TEST(build_token_request_code_minimal) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_code("SplxlOBeZQQYbYS6WxSbIA", "",
+                                                   "", {}, body);
+  EXPECT_TRUE(body ==
+              "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA");
+}
+
+TEST(build_token_request_code_with_redirect_and_verifier) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_code(
+      "SplxlOBeZQQYbYS6WxSbIA", "https://client.example/cb",
+      "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", {}, body);
+  EXPECT_TRUE(body ==
+              "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA"
+              "&redirect_uri=https%3A%2F%2Fclient.example%2Fcb"
+              "&code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
+}
+
+TEST(build_token_request_code_escapes_the_code) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_code("a/b+c", "", "", {}, body);
+  EXPECT_TRUE(body == "grant_type=authorization_code&code=a%2Fb%2Bc");
+}
+
+TEST(build_token_request_code_with_resources) {
+  const std::array<sourcemeta::core::OAuthParameter, 1> resources{
+      {{"resource", "https://api.example"}}};
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_code("abc", "", "", resources,
+                                                   body);
+  EXPECT_TRUE(body == "grant_type=authorization_code&code=abc"
+                      "&resource=https%3A%2F%2Fapi.example");
+}
+
+TEST(build_token_request_refresh_minimal) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_refresh("tGzv3JOkF0XG5Qx2TlKWIA",
+                                                      "", {}, body);
+  EXPECT_TRUE(body ==
+              "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA");
+}
+
+TEST(build_token_request_refresh_with_scope) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_refresh("tGzv3JOkF0XG5Qx2TlKWIA",
+                                                      "read write", {}, body);
+  EXPECT_TRUE(body ==
+              "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA"
+              "&scope=read%20write");
+}
+
+TEST(build_token_request_client_credentials_minimal) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_client_credentials("", {}, body);
+  EXPECT_TRUE(body == "grant_type=client_credentials");
+}
+
+TEST(build_token_request_client_credentials_with_scope) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_client_credentials("read", {},
+                                                                 body);
+  EXPECT_TRUE(body == "grant_type=client_credentials&scope=read");
+}
+
+TEST(build_token_request_composes_with_client_secret_post) {
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_code(
+      "SplxlOBeZQQYbYS6WxSbIA", "https://client.example/cb", "", {}, body);
+  sourcemeta::core::oauth_client_secret_post("s6BhdRkqt3", "gX1fBat3bV", body);
+  EXPECT_TRUE(body ==
+              "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA"
+              "&redirect_uri=https%3A%2F%2Fclient.example%2Fcb"
+              "&client_id=s6BhdRkqt3&client_secret=gX1fBat3bV");
+}
+
+TEST(token_response_reads_the_rfc6749_example) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "access_token": "2YotnFZFEjr1zCsicMWpAA",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "refresh_token": "tGzv3JOkF0XG5Qx2TlKWIA"
+  })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.access_token().has_value());
+  EXPECT_EQ(response.access_token().value(), "2YotnFZFEjr1zCsicMWpAA");
+  EXPECT_TRUE(response.token_type().has_value());
+  EXPECT_EQ(response.token_type().value(), "Bearer");
+  EXPECT_TRUE(response.expires_in().has_value());
+  EXPECT_TRUE(response.expires_in().value() == std::chrono::seconds{3600});
+  EXPECT_TRUE(response.refresh_token().has_value());
+  EXPECT_EQ(response.refresh_token().value(), "tGzv3JOkF0XG5Qx2TlKWIA");
+}
+
+TEST(token_response_bearer_type_is_case_insensitive) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "token_type": "bearer" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.is_bearer_token_type());
+}
+
+TEST(token_response_non_bearer_type) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "token_type": "DPoP" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.is_bearer_token_type());
+}
+
+TEST(token_response_absent_fields_are_empty) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "access_token": "abc" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.token_type().has_value());
+  EXPECT_FALSE(response.expires_in().has_value());
+  EXPECT_FALSE(response.refresh_token().has_value());
+  EXPECT_FALSE(response.scope().has_value());
+  EXPECT_FALSE(response.is_bearer_token_type());
+}
+
+TEST(token_response_rejects_a_negative_expires_in) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "expires_in": -1 })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(token_response_rejects_a_non_integer_expires_in) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "expires_in": "3600" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(token_response_on_a_non_object_is_empty) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ 1, 2, 3 ])JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.access_token().has_value());
+}
+
+TEST(token_response_scope_membership) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON({ "scope": "read write admin" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.scope().has_value());
+  EXPECT_EQ(response.scope().value(), "read write admin");
+  EXPECT_TRUE(response.has_scope("read"));
+  EXPECT_TRUE(response.has_scope("write"));
+  EXPECT_TRUE(response.has_scope("admin"));
+  EXPECT_FALSE(response.has_scope("delete"));
+  EXPECT_FALSE(response.has_scope("wri"));
+  EXPECT_FALSE(response.has_scope(""));
+}
+
+TEST(token_response_scope_membership_single_value) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "scope": "read" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.has_scope("read"));
+  EXPECT_FALSE(response.has_scope("write"));
+}
+
+TEST(token_response_id_token_via_passthrough) {
+  const auto document{sourcemeta::core::parse_json(R"JSON({
+    "access_token": "abc",
+    "id_token": "header.payload.signature"
+  })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  const auto *id_token{response.data().try_at("id_token")};
+  EXPECT_TRUE(id_token != nullptr);
+  EXPECT_TRUE(id_token->is_string());
+  EXPECT_EQ(id_token->to_string(), "header.payload.signature");
+}
+
+TEST(token_response_expires_in_zero_is_valid) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "expires_in": 0 })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.expires_in().has_value());
+  EXPECT_TRUE(response.expires_in().value() == std::chrono::seconds{0});
+}
+
+TEST(token_response_rejects_a_fractional_expires_in) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "expires_in": 3600.5 })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.expires_in().has_value());
+}
+
+TEST(token_response_empty_token_type_is_not_bearer) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "token_type": "" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.token_type().has_value());
+  EXPECT_FALSE(response.is_bearer_token_type());
+}
+
+TEST(token_response_non_string_access_token_is_empty) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "access_token": 123 })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_FALSE(response.access_token().has_value());
+}
+
+TEST(token_response_empty_scope_has_no_membership) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "scope": "" })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.scope().has_value());
+  EXPECT_FALSE(response.has_scope("read"));
+}
+
+TEST(token_response_scope_with_trailing_and_double_spaces) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "scope": "read  write " })JSON")};
+  const sourcemeta::core::OAuthTokenResponse response{document};
+  EXPECT_TRUE(response.has_scope("read"));
+  EXPECT_TRUE(response.has_scope("write"));
+  EXPECT_FALSE(response.has_scope(""));
+}
+
+TEST(build_token_request_refresh_with_resources) {
+  const std::array<sourcemeta::core::OAuthParameter, 1> resources{
+      {{"resource", "https://api.example"}}};
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_refresh("rt", "", resources,
+                                                      body);
+  EXPECT_TRUE(body == "grant_type=refresh_token&refresh_token=rt"
+                      "&resource=https%3A%2F%2Fapi.example");
+}
+
+TEST(build_token_request_client_credentials_with_two_resources) {
+  const std::array<sourcemeta::core::OAuthParameter, 2> resources{
+      {{"resource", "https://a"}, {"resource", "https://b"}}};
+  sourcemeta::core::SecureString body;
+  sourcemeta::core::oauth_build_token_request_client_credentials(
+      "read", resources, body);
+  EXPECT_TRUE(body == "grant_type=client_credentials&scope=read"
+                      "&resource=https%3A%2F%2Fa&resource=https%3A%2F%2Fb");
+}
