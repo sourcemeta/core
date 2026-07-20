@@ -25,6 +25,10 @@ const auto HASH_AUTHORIZATION_ENDPOINT{
 const auto HASH_TOKEN_ENDPOINT{JSON::Object::hash("token_endpoint"sv)};
 const auto HASH_REGISTRATION_ENDPOINT{
     JSON::Object::hash("registration_endpoint"sv)};
+const auto HASH_PAR_ENDPOINT{
+    JSON::Object::hash("pushed_authorization_request_endpoint"sv)};
+const auto HASH_REQUIRE_PAR{
+    JSON::Object::hash("require_pushed_authorization_requests"sv)};
 const auto HASH_REVOCATION_ENDPOINT{
     JSON::Object::hash("revocation_endpoint"sv)};
 const auto HASH_INTROSPECTION_ENDPOINT{
@@ -296,6 +300,23 @@ auto OAuthServerMetadata::jwks_uri() const -> std::optional<std::string_view> {
   return string_member(this->data_, "jwks_uri"sv, HASH_JWKS_URI);
 }
 
+auto OAuthServerMetadata::pushed_authorization_request_endpoint() const
+    -> std::optional<std::string_view> {
+  return string_member(this->data_, "pushed_authorization_request_endpoint"sv,
+                       HASH_PAR_ENDPOINT);
+}
+
+auto OAuthServerMetadata::require_pushed_authorization_requests() const
+    -> bool {
+  if (!this->data_.is_object()) {
+    return false;
+  }
+
+  const auto *member{this->data_.try_at(
+      "require_pushed_authorization_requests"sv, HASH_REQUIRE_PAR)};
+  return member != nullptr && member->is_boolean() && member->to_boolean();
+}
+
 auto OAuthServerMetadata::authorization_response_iss_parameter_supported() const
     -> bool {
   if (!this->data_.is_object()) {
@@ -491,6 +512,9 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
       !token_endpoint_required_and_valid ||
       (!config.registration_endpoint.empty() &&
        !oauth_is_resource_identifier(config.registration_endpoint)) ||
+      (!config.pushed_authorization_request_endpoint.empty() &&
+       !oauth_is_resource_identifier(
+           config.pushed_authorization_request_endpoint)) ||
       (!config.jwks_uri.empty() &&
        !oauth_is_resource_identifier(config.jwks_uri))) {
     return std::nullopt;
@@ -523,6 +547,9 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
   assign_scalar_member(document, "registration_endpoint",
                        HASH_REGISTRATION_ENDPOINT,
                        config.registration_endpoint);
+  assign_scalar_member(document, "pushed_authorization_request_endpoint",
+                       HASH_PAR_ENDPOINT,
+                       config.pushed_authorization_request_endpoint);
   assign_scalar_member(document, "jwks_uri", HASH_JWKS_URI, config.jwks_uri);
   assign_array_member(document, "response_types_supported", HASH_RESPONSE_TYPES,
                       config.response_types_supported);
@@ -540,6 +567,13 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
                       config.token_endpoint_auth_signing_alg_values_supported);
   assign_array_member(document, "scopes_supported", HASH_SCOPES_SUPPORTED,
                       config.scopes_supported);
+  // RFC 9126 Section 5: the default is false, so the flag is emitted only when
+  // the server requires pushed authorization requests
+  if (config.require_pushed_authorization_requests) {
+    document.assign_assume_new("require_pushed_authorization_requests",
+                               JSON{true}, HASH_REQUIRE_PAR);
+  }
+
   return document;
 }
 

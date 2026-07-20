@@ -128,6 +128,15 @@ public:
   /// The JWK Set document location (RFC 8414 Section 2).
   [[nodiscard]] auto jwks_uri() const -> std::optional<std::string_view>;
 
+  /// The pushed authorization request endpoint (RFC 9126 Section 5).
+  [[nodiscard]] auto pushed_authorization_request_endpoint() const
+      -> std::optional<std::string_view>;
+
+  /// Whether the server accepts authorization request data only through the
+  /// pushed authorization request endpoint, defaulting to false when absent
+  /// (RFC 9126 Section 5).
+  [[nodiscard]] auto require_pushed_authorization_requests() const -> bool;
+
   /// Whether the server signs authorization responses with an `iss` parameter,
   /// defaulting to false when absent (RFC 9207 Section 3).
   [[nodiscard]] auto authorization_response_iss_parameter_supported() const
@@ -256,6 +265,8 @@ struct OAuthServerMetadataConfig {
   std::string_view token_endpoint;
   /// The dynamic client registration endpoint (RFC 8414 Section 2).
   std::string_view registration_endpoint;
+  /// The pushed authorization request endpoint (RFC 9126 Section 5).
+  std::string_view pushed_authorization_request_endpoint;
   /// The JWK Set document location (RFC 8414 Section 2).
   std::string_view jwks_uri;
   /// The supported response types (RFC 8414 Section 2), REQUIRED and non-empty.
@@ -274,6 +285,10 @@ struct OAuthServerMetadataConfig {
       token_endpoint_auth_signing_alg_values_supported;
   /// The supported scopes (RFC 8414 Section 2).
   std::span<const std::string_view> scopes_supported;
+  /// Whether authorization request data is accepted only through the pushed
+  /// authorization request endpoint, emitted only when true (RFC 9126
+  /// Section 5).
+  bool require_pushed_authorization_requests{false};
 };
 
 /// @ingroup oauth
