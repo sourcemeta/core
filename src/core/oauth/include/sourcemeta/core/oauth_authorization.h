@@ -238,10 +238,12 @@ auto oauth_parse_authorization_response(const std::string_view query,
 /// appending the query to the client's redirection endpoint (RFC 6749
 /// Section 4.1.2), returning whether it was produced. The `code` is required,
 /// `state` is echoed when present, and an `iss` is emitted when present and
-/// must be a valid issuer identifier (RFC 9207 Section 2). Every value is
-/// percent-escaped, an existing query on the endpoint is honored, and the sink
-/// is appended to and never cleared. The redirect URI and the response fields
-/// must not alias the sink. For example:
+/// must be a valid issuer identifier (RFC 9207 Section 2). No value is produced
+/// when the redirect URI contains a fragment, which a redirection endpoint must
+/// not (RFC 6749 Section 3.1.2). Every value is percent-escaped, an existing
+/// query on the endpoint is honored, and the sink is appended to and never
+/// cleared. The redirect URI and the response fields must not alias the sink.
+/// For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

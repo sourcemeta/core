@@ -721,3 +721,22 @@ TEST(parse_request_rejects_a_malformed_escape_in_a_name) {
       "client%5=a", storage, request,
       [](std::string_view, std::string_view) {}));
 }
+
+TEST(build_authorization_redirect_rejects_a_fragment_in_the_redirect_uri) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb#section", response, url));
+  EXPECT_TRUE(url.empty());
+}
+
+TEST(
+    build_authorization_error_redirect_rejects_a_fragment_in_the_redirect_uri) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb#section", response, url));
+  EXPECT_TRUE(url.empty());
+}

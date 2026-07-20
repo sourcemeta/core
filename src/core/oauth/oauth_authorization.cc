@@ -316,6 +316,13 @@ auto oauth_build_authorization_redirect(
     return false;
   }
 
+  // RFC 6749 Section 3.1.2: a redirection endpoint "MUST NOT include a fragment
+  // component", and appending the query after one would place the parameters
+  // inside the fragment rather than the query
+  if (redirect_uri.find('#') != std::string_view::npos) {
+    return false;
+  }
+
   if (!response.iss.empty() && !oauth_is_issuer_identifier(response.iss)) {
     return false;
   }
@@ -346,6 +353,13 @@ auto oauth_build_authorization_error_redirect(
   // to the resource owner rather than redirected. An error response carries the
   // error code
   if (response.error.empty()) {
+    return false;
+  }
+
+  // RFC 6749 Section 3.1.2: a redirection endpoint "MUST NOT include a fragment
+  // component", and appending the query after one would place the parameters
+  // inside the fragment rather than the query
+  if (redirect_uri.find('#') != std::string_view::npos) {
     return false;
   }
 
