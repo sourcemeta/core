@@ -119,7 +119,7 @@ struct OAuthTokenRequest {
 /// recognized value is form-decoded, borrowing from the input when it carries
 /// no escape and otherwise from the storage arena, which the caller owns and
 /// reuses across parses. A duplicated recognized parameter is a failure
-/// (RFC 6749 Section 3.1). Every repeatable `resource` and `audience` and every
+/// (RFC 6749 Section 3.2). Every repeatable `resource` and `audience` and every
 /// unrecognized parameter, including the client authentication parameters, is
 /// passed to the callback with its decoded value rather than stored on the
 /// result. For example:

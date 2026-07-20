@@ -183,3 +183,75 @@ TEST(parse_client_authentication_rejects_a_duplicate_body_parameter) {
   EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
       "", "client_id=a&client_id=b", storage, credentials));
 }
+
+TEST(parse_client_authentication_basic_with_an_empty_secret) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic aWQ6", "", storage, credentials));
+  EXPECT_EQ(credentials.method,
+            sourcemeta::core::OAuthClientAuthenticationMethod::Basic);
+  EXPECT_EQ(credentials.client_id, "id");
+  EXPECT_TRUE(credentials.client_secret.empty());
+}
+
+TEST(parse_client_authentication_basic_with_an_empty_id) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic OnNlY3JldA==", "", storage, credentials));
+  EXPECT_EQ(credentials.method,
+            sourcemeta::core::OAuthClientAuthenticationMethod::Basic);
+  EXPECT_TRUE(credentials.client_id.empty());
+  EXPECT_EQ(credentials.client_secret, "secret");
+}
+
+TEST(parse_client_authentication_basic_splits_at_the_first_colon) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic aWQ6c2U6Y3JldA==", "", storage, credentials));
+  EXPECT_EQ(credentials.client_id, "id");
+  EXPECT_EQ(credentials.client_secret, "se:cret");
+}
+
+TEST(parse_client_authentication_rejects_basic_plus_assertion) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW",
+      "client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-"
+      "type%3Ajwt-bearer&client_assertion=ey.ey.sig",
+      storage, credentials));
+}
+
+TEST(parse_client_authentication_rejects_an_assertion_type_without_assertion) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "",
+      "client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-"
+      "type%3Ajwt-bearer",
+      storage, credentials));
+}
+
+TEST(parse_client_authentication_tolerates_multiple_spaces_after_basic) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_client_authentication(
+      "Basic   czZCaGRSa3F0MzpnWDFmQmF0M2JW", "", storage, credentials));
+  EXPECT_EQ(credentials.method,
+            sourcemeta::core::OAuthClientAuthenticationMethod::Basic);
+  EXPECT_EQ(credentials.client_id, "s6BhdRkqt3");
+}
+
+TEST(parse_client_authentication_treats_an_empty_secret_as_no_post) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  // An empty client_secret is treated as omitted (RFC 6749 Section 3.2), so
+  // the request is a public client identification, not a Post mechanism
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_client_authentication(
+      "", "client_id=s6BhdRkqt3&client_secret=", storage, credentials));
+  EXPECT_EQ(credentials.method,
+            sourcemeta::core::OAuthClientAuthenticationMethod::Public);
+}

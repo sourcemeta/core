@@ -357,3 +357,35 @@ TEST(make_token_error_response_emits_the_error) {
   EXPECT_EQ(response.at("error_description").to_string(), "The code expired");
   EXPECT_FALSE(response.defines("error_uri"));
 }
+
+TEST(parse_token_request_treats_an_empty_first_value_as_omitted) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
+      "scope=&scope=read", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.scope, "read");
+}
+
+TEST(make_token_response_emits_scope_on_reordered_words) {
+  // scope is an unordered set but the compare is textual, so a reordered but
+  // equal set is still emitted, which is spec-permitted (RFC 6749 Section 5.1)
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "a";
+  grant.token_type = "Bearer";
+  grant.scope = "a b";
+  grant.requested_scope = "b a";
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_TRUE(response.defines("scope"));
+  EXPECT_EQ(response.at("scope").to_string(), "a b");
+}
+
+TEST(make_token_response_emits_a_zero_expires_in) {
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "a";
+  grant.token_type = "Bearer";
+  grant.expires_in = std::chrono::seconds{0};
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_TRUE(response.defines("expires_in"));
+  EXPECT_EQ(response.at("expires_in").to_integer(), 0);
+}

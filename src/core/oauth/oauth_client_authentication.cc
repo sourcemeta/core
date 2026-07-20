@@ -27,6 +27,24 @@ auto decode_into_secure(const std::string_view value, SecureString &storage,
   return true;
 }
 
+auto assign_secure_scalar(const std::string_view value, SecureString &storage,
+                          bool &seen, std::string_view &field) -> bool {
+  // RFC 6749 Section 3.2: "Parameters sent without a value MUST be treated as
+  // if they were omitted", so an empty occurrence neither counts as a duplicate
+  // nor marks the parameter present
+  if (value.empty()) {
+    return true;
+  }
+
+  // RFC 6749 Section 3.2: a recognized parameter must not appear twice
+  if (seen) {
+    return false;
+  }
+
+  seen = true;
+  return decode_into_secure(value, storage, field);
+}
+
 } // namespace
 
 auto oauth_client_secret_basic(const std::string_view client_id,
@@ -115,23 +133,18 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
     const auto name{parameter.first};
     const auto value{parameter.second};
     bool valid{true};
-    // RFC 6749 Section 3.1: a recognized parameter must not appear twice
     if (name == "client_id") {
-      valid = !has_client_id;
-      has_client_id = true;
-      valid = valid && decode_into_secure(value, storage, body_client_id);
+      valid =
+          assign_secure_scalar(value, storage, has_client_id, body_client_id);
     } else if (name == "client_secret") {
-      valid = !has_client_secret;
-      has_client_secret = true;
-      valid = valid && decode_into_secure(value, storage, body_client_secret);
+      valid = assign_secure_scalar(value, storage, has_client_secret,
+                                   body_client_secret);
     } else if (name == "client_assertion") {
-      valid = !has_assertion;
-      has_assertion = true;
-      valid = valid && decode_into_secure(value, storage, body_assertion);
+      valid =
+          assign_secure_scalar(value, storage, has_assertion, body_assertion);
     } else if (name == "client_assertion_type") {
-      valid = !has_assertion_type;
-      has_assertion_type = true;
-      valid = valid && decode_into_secure(value, storage, body_assertion_type);
+      valid = assign_secure_scalar(value, storage, has_assertion_type,
+                                   body_assertion_type);
     }
 
     if (!valid) {
@@ -141,8 +154,11 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
 
   // RFC 6749 Section 2.3 and RFC 7521 Section 4.2.1: a request must use exactly
   // one authentication mechanism, and the assertion parameters count as one, so
-  // presenting more than one is invalid_request. A bare body client_id is
-  // identification, not a mechanism (RFC 6749 Section 3.2.1)
+  // presenting more than one is rejected. The caller chooses the error code,
+  // which RFC 7521 Section 4.2.1 makes invalid_client when the collision
+  // involves the assertion mechanism and RFC 6749 Section 5.2 makes
+  // invalid_request otherwise. A bare body client_id is identification, not a
+  // mechanism (RFC 6749 Section 3.2.1)
   const bool assertion_present{has_assertion || has_assertion_type};
   const auto mechanisms{static_cast<int>(basic_present) +
                         static_cast<int>(has_client_secret) +
@@ -151,7 +167,8 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
     return false;
   }
 
-  // RFC 6749 Section 2.3.1: a Basic username and a body client_id must agree
+  // RFC 6749 Section 5.2: a Basic username that conflicts with a body client_id
+  // is a malformed request, so the two must identify the same client
   if (basic_present && has_client_id && basic_id != body_client_id) {
     return false;
   }

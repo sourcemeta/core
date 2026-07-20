@@ -908,3 +908,54 @@ TEST(make_server_metadata_omits_absent_members) {
   EXPECT_FALSE(document.value().defines("scopes_supported"));
   EXPECT_FALSE(document.value().defines("grant_types_supported"));
 }
+
+TEST(make_server_metadata_rejects_jwt_auth_without_signing_algs) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> auth_methods{{"private_key_jwt"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_methods_supported = auth_methods;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_accepts_jwt_auth_with_signing_algs) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> auth_methods{{"private_key_jwt"}};
+  const std::array<std::string_view, 1> algs{{"RS256"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_methods_supported = auth_methods;
+  config.token_endpoint_auth_signing_alg_values_supported = algs;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(document.value()
+                .at("token_endpoint_auth_signing_alg_values_supported")
+                .at(0)
+                .to_string(),
+            "RS256");
+}
+
+TEST(make_server_metadata_rejects_jwt_auth_with_a_none_alg) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> auth_methods{{"client_secret_jwt"}};
+  const std::array<std::string_view, 2> algs{{"HS256", "none"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.response_types_supported = response_types;
+  config.token_endpoint_auth_methods_supported = auth_methods;
+  config.token_endpoint_auth_signing_alg_values_supported = algs;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_an_issuer_with_a_query) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example?x=1";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}

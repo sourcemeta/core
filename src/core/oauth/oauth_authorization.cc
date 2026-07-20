@@ -33,6 +33,13 @@ auto oauth_append_parameter(std::string &sink, char &separator,
 
 auto assign_scalar(const std::string_view value, std::string &storage,
                    bool &seen, std::string_view &field) -> bool {
+  // RFC 6749 Section 3.1: "Parameters sent without a value MUST be treated as
+  // if they were omitted", so an empty occurrence neither counts as a duplicate
+  // nor marks the parameter present
+  if (value.empty()) {
+    return true;
+  }
+
   // RFC 6749 Section 3.1: "Request and response parameters MUST NOT be included
   // more than once", so a second occurrence of a recognized parameter fails
   if (seen) {
@@ -58,11 +65,23 @@ auto split_http_authority(const std::string_view value)
   }
 
   const auto after{value.substr(prefix.size())};
-  const auto path_position{after.find('/')};
-  const auto authority{after.substr(0, path_position)};
+  // RFC 3986 Section 3.2: the authority ends at the next "/", "?", or "#", or
+  // the end of the URI, so the query and fragment are part of the compared
+  // remainder rather than folded into the authority
+  const auto path_position{after.find_first_of("/?#")};
+  auto authority{after.substr(0, path_position)};
   const auto rest{path_position == std::string_view::npos
                       ? std::string_view{}
                       : after.substr(path_position)};
+
+  // RFC 3986 Section 3.2.1: userinfo is delimited from the host by an "@". A
+  // loopback redirect never carries userinfo, and allowing it invites host
+  // confusion, since a redirect like "http://127.0.0.1:2@evil/cb" has its real
+  // host after the "@" yet its authority begins with the loopback literal, so
+  // an authority with userinfo does not qualify for the loopback exception
+  if (authority.find('@') != std::string_view::npos) {
+    return std::nullopt;
+  }
 
   std::string_view host;
   if (authority.starts_with('[')) {

@@ -266,6 +266,12 @@ struct OAuthServerMetadataConfig {
   std::span<const std::string_view> code_challenge_methods_supported;
   /// The supported token endpoint authentication methods (RFC 8414 Section 2).
   std::span<const std::string_view> token_endpoint_auth_methods_supported;
+  /// The supported JWS algorithms for the `private_key_jwt` and
+  /// `client_secret_jwt` token endpoint authentication methods (RFC 8414
+  /// Section 2). REQUIRED and must exclude `none` when either of those methods
+  /// is advertised.
+  std::span<const std::string_view>
+      token_endpoint_auth_signing_alg_values_supported;
   /// The supported scopes (RFC 8414 Section 2).
   std::span<const std::string_view> scopes_supported;
 };
@@ -273,9 +279,11 @@ struct OAuthServerMetadataConfig {
 /// @ingroup oauth
 /// Build an authorization server metadata document for the well-known endpoint
 /// (RFC 8414 Section 2), returning no value when the issuer is not a valid
-/// issuer identifier or the required response types are empty. Each present
-/// scalar and each non-empty array is emitted, and a zero-element array is
-/// omitted (RFC 8414 Section 3.2). For example:
+/// issuer identifier, the required response types are empty, or a JWT token
+/// endpoint authentication method is advertised without a valid signing
+/// algorithm list (RFC 8414 Section 2, non-empty and without `none`). Each
+/// present scalar and each non-empty array is emitted, and a zero-element array
+/// is omitted (RFC 8414 Section 3.2). For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

@@ -27,6 +27,9 @@ const auto HASH_TOKEN_TYPE{JSON::Object::hash("token_type"sv)};
 const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
 const auto HASH_REFRESH_TOKEN{JSON::Object::hash("refresh_token"sv)};
 const auto HASH_SCOPE{JSON::Object::hash("scope"sv)};
+const auto HASH_ERROR{JSON::Object::hash("error"sv)};
+const auto HASH_ERROR_DESCRIPTION{JSON::Object::hash("error_description"sv)};
+const auto HASH_ERROR_URI{JSON::Object::hash("error_uri"sv)};
 
 auto string_member(const JSON &data, const JSON::StringView name,
                    const JSON::Object::hash_type hash)
@@ -53,7 +56,15 @@ auto oauth_append_resources(SecureString &sink,
 
 auto assign_token_scalar(const std::string_view value, std::string &storage,
                          bool &seen, std::string_view &field) -> bool {
-  // RFC 6749 Section 3.1: a recognized parameter must not appear twice
+  // RFC 6749 Section 3.2: "Parameters sent without a value MUST be treated as
+  // if they were omitted", so an empty occurrence neither counts as a duplicate
+  // nor marks the parameter present
+  if (value.empty()) {
+    return true;
+  }
+
+  // RFC 6749 Section 3.2: a recognized parameter must not appear twice at the
+  // token endpoint
   if (seen) {
     return false;
   }
@@ -240,22 +251,29 @@ auto oauth_parse_token_request(
 
 auto oauth_make_token_response(const OAuthTokenGrant &grant) -> JSON {
   auto response{JSON::make_object()};
+  // The keys are unique and their hashes are already computed, so the response
+  // is assembled without a per-key hash or duplicate scan
   // RFC 6749 Section 5.1: access_token and token_type are REQUIRED
-  response.assign("access_token", JSON{grant.access_token});
-  response.assign("token_type", JSON{grant.token_type});
+  response.assign_assume_new("access_token", JSON{grant.access_token},
+                             HASH_ACCESS_TOKEN);
+  response.assign_assume_new("token_type", JSON{grant.token_type},
+                             HASH_TOKEN_TYPE);
   if (grant.expires_in.has_value()) {
-    response.assign("expires_in", JSON{static_cast<std::int64_t>(
-                                      grant.expires_in.value().count())});
+    response.assign_assume_new(
+        "expires_in",
+        JSON{static_cast<std::int64_t>(grant.expires_in.value().count())},
+        HASH_EXPIRES_IN);
   }
 
   if (!grant.refresh_token.empty()) {
-    response.assign("refresh_token", JSON{grant.refresh_token});
+    response.assign_assume_new("refresh_token", JSON{grant.refresh_token},
+                               HASH_REFRESH_TOKEN);
   }
 
   // RFC 6749 Section 5.1: the scope is OPTIONAL when identical to the requested
   // scope and REQUIRED otherwise, so it is emitted only when it differs
   if (!grant.scope.empty() && grant.scope != grant.requested_scope) {
-    response.assign("scope", JSON{grant.scope});
+    response.assign_assume_new("scope", JSON{grant.scope}, HASH_SCOPE);
   }
 
   return response;
@@ -266,13 +284,14 @@ auto oauth_make_token_error_response(const std::string_view error,
                                      const std::string_view error_uri) -> JSON {
   auto response{JSON::make_object()};
   // RFC 6749 Section 5.2: error is REQUIRED
-  response.assign("error", JSON{error});
+  response.assign_assume_new("error", JSON{error}, HASH_ERROR);
   if (!error_description.empty()) {
-    response.assign("error_description", JSON{error_description});
+    response.assign_assume_new("error_description", JSON{error_description},
+                               HASH_ERROR_DESCRIPTION);
   }
 
   if (!error_uri.empty()) {
-    response.assign("error_uri", JSON{error_uri});
+    response.assign_assume_new("error_uri", JSON{error_uri}, HASH_ERROR_URI);
   }
 
   return response;

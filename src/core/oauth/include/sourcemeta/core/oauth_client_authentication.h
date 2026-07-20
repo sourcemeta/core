@@ -111,16 +111,20 @@ struct OAuthClientCredentials {
 /// Parse the client authentication a token request presented, from the
 /// `Authorization` header value and the request body, into the credentials
 /// (RFC 6749 Section 2.3). Returns whether the presentation is well formed. It
-/// is malformed, and rejected as `invalid_request`, when more than one
-/// mechanism is presented (RFC 6749 Section 2.3, RFC 7521 Section 4.2.1), when
-/// a `Basic` username disagrees with a body `client_id` (RFC 6749
-/// Section 2.3.1), when the `Basic` credential is not a canonical Base64 of a
-/// colon-separated pair, or when only one of the assertion parameters is
-/// present. The decoded `Basic` credential is secret, so the arena is a wiping
-/// string, which the caller owns and reuses across parses. This detects the
-/// mechanism and extracts the credentials, but does not verify the secret,
-/// which the caller does against its stored value with `secure_equals`. For
-/// example:
+/// is malformed when more than one mechanism is presented (RFC 6749
+/// Section 2.3, RFC 7521 Section 4.2.1), when a `Basic` username conflicts with
+/// a body `client_id` (RFC 6749 Section 5.2), when the `Basic` credential is
+/// not a canonical Base64 of a colon-separated pair, or when only one of the
+/// assertion parameters is present. The caller chooses the error code for a
+/// rejection, which is `invalid_client` when a collision involves the assertion
+/// mechanism (RFC 7521 Section 4.2.1) and `invalid_request` otherwise (RFC 6749
+/// Section 5.2). The decoded `Basic` credential is secret, so the arena is a
+/// wiping string, which the caller owns and should clear between independent
+/// parses. This detects the mechanism and extracts the credentials, but does
+/// not verify the secret, which the caller does against its stored value with
+/// `secure_equals`, nor that an `Assertion` `client_id` identifies the same
+/// client as the assertion (RFC 7521 Section 4.2), which the caller checks when
+/// it verifies the assertion. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

@@ -99,7 +99,7 @@ auto decode_into(const std::string_view input,
     return false;
   }
 
-  output.reserve(((data.size() / 4) * 3) + 2);
+  output.reserve(output.size() + ((data.size() / 4) * 3) + 2);
 
   std::size_t index{0};
   while (index + 4 <= data.size()) {

@@ -575,3 +575,110 @@ TEST(build_authorization_error_redirect_rejects_a_missing_error) {
   EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_redirect(
       "https://client.example/cb", response, url));
 }
+
+TEST(redirect_uri_rejects_userinfo_smuggling_a_loopback_host) {
+  // A colon inside the userinfo must not let a non-loopback host masquerade as
+  // the loopback literal (RFC 3986 Section 3.2.1). The user agent would
+  // navigate to evil.example, so this must not match a registered loopback.
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:49152/cb", "http://127.0.0.1:2@evil.example/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_userinfo_on_a_presented_loopback) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:5000/cb", "http://user@127.0.0.1:5000/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_a_loopback_without_a_path_differing_query) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:5000?foo=1", "http://127.0.0.1:6000?bar=2",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_a_loopback_with_a_differing_query) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:5000/cb?x=1", "http://127.0.0.1:6000/cb?x=2",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_an_https_loopback_port_variation) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "https://127.0.0.1:5000/cb", "https://127.0.0.1:6000/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_rejects_a_non_http_presented_scheme) {
+  EXPECT_FALSE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://127.0.0.1:5000/cb", "com.example.app://127.0.0.1:5000/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(redirect_uri_matches_ipv6_loopback_with_and_without_a_port) {
+  EXPECT_TRUE(sourcemeta::core::oauth_redirect_uri_matches(
+      "http://[::1]/cb", "http://[::1]:51004/cb",
+      sourcemeta::core::OAuthProfile::Strict));
+}
+
+TEST(parse_request_treats_an_empty_first_value_as_omitted) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "state=&state=xyz", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.state, "xyz");
+}
+
+TEST(parse_request_empty_challenge_does_not_default_the_method) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "code_challenge=", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_TRUE(request.code_challenge.empty());
+  EXPECT_TRUE(request.code_challenge_method.empty());
+}
+
+TEST(parse_request_accepts_an_empty_query) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "", storage, request, [](std::string_view, std::string_view) {}));
+  EXPECT_TRUE(request.client_id.empty());
+  EXPECT_TRUE(request.response_type.empty());
+}
+
+TEST(parse_request_rejects_a_duplicate_scope) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "scope=a&scope=b", storage, request,
+      [](std::string_view, std::string_view) {}));
+}
+
+TEST(build_authorization_error_redirect_emits_all_fields_in_order) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  response.error_description = "User denied";
+  response.error_uri = "https://x/e";
+  response.state = "xyz";
+  response.iss = "https://server.example";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb", response, url));
+  EXPECT_EQ(url,
+            "https://client.example/cb?error=access_denied"
+            "&error_description=User%20denied&error_uri=https%3A%2F%2Fx%2Fe"
+            "&state=xyz&iss=https%3A%2F%2Fserver.example");
+}
+
+TEST(build_authorization_error_redirect_rejects_an_invalid_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  response.iss = "https://server.example?x=1";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb", response, url));
+  EXPECT_TRUE(url.empty());
+}

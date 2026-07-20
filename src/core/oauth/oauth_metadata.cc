@@ -6,6 +6,7 @@
 
 #include "oauth_syntax.h"
 
+#include <algorithm>   // std::ranges::find
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
 #include <string>      // std::string
@@ -428,14 +429,16 @@ auto OAuthResourceMetadata::data() const -> const JSON & { return this->data_; }
 
 namespace {
 
-auto assign_scalar_member(JSON &object, const std::string_view name,
+auto assign_scalar_member(JSON &object, const JSON::StringView name,
+                          const JSON::Object::hash_type hash,
                           const std::string_view value) -> void {
   if (!value.empty()) {
-    object.assign(std::string{name}, JSON{value});
+    object.assign_assume_new(std::string{name}, JSON{value}, hash);
   }
 }
 
-auto assign_array_member(JSON &object, const std::string_view name,
+auto assign_array_member(JSON &object, const JSON::StringView name,
+                         const JSON::Object::hash_type hash,
                          const std::span<const std::string_view> values)
     -> void {
   // RFC 8414 Section 3.2: "Claims with zero elements MUST be omitted", so an
@@ -449,7 +452,12 @@ auto assign_array_member(JSON &object, const std::string_view name,
     array.push_back(JSON{value});
   }
 
-  object.assign(std::string{name}, std::move(array));
+  object.assign_assume_new(std::string{name}, std::move(array), hash);
+}
+
+auto span_contains(const std::span<const std::string_view> values,
+                   const std::string_view target) -> bool {
+  return std::ranges::find(values, target) != values.end();
 }
 
 } // namespace
@@ -463,23 +471,47 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
     return std::nullopt;
   }
 
+  // RFC 8414 Section 2: a signing algorithm list is REQUIRED alongside the JWT
+  // authentication methods, "none" MUST NOT appear in it, and Section 3.2
+  // forbids a zero-element array, so the document would be rejected by its own
+  // parser without a valid list
+  if ((span_contains(config.token_endpoint_auth_methods_supported,
+                     "private_key_jwt") ||
+       span_contains(config.token_endpoint_auth_methods_supported,
+                     "client_secret_jwt")) &&
+      (config.token_endpoint_auth_signing_alg_values_supported.empty() ||
+       span_contains(config.token_endpoint_auth_signing_alg_values_supported,
+                     "none"))) {
+    return std::nullopt;
+  }
+
   auto document{JSON::make_object()};
-  document.assign("issuer", JSON{config.issuer});
+  document.assign_assume_new("issuer", JSON{config.issuer}, HASH_ISSUER);
   assign_scalar_member(document, "authorization_endpoint",
+                       HASH_AUTHORIZATION_ENDPOINT,
                        config.authorization_endpoint);
-  assign_scalar_member(document, "token_endpoint", config.token_endpoint);
+  assign_scalar_member(document, "token_endpoint", HASH_TOKEN_ENDPOINT,
+                       config.token_endpoint);
   assign_scalar_member(document, "registration_endpoint",
+                       HASH_REGISTRATION_ENDPOINT,
                        config.registration_endpoint);
-  assign_scalar_member(document, "jwks_uri", config.jwks_uri);
-  assign_array_member(document, "response_types_supported",
+  assign_scalar_member(document, "jwks_uri", HASH_JWKS_URI, config.jwks_uri);
+  assign_array_member(document, "response_types_supported", HASH_RESPONSE_TYPES,
                       config.response_types_supported);
-  assign_array_member(document, "grant_types_supported",
+  assign_array_member(document, "grant_types_supported", HASH_GRANT_TYPES,
                       config.grant_types_supported);
   assign_array_member(document, "code_challenge_methods_supported",
+                      HASH_CODE_CHALLENGE_METHODS,
                       config.code_challenge_methods_supported);
   assign_array_member(document, "token_endpoint_auth_methods_supported",
+                      HASH_TOKEN_AUTH_METHODS,
                       config.token_endpoint_auth_methods_supported);
-  assign_array_member(document, "scopes_supported", config.scopes_supported);
+  assign_array_member(document,
+                      "token_endpoint_auth_signing_alg_values_supported",
+                      HASH_TOKEN_AUTH_ALGS,
+                      config.token_endpoint_auth_signing_alg_values_supported);
+  assign_array_member(document, "scopes_supported", HASH_SCOPES_SUPPORTED,
+                      config.scopes_supported);
   return document;
 }
 
