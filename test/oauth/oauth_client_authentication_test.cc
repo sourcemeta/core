@@ -255,3 +255,21 @@ TEST(parse_client_authentication_treats_an_empty_secret_as_no_post) {
   EXPECT_EQ(credentials.method,
             sourcemeta::core::OAuthClientAuthenticationMethod::Public);
 }
+
+TEST(parse_client_authentication_rejects_a_secret_without_an_id) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_client_authentication(
+      "", "client_secret=gX1fBat3bV", storage, credentials));
+}
+
+TEST(parse_client_authentication_decodes_a_percent_encoded_name) {
+  sourcemeta::core::SecureString storage;
+  sourcemeta::core::OAuthClientCredentials credentials;
+  // client%5Fid decodes to client_id
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_client_authentication(
+      "", "client%5Fid=s6BhdRkqt3", storage, credentials));
+  EXPECT_EQ(credentials.method,
+            sourcemeta::core::OAuthClientAuthenticationMethod::Public);
+  EXPECT_EQ(credentials.client_id, "s6BhdRkqt3");
+}

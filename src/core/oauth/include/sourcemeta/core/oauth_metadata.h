@@ -278,12 +278,15 @@ struct OAuthServerMetadataConfig {
 
 /// @ingroup oauth
 /// Build an authorization server metadata document for the well-known endpoint
-/// (RFC 8414 Section 2), returning no value when the issuer is not a valid
-/// issuer identifier, the required response types are empty, or a JWT token
-/// endpoint authentication method is advertised without a valid signing
-/// algorithm list (RFC 8414 Section 2, non-empty and without `none`). Each
-/// present scalar and each non-empty array is emitted, and a zero-element array
-/// is omitted (RFC 8414 Section 3.2). For example:
+/// (RFC 8414 Section 2), returning no value when the document would be
+/// unusable: the issuer is not a valid issuer identifier, the required response
+/// types are empty, the required authorization endpoint or (unless only the
+/// implicit grant is offered) token endpoint is missing, any advertised
+/// endpoint or JWK Set location is not a valid https URL, the signing algorithm
+/// list contains `none`, or a JWT token endpoint authentication method is
+/// advertised without a non-empty signing algorithm list. Each present scalar
+/// and each non-empty array is emitted, and a zero-element array is omitted
+/// (RFC 8414 Section 3.2). For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

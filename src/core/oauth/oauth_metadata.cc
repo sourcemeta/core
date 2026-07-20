@@ -471,17 +471,45 @@ auto oauth_make_server_metadata(const OAuthServerMetadataConfig &config)
     return std::nullopt;
   }
 
-  // RFC 8414 Section 2: a signing algorithm list is REQUIRED alongside the JWT
-  // authentication methods, "none" MUST NOT appear in it, and Section 3.2
-  // forbids a zero-element array, so the document would be rejected by its own
-  // parser without a valid list
+  // RFC 8414 Section 2: the authorization endpoint is REQUIRED once a response
+  // type is advertised, and the token endpoint unless the only grant type is
+  // the implicit one, and every advertised URL is an https location. A present
+  // scalar that is not a valid https URL, or a missing required endpoint, would
+  // yield an unusable discovery document
+  const bool token_endpoint_needed{
+      config.grant_types_supported.empty() ||
+      std::ranges::any_of(config.grant_types_supported,
+                          [](const std::string_view grant) -> bool {
+                            return grant != "implicit";
+                          })};
+  const bool token_endpoint_required_and_valid{
+      token_endpoint_needed
+          ? oauth_is_resource_identifier(config.token_endpoint)
+          : config.token_endpoint.empty() ||
+                oauth_is_resource_identifier(config.token_endpoint)};
+  if (!oauth_is_resource_identifier(config.authorization_endpoint) ||
+      !token_endpoint_required_and_valid ||
+      (!config.registration_endpoint.empty() &&
+       !oauth_is_resource_identifier(config.registration_endpoint)) ||
+      (!config.jwks_uri.empty() &&
+       !oauth_is_resource_identifier(config.jwks_uri))) {
+    return std::nullopt;
+  }
+
+  // RFC 8414 Section 2: "none" MUST NOT appear in the signing algorithm list
+  // unconditionally, the list is REQUIRED alongside the JWT authentication
+  // methods, and Section 3.2 forbids a zero-element array, so the document
+  // would otherwise be rejected by its own parser
+  if (span_contains(config.token_endpoint_auth_signing_alg_values_supported,
+                    "none")) {
+    return std::nullopt;
+  }
+
   if ((span_contains(config.token_endpoint_auth_methods_supported,
                      "private_key_jwt") ||
        span_contains(config.token_endpoint_auth_methods_supported,
                      "client_secret_jwt")) &&
-      (config.token_endpoint_auth_signing_alg_values_supported.empty() ||
-       span_contains(config.token_endpoint_auth_signing_alg_values_supported,
-                     "none"))) {
+      config.token_endpoint_auth_signing_alg_values_supported.empty()) {
     return std::nullopt;
   }
 

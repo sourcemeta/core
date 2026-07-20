@@ -389,3 +389,22 @@ TEST(make_token_response_emits_a_zero_expires_in) {
   EXPECT_TRUE(response.defines("expires_in"));
   EXPECT_EQ(response.at("expires_in").to_integer(), 0);
 }
+
+TEST(make_token_response_omits_a_negative_expires_in) {
+  sourcemeta::core::OAuthTokenGrant grant;
+  grant.access_token = "a";
+  grant.token_type = "Bearer";
+  grant.expires_in = std::chrono::seconds{-1};
+  const auto response{sourcemeta::core::oauth_make_token_response(grant)};
+  EXPECT_FALSE(response.defines("expires_in"));
+}
+
+TEST(parse_token_request_decodes_a_percent_encoded_name) {
+  std::string storage;
+  sourcemeta::core::OAuthTokenRequest request;
+  // grant%5Ftype decodes to grant_type
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
+      "grant%5Ftype=client_credentials", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.grant_type, "client_credentials");
+}

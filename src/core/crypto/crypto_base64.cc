@@ -76,6 +76,10 @@ template <typename Output>
 auto decode_into(const std::string_view input,
                  const std::array<std::uint8_t, 256> &table, const bool padding,
                  Output &output) -> bool {
+  // Decoding appends to the output, so a failure after some bytes were written
+  // rolls the output back to its original length rather than leaving a partial
+  // decode in a reused buffer
+  const auto base{output.size()};
   auto data{input};
 
   if (padding) {
@@ -112,6 +116,7 @@ auto decode_into(const std::string_view input,
         table[static_cast<std::uint8_t>(data[index + 3])]};
     if (first == INVALID_SEXTET || second == INVALID_SEXTET ||
         third == INVALID_SEXTET || fourth == INVALID_SEXTET) {
+      output.resize(base, '\0');
       return false;
     }
 
@@ -133,6 +138,7 @@ auto decode_into(const std::string_view input,
         table[static_cast<std::uint8_t>(data[index + 1])]};
     if (first == INVALID_SEXTET || second == INVALID_SEXTET ||
         (second & 0x0Fu) != 0) {
+      output.resize(base, '\0');
       return false;
     }
 
@@ -145,6 +151,7 @@ auto decode_into(const std::string_view input,
         table[static_cast<std::uint8_t>(data[index + 2])]};
     if (first == INVALID_SEXTET || second == INVALID_SEXTET ||
         third == INVALID_SEXTET || (third & 0x03u) != 0) {
+      output.resize(base, '\0');
       return false;
     }
 
@@ -189,7 +196,11 @@ auto base64_decode(const std::string_view input) -> std::optional<std::string> {
 }
 
 auto base64_decode(const std::string_view input, SecureString &output) -> bool {
-  return decode_into(input, BASE64_DECODE_TABLE, true, output);
+  // The input is copied first so that growing the output cannot invalidate it
+  // when the two alias the same storage
+  const SecureString input_copy{input};
+  return decode_into(std::string_view{input_copy}, BASE64_DECODE_TABLE, true,
+                     output);
 }
 
 auto base64url_encode(const std::string_view input, std::ostream &output)

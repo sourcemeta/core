@@ -54,10 +54,6 @@ struct OAuthParameter {
 ///        "&client_id=s6BhdRkqt3&state=xyz");
 /// ```
 struct OAuthAuthorizationRequest {
-  /// The response type, a space-delimited set that the builder always forces to
-  /// `code`, surfaced on parse so a server can tell a missing value from one it
-  /// does not understand (RFC 6749 Section 3.1.1).
-  std::string_view response_type;
   /// The client identifier (RFC 6749 Section 2.2).
   std::string_view client_id;
   /// The redirection endpoint the response is returned to (RFC 6749
@@ -77,6 +73,11 @@ struct OAuthAuthorizationRequest {
   std::string_view request_uri;
   /// The JWK thumbprint of the DPoP proof public key (RFC 9449 Section 10).
   std::string_view dpop_jkt;
+  /// The response type, a space-delimited set that the builder always forces to
+  /// `code`, surfaced on parse so a server can tell a missing value from one it
+  /// does not understand (RFC 6749 Section 3.1.1). It is placed after the older
+  /// members so an existing positional initializer keeps populating them.
+  std::string_view response_type;
   /// The repeatable resource indicators, each an absolute URI without a
   /// fragment (RFC 8707 Section 2).
   std::span<const OAuthParameter> resources;
@@ -239,7 +240,8 @@ auto oauth_parse_authorization_response(const std::string_view query,
 /// `state` is echoed when present, and an `iss` is emitted when present and
 /// must be a valid issuer identifier (RFC 9207 Section 2). Every value is
 /// percent-escaped, an existing query on the endpoint is honored, and the sink
-/// is appended to and never cleared. For example:
+/// is appended to and never cleared. The redirect URI and the response fields
+/// must not alias the sink. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>

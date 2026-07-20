@@ -191,7 +191,13 @@ auto oauth_parse_authorization_request(
   bool has_request_uri{false};
   bool has_dpop_jkt{false};
   for (const auto &parameter : parsed) {
-    const auto name{parameter.first};
+    // RFC 6749 Section 4.1.1: names are form-urlencoded too, so a name is
+    // decoded before it is recognized, and a malformed escape fails the parse
+    std::string_view name;
+    if (!oauth_form_decode_into(parameter.first, storage, name)) {
+      return false;
+    }
+
     const auto value{parameter.second};
     bool valid{true};
     if (name == "response_type") {
@@ -270,14 +276,17 @@ auto oauth_redirect_uri_matches(const std::string_view registered,
 
 auto oauth_is_private_use_scheme(const std::string_view scheme) noexcept
     -> bool {
-  // RFC 3986 Section 3.1: "scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )"
-  if (scheme.empty() || !is_alpha(scheme.front())) {
+  // RFC 3986 Section 3.1: "scheme = ALPHA *( ALPHA / DIGIT / "+" / "-" / "."
+  // )". A reverse domain name has no empty label, so a leading or trailing
+  // period is rejected here, and an interior empty label below
+  if (scheme.empty() || !is_alpha(scheme.front()) || scheme.back() == '.') {
     return false;
   }
 
   // RFC 8252 Section 7.1 and Section 8.4: a private-use scheme is a reverse
-  // domain name, so it must contain at least one period
+  // domain name, so it must contain at least one period and no empty label
   bool has_period{false};
+  char previous{'\0'};
   for (const auto character : scheme) {
     if (!is_alphanum(character) && character != '+' && character != '-' &&
         character != '.') {
@@ -285,8 +294,14 @@ auto oauth_is_private_use_scheme(const std::string_view scheme) noexcept
     }
 
     if (character == '.') {
+      if (previous == '.') {
+        return false;
+      }
+
       has_period = true;
     }
+
+    previous = character;
   }
 
   return has_period;

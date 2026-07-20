@@ -130,7 +130,13 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
   std::string_view body_assertion_type;
   const URI::Query parsed{body};
   for (const auto &parameter : parsed) {
-    const auto name{parameter.first};
+    // RFC 6749 Section 4.1.3: names are form-urlencoded too, so a name is
+    // decoded before it is recognized, and a malformed escape fails the parse
+    std::string_view name;
+    if (!decode_into_secure(parameter.first, storage, name)) {
+      return false;
+    }
+
     const auto value{parameter.second};
     bool valid{true};
     if (name == "client_id") {
@@ -175,6 +181,14 @@ auto oauth_parse_client_authentication(const std::string_view authorization,
 
   // RFC 7521 Section 4.2: the assertion mechanism needs both parameters
   if (assertion_present && !(has_assertion && has_assertion_type)) {
+    return false;
+  }
+
+  // RFC 6749 Section 2.3.1: client_secret_post carries both the identifier and
+  // the secret, so a body secret with no client_id is an incomplete mechanism.
+  // A Basic secret has its own identifier, and a Basic and body secret together
+  // are already rejected as two mechanisms above
+  if (has_client_secret && !has_client_id) {
     return false;
   }
 

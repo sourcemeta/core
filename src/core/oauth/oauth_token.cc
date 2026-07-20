@@ -211,7 +211,13 @@ auto oauth_parse_token_request(
   bool has_refresh_token{false};
   bool has_scope{false};
   for (const auto &parameter : parsed) {
-    const auto name{parameter.first};
+    // RFC 6749 Section 4.1.3: names are form-urlencoded too, so a name is
+    // decoded before it is recognized, and a malformed escape fails the parse
+    std::string_view name;
+    if (!oauth_form_decode_into(parameter.first, storage, name)) {
+      return false;
+    }
+
     const auto value{parameter.second};
     bool valid{true};
     if (name == "grant_type") {
@@ -258,7 +264,11 @@ auto oauth_make_token_response(const OAuthTokenGrant &grant) -> JSON {
                              HASH_ACCESS_TOKEN);
   response.assign_assume_new("token_type", JSON{grant.token_type},
                              HASH_TOKEN_TYPE);
-  if (grant.expires_in.has_value()) {
+  // RFC 6749 Section 5.1: the lifetime is a number of seconds, so a negative
+  // duration is not representable and is omitted rather than emitted as a value
+  // this module's own response reader would reject
+  if (grant.expires_in.has_value() &&
+      grant.expires_in.value() >= std::chrono::seconds{0}) {
     response.assign_assume_new(
         "expires_in",
         JSON{static_cast<std::int64_t>(grant.expires_in.value().count())},

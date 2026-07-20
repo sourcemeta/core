@@ -437,7 +437,7 @@ TEST(parse_request_surfaces_resources_and_extras_through_the_callback) {
             "resource=https://a.example;resource=https://b.example;nonce=n1;");
 }
 
-TEST(parse_request_ignores_an_unknown_challenge_method_without_a_challenge) {
+TEST(parse_request_accepts_a_challenge_method_without_a_challenge) {
   std::string storage;
   sourcemeta::core::OAuthAuthorizationRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
@@ -681,4 +681,43 @@ TEST(build_authorization_error_redirect_rejects_an_invalid_iss) {
   EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_redirect(
       "https://client.example/cb", response, url));
   EXPECT_TRUE(url.empty());
+}
+
+TEST(is_private_use_scheme_rejects_an_empty_label) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_private_use_scheme("com..example"));
+}
+
+TEST(is_private_use_scheme_rejects_a_trailing_period) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_private_use_scheme("com.example."));
+}
+
+TEST(is_private_use_scheme_rejects_a_leading_period) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_private_use_scheme(".com.example"));
+}
+
+TEST(parse_request_decodes_a_percent_encoded_name) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  // client%5Fid decodes to client_id, so it is recognized rather than ignored
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_request(
+      "client%5Fid=s6BhdRkqt3", storage, request,
+      [](std::string_view, std::string_view) {}));
+  EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+}
+
+TEST(parse_request_rejects_a_percent_encoded_duplicate_name) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  // client%5Fid decodes to client_id, so a second occurrence is a duplicate
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "client_id=a&client%5Fid=b", storage, request,
+      [](std::string_view, std::string_view) {}));
+}
+
+TEST(parse_request_rejects_a_malformed_escape_in_a_name) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oauth_parse_authorization_request(
+      "client%5=a", storage, request,
+      [](std::string_view, std::string_view) {}));
 }

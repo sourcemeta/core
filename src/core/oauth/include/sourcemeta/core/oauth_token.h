@@ -214,7 +214,10 @@ struct OAuthTokenGrant {
   std::optional<std::chrono::seconds> expires_in;
   /// The issued refresh token, omitted when absent (RFC 6749 Section 5.1).
   std::string_view refresh_token;
-  /// The granted scope (RFC 6749 Section 3.3).
+  /// The granted scope (RFC 6749 Section 3.3). A scope has at least one token,
+  /// so an empty granted scope is not representable and is not emitted. A
+  /// server that would grant no scopes denies the request instead of issuing a
+  /// token with an empty scope.
   std::string_view scope;
   /// The scope the client requested, used to decide whether the granted scope
   /// must be emitted (RFC 6749 Section 5.1).

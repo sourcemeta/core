@@ -119,8 +119,9 @@ struct OAuthClientCredentials {
 /// rejection, which is `invalid_client` when a collision involves the assertion
 /// mechanism (RFC 7521 Section 4.2.1) and `invalid_request` otherwise (RFC 6749
 /// Section 5.2). The decoded `Basic` credential is secret, so the arena is a
-/// wiping string, which the caller owns and should clear between independent
-/// parses. This detects the mechanism and extracts the credentials, but does
+/// wiping string, which the caller owns, should clear between independent
+/// parses, and must not alias the header or body inputs. This detects the
+/// mechanism and extracts the credentials, but does
 /// not verify the secret, which the caller does against its stored value with
 /// `secure_equals`, nor that an `Assertion` `client_id` identifies the same
 /// client as the assertion (RFC 7521 Section 4.2), which the caller checks when

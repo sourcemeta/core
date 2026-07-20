@@ -76,8 +76,9 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_decode(const std::string_view input)
 /// @ingroup crypto
 /// Decode a Base64 string (RFC 4648 Section 4) into a wiping string, for a
 /// decoded value that is secret such as a client credential, returning whether
-/// the input is a canonical padded encoding. The output is appended to and
-/// never cleared. For example:
+/// the input is a canonical padded encoding. On success the decoded bytes are
+/// appended, and on failure the output is left with its original contents, so a
+/// reused buffer never keeps a partial decode. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
