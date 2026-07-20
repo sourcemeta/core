@@ -99,8 +99,7 @@ auto dpop_is_asymmetric(const JWSAlgorithm algorithm) noexcept -> bool {
 
 // RFC 9449 Section 4.2: the HTTP target URI without query and fragment, with
 // the syntax and scheme normalization Section 4.3 recommends applied so the
-// same request compares equal on both sides, and an empty path treated as "/"
-// (RFC 3986 Section 6.2.3)
+// same request compares equal on both sides
 auto dpop_normalize_target(const std::string_view url)
     -> std::optional<std::string> {
   auto uri{oauth_try_parse_uri(url)};
@@ -108,38 +107,25 @@ auto dpop_normalize_target(const std::string_view url)
     return std::nullopt;
   }
 
+  // RFC 9449 Section 4.3 recommends the syntax and scheme normalization of
+  // RFC 3986 Sections 6.2.2 and 6.2.3, and Section 4.2 excludes the query and
+  // fragment. RFC 9110 Section 4.2.1 gives an "http" or "https" target URI no
+  // userinfo, so it is dropped rather than signed into the proof or compared
   uri->canonicalize();
-  const auto scheme{uri->scheme()};
-  const auto authority{uri->authority()};
-  if (!scheme.has_value() || !authority.has_value()) {
+  uri->query("");
+  uri->userinfo("");
+  if (!uri->scheme().has_value() || !uri->host().has_value()) {
     return std::nullopt;
   }
 
-  // RFC 9110 Section 4.2.1: an "http" or "https" target URI carries no
-  // userinfo, so any is dropped rather than signed into the proof or compared,
-  // keeping the host and port (with the IPv6 brackets the authority already
-  // carries)
-  std::string_view host_and_port{authority.value()};
-  const auto userinfo_end{host_and_port.find('@')};
-  if (userinfo_end != std::string_view::npos) {
-    host_and_port.remove_prefix(userinfo_end + 1);
+  // RFC 3986 Section 6.2.3: an authority with an empty path is equivalent to
+  // one with a path of "/", a scheme-based normalization the general
+  // canonicalizer leaves to the caller
+  if (!uri->path().has_value() || uri->path().value().empty()) {
+    uri->path(std::string{"/"});
   }
 
-  const auto path{uri->path()};
-  const auto has_path{path.has_value() && !path.value().empty()};
-  std::string result;
-  result.reserve(scheme.value().size() + 3 + host_and_port.size() +
-                 (has_path ? path.value().size() : 1));
-  result.append(scheme.value());
-  result.append("://");
-  result.append(host_and_port);
-  if (has_path) {
-    result.append(path.value());
-  } else {
-    result.push_back('/');
-  }
-
-  return result;
+  return uri->recompose_without_fragment();
 }
 
 // RFC 9449 Section 4.2 and Section 7: the base64url-encoded SHA-256 hash of the
