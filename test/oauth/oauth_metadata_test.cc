@@ -912,6 +912,126 @@ TEST(make_server_metadata_omits_absent_members) {
   EXPECT_FALSE(document.value().defines("jwks_uri"));
   EXPECT_FALSE(document.value().defines("scopes_supported"));
   EXPECT_FALSE(document.value().defines("grant_types_supported"));
+  EXPECT_FALSE(
+      document.value().defines("pushed_authorization_request_endpoint"));
+  EXPECT_FALSE(
+      document.value().defines("require_pushed_authorization_requests"));
+}
+
+TEST(make_server_metadata_emits_the_par_members) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.pushed_authorization_request_endpoint = "https://server.example/par";
+  config.require_pushed_authorization_requests = true;
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_EQ(
+      document.value().at("pushed_authorization_request_endpoint").to_string(),
+      "https://server.example/par");
+  EXPECT_TRUE(document.value()
+                  .at("require_pushed_authorization_requests")
+                  .to_boolean());
+}
+
+TEST(make_server_metadata_omits_require_par_when_false) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.pushed_authorization_request_endpoint = "https://server.example/par";
+  config.require_pushed_authorization_requests = false;
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  EXPECT_TRUE(
+      document.value().defines("pushed_authorization_request_endpoint"));
+  EXPECT_FALSE(
+      document.value().defines("require_pushed_authorization_requests"));
+}
+
+TEST(make_server_metadata_rejects_a_non_https_par_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.pushed_authorization_request_endpoint = "http://server.example/par";
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(make_server_metadata_rejects_require_par_without_an_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.require_pushed_authorization_requests = true;
+  config.response_types_supported = response_types;
+  const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_FALSE(document.has_value());
+}
+
+TEST(server_metadata_reads_the_par_members) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "pushed_authorization_request_endpoint": "https://example.com/par",
+    "require_pushed_authorization_requests": true
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
+            "https://example.com/par");
+  EXPECT_TRUE(metadata.value().require_pushed_authorization_requests());
+}
+
+TEST(server_metadata_require_par_defaults_to_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(
+      metadata.value().pushed_authorization_request_endpoint().has_value());
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+}
+
+TEST(server_metadata_require_par_wrong_type_is_false) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ],
+    "require_pushed_authorization_requests": "true"
+  })JSON")};
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.value().require_pushed_authorization_requests());
+}
+
+TEST(make_server_metadata_par_round_trips) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  sourcemeta::core::OAuthServerMetadataConfig config;
+  config.issuer = "https://server.example";
+  config.authorization_endpoint = "https://server.example/authorize";
+  config.token_endpoint = "https://server.example/token";
+  config.pushed_authorization_request_endpoint = "https://server.example/par";
+  config.require_pushed_authorization_requests = true;
+  config.response_types_supported = response_types;
+  auto document{sourcemeta::core::oauth_make_server_metadata(config)};
+  EXPECT_TRUE(document.has_value());
+  const auto metadata{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document.value()), "https://server.example")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().pushed_authorization_request_endpoint().value(),
+            "https://server.example/par");
+  EXPECT_TRUE(metadata.value().require_pushed_authorization_requests());
 }
 
 TEST(make_server_metadata_rejects_jwt_auth_without_signing_algs) {

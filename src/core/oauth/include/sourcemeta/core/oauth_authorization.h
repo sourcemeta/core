@@ -73,9 +73,10 @@ struct OAuthAuthorizationRequest {
   std::string_view request_uri;
   /// The JWK thumbprint of the DPoP proof public key (RFC 9449 Section 10).
   std::string_view dpop_jkt;
-  /// The response type, a space-delimited set that the builder always forces to
-  /// `code`, surfaced on parse so a server can tell a missing value from one it
-  /// does not understand (RFC 6749 Section 3.1.1). It is placed after the older
+  /// The response type, a space-delimited set the authorization URL builder
+  /// forces to `code` while the pushed request builder honors an override,
+  /// surfaced on parse so a server can tell a missing value from one it does
+  /// not understand (RFC 6749 Section 3.1.1). It is placed after the older
   /// members so an existing positional initializer keeps populating them.
   std::string_view response_type;
   /// The repeatable resource indicators, each an absolute URI without a
