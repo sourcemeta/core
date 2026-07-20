@@ -10,6 +10,7 @@
 #include <sourcemeta/core/oauth_bearer.h>
 #include <sourcemeta/core/oauth_client_authentication.h>
 #include <sourcemeta/core/oauth_device.h>
+#include <sourcemeta/core/oauth_dpop.h>
 #include <sourcemeta/core/oauth_error.h>
 #include <sourcemeta/core/oauth_introspection.h>
 #include <sourcemeta/core/oauth_metadata.h>
