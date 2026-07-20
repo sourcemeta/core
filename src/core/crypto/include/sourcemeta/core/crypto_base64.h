@@ -43,6 +43,22 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_encode(const std::string_view input)
     -> std::string;
 
 /// @ingroup crypto
+/// Encode a byte sequence using Base64 (RFC 4648 Section 4), appending to a
+/// wiping string so that an encoded secret is never held in ordinary storage.
+/// The output must not alias the input. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/crypto.h>
+/// #include <cassert>
+///
+/// sourcemeta::core::SecureString result;
+/// sourcemeta::core::base64_encode("foobar", result);
+/// assert(result == "Zm9vYmFy");
+/// ```
+auto SOURCEMETA_CORE_CRYPTO_EXPORT base64_encode(const std::string_view input,
+                                                 SecureString &output) -> void;
+
+/// @ingroup crypto
 /// Decode a Base64 string (RFC 4648 Section 4), returning no value unless the
 /// input is a canonical padded encoding. For example:
 ///
