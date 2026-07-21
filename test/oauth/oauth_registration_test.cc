@@ -59,6 +59,33 @@ TEST(client_metadata_accepts_jwks_alone) {
   EXPECT_FALSE(metadata.value().jwks_uri().has_value());
 }
 
+TEST(client_metadata_rejects_a_non_array_grant_types) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "grant_types": "authorization_code"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_rejects_a_non_array_response_types) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "response_types": "code"
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_rejects_a_non_string_token_endpoint_auth_method) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "token_endpoint_auth_method": [ "none" ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
 TEST(client_metadata_defaults_the_token_endpoint_auth_method) {
   auto document{sourcemeta::core::parse_json(R"JSON({})JSON")};
   const auto metadata{
@@ -394,6 +421,57 @@ TEST(make_registration_request_rejects_a_malformed_policy_uri) {
   EXPECT_FALSE(body.has_value());
 }
 
+TEST(make_registration_request_rejects_a_malformed_redirect_uri) {
+  const std::array<std::string_view, 2> redirect_uris{
+      {"https://client.example.org/callback", "not a uri"}};
+  sourcemeta::core::OAuthClientRegistrationConfig config;
+  config.redirect_uris = redirect_uris;
+  const auto body{sourcemeta::core::oauth_make_registration_request(config)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_request_accepts_a_non_https_redirect_uri) {
+  const std::array<std::string_view, 2> redirect_uris{
+      {"http://127.0.0.1:8080/callback", "com.example.app:/callback"}};
+  sourcemeta::core::OAuthClientRegistrationConfig config;
+  config.redirect_uris = redirect_uris;
+  const auto body{sourcemeta::core::oauth_make_registration_request(config)};
+  EXPECT_TRUE(body.has_value());
+  EXPECT_EQ(body.value().at("redirect_uris").at(0).to_string(),
+            "http://127.0.0.1:8080/callback");
+  EXPECT_EQ(body.value().at("redirect_uris").at(1).to_string(),
+            "com.example.app:/callback");
+}
+
+TEST(make_registration_request_emits_an_inline_jwks) {
+  const auto keys{sourcemeta::core::parse_json(R"JSON({ "keys": [] })JSON")};
+  sourcemeta::core::OAuthClientRegistrationConfig config;
+  config.jwks = &keys;
+  const auto body{sourcemeta::core::oauth_make_registration_request(config)};
+  EXPECT_TRUE(body.has_value());
+  EXPECT_TRUE(body.value().defines("jwks"));
+  EXPECT_TRUE(body.value().at("jwks").defines("keys"));
+  EXPECT_FALSE(body.value().defines("jwks_uri"));
+}
+
+TEST(make_registration_request_rejects_an_inline_jwks_with_a_location) {
+  const auto keys{sourcemeta::core::parse_json(R"JSON({ "keys": [] })JSON")};
+  sourcemeta::core::OAuthClientRegistrationConfig config;
+  config.jwks = &keys;
+  config.jwks_uri = "https://client.example.org/keys.jwks";
+  const auto body{sourcemeta::core::oauth_make_registration_request(config)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_request_rejects_a_non_object_inline_jwks) {
+  const auto keys{
+      sourcemeta::core::parse_json(R"JSON([ "not an object" ])JSON")};
+  sourcemeta::core::OAuthClientRegistrationConfig config;
+  config.jwks = &keys;
+  const auto body{sourcemeta::core::oauth_make_registration_request(config)};
+  EXPECT_FALSE(body.has_value());
+}
+
 TEST(make_registration_error_response_emits_the_code) {
   const auto body{sourcemeta::core::oauth_make_registration_error_response(
       sourcemeta::core::oauth_error_code(
@@ -629,6 +707,37 @@ TEST(make_registration_response_rejects_a_secret_without_an_expiry) {
   sourcemeta::core::OAuthClientRegistrationResult result;
   result.client_id = "s6BhdRkqt3";
   result.client_secret = "cf136dc3c1fc93f31185e5885805d";
+  const auto body{
+      sourcemeta::core::oauth_make_registration_response(metadata, result)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_response_rejects_an_expiry_without_a_secret) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  sourcemeta::core::OAuthClientRegistrationResult result;
+  result.client_id = "s6BhdRkqt3";
+  result.client_secret_expires_at = std::chrono::seconds{2893276800};
+  const auto body{
+      sourcemeta::core::oauth_make_registration_response(metadata, result)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_response_rejects_a_negative_issued_at) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  sourcemeta::core::OAuthClientRegistrationResult result;
+  result.client_id = "s6BhdRkqt3";
+  result.client_id_issued_at = std::chrono::seconds{-1};
+  const auto body{
+      sourcemeta::core::oauth_make_registration_response(metadata, result)};
+  EXPECT_FALSE(body.has_value());
+}
+
+TEST(make_registration_response_rejects_a_negative_expiry) {
+  const auto metadata{sourcemeta::core::parse_json(R"JSON({})JSON")};
+  sourcemeta::core::OAuthClientRegistrationResult result;
+  result.client_id = "s6BhdRkqt3";
+  result.client_secret = "cf136dc3c1fc93f31185e5885805d";
+  result.client_secret_expires_at = std::chrono::seconds{-1};
   const auto body{
       sourcemeta::core::oauth_make_registration_response(metadata, result)};
   EXPECT_FALSE(body.has_value());

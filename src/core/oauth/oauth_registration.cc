@@ -99,6 +99,21 @@ auto validated_client_metadata(JSON &&data) -> JSON {
     throw OAuthRegistrationParseError{};
   }
 
+  // RFC 7591 Section 2: the grant and response types are arrays and the
+  // authentication method is a string. Each has a default accessor, so a member
+  // present with the wrong type is rejected here rather than silently read as
+  // its default, which would fabricate a value the client never registered
+  const auto *grant_types{data.try_at("grant_types"sv, HASH_GRANT_TYPES)};
+  const auto *response_types{
+      data.try_at("response_types"sv, HASH_RESPONSE_TYPES)};
+  const auto *auth_method{data.try_at("token_endpoint_auth_method"sv,
+                                      HASH_TOKEN_ENDPOINT_AUTH_METHOD)};
+  if ((grant_types != nullptr && !grant_types->is_array()) ||
+      (response_types != nullptr && !response_types->is_array()) ||
+      (auth_method != nullptr && !auth_method->is_string())) {
+    throw OAuthRegistrationParseError{};
+  }
+
   return std::move(data);
 }
 
@@ -291,9 +306,28 @@ auto oauth_make_registration_request(
     return std::nullopt;
   }
 
+  // RFC 6749 Section 3.1.2: a redirection URI MUST be an absolute URI, so a
+  // malformed one yields a request the server would reject
+  for (const auto redirect_uri : config.redirect_uris) {
+    if (!oauth_try_parse_uri(redirect_uri).has_value()) {
+      return std::nullopt;
+    }
+  }
+
+  // RFC 7591 Section 2: the JWK Set is a JSON object, and it "MUST NOT" be
+  // present together with the JWK Set location
+  if (config.jwks != nullptr &&
+      (!config.jwks->is_object() || !config.jwks_uri.empty())) {
+    return std::nullopt;
+  }
+
   auto document{JSON::make_object()};
   assign_array_member(document, "redirect_uris", HASH_REDIRECT_URIS,
                       config.redirect_uris);
+  if (config.jwks != nullptr) {
+    document.assign_assume_new(std::string{"jwks"}, JSON{*config.jwks},
+                               HASH_JWKS);
+  }
   assign_scalar_member(document, "token_endpoint_auth_method",
                        HASH_TOKEN_ENDPOINT_AUTH_METHOD,
                        config.token_endpoint_auth_method);
@@ -400,12 +434,22 @@ auto oauth_apply_software_statement_claims(JSON &metadata, const JSON &claims)
 auto oauth_make_registration_response(
     const JSON &metadata, const OAuthClientRegistrationResult &result)
     -> std::optional<JSON> {
-  // RFC 7591 Section 3.2.1: the client identifier is REQUIRED, and a secret is
-  // returned alongside its expiry, so a secret without one yields a response
-  // this module's own reader would leave incomplete
+  // RFC 7591 Section 3.2.1: the client identifier is REQUIRED, and the secret
+  // and its expiry are returned together, so one without the other yields a
+  // response this module's own reader would misread
   if (!metadata.is_object() || result.client_id.empty() ||
-      (!result.client_secret.empty() &&
+      (result.client_secret.empty() !=
        !result.client_secret_expires_at.has_value())) {
+    return std::nullopt;
+  }
+
+  // RFC 7591 Section 3.2.1: the issue and expiry times are a number of seconds
+  // since the epoch, so a negative value is not representable
+  if ((result.client_id_issued_at.has_value() &&
+       result.client_id_issued_at.value() < std::chrono::seconds::zero()) ||
+      (result.client_secret_expires_at.has_value() &&
+       result.client_secret_expires_at.value() <
+           std::chrono::seconds::zero())) {
     return std::nullopt;
   }
 

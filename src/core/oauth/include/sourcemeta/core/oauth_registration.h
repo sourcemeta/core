@@ -24,8 +24,11 @@ namespace sourcemeta::core {
 /// registration request (RFC 7591 Section 3.1) and the server's registration
 /// response (RFC 7591 Section 3.2.1), so the response-only members carry a
 /// value only when read over a response. The document is validated on
-/// construction to reject a `jwks` and `jwks_uri` present together (RFC 7591
-/// Section 2). Accessors apply the specification defaults, and any member
+/// construction to reject a `jwks` and `jwks_uri` present together, and a
+/// `grant_types`, `response_types`, or `token_endpoint_auth_method` present
+/// with the wrong type, since each of those carries a default an accessor would
+/// otherwise substitute (RFC 7591 Section 2). Accessors apply the specification
+/// defaults, and any member
 /// without a typed accessor, such as an internationalized name (RFC 7591
 /// Section 2.2), is reachable through the underlying document. A string
 /// accessor returns a view into the owned document, valid for the lifetime of
@@ -184,6 +187,10 @@ struct OAuthClientRegistrationConfig {
   /// The JWK Set document location for the client's keys, mutually exclusive
   /// with an inline key set (RFC 7591 Section 2).
   std::string_view jwks_uri;
+  /// The client's JWK Set carried inline for a client that cannot host one,
+  /// mutually exclusive with its location, a non-owning pointer left null when
+  /// absent (RFC 7591 Section 2).
+  const JSON *jwks{nullptr};
   /// The client software identifier (RFC 7591 Section 2).
   std::string_view software_id;
   /// The client software version (RFC 7591 Section 2).
@@ -195,9 +202,10 @@ struct OAuthClientRegistrationConfig {
 /// @ingroup oauth
 /// Build a dynamic client registration request body (RFC 7591 Section 3.1),
 /// returning no value when a present `client_uri`, `logo_uri`, `tos_uri`,
-/// `policy_uri`, or `jwks_uri` is not a valid URI. Each present scalar and each
-/// non-empty array is emitted. The caller serializes the object as the
-/// `application/json` request body. For example:
+/// `policy_uri`, `jwks_uri`, or redirection URI is not a valid URI, or an
+/// inline key set is not a JSON object or is given together with its location.
+/// Each present scalar and each non-empty array is emitted. The caller
+/// serializes the object as the `application/json` request body. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -328,11 +336,11 @@ struct OAuthClientRegistrationResult {
 /// Build a dynamic client registration response body (RFC 7591 Section 3.2.1
 /// and RFC 7592 Section 3) by returning the registered metadata with the
 /// server-assigned values overlaid, or no value when the client identifier is
-/// empty, a secret is issued without its expiry, only one of the management
-/// access token and location is given, or the management location is not a
-/// valid URI. The server-assigned members come only from the assigned values,
-/// never from the accepted record. The caller serializes the object as the
-/// `application/json` response body. For example:
+/// empty, only one of the secret and its expiry is given, a time is negative,
+/// only one of the management access token and location is given, or the
+/// management location is not a valid URI. The server-assigned members come
+/// only from the assigned values, never from the accepted record. The caller
+/// serializes the object as the `application/json` response body. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
