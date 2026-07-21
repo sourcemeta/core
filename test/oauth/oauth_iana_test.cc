@@ -17,7 +17,10 @@
 // the registry is caught. Values the registries do not carry, such as the
 // device authorization response fields and the revocation `token` and
 // `token_type_hint` parameters, are described normatively rather than
-// registered here, so they are not asserted against these registries.
+// registered here, so they are not asserted against these registries. Keys the
+// module uses only as JSON Web Token or introspection claims, such as `aud`,
+// `cnf`, and the DPoP proof `nonce`, are likewise not OAuth parameters and
+// belong to their own registries rather than these.
 
 namespace {
 
@@ -176,7 +179,7 @@ auto main(int argc, char **argv) -> int {
   // OAuth Parameters (RFC 6749 Section 11.2): the request and response
   // parameters the builders and parsers use
   const auto parameters{load_registry(base / "parameters.csv")};
-  const std::array<std::string_view, 30> parameter_names{
+  const std::array<std::string_view, 33> parameter_names{
       {"client_id",
        "client_secret",
        "response_type",
@@ -192,6 +195,8 @@ auto main(int argc, char **argv) -> int {
        "code_challenge_method",
        "code_verifier",
        "refresh_token",
+       "access_token",
+       "token_type",
        "device_code",
        "request_uri",
        "resource",
@@ -205,6 +210,7 @@ auto main(int argc, char **argv) -> int {
        "actor_token",
        "actor_token_type",
        "requested_token_type",
+       "issued_token_type",
        "iss",
        "expires_in"}};
   register_all("OAuth_IANA_Parameter", parameter_names, parameters);
