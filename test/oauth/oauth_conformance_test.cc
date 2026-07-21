@@ -85,7 +85,7 @@ TEST(conformance_token_request_code_round_trips) {
       "SplxlOBeZQQYbYS6WxSbIA", "https://client.example/cb",
       "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", resources, body);
 
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest parsed;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
       std::string_view{body}, storage, parsed,
@@ -209,7 +209,7 @@ TEST(conformance_full_code_pkce_exchange) {
                                               header);
 
   // The server parses the token request and the client authentication.
-  std::string token_storage;
+  sourcemeta::core::SecureString token_storage;
   sourcemeta::core::OAuthTokenRequest token_request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
       std::string_view{body}, token_storage, token_request,

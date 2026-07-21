@@ -957,7 +957,7 @@ TEST(replay_store_separator_prevents_ambiguity) {
                                      FIXED_TIME, std::chrono::seconds{300}));
 }
 
-TEST(replay_store_evicts_the_earliest_at_capacity) {
+TEST(replay_store_fails_closed_when_full_of_live_entries) {
   sourcemeta::core::OAuthDPoPReplayStore store{2};
   EXPECT_TRUE(store.check_and_insert("first",
                                      "https://server.example.com/token",
@@ -965,19 +965,35 @@ TEST(replay_store_evicts_the_earliest_at_capacity) {
   EXPECT_TRUE(store.check_and_insert(
       "second", "https://server.example.com/token",
       FIXED_TIME + std::chrono::seconds{1}, std::chrono::seconds{100}));
-  EXPECT_TRUE(store.check_and_insert(
+  EXPECT_FALSE(store.check_and_insert(
       "third", "https://server.example.com/token",
       FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
   EXPECT_EQ(store.size(FIXED_TIME + std::chrono::seconds{2}), 2);
   EXPECT_FALSE(store.check_and_insert(
-      "second", "https://server.example.com/token",
-      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
-  EXPECT_FALSE(store.check_and_insert(
-      "third", "https://server.example.com/token",
-      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
-  EXPECT_TRUE(store.check_and_insert(
       "first", "https://server.example.com/token",
       FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
+  EXPECT_FALSE(store.check_and_insert(
+      "second", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
+  EXPECT_TRUE(store.check_and_insert(
+      "fourth", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{100}, std::chrono::seconds{100}));
+}
+
+TEST(replay_store_keeps_a_live_entry_when_flooded) {
+  sourcemeta::core::OAuthDPoPReplayStore store{2};
+  EXPECT_TRUE(store.check_and_insert("victim",
+                                     "https://server.example.com/token",
+                                     FIXED_TIME, std::chrono::seconds{100}));
+  EXPECT_TRUE(store.check_and_insert(
+      "flood-a", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{1}, std::chrono::seconds{100}));
+  EXPECT_FALSE(store.check_and_insert(
+      "flood-b", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{2}, std::chrono::seconds{100}));
+  EXPECT_FALSE(store.check_and_insert(
+      "victim", "https://server.example.com/token",
+      FIXED_TIME + std::chrono::seconds{3}, std::chrono::seconds{100}));
 }
 
 TEST(confirmation_has_a_single_member) {

@@ -160,6 +160,15 @@ TEST(parse_authorization_response_reads_code_and_state) {
   EXPECT_TRUE(response.error.empty());
 }
 
+TEST(parse_authorization_response_decodes_a_percent_encoded_name) {
+  std::string storage;
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  EXPECT_TRUE(sourcemeta::core::oauth_parse_authorization_response(
+      "%63ode=SplxlOBeZQQYbYS6WxSbIA&state=xyz", storage, response));
+  EXPECT_EQ(response.code, "SplxlOBeZQQYbYS6WxSbIA");
+  EXPECT_EQ(response.state, "xyz");
+}
+
 TEST(parse_authorization_response_reads_iss) {
   std::string storage;
   sourcemeta::core::OAuthAuthorizationResponse response;

@@ -37,8 +37,8 @@ const auto HASH_VERIFICATION_URI_COMPLETE{
 const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
 const auto HASH_INTERVAL{JSON::Object::hash("interval"sv)};
 
-auto normalize_user_code(const std::string_view value) -> std::string {
-  std::string result;
+auto normalize_user_code(const std::string_view value) -> SecureString {
+  SecureString result;
   result.reserve(value.size());
   for (const auto character : value) {
     if (!is_alphanum(character)) {

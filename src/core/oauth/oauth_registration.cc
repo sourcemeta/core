@@ -321,10 +321,12 @@ auto oauth_make_registration_request(
     return std::nullopt;
   }
 
-  // RFC 6749 Section 3.1.2: a redirection URI MUST be an absolute URI, so a
-  // malformed one yields a request the server would reject
+  // RFC 6749 Section 3.1.2: a redirection URI MUST be an absolute URI and MUST
+  // NOT include a fragment, so a malformed or fragment-bearing one yields a
+  // request the server would reject
   for (const auto redirect_uri : config.redirect_uris) {
-    if (!oauth_try_parse_uri(redirect_uri).has_value()) {
+    const auto parsed{oauth_try_parse_uri(redirect_uri)};
+    if (!parsed.has_value() || parsed.value().fragment().has_value()) {
       return std::nullopt;
     }
   }

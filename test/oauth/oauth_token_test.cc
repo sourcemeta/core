@@ -246,7 +246,7 @@ TEST(build_token_request_client_credentials_with_two_resources) {
 }
 
 TEST(parse_token_request_reads_the_authorization_code_grant) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
       "grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA"
@@ -259,7 +259,7 @@ TEST(parse_token_request_reads_the_authorization_code_grant) {
 }
 
 TEST(parse_token_request_reads_the_refresh_grant) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
       "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA&scope="
@@ -271,7 +271,7 @@ TEST(parse_token_request_reads_the_refresh_grant) {
 }
 
 TEST(parse_token_request_rejects_a_duplicate_parameter) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   EXPECT_FALSE(sourcemeta::core::oauth_parse_token_request(
       "grant_type=a&grant_type=b", storage, request,
@@ -279,7 +279,7 @@ TEST(parse_token_request_rejects_a_duplicate_parameter) {
 }
 
 TEST(parse_token_request_surfaces_other_parameters_through_the_callback) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   std::string collected;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
@@ -298,7 +298,7 @@ TEST(parse_token_request_surfaces_other_parameters_through_the_callback) {
 }
 
 TEST(parse_token_request_leaves_absent_fields_empty) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
       "grant_type=client_credentials", storage, request,
@@ -359,7 +359,7 @@ TEST(make_token_error_response_emits_the_error) {
 }
 
 TEST(parse_token_request_treats_an_empty_first_value_as_omitted) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(
       "scope=&scope=read", storage, request,
@@ -400,7 +400,7 @@ TEST(make_token_response_omits_a_negative_expires_in) {
 }
 
 TEST(parse_token_request_decodes_a_percent_encoded_name) {
-  std::string storage;
+  sourcemeta::core::SecureString storage;
   sourcemeta::core::OAuthTokenRequest request;
   // grant%5Ftype decodes to grant_type
   EXPECT_TRUE(sourcemeta::core::oauth_parse_token_request(

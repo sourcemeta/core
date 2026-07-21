@@ -13,7 +13,6 @@
 #include <functional>  // std::function
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
-#include <string>      // std::string
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
@@ -54,7 +53,7 @@ auto oauth_append_resources(SecureString &sink,
   }
 }
 
-auto assign_token_scalar(const std::string_view value, std::string &storage,
+auto assign_token_scalar(const std::string_view value, SecureString &storage,
                          bool &seen, std::string_view &field) -> bool {
   // RFC 6749 Section 3.2: "Parameters sent without a value MUST be treated as
   // if they were omitted", so an empty occurrence neither counts as a duplicate
@@ -70,7 +69,7 @@ auto assign_token_scalar(const std::string_view value, std::string &storage,
   }
 
   seen = true;
-  return oauth_form_decode_into(value, storage, field);
+  return oauth_form_decode_into_secure(value, storage, field);
 }
 
 } // namespace
@@ -195,13 +194,16 @@ auto OAuthTokenResponse::has_scope(const std::string_view value) const -> bool {
 auto OAuthTokenResponse::data() const -> const JSON & { return *this->data_; }
 
 auto oauth_parse_token_request(
-    const std::string_view body, std::string &storage,
+    const std::string_view body, SecureString &storage,
     OAuthTokenRequest &result,
     const std::function<void(std::string_view, std::string_view)> &on_other)
     -> bool {
   result = {};
   // A single up-front reserve keeps every later decode from reallocating the
-  // arena and dangling an earlier borrowed view (design convention 1)
+  // arena and dangling an earlier borrowed view (design convention 1). The
+  // token endpoint body carries the request's secrets, the authorization code,
+  // the PKCE verifier, the refresh token, and the client authentication
+  // parameters, so the arena is a wiping string (engineering invariant 1)
   storage.reserve(storage.size() + body.size());
   const URI::Query parsed{body};
   bool has_grant_type{false};
@@ -215,7 +217,7 @@ auto oauth_parse_token_request(
     // names too, so a name is decoded before it is recognized, and a malformed
     // escape fails the parse
     std::string_view name;
-    if (!oauth_form_decode_into(parameter.first, storage, name)) {
+    if (!oauth_form_decode_into_secure(parameter.first, storage, name)) {
       return false;
     }
 
@@ -242,7 +244,7 @@ auto oauth_parse_token_request(
       // including the client authentication ones, are surfaced with their
       // decoded value rather than stored on the result
       std::string_view decoded;
-      valid = oauth_form_decode_into(value, storage, decoded);
+      valid = oauth_form_decode_into_secure(value, storage, decoded);
       if (valid) {
         on_other(name, decoded);
       }
