@@ -323,7 +323,14 @@ auto oauth_parse_authorization_response(const std::string_view query,
   bool has_error_description{false};
   bool has_error_uri{false};
   for (const auto &parameter : parsed) {
-    const auto name{parameter.first};
+    // RFC 6749 Appendix B: the application/x-www-form-urlencoded format encodes
+    // names too, so a name is decoded before it is recognized, the same rule
+    // the request parsers apply, and a malformed escape fails the parse
+    std::string_view name;
+    if (!oauth_form_decode_into(parameter.first, storage, name)) {
+      return false;
+    }
+
     const auto value{parameter.second};
     // RFC 6749 Section 3.1: "Request and response parameters MUST NOT be
     // included more than once", so a duplicate is malformed, while an

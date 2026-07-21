@@ -448,6 +448,15 @@ TEST(make_registration_request_rejects_a_malformed_redirect_uri) {
   EXPECT_FALSE(body.has_value());
 }
 
+TEST(make_registration_request_rejects_a_redirect_uri_with_a_fragment) {
+  const std::array<std::string_view, 1> redirect_uris{
+      {"https://client.example.org/callback#section"}};
+  sourcemeta::core::OAuthClientRegistrationConfig config;
+  config.redirect_uris = redirect_uris;
+  const auto body{sourcemeta::core::oauth_make_registration_request(config)};
+  EXPECT_FALSE(body.has_value());
+}
+
 TEST(make_registration_request_accepts_a_non_https_redirect_uri) {
   const std::array<std::string_view, 2> redirect_uris{
       {"http://127.0.0.1:8080/callback", "com.example.app:/callback"}};

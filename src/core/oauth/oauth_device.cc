@@ -37,8 +37,8 @@ const auto HASH_VERIFICATION_URI_COMPLETE{
 const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
 const auto HASH_INTERVAL{JSON::Object::hash("interval"sv)};
 
-auto normalize_user_code(const std::string_view value) -> std::string {
-  std::string result;
+auto normalize_user_code(const std::string_view value) -> SecureString {
+  SecureString result;
   result.reserve(value.size());
   for (const auto character : value) {
     if (!is_alphanum(character)) {
@@ -186,6 +186,12 @@ auto OAuthDevicePoller::observe(const OAuthTokenError error) noexcept
       return OAuthDevicePollDecision::Continue;
     case OAuthTokenError::AuthorizationPending:
       return OAuthDevicePollDecision::Continue;
+    case OAuthTokenError::UseDPoPNonce:
+      // RFC 9449 Section 8: the server requires a nonce, because the proof
+      // carried none or a stale one, and now supplies it, so the proof is
+      // re-minted with the nonce and the poll retried without growing the
+      // interval
+      return OAuthDevicePollDecision::RetryWithNonce;
     case OAuthTokenError::AccessDenied:
       return OAuthDevicePollDecision::Denied;
     case OAuthTokenError::ExpiredToken:

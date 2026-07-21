@@ -388,28 +388,22 @@ auto OAuthDPoPReplayStore::check_and_insert(
     return entry.expiry <= now;
   });
 
-  // Scan once for a replay, tracking the entry closest to expiry so it can be
-  // evicted if the store is at capacity and this identifier is new
-  std::size_t earliest{0};
-  for (std::size_t index{0}; index < this->entries_.size(); index += 1) {
-    if (this->entries_[index].digest == digest) {
+  for (const auto &existing : this->entries_) {
+    if (existing.digest == digest) {
       return false;
     }
-
-    if (this->entries_[index].expiry < this->entries_[earliest].expiry) {
-      earliest = index;
-    }
   }
 
-  const Entry entry{.digest = digest, .expiry = now + window};
-  // A bounded store cannot grow without limit, so at capacity the entry closest
-  // to expiry, with the least replay protection left, gives up its slot
-  if (this->entries_.size() >= this->capacity_ && !this->entries_.empty()) {
-    this->entries_[earliest] = entry;
-  } else {
-    this->entries_.push_back(entry);
+  // RFC 9449 Section 11.1: once the expired entries are pruned every remaining
+  // one still guards against a replay, so a full store fails closed rather than
+  // evict a live entry. Evicting one would drop its guard and let that proof be
+  // replayed, so the new proof is rejected until a slot frees on expiry. The
+  // capacity bounds the memory an attacker minting distinct proofs can consume
+  if (this->entries_.size() >= this->capacity_) {
+    return false;
   }
 
+  this->entries_.push_back(Entry{.digest = digest, .expiry = now + window});
   return true;
 }
 

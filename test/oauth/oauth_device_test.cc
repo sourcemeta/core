@@ -83,6 +83,24 @@ TEST(device_poller_maps_the_terminal_errors) {
             sourcemeta::core::OAuthDevicePollDecision::Error);
 }
 
+TEST(device_poller_retries_with_a_nonce) {
+  sourcemeta::core::OAuthDevicePoller poller{
+      std::chrono::seconds{5}, std::chrono::seconds{1800},
+      std::chrono::steady_clock::time_point{}};
+  EXPECT_EQ(poller.observe(sourcemeta::core::OAuthTokenError::UseDPoPNonce),
+            sourcemeta::core::OAuthDevicePollDecision::RetryWithNonce);
+  // The nonce retry does not grow the interval, unlike slow_down
+  EXPECT_EQ(poller.interval(), std::chrono::seconds{5});
+}
+
+TEST(device_poller_treats_an_invalid_dpop_proof_as_terminal) {
+  sourcemeta::core::OAuthDevicePoller poller{
+      std::chrono::seconds{5}, std::chrono::seconds{1800},
+      std::chrono::steady_clock::time_point{}};
+  EXPECT_EQ(poller.observe(sourcemeta::core::OAuthTokenError::InvalidDPoPProof),
+            sourcemeta::core::OAuthDevicePollDecision::Error);
+}
+
 TEST(device_poller_reports_local_expiry) {
   const sourcemeta::core::OAuthDevicePoller poller{
       std::chrono::seconds{5}, std::chrono::seconds{1800},
