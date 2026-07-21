@@ -6,6 +6,7 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/oauth_assertion.h>
 #include <sourcemeta/core/oauth_authorization.h>
 #include <sourcemeta/core/oauth_bearer.h>
 #include <sourcemeta/core/oauth_client_authentication.h>
