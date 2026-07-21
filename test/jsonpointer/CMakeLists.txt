@@ -3,6 +3,7 @@ sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME jsonpointer
     jsonpointer_empty_pointer_test.cc
     jsonpointer_get_test.cc
     jsonpointer_is_relative_pointer_test.cc
+    jsonpointer_is_pointer_test.cc
     jsonpointer_try_get_test.cc
     jsonpointer_error_test.cc
     jsonpointer_parse_error_test.cc
