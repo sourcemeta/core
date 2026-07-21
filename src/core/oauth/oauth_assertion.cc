@@ -97,15 +97,17 @@ auto verify_assertion(
     return map_verification_error(error.value());
   }
 
-  // RFC 7523 Section 3 check 7: an identifier is tracked for the remaining
-  // validity of the assertion so it cannot be replayed, scoped to the audience
-  // it was issued for
+  // RFC 7523 Section 3 check 7: an identifier is tracked for as long as the
+  // assertion would be accepted, scoped to the audience it was issued for. The
+  // clock skew is added to the remaining lifetime so the entry outlives the
+  // grace window in which the assertion is still accepted past its expiration
   if (options.replay_store != nullptr) {
     const auto identifier{token.token_id()};
     const auto expiration{token.expires_at()};
     if (identifier.has_value() && expiration.has_value()) {
       const auto remaining{std::chrono::duration_cast<std::chrono::seconds>(
-          expiration.value() - now)};
+                               expiration.value() - now) +
+                           options.clock_skew};
       const auto window{remaining > std::chrono::seconds{0}
                             ? remaining
                             : std::chrono::seconds{0}};

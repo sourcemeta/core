@@ -51,14 +51,11 @@ inline constexpr std::string_view OAUTH_CLIENT_ASSERTION_TYPE_JWT_BEARER{
 ///     key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
 /// assert(assertion.has_value());
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_build_assertion(const std::string_view issuer,
-                           const std::string_view subject,
-                           const std::string_view audience,
-                           const std::chrono::seconds lifetime,
-                           const std::chrono::system_clock::time_point now,
-                           const JWKPrivate &key, const JWSAlgorithm algorithm)
-    -> std::optional<std::string>;
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_build_assertion(
+    const std::string_view issuer, const std::string_view subject,
+    const std::string_view audience, const std::chrono::seconds lifetime,
+    const std::chrono::system_clock::time_point now, const JWKPrivate &key,
+    const JWSAlgorithm algorithm) -> std::optional<std::string>;
 
 /// @ingroup oauth
 /// Build a JWT bearer client authentication assertion (RFC 7523 Section 3), a
@@ -80,8 +77,7 @@ auto oauth_build_assertion(const std::string_view issuer,
 ///     sourcemeta::core::JWSAlgorithm::ES256)};
 /// assert(assertion.has_value());
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-auto oauth_build_client_assertion(
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_build_client_assertion(
     const std::string_view client_id, const std::string_view audience,
     const std::chrono::seconds lifetime,
     const std::chrono::system_clock::time_point now, const JWKPrivate &key,
@@ -133,7 +129,7 @@ auto oauth_build_token_request_jwt_bearer(const std::string_view assertion,
 enum class OAuthAssertionError : std::uint8_t {
   /// The assertion was not a well-formed JSON Web Token.
   Malformed,
-  /// The algorithm was absent or outside the accepted set (RFC 7523 Section 8).
+  /// The algorithm was absent or outside the accepted set (RFC 7523 Section 5).
   UnsupportedAlgorithm,
   /// No key verified the signature.
   UnknownKey,
@@ -163,7 +159,8 @@ enum class OAuthAssertionError : std::uint8_t {
 /// accepted algorithms are matched exactly, so an empty set accepts none, and a
 /// replay store, when set, rejects a reused identifier.
 struct OAuthAssertionVerifyOptions {
-  /// The algorithms accepted per local policy (RFC 7523 Section 8).
+  /// The algorithms accepted per local policy, a non-owning view whose backing
+  /// storage must outlive the verification (RFC 7523 Section 5).
   std::span<const JWSAlgorithm> allowed_algorithms{};
   /// The tolerance applied to the expiration, not-before, and issue times.
   std::chrono::seconds clock_skew{std::chrono::seconds{0}};
@@ -201,8 +198,7 @@ struct OAuthAssertionVerifyOptions {
 /// assert(!error.has_value() ||
 ///        error.value() == sourcemeta::core::OAuthAssertionError::Expired);
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-[[nodiscard]] auto oauth_verify_client_assertion(
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_verify_client_assertion(
     const std::string_view assertion,
     const std::span<const std::string_view> expected_audiences,
     const std::string_view request_client_id, const JWKS &keys,
@@ -232,11 +228,10 @@ SOURCEMETA_CORE_OAUTH_EXPORT
 /// const auto error{sourcemeta::core::oauth_verify_assertion_grant(
 ///     assertion, "https://issuer.example", audiences, keys,
 ///     std::chrono::system_clock::now(), options)};
-/// assert(error.has_value() ||
-///        !error.has_value());
+/// assert(!error.has_value() ||
+///        error.value() == sourcemeta::core::OAuthAssertionError::Issuer);
 /// ```
-SOURCEMETA_CORE_OAUTH_EXPORT
-[[nodiscard]] auto oauth_verify_assertion_grant(
+[[nodiscard]] SOURCEMETA_CORE_OAUTH_EXPORT auto oauth_verify_assertion_grant(
     const std::string_view assertion, const std::string_view expected_issuer,
     const std::span<const std::string_view> expected_audiences,
     const JWKS &keys, const std::chrono::system_clock::time_point now,
