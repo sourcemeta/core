@@ -186,6 +186,11 @@ auto OAuthDevicePoller::observe(const OAuthTokenError error) noexcept
       return OAuthDevicePollDecision::Continue;
     case OAuthTokenError::AuthorizationPending:
       return OAuthDevicePollDecision::Continue;
+    case OAuthTokenError::UseDPoPNonce:
+      // RFC 9449 Section 8: the poll was rejected only for lacking a nonce the
+      // server now supplies, so the proof is re-minted with it and the poll
+      // retried, unlike slow_down this does not grow the interval
+      return OAuthDevicePollDecision::RetryWithNonce;
     case OAuthTokenError::AccessDenied:
       return OAuthDevicePollDecision::Denied;
     case OAuthTokenError::ExpiredToken:

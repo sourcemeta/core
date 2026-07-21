@@ -67,7 +67,10 @@ public:
   /// optional freshness hint. Returns no value on a failed retrieval, such as a
   /// transport error, an unsuccessful response, or an oversized body. Injecting
   /// the transport keeps this module free of any networking dependency and
-  /// makes the provider substitutable for testing.
+  /// makes the provider substitutable for testing. A refresh runs the transport
+  /// while holding the cache lock, which serializes concurrent refreshes into
+  /// one retrieval but also blocks other readers for its duration, so the
+  /// transport must bound its own wait with a timeout.
   using Fetcher =
       std::function<std::optional<FetchResult>(std::string_view url)>;
 
