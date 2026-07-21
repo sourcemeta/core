@@ -1,0 +1,16 @@
+URN,Common Name,Change Controller,Reference
+urn:ietf:params:oauth:grant-type:jwt-bearer,JWT Bearer Token Grant Type Profile for OAuth 2.0,IESG,[RFC7523][RFC-ietf-oauth-rfc7523bis-11]
+urn:ietf:params:oauth:client-assertion-type:jwt-bearer,JWT Bearer Token Profile for OAuth 2.0 Client Authentication,IESG,[RFC7523][RFC-ietf-oauth-rfc7523bis-11]
+urn:ietf:params:oauth:grant-type:saml2-bearer,SAML 2.0 Bearer Assertion Grant Type Profile for OAuth 2.0,IESG,[RFC7522][RFC-ietf-oauth-rfc7523bis-11]
+urn:ietf:params:oauth:client-assertion-type:saml2-bearer,SAML 2.0 Bearer Assertion Profile for OAuth 2.0 Client Authentication,IESG,[RFC7522][RFC-ietf-oauth-rfc7523bis-11]
+urn:ietf:params:oauth:token-type:jwt,JSON Web Token (JWT) Token Type,IESG,[RFC7519]
+urn:ietf:params:oauth:grant-type:device_code,Device flow grant type for OAuth 2.0,IESG,"[RFC8628, Section 3.1]"
+urn:ietf:params:oauth:grant-type:token-exchange,Token exchange grant type for OAuth 2.0,IESG,"[RFC8693, Section 2.1]"
+urn:ietf:params:oauth:token-type:access_token,Token type URI for an OAuth 2.0 access token,IESG,"[RFC8693, Section 3]"
+urn:ietf:params:oauth:token-type:refresh_token,Token type URI for an OAuth 2.0 refresh token,IESG,"[RFC8693, Section 3]"
+urn:ietf:params:oauth:token-type:id_token,Token type URI for an ID Token,IESG,"[RFC8693, Section 3]"
+urn:ietf:params:oauth:token-type:saml1,Token type URI for a base64url-encoded SAML 1.1 assertion,IESG,"[RFC8693, Section 3]"
+urn:ietf:params:oauth:token-type:saml2,Token type URI for a base64url-encoded SAML 2.0 assertion,IESG,"[RFC8693, Section 3]"
+urn:ietf:params:oauth:request_uri,A URN Sub-Namespace for OAuth Request URIs.,IESG,"[RFC9126, Section 2.2]"
+urn:ietf:params:oauth:jwk-thumbprint,JWK Thumbprint URI,IESG,[RFC9278]
+urn:ietf:params:oauth:ckt,COSE Key Thumbprint URI,IETF,[RFC9679]

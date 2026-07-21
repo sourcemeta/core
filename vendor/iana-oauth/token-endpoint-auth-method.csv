@@ -1,0 +1,8 @@
+Token Endpoint Authentication Method Name,Change Controller,Reference
+none,IESG,[RFC7591]
+client_secret_post,IESG,[RFC7591]
+client_secret_basic,IESG,[RFC7591]
+client_secret_jwt,IESG,"[OpenID Connect Core 1.0, Section 9][RFC-ietf-oauth-rfc7523bis-11]"
+private_key_jwt,IESG,"[OpenID Connect Core 1.0, Section 9][RFC-ietf-oauth-rfc7523bis-11]"
+tls_client_auth,IESG,"[RFC8705, Section 2.1.1]"
+self_signed_tls_client_auth,IESG,"[RFC8705, Section 2.2.1]"

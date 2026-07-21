@@ -1,0 +1,30 @@
+Name,Description,Change Controller,Reference
+active,Token active status,IESG,"[RFC7662, Section 2.2]"
+username,User identifier of the resource owner,IESG,"[RFC7662, Section 2.2]"
+client_id,Client identifier of the client,IESG,"[RFC7662, Section 2.2]"
+scope,Authorized scopes of the token,IESG,"[RFC7662, Section 2.2]"
+token_type,Type of the token,IESG,"[RFC7662, Section 2.2]"
+exp,Expiration timestamp of the token,IESG,"[RFC7662, Section 2.2]"
+iat,Issuance timestamp of the token,IESG,"[RFC7662, Section 2.2]"
+nbf,Timestamp which the token is not valid before,IESG,"[RFC7662, Section 2.2]"
+sub,Subject of the token,IESG,"[RFC7662, Section 2.2]"
+aud,Audience of the token,IESG,"[RFC7662, Section 2.2]"
+iss,Issuer of the token,IESG,"[RFC7662, Section 2.2]"
+jti,Unique identifier of the token,IESG,"[RFC7662, Section 2.2]"
+permissions,"array of objects, each describing a scoped, time-limitable permission for a resource",[Kantara_UMA_WG],"[Federated Authorization for UMA 2.0, Section 5.1.1]"
+vot,Vector of Trust value,IESG,[RFC8485]
+vtm,Vector of Trust trustmark URL,IESG,[RFC8485]
+act,Actor,IESG,"[RFC8693, Section 4.1]"
+may_act,"Authorized Actor - the party that is authorized
+        to become the actor",IESG,"[RFC8693, Section 4.4]"
+cnf,Confirmation,IESG,[RFC7800][RFC8705]
+ace_profile,The ACE profile used between the client and RS.,IETF,"[RFC9200, Section 5.9.2]"
+cnonce,"""client-nonce"".  A nonce previously provided to the
+        AS by the RS via the client.  Used to verify token freshness when
+        the RS cannot synchronize its clock with the AS.",IETF,"[RFC9200, Section 5.9.2]"
+cti,"""CWT ID"".  The identifier of a CWT as defined in
+        [RFC8392].",IETF,"[RFC9200, Section 5.9.2]"
+exi,"""Expires in"". Lifetime of the token in seconds from the time the RS first sees it. Used to implement a weaker form of token expiration for devices that cannot synchronize their internal clocks.",IETF,"[RFC9200, Section 5.9.2]"
+authorization_details,The member authorization_details contains a JSON array of JSON objects representing the rights of the access token. Each JSON object contains the data to specify the authorization requirements for a certain type of resource.,IETF,"[RFC9396, Section 9.2]"
+acr,Authentication Context Class Reference,IETF,"[RFC9470, Section 6.2]"
+auth_time,Time when the user authentication occurred,IETF,"[RFC9470, Section 6.2]"

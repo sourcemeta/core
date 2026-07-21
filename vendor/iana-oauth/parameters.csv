@@ -1,0 +1,88 @@
+Name,Parameter Usage Location,Change Controller,Reference
+client_id,"authorization request, token request",IETF,[RFC6749]
+client_secret,token request,IETF,[RFC6749]
+response_type,authorization request,IETF,[RFC6749]
+redirect_uri,"authorization request, token request",IETF,[RFC6749]
+scope,"authorization request, authorization response, token request, token response",IETF,[RFC6749]
+state,"authorization request, authorization response",IETF,[RFC6749]
+code,"authorization response, token request",IETF,[RFC6749]
+error,"authorization response, token response",IETF,[RFC6749]
+error_description,"authorization response, token response",IETF,[RFC6749]
+error_uri,"authorization response, token response",IETF,[RFC6749]
+grant_type,token request,IETF,[RFC6749]
+access_token,"authorization response, token response",IETF,[RFC6749]
+token_type,"authorization response, token response",IETF,[RFC6749]
+expires_in,"authorization response, token response",IETF,[RFC6749]
+username,token request,IETF,[RFC6749]
+password,token request,IETF,[RFC6749]
+refresh_token,"token request, token response",IETF,[RFC6749]
+nonce,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+display,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+prompt,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+max_age,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+ui_locales,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+claims_locales,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+id_token_hint,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+login_hint,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+acr_values,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+claims,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+registration,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+request,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+request_uri,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+id_token,"authorization response, access token response",[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Core 1.0 incorporating errata set 1]
+session_state,"authorization response, access token response",[OpenID_Foundation_Artifact_Binding_WG],"[OpenID Connect Session Management 1.0, Section 2]"
+assertion,token request,IESG,[RFC7521]
+client_assertion,token request,IESG,[RFC7521]
+client_assertion_type,token request,IESG,[RFC7521]
+code_verifier,token request,IESG,[RFC7636]
+code_challenge,authorization request,IESG,[RFC7636]
+code_challenge_method,authorization request,IESG,[RFC7636]
+claim_token,"client request, token endpoint",[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]"
+pct,"client request, token endpoint",[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]"
+pct,"authorization server response, token endpoint",[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.5]"
+rpt,"client request, token endpoint",[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]"
+ticket,"client request, token endpoint",[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.1]"
+upgraded,"authorization server response, token endpoint",[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 3.3.5]"
+vtr,"authorization request, token request",IESG,[RFC8485]
+device_code,token request,IESG,"[RFC8628, Section 3.1]"
+resource,"authorization request, token request",IESG,[RFC8707]
+audience,token request,IESG,"[RFC8693, Section 2.1]"
+requested_token_type,token request,IESG,"[RFC8693, Section 2.1]"
+subject_token,token request,IESG,"[RFC8693, Section 2.1]"
+subject_token_type,token request,IESG,"[RFC8693, Section 2.1]"
+actor_token,token request,IESG,"[RFC8693, Section 2.1]"
+actor_token_type,token request,IESG,"[RFC8693, Section 2.1]"
+issued_token_type,token response,IESG,"[RFC8693, Section 2.2.1]"
+response_mode,Authorization Request,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+nfv_token,Access Token Response,[ETSI],[ETSI GS NFV-SEC 022 V2.7.1]
+iss,"authorization request, authorization response",IETF,"[RFC9207, Section 2][RFC9101][RFC7519, Section 4.1.1]"
+sub,authorization request,IETF,"[RFC7519, Section 4.1.2][RFC9101]"
+aud,authorization request,IETF,"[RFC7519, Section 4.1.3][RFC9101]"
+exp,authorization request,IETF,"[RFC7519, Section 4.1.4][RFC9101]"
+nbf,authorization request,IETF,"[RFC7519, Section 4.1.5][RFC9101]"
+iat,authorization request,IETF,"[RFC7519, Section 4.1.6][RFC9101]"
+jti,authorization request,IETF,"[RFC7519, Section 4.1.7][RFC9101]"
+ace_profile,token response,IETF,"[RFC9200, Sections 5.8.2, 5.8.4.3]"
+nonce1,client-rs request,IETF,[RFC9203]
+nonce2,rs-client response,IETF,[RFC9203]
+ace_client_recipientid,client-rs request,IETF,[RFC9203]
+ace_server_recipientid,rs-client response,IETF,[RFC9203]
+req_cnf,token request,IETF,"[RFC9201, Section 5]"
+rs_cnf,token response,IETF,"[RFC9201, Section 5]"
+cnf,token response,IETF,"[RFC9201, Section 5]"
+authorization_details,"authorization request, token request, token response",IETF,[RFC9396]
+dpop_jkt,authorization request,IETF,"[RFC9449, Section 10]"
+sign_info,"client-rs request, rs-client response",IETF,[RFC9594]
+kdcchallenge,rs-client response,IETF,[RFC9594]
+trust_chain,authorization request,[OpenID_Foundation_Artifact_Binding_WG],[Section 12.1.1.1.1 of OpenID Federation 1.0]
+dcql_query,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 5.1]"
+client_metadata,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 5.1]"
+request_uri_method,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 5.1]"
+transaction_data,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 5.1]"
+wallet_nonce,"authorization request, token response",[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 5.10]"
+response_uri,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8.2]"
+vp_token,"authorization request, token response",[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8.1]"
+verifier_info,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 5.1]"
+expected_origins,authorization request,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Appendix A.2]"
+ecdh_info,"client-rs request, rs-client response",IETF,[RFC-ietf-ace-key-groupcomm-oscore-21]
+kdc_dh_creds,"client-rs request, rs-client response",IETF,[RFC-ietf-ace-key-groupcomm-oscore-21]

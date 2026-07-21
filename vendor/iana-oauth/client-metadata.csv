@@ -1,0 +1,91 @@
+Client Metadata Name,Client Metadata Description,Change Controller,Reference
+redirect_uris,Array of redirection URIs for use in redirect-based flows,IESG,[RFC7591]
+token_endpoint_auth_method,Requested authentication method for the token endpoint,IESG,[RFC7591]
+grant_types,Array of OAuth 2.0 grant types that the client may use,IESG,[RFC7591]
+response_types,Array of the OAuth 2.0 response types that the client may use,IESG,[RFC7591]
+client_name,Human-readable name of the client to be presented to the user,IESG,[RFC7591]
+client_uri,URL of a web page providing information about the client,IESG,[RFC7591]
+logo_uri,URL that references a logo for the client,IESG,[RFC7591]
+scope,Space-separated list of OAuth 2.0 scope values,IESG,[RFC7591]
+contacts,"Array of strings representing ways to contact people responsible for this client, typically email addresses",IESG,[RFC7591]
+tos_uri,URL that points to a human-readable terms of service document for the client,IESG,[RFC7591]
+policy_uri,URL that points to a human-readable policy document for the client,IESG,[RFC7591]
+jwks_uri,URL referencing the client's JSON Web Key Set [RFC7517] document representing the client's public keys,IESG,[RFC7591]
+jwks,Client's JSON Web Key Set [RFC7517] document representing the client's public keys,IESG,[RFC7591]
+software_id,Identifier for the software that comprises a client,IESG,[RFC7591]
+software_version,Version identifier for the software that comprises a client,IESG,[RFC7591]
+client_id,Client identifier,IESG,[RFC7591]
+client_secret,Client secret,IESG,[RFC7591]
+client_id_issued_at,Time at which the client identifier was issued,IESG,[RFC7591]
+client_secret_expires_at,Time at which the client secret will expire,IESG,[RFC7591]
+software_statement,"A software statement containing client metadata values about the 
+client software as claims. This is a string value containing the entire signed JWT.",IESG,[RFC7591]
+registration_access_token,"OAuth 2.0 Bearer Token used to access
+      the client configuration endpoint",IESG,[RFC7592]
+registration_client_uri,"Fully qualified URI of the client
+      registration endpoint",IESG,[RFC7592]
+application_type,"Kind of the application -- ""native"" or ""web""",[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+sector_identifier_uri,URL using the https scheme to be used in calculating Pseudonymous Identifiers by the OP,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+subject_type,"subject_type requested for responses to this Client -- ""pairwise"" or ""public""",[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+id_token_signed_response_alg,JWS alg algorithm REQUIRED for signing the ID Token issued to this Client,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+id_token_encrypted_response_alg,JWE alg algorithm REQUIRED for encrypting the ID Token issued to this Client,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+id_token_encrypted_response_enc,JWE enc algorithm REQUIRED for encrypting the ID Token issued to this Client,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+userinfo_signed_response_alg,JWS alg algorithm REQUIRED for signing UserInfo Responses,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+userinfo_encrypted_response_alg,JWE alg algorithm REQUIRED for encrypting UserInfo Responses,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+userinfo_encrypted_response_enc,JWE enc algorithm REQUIRED for encrypting UserInfo Responses,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+request_object_signing_alg,JWS alg algorithm that MUST be used for signing Request Objects sent to the OP,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+request_object_encryption_alg,JWE alg algorithm the RP is declaring that it may use for encrypting Request Objects sent to the OP,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+request_object_encryption_enc,JWE enc algorithm the RP is declaring that it may use for encrypting Request Objects sent to the OP,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+token_endpoint_auth_signing_alg,JWS alg algorithm that MUST be used for signing the JWT used to authenticate the Client at the Token Endpoint for the private_key_jwt and client_secret_jwt authentication methods,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+default_max_age,Default Maximum Authentication Age,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+require_auth_time,Boolean value specifying whether the auth_time Claim in the ID Token is REQUIRED,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+default_acr_values,Default requested Authentication Context Class Reference values,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+initiate_login_uri,URI using the https scheme that a third party can use to initiate a login by the RP,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+request_uris,Array of request_uri values that are pre-registered by the RP for use at the OP,[OpenID_Foundation_Artifact_Binding_WG],[OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 2]
+claims_redirect_uris,claims redirection endpoints,[Kantara_UMA_WG],"[UMA 2.0 Grant for OAuth 2.0, Section 2]"
+nfv_token_signed_response_alg,JWS alg algorithm required for signing the nfv Token issued to this Client,[ETSI],[ETSI GS NFV-SEC 022 V2.7.1]
+nfv_token_encrypted_response_alg,JWE alg algorithm required for encrypting the nfv Token issued to this Client,[ETSI],[ETSI GS NFV-SEC 022 V2.7.1]
+nfv_token_encrypted_response_enc,JWE enc algorithm required for encrypting the nfv Token issued to this Client,[ETSI],[ETSI GS NFV-SEC 022 V2.7.1]
+tls_client_certificate_bound_access_tokens,"Indicates the client's intention to
+        use mutual-TLS client certificate-bound access tokens.",[IESG],"[RFC8705, Section 3.4]"
+tls_client_auth_subject_dn,"String value specifying the expected
+        subject DN of the client certificate.",[IESG],"[RFC8705, Section 2.1.2]"
+tls_client_auth_san_dns,"String value specifying the expected
+        dNSName SAN entry in the client certificate.",[IESG],"[RFC8705, Section 2.1.2]"
+tls_client_auth_san_uri,"String value specifying the expected
+        uniformResourceIdentifier SAN entry in the client certificate.",[IESG],"[RFC8705, Section 2.1.2]"
+tls_client_auth_san_ip,"String value specifying the expected
+        iPAddress SAN entry in the client certificate.",[IESG],"[RFC8705, Section 2.1.2]"
+tls_client_auth_san_email,"String value specifying the expected
+        rfc822Name SAN entry in the client certificate.",[IESG],"[RFC8705, Section 2.1.2]"
+require_signed_request_object,"Indicates where authorization request needs
+        to be protected as Request Object and provided through either
+        request or request_uri parameter.",[IETF],"[RFC9101, Section 10.5]"
+require_pushed_authorization_requests,Indicates whether the client is required to use PAR to initiate authorization requests.,[IESG],"[RFC9126, Section 6]"
+introspection_signed_response_alg,"String value indicating the client’s
+desired introspection response signing algorithm",[IETF],"[RFC9701, Section 6]"
+introspection_encrypted_response_alg,"String value specifying the desired
+introspection response content key encryption algorithm (alg
+value)",[IETF],"[RFC9701, Section 6]"
+introspection_encrypted_response_enc,"String value specifying the desired
+introspection response content encryption algorithm (enc value)",[IETF],"[RFC9701, Section 6]"
+frontchannel_logout_uri,RP URL that will cause the RP to log itself out when rendered in an iframe by the OP,[OpenID_Foundation_Artifact_Binding_WG],"[OpenID Connect Front-Channel Logout 1.0, Section 2]"
+frontchannel_logout_session_required,Boolean value specifying whether the RP requires that a sid (session ID) query parameter be included to identify the RP session with the OP when the frontchannel_logout_uri is used,[OpenID_Foundation_Artifact_Binding_WG],"[OpenID Connect Front-Channel Logout 1.0, Section 2]"
+backchannel_logout_uri,RP URL that will cause the RP to log itself out when sent a Logout Token by the OP,[OpenID_Foundation_Artifact_Binding_WG],"[OpenID Connect Back-Channel Logout 1.0, Section 2.2]"
+backchannel_logout_session_required,Boolean value specifying whether the RP requires that a sid (session ID) Claim be included in the Logout Token to identify the RP session with the OP when the backchannel_logout_uri is used,[OpenID_Foundation_Artifact_Binding_WG],"[OpenID Connect Back-Channel Logout 1.0, Section 2.2]"
+post_logout_redirect_uris,Array of URLs supplied by the RP to which it MAY request that the End-User's User Agent be redirected using the post_logout_redirect_uri parameter after a logout has been performed,[OpenID_Foundation_Artifact_Binding_WG],"[OpenID Connect RP-Initiated Logout 1.0, Section 3.1]"
+authorization_details_types,Indicates what authorization details types the client uses.,[IETF],"[RFC9396, Section 10]"
+dpop_bound_access_tokens,Boolean value specifying whether the client always uses DPoP for token requests,[IETF],"[RFC9449, Section 5.2]"
+client_registration_types,An array of strings specifying the client registration types the RP wants to use,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.1.2 of OpenID Federation 1.0]
+signed_jwks_uri,URL referencing a signed JWT having the client's JWK Set document as its payload,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.1 of OpenID Federation 1.0]
+organization_name,Human-readable name representing the organization owning this client,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+description,Human-readable brief description of this client presentable to the End-User,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+keywords,"JSON array with one or more strings representing search keywords, tags, categories, or labels that apply to this client",[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+information_uri,URL for documentation of additional information about this client viewable by the End-User,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+organization_uri,URL of a Web page for the organization owning this client,[OpenID_Foundation_Artifact_Binding_WG],[Section 5.2.2 of OpenID Federation 1.0]
+use_mtls_endpoint_aliases,"Boolean value indicating the requirement for a client
+to use mutual-TLS endpoint aliases [RFC8705] declared by the authorization 
+server in its metadata even beyond the Mutual-TLS Client Authentication and 
+Certificate-Bound Access Tokens use cases.",[OpenID_Foundation_FAPI_WG],[Section 5.2.2.1.1 of FAPI 2.0 Security Profile]
+encrypted_response_enc_values_supported,"Non-empty array of strings, where each string is a JWE [RFC7516] enc algorithm that can be used as the content encryption algorithm for encrypting the Response",[OpenID_Foundation_Digital_Credentials_Protocols_WG],[Section 5.1 of OpenID for Verifiable Presentations 1.0]
+vp_formats_supported,"An object containing a list of name/value pairs, where the name is a string identifying a Credential format supported by the Verifier",[OpenID_Foundation_Digital_Credentials_Protocols_WG],[Section 11.1 of OpenID for Verifiable Presentations 1.0]

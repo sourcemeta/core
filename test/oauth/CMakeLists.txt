@@ -14,3 +14,14 @@ target_link_libraries(sourcemeta_core_oauth_unit
   PRIVATE sourcemeta::core::http)
 target_link_libraries(sourcemeta_core_oauth_unit
   PRIVATE sourcemeta::core::uri)
+
+sourcemeta_test(NAMESPACE sourcemeta PROJECT core NAME oauth_iana
+  SOURCES oauth_iana_test.cc)
+target_compile_definitions(sourcemeta_core_oauth_iana_unit
+  PRIVATE IANA_OAUTH_PATH="${PROJECT_SOURCE_DIR}/vendor/iana-oauth")
+target_link_libraries(sourcemeta_core_oauth_iana_unit
+  PRIVATE sourcemeta::core::oauth)
+target_link_libraries(sourcemeta_core_oauth_iana_unit
+  PRIVATE sourcemeta::core::io)
+target_link_libraries(sourcemeta_core_oauth_iana_unit
+  PRIVATE sourcemeta::core::text)
