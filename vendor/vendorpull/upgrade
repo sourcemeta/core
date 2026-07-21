@@ -15,6 +15,27 @@ log() {
   echo "-- $1" 1>&2
 }
 
+# $1 = version
+is_file_dependency() {
+  echo "$1" | grep -Eq '^[a-f0-9]{64}$'
+}
+
+# $1 = path
+checksum() {
+  if command -v sha256sum > /dev/null
+  then
+    sha256sum "$1" | cut -d ' ' -f 1
+  elif command -v shasum > /dev/null
+  then
+    shasum --algorithm 256 "$1" | cut -d ' ' -f 1
+  elif command -v openssl > /dev/null
+  then
+    openssl dgst -sha256 "$1" | awk '{ print $NF }'
+  else
+    fail "Cannot find sha256sum, shasum, or openssl to compute checksums"
+  fi
+}
+
 if [ ! -f "$DEPENDENCIES" ]
 then
   fail "File not found: $DEPENDENCIES"
@@ -40,22 +61,30 @@ then
   fail "Invalid dependency definition: $DEPENDENCY"
 fi
 
-TMP="$(mktemp -d -t vendorpull-clone-XXXXX)"
+TMP="$(mktemp -d -t vendorpull-clone-XXXXXX)"
 log "Setting up temporary directory at $TMP..."
 clean() { rm -rf "$TMP"; }
 trap clean EXIT
 
-log "Fetching the tip of $URL into $TMP/$NAME"
-git clone --depth 1 --jobs 8 "$URL" "$TMP/$NAME"
+if is_file_dependency "$VERSION"
+then
+  log "Downloading $URL into $TMP/$NAME"
+  mkdir -p "$(dirname "$TMP/$NAME")"
+  curl --fail --silent --show-error --location --output "$TMP/$NAME" "$URL"
+  NEW_VERSION="$(checksum "$TMP/$NAME")"
+else
+  log "Fetching the tip of $URL into $TMP/$NAME"
+  git clone --depth 1 --jobs 8 "$URL" "$TMP/$NAME"
 
-# Try to determine the tag, otherwise the commit hash
-NEW_VERSION="$(git -C "$TMP/$NAME" describe --tags --exact-match HEAD 2>/dev/null \
-  || git -C "$TMP/$NAME" rev-parse HEAD)"
+  # Try to determine the tag, otherwise the commit hash
+  NEW_VERSION="$(git -C "$TMP/$NAME" describe --tags --exact-match HEAD 2>/dev/null \
+    || git -C "$TMP/$NAME" rev-parse HEAD)"
+fi
 
 log "Upgrading $NAME to $NEW_VERSION"
 awk -v name="$NAME" -v version="$NEW_VERSION" \
   '$1 == name {$3 = version} {print}' \
-  DEPENDENCIES > "$TMP/DEPENDENCIES"
+  "$DEPENDENCIES" > "$TMP/DEPENDENCIES"
 
 mv "$TMP/DEPENDENCIES" "$DEPENDENCIES"
 git diff "$DEPENDENCIES"

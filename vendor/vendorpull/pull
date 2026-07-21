@@ -17,6 +17,27 @@ log() {
   echo "-- $1" 1>&2
 }
 
+# $1 = version
+is_file_dependency() {
+  echo "$1" | grep -Eq '^[a-f0-9]{64}$'
+}
+
+# $1 = path
+checksum() {
+  if command -v sha256sum > /dev/null
+  then
+    sha256sum "$1" | cut -d ' ' -f 1
+  elif command -v shasum > /dev/null
+  then
+    shasum --algorithm 256 "$1" | cut -d ' ' -f 1
+  elif command -v openssl > /dev/null
+  then
+    openssl dgst -sha256 "$1" | awk '{ print $NF }'
+  else
+    fail "Cannot find sha256sum, shasum, or openssl to compute checksums"
+  fi
+}
+
 # $1 = name
 # $2 = url
 # $3 = version
@@ -77,6 +98,32 @@ vendor() {
   mv "$4/$1" "$OUTPUT"
 }
 
+# $1 = name
+# $2 = url
+# $3 = checksum
+# $4 = tmp
+vendor_file() {
+  # Downloading
+  log "Downloading $2 into $4/$1"
+  mkdir -p "$(dirname "$4/$1")"
+  curl --fail --silent --show-error --location --output "$4/$1" "$2"
+
+  # Verification
+  ACTUAL_CHECKSUM="$(checksum "$4/$1")"
+  if [ "$ACTUAL_CHECKSUM" != "$3" ]
+  then
+    fail "Checksum mismatch for $1: expected $3 but got $ACTUAL_CHECKSUM"
+  fi
+
+  OUTPUT="$VENDOR/$1"
+
+  # Swap
+  log "Moving $4/$1 to $OUTPUT"
+  rm -rf "$OUTPUT"
+  mkdir -p "$(dirname "$OUTPUT")"
+  mv "$4/$1" "$OUTPUT"
+}
+
 if [ ! -f "$DEPENDENCIES" ]
 then
   fail "File not found: $DEPENDENCIES"
@@ -106,14 +153,19 @@ then
     fail "Invalid dependency definition: $DEPENDENCY"
   fi
 
-  TMP="$(mktemp -d -t vendorpull-clone-XXXXX)"
+  TMP="$(mktemp -d -t vendorpull-clone-XXXXXX)"
   log "Setting up temporary directory at $TMP..."
   clean() { rm -rf "$TMP"; }
   trap clean EXIT
 
-  vendor "$NAME" "$URL" "$VERSION" "$TMP"
+  if is_file_dependency "$VERSION"
+  then
+    vendor_file "$NAME" "$URL" "$VERSION" "$TMP"
+  else
+    vendor "$NAME" "$URL" "$VERSION" "$TMP"
+  fi
 else
-  TMP="$(mktemp -d -t vendorpull-clone-XXXXX)"
+  TMP="$(mktemp -d -t vendorpull-clone-XXXXXX)"
   log "Setting up temporary directory at $TMP..."
   clean() { rm -rf "$TMP"; }
   trap clean EXIT
@@ -128,6 +180,11 @@ else
       fail "Invalid dependency definition"
     fi
 
-    vendor "$NAME" "$URL" "$VERSION" "$TMP"
+    if is_file_dependency "$VERSION"
+    then
+      vendor_file "$NAME" "$URL" "$VERSION" "$TMP"
+    else
+      vendor "$NAME" "$URL" "$VERSION" "$TMP"
+    fi
   done < "$DEPENDENCIES"
 fi

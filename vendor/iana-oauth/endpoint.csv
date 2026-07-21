@@ -1,0 +1,11 @@
+Name,Change Controller,Reference
+code,IETF,[RFC6749]
+code id_token,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+code id_token token,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+code token,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+id_token,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+id_token token,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+none,[OpenID_Foundation_Artifact_Binding_WG],[OAuth 2.0 Multiple Response Type Encoding Practices]
+token,IETF,[RFC6749]
+vp_token,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8]"
+vp_token id_token,[OpenID_Foundation_Digital_Credentials_Protocols_WG],"[OpenID for Verifiable Presentations 1.0, Section 8]"
