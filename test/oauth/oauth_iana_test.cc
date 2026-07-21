@@ -145,6 +145,15 @@ auto main(int argc, char **argv) -> int {
        sourcemeta::core::OAUTH_TOKEN_TYPE_HINT_REFRESH_TOKEN}};
   register_all("OAuth_IANA_TokenTypeHint", token_type_hints, hints);
 
+  // OAuth Token Endpoint Authentication Methods (RFC 7591 Section 4.2): the
+  // methods the module names in metadata validation and registration
+  const auto auth_methods{
+      load_registry(base / "token-endpoint-auth-method.csv")};
+  const std::array<std::string_view, 4> token_endpoint_auth_methods{
+      {"none", "client_secret_basic", "client_secret_jwt", "private_key_jwt"}};
+  register_all("OAuth_IANA_TokenEndpointAuthMethod",
+               token_endpoint_auth_methods, auth_methods);
+
   // PKCE Code Challenge Methods (RFC 7636 Section 6.2.2)
   const auto pkce_methods{
       load_registry(base / "pkce-code-challenge-method.csv")};
