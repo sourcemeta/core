@@ -10,7 +10,7 @@
 
 #include "oauth_encode.h"
 
-#include <algorithm>   // std::ranges::find_if
+#include <algorithm>   // std::ranges::find_if, std::clamp
 #include <chrono>      // std::chrono::seconds, std::chrono::duration_cast
 #include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
@@ -68,6 +68,33 @@ auto map_verification_error(const JWTVerificationError error)
   std::unreachable();
 }
 
+// RFC 7519 Section 4.1.3: the audience is a string or an array of strings, so
+// an array carrying a non-string element is a malformed claim the assertion is
+// rejected for (RFC 7523 Section 3 check 10) rather than accepted because
+// another element happens to match
+auto audience_is_well_formed(const JWT &token) -> bool {
+  if (!token.payload().is_object()) {
+    return false;
+  }
+
+  const auto *audience{token.payload().try_at("aud"sv, HASH_AUD)};
+  if (audience == nullptr || audience->is_string()) {
+    return true;
+  }
+
+  if (!audience->is_array()) {
+    return false;
+  }
+
+  for (const auto &element : audience->as_array()) {
+    if (!element.is_string()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // The shared verification of a parsed JWT bearer assertion (RFC 7523
 // Section 3): find the audience the assertion targets, delegate the signature
 // and time checks to the JSON Web Token verifier, and reject a replayed
@@ -79,6 +106,10 @@ auto verify_assertion(
     const JWKS &keys, const std::chrono::system_clock::time_point now,
     const OAuthAssertionVerifyOptions &options)
     -> std::optional<OAuthAssertionError> {
+  if (!audience_is_well_formed(token)) {
+    return OAuthAssertionError::Audience;
+  }
+
   // RFC 7523 Section 3 check 3 and RFC 3986 Section 6.2.1: the audience is
   // matched by Simple String Comparison, so an accepted value is compared to
   // the string or array claim without any normalization
@@ -105,14 +136,23 @@ auto verify_assertion(
     const auto identifier{token.token_id()};
     const auto expiration{token.expires_at()};
     if (identifier.has_value() && expiration.has_value()) {
+      // The skew is clamped to the same non-negative bounded range the claim
+      // check applies, so a negative value cannot shorten the window below the
+      // acceptance window and a large one cannot overflow the store's expiry
+      const auto skew{std::clamp(options.clock_skew,
+                                 std::chrono::seconds::zero(),
+                                 std::chrono::seconds{31556952})};
       const auto remaining{std::chrono::duration_cast<std::chrono::seconds>(
                                expiration.value() - now) +
-                           options.clock_skew};
+                           skew};
       const auto window{remaining > std::chrono::seconds{0}
                             ? remaining
                             : std::chrono::seconds{0}};
+      // The audience is keyed verbatim, since assertion audiences are compared
+      // by Simple String Comparison and must not be URL-normalized (RFC 7523
+      // Section 3, RFC 3986 Section 6.2.1)
       if (!options.replay_store->check_and_insert(identifier.value(), *match,
-                                                  now, window)) {
+                                                  now, window, false)) {
         return OAuthAssertionError::Replay;
       }
     }

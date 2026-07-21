@@ -138,8 +138,10 @@ TEST(verify_client_assertion_accepts_without_a_presented_client_id) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_FALSE(
@@ -155,8 +157,10 @@ TEST(verify_client_assertion_rejects_a_client_id_mismatch) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -175,8 +179,10 @@ TEST(verify_client_assertion_rejects_a_non_self_issued_assertion) {
       "issuer", "s6BhdRkqt3", "https://server.example/token",
       std::chrono::seconds{300}, FIXED_TIME, key.value(),
       sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -193,8 +199,10 @@ TEST(verify_client_assertion_rejects_a_wrong_audience) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://other.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -211,8 +219,10 @@ TEST(verify_client_assertion_matches_one_of_several_audiences) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/par", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   const std::array<std::string_view, 2> audiences{
       {"https://server.example/token", "https://server.example/par"}};
   sourcemeta::core::OAuthAssertionVerifyOptions options;
@@ -230,8 +240,10 @@ TEST(verify_client_assertion_rejects_an_expired_assertion) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -248,8 +260,10 @@ TEST(verify_client_assertion_rejects_an_unsupported_algorithm) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::ES384}};
   sourcemeta::core::OAuthAssertionVerifyOptions options;
@@ -264,6 +278,7 @@ TEST(verify_client_assertion_rejects_an_unsupported_algorithm) {
 TEST(verify_client_assertion_rejects_a_malformed_assertion) {
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -280,8 +295,10 @@ TEST(verify_client_assertion_rejects_an_unknown_key) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(OTHER_JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -299,8 +316,10 @@ TEST(verify_assertion_grant_accepts_a_valid_grant) {
       "https://issuer.example", "user123", "https://server.example/token",
       std::chrono::seconds{300}, FIXED_TIME, key.value(),
       sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_FALSE(sourcemeta::core::oauth_verify_assertion_grant(
@@ -317,8 +336,10 @@ TEST(verify_assertion_grant_rejects_a_wrong_issuer) {
       "https://issuer.example", "user123", "https://server.example/token",
       std::chrono::seconds{300}, FIXED_TIME, key.value(),
       sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_assertion_grant(
@@ -335,8 +356,10 @@ TEST(verify_assertion_rejects_a_replayed_identifier) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthDPoPReplayStore store;
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
@@ -392,8 +415,10 @@ TEST(verify_client_assertion_rejects_a_bad_signature_for_a_named_key) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(OTHER_JWKS_WITH_KID))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -413,6 +438,7 @@ TEST(verify_client_assertion_accepts_a_symmetric_assertion) {
   EXPECT_TRUE(assertion.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(OCT_JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::HS256}};
   sourcemeta::core::OAuthAssertionVerifyOptions options;
@@ -430,8 +456,10 @@ TEST(verify_client_assertion_rejects_a_wrong_symmetric_secret) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::HS256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{sourcemeta::core::JWKS::from(
       sourcemeta::core::parse_json(OTHER_OCT_JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::HS256}};
   sourcemeta::core::OAuthAssertionVerifyOptions options;
@@ -450,8 +478,10 @@ TEST(verify_client_assertion_rejects_when_no_algorithm_is_allowed) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   const sourcemeta::core::OAuthAssertionVerifyOptions options;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
                 assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
@@ -474,6 +504,7 @@ TEST(verify_client_assertion_rejects_a_not_yet_valid_assertion) {
   EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -490,8 +521,10 @@ TEST(verify_client_assertion_rejects_an_assertion_issued_in_the_future) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
@@ -508,8 +541,10 @@ TEST(verify_client_assertion_tolerates_expiry_within_clock_skew) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   options.clock_skew = std::chrono::seconds{60};
@@ -531,8 +566,10 @@ TEST(verify_client_assertion_rejects_a_replay_within_clock_skew) {
   const auto assertion{sourcemeta::core::oauth_build_client_assertion(
       "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
       FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthDPoPReplayStore store;
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
@@ -566,6 +603,7 @@ TEST(verify_client_assertion_allows_reuse_without_an_identifier) {
   EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthDPoPReplayStore store;
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
@@ -594,6 +632,7 @@ TEST(verify_assertion_grant_rejects_a_missing_subject) {
   EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_assertion_grant(
@@ -611,8 +650,10 @@ TEST(verify_assertion_grant_rejects_a_wrong_audience) {
       "https://issuer.example", "user123", "https://other.example/token",
       std::chrono::seconds{300}, FIXED_TIME, key.value(),
       sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
   const auto keys{
       sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
   sourcemeta::core::OAuthAssertionVerifyOptions options;
   options.allowed_algorithms = ALLOWED;
   EXPECT_EQ(sourcemeta::core::oauth_verify_assertion_grant(
@@ -620,4 +661,72 @@ TEST(verify_assertion_grant_rejects_a_wrong_audience) {
                 keys.value(), FIXED_TIME, options)
                 .value(),
             sourcemeta::core::OAuthAssertionError::Audience);
+}
+
+TEST(verify_client_assertion_rejects_a_malformed_audience_array) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // One element matches, but another is not a string, so the audience claim is
+  // malformed and rejected rather than accepted on the match
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"iss":"s6BhdRkqt3","sub":"s6BhdRkqt3",)"
+      R"("aud":["https://server.example/token",123],)"
+      R"("exp":1562262916,"iat":1562262616})")};
+  const auto assertion{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"), payload,
+      key.value())};
+  EXPECT_TRUE(assertion.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
+                assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
+                FIXED_TIME, options)
+                .value(),
+            sourcemeta::core::OAuthAssertionError::Audience);
+}
+
+TEST(verify_client_assertion_keys_replay_by_exact_audience) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  // Two assertions share an identifier but target audiences that differ only by
+  // a default port, which URL normalization would collapse. The audience is
+  // keyed verbatim, so both are accepted rather than the second being a replay
+  const auto first{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"),
+      sourcemeta::core::parse_json(
+          R"({"iss":"s6BhdRkqt3","sub":"s6BhdRkqt3",)"
+          R"("aud":"https://server.example/token",)"
+          R"("exp":1562262916,"iat":1562262616,"jti":"shared"})"),
+      key.value())};
+  const auto second{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({"alg":"ES256"})"),
+      sourcemeta::core::parse_json(
+          R"({"iss":"s6BhdRkqt3","sub":"s6BhdRkqt3",)"
+          R"("aud":"https://server.example:443/token",)"
+          R"("exp":1562262916,"iat":1562262616,"jti":"shared"})"),
+      key.value())};
+  EXPECT_TRUE(first.has_value());
+  EXPECT_TRUE(second.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  const std::array<std::string_view, 2> audiences{
+      {"https://server.example/token", "https://server.example:443/token"}};
+  sourcemeta::core::OAuthDPoPReplayStore store;
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  options.replay_store = &store;
+  EXPECT_FALSE(sourcemeta::core::oauth_verify_client_assertion(
+                   first.value(), audiences, "s6BhdRkqt3", keys.value(),
+                   FIXED_TIME, options)
+                   .has_value());
+  EXPECT_FALSE(sourcemeta::core::oauth_verify_client_assertion(
+                   second.value(), audiences, "s6BhdRkqt3", keys.value(),
+                   FIXED_TIME, options)
+                   .has_value());
 }
