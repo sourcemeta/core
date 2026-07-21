@@ -67,6 +67,20 @@ auto array_member_is_present(const JSON &data, const JSON::StringView name,
   return member != nullptr && member->is_array();
 }
 
+auto is_string_array(const JSON &value) -> bool {
+  if (!value.is_array()) {
+    return false;
+  }
+
+  for (const auto &element : value.as_array()) {
+    if (!element.is_string()) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // A membership predicate that falls back to the specification default when the
 // array is absent, so an omitted list is read as the default value rather than
 // as an empty registration (RFC 7591 Section 2)
@@ -99,17 +113,18 @@ auto validated_client_metadata(JSON &&data) -> JSON {
     throw OAuthRegistrationParseError{};
   }
 
-  // RFC 7591 Section 2: the grant and response types are arrays and the
-  // authentication method is a string. Each has a default accessor, so a member
-  // present with the wrong type is rejected here rather than silently read as
-  // its default, which would fabricate a value the client never registered
+  // RFC 7591 Section 2: the grant and response types are arrays of strings and
+  // the authentication method is a string. Each has a default accessor, so a
+  // member present with the wrong type, down to a non-string array element, is
+  // rejected here rather than silently read as its default or as fewer values
+  // than were registered
   const auto *grant_types{data.try_at("grant_types"sv, HASH_GRANT_TYPES)};
   const auto *response_types{
       data.try_at("response_types"sv, HASH_RESPONSE_TYPES)};
   const auto *auth_method{data.try_at("token_endpoint_auth_method"sv,
                                       HASH_TOKEN_ENDPOINT_AUTH_METHOD)};
-  if ((grant_types != nullptr && !grant_types->is_array()) ||
-      (response_types != nullptr && !response_types->is_array()) ||
+  if ((grant_types != nullptr && !is_string_array(*grant_types)) ||
+      (response_types != nullptr && !is_string_array(*response_types)) ||
       (auth_method != nullptr && !auth_method->is_string())) {
     throw OAuthRegistrationParseError{};
   }

@@ -77,6 +77,24 @@ TEST(client_metadata_rejects_a_non_array_response_types) {
   EXPECT_FALSE(metadata.has_value());
 }
 
+TEST(client_metadata_rejects_a_grant_types_with_a_non_string_element) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "grant_types": [ "authorization_code", 123 ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(client_metadata_rejects_a_response_types_with_a_non_string_element) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "response_types": [ {} ]
+  })JSON")};
+  const auto metadata{
+      sourcemeta::core::OAuthClientMetadata::from(std::move(document))};
+  EXPECT_FALSE(metadata.has_value());
+}
+
 TEST(client_metadata_rejects_a_non_string_token_endpoint_auth_method) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "token_endpoint_auth_method": [ "none" ]
