@@ -277,11 +277,16 @@ public:
   /// returning false for one already seen within its window, which is a replay
   /// (RFC 9449 Section 11.1). Entries whose window has elapsed by the given
   /// time are pruned, and at capacity the entry closest to expiry is evicted.
+  /// The target is canonicalized as an HTTP target URI when `normalize_target`
+  /// is set, so an equivalent but differently spelled DPoP target still
+  /// collides (RFC 9449 Section 4.3 check 9), and keyed verbatim otherwise, for
+  /// a target compared without normalization such as an assertion audience.
   [[nodiscard]] auto
   check_and_insert(const std::string_view identifier,
                    const std::string_view target,
                    const std::chrono::system_clock::time_point now,
-                   const std::chrono::seconds window) -> bool;
+                   const std::chrono::seconds window,
+                   const bool normalize_target = true) -> bool;
 
   /// The number of entries whose window has not elapsed by the given time,
   /// counted without modifying the store, since expired entries are pruned when

@@ -365,13 +365,15 @@ auto oauth_dpop_verify(const std::string_view proof,
 auto OAuthDPoPReplayStore::check_and_insert(
     const std::string_view identifier, const std::string_view target,
     const std::chrono::system_clock::time_point now,
-    const std::chrono::seconds window) -> bool {
+    const std::chrono::seconds window, const bool normalize_target) -> bool {
   // RFC 9449 Section 11.1: the identifier is tracked in the context of the
-  // target URI, so the digest covers both and one store safely spans targets.
-  // The target is normalized the same way the verifier compares the htu claim
+  // target, so the digest covers both and one store safely spans targets. A
+  // DPoP target is normalized the same way the verifier compares the htu claim
   // (Section 4.3 check 9), so a replay to an equivalent but differently spelled
-  // target is still detected rather than admitted as a fresh identifier
-  const auto normalized{dpop_normalize_target(target)};
+  // target is still detected rather than admitted as a fresh identifier, while
+  // a target compared verbatim, such as an assertion audience, is keyed as is
+  const auto normalized{normalize_target ? dpop_normalize_target(target)
+                                         : std::nullopt};
   const std::string_view effective{
       normalized.has_value() ? std::string_view{normalized.value()} : target};
   std::string material;
