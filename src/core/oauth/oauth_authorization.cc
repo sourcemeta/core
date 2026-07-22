@@ -74,9 +74,10 @@ auto oauth_append_hidden_input(std::string &sink, const std::string_view name,
   sink.append(R"("/>)");
 }
 
-// The page follows the example of OAuth 2.0 Form Post Response Mode
-// Section 2: "the action attribute of the form MUST be the Client's
-// Redirection URI" and "the method of the form attribute MUST be POST"
+// The page follows the shape of the example in OAuth 2.0 Form Post Response
+// Mode Appendix A, where "the action attribute of the form MUST be the
+// Client's Redirection URI" and "the method of the form attribute MUST be
+// POST" (Section 2)
 auto oauth_open_form_post_page(std::string &sink,
                                const std::string_view redirect_uri) -> void {
   sink.append(R"(<html><head><title>Submit This Form</title></head>)"
@@ -356,7 +357,7 @@ auto oauth_default_response_mode(const std::string_view response_type)
     -> std::optional<OAuthResponseMode> {
   // "If a Response Type contains one of more space characters (%20), it is
   // compared as a space-delimited list of values in which the order of values
-  // does not matter" (OAuth 2.0 Multiple Response Types Section 3)
+  // does not matter" (OAuth 2.0 Multiple Response Types Section 1.2)
   auto has_code{false};
   auto has_token{false};
   auto has_id_token{false};
@@ -392,12 +393,10 @@ auto oauth_default_response_mode(const std::string_view response_type)
     return std::nullopt;
   }
 
-  // "For purposes of this specification, the default Response Mode for the
-  // OAuth 2.0 code Response Type is the query encoding" while "the default
-  // Response Mode for the OAuth 2.0 token Response Type is the fragment
-  // encoding", and every registered combination that includes a token or an
-  // id_token defaults to the fragment encoding (OAuth 2.0 Multiple Response
-  // Types Sections 2.1 and 5)
+  // The code and none response types default to "the query encoding" while
+  // the token and id_token response types and every registered combination
+  // default to "the fragment encoding" (OAuth 2.0 Multiple Response Types
+  // Sections 2.1, 3, 4, and 5)
   return has_token || has_id_token ? OAuthResponseMode::Fragment
                                    : OAuthResponseMode::Query;
 }
@@ -409,9 +408,11 @@ auto oauth_is_response_mode_allowed(const std::string_view response_type,
     return false;
   }
 
-  // "In no case should a set of Authorization Response parameters whose
-  // default Response Mode is the fragment encoding be encoded using the query
-  // encoding" (OAuth 2.0 Multiple Response Types Section 5)
+  // Every response type that defaults to the fragment encoding states that
+  // "the query encoding MUST NOT be used" (OAuth 2.0 Multiple Response Types
+  // Sections 3 and 5), and "in no case should a set of Authorization Response
+  // parameters whose default Response Mode is the fragment encoding be encoded
+  // using the query encoding" (Section 7)
   return mode != OAuthResponseMode::Query ||
          default_mode.value() != OAuthResponseMode::Fragment;
 }

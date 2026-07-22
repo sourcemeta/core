@@ -317,9 +317,10 @@ enum class OAuthResponseMode : std::uint8_t {
 
 /// @ingroup oauth
 /// Look up the default response mode of a response type (OAuth 2.0 Multiple
-/// Response Types Section 5), returning no value unless every space-delimited
-/// value is a registered response type. The comparison ignores the order of
-/// the values. For example:
+/// Response Types Sections 2.1, 3, 4, and 5), returning no value unless the
+/// response type is registered. The response type "is compared as a
+/// space-delimited list of values in which the order of values does not
+/// matter" (Section 1.2). For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -337,7 +338,7 @@ auto oauth_default_response_mode(const std::string_view response_type)
 /// Check whether a response mode may encode the response of a response type,
 /// as "in no case should a set of Authorization Response parameters whose
 /// default Response Mode is the fragment encoding be encoded using the query
-/// encoding" (OAuth 2.0 Multiple Response Types Section 5). An unknown
+/// encoding" (OAuth 2.0 Multiple Response Types Section 7). An unknown
 /// response type allows no mode. For example:
 ///
 /// ```cpp
