@@ -20,6 +20,7 @@
 #include <sourcemeta/core/markdown.h>
 #include <sourcemeta/core/mcp.h>
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/preprocessor.h>
@@ -36,12 +37,23 @@
 #include <sourcemeta/core/uritemplate.h>
 #include <sourcemeta/core/yaml.h>
 
-#include <cstdlib>  // EXIT_SUCCESS
+#include <cstdlib>  // EXIT_SUCCESS, EXIT_FAILURE
 #include <iostream> // std::cout
+#include <string>   // std::string
 
 auto main() -> int {
   const sourcemeta::core::JSON document{"Hello World"};
   sourcemeta::core::stringify(document, std::cout);
   std::cout << std::endl;
+
+  // Pulls the HTML escaping dependency through the OAuth static archive
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "hello";
+  std::string page;
+  if (!sourcemeta::core::oauth_build_authorization_form_post(
+          "https://client.example/cb", response, page)) {
+    return EXIT_FAILURE;
+  }
+
   return EXIT_SUCCESS;
 }
