@@ -14,6 +14,94 @@ TEST(build_url_minimal_emits_response_type_and_client_id) {
                  "&client_id=s6BhdRkqt3");
 }
 
+TEST(build_url_defaults_response_type_to_code_when_unset) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url,
+            "https://server.example/auth?response_type=code&client_id=abc");
+}
+
+TEST(build_url_honors_an_explicit_code_response_type) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  request.response_type = "code";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url,
+            "https://server.example/auth?response_type=code&client_id=abc");
+}
+
+TEST(build_url_honors_an_id_token_response_type) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  request.response_type = "id_token";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url,
+            "https://server.example/auth?response_type=id_token&client_id=abc");
+}
+
+TEST(build_url_honors_a_token_response_type) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  request.response_type = "token";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url,
+            "https://server.example/auth?response_type=token&client_id=abc");
+}
+
+TEST(build_url_honors_a_hybrid_code_id_token_response_type) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  request.response_type = "code id_token";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url, "https://server.example/auth"
+                 "?response_type=code%20id_token&client_id=abc");
+}
+
+TEST(build_url_honors_an_implicit_id_token_token_response_type) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  request.response_type = "id_token token";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url, "https://server.example/auth"
+                 "?response_type=id_token%20token&client_id=abc");
+}
+
+TEST(build_url_honors_a_hybrid_code_id_token_token_response_type) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.client_id = "abc";
+  request.response_type = "code id_token token";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url, "https://server.example/auth"
+                 "?response_type=code%20id_token%20token&client_id=abc");
+}
+
+TEST(build_url_emits_the_response_type_before_other_parameters) {
+  sourcemeta::core::OAuthAuthorizationRequest request;
+  request.response_type = "code id_token";
+  request.client_id = "abc";
+  request.state = "xyz";
+  std::string url;
+  sourcemeta::core::oauth_build_authorization_url("https://server.example/auth",
+                                                  request, url);
+  EXPECT_EQ(url, "https://server.example/auth"
+                 "?response_type=code%20id_token&client_id=abc&state=xyz");
+}
+
 TEST(build_url_full_code_flow_with_pkce) {
   sourcemeta::core::OAuthAuthorizationRequest request;
   request.client_id = "s6BhdRkqt3";

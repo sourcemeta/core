@@ -83,9 +83,11 @@ auto oauth_build_authorization_url(const std::string_view endpoint,
     sink.push_back('?');
   }
 
-  // RFC 6749 Section 4.1.1: the authorization code flow is the only response
-  // type this builder emits, since the implicit grant is not represented
-  URI::append_query_parameter(sink, "response_type", "code");
+  // RFC 6749 Section 3.1.1: the request selects the response type, defaulting
+  // to the authorization code flow when the caller leaves it unset
+  URI::append_query_parameter(
+      sink, "response_type",
+      request.response_type.empty() ? "code" : request.response_type);
 
   if (!request.client_id.empty()) {
     URI::append_query_parameter(sink, "client_id", request.client_id);

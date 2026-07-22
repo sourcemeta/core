@@ -73,11 +73,12 @@ struct OAuthAuthorizationRequest {
   std::string_view request_uri;
   /// The JWK thumbprint of the DPoP proof public key (RFC 9449 Section 10).
   std::string_view dpop_jkt;
-  /// The response type, a space-delimited set the authorization URL builder
-  /// forces to `code` while the pushed request builder honors an override,
-  /// surfaced on parse so a server can tell a missing value from one it does
-  /// not understand (RFC 6749 Section 3.1.1). It is placed after the older
-  /// members so an existing positional initializer keeps populating them.
+  /// The response type, a space-delimited set that defaults to `code` when
+  /// unset and is otherwise honored by the authorization URL and pushed request
+  /// builders alike, surfaced on parse so a server can tell a missing value
+  /// from one it does not understand (RFC 6749 Section 3.1.1). It is placed
+  /// after the older members so an existing positional initializer keeps
+  /// populating them.
   std::string_view response_type;
   /// The repeatable resource indicators, each an absolute URI without a
   /// fragment (RFC 8707 Section 2).
@@ -89,11 +90,11 @@ struct OAuthAuthorizationRequest {
 
 /// @ingroup oauth
 /// Build an authorization request URL by appending the query to the endpoint
-/// (RFC 6749 Section 4.1.1). The `response_type` is always `code`, since the
-/// implicit grant is not represented, every value is percent-escaped, an
-/// existing query on the endpoint is honored, and the code challenge method is
-/// emitted only when a challenge is present. The sink is appended to and never
-/// cleared. For example:
+/// (RFC 6749 Section 4.1.1). The `response_type` defaults to `code` and is
+/// honored when set, every value is percent-escaped, an existing query on the
+/// endpoint is honored, and the code challenge method is emitted only when a
+/// challenge is present. The sink is appended to and never cleared. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
