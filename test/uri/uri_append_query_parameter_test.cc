@@ -45,6 +45,37 @@ TEST(no_separator_after_a_trailing_ampersand) {
   EXPECT_EQ(sink, "grant_type=code&code=xyz");
 }
 
+TEST(no_separator_after_the_opening_hash) {
+  std::string sink{"https://client.example/cb#"};
+  sourcemeta::core::URI::append_query_parameter(sink, "code", "abc", '#');
+  EXPECT_EQ(sink, "https://client.example/cb#code=abc");
+}
+
+TEST(joins_fragment_pairs_with_ampersand) {
+  std::string sink{"https://client.example/cb#"};
+  sourcemeta::core::URI::append_query_parameter(sink, "code", "abc", '#');
+  sourcemeta::core::URI::append_query_parameter(sink, "state", "xyz", '#');
+  EXPECT_EQ(sink, "https://client.example/cb#code=abc&state=xyz");
+}
+
+TEST(fragment_opener_after_an_existing_query) {
+  std::string sink{"https://client.example/cb?ui=1#"};
+  sourcemeta::core::URI::append_query_parameter(sink, "code", "abc", '#');
+  EXPECT_EQ(sink, "https://client.example/cb?ui=1#code=abc");
+}
+
+TEST(honors_an_arbitrary_opener) {
+  std::string sink{"prefix;"};
+  sourcemeta::core::URI::append_query_parameter(sink, "code", "abc", ';');
+  EXPECT_EQ(sink, "prefix;code=abc");
+}
+
+TEST(the_default_opener_does_not_recognize_a_hash) {
+  std::string sink{"https://client.example/cb#"};
+  sourcemeta::core::URI::append_query_parameter(sink, "code", "abc");
+  EXPECT_EQ(sink, "https://client.example/cb#&code=abc");
+}
+
 TEST(escapes_the_value) {
   std::string sink;
   sourcemeta::core::URI::append_query_parameter(sink, "scope",
