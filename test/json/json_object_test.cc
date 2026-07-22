@@ -2,9 +2,12 @@
 #include <sourcemeta/core/test.h>
 
 #include <algorithm>
+#include <array>
 #include <map>
 #include <set>
+#include <span>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -1532,4 +1535,82 @@ TEST(keys_differing_by_trailing_null_are_distinct) {
   EXPECT_EQ(document.size(), 2);
   EXPECT_EQ(document.at("a").to_integer(), 1);
   EXPECT_EQ(document.at(key_with_null).to_integer(), 2);
+}
+
+TEST(array_member_contains_present) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "tags": [ "a", "b" ] })JSON")};
+  EXPECT_TRUE(document.array_member_contains(
+      "tags", document.as_object().hash("tags"), "b"));
+}
+
+TEST(array_member_contains_absent_value) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "tags": [ "a", "b" ] })JSON")};
+  EXPECT_FALSE(document.array_member_contains(
+      "tags", document.as_object().hash("tags"), "c"));
+}
+
+TEST(array_member_contains_missing_member) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "other": 1 })JSON")};
+  EXPECT_FALSE(document.array_member_contains(
+      "tags", document.as_object().hash("tags"), "a"));
+}
+
+TEST(array_member_contains_wrong_member_type) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "tags": "a" })JSON")};
+  EXPECT_FALSE(document.array_member_contains(
+      "tags", document.as_object().hash("tags"), "a"));
+}
+
+TEST(array_member_contains_computes_hash) {
+  const auto document{
+      sourcemeta::core::parse_json(R"JSON({ "tags": [ "a", "b" ] })JSON")};
+  EXPECT_TRUE(document.array_member_contains("tags", "a"));
+  EXPECT_FALSE(document.array_member_contains("tags", "z"));
+}
+
+TEST(assign_if_nonempty_scalar_assigns) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_if_nonempty("foo", document.as_object().hash("foo"), "bar");
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_EQ(document.at("foo").to_string(), "bar");
+}
+
+TEST(assign_if_nonempty_scalar_skips_empty) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_if_nonempty("foo", document.as_object().hash("foo"), "");
+  EXPECT_FALSE(document.defines("foo"));
+}
+
+TEST(assign_if_nonempty_scalar_computes_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign_if_nonempty("foo", "bar");
+  EXPECT_EQ(document.at("foo").to_string(), "bar");
+}
+
+TEST(assign_if_nonempty_array_assigns) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  const std::array<std::string_view, 2> values{{"a", "b"}};
+  document.assign_if_nonempty("foo", document.as_object().hash("foo"), values);
+  EXPECT_TRUE(document.defines("foo"));
+  EXPECT_TRUE(document.at("foo").is_array());
+  EXPECT_EQ(document.at("foo").size(), 2);
+  EXPECT_EQ(document.at("foo").at(0).to_string(), "a");
+}
+
+TEST(assign_if_nonempty_array_skips_empty) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  const std::span<const std::string_view> values{};
+  document.assign_if_nonempty("foo", document.as_object().hash("foo"), values);
+  EXPECT_FALSE(document.defines("foo"));
+}
+
+TEST(assign_if_nonempty_array_computes_hash) {
+  auto document{sourcemeta::core::JSON::make_object()};
+  const std::array<std::string_view, 1> values{{"a"}};
+  document.assign_if_nonempty("foo", values);
+  EXPECT_EQ(document.at("foo").size(), 1);
 }

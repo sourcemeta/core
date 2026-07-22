@@ -50,35 +50,10 @@ const auto HASH_REGISTRATION_CLIENT_URI{
 const auto HASH_ERROR{JSON::Object::hash("error"sv)};
 const auto HASH_ERROR_DESCRIPTION{JSON::Object::hash("error_description"sv)};
 
-auto array_member_contains(const JSON &data, const JSON::StringView name,
-                           const JSON::Object::hash_type hash,
-                           const JSON::StringView value) -> bool {
-  if (!data.is_object()) {
-    return false;
-  }
-
-  const auto *member{data.try_at(name, hash)};
-  return member != nullptr && member->is_array() && member->contains(value);
-}
-
 auto array_member_is_present(const JSON &data, const JSON::StringView name,
                              const JSON::Object::hash_type hash) -> bool {
   const auto *member{data.try_at(name, hash)};
   return member != nullptr && member->is_array();
-}
-
-auto is_string_array(const JSON &value) -> bool {
-  if (!value.is_array()) {
-    return false;
-  }
-
-  for (const auto &element : value.as_array()) {
-    if (!element.is_string()) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 // A membership predicate that falls back to the specification default when the
@@ -123,37 +98,13 @@ auto validated_client_metadata(JSON &&data) -> JSON {
       data.try_at("response_types"sv, HASH_RESPONSE_TYPES)};
   const auto *auth_method{data.try_at("token_endpoint_auth_method"sv,
                                       HASH_TOKEN_ENDPOINT_AUTH_METHOD)};
-  if ((grant_types != nullptr && !is_string_array(*grant_types)) ||
-      (response_types != nullptr && !is_string_array(*response_types)) ||
+  if ((grant_types != nullptr && !grant_types->is_array_of_strings()) ||
+      (response_types != nullptr && !response_types->is_array_of_strings()) ||
       (auth_method != nullptr && !auth_method->is_string())) {
     throw OAuthRegistrationParseError{};
   }
 
   return std::move(data);
-}
-
-auto assign_scalar_member(JSON &object, const JSON::StringView name,
-                          const JSON::Object::hash_type hash,
-                          const std::string_view value) -> void {
-  if (!value.empty()) {
-    object.assign_assume_new(std::string{name}, JSON{value}, hash);
-  }
-}
-
-auto assign_array_member(JSON &object, const JSON::StringView name,
-                         const JSON::Object::hash_type hash,
-                         const std::span<const std::string_view> values)
-    -> void {
-  if (values.empty()) {
-    return;
-  }
-
-  auto array{JSON::make_array()};
-  for (const auto value : values) {
-    array.push_back(JSON{value});
-  }
-
-  object.assign_assume_new(std::string{name}, std::move(array), hash);
 }
 
 // RFC 7519 Section 4.1: the registered claims describe the JSON Web Token that
@@ -182,8 +133,8 @@ auto OAuthClientMetadata::from(JSON &&data)
 
 auto OAuthClientMetadata::has_redirect_uri(const std::string_view value) const
     -> bool {
-  return array_member_contains(this->data_, "redirect_uris"sv,
-                               HASH_REDIRECT_URIS, value);
+  return this->data_.array_member_contains("redirect_uris"sv,
+                                           HASH_REDIRECT_URIS, value);
 }
 
 auto OAuthClientMetadata::token_endpoint_auth_method() const
@@ -234,7 +185,7 @@ auto OAuthClientMetadata::scope() const -> std::optional<std::string_view> {
 
 auto OAuthClientMetadata::has_contact(const std::string_view value) const
     -> bool {
-  return array_member_contains(this->data_, "contacts"sv, HASH_CONTACTS, value);
+  return this->data_.array_member_contains("contacts"sv, HASH_CONTACTS, value);
 }
 
 auto OAuthClientMetadata::tos_uri() const -> std::optional<std::string_view> {
@@ -339,36 +290,34 @@ auto oauth_make_registration_request(
   }
 
   auto document{JSON::make_object()};
-  assign_array_member(document, "redirect_uris", HASH_REDIRECT_URIS,
-                      config.redirect_uris);
+  document.assign_if_nonempty("redirect_uris", HASH_REDIRECT_URIS,
+                              config.redirect_uris);
   if (config.jwks != nullptr) {
     document.assign_assume_new(std::string{"jwks"}, JSON{*config.jwks},
                                HASH_JWKS);
   }
-  assign_scalar_member(document, "token_endpoint_auth_method",
-                       HASH_TOKEN_ENDPOINT_AUTH_METHOD,
-                       config.token_endpoint_auth_method);
-  assign_array_member(document, "grant_types", HASH_GRANT_TYPES,
-                      config.grant_types);
-  assign_array_member(document, "response_types", HASH_RESPONSE_TYPES,
-                      config.response_types);
-  assign_scalar_member(document, "client_name", HASH_CLIENT_NAME,
-                       config.client_name);
-  assign_scalar_member(document, "client_uri", HASH_CLIENT_URI,
-                       config.client_uri);
-  assign_scalar_member(document, "logo_uri", HASH_LOGO_URI, config.logo_uri);
-  assign_scalar_member(document, "scope", HASH_SCOPE, config.scope);
-  assign_array_member(document, "contacts", HASH_CONTACTS, config.contacts);
-  assign_scalar_member(document, "tos_uri", HASH_TOS_URI, config.tos_uri);
-  assign_scalar_member(document, "policy_uri", HASH_POLICY_URI,
-                       config.policy_uri);
-  assign_scalar_member(document, "jwks_uri", HASH_JWKS_URI, config.jwks_uri);
-  assign_scalar_member(document, "software_id", HASH_SOFTWARE_ID,
-                       config.software_id);
-  assign_scalar_member(document, "software_version", HASH_SOFTWARE_VERSION,
-                       config.software_version);
-  assign_scalar_member(document, "software_statement", HASH_SOFTWARE_STATEMENT,
-                       config.software_statement);
+  document.assign_if_nonempty("token_endpoint_auth_method",
+                              HASH_TOKEN_ENDPOINT_AUTH_METHOD,
+                              config.token_endpoint_auth_method);
+  document.assign_if_nonempty("grant_types", HASH_GRANT_TYPES,
+                              config.grant_types);
+  document.assign_if_nonempty("response_types", HASH_RESPONSE_TYPES,
+                              config.response_types);
+  document.assign_if_nonempty("client_name", HASH_CLIENT_NAME,
+                              config.client_name);
+  document.assign_if_nonempty("client_uri", HASH_CLIENT_URI, config.client_uri);
+  document.assign_if_nonempty("logo_uri", HASH_LOGO_URI, config.logo_uri);
+  document.assign_if_nonempty("scope", HASH_SCOPE, config.scope);
+  document.assign_if_nonempty("contacts", HASH_CONTACTS, config.contacts);
+  document.assign_if_nonempty("tos_uri", HASH_TOS_URI, config.tos_uri);
+  document.assign_if_nonempty("policy_uri", HASH_POLICY_URI, config.policy_uri);
+  document.assign_if_nonempty("jwks_uri", HASH_JWKS_URI, config.jwks_uri);
+  document.assign_if_nonempty("software_id", HASH_SOFTWARE_ID,
+                              config.software_id);
+  document.assign_if_nonempty("software_version", HASH_SOFTWARE_VERSION,
+                              config.software_version);
+  document.assign_if_nonempty("software_statement", HASH_SOFTWARE_STATEMENT,
+                              config.software_statement);
 
   return document;
 }
@@ -396,14 +345,14 @@ auto oauth_registration_grant_response_consistent(
   const bool response_types_present{
       data.is_object() &&
       array_member_is_present(data, "response_types"sv, HASH_RESPONSE_TYPES)};
-  const bool grants_authorization_code{array_member_contains(
-      data, "grant_types"sv, HASH_GRANT_TYPES, "authorization_code"sv)};
-  const bool grants_implicit{array_member_contains(
-      data, "grant_types"sv, HASH_GRANT_TYPES, "implicit"sv)};
-  const bool responds_code{array_member_contains(
-      data, "response_types"sv, HASH_RESPONSE_TYPES, "code"sv)};
-  const bool responds_token{array_member_contains(
-      data, "response_types"sv, HASH_RESPONSE_TYPES, "token"sv)};
+  const bool grants_authorization_code{data.array_member_contains(
+      "grant_types"sv, HASH_GRANT_TYPES, "authorization_code"sv)};
+  const bool grants_implicit{data.array_member_contains(
+      "grant_types"sv, HASH_GRANT_TYPES, "implicit"sv)};
+  const bool responds_code{data.array_member_contains(
+      "response_types"sv, HASH_RESPONSE_TYPES, "code"sv)};
+  const bool responds_token{data.array_member_contains(
+      "response_types"sv, HASH_RESPONSE_TYPES, "token"sv)};
 
   // RFC 7591 Section 2.1: the authorization code grant pairs with the code
   // response type and the implicit grant with the token response type. Only
