@@ -65,29 +65,27 @@ auto split_http_authority(const std::string_view value)
   return HttpAuthority{.host = host, .rest = rest};
 }
 
-auto oauth_append_hidden_input(std::string &sink, const std::string_view name,
+auto oauth_append_hidden_input(HTMLWriter &page, const std::string_view name,
                                const std::string_view value) -> void {
-  sink.append(R"(<input type="hidden" name=")");
-  sink.append(name);
-  sink.append(R"(" value=")");
-  html_escape_append(sink, value);
-  sink.append(R"("/>)");
+  page.input()
+      .attribute("type", "hidden")
+      .attribute("name", name)
+      .attribute("value", value);
 }
 
 // The page follows the shape of the example in OAuth 2.0 Form Post Response
 // Mode Appendix A, where "the action attribute of the form MUST be the
 // Client's Redirection URI" and "the method of the form attribute MUST be
 // POST" (Section 2)
-auto oauth_open_form_post_page(std::string &sink,
+auto oauth_open_form_post_page(HTMLWriter &page,
                                const std::string_view redirect_uri,
                                const std::string_view title) -> void {
-  sink.append("<html><head><title>");
-  html_escape_append(sink, title);
-  sink.append(R"(</title></head>)"
-              R"html(<body onload="javascript:document.forms[0].submit()">)html"
-              R"(<form method="post" action=")");
-  html_escape_append(sink, redirect_uri);
-  sink.append(R"(">)");
+  page.html();
+  page.head();
+  page.title(title);
+  page.close();
+  page.body().attribute("onload", "javascript:document.forms[0].submit()");
+  page.form().attribute("method", "post").attribute("action", redirect_uri);
 }
 
 } // namespace
@@ -440,20 +438,22 @@ auto oauth_build_authorization_form_post(
     return false;
   }
 
-  sink.reserve(sink.size() + redirect_uri.size() + title.size() +
-               response.code.size() + response.state.size() +
-               response.iss.size() + 256);
-  oauth_open_form_post_page(sink, redirect_uri, title);
-  oauth_append_hidden_input(sink, "code", response.code);
+  HTMLWriter page;
+  page.reserve(redirect_uri.size() + title.size() + response.code.size() +
+               response.state.size() + response.iss.size() + 256);
+  oauth_open_form_post_page(page, redirect_uri, title);
+  oauth_append_hidden_input(page, "code", response.code);
   if (!response.state.empty()) {
-    oauth_append_hidden_input(sink, "state", response.state);
+    oauth_append_hidden_input(page, "state", response.state);
   }
 
   if (!response.iss.empty()) {
-    oauth_append_hidden_input(sink, "iss", response.iss);
+    oauth_append_hidden_input(page, "iss", response.iss);
   }
 
-  sink.append("</form></body></html>");
+  // Close the form, the body, and the document
+  page.close().close().close();
+  sink.append(page.str());
   return true;
 }
 
@@ -479,30 +479,32 @@ auto oauth_build_authorization_error_form_post(
     return false;
   }
 
-  sink.reserve(sink.size() + redirect_uri.size() + title.size() +
-               response.error.size() + response.error_description.size() +
-               response.error_uri.size() + response.state.size() +
-               response.iss.size() + 256);
-  oauth_open_form_post_page(sink, redirect_uri, title);
-  oauth_append_hidden_input(sink, "error", response.error);
+  HTMLWriter page;
+  page.reserve(redirect_uri.size() + title.size() + response.error.size() +
+               response.error_description.size() + response.error_uri.size() +
+               response.state.size() + response.iss.size() + 256);
+  oauth_open_form_post_page(page, redirect_uri, title);
+  oauth_append_hidden_input(page, "error", response.error);
   if (!response.error_description.empty()) {
-    oauth_append_hidden_input(sink, "error_description",
+    oauth_append_hidden_input(page, "error_description",
                               response.error_description);
   }
 
   if (!response.error_uri.empty()) {
-    oauth_append_hidden_input(sink, "error_uri", response.error_uri);
+    oauth_append_hidden_input(page, "error_uri", response.error_uri);
   }
 
   if (!response.state.empty()) {
-    oauth_append_hidden_input(sink, "state", response.state);
+    oauth_append_hidden_input(page, "state", response.state);
   }
 
   if (!response.iss.empty()) {
-    oauth_append_hidden_input(sink, "iss", response.iss);
+    oauth_append_hidden_input(page, "iss", response.iss);
   }
 
-  sink.append("</form></body></html>");
+  // Close the form, the body, and the document
+  page.close().close().close();
+  sink.append(page.str());
   return true;
 }
 

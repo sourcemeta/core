@@ -1064,8 +1064,8 @@ TEST(build_authorization_form_post_emits_code_and_state) {
                   "<body onload=\"javascript:document.forms[0].submit()\">"
                   "<form method=\"post\" action=\"https://client.example/cb\">"
                   "<input type=\"hidden\" name=\"code\" "
-                  "value=\"SplxlOBeZQQYbYS6WxSbIA\"/>"
-                  "<input type=\"hidden\" name=\"state\" value=\"xyz\"/>"
+                  "value=\"SplxlOBeZQQYbYS6WxSbIA\" />"
+                  "<input type=\"hidden\" name=\"state\" value=\"xyz\" />"
                   "</form></body></html>");
 }
 
@@ -1079,9 +1079,9 @@ TEST(build_authorization_form_post_emits_a_valid_iss) {
   EXPECT_EQ(page, "<html><head><title>Submit This Form</title></head>"
                   "<body onload=\"javascript:document.forms[0].submit()\">"
                   "<form method=\"post\" action=\"https://client.example/cb\">"
-                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\" />"
                   "<input type=\"hidden\" name=\"iss\" "
-                  "value=\"https://server.example\"/>"
+                  "value=\"https://server.example\" />"
                   "</form></body></html>");
 }
 
@@ -1095,9 +1095,9 @@ TEST(build_authorization_form_post_escapes_the_values) {
   EXPECT_EQ(page, "<html><head><title>Submit This Form</title></head>"
                   "<body onload=\"javascript:document.forms[0].submit()\">"
                   "<form method=\"post\" action=\"https://client.example/cb\">"
-                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\" />"
                   "<input type=\"hidden\" name=\"state\" "
-                  "value=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"/>"
+                  "value=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\" />"
                   "</form></body></html>");
 }
 
@@ -1111,7 +1111,7 @@ TEST(build_authorization_form_post_escapes_the_redirect_uri) {
                   "<body onload=\"javascript:document.forms[0].submit()\">"
                   "<form method=\"post\" "
                   "action=\"https://client.example/cb?ui=1&amp;theme=dark\">"
-                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\" />"
                   "</form></body></html>");
 }
 
@@ -1124,7 +1124,7 @@ TEST(build_authorization_form_post_honors_a_custom_title) {
   EXPECT_EQ(page, "<html><head><title>Redirecting</title></head>"
                   "<body onload=\"javascript:document.forms[0].submit()\">"
                   "<form method=\"post\" action=\"https://client.example/cb\">"
-                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\" />"
                   "</form></body></html>");
 }
 
@@ -1137,7 +1137,7 @@ TEST(build_authorization_form_post_escapes_the_title) {
   EXPECT_EQ(page, "<html><head><title>Fast &amp; Safe</title></head>"
                   "<body onload=\"javascript:document.forms[0].submit()\">"
                   "<form method=\"post\" action=\"https://client.example/cb\">"
-                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\" />"
                   "</form></body></html>");
 }
 
@@ -1181,12 +1181,12 @@ TEST(build_authorization_error_form_post_emits_every_error_field) {
             "<html><head><title>Submit This Form</title></head>"
             "<body onload=\"javascript:document.forms[0].submit()\">"
             "<form method=\"post\" action=\"https://client.example/cb\">"
-            "<input type=\"hidden\" name=\"error\" value=\"access_denied\"/>"
+            "<input type=\"hidden\" name=\"error\" value=\"access_denied\" />"
             "<input type=\"hidden\" name=\"error_description\" "
-            "value=\"The user declined\"/>"
+            "value=\"The user declined\" />"
             "<input type=\"hidden\" name=\"error_uri\" "
-            "value=\"https://server.example/errors/denied\"/>"
-            "<input type=\"hidden\" name=\"state\" value=\"xyz\"/>"
+            "value=\"https://server.example/errors/denied\" />"
+            "<input type=\"hidden\" name=\"state\" value=\"xyz\" />"
             "</form></body></html>");
 }
 
@@ -1208,6 +1208,6 @@ TEST(build_authorization_error_form_post_honors_a_custom_title) {
             "<html><head><title>Redirecting</title></head>"
             "<body onload=\"javascript:document.forms[0].submit()\">"
             "<form method=\"post\" action=\"https://client.example/cb\">"
-            "<input type=\"hidden\" name=\"error\" value=\"access_denied\"/>"
+            "<input type=\"hidden\" name=\"error\" value=\"access_denied\" />"
             "</form></body></html>");
 }
