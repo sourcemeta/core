@@ -15,9 +15,14 @@ namespace {
 
 // Fetching the algorithm on every digest would repeat a provider lookup, so
 // the handle is fetched once and reused, as OpenSSL recommends for frequently
-// used algorithms
+// used algorithms. A failed fetch throws so that initialization is retried on
+// a later call, as a provider may be loaded after the first attempt
 struct HmacAlgorithm {
-  HmacAlgorithm() : handle{EVP_MAC_fetch(nullptr, "HMAC", nullptr)} {}
+  HmacAlgorithm() : handle{EVP_MAC_fetch(nullptr, "HMAC", nullptr)} {
+    if (this->handle == nullptr) {
+      throw std::runtime_error("Could not fetch the OpenSSL HMAC algorithm");
+    }
+  }
   ~HmacAlgorithm() { EVP_MAC_free(this->handle); }
   HmacAlgorithm(const HmacAlgorithm &) = delete;
   HmacAlgorithm(HmacAlgorithm &&) = delete;
@@ -34,10 +39,6 @@ auto hmac_sha256_digest(const std::string_view key,
                         const std::span<const std::string_view> message)
     -> std::array<std::uint8_t, 32> {
   static const HmacAlgorithm algorithm;
-  if (algorithm.handle == nullptr) {
-    throw std::runtime_error("Could not fetch the OpenSSL HMAC algorithm");
-  }
-
   auto *context = EVP_MAC_CTX_new(algorithm.handle);
   if (context == nullptr) {
     throw std::runtime_error("Could not allocate OpenSSL MAC context");
