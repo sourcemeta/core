@@ -9,7 +9,8 @@ sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME crypto
     crypto_sha512.cc crypto_sha1.cc
     crypto_uuid.cc crypto_fnv128.cc crypto_crc32.cc crypto_base64.cc
     crypto_random.cc crypto_sign_rsa.cc crypto_aes_gcm.cc
-    crypto_sha2_64.h crypto_random.h crypto_helpers.h crypto_der.h crypto_aes.h)
+    crypto_sha2_64.h crypto_sha256_other.h crypto_random.h crypto_helpers.h
+    crypto_der.h crypto_aes.h)
 
 target_link_libraries(sourcemeta_core_crypto
   PRIVATE sourcemeta::core::text sourcemeta::core::numeric)
