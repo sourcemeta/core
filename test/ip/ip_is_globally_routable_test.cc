@@ -91,6 +91,26 @@ TEST(blocks_ipv6_outside_global_unicast) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("100::"));
 }
 
+TEST(blocks_ipv6_teredo) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2001::1"));
+}
+
+TEST(blocks_ipv6_benchmarking) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2001:2::1"));
+}
+
+TEST(blocks_ipv6_6to4) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2002::1"));
+}
+
+TEST(blocks_ipv6_documentation_3fff) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("3fff::1"));
+}
+
+TEST(blocks_ipv6_segment_routing) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("5f00::1"));
+}
+
 TEST(blocks_mapped_loopback_bypass) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("::ffff:127.0.0.1"));
 }

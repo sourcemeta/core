@@ -56,6 +56,96 @@ TEST(reserved_outside_global_unicast) {
             sourcemeta::core::IPAddressClass::Reserved);
 }
 
+TEST(teredo_2001) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(benchmarking_2001_2) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:2::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(orchid_deprecated_2001_10) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:10::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(ietf_protocol_assignments_unallocated) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1ff::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(port_control_protocol_anycast) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(turn_anycast) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::2").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(dns_sd_anycast) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::3").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(beyond_anycast_2001_1_4) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:1::4").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(amt_2001_3) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:3::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(as112_2001_4_112) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:4:112::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(orchidv2_2001_20) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:20::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(drone_remote_id_2001_30) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:30::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(six_to_four_2002) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2002::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(documentation_3fff) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("3fff::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(documentation_3fff_upper_bound) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("3fff:fff::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(beyond_documentation_3fff_1000) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("3fff:1000::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(segment_routing_5f00) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("5f00::1").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(beyond_segment_routing_5f01) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("5f01::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
 TEST(public_google) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:4860:4860::8888").value(),
             sourcemeta::core::IPAddressClass::Public);

@@ -240,9 +240,68 @@ auto ipv6_classify(const std::string_view address)
     return IPAddressClass::Reserved;
   }
 
+  // RFC 2928: the IETF protocol assignments block, 2001::/23, which the IANA
+  // IPv6 Special-Purpose Address Registry marks as not globally reachable
+  // unless a more specific allocation within it says otherwise
+  if (bytes[0] == 0x20 && bytes[1] == 0x01 && (bytes[2] & 0xfe) == 0x00) {
+    // RFC 7723, RFC 8155, and RFC 9665: the globally reachable anycast
+    // addresses 2001:1::1, 2001:1::2, and 2001:1::3
+    if (bytes[2] == 0x00 && bytes[3] == 0x01 && bytes[15] >= 1 &&
+        bytes[15] <= 3) {
+      bool anycast{true};
+      for (std::size_t index = 4; index < 15; index += 1) {
+        if (bytes[index] != 0) {
+          anycast = false;
+          break;
+        }
+      }
+      if (anycast) {
+        return IPAddressClass::Public;
+      }
+    }
+
+    // RFC 7450: AMT, 2001:3::/32, globally reachable
+    if (bytes[2] == 0x00 && bytes[3] == 0x03) {
+      return IPAddressClass::Public;
+    }
+
+    // RFC 7535: AS112-v6, 2001:4:112::/48, globally reachable
+    if (bytes[2] == 0x00 && bytes[3] == 0x04 && bytes[4] == 0x01 &&
+        bytes[5] == 0x12) {
+      return IPAddressClass::Public;
+    }
+
+    // RFC 7343: ORCHIDv2, 2001:20::/28, and RFC 9374: Drone Remote ID
+    // Protocol Entity Tags, 2001:30::/28, both globally reachable
+    if (bytes[2] == 0x00 && (bytes[3] & 0xe0) == 0x20) {
+      return IPAddressClass::Public;
+    }
+
+    // Everything else in 2001::/23, including TEREDO (RFC 4380), 2001::/32,
+    // benchmarking (RFC 5180), 2001:2::/48, and the deprecated ORCHID
+    // (RFC 4843), 2001:10::/28, is not globally reachable
+    return IPAddressClass::Reserved;
+  }
+
   // RFC 3849: documentation, 2001:db8::/32, within global unicast
   if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0d &&
       bytes[3] == 0xb8) {
+    return IPAddressClass::Reserved;
+  }
+
+  // RFC 3056: 6to4, 2002::/16, whose reachability relies on relays that
+  // RFC 7526 deprecated, so it cannot be considered globally reachable
+  if (bytes[0] == 0x20 && bytes[1] == 0x02) {
+    return IPAddressClass::Reserved;
+  }
+
+  // RFC 9637: documentation, 3fff::/20, within global unicast
+  if (bytes[0] == 0x3f && bytes[1] == 0xff && (bytes[2] & 0xf0) == 0x00) {
+    return IPAddressClass::Reserved;
+  }
+
+  // RFC 9602: Segment Routing SIDs, 5f00::/16, not globally reachable
+  if (bytes[0] == 0x5f && bytes[1] == 0x00) {
     return IPAddressClass::Reserved;
   }
 
