@@ -234,7 +234,13 @@ auto ipv6_classify(const std::string_view address)
     return IPAddressClass::UniqueLocal;
   }
 
-  // RFC 3849: documentation, 2001:db8::/32
+  // RFC 4291 Section 2.4: only global unicast, 2000::/3, is globally reachable,
+  // so every other prefix, including the IETF-reserved 0000::/8, is not
+  if ((bytes[0] & 0xe0) != 0x20) {
+    return IPAddressClass::Reserved;
+  }
+
+  // RFC 3849: documentation, 2001:db8::/32, within global unicast
   if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0d &&
       bytes[3] == 0xb8) {
     return IPAddressClass::Reserved;

@@ -83,6 +83,14 @@ TEST(blocks_ipv6_documentation) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2001:db8::1"));
 }
 
+TEST(blocks_ipv6_ietf_reserved_zero_block) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("1::"));
+}
+
+TEST(blocks_ipv6_outside_global_unicast) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("100::"));
+}
+
 TEST(blocks_mapped_loopback_bypass) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("::ffff:127.0.0.1"));
 }

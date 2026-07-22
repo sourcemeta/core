@@ -46,6 +46,16 @@ TEST(documentation_2001_db8) {
             sourcemeta::core::IPAddressClass::Reserved);
 }
 
+TEST(reserved_ietf_zero_block) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("1::").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
+TEST(reserved_outside_global_unicast) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("100::").value(),
+            sourcemeta::core::IPAddressClass::Reserved);
+}
+
 TEST(public_google) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("2001:4860:4860::8888").value(),
             sourcemeta::core::IPAddressClass::Public);
