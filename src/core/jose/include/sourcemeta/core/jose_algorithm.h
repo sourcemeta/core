@@ -97,9 +97,13 @@ auto jws_algorithm_is_asymmetric(const JWSAlgorithm algorithm) noexcept -> bool;
 /// The size, in bits, of the digest each signature algorithm is defined over
 /// (RFC 7518 Section 3.1), so that derived hash claims such as OpenID
 /// Connect's `at_hash` and `c_hash` select their digest by table rather than
-/// by slicing the algorithm name. The Edwards-curve algorithm carries no
-/// digest in its name and OpenID Connect leaves the choice unspecified, so it
-/// is pinned to SHA-256. For example:
+/// by slicing the algorithm name. The Edwards-curve algorithm names no digest
+/// and OpenID Connect leaves the choice unspecified, so it is pinned to
+/// SHA-512, the convention deployed implementations follow for Ed25519, whose
+/// signature scheme is internally defined over that hash (RFC 8032 Section
+/// 5.1). Hash claims minted over Ed448 by a SHAKE256-based implementation
+/// need curve-specific handling that no algorithm-only table can provide. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/jose.h>

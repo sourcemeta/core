@@ -104,7 +104,6 @@ auto jws_algorithm_digest_bits(const JWSAlgorithm algorithm) noexcept
     case JWSAlgorithm::PS256:
     case JWSAlgorithm::ES256:
     case JWSAlgorithm::HS256:
-    case JWSAlgorithm::EdDSA:
       return 256;
     case JWSAlgorithm::RS384:
     case JWSAlgorithm::PS384:
@@ -115,6 +114,7 @@ auto jws_algorithm_digest_bits(const JWSAlgorithm algorithm) noexcept
     case JWSAlgorithm::PS512:
     case JWSAlgorithm::ES512:
     case JWSAlgorithm::HS512:
+    case JWSAlgorithm::EdDSA:
       return 512;
   }
 

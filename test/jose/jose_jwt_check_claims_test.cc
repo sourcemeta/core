@@ -500,6 +500,46 @@ TEST(issued_at_skew_applies_to_issued_at_only) {
   EXPECT_EQ(rejected.value(), sourcemeta::core::JWTClaimError::IssuedAt);
 }
 
+TEST(per_claim_skew_isolated_with_every_claim_present) {
+  // The token is expired by 30 seconds while its not-before and issued-at
+  // times lie 20 and 30 seconds in the future, so acceptance requires every
+  // claim to be forgiven by exactly its own tolerance
+  const auto input{make_token(R"({ "alg": "RS256" })",
+                              R"({ "iss": "acme", "aud": "client",
+                                   "exp": 2000, "nbf": 2050, "iat": 2060 })",
+                              "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto now{std::chrono::system_clock::from_time_t(2030)};
+  const auto accepted{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client", now,
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{60},
+                                     std::chrono::seconds{30},
+                                     std::chrono::seconds{40}})};
+  EXPECT_FALSE(accepted.has_value());
+  const auto expired{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client", now,
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{30},
+                                     std::chrono::seconds{40}})};
+  EXPECT_TRUE(expired.has_value());
+  EXPECT_EQ(expired.value(), sourcemeta::core::JWTClaimError::Expiration);
+  const auto premature{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client", now,
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{60},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{40}})};
+  EXPECT_TRUE(premature.has_value());
+  EXPECT_EQ(premature.value(), sourcemeta::core::JWTClaimError::NotBefore);
+  const auto future_issued{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client", now,
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{60},
+                                     std::chrono::seconds{30},
+                                     std::chrono::seconds{0}})};
+  EXPECT_TRUE(future_issued.has_value());
+  EXPECT_EQ(future_issued.value(), sourcemeta::core::JWTClaimError::IssuedAt);
+}
+
 TEST(uniform_seconds_skew_still_converts) {
   const auto input{make_token(
       R"({ "alg": "RS256" })",

@@ -149,9 +149,6 @@ TEST(jws_algorithm_digest_bits_256_family) {
   EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
                 sourcemeta::core::JWSAlgorithm::HS256),
             std::uint16_t{256});
-  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
-                sourcemeta::core::JWSAlgorithm::EdDSA),
-            std::uint16_t{256});
 }
 
 TEST(jws_algorithm_digest_bits_384_family) {
@@ -181,5 +178,8 @@ TEST(jws_algorithm_digest_bits_512_family) {
             std::uint16_t{512});
   EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
                 sourcemeta::core::JWSAlgorithm::HS512),
+            std::uint16_t{512});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::EdDSA),
             std::uint16_t{512});
 }
