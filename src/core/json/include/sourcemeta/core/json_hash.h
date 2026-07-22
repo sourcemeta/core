@@ -60,9 +60,9 @@ template <typename T> struct PropertyHashJSON {
             static_cast<unsigned char>(data[index]))};
         const auto position{index + 1};
         if (position < 16) {
-          result.a |= byte << (8 * position);
+          result.a |= byte << static_cast<int>(8 * position);
         } else {
-          result.b |= byte << (8 * (position - 16));
+          result.b |= byte << static_cast<int>(8 * (position - 16));
         }
       }
     } else {
@@ -148,11 +148,11 @@ template <typename T> struct PropertyHashJSON {
         // string length, and to exploit the fact that most JSON objects don't
         // have a lot of entries, so hash collision is not as common
         auto hash = this->perfect(value.data(), 31);
-        hash.a |=
-            1 + (size + static_cast<typename hash_type::type>(value.front()) +
-                 static_cast<typename hash_type::type>(value.back())) %
-                    // Make sure the property hash can never exceed 8 bits
-                    255;
+        hash.a |= 1 + (static_cast<std::uint64_t>(size) +
+                       static_cast<typename hash_type::type>(value.front()) +
+                       static_cast<typename hash_type::type>(value.back())) %
+                          // Make sure the property hash can never exceed 8 bits
+                          255;
         return hash;
     }
   }
@@ -230,7 +230,8 @@ template <typename T> struct PropertyHashJSON {
         // string length, and to exploit the fact that most JSON objects don't
         // have a lot of entries, so hash collision is not as common
         auto hash = this->perfect(data, 31);
-        hash.a |= 1 + (size + static_cast<typename hash_type::type>(data[0]) +
+        hash.a |= 1 + (static_cast<std::uint64_t>(size) +
+                       static_cast<typename hash_type::type>(data[0]) +
                        static_cast<typename hash_type::type>(data[size - 1])) %
                           // Make sure the property hash can never exceed 8 bits
                           255;
