@@ -243,3 +243,13 @@ TEST(jwk_private_oct_empty_key_value) {
   const auto document{sourcemeta::core::parse_json(R"({"kty":"oct","k":""})")};
   EXPECT_FALSE(sourcemeta::core::JWKPrivate::from(document).has_value());
 }
+
+TEST(jwk_private_from_octets) {
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(
+      "0123456789abcdef0123456789abcdef")};
+  EXPECT_EQ(key.type(), sourcemeta::core::JWKPrivate::Type::Octet);
+  EXPECT_EQ(key.secret(), "0123456789abcdef0123456789abcdef");
+  EXPECT_FALSE(key.key_id().has_value());
+  EXPECT_FALSE(key.algorithm().has_value());
+  EXPECT_FALSE(key.public_jwk().has_value());
+}

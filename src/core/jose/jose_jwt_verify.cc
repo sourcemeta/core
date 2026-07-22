@@ -60,7 +60,7 @@ auto jwt_verify(const JWT &token, const JWKS &keys,
                 const std::string_view expected_issuer,
                 const std::string_view expected_audience,
                 const std::chrono::system_clock::time_point now,
-                const std::chrono::seconds clock_skew,
+                const JWTClockSkew clock_skew,
                 const std::optional<std::string_view> expected_subject,
                 const std::optional<std::string_view> expected_type)
     -> std::optional<JWTVerificationError> {

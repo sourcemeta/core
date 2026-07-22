@@ -107,3 +107,28 @@ TEST(jwt_sign_hs256_round_trips) {
   EXPECT_TRUE(sourcemeta::core::jwt_verify_signature(token.value(),
                                                      verification_key.value()));
 }
+
+TEST(jwt_sign_hs256_from_octets_round_trips) {
+  const auto key{sourcemeta::core::JWKPrivate::from_octets(
+      "0123456789abcdef0123456789abcdef")};
+  const auto token_string{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
+      sourcemeta::core::parse_json(
+          R"({ "iss": "acme", "aud": "client", "exp": 2000000000 })"),
+      key)};
+  EXPECT_TRUE(token_string.has_value());
+  const auto token{sourcemeta::core::JWT::from(token_string.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verification_key{
+      sourcemeta::core::JWK::from_octets("0123456789abcdef0123456789abcdef")};
+  EXPECT_TRUE(
+      sourcemeta::core::jwt_verify_signature(token.value(), verification_key));
+}
+
+TEST(jwt_sign_hs256_from_octets_rejects_short_secret) {
+  const auto key{sourcemeta::core::JWKPrivate::from_octets("too-short")};
+  EXPECT_FALSE(sourcemeta::core::jwt_sign(
+                   sourcemeta::core::parse_json(R"({ "alg": "HS256" })"),
+                   sourcemeta::core::parse_json(R"({ "iss": "acme" })"), key)
+                   .has_value());
+}

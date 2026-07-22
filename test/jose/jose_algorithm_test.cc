@@ -1,6 +1,8 @@
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/test.h>
 
+#include <cstdint> // std::uint16_t
+
 TEST(rs256) {
   const auto result{sourcemeta::core::to_jws_algorithm("RS256")};
   EXPECT_TRUE(result.has_value());
@@ -132,4 +134,52 @@ TEST(jws_algorithm_is_asymmetric_covers_every_algorithm) {
       sourcemeta::core::JWSAlgorithm::HS384));
   EXPECT_FALSE(sourcemeta::core::jws_algorithm_is_asymmetric(
       sourcemeta::core::JWSAlgorithm::HS512));
+}
+
+TEST(jws_algorithm_digest_bits_256_family) {
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::RS256),
+            std::uint16_t{256});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::PS256),
+            std::uint16_t{256});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::ES256),
+            std::uint16_t{256});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::HS256),
+            std::uint16_t{256});
+}
+
+TEST(jws_algorithm_digest_bits_384_family) {
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::RS384),
+            std::uint16_t{384});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::PS384),
+            std::uint16_t{384});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::ES384),
+            std::uint16_t{384});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::HS384),
+            std::uint16_t{384});
+}
+
+TEST(jws_algorithm_digest_bits_512_family) {
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::RS512),
+            std::uint16_t{512});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::PS512),
+            std::uint16_t{512});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::ES512),
+            std::uint16_t{512});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::HS512),
+            std::uint16_t{512});
+  EXPECT_EQ(sourcemeta::core::jws_algorithm_digest_bits(
+                sourcemeta::core::JWSAlgorithm::EdDSA),
+            std::uint16_t{512});
 }

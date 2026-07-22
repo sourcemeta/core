@@ -661,3 +661,25 @@ TEST(empty_clock_falls_back_to_the_system_clock) {
       provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
   EXPECT_FALSE(error.has_value());
 }
+
+TEST(verify_shares_its_resolved_clock_reading) {
+  const auto fetcher{
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{
+            std::string{SIGNED_KEYS}, std::nullopt};
+      }};
+  const auto now{std::chrono::system_clock::from_time_t(1000000000)};
+  sourcemeta::core::JWKSProvider provider{
+      "https://issuer.test/jwks", fetcher,
+      sourcemeta::core::JWKSProvider::Options{}, [&now] { return now; }};
+  const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
+  EXPECT_TRUE(token.has_value());
+
+  std::chrono::system_clock::time_point resolved_now{};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt,
+                                   resolved_now)};
+  EXPECT_FALSE(error.has_value());
+  EXPECT_TRUE(resolved_now == now);
+}

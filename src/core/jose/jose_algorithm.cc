@@ -1,5 +1,6 @@
 #include <sourcemeta/core/jose_algorithm.h>
 
+#include <cstdint>     // std::uint16_t
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
 #include <utility>     // std::unreachable
@@ -91,6 +92,30 @@ auto jws_algorithm_is_asymmetric(const JWSAlgorithm algorithm) noexcept
     case JWSAlgorithm::HS384:
     case JWSAlgorithm::HS512:
       return false;
+  }
+
+  std::unreachable();
+}
+
+auto jws_algorithm_digest_bits(const JWSAlgorithm algorithm) noexcept
+    -> std::uint16_t {
+  switch (algorithm) {
+    case JWSAlgorithm::RS256:
+    case JWSAlgorithm::PS256:
+    case JWSAlgorithm::ES256:
+    case JWSAlgorithm::HS256:
+      return 256;
+    case JWSAlgorithm::RS384:
+    case JWSAlgorithm::PS384:
+    case JWSAlgorithm::ES384:
+    case JWSAlgorithm::HS384:
+      return 384;
+    case JWSAlgorithm::RS512:
+    case JWSAlgorithm::PS512:
+    case JWSAlgorithm::ES512:
+    case JWSAlgorithm::HS512:
+    case JWSAlgorithm::EdDSA:
+      return 512;
   }
 
   std::unreachable();
