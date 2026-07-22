@@ -289,10 +289,13 @@ auto ipv6_classify(const std::string_view address)
     return IPAddressClass::Reserved;
   }
 
-  // RFC 3056: 6to4, 2002::/16, whose reachability relies on relays that
-  // RFC 7526 deprecated, so it cannot be considered globally reachable
+  // RFC 3056 Section 2: a 6to4 address, 2002::/16, embeds the IPv4 address of
+  // its tunnel endpoint, so it is classified as that address and a 6to4 form
+  // of a private or loopback IPv4 address cannot bypass a check. Note that
+  // RFC 7526 Section 4 deprecated the relay anycast mechanism, not unicast
+  // 6to4 or its prefix
   if (bytes[0] == 0x20 && bytes[1] == 0x02) {
-    return IPAddressClass::Reserved;
+    return ipv4_classify_octets({{bytes[2], bytes[3], bytes[4], bytes[5]}});
   }
 
   // RFC 9637: documentation, 3fff::/20, within global unicast

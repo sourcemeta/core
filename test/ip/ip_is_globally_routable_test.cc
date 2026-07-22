@@ -99,8 +99,16 @@ TEST(blocks_ipv6_benchmarking) {
   EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2001:2::1"));
 }
 
-TEST(blocks_ipv6_6to4) {
-  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2002::1"));
+TEST(public_ipv6_6to4) {
+  EXPECT_TRUE(sourcemeta::core::ip_is_globally_routable("2002:808:808::1"));
+}
+
+TEST(blocks_ipv6_6to4_loopback_bypass) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2002:7f00:1::1"));
+}
+
+TEST(blocks_ipv6_6to4_private_bypass) {
+  EXPECT_FALSE(sourcemeta::core::ip_is_globally_routable("2002:a00:1::1"));
 }
 
 TEST(blocks_ipv6_documentation_3fff) {

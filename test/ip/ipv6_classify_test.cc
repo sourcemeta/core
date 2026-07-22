@@ -116,9 +116,24 @@ TEST(drone_remote_id_2001_30) {
             sourcemeta::core::IPAddressClass::Public);
 }
 
-TEST(six_to_four_2002) {
+TEST(six_to_four_public) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2002:808:808::1").value(),
+            sourcemeta::core::IPAddressClass::Public);
+}
+
+TEST(six_to_four_loopback) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2002:7f00:1::1").value(),
+            sourcemeta::core::IPAddressClass::Loopback);
+}
+
+TEST(six_to_four_private) {
+  EXPECT_EQ(sourcemeta::core::ipv6_classify("2002:a00:1::1").value(),
+            sourcemeta::core::IPAddressClass::Private);
+}
+
+TEST(six_to_four_unspecified) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("2002::1").value(),
-            sourcemeta::core::IPAddressClass::Reserved);
+            sourcemeta::core::IPAddressClass::Unspecified);
 }
 
 TEST(documentation_3fff) {
