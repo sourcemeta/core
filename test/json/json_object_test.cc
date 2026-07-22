@@ -1572,26 +1572,6 @@ TEST(array_member_contains_computes_hash) {
   EXPECT_FALSE(document.array_member_contains("tags", "z"));
 }
 
-TEST(is_array_of_strings_true) {
-  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", "b" ])JSON")};
-  EXPECT_TRUE(document.is_array_of_strings());
-}
-
-TEST(is_array_of_strings_empty_is_vacuously_true) {
-  const auto document{sourcemeta::core::parse_json(R"JSON([])JSON")};
-  EXPECT_TRUE(document.is_array_of_strings());
-}
-
-TEST(is_array_of_strings_with_a_non_string_element) {
-  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1 ])JSON")};
-  EXPECT_FALSE(document.is_array_of_strings());
-}
-
-TEST(is_array_of_strings_non_array) {
-  const sourcemeta::core::JSON document{"a"};
-  EXPECT_FALSE(document.is_array_of_strings());
-}
-
 TEST(assign_if_nonempty_scalar_assigns) {
   auto document{sourcemeta::core::JSON::make_object()};
   document.assign_if_nonempty("foo", document.as_object().hash("foo"), "bar");

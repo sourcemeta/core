@@ -684,3 +684,23 @@ TEST(erase_if_all) {
 
   EXPECT_EQ(document, expected);
 }
+
+TEST(is_array_of_strings_true) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", "b" ])JSON")};
+  EXPECT_TRUE(document.is_array_of_strings());
+}
+
+TEST(is_array_of_strings_empty_is_vacuously_true) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([])JSON")};
+  EXPECT_TRUE(document.is_array_of_strings());
+}
+
+TEST(is_array_of_strings_with_a_non_string_element) {
+  const auto document{sourcemeta::core::parse_json(R"JSON([ "a", 1 ])JSON")};
+  EXPECT_FALSE(document.is_array_of_strings());
+}
+
+TEST(is_array_of_strings_non_array) {
+  const sourcemeta::core::JSON document{"a"};
+  EXPECT_FALSE(document.is_array_of_strings());
+}
