@@ -2,8 +2,8 @@
 
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/uri.h>
 
-#include "oauth_encode.h"
 #include "oauth_json.h"
 
 #include <chrono>      // std::chrono::seconds
@@ -33,9 +33,9 @@ const auto HASH_NBF{JSON::Object::hash("nbf"sv)};
 auto oauth_build_introspection_request(const std::string_view token,
                                        const std::string_view token_type_hint,
                                        SecureString &sink) -> void {
-  oauth_append_form_parameter(sink, "token", token);
+  URI::append_query_parameter(sink, "token", token);
   if (!token_type_hint.empty()) {
-    oauth_append_form_parameter(sink, "token_type_hint", token_type_hint);
+    URI::append_query_parameter(sink, "token_type_hint", token_type_hint);
   }
 }
 
