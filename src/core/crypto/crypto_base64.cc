@@ -218,6 +218,12 @@ auto base64url_encode(const std::string_view input) -> std::string {
 
 auto base64url_encode(const std::span<const std::uint8_t> input)
     -> std::string {
+  // An empty span may carry a null pointer, which some standard libraries
+  // reject when constructing a string view even for a zero length
+  if (input.empty()) {
+    return {};
+  }
+
   return base64url_encode(std::string_view{
       reinterpret_cast<const char *>(input.data()), input.size()});
 }
