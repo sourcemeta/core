@@ -79,8 +79,11 @@ auto oauth_append_hidden_input(std::string &sink, const std::string_view name,
 // Client's Redirection URI" and "the method of the form attribute MUST be
 // POST" (Section 2)
 auto oauth_open_form_post_page(std::string &sink,
-                               const std::string_view redirect_uri) -> void {
-  sink.append(R"(<html><head><title>Submit This Form</title></head>)"
+                               const std::string_view redirect_uri,
+                               const std::string_view title) -> void {
+  sink.append("<html><head><title>");
+  html_escape_append(sink, title);
+  sink.append(R"(</title></head>)"
               R"html(<body onload="javascript:document.forms[0].submit()">)html"
               R"(<form method="post" action=")");
   html_escape_append(sink, redirect_uri);
@@ -250,27 +253,27 @@ auto oauth_build_authorization_redirect(
     return false;
   }
 
+  const auto opener{mode == OAuthResponseMode::Fragment ? '#' : '?'};
   sink.reserve(sink.size() + redirect_uri.size() + response.code.size() +
                response.state.size() + response.iss.size() + 32);
   sink.append(redirect_uri);
-  if (mode == OAuthResponseMode::Fragment) {
-    // Parameters are "encoded in the fragment added to the redirect_uri when
-    // redirecting back to the Client" (OAuth 2.0 Multiple Response Types
-    // Section 2.1)
-    sink.push_back('#');
-  } else if (redirect_uri.find('?') == std::string_view::npos) {
-    sink.push_back('?');
+  // In the fragment response mode the parameters are "encoded in the fragment
+  // added to the redirect_uri when redirecting back to the Client" (OAuth 2.0
+  // Multiple Response Types Section 2.1), while a query joins any existing one
+  if (mode == OAuthResponseMode::Fragment ||
+      redirect_uri.find('?') == std::string_view::npos) {
+    sink.push_back(opener);
   }
 
-  URI::append_query_parameter(sink, "code", response.code);
+  URI::append_query_parameter(sink, "code", response.code, opener);
   // RFC 6749 Section 4.1.2: state is returned when the request carried one,
   // which the caller reflects by setting it
   if (!response.state.empty()) {
-    URI::append_query_parameter(sink, "state", response.state);
+    URI::append_query_parameter(sink, "state", response.state, opener);
   }
 
   if (!response.iss.empty()) {
-    URI::append_query_parameter(sink, "iss", response.iss);
+    URI::append_query_parameter(sink, "iss", response.iss, opener);
   }
 
   return true;
@@ -312,35 +315,35 @@ auto oauth_build_authorization_error_redirect(
     return false;
   }
 
+  const auto opener{mode == OAuthResponseMode::Fragment ? '#' : '?'};
   sink.reserve(sink.size() + redirect_uri.size() + response.error.size() +
                response.error_description.size() + response.error_uri.size() +
                response.state.size() + response.iss.size() + 64);
   sink.append(redirect_uri);
-  if (mode == OAuthResponseMode::Fragment) {
-    // Parameters are "encoded in the fragment added to the redirect_uri when
-    // redirecting back to the Client" (OAuth 2.0 Multiple Response Types
-    // Section 2.1)
-    sink.push_back('#');
-  } else if (redirect_uri.find('?') == std::string_view::npos) {
-    sink.push_back('?');
+  // In the fragment response mode the parameters are "encoded in the fragment
+  // added to the redirect_uri when redirecting back to the Client" (OAuth 2.0
+  // Multiple Response Types Section 2.1), while a query joins any existing one
+  if (mode == OAuthResponseMode::Fragment ||
+      redirect_uri.find('?') == std::string_view::npos) {
+    sink.push_back(opener);
   }
 
-  URI::append_query_parameter(sink, "error", response.error);
+  URI::append_query_parameter(sink, "error", response.error, opener);
   if (!response.error_description.empty()) {
     URI::append_query_parameter(sink, "error_description",
-                                response.error_description);
+                                response.error_description, opener);
   }
 
   if (!response.error_uri.empty()) {
-    URI::append_query_parameter(sink, "error_uri", response.error_uri);
+    URI::append_query_parameter(sink, "error_uri", response.error_uri, opener);
   }
 
   if (!response.state.empty()) {
-    URI::append_query_parameter(sink, "state", response.state);
+    URI::append_query_parameter(sink, "state", response.state, opener);
   }
 
   if (!response.iss.empty()) {
-    URI::append_query_parameter(sink, "iss", response.iss);
+    URI::append_query_parameter(sink, "iss", response.iss, opener);
   }
 
   return true;
@@ -419,7 +422,8 @@ auto oauth_is_response_mode_allowed(const std::string_view response_type,
 
 auto oauth_build_authorization_form_post(
     const std::string_view redirect_uri,
-    const OAuthAuthorizationResponse &response, std::string &sink) -> bool {
+    const OAuthAuthorizationResponse &response, std::string &sink,
+    const std::string_view title) -> bool {
   // A success response carries the code, and RFC 9207 Section 2 constrains the
   // issuer syntax when one is echoed
   if (response.code.empty()) {
@@ -436,9 +440,10 @@ auto oauth_build_authorization_form_post(
     return false;
   }
 
-  sink.reserve(sink.size() + redirect_uri.size() + response.code.size() +
-               response.state.size() + response.iss.size() + 256);
-  oauth_open_form_post_page(sink, redirect_uri);
+  sink.reserve(sink.size() + redirect_uri.size() + title.size() +
+               response.code.size() + response.state.size() +
+               response.iss.size() + 256);
+  oauth_open_form_post_page(sink, redirect_uri, title);
   oauth_append_hidden_input(sink, "code", response.code);
   if (!response.state.empty()) {
     oauth_append_hidden_input(sink, "state", response.state);
@@ -454,7 +459,8 @@ auto oauth_build_authorization_form_post(
 
 auto oauth_build_authorization_error_form_post(
     const std::string_view redirect_uri,
-    const OAuthAuthorizationResponse &response, std::string &sink) -> bool {
+    const OAuthAuthorizationResponse &response, std::string &sink,
+    const std::string_view title) -> bool {
   // RFC 6749 Section 4.1.2.1: this builder must not be called when the redirect
   // URI or client identifier failed validation, since the error is then shown
   // to the resource owner rather than redirected. An error response carries the
@@ -473,10 +479,11 @@ auto oauth_build_authorization_error_form_post(
     return false;
   }
 
-  sink.reserve(sink.size() + redirect_uri.size() + response.error.size() +
-               response.error_description.size() + response.error_uri.size() +
-               response.state.size() + response.iss.size() + 256);
-  oauth_open_form_post_page(sink, redirect_uri);
+  sink.reserve(sink.size() + redirect_uri.size() + title.size() +
+               response.error.size() + response.error_description.size() +
+               response.error_uri.size() + response.state.size() +
+               response.iss.size() + 256);
+  oauth_open_form_post_page(sink, redirect_uri, title);
   oauth_append_hidden_input(sink, "error", response.error);
   if (!response.error_description.empty()) {
     oauth_append_hidden_input(sink, "error_description",

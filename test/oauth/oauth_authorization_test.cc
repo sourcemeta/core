@@ -1115,6 +1115,32 @@ TEST(build_authorization_form_post_escapes_the_redirect_uri) {
                   "</form></body></html>");
 }
 
+TEST(build_authorization_form_post_honors_a_custom_title) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page, "Redirecting"));
+  EXPECT_EQ(page, "<html><head><title>Redirecting</title></head>"
+                  "<body onload=\"javascript:document.forms[0].submit()\">"
+                  "<form method=\"post\" action=\"https://client.example/cb\">"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "</form></body></html>");
+}
+
+TEST(build_authorization_form_post_escapes_the_title) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page, "Fast & Safe"));
+  EXPECT_EQ(page, "<html><head><title>Fast &amp; Safe</title></head>"
+                  "<body onload=\"javascript:document.forms[0].submit()\">"
+                  "<form method=\"post\" action=\"https://client.example/cb\">"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "</form></body></html>");
+}
+
 TEST(build_authorization_form_post_rejects_a_missing_code) {
   const sourcemeta::core::OAuthAuthorizationResponse response;
   std::string page;
@@ -1170,4 +1196,18 @@ TEST(build_authorization_error_form_post_rejects_a_missing_error) {
   EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_form_post(
       "https://client.example/cb", response, page));
   EXPECT_TRUE(page.empty());
+}
+
+TEST(build_authorization_error_form_post_honors_a_custom_title) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_form_post(
+      "https://client.example/cb", response, page, "Redirecting"));
+  EXPECT_EQ(page,
+            "<html><head><title>Redirecting</title></head>"
+            "<body onload=\"javascript:document.forms[0].submit()\">"
+            "<form method=\"post\" action=\"https://client.example/cb\">"
+            "<input type=\"hidden\" name=\"error\" value=\"access_denied\"/>"
+            "</form></body></html>");
 }

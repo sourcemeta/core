@@ -413,12 +413,12 @@ auto oauth_build_authorization_error_redirect(
 /// Build the auto-submitting HTML page of a successful authorization response
 /// in the form post response mode (OAuth 2.0 Form Post Response Mode
 /// Section 2), returning whether it was produced. The action of the form is
-/// the client's redirection endpoint and the response parameters are the
-/// hidden form values, with the same validation as the redirect builder. The
-/// redirect URI and the response fields must not alias the sink. When serving
-/// the page, the authorization server "MUST instruct the User Agent (and any
-/// intermediaries) not to store or reuse the content of the response". For
-/// example:
+/// the client's redirection endpoint, the response parameters are the hidden
+/// form values, and the page carries the given title, with the same validation
+/// as the redirect builder. The redirect URI, the response fields, and the
+/// title must not alias the sink. When serving the page, the authorization
+/// server "MUST instruct the User Agent (and any intermediaries) not to store
+/// or reuse the content of the response". For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -435,16 +435,18 @@ auto oauth_build_authorization_error_redirect(
 SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_build_authorization_form_post(
     const std::string_view redirect_uri,
-    const OAuthAuthorizationResponse &response, std::string &sink) -> bool;
+    const OAuthAuthorizationResponse &response, std::string &sink,
+    const std::string_view title = "Submit This Form") -> bool;
 
 /// @ingroup oauth
 /// Build the auto-submitting HTML page of a failed authorization response in
 /// the form post response mode (OAuth 2.0 Form Post Response Mode Section 2,
 /// RFC 6749 Section 4.1.2.1), returning whether it was produced, with the same
-/// validation as the error redirect builder. The redirect URI and the response
-/// fields must not alias the sink. When serving the page, the authorization
-/// server "MUST instruct the User Agent (and any intermediaries) not to store
-/// or reuse the content of the response". For example:
+/// validation as the error redirect builder and the page carrying the given
+/// title. The redirect URI, the response fields, and the title must not alias
+/// the sink. When serving the page, the authorization server "MUST instruct
+/// the User Agent (and any intermediaries) not to store or reuse the content
+/// of the response". For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oauth.h>
@@ -461,7 +463,8 @@ auto oauth_build_authorization_form_post(
 SOURCEMETA_CORE_OAUTH_EXPORT
 auto oauth_build_authorization_error_form_post(
     const std::string_view redirect_uri,
-    const OAuthAuthorizationResponse &response, std::string &sink) -> bool;
+    const OAuthAuthorizationResponse &response, std::string &sink,
+    const std::string_view title = "Submit This Form") -> bool;
 
 } // namespace sourcemeta::core
 
