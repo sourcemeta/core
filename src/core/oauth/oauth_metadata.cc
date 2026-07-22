@@ -19,41 +19,41 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
-const auto HASH_ISSUER{JSON::Object::hash("issuer"sv)};
-const auto HASH_AUTHORIZATION_ENDPOINT{
+constexpr auto HASH_ISSUER{JSON::Object::hash("issuer"sv)};
+constexpr auto HASH_AUTHORIZATION_ENDPOINT{
     JSON::Object::hash("authorization_endpoint"sv)};
-const auto HASH_TOKEN_ENDPOINT{JSON::Object::hash("token_endpoint"sv)};
-const auto HASH_REGISTRATION_ENDPOINT{
+constexpr auto HASH_TOKEN_ENDPOINT{JSON::Object::hash("token_endpoint"sv)};
+constexpr auto HASH_REGISTRATION_ENDPOINT{
     JSON::Object::hash("registration_endpoint"sv)};
-const auto HASH_PAR_ENDPOINT{
+constexpr auto HASH_PAR_ENDPOINT{
     JSON::Object::hash("pushed_authorization_request_endpoint"sv)};
-const auto HASH_REQUIRE_PAR{
+constexpr auto HASH_REQUIRE_PAR{
     JSON::Object::hash("require_pushed_authorization_requests"sv)};
-const auto HASH_REVOCATION_ENDPOINT{
+constexpr auto HASH_REVOCATION_ENDPOINT{
     JSON::Object::hash("revocation_endpoint"sv)};
-const auto HASH_INTROSPECTION_ENDPOINT{
+constexpr auto HASH_INTROSPECTION_ENDPOINT{
     JSON::Object::hash("introspection_endpoint"sv)};
-const auto HASH_JWKS_URI{JSON::Object::hash("jwks_uri"sv)};
-const auto HASH_RESPONSE_TYPES{
+constexpr auto HASH_JWKS_URI{JSON::Object::hash("jwks_uri"sv)};
+constexpr auto HASH_RESPONSE_TYPES{
     JSON::Object::hash("response_types_supported"sv)};
-const auto HASH_GRANT_TYPES{JSON::Object::hash("grant_types_supported"sv)};
-const auto HASH_CODE_CHALLENGE_METHODS{
+constexpr auto HASH_GRANT_TYPES{JSON::Object::hash("grant_types_supported"sv)};
+constexpr auto HASH_CODE_CHALLENGE_METHODS{
     JSON::Object::hash("code_challenge_methods_supported"sv)};
-const auto HASH_TOKEN_AUTH_METHODS{
+constexpr auto HASH_TOKEN_AUTH_METHODS{
     JSON::Object::hash("token_endpoint_auth_methods_supported"sv)};
-const auto HASH_TOKEN_AUTH_ALGS{
+constexpr auto HASH_TOKEN_AUTH_ALGS{
     JSON::Object::hash("token_endpoint_auth_signing_alg_values_supported"sv)};
-const auto HASH_ISS_SUPPORTED{
+constexpr auto HASH_ISS_SUPPORTED{
     JSON::Object::hash("authorization_response_iss_parameter_supported"sv)};
-const auto HASH_RESOURCE{JSON::Object::hash("resource"sv)};
-const auto HASH_AUTHORIZATION_SERVERS{
+constexpr auto HASH_RESOURCE{JSON::Object::hash("resource"sv)};
+constexpr auto HASH_AUTHORIZATION_SERVERS{
     JSON::Object::hash("authorization_servers"sv)};
-const auto HASH_BEARER_METHODS{
+constexpr auto HASH_BEARER_METHODS{
     JSON::Object::hash("bearer_methods_supported"sv)};
-const auto HASH_SCOPES_SUPPORTED{JSON::Object::hash("scopes_supported"sv)};
-const auto HASH_DPOP_BOUND_REQUIRED{
+constexpr auto HASH_SCOPES_SUPPORTED{JSON::Object::hash("scopes_supported"sv)};
+constexpr auto HASH_DPOP_BOUND_REQUIRED{
     JSON::Object::hash("dpop_bound_access_tokens_required"sv)};
-const auto HASH_RESOURCE_SIGNING_ALGS{
+constexpr auto HASH_RESOURCE_SIGNING_ALGS{
     JSON::Object::hash("resource_signing_alg_values_supported"sv)};
 
 auto string_member(const JSON &data, const JSON::StringView name,

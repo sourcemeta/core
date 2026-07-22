@@ -20,14 +20,15 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
-const auto HASH_ACCESS_TOKEN{JSON::Object::hash("access_token"sv)};
-const auto HASH_TOKEN_TYPE{JSON::Object::hash("token_type"sv)};
-const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
-const auto HASH_REFRESH_TOKEN{JSON::Object::hash("refresh_token"sv)};
-const auto HASH_SCOPE{JSON::Object::hash("scope"sv)};
-const auto HASH_ERROR{JSON::Object::hash("error"sv)};
-const auto HASH_ERROR_DESCRIPTION{JSON::Object::hash("error_description"sv)};
-const auto HASH_ERROR_URI{JSON::Object::hash("error_uri"sv)};
+constexpr auto HASH_ACCESS_TOKEN{JSON::Object::hash("access_token"sv)};
+constexpr auto HASH_TOKEN_TYPE{JSON::Object::hash("token_type"sv)};
+constexpr auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
+constexpr auto HASH_REFRESH_TOKEN{JSON::Object::hash("refresh_token"sv)};
+constexpr auto HASH_SCOPE{JSON::Object::hash("scope"sv)};
+constexpr auto HASH_ERROR{JSON::Object::hash("error"sv)};
+constexpr auto HASH_ERROR_DESCRIPTION{
+    JSON::Object::hash("error_description"sv)};
+constexpr auto HASH_ERROR_URI{JSON::Object::hash("error_uri"sv)};
 
 auto string_member(const JSON &data, const JSON::StringView name,
                    const JSON::Object::hash_type hash)

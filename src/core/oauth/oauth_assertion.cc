@@ -23,14 +23,14 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
-const auto HASH_ALG{JSON::Object::hash("alg"sv)};
-const auto HASH_KID{JSON::Object::hash("kid"sv)};
-const auto HASH_ISS{JSON::Object::hash("iss"sv)};
-const auto HASH_SUB{JSON::Object::hash("sub"sv)};
-const auto HASH_AUD{JSON::Object::hash("aud"sv)};
-const auto HASH_EXP{JSON::Object::hash("exp"sv)};
-const auto HASH_IAT{JSON::Object::hash("iat"sv)};
-const auto HASH_JTI{JSON::Object::hash("jti"sv)};
+constexpr auto HASH_ALG{JSON::Object::hash("alg"sv)};
+constexpr auto HASH_KID{JSON::Object::hash("kid"sv)};
+constexpr auto HASH_ISS{JSON::Object::hash("iss"sv)};
+constexpr auto HASH_SUB{JSON::Object::hash("sub"sv)};
+constexpr auto HASH_AUD{JSON::Object::hash("aud"sv)};
+constexpr auto HASH_EXP{JSON::Object::hash("exp"sv)};
+constexpr auto HASH_IAT{JSON::Object::hash("iat"sv)};
+constexpr auto HASH_JTI{JSON::Object::hash("jti"sv)};
 
 auto to_epoch_seconds(const std::chrono::system_clock::time_point point)
     -> std::int64_t {

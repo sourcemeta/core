@@ -3,7 +3,9 @@
 
 #include <sourcemeta/core/numeric.h>
 
+#include <bit>        // std::endian
 #include <cassert>    // assert
+#include <cstddef>    // std::size_t
 #include <cstring>    // std::memcpy
 #include <functional> // std::reference_wrapper
 
@@ -42,11 +44,31 @@ template <typename T> struct PropertyHashJSON {
 
   /// Compute a perfect hash from raw data
   [[nodiscard]]
-  inline auto perfect(const char *data, const std::size_t size) const noexcept
-      -> hash_type {
+  constexpr auto perfect(const char *data,
+                         const std::size_t size) const noexcept -> hash_type {
     hash_type result;
     assert(size > 0);
-    std::memcpy(reinterpret_cast<char *>(&result) + 1, data, size);
+    if consteval {
+      // A constant evaluation cannot memcpy through a reinterpret_cast, so pack
+      // the bytes arithmetically instead. This reproduces the runtime memcpy on
+      // a little-endian target, where the packed bytes read back as the same
+      // integer, which the static assertion enforces so the two can never
+      // silently diverge
+      static_assert(std::endian::native == std::endian::little);
+      for (std::size_t index = 0; index < size; index += 1) {
+        const auto byte{static_cast<typename hash_type::type>(
+            static_cast<unsigned char>(data[index]))};
+        const auto position{index + 1};
+        if (position < 16) {
+          result.a |= byte << (8 * position);
+        } else {
+          result.b |= byte << (8 * (position - 16));
+        }
+      }
+    } else {
+      std::memcpy(reinterpret_cast<char *>(&result) + 1, data, size);
+    }
+
     return result;
   }
 
@@ -54,7 +76,7 @@ template <typename T> struct PropertyHashJSON {
   // std::string to std::string_view, so we provide separate overloads with
   // duplicated logic instead of unifying on a single parameter type
 
-  inline auto operator()(const T &value) const noexcept -> hash_type {
+  constexpr auto operator()(const T &value) const noexcept -> hash_type {
     const auto size{value.size()};
     switch (size) {
       case 0:
@@ -135,8 +157,9 @@ template <typename T> struct PropertyHashJSON {
     }
   }
 
-  inline auto operator()(const char *data,
-                         const std::size_t size) const noexcept -> hash_type {
+  constexpr auto operator()(const char *data,
+                            const std::size_t size) const noexcept
+      -> hash_type {
     switch (size) {
       case 0:
         return {};
@@ -217,7 +240,7 @@ template <typename T> struct PropertyHashJSON {
 
   /// Check whether the given hash is a perfect hash
   [[nodiscard]]
-  inline auto is_perfect(const hash_type &hash) const noexcept -> bool {
+  constexpr auto is_perfect(const hash_type &hash) const noexcept -> bool {
     // If there is anything written past the first byte,
     // then it is a perfect hash
     return (hash.a & 255) == 0;

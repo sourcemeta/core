@@ -29,13 +29,13 @@ using namespace std::literals::string_view_literals;
 constexpr std::string_view USER_CODE_ALPHABET{"BCDFGHJKLMNPQRSTVWXZ"};
 constexpr std::chrono::seconds DEFAULT_INTERVAL{5};
 
-const auto HASH_DEVICE_CODE{JSON::Object::hash("device_code"sv)};
-const auto HASH_USER_CODE{JSON::Object::hash("user_code"sv)};
-const auto HASH_VERIFICATION_URI{JSON::Object::hash("verification_uri"sv)};
-const auto HASH_VERIFICATION_URI_COMPLETE{
+constexpr auto HASH_DEVICE_CODE{JSON::Object::hash("device_code"sv)};
+constexpr auto HASH_USER_CODE{JSON::Object::hash("user_code"sv)};
+constexpr auto HASH_VERIFICATION_URI{JSON::Object::hash("verification_uri"sv)};
+constexpr auto HASH_VERIFICATION_URI_COMPLETE{
     JSON::Object::hash("verification_uri_complete"sv)};
-const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
-const auto HASH_INTERVAL{JSON::Object::hash("interval"sv)};
+constexpr auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
+constexpr auto HASH_INTERVAL{JSON::Object::hash("interval"sv)};
 
 auto normalize_user_code(const std::string_view value) -> SecureString {
   SecureString result;

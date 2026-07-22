@@ -14,17 +14,17 @@
 namespace {
 using namespace std::string_view_literals;
 
-const auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
-const auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit"sv)};
-const auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid"sv)};
-const auto HASH_TYP{sourcemeta::core::JSON::Object::hash("typ"sv)};
-const auto HASH_ISS{sourcemeta::core::JSON::Object::hash("iss"sv)};
-const auto HASH_SUB{sourcemeta::core::JSON::Object::hash("sub"sv)};
-const auto HASH_AUD{sourcemeta::core::JSON::Object::hash("aud"sv)};
-const auto HASH_EXP{sourcemeta::core::JSON::Object::hash("exp"sv)};
-const auto HASH_NBF{sourcemeta::core::JSON::Object::hash("nbf"sv)};
-const auto HASH_IAT{sourcemeta::core::JSON::Object::hash("iat"sv)};
-const auto HASH_JTI{sourcemeta::core::JSON::Object::hash("jti"sv)};
+constexpr auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
+constexpr auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit"sv)};
+constexpr auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid"sv)};
+constexpr auto HASH_TYP{sourcemeta::core::JSON::Object::hash("typ"sv)};
+constexpr auto HASH_ISS{sourcemeta::core::JSON::Object::hash("iss"sv)};
+constexpr auto HASH_SUB{sourcemeta::core::JSON::Object::hash("sub"sv)};
+constexpr auto HASH_AUD{sourcemeta::core::JSON::Object::hash("aud"sv)};
+constexpr auto HASH_EXP{sourcemeta::core::JSON::Object::hash("exp"sv)};
+constexpr auto HASH_NBF{sourcemeta::core::JSON::Object::hash("nbf"sv)};
+constexpr auto HASH_IAT{sourcemeta::core::JSON::Object::hash("iat"sv)};
+constexpr auto HASH_JTI{sourcemeta::core::JSON::Object::hash("jti"sv)};
 
 auto string_claim(const sourcemeta::core::JSON &object,
                   const sourcemeta::core::JSON::StringView name,

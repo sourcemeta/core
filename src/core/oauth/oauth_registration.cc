@@ -20,35 +20,37 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
-const auto HASH_REDIRECT_URIS{JSON::Object::hash("redirect_uris"sv)};
-const auto HASH_TOKEN_ENDPOINT_AUTH_METHOD{
+constexpr auto HASH_REDIRECT_URIS{JSON::Object::hash("redirect_uris"sv)};
+constexpr auto HASH_TOKEN_ENDPOINT_AUTH_METHOD{
     JSON::Object::hash("token_endpoint_auth_method"sv)};
-const auto HASH_GRANT_TYPES{JSON::Object::hash("grant_types"sv)};
-const auto HASH_RESPONSE_TYPES{JSON::Object::hash("response_types"sv)};
-const auto HASH_CLIENT_NAME{JSON::Object::hash("client_name"sv)};
-const auto HASH_CLIENT_URI{JSON::Object::hash("client_uri"sv)};
-const auto HASH_LOGO_URI{JSON::Object::hash("logo_uri"sv)};
-const auto HASH_SCOPE{JSON::Object::hash("scope"sv)};
-const auto HASH_CONTACTS{JSON::Object::hash("contacts"sv)};
-const auto HASH_TOS_URI{JSON::Object::hash("tos_uri"sv)};
-const auto HASH_POLICY_URI{JSON::Object::hash("policy_uri"sv)};
-const auto HASH_JWKS_URI{JSON::Object::hash("jwks_uri"sv)};
-const auto HASH_JWKS{JSON::Object::hash("jwks"sv)};
-const auto HASH_SOFTWARE_ID{JSON::Object::hash("software_id"sv)};
-const auto HASH_SOFTWARE_VERSION{JSON::Object::hash("software_version"sv)};
-const auto HASH_SOFTWARE_STATEMENT{JSON::Object::hash("software_statement"sv)};
-const auto HASH_CLIENT_ID{JSON::Object::hash("client_id"sv)};
-const auto HASH_CLIENT_SECRET{JSON::Object::hash("client_secret"sv)};
-const auto HASH_CLIENT_ID_ISSUED_AT{
+constexpr auto HASH_GRANT_TYPES{JSON::Object::hash("grant_types"sv)};
+constexpr auto HASH_RESPONSE_TYPES{JSON::Object::hash("response_types"sv)};
+constexpr auto HASH_CLIENT_NAME{JSON::Object::hash("client_name"sv)};
+constexpr auto HASH_CLIENT_URI{JSON::Object::hash("client_uri"sv)};
+constexpr auto HASH_LOGO_URI{JSON::Object::hash("logo_uri"sv)};
+constexpr auto HASH_SCOPE{JSON::Object::hash("scope"sv)};
+constexpr auto HASH_CONTACTS{JSON::Object::hash("contacts"sv)};
+constexpr auto HASH_TOS_URI{JSON::Object::hash("tos_uri"sv)};
+constexpr auto HASH_POLICY_URI{JSON::Object::hash("policy_uri"sv)};
+constexpr auto HASH_JWKS_URI{JSON::Object::hash("jwks_uri"sv)};
+constexpr auto HASH_JWKS{JSON::Object::hash("jwks"sv)};
+constexpr auto HASH_SOFTWARE_ID{JSON::Object::hash("software_id"sv)};
+constexpr auto HASH_SOFTWARE_VERSION{JSON::Object::hash("software_version"sv)};
+constexpr auto HASH_SOFTWARE_STATEMENT{
+    JSON::Object::hash("software_statement"sv)};
+constexpr auto HASH_CLIENT_ID{JSON::Object::hash("client_id"sv)};
+constexpr auto HASH_CLIENT_SECRET{JSON::Object::hash("client_secret"sv)};
+constexpr auto HASH_CLIENT_ID_ISSUED_AT{
     JSON::Object::hash("client_id_issued_at"sv)};
-const auto HASH_CLIENT_SECRET_EXPIRES_AT{
+constexpr auto HASH_CLIENT_SECRET_EXPIRES_AT{
     JSON::Object::hash("client_secret_expires_at"sv)};
-const auto HASH_REGISTRATION_ACCESS_TOKEN{
+constexpr auto HASH_REGISTRATION_ACCESS_TOKEN{
     JSON::Object::hash("registration_access_token"sv)};
-const auto HASH_REGISTRATION_CLIENT_URI{
+constexpr auto HASH_REGISTRATION_CLIENT_URI{
     JSON::Object::hash("registration_client_uri"sv)};
-const auto HASH_ERROR{JSON::Object::hash("error"sv)};
-const auto HASH_ERROR_DESCRIPTION{JSON::Object::hash("error_description"sv)};
+constexpr auto HASH_ERROR{JSON::Object::hash("error"sv)};
+constexpr auto HASH_ERROR_DESCRIPTION{
+    JSON::Object::hash("error_description"sv)};
 
 auto array_member_is_present(const JSON &data, const JSON::StringView name,
                              const JSON::Object::hash_type hash) -> bool {

@@ -22,8 +22,8 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
-const auto HASH_REQUEST_URI{JSON::Object::hash("request_uri"sv)};
-const auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
+constexpr auto HASH_REQUEST_URI{JSON::Object::hash("request_uri"sv)};
+constexpr auto HASH_EXPIRES_IN{JSON::Object::hash("expires_in"sv)};
 
 // RFC 9126 Section 2.2: the recommended request URI form, a URN whose final
 // segment is the random reference
