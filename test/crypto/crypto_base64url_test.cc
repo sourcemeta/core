@@ -1,8 +1,11 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/test.h>
 
-#include <sstream> // std::ostringstream
-#include <string>  // std::string
+#include <array>       // std::array
+#include <cstdint>     // std::uint8_t
+#include <sstream>     // std::ostringstream
+#include <string>      // std::string
+#include <string_view> // std::string_view
 
 // RFC 4648 Section 10 test vectors
 // See https://www.rfc-editor.org/rfc/rfc4648#section-10
@@ -72,6 +75,28 @@ TEST(encode_secure_string_overload_empty) {
   sourcemeta::core::SecureString output;
   sourcemeta::core::base64url_encode("", output);
   EXPECT_TRUE(output.empty());
+}
+
+TEST(encode_bytes_overload_foobar) {
+  const std::array<std::uint8_t, 6> input{{'f', 'o', 'o', 'b', 'a', 'r'}};
+  EXPECT_EQ(sourcemeta::core::base64url_encode(input), "Zm9vYmFy");
+}
+
+TEST(encode_bytes_overload_empty) {
+  const std::array<std::uint8_t, 0> input{};
+  EXPECT_EQ(sourcemeta::core::base64url_encode(input), "");
+}
+
+TEST(encode_bytes_overload_high_bytes) {
+  const std::array<std::uint8_t, 3> input{{0xFF, 0xFF, 0xFF}};
+  EXPECT_EQ(sourcemeta::core::base64url_encode(input), "____");
+}
+
+TEST(encode_bytes_overload_matches_the_string_view_form) {
+  const auto digest{sourcemeta::core::sha256_digest("fo")};
+  EXPECT_EQ(sourcemeta::core::base64url_encode(digest),
+            sourcemeta::core::base64url_encode(std::string_view{
+                reinterpret_cast<const char *>(digest.data()), digest.size()}));
 }
 
 TEST(decode_rfc4648_empty) {
