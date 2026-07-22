@@ -834,10 +834,11 @@ public:
     }
   }
 
-  /// Append a percent-encoded name and value pair to a query or form body under
-  /// construction (RFC 3986 Section 2.1), joining it to any preceding pair. The
-  /// caller writes the opening "?" of a fresh query, and the sink must not
-  /// alias the name or value. For example:
+  /// Append a percent-encoded name and value pair to a query, form body, or
+  /// fragment under construction (RFC 3986 Section 2.1), joining it to any
+  /// preceding pair. The caller writes the opening "?" of a fresh query or the
+  /// opening "#" of a fresh fragment, and the sink must not alias the name or
+  /// value. For example:
   ///
   /// ```cpp
   /// #include <sourcemeta/core/uri.h>
@@ -856,7 +857,8 @@ public:
   template <typename Output>
   static auto append_query_parameter(Output &sink, const std::string_view name,
                                      const std::string_view value) -> void {
-    if (!sink.empty() && sink.back() != '?' && sink.back() != '&') {
+    if (!sink.empty() && sink.back() != '?' && sink.back() != '&' &&
+        sink.back() != '#') {
       sink.push_back('&');
     }
 

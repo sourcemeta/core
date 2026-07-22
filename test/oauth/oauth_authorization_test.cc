@@ -837,3 +837,337 @@ TEST(
       "https://client.example/cb#section", response, url));
   EXPECT_TRUE(url.empty());
 }
+
+TEST(default_response_mode_for_code_is_query) {
+  const auto mode{sourcemeta::core::oauth_default_response_mode("code")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Query);
+}
+
+TEST(default_response_mode_for_none_is_query) {
+  const auto mode{sourcemeta::core::oauth_default_response_mode("none")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Query);
+}
+
+TEST(default_response_mode_for_token_is_fragment) {
+  const auto mode{sourcemeta::core::oauth_default_response_mode("token")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_for_id_token_is_fragment) {
+  const auto mode{sourcemeta::core::oauth_default_response_mode("id_token")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_for_code_id_token_is_fragment) {
+  const auto mode{
+      sourcemeta::core::oauth_default_response_mode("code id_token")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_for_code_token_is_fragment) {
+  const auto mode{sourcemeta::core::oauth_default_response_mode("code token")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_for_id_token_token_is_fragment) {
+  const auto mode{
+      sourcemeta::core::oauth_default_response_mode("id_token token")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_for_code_id_token_token_is_fragment) {
+  const auto mode{
+      sourcemeta::core::oauth_default_response_mode("code id_token token")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_ignores_the_value_order) {
+  const auto mode{
+      sourcemeta::core::oauth_default_response_mode("id_token code")};
+  EXPECT_TRUE(mode.has_value());
+  EXPECT_TRUE(mode.value() == sourcemeta::core::OAuthResponseMode::Fragment);
+}
+
+TEST(default_response_mode_rejects_an_empty_response_type) {
+  EXPECT_FALSE(sourcemeta::core::oauth_default_response_mode("").has_value());
+}
+
+TEST(default_response_mode_rejects_an_unknown_response_type) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_default_response_mode("foo").has_value());
+}
+
+TEST(default_response_mode_rejects_an_unknown_value_in_a_list) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_default_response_mode("code foo").has_value());
+}
+
+TEST(default_response_mode_rejects_consecutive_spaces) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_default_response_mode("code  token").has_value());
+}
+
+TEST(default_response_mode_rejects_none_in_a_combination) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_default_response_mode("code none").has_value());
+}
+
+TEST(default_response_mode_rejects_a_duplicated_value) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_default_response_mode("code code").has_value());
+}
+
+TEST(response_mode_query_is_allowed_for_code) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "code", sourcemeta::core::OAuthResponseMode::Query));
+}
+
+TEST(response_mode_fragment_is_allowed_for_code) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "code", sourcemeta::core::OAuthResponseMode::Fragment));
+}
+
+TEST(response_mode_query_is_not_allowed_for_id_token) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "id_token", sourcemeta::core::OAuthResponseMode::Query));
+}
+
+TEST(response_mode_query_is_not_allowed_for_code_token) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "code token", sourcemeta::core::OAuthResponseMode::Query));
+}
+
+TEST(response_mode_fragment_is_allowed_for_id_token) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "id_token", sourcemeta::core::OAuthResponseMode::Fragment));
+}
+
+TEST(response_mode_form_post_is_allowed_for_code) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "code", sourcemeta::core::OAuthResponseMode::FormPost));
+}
+
+TEST(response_mode_form_post_is_allowed_for_id_token) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "id_token", sourcemeta::core::OAuthResponseMode::FormPost));
+}
+
+TEST(response_mode_is_not_allowed_for_an_unknown_response_type) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_response_mode_allowed(
+      "foo", sourcemeta::core::OAuthResponseMode::Fragment));
+}
+
+TEST(build_authorization_redirect_query_mode_matches_the_default_builder) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "SplxlOBeZQQYbYS6WxSbIA";
+  response.state = "xyz";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response,
+      sourcemeta::core::OAuthResponseMode::Query, url));
+  EXPECT_EQ(url, "https://client.example/cb?code=SplxlOBeZQQYbYS6WxSbIA"
+                 "&state=xyz");
+}
+
+TEST(build_authorization_redirect_fragment_mode_emits_code_and_state) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "SplxlOBeZQQYbYS6WxSbIA";
+  response.state = "xyz";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response,
+      sourcemeta::core::OAuthResponseMode::Fragment, url));
+  EXPECT_EQ(url, "https://client.example/cb#code=SplxlOBeZQQYbYS6WxSbIA"
+                 "&state=xyz");
+}
+
+TEST(build_authorization_redirect_fragment_mode_follows_an_existing_query) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb?ui=1", response,
+      sourcemeta::core::OAuthResponseMode::Fragment, url));
+  EXPECT_EQ(url, "https://client.example/cb?ui=1#code=abc");
+}
+
+TEST(build_authorization_redirect_fragment_mode_escapes_the_values) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.iss = "https://server.example";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response,
+      sourcemeta::core::OAuthResponseMode::Fragment, url));
+  EXPECT_EQ(url, "https://client.example/cb#code=abc"
+                 "&iss=https%3A%2F%2Fserver.example");
+}
+
+TEST(
+    build_authorization_redirect_fragment_mode_rejects_a_fragment_in_the_redirect_uri) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb#section", response,
+      sourcemeta::core::OAuthResponseMode::Fragment, url));
+  EXPECT_TRUE(url.empty());
+}
+
+TEST(build_authorization_redirect_rejects_the_form_post_mode) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_redirect(
+      "https://client.example/cb", response,
+      sourcemeta::core::OAuthResponseMode::FormPost, url));
+  EXPECT_TRUE(url.empty());
+}
+
+TEST(build_authorization_error_redirect_fragment_mode_emits_error_and_state) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.state = "xyz";
+  response.error = "access_denied";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb", response,
+      sourcemeta::core::OAuthResponseMode::Fragment, url));
+  EXPECT_EQ(url, "https://client.example/cb#error=access_denied&state=xyz");
+}
+
+TEST(build_authorization_error_redirect_rejects_the_form_post_mode) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_redirect(
+      "https://client.example/cb", response,
+      sourcemeta::core::OAuthResponseMode::FormPost, url));
+  EXPECT_TRUE(url.empty());
+}
+
+TEST(build_authorization_form_post_emits_code_and_state) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "SplxlOBeZQQYbYS6WxSbIA";
+  response.state = "xyz";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_EQ(page, "<html><head><title>Submit This Form</title></head>"
+                  "<body onload=\"javascript:document.forms[0].submit()\">"
+                  "<form method=\"post\" action=\"https://client.example/cb\">"
+                  "<input type=\"hidden\" name=\"code\" "
+                  "value=\"SplxlOBeZQQYbYS6WxSbIA\"/>"
+                  "<input type=\"hidden\" name=\"state\" value=\"xyz\"/>"
+                  "</form></body></html>");
+}
+
+TEST(build_authorization_form_post_emits_a_valid_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.iss = "https://server.example";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_EQ(page, "<html><head><title>Submit This Form</title></head>"
+                  "<body onload=\"javascript:document.forms[0].submit()\">"
+                  "<form method=\"post\" action=\"https://client.example/cb\">"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"iss\" "
+                  "value=\"https://server.example\"/>"
+                  "</form></body></html>");
+}
+
+TEST(build_authorization_form_post_escapes_the_values) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.state = "\"><script>alert(1)</script>";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_EQ(page, "<html><head><title>Submit This Form</title></head>"
+                  "<body onload=\"javascript:document.forms[0].submit()\">"
+                  "<form method=\"post\" action=\"https://client.example/cb\">"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "<input type=\"hidden\" name=\"state\" "
+                  "value=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"/>"
+                  "</form></body></html>");
+}
+
+TEST(build_authorization_form_post_escapes_the_redirect_uri) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb?ui=1&theme=dark", response, page));
+  EXPECT_EQ(page, "<html><head><title>Submit This Form</title></head>"
+                  "<body onload=\"javascript:document.forms[0].submit()\">"
+                  "<form method=\"post\" "
+                  "action=\"https://client.example/cb?ui=1&amp;theme=dark\">"
+                  "<input type=\"hidden\" name=\"code\" value=\"abc\"/>"
+                  "</form></body></html>");
+}
+
+TEST(build_authorization_form_post_rejects_a_missing_code) {
+  const sourcemeta::core::OAuthAuthorizationResponse response;
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_TRUE(page.empty());
+}
+
+TEST(build_authorization_form_post_rejects_an_invalid_iss) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  response.iss = "https://server.example?x=1";
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_TRUE(page.empty());
+}
+
+TEST(build_authorization_form_post_rejects_a_fragment_in_the_redirect_uri) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.code = "abc";
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_form_post(
+      "https://client.example/cb#section", response, page));
+  EXPECT_TRUE(page.empty());
+}
+
+TEST(build_authorization_error_form_post_emits_every_error_field) {
+  sourcemeta::core::OAuthAuthorizationResponse response;
+  response.error = "access_denied";
+  response.error_description = "The user declined";
+  response.error_uri = "https://server.example/errors/denied";
+  response.state = "xyz";
+  std::string page;
+  EXPECT_TRUE(sourcemeta::core::oauth_build_authorization_error_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_EQ(page,
+            "<html><head><title>Submit This Form</title></head>"
+            "<body onload=\"javascript:document.forms[0].submit()\">"
+            "<form method=\"post\" action=\"https://client.example/cb\">"
+            "<input type=\"hidden\" name=\"error\" value=\"access_denied\"/>"
+            "<input type=\"hidden\" name=\"error_description\" "
+            "value=\"The user declined\"/>"
+            "<input type=\"hidden\" name=\"error_uri\" "
+            "value=\"https://server.example/errors/denied\"/>"
+            "<input type=\"hidden\" name=\"state\" value=\"xyz\"/>"
+            "</form></body></html>");
+}
+
+TEST(build_authorization_error_form_post_rejects_a_missing_error) {
+  const sourcemeta::core::OAuthAuthorizationResponse response;
+  std::string page;
+  EXPECT_FALSE(sourcemeta::core::oauth_build_authorization_error_form_post(
+      "https://client.example/cb", response, page));
+  EXPECT_TRUE(page.empty());
+}
