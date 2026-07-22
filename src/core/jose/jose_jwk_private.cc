@@ -278,6 +278,13 @@ auto JWKPrivate::from(JSON &&value) -> std::optional<JWKPrivate> {
   return from(value);
 }
 
+auto JWKPrivate::from_octets(const std::string_view secret) -> JWKPrivate {
+  JWKPrivate result;
+  result.type_ = Type::Octet;
+  result.secret_ = secret;
+  return result;
+}
+
 auto JWKPrivate::from_pem(const std::string_view pem)
     -> std::optional<JWKPrivate> {
   auto parsed_key{make_private_key(pem)};

@@ -5,7 +5,7 @@
 #include <sourcemeta/core/jose_export.h>
 #endif
 
-#include <cstdint>     // std::uint8_t
+#include <cstdint>     // std::uint8_t, std::uint16_t
 #include <optional>    // std::optional
 #include <string_view> // std::string_view
 
@@ -92,6 +92,25 @@ auto jws_algorithm_name(const JWSAlgorithm algorithm) noexcept
 /// ```
 SOURCEMETA_CORE_JOSE_EXPORT
 auto jws_algorithm_is_asymmetric(const JWSAlgorithm algorithm) noexcept -> bool;
+
+/// @ingroup jose
+/// The size, in bits, of the digest each signature algorithm is defined over
+/// (RFC 7518 Section 3.1), so that derived hash claims such as OpenID
+/// Connect's `at_hash` and `c_hash` select their digest by table rather than
+/// by slicing the algorithm name. The Edwards-curve algorithm carries no
+/// digest in its name and OpenID Connect leaves the choice unspecified, so it
+/// is pinned to SHA-256. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/jose.h>
+/// #include <cassert>
+///
+/// assert(sourcemeta::core::jws_algorithm_digest_bits(
+///            sourcemeta::core::JWSAlgorithm::ES384) == 384);
+/// ```
+SOURCEMETA_CORE_JOSE_EXPORT
+auto jws_algorithm_digest_bits(const JWSAlgorithm algorithm) noexcept
+    -> std::uint16_t;
 
 } // namespace sourcemeta::core
 

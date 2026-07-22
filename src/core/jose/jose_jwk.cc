@@ -232,4 +232,11 @@ auto JWK::from(const JSON &value) -> std::optional<JWK> {
 
 auto JWK::from(JSON &&value) -> std::optional<JWK> { return from(value); }
 
+auto JWK::from_octets(const std::string_view secret) -> JWK {
+  JWK result;
+  result.type_ = Type::Octet;
+  result.secret_ = secret;
+  return result;
+}
+
 } // namespace sourcemeta::core

@@ -428,3 +428,87 @@ TEST(audience_checked_before_expiration) {
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTClaimError::Audience);
 }
+
+TEST(expiration_skew_applies_to_expiration_only) {
+  const auto input{
+      make_token(R"({ "alg": "RS256" })",
+                 R"({ "iss": "acme", "aud": "client", "exp": 2000 })", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto accepted{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(2030),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{60},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{0}})};
+  EXPECT_FALSE(accepted.has_value());
+  const auto rejected{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(2030),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{60},
+                                     std::chrono::seconds{60}})};
+  EXPECT_TRUE(rejected.has_value());
+  EXPECT_EQ(rejected.value(), sourcemeta::core::JWTClaimError::Expiration);
+}
+
+TEST(not_before_skew_applies_to_not_before_only) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "exp": 4000, "nbf": 2100 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto accepted{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(2050),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{60},
+                                     std::chrono::seconds{0}})};
+  EXPECT_FALSE(accepted.has_value());
+  const auto rejected{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(2050),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{60},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{60}})};
+  EXPECT_TRUE(rejected.has_value());
+  EXPECT_EQ(rejected.value(), sourcemeta::core::JWTClaimError::NotBefore);
+}
+
+TEST(issued_at_skew_applies_to_issued_at_only) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "exp": 4000, "iat": 2100 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto accepted{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(2050),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{0},
+                                     std::chrono::seconds{0},
+                                     std::chrono::seconds{60}})};
+  EXPECT_FALSE(accepted.has_value());
+  const auto rejected{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(2050),
+      sourcemeta::core::JWTClockSkew{std::chrono::seconds{60},
+                                     std::chrono::seconds{60},
+                                     std::chrono::seconds{0}})};
+  EXPECT_TRUE(rejected.has_value());
+  EXPECT_EQ(rejected.value(), sourcemeta::core::JWTClaimError::IssuedAt);
+}
+
+TEST(uniform_seconds_skew_still_converts) {
+  const auto input{make_token(
+      R"({ "alg": "RS256" })",
+      R"({ "iss": "acme", "aud": "client", "exp": 2000, "nbf": 1030 })",
+      "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{sourcemeta::core::jwt_check_claims(
+      token.value(), "acme", "client",
+      std::chrono::system_clock::from_time_t(1000), std::chrono::seconds{60})};
+  EXPECT_FALSE(error.has_value());
+}

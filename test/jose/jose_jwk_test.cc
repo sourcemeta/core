@@ -466,3 +466,22 @@ TEST(jwk_oct_empty_key_value) {
   const auto document{sourcemeta::core::parse_json(R"({"kty":"oct","k":""})")};
   EXPECT_FALSE(sourcemeta::core::JWK::from(document).has_value());
 }
+
+TEST(jwk_from_octets) {
+  const auto key{
+      sourcemeta::core::JWK::from_octets("0123456789abcdef0123456789abcdef")};
+  EXPECT_EQ(key.type(), sourcemeta::core::JWK::Type::Octet);
+  EXPECT_EQ(key.secret(), "0123456789abcdef0123456789abcdef");
+  EXPECT_FALSE(key.key_id().has_value());
+  EXPECT_FALSE(key.algorithm().has_value());
+  EXPECT_FALSE(key.public_jwk().has_value());
+}
+
+TEST(jwk_from_octets_matches_parsed_oct_key) {
+  const auto parsed{sourcemeta::core::JWK::from(sourcemeta::core::parse_json(
+      R"({"kty":"oct","k":"MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY"})"))};
+  EXPECT_TRUE(parsed.has_value());
+  const auto key{
+      sourcemeta::core::JWK::from_octets("0123456789abcdef0123456789abcdef")};
+  EXPECT_EQ(key.secret(), parsed.value().secret());
+}
