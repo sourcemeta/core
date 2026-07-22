@@ -4,7 +4,7 @@
 
 namespace sourcemeta::core {
 
-auto is_globally_routable(const std::string_view address) -> bool {
+auto ip_is_globally_routable(const std::string_view address) -> bool {
   return ipv4_classify(address) == IPAddressClass::Public ||
          ipv6_classify(address) == IPAddressClass::Public;
 }

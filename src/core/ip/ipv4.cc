@@ -1,7 +1,7 @@
 #include <sourcemeta/core/ip.h>
 #include <sourcemeta/core/text.h>
 
-#include "ip_classify.h"
+#include "ip_helpers.h"
 
 #include <optional> // std::optional, std::nullopt
 

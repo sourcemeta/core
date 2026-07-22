@@ -113,11 +113,11 @@ auto ipv6_classify(const std::string_view address)
 /// #include <sourcemeta/core/ip.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::is_globally_routable("8.8.8.8"));
-/// assert(!sourcemeta::core::is_globally_routable("10.0.0.1"));
+/// assert(sourcemeta::core::ip_is_globally_routable("8.8.8.8"));
+/// assert(!sourcemeta::core::ip_is_globally_routable("10.0.0.1"));
 /// ```
 SOURCEMETA_CORE_IP_EXPORT
-auto is_globally_routable(const std::string_view address) -> bool;
+auto ip_is_globally_routable(const std::string_view address) -> bool;
 
 } // namespace sourcemeta::core
 

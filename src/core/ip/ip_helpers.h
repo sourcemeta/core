@@ -1,5 +1,5 @@
-#ifndef SOURCEMETA_CORE_IP_CLASSIFY_H_
-#define SOURCEMETA_CORE_IP_CLASSIFY_H_
+#ifndef SOURCEMETA_CORE_IP_HELPERS_H_
+#define SOURCEMETA_CORE_IP_HELPERS_H_
 
 #include <sourcemeta/core/ip.h>
 
