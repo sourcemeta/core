@@ -7,41 +7,14 @@
 
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
 
+#include "crypto_windows.h"
+
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
-#include <limits>      // std::numeric_limits
 #include <span>        // std::span
 #include <stdexcept>   // std::runtime_error
 #include <string_view> // std::string_view
-
-namespace {
-
-auto hmac_sha256_hash_data(BCRYPT_HASH_HANDLE hash,
-                           const std::string_view input) -> bool {
-  // The data interface is not const-qualified but never writes through
-  // the pointer, and it takes a 32-bit length, so larger inputs must be
-  // fed in chunks
-  auto *remaining_data{
-      reinterpret_cast<unsigned char *>(const_cast<char *>(input.data()))};
-  auto remaining_size{input.size()};
-  constexpr std::size_t maximum_chunk{std::numeric_limits<ULONG>::max()};
-  while (remaining_size > 0) {
-    const auto chunk_size{remaining_size > maximum_chunk ? maximum_chunk
-                                                         : remaining_size};
-    if (!BCRYPT_SUCCESS(BCryptHashData(hash, remaining_data,
-                                       static_cast<ULONG>(chunk_size), 0))) {
-      return false;
-    }
-
-    remaining_data += chunk_size;
-    remaining_size -= chunk_size;
-  }
-
-  return true;
-}
-
-} // namespace
 
 namespace sourcemeta::core {
 
@@ -80,7 +53,7 @@ auto hmac_sha256_digest(const std::string_view key,
 
   auto success{true};
   for (const auto part : message) {
-    success = success && hmac_sha256_hash_data(hash, part);
+    success = success && hash_data_chunked(hash, part);
   }
 
   std::array<std::uint8_t, 32> digest{};
