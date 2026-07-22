@@ -16,7 +16,8 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
-const auto HASH_ISSUED_TOKEN_TYPE{JSON::Object::hash("issued_token_type"sv)};
+constexpr auto HASH_ISSUED_TOKEN_TYPE{
+    JSON::Object::hash("issued_token_type"sv)};
 
 auto oauth_append_repeated(SecureString &sink, const std::string_view name,
                            const std::span<const std::string_view> values)

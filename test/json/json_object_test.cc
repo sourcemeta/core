@@ -1614,3 +1614,28 @@ TEST(assign_if_nonempty_array_computes_hash) {
   document.assign_if_nonempty("foo", values);
   EXPECT_EQ(document.at("foo").size(), 1);
 }
+
+TEST(hash_is_a_constant_expression_matching_runtime) {
+  static constexpr auto compile_time{
+      sourcemeta::core::JSON::Object::hash(std::string_view{"foobar"})};
+  const auto run_time{
+      sourcemeta::core::JSON::Object::hash(std::string_view{"foobar"})};
+  EXPECT_TRUE(compile_time == run_time);
+}
+
+TEST(constexpr_hash_finds_an_object_member) {
+  static constexpr auto key_hash{
+      sourcemeta::core::JSON::Object::hash(std::string_view{"foo"})};
+  const auto document{sourcemeta::core::parse_json(R"JSON({ "foo": 1 })JSON")};
+  const auto *value{document.try_at(std::string_view{"foo"}, key_hash)};
+  EXPECT_TRUE(value != nullptr);
+  EXPECT_EQ(value->to_integer(), 1);
+}
+
+TEST(constexpr_hash_matches_runtime_for_a_long_key) {
+  static constexpr std::string_view key{
+      "a_property_name_that_is_definitely_longer_than_thirty_one_bytes"};
+  static constexpr auto compile_time{sourcemeta::core::JSON::Object::hash(key)};
+  const auto run_time{sourcemeta::core::JSON::Object::hash(key)};
+  EXPECT_TRUE(compile_time == run_time);
+}
