@@ -143,7 +143,7 @@ TEST(segment_routing_5f00) {
 
 TEST(beyond_segment_routing_5f01) {
   EXPECT_EQ(sourcemeta::core::ipv6_classify("5f01::1").value(),
-            sourcemeta::core::IPAddressClass::Public);
+            sourcemeta::core::IPAddressClass::Reserved);
 }
 
 TEST(public_google) {

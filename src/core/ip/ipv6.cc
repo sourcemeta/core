@@ -300,11 +300,6 @@ auto ipv6_classify(const std::string_view address)
     return IPAddressClass::Reserved;
   }
 
-  // RFC 9602: Segment Routing SIDs, 5f00::/16, not globally reachable
-  if (bytes[0] == 0x5f && bytes[1] == 0x00) {
-    return IPAddressClass::Reserved;
-  }
-
   return IPAddressClass::Public;
 }
 
