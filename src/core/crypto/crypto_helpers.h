@@ -21,7 +21,7 @@ namespace sourcemeta::core {
 // the range of valid key sizes
 inline constexpr std::size_t MAXIMUM_KEY_BYTES{512};
 
-// Append a 32-bit integer in big-endian (network) order, the encoding the
+// Append a 32-bit integer in big-endian (network) order, the encoding that the
 // mask generation function of RFC 8017 and the Concat KDF of RFC 7518 use for
 // their counters and length fields
 inline auto append_big_endian_uint32(std::string &target,
