@@ -1,16 +1,16 @@
 #include "crypto_aes.h"
 #include "crypto_aes_block.h"
 
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t, std::uint64_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
-// A from-scratch AES-256 in Galois/Counter Mode (NIST SP 800-38D) for the
-// reference backend, over the shared AES block cipher. This is not
-// constant-time, which is acceptable only because this backend is the
-// non-production fallback
+// A from-scratch AES in Galois/Counter Mode (NIST SP 800-38D) for the reference
+// backend, over the shared AES block cipher. This is not constant-time, which
+// is acceptable only because this backend is the non-production fallback
 
 namespace sourcemeta::core {
 namespace {
@@ -59,27 +59,28 @@ auto ghash(const AesBlock &key, const std::string_view data,
 }
 
 struct Context {
-  AesRoundKeys round_keys;
+  AesKeySchedule schedule;
   AesBlock hash_key;
   AesBlock counter_zero;
   AesBlock tag_mask;
 };
 
-auto make_context(const std::string_view key, const std::string_view nonce)
+auto make_context(const std::string_view key, const std::string_view iv)
     -> Context {
-  Context context{.round_keys = aes_expand_key(key),
+  assert(iv.size() == 12);
+  Context context{.schedule = aes_expand_key(key),
                   .hash_key = {},
                   .counter_zero = {},
                   .tag_mask = {}};
-  context.hash_key = aes_encrypt_block(context.round_keys, AesBlock{});
+  context.hash_key = aes_encrypt_block(context.schedule, AesBlock{});
   for (std::size_t index = 0; index < 12; ++index) {
-    context.counter_zero[index] = static_cast<std::uint8_t>(nonce[index]);
+    context.counter_zero[index] = static_cast<std::uint8_t>(iv[index]);
   }
 
-  // The 96-bit nonce yields the pre-counter block nonce || 0x00000001
+  // The 96-bit initialization vector yields the pre-counter block iv ||
+  // 0x00000001
   context.counter_zero[15] = 1;
-  context.tag_mask =
-      aes_encrypt_block(context.round_keys, context.counter_zero);
+  context.tag_mask = aes_encrypt_block(context.schedule, context.counter_zero);
   return context;
 }
 
@@ -98,7 +99,7 @@ auto counter_mode(const Context &context, const std::string_view input)
   AesBlock counter{context.counter_zero};
   for (std::size_t offset = 0; offset < input.size(); offset += 16) {
     increment_counter(counter);
-    const auto keystream{aes_encrypt_block(context.round_keys, counter)};
+    const auto keystream{aes_encrypt_block(context.schedule, counter)};
     for (std::size_t index = 0; index < 16 && offset + index < input.size();
          ++index) {
       output[offset + index] = static_cast<char>(
@@ -109,13 +110,22 @@ auto counter_mode(const Context &context, const std::string_view input)
   return output;
 }
 
-// The authentication tag over an empty associated data and the ciphertext
-auto compute_tag(const Context &context, const std::string_view ciphertext)
-    -> AesBlock {
-  auto accumulator{ghash(context.hash_key, ciphertext, AesBlock{})};
+// The authentication tag over the associated data and the ciphertext (NIST SP
+// 800-38D Section 7.1)
+auto compute_tag(const Context &context, const std::string_view associated_data,
+                 const std::string_view ciphertext) -> AesBlock {
+  auto accumulator{ghash(context.hash_key, associated_data, AesBlock{})};
+  accumulator = ghash(context.hash_key, ciphertext, accumulator);
+
+  // The final GHASH block is the bit lengths of the associated data and the
+  // ciphertext, each as a 64-bit big-endian integer
   AesBlock lengths{};
+  const auto associated_bits{
+      static_cast<std::uint64_t>(associated_data.size()) * 8};
   const auto ciphertext_bits{static_cast<std::uint64_t>(ciphertext.size()) * 8};
   for (std::size_t index = 0; index < 8; ++index) {
+    lengths[7 - index] =
+        static_cast<std::uint8_t>((associated_bits >> (8 * index)) & 0xffu);
     lengths[15 - index] =
         static_cast<std::uint8_t>((ciphertext_bits >> (8 * index)) & 0xffu);
   }
@@ -135,42 +145,36 @@ auto compute_tag(const Context &context, const std::string_view ciphertext)
 
 } // namespace
 
-auto aes_256_gcm_encrypt(const std::string_view key,
-                         const std::string_view nonce,
-                         const std::string_view plaintext)
-    -> std::optional<std::string> {
-  const auto context{make_context(key, nonce)};
-  std::string ciphertext{counter_mode(context, plaintext)};
-  const auto tag{compute_tag(context, ciphertext)};
-  ciphertext.append(reinterpret_cast<const char *>(tag.data()), tag.size());
-  return ciphertext;
+auto aes_gcm_seal(const std::string_view key, const std::string_view iv,
+                  const std::string_view associated_data,
+                  const std::string_view plaintext)
+    -> std::optional<AESGCMCiphertext> {
+  const auto context{make_context(key, iv)};
+  AESGCMCiphertext result{.ciphertext = counter_mode(context, plaintext),
+                          .tag = {}};
+  const auto tag{compute_tag(context, associated_data, result.ciphertext)};
+  result.tag.assign(reinterpret_cast<const char *>(tag.data()), tag.size());
+  return result;
 }
 
-auto aes_256_gcm_decrypt(const std::string_view key,
-                         const std::string_view nonce,
-                         const std::string_view ciphertext)
+auto aes_gcm_open(const std::string_view key, const std::string_view iv,
+                  const std::string_view associated_data,
+                  const std::string_view ciphertext, const std::string_view tag)
     -> std::optional<std::string> {
-  if (ciphertext.size() < 16) {
-    return std::nullopt;
-  }
-
-  const auto message{ciphertext.substr(0, ciphertext.size() - 16)};
-  const auto received_tag{ciphertext.substr(ciphertext.size() - 16)};
-  const auto context{make_context(key, nonce)};
-  const auto tag{compute_tag(context, message)};
+  const auto context{make_context(key, iv)};
+  const auto expected{compute_tag(context, associated_data, ciphertext)};
 
   std::uint8_t difference{0};
   for (std::size_t index = 0; index < 16; ++index) {
     difference = static_cast<std::uint8_t>(
-        difference |
-        (tag[index] ^ static_cast<std::uint8_t>(received_tag[index])));
+        difference | (expected[index] ^ static_cast<std::uint8_t>(tag[index])));
   }
 
   if (difference != 0) {
     return std::nullopt;
   }
 
-  return counter_mode(context, message);
+  return counter_mode(context, ciphertext);
 }
 
 } // namespace sourcemeta::core

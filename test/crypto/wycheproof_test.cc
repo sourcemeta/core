@@ -378,9 +378,10 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
   const auto document{load(path)};
   const auto stem{path.stem().string()};
   for (const auto &group : document.at("testGroups").as_array()) {
-    // The sealing format fixes a 256-bit key, a 96-bit nonce, a 128-bit tag,
-    // and no associated data, so only that subset is driven through unseal
-    if (group.at("keySize").to_integer() != 256 ||
+    // The primitive fixes a 96-bit initialization vector and a 128-bit tag over
+    // 128, 192, and 256-bit keys, and authenticates associated data
+    const auto key_size{group.at("keySize").to_integer()};
+    if ((key_size != 128 && key_size != 192 && key_size != 256) ||
         group.at("ivSize").to_integer() != 96 ||
         group.at("tagSize").to_integer() != 128) {
       continue;
@@ -388,38 +389,45 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
 
     for (const auto &test : group.at("tests").as_array()) {
       const std::string result{test.at("result").to_string()};
-      if (result == "acceptable" || !test.at("aad").to_string().empty()) {
+      if (result == "acceptable") {
         continue;
       }
 
       const auto key{
           sourcemeta::core::hex_to_bytes(test.at("key").to_string())};
       const auto iv{sourcemeta::core::hex_to_bytes(test.at("iv").to_string())};
+      const auto associated_data{
+          sourcemeta::core::hex_to_bytes(test.at("aad").to_string())};
       const auto message{
           sourcemeta::core::hex_to_bytes(test.at("msg").to_string())};
       const auto ciphertext{
           sourcemeta::core::hex_to_bytes(test.at("ct").to_string())};
       const auto tag{
           sourcemeta::core::hex_to_bytes(test.at("tag").to_string())};
-      if (!key.has_value() || !iv.has_value() || !message.has_value() ||
-          !ciphertext.has_value() || !tag.has_value()) {
+      if (!key.has_value() || !iv.has_value() || !associated_data.has_value() ||
+          !message.has_value() || !ciphertext.has_value() || !tag.has_value()) {
         continue;
       }
 
-      // The sealed message is the nonce, ciphertext, and tag joined, assembled
-      // once here rather than on every run of the registered case
-      std::string sealed{iv.value()};
-      sealed.append(ciphertext.value());
-      sealed.append(tag.value());
       register_case(
           suite_name,
           stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
-          [key = key.value(), sealed = std::move(sealed),
+          [key = key.value(), iv = iv.value(),
+           associated_data = associated_data.value(),
+           ciphertext = ciphertext.value(), tag = tag.value(),
            plaintext = message.value(), expected = (result == "valid")]() {
-            const auto opened{
-                sourcemeta::core::aes_256_gcm_unseal(key, sealed)};
+            const auto opened{sourcemeta::core::aes_gcm_decrypt(
+                key, iv, associated_data, ciphertext, tag)};
             EXPECT_EQ(opened.has_value() && opened.value() == plaintext,
                       expected);
+            // A valid vector must also reproduce exactly under encryption
+            if (expected) {
+              const auto sealed{sourcemeta::core::aes_gcm_encrypt(
+                  key, iv, associated_data, plaintext)};
+              EXPECT_TRUE(sealed.has_value());
+              EXPECT_EQ(sealed.value().ciphertext, ciphertext);
+              EXPECT_EQ(sealed.value().tag, tag);
+            }
           });
     }
   }

@@ -3,9 +3,9 @@
 
 // The AES block cipher (FIPS 197) for the reference backend, shared by the
 // modes of operation built on top of it. This is not constant-time, which is
-// acceptable only because this backend is the non-production fallback. Only the
-// 256-bit key schedule and the forward cipher are provided here, the other key
-// sizes and the inverse cipher are added by the modes that need them
+// acceptable only because this backend is the non-production fallback. The
+// forward cipher over 128, 192, and 256-bit keys is provided here, the inverse
+// cipher is added by the modes that need it
 
 #include <array>       // std::array
 #include <cassert>     // assert
@@ -41,7 +41,16 @@ inline constexpr std::array<std::uint8_t, 256> aes_substitution{
      0xb0, 0x54, 0xbb, 0x16}};
 
 using AesBlock = std::array<std::uint8_t, 16>;
+// The expanded key material fits the largest schedule, the 256-bit key over 14
+// rounds (FIPS 197 Section 5.2)
 using AesRoundKeys = std::array<std::uint8_t, 240>;
+
+// A key schedule together with its round count, since AES-128, AES-192, and
+// AES-256 run 10, 12, and 14 rounds respectively (FIPS 197 Section 5.1)
+struct AesKeySchedule {
+  AesRoundKeys round_keys;
+  std::size_t rounds;
+};
 
 // Multiply by two in GF(2^8) with the AES reduction polynomial (FIPS 197
 // Section 4.2)
@@ -65,28 +74,35 @@ inline auto aes_field_multiply(const std::uint8_t left,
   return product;
 }
 
-// AES-256 key expansion (FIPS 197 Section 5.2, with the 256-bit key schedule)
-inline auto aes_expand_key(const std::string_view key) -> AesRoundKeys {
-  assert(key.size() == 32);
-  AesRoundKeys round_keys{};
-  for (std::size_t index = 0; index < 32; ++index) {
+// AES key expansion (FIPS 197 Section 5.2) over a 128, 192, or 256-bit key
+inline auto aes_expand_key(const std::string_view key) -> AesKeySchedule {
+  assert(key.size() == 16 || key.size() == 24 || key.size() == 32);
+  // The number of 32-bit words in the key, four, six, or eight (FIPS 197 Table
+  // 4), and the round count it yields
+  const auto key_words{key.size() / 4};
+  const auto rounds{key_words + 6};
+  AesKeySchedule schedule{.round_keys = {}, .rounds = rounds};
+  auto &round_keys{schedule.round_keys};
+  for (std::size_t index = 0; index < key.size(); ++index) {
     round_keys[index] = static_cast<std::uint8_t>(key[index]);
   }
 
+  const auto expanded_bytes{16 * (rounds + 1)};
   std::uint8_t round_constant{0x01};
-  for (std::size_t index = 32; index < round_keys.size(); index += 4) {
+  for (std::size_t index = key.size(); index < expanded_bytes; index += 4) {
     std::array<std::uint8_t, 4> word{
         {round_keys[index - 4], round_keys[index - 3], round_keys[index - 2],
          round_keys[index - 1]}};
     const auto position{index / 4};
-    if (position % 8 == 0) {
+    if (position % key_words == 0) {
       const auto first{word[0]};
       word[0] = aes_substitution[word[1]] ^ round_constant;
       word[1] = aes_substitution[word[2]];
       word[2] = aes_substitution[word[3]];
       word[3] = aes_substitution[first];
       round_constant = aes_xtime(round_constant);
-    } else if (position % 8 == 4) {
+    } else if (key_words > 6 && position % key_words == 4) {
+      // The extra substitution mid-schedule applies only to the 256-bit key
       for (auto &byte : word) {
         byte = aes_substitution[byte];
       }
@@ -94,15 +110,16 @@ inline auto aes_expand_key(const std::string_view key) -> AesRoundKeys {
 
     for (std::size_t offset = 0; offset < 4; ++offset) {
       round_keys[index + offset] =
-          round_keys[index - 32 + offset] ^ word[offset];
+          round_keys[index - key.size() + offset] ^ word[offset];
     }
   }
 
-  return round_keys;
+  return schedule;
 }
 
-inline auto aes_encrypt_block(const AesRoundKeys &round_keys, AesBlock state)
+inline auto aes_encrypt_block(const AesKeySchedule &schedule, AesBlock state)
     -> AesBlock {
+  const auto &round_keys{schedule.round_keys};
   const auto add_round_key{[&round_keys, &state](const std::size_t round) {
     for (std::size_t index = 0; index < 16; ++index) {
       state[index] ^= round_keys[(round * 16) + index];
@@ -110,7 +127,7 @@ inline auto aes_encrypt_block(const AesRoundKeys &round_keys, AesBlock state)
   }};
 
   add_round_key(0);
-  for (std::size_t round = 1; round <= 14; ++round) {
+  for (std::size_t round = 1; round <= schedule.rounds; ++round) {
     for (auto &byte : state) {
       byte = aes_substitution[byte];
     }
@@ -122,7 +139,7 @@ inline auto aes_encrypt_block(const AesRoundKeys &round_keys, AesBlock state)
                             state[11]}};
     state = shifted;
 
-    if (round != 14) {
+    if (round != schedule.rounds) {
       // MixColumns (FIPS 197 Section 5.1.3)
       for (std::size_t column = 0; column < 4; ++column) {
         const auto base{column * 4};
