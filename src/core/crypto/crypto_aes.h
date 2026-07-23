@@ -28,6 +28,20 @@ auto aes_gcm_open(const std::string_view key, const std::string_view iv,
                   const std::string_view ciphertext, const std::string_view tag)
     -> std::optional<std::string>;
 
+// The raw AES Cipher Block Chaining primitive (NIST SP 800-38A), defined once
+// per backend, over a 128, 192, or 256-bit key and a 128-bit initialization
+// vector. The key splitting, padding, and authentication live in the shared
+// functions, so these assume a 16, 24, or 32-byte key, a 16-byte initialization
+// vector, and input that is a whole number of 16-byte blocks
+
+auto aes_cbc_encrypt(const std::string_view key, const std::string_view iv,
+                     const std::string_view plaintext)
+    -> std::optional<std::string>;
+
+auto aes_cbc_decrypt(const std::string_view key, const std::string_view iv,
+                     const std::string_view ciphertext)
+    -> std::optional<std::string>;
+
 } // namespace sourcemeta::core
 
 #endif
