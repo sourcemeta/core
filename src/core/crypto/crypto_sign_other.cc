@@ -618,6 +618,7 @@ auto generate_ec_private_key(const EllipticCurve curve)
   std::string scalar(width, '\x00');
   const SecureStringScope scalar_scope{scalar};
   Bignum scalar_number;
+  const SecureBignumScope scalar_number_scope{scalar_number};
   do {
     try {
       fill_random_bytes(std::span<std::uint8_t>{
