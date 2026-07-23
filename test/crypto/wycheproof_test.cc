@@ -446,6 +446,7 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
     }
   }
 }
+
 // A valid vector must decrypt to exactly the plaintext and reproduce exactly
 // under encryption. An invalid vector must be rejected outright, never
 // decrypted to some other value, so that an authentication failure cannot be
@@ -519,6 +520,64 @@ auto register_aes_cbc_hmac_tests(const std::filesystem::path &path,
     }
   }
 }
+
+// A valid vector must unwrap to exactly the key and rewrap to exactly the
+// wrapping. An invalid vector must be rejected outright, never unwrapped to
+// some other value, so that a failed integrity check cannot be masked
+auto check_aes_kw(const std::string_view key_encryption_key,
+                  const std::string_view key, const std::string_view wrapped,
+                  const bool expected) -> void {
+  const auto unwrapped{
+      sourcemeta::core::aes_key_unwrap(key_encryption_key, wrapped)};
+  if (expected) {
+    EXPECT_TRUE(unwrapped.has_value());
+    EXPECT_EQ(unwrapped.value(), key);
+    const auto rewrapped{
+        sourcemeta::core::aes_key_wrap(key_encryption_key, key)};
+    EXPECT_TRUE(rewrapped.has_value());
+    EXPECT_EQ(rewrapped.value(), wrapped);
+  } else {
+    EXPECT_FALSE(unwrapped.has_value());
+  }
+}
+
+auto register_aes_kw_tests(const std::filesystem::path &path,
+                           const std::string &suite_name) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    const auto key_size{group.at("keySize").to_integer()};
+    if (key_size != 128 && key_size != 192 && key_size != 256) {
+      continue;
+    }
+
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string result{test.at("result").to_string()};
+      if (result == "acceptable") {
+        continue;
+      }
+
+      const auto key_encryption_key{
+          sourcemeta::core::hex_to_bytes(test.at("key").to_string())};
+      const auto key{
+          sourcemeta::core::hex_to_bytes(test.at("msg").to_string())};
+      const auto wrapped{
+          sourcemeta::core::hex_to_bytes(test.at("ct").to_string())};
+      if (!key_encryption_key.has_value() || !key.has_value() ||
+          !wrapped.has_value()) {
+        continue;
+      }
+
+      register_case(suite_name,
+                    stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+                    [key_encryption_key = key_encryption_key.value(),
+                     key = key.value(), wrapped = wrapped.value(),
+                     expected = (result == "valid")]() {
+                      check_aes_kw(key_encryption_key, key, wrapped, expected);
+                    });
+    }
+  }
+}
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -586,6 +645,7 @@ auto main(int argc, char **argv) -> int {
                               "Wycheproof_A192CBC_HS384");
   register_aes_cbc_hmac_tests(vectors / "a256cbc_hs512_test.json",
                               "Wycheproof_A256CBC_HS512");
+  register_aes_kw_tests(vectors / "aes_wrap_test.json", "Wycheproof_AES_KW");
 
   return sourcemeta::core::test_run(argc, argv);
 }

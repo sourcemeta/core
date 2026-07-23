@@ -42,6 +42,18 @@ auto aes_cbc_decrypt(const std::string_view key, const std::string_view iv,
                      const std::string_view ciphertext)
     -> std::optional<std::string>;
 
+// The raw AES Key Wrap primitive (RFC 3394), defined once per backend, over a
+// 128, 192, or 256-bit key-encryption key. The length checks live in the shared
+// functions, so these assume a 16, 24, or 32-byte key-encryption key and input
+// that is a whole number of 64-bit blocks
+
+auto aes_wrap(const std::string_view key_encryption_key,
+              const std::string_view key) -> std::optional<std::string>;
+
+auto aes_unwrap(const std::string_view key_encryption_key,
+                const std::string_view wrapped_key)
+    -> std::optional<std::string>;
+
 } // namespace sourcemeta::core
 
 #endif
