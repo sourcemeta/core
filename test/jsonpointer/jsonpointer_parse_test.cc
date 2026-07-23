@@ -715,255 +715,544 @@ TEST(to_pointer_default_string_view) {
   EXPECT_EQ(pointer.size(), 0);
 }
 
-TEST(empty_whole_document) { EXPECT_TRUE(sourcemeta::core::is_pointer("")); }
-
-TEST(root_single_empty_token) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/"));
+TEST(four_empty_tokens) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("////"));
+  const auto pointer = sourcemeta::core::to_pointer("////");
+  EXPECT_EQ(pointer.size(), 4);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "");
+  EXPECT_TRUE(pointer.at(3).is_property());
+  EXPECT_EQ(pointer.at(3).to_property(), "");
 }
-
-TEST(two_empty_tokens) { EXPECT_TRUE(sourcemeta::core::is_pointer("//")); }
-
-TEST(three_empty_tokens) { EXPECT_TRUE(sourcemeta::core::is_pointer("///")); }
-
-TEST(four_empty_tokens) { EXPECT_TRUE(sourcemeta::core::is_pointer("////")); }
 
 TEST(empty_interior_token) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo//bar"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo//bar");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "bar");
 }
 
 TEST(trailing_empty_token) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/bar/"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo/bar/");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "");
 }
 
-TEST(leading_then_empty) { EXPECT_TRUE(sourcemeta::core::is_pointer("//foo")); }
+TEST(leading_then_empty) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("//foo"));
+  const auto pointer = sourcemeta::core::to_pointer("//foo");
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "foo");
+}
 
-TEST(single_char_token) { EXPECT_TRUE(sourcemeta::core::is_pointer("/a")); }
-
-TEST(single_token) { EXPECT_TRUE(sourcemeta::core::is_pointer("/foo")); }
-
-TEST(two_nonempty_tokens) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/bar"));
+TEST(single_char_token) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/a"));
+  const auto pointer = sourcemeta::core::to_pointer("/a");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "a");
 }
 
 TEST(deep_six_tokens) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/a/b/c/d/e/f"));
+  const auto pointer = sourcemeta::core::to_pointer("/a/b/c/d/e/f");
+  EXPECT_EQ(pointer.size(), 6);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "a");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "b");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "c");
+  EXPECT_TRUE(pointer.at(3).is_property());
+  EXPECT_EQ(pointer.at(3).to_property(), "d");
+  EXPECT_TRUE(pointer.at(4).is_property());
+  EXPECT_EQ(pointer.at(4).to_property(), "e");
+  EXPECT_TRUE(pointer.at(5).is_property());
+  EXPECT_EQ(pointer.at(5).to_property(), "f");
 }
 
 TEST(deep_twelve_tokens) {
   EXPECT_TRUE(
       sourcemeta::core::is_pointer("/t0/t1/t2/t3/t4/t5/t6/t7/t8/t9/t10/t11"));
+  const auto pointer =
+      sourcemeta::core::to_pointer("/t0/t1/t2/t3/t4/t5/t6/t7/t8/t9/t10/t11");
+  EXPECT_EQ(pointer.size(), 12);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "t0");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "t1");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "t2");
+  EXPECT_TRUE(pointer.at(3).is_property());
+  EXPECT_EQ(pointer.at(3).to_property(), "t3");
+  EXPECT_TRUE(pointer.at(4).is_property());
+  EXPECT_EQ(pointer.at(4).to_property(), "t4");
+  EXPECT_TRUE(pointer.at(5).is_property());
+  EXPECT_EQ(pointer.at(5).to_property(), "t5");
+  EXPECT_TRUE(pointer.at(6).is_property());
+  EXPECT_EQ(pointer.at(6).to_property(), "t6");
+  EXPECT_TRUE(pointer.at(7).is_property());
+  EXPECT_EQ(pointer.at(7).to_property(), "t7");
+  EXPECT_TRUE(pointer.at(8).is_property());
+  EXPECT_EQ(pointer.at(8).to_property(), "t8");
+  EXPECT_TRUE(pointer.at(9).is_property());
+  EXPECT_EQ(pointer.at(9).to_property(), "t9");
+  EXPECT_TRUE(pointer.at(10).is_property());
+  EXPECT_EQ(pointer.at(10).to_property(), "t10");
+  EXPECT_TRUE(pointer.at(11).is_property());
+  EXPECT_EQ(pointer.at(11).to_property(), "t11");
 }
 
 TEST(long_single_token) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(
       "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+  const auto pointer = sourcemeta::core::to_pointer(
+      "/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(),
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 }
-
-TEST(escape_tilde0) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~0")); }
-
-TEST(escape_tilde1) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~1")); }
 
 TEST(escape_tilde0_tilde1) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0~1"));
+  const auto pointer = sourcemeta::core::to_pointer("/~0~1");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~/");
 }
 
 TEST(escape_tilde1_tilde0) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~1~0"));
+  const auto pointer = sourcemeta::core::to_pointer("/~1~0");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "/~");
 }
 
 TEST(escape_tilde0_tilde0) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0~0"));
+  const auto pointer = sourcemeta::core::to_pointer("/~0~0");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~~");
 }
 
 TEST(escape_tilde1_tilde1) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~1~1"));
+  const auto pointer = sourcemeta::core::to_pointer("/~1~1");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "//");
 }
 
-TEST(escape_tilde00) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~00")); }
-
-TEST(escape_tilde11) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~11")); }
-
-TEST(escape_tilde01) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~01")); }
-
-TEST(escape_tilde10) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~10")); }
-
-TEST(escape_interior_tilde1) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/a~1b"));
+TEST(escape_tilde00) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/~00"));
+  const auto pointer = sourcemeta::core::to_pointer("/~00");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~0");
 }
 
-TEST(escape_interior_tilde0) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/m~0n"));
+TEST(escape_tilde11) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/~11"));
+  const auto pointer = sourcemeta::core::to_pointer("/~11");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "/1");
 }
 
-TEST(escape_run) { EXPECT_TRUE(sourcemeta::core::is_pointer("/~1~0~0~1~1")); }
+TEST(escape_tilde10) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/~10"));
+  const auto pointer = sourcemeta::core::to_pointer("/~10");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "/0");
+}
+
+TEST(escape_run) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/~1~0~0~1~1"));
+  const auto pointer = sourcemeta::core::to_pointer("/~1~0~0~1~1");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "/~~//");
+}
 
 TEST(escape_then_fraction_1) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~1.1"));
+  const auto pointer = sourcemeta::core::to_pointer("/~1.1");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "/.1");
 }
 
 TEST(escape_then_fraction_0) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0.1"));
+  const auto pointer = sourcemeta::core::to_pointer("/~0.1");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~.1");
 }
 
 TEST(escape_only_token) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0~1~0~1"));
+  const auto pointer = sourcemeta::core::to_pointer("/~0~1~0~1");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~/~/");
 }
 
 TEST(escape_each_token) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0/~1/~0"));
+  const auto pointer = sourcemeta::core::to_pointer("/~0/~1/~0");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "/");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "~");
 }
 
 TEST(unescaped_nul) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(std::string_view{"/\000", 2}));
+  const auto pointer =
+      sourcemeta::core::to_pointer(std::string_view{"/\000", 2});
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), (std::string_view{"\000", 1}));
 }
 
-TEST(unescaped_tab) { EXPECT_TRUE(sourcemeta::core::is_pointer("/\011")); }
+TEST(unescaped_dot_upper) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/."));
+  const auto pointer = sourcemeta::core::to_pointer("/.");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), ".");
+}
 
-TEST(unescaped_lf) { EXPECT_TRUE(sourcemeta::core::is_pointer("/\012")); }
+TEST(unescaped_brace_upper) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/}"));
+  const auto pointer = sourcemeta::core::to_pointer("/}");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "}");
+}
 
-TEST(unescaped_cr) { EXPECT_TRUE(sourcemeta::core::is_pointer("/\015")); }
-
-TEST(unescaped_us) { EXPECT_TRUE(sourcemeta::core::is_pointer("/\037")); }
-
-TEST(unescaped_space) { EXPECT_TRUE(sourcemeta::core::is_pointer("/ ")); }
-
-TEST(unescaped_dot_upper) { EXPECT_TRUE(sourcemeta::core::is_pointer("/.")); }
-
-TEST(unescaped_zero_lower) { EXPECT_TRUE(sourcemeta::core::is_pointer("/0")); }
-
-TEST(unescaped_brace_upper) { EXPECT_TRUE(sourcemeta::core::is_pointer("/}")); }
-
-TEST(unescaped_del) { EXPECT_TRUE(sourcemeta::core::is_pointer("/\177")); }
+TEST(unescaped_del) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/\177"));
+  const auto pointer = sourcemeta::core::to_pointer("/\177");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "\177");
+}
 
 TEST(unescaped_high_0x80) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\302\200"));
+  const auto pointer = sourcemeta::core::to_pointer("/\302\200");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "\302\200");
 }
 
 TEST(unescaped_latin1) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\303\251"));
+  const auto pointer = sourcemeta::core::to_pointer("/\303\251");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "\303\251");
 }
 
 TEST(unescaped_astral_face) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/bar/\360\237\230\216"));
+  const auto pointer =
+      sourcemeta::core::to_pointer("/foo/bar/\360\237\230\216");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "bar");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "\360\237\230\216");
 }
 
 TEST(unescaped_astral_gclef) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\360\235\204\236"));
+  const auto pointer = sourcemeta::core::to_pointer("/\360\235\204\236");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "\360\235\204\236");
 }
 
 TEST(unescaped_control_run) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(
       std::string_view{"/foo\000bar\012\011baz", 13}));
+  const auto pointer = sourcemeta::core::to_pointer(
+      std::string_view{"/foo\000bar\012\011baz", 13});
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(),
+            (std::string_view{"foo\000bar\012\011baz", 12}));
 }
 
-TEST(special_caret) { EXPECT_TRUE(sourcemeta::core::is_pointer("/e^f")); }
-
-TEST(special_pipe) { EXPECT_TRUE(sourcemeta::core::is_pointer("/g|h")); }
-
-TEST(special_backslash) { EXPECT_TRUE(sourcemeta::core::is_pointer("/i\\j")); }
-
-TEST(special_quote) { EXPECT_TRUE(sourcemeta::core::is_pointer("/k\"l")); }
-
-TEST(special_percent) { EXPECT_TRUE(sourcemeta::core::is_pointer("/c%d")); }
-
-TEST(literal_pct_slash) { EXPECT_TRUE(sourcemeta::core::is_pointer("/a%2Fb")); }
+TEST(literal_pct_slash) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/a%2Fb"));
+  const auto pointer = sourcemeta::core::to_pointer("/a%2Fb");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "a%2Fb");
+}
 
 TEST(suite_mixed_valid) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/bar~0/baz~1/%a"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo/bar~0/baz~1/%a");
+  EXPECT_EQ(pointer.size(), 4);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "bar~");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "baz/");
+  EXPECT_TRUE(pointer.at(3).is_property());
+  EXPECT_EQ(pointer.at(3).to_property(), "%a");
 }
-
-TEST(index_double_zero) { EXPECT_TRUE(sourcemeta::core::is_pointer("/00")); }
-
-TEST(index_zero_one) { EXPECT_TRUE(sourcemeta::core::is_pointer("/01")); }
 
 TEST(index_zero_zero_seven) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/007"));
+  const auto pointer = sourcemeta::core::to_pointer("/007");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "007");
 }
 
 TEST(index_leading_zero_num) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/0123"));
+  const auto pointer = sourcemeta::core::to_pointer("/0123");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "0123");
 }
 
-TEST(index_ten) { EXPECT_TRUE(sourcemeta::core::is_pointer("/10")); }
+TEST(index_ten) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/10"));
+  const auto pointer = sourcemeta::core::to_pointer("/10");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 10);
+}
 
-TEST(index_dash) { EXPECT_TRUE(sourcemeta::core::is_pointer("/-")); }
-
-TEST(index_dash_after) { EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/-")); }
+TEST(index_dash_after) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/-"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo/-");
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "-");
+}
 
 TEST(index_dash_member) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo/-/bar"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo/-/bar");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "-");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "bar");
 }
 
-TEST(index_exponent_like) { EXPECT_TRUE(sourcemeta::core::is_pointer("/1e0")); }
-
-TEST(index_negative_like) { EXPECT_TRUE(sourcemeta::core::is_pointer("/-1")); }
+TEST(index_exponent_like) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/1e0"));
+  const auto pointer = sourcemeta::core::to_pointer("/1e0");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "1e0");
+}
 
 TEST(index_long_numeric) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/1234567890"));
-}
-
-TEST(index_huge_numeric) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/99999999999999999999"));
+  const auto pointer = sourcemeta::core::to_pointer("/1234567890");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_index());
+  EXPECT_EQ(pointer.at(0).to_index(), 1234567890);
 }
 
 TEST(realworld_openapi_ref) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/paths/~1p~1{}/get"));
+  const auto pointer = sourcemeta::core::to_pointer("/paths/~1p~1{}/get");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "paths");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "/p/{}");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "get");
 }
 
 TEST(realworld_components) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/components/schemas/Foo"));
+  const auto pointer = sourcemeta::core::to_pointer("/components/schemas/Foo");
+  EXPECT_EQ(pointer.size(), 3);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "components");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "schemas");
+  EXPECT_TRUE(pointer.at(2).is_property());
+  EXPECT_EQ(pointer.at(2).to_property(), "Foo");
 }
 
 TEST(realworld_escaped_slash_key) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/definitions/~1etc~1passwd"));
+  const auto pointer =
+      sourcemeta::core::to_pointer("/definitions/~1etc~1passwd");
+  EXPECT_EQ(pointer.size(), 2);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "definitions");
+  EXPECT_TRUE(pointer.at(1).is_property());
+  EXPECT_EQ(pointer.at(1).to_property(), "/etc/passwd");
 }
 
-TEST(trailing_lf) { EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\012")); }
+TEST(trailing_lf) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\012"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo\012");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo\012");
+}
 
 TEST(trailing_two_lf) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\012\012"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo\012\012");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo\012\012");
 }
 
-TEST(trailing_cr) { EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\015")); }
+TEST(trailing_cr) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\015"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo\015");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo\015");
+}
 
 TEST(trailing_crlf) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/foo\015\012"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo\015\012");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo\015\012");
 }
 
-TEST(space_in_token) { EXPECT_TRUE(sourcemeta::core::is_pointer("/foo bar")); }
+TEST(space_in_token) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/foo bar"));
+  const auto pointer = sourcemeta::core::to_pointer("/foo bar");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "foo bar");
+}
 
 TEST(escape_then_trailing_lf) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/~0\012"));
+  const auto pointer = sourcemeta::core::to_pointer("/~0\012");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "~\012");
 }
 
 TEST(nul_interior_valid) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(std::string_view{"/foo\000bar", 8}));
+  const auto pointer =
+      sourcemeta::core::to_pointer(std::string_view{"/foo\000bar", 8});
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), (std::string_view{"foo\000bar", 7}));
 }
 
 TEST(nul_trailing_valid) {
   EXPECT_TRUE(sourcemeta::core::is_pointer(std::string_view{"/foo\000", 5}));
+  const auto pointer =
+      sourcemeta::core::to_pointer(std::string_view{"/foo\000", 5});
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), (std::string_view{"foo\000", 4}));
 }
 
 TEST(boundary_brace_interior) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/a}b"));
+  const auto pointer = sourcemeta::core::to_pointer("/a}b");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "a}b");
 }
 
 TEST(fullwidth_tilde_alone) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/\357\275\236"));
+  const auto pointer = sourcemeta::core::to_pointer("/\357\275\236");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "\357\275\236");
 }
 
 TEST(fullwidth_tilde_interior) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/a\357\275\236b"));
+  const auto pointer = sourcemeta::core::to_pointer("/a\357\275\236b");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "a\357\275\236b");
 }
 
 TEST(fullwidth_tilde_then_2) {
-  EXPECT_TRUE(sourcemeta::core::is_pointer("/\357\275\2362"));
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/\357\275\236"
+                                           "2"));
+  const auto pointer = sourcemeta::core::to_pointer("/\357\275\236"
+                                                    "2");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "\357\275\236"
+                                         "2");
 }
 
 TEST(fullwidth_solidus_interior) {
   EXPECT_TRUE(sourcemeta::core::is_pointer("/a\357\274\217b"));
+  const auto pointer = sourcemeta::core::to_pointer("/a\357\274\217b");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "a\357\274\217b");
 }
 
-TEST(percent_7e) { EXPECT_TRUE(sourcemeta::core::is_pointer("/%7E")); }
+TEST(percent_7e) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/%7E"));
+  const auto pointer = sourcemeta::core::to_pointer("/%7E");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "%7E");
+}
 
-TEST(percent_7e_foo) { EXPECT_TRUE(sourcemeta::core::is_pointer("/%7Efoo")); }
+TEST(percent_7e_foo) {
+  EXPECT_TRUE(sourcemeta::core::is_pointer("/%7Efoo"));
+  const auto pointer = sourcemeta::core::to_pointer("/%7Efoo");
+  EXPECT_EQ(pointer.size(), 1);
+  EXPECT_TRUE(pointer.at(0).is_property());
+  EXPECT_EQ(pointer.at(0).to_property(), "%7Efoo");
+}

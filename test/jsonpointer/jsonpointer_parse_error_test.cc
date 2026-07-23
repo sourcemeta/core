@@ -76,138 +76,200 @@ TEST(foo_tilde_tilde) {
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(invalid_bare_tilde_eof) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~"));
+TEST(invalid_tilde_3) {
+  const std::string input{"/~3"};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(invalid_tilde_2) { EXPECT_FALSE(sourcemeta::core::is_pointer("/~2")); }
-
-TEST(invalid_tilde_3) { EXPECT_FALSE(sourcemeta::core::is_pointer("/~3")); }
-
-TEST(invalid_tilde_9) { EXPECT_FALSE(sourcemeta::core::is_pointer("/~9")); }
+TEST(invalid_tilde_9) {
+  const std::string input{"/~9"};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
+}
 
 TEST(invalid_tilde_letter) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~a"));
+  const std::string input{"/~a"};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(invalid_tilde_dash) { EXPECT_FALSE(sourcemeta::core::is_pointer("/~-1")); }
-
-TEST(invalid_double_tilde) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~~"));
+TEST(invalid_tilde_dash) {
+  const std::string input{"/~-1"};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(invalid_tilde_slash) { EXPECT_FALSE(sourcemeta::core::is_pointer("/~/")); }
-
-TEST(invalid_trailing_tilde) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/foo~"));
+TEST(invalid_tilde_slash) {
+  const std::string input{"/~/"};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_partial_escape_1) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~0~"));
+  const std::string input{"/~0~"};
+  EXPECT_POINTER_PARSE_ERROR(input, 5);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_partial_escape_2) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~0/~"));
+  const std::string input{"/~0/~"};
+  EXPECT_POINTER_PARSE_ERROR(input, 6);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_interior_dangling) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/a~"));
+  const std::string input{"/a~"};
+  EXPECT_POINTER_PARSE_ERROR(input, 4);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_multitoken_dangling) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/foo/bar~"));
+  const std::string input{"/foo/bar~"};
+  EXPECT_POINTER_PARSE_ERROR(input, 10);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_tilde_before_space) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~ "));
+  const std::string input{"/~ "};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_tilde_run) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/foo~~~~~~~~"));
+  const std::string input{"/foo~~~~~~~~"};
+  EXPECT_POINTER_PARSE_ERROR(input, 6);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_no_slash_letter) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("a"));
+  const std::string input{"a"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_no_slash_digit) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("0"));
+  const std::string input{"0"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_no_slash_path) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("a/a"));
+  const std::string input{"a/a"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_no_slash_word) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("foo"));
+  const std::string input{"foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_leading_space) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(" /foo"));
+  const std::string input{" /foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_leading_tab) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("\011/foo"));
+  const std::string input{"\011/foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_leading_newline) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("\012/foo"));
+  const std::string input{"\012/foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_leading_letter_slash) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("x/foo"));
+  const std::string input{"x/foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-TEST(invalid_fragment_hash) { EXPECT_FALSE(sourcemeta::core::is_pointer("#")); }
+TEST(invalid_fragment_hash) {
+  const std::string input{"#"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
+}
 
 TEST(invalid_fragment_hash_slash) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("#/"));
+  const std::string input{"#/"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_fragment_hash_a) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("#a"));
+  const std::string input{"#a"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_fragment_tail) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("#/foo"));
+  const std::string input{"#/foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_fragment_tail_index) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("#/foo/0"));
+  const std::string input{"#/foo/0"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(invalid_fragment_tail_escape) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("#/a~1b"));
+  const std::string input{"#/a~1b"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(nul_then_dangling_tilde) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(std::string_view{"/foo\000~", 6}));
+  const std::string input{"/foo\000~", 6};
+  EXPECT_POINTER_PARSE_ERROR(input, 7);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(nul_then_bad_escape) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(std::string_view{"/foo\000~2", 7}));
+  const std::string input{"/foo\000~2", 7};
+  EXPECT_POINTER_PARSE_ERROR(input, 7);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(nul_first_token_dangling) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(std::string_view{"/\000~", 3}));
+  const std::string input{"/\000~", 3};
+  EXPECT_POINTER_PARSE_ERROR(input, 4);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(nul_valid_escape_then_dangling) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(std::string_view{"/a~1\000~", 6}));
+  const std::string input{"/a~1\000~", 6};
+  EXPECT_POINTER_PARSE_ERROR(input, 7);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(leading_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(std::string_view{"\000/foo", 5}));
+  const std::string input{"\000/foo", 5};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(lone_nul) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer(std::string_view{"\000", 1}));
+  const std::string input{"\000", 1};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(tilde_fullwidth_zero) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("/~\357\274\220"));
+  const std::string input{"/~\357\274\220"};
+  EXPECT_POINTER_PARSE_ERROR(input, 3);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
 TEST(fullwidth_solidus_leading) {
-  EXPECT_FALSE(sourcemeta::core::is_pointer("\357\274\217foo"));
+  const std::string input{"\357\274\217foo"};
+  EXPECT_POINTER_PARSE_ERROR(input, 1);
+  EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
