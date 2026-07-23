@@ -446,6 +446,79 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
     }
   }
 }
+// A valid vector must decrypt to exactly the plaintext and reproduce exactly
+// under encryption. An invalid vector must be rejected outright, never
+// decrypted to some other value, so that an authentication failure cannot be
+// masked by a wrong plaintext
+auto check_aes_cbc_hmac(const std::string_view key, const std::string_view iv,
+                        const std::string_view associated_data,
+                        const std::string_view ciphertext,
+                        const std::string_view tag,
+                        const std::string_view plaintext, const bool expected)
+    -> void {
+  const auto opened{sourcemeta::core::aes_cbc_hmac_decrypt(
+      key, iv, associated_data, ciphertext, tag)};
+  if (expected) {
+    EXPECT_TRUE(opened.has_value());
+    EXPECT_EQ(opened.value(), plaintext);
+    const auto sealed{sourcemeta::core::aes_cbc_hmac_encrypt(
+        key, iv, associated_data, plaintext)};
+    EXPECT_TRUE(sealed.has_value());
+    EXPECT_EQ(sealed.value().ciphertext(), ciphertext);
+    EXPECT_EQ(sealed.value().tag(), tag);
+  } else {
+    EXPECT_FALSE(opened.has_value());
+  }
+}
+
+auto register_aes_cbc_hmac_tests(const std::filesystem::path &path,
+                                 const std::string &suite_name) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    // The variants use a 256, 384, or 512-bit key and a 128-bit initialization
+    // vector, and authenticate associated data
+    const auto key_size{group.at("keySize").to_integer()};
+    if ((key_size != 256 && key_size != 384 && key_size != 512) ||
+        group.at("ivSize").to_integer() != 128) {
+      continue;
+    }
+
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string result{test.at("result").to_string()};
+      if (result == "acceptable") {
+        continue;
+      }
+
+      const auto key{
+          sourcemeta::core::hex_to_bytes(test.at("key").to_string())};
+      const auto iv{sourcemeta::core::hex_to_bytes(test.at("iv").to_string())};
+      const auto associated_data{
+          sourcemeta::core::hex_to_bytes(test.at("aad").to_string())};
+      const auto message{
+          sourcemeta::core::hex_to_bytes(test.at("msg").to_string())};
+      const auto ciphertext{
+          sourcemeta::core::hex_to_bytes(test.at("ct").to_string())};
+      const auto tag{
+          sourcemeta::core::hex_to_bytes(test.at("tag").to_string())};
+      if (!key.has_value() || !iv.has_value() || !associated_data.has_value() ||
+          !message.has_value() || !ciphertext.has_value() || !tag.has_value()) {
+        continue;
+      }
+
+      register_case(suite_name,
+                    stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+                    [key = key.value(), iv = iv.value(),
+                     associated_data = associated_data.value(),
+                     ciphertext = ciphertext.value(), tag = tag.value(),
+                     plaintext = message.value(),
+                     expected = (result == "valid")]() {
+                      check_aes_cbc_hmac(key, iv, associated_data, ciphertext,
+                                         tag, plaintext, expected);
+                    });
+    }
+  }
+}
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -507,6 +580,12 @@ auto main(int argc, char **argv) -> int {
                        sourcemeta::core::EdwardsCurve::Ed448);
 
   register_aes_gcm_tests(vectors / "aes_gcm_test.json", "Wycheproof_AES_GCM");
+  register_aes_cbc_hmac_tests(vectors / "a128cbc_hs256_test.json",
+                              "Wycheproof_A128CBC_HS256");
+  register_aes_cbc_hmac_tests(vectors / "a192cbc_hs384_test.json",
+                              "Wycheproof_A192CBC_HS384");
+  register_aes_cbc_hmac_tests(vectors / "a256cbc_hs512_test.json",
+                              "Wycheproof_A256CBC_HS512");
 
   return sourcemeta::core::test_run(argc, argv);
 }
