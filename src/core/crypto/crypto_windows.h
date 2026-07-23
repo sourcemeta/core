@@ -1,8 +1,9 @@
 #ifndef SOURCEMETA_CORE_CRYPTO_WINDOWS_H_
 #define SOURCEMETA_CORE_CRYPTO_WINDOWS_H_
 
-// CNG helpers shared across backends, so the native blob export and the
-// chunked hash ingestion stay single-sourced
+// The CNG key internals and the helpers shared across the CNG backends, so the
+// parsed key layout, the native blob export, and the chunked hash ingestion
+// stay single-sourced
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -13,6 +14,9 @@
 // BCRYPT_SUCCESS
 #include <bcrypt.h>
 
+#include <sourcemeta/core/crypto_sign.h>
+#include <sourcemeta/core/crypto_verify.h>
+
 #include <cstddef>     // std::size_t
 #include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
@@ -20,6 +24,29 @@
 #include <string_view> // std::string_view
 
 namespace sourcemeta::core {
+
+// The parsed key keeps both the algorithm provider and the imported key handle
+// alive for reuse. The Edwards curves have no CNG primitive, so they keep the
+// raw seed or point and operate through the reference implementation
+struct PublicKey::Internal {
+  PublicKey::Type kind;
+  BCRYPT_ALG_HANDLE algorithm;
+  BCRYPT_KEY_HANDLE key;
+  std::size_t field_bytes;
+  std::string modulus;
+  std::string edwards_point;
+  EdwardsCurve edwards_curve;
+};
+
+struct PrivateKey::Internal {
+  PrivateKey::Type kind;
+  BCRYPT_ALG_HANDLE algorithm;
+  BCRYPT_KEY_HANDLE key;
+  std::size_t field_bytes;
+  std::string edwards_seed;
+  EdwardsCurve edwards_curve;
+  bool rsa_pss_restricted{false};
+};
 
 // Feed a buffer into a hash object. The data interface is not const-qualified
 // but never writes through the pointer, and it takes a 32-bit length, so

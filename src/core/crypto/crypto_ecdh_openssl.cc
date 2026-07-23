@@ -1,5 +1,7 @@
 #include <sourcemeta/core/crypto_ecdh.h>
 
+#include "crypto_openssl.h"
+
 #include <openssl/evp.h> // EVP_*
 
 #include <cstddef>  // std::size_t
@@ -8,23 +10,6 @@
 #include <utility>  // std::move
 
 namespace sourcemeta::core {
-
-// The layout matches the definitions in the sibling OpenSSL key backends, since
-// each translation unit that reads a key redeclares its file-private members
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  EVP_PKEY *key;
-  std::string modulus;
-  std::size_t field_bytes;
-  std::size_t signature_bytes;
-};
-
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  EVP_PKEY *key;
-  std::size_t field_bytes;
-  bool rsa_pss_restricted{false};
-};
 
 auto ecdh_derive(const PrivateKey &private_key, const PublicKey &public_key)
     -> std::optional<std::string> {

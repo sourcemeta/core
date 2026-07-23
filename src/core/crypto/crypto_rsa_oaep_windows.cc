@@ -1,5 +1,7 @@
 #include <sourcemeta/core/crypto_rsa_oaep.h>
 
+#include "crypto_windows.h"
+
 #include <windows.h> // ULONG, PUCHAR, LPCWSTR, DWORD
 // clang-format off
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
@@ -12,28 +14,6 @@
 #include <utility>     // std::move, std::unreachable
 
 namespace sourcemeta::core {
-
-// The layout matches the definitions in the sibling Windows key backends, since
-// each translation unit that reads a key redeclares its file-private members
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  BCRYPT_ALG_HANDLE algorithm;
-  BCRYPT_KEY_HANDLE key;
-  std::size_t field_bytes;
-  std::string modulus;
-  std::string edwards_point;
-  EdwardsCurve edwards_curve;
-};
-
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  BCRYPT_ALG_HANDLE algorithm;
-  BCRYPT_KEY_HANDLE key;
-  std::size_t field_bytes;
-  std::string edwards_seed;
-  EdwardsCurve edwards_curve;
-  bool rsa_pss_restricted{false};
-};
 
 namespace {
 auto to_cng_algorithm(const RSAOAEPHash hash) -> LPCWSTR {

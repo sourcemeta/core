@@ -3,6 +3,7 @@
 
 #include "crypto_bignum.h"
 #include "crypto_helpers.h"
+#include "crypto_other.h"
 #include "crypto_random.h"
 #include "crypto_sha1_other.h"
 
@@ -23,33 +24,6 @@
 // distinguishing one
 
 namespace sourcemeta::core {
-
-// The layout matches the definitions in the sibling reference key backends,
-// since each translation unit that reads a key redeclares its file-private
-// members
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  std::string modulus;
-  std::string exponent;
-  std::string coordinate_x;
-  std::string coordinate_y;
-  EllipticCurve elliptic_curve;
-  EdwardsCurve edwards_curve;
-};
-
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  std::string modulus;
-  std::string public_exponent;
-  std::string private_exponent;
-  std::string scalar;
-  EllipticCurve elliptic_curve;
-  std::string edwards_seed;
-  EdwardsCurve edwards_curve;
-  bool rsa_pss_restricted{false};
-  std::string coordinate_x;
-  std::string coordinate_y;
-};
 
 namespace {
 auto hash_length(const RSAOAEPHash hash) -> std::size_t {

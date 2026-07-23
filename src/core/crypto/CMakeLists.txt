@@ -166,7 +166,7 @@ else()
     crypto_rsa_oaep_other.cc crypto_ecdh_other.cc
     crypto_aes_block.h crypto_aes_kw_loop.h crypto_sha1_other.h
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
-    crypto_pkcs8.h)
+    crypto_pkcs8.h crypto_other.h)
 endif()
 
 if(SOURCEMETA_CORE_INSTALL)
