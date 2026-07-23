@@ -373,6 +373,30 @@ auto register_eddsa_tests(const std::filesystem::path &path,
   }
 }
 
+// A valid vector must decrypt to exactly the plaintext and reproduce exactly
+// under encryption. An invalid vector must be rejected outright, never
+// decrypted to some other value, so that an authentication failure cannot be
+// masked by a wrong plaintext
+auto check_aes_gcm(const std::string_view key, const std::string_view iv,
+                   const std::string_view associated_data,
+                   const std::string_view ciphertext,
+                   const std::string_view tag, const std::string_view plaintext,
+                   const bool expected) -> void {
+  const auto opened{sourcemeta::core::aes_gcm_decrypt(key, iv, associated_data,
+                                                      ciphertext, tag)};
+  if (expected) {
+    EXPECT_TRUE(opened.has_value());
+    EXPECT_EQ(opened.value(), plaintext);
+    const auto sealed{
+        sourcemeta::core::aes_gcm_encrypt(key, iv, associated_data, plaintext)};
+    EXPECT_TRUE(sealed.has_value());
+    EXPECT_EQ(sealed.value().ciphertext(), ciphertext);
+    EXPECT_EQ(sealed.value().tag(), tag);
+  } else {
+    EXPECT_FALSE(opened.has_value());
+  }
+}
+
 auto register_aes_gcm_tests(const std::filesystem::path &path,
                             const std::string &suite_name) -> void {
   const auto document{load(path)};
@@ -409,26 +433,16 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
         continue;
       }
 
-      register_case(
-          suite_name,
-          stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
-          [key = key.value(), iv = iv.value(),
-           associated_data = associated_data.value(),
-           ciphertext = ciphertext.value(), tag = tag.value(),
-           plaintext = message.value(), expected = (result == "valid")]() {
-            const auto opened{sourcemeta::core::aes_gcm_decrypt(
-                key, iv, associated_data, ciphertext, tag)};
-            EXPECT_EQ(opened.has_value() && opened.value() == plaintext,
-                      expected);
-            // A valid vector must also reproduce exactly under encryption
-            if (expected) {
-              const auto sealed{sourcemeta::core::aes_gcm_encrypt(
-                  key, iv, associated_data, plaintext)};
-              EXPECT_TRUE(sealed.has_value());
-              EXPECT_EQ(sealed.value().ciphertext(), ciphertext);
-              EXPECT_EQ(sealed.value().tag(), tag);
-            }
-          });
+      register_case(suite_name,
+                    stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+                    [key = key.value(), iv = iv.value(),
+                     associated_data = associated_data.value(),
+                     ciphertext = ciphertext.value(), tag = tag.value(),
+                     plaintext = message.value(),
+                     expected = (result == "valid")]() {
+                      check_aes_gcm(key, iv, associated_data, ciphertext, tag,
+                                    plaintext, expected);
+                    });
     }
   }
 }
