@@ -1,8 +1,8 @@
 #include <sourcemeta/core/crypto_rsa_oaep.h>
 #include <sourcemeta/core/crypto_sha256.h>
-#include <sourcemeta/core/text.h>
 
 #include "crypto_bignum.h"
+#include "crypto_helpers.h"
 #include "crypto_random.h"
 #include "crypto_sha1_other.h"
 

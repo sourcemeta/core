@@ -1,6 +1,7 @@
 #include <sourcemeta/core/crypto_ecdh.h>
 #include <sourcemeta/core/crypto_sha256.h>
-#include <sourcemeta/core/text.h>
+
+#include "crypto_helpers.h"
 
 #include <algorithm>   // std::min
 #include <array>       // std::array

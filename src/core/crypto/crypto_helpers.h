@@ -21,6 +21,17 @@ namespace sourcemeta::core {
 // the range of valid key sizes
 inline constexpr std::size_t MAXIMUM_KEY_BYTES{512};
 
+// Append a 32-bit integer in big-endian (network) order, the encoding the
+// mask generation function of RFC 8017 and the Concat KDF of RFC 7518 use for
+// their counters and length fields
+inline auto append_big_endian_uint32(std::string &target,
+                                     const std::uint32_t value) -> void {
+  target.push_back(static_cast<char>((value >> 24u) & 0xffu));
+  target.push_back(static_cast<char>((value >> 16u) & 0xffu));
+  target.push_back(static_cast<char>((value >> 8u) & 0xffu));
+  target.push_back(static_cast<char>(value & 0xffu));
+}
+
 // The same guard for a raw buffer, so a secret that a fixed-size digest array
 // holds is wiped when leaving the current scope
 struct SecureBufferScope {

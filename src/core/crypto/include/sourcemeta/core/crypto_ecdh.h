@@ -5,8 +5,8 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
-#include <sourcemeta/core/crypto_sign.h>   // PrivateKey
-#include <sourcemeta/core/crypto_verify.h> // PublicKey
+#include <sourcemeta/core/crypto_sign.h>
+#include <sourcemeta/core/crypto_verify.h>
 
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional
