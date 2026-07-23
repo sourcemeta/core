@@ -1,5 +1,7 @@
 #include <sourcemeta/core/crypto_rsa_oaep.h>
 
+#include "crypto_openssl.h"
+
 #include <openssl/evp.h> // EVP_*
 #include <openssl/rsa.h> // RSA_PKCS1_OAEP_PADDING
 
@@ -10,23 +12,6 @@
 #include <utility>     // std::move, std::unreachable
 
 namespace sourcemeta::core {
-
-// The layout matches the definitions in the sibling OpenSSL key backends, since
-// each translation unit that reads a key redeclares its file-private members
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  EVP_PKEY *key;
-  std::string modulus;
-  std::size_t field_bytes;
-  std::size_t signature_bytes;
-};
-
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  EVP_PKEY *key;
-  std::size_t field_bytes;
-  bool rsa_pss_restricted{false};
-};
 
 namespace {
 auto to_message_digest(const RSAOAEPHash hash) -> const EVP_MD * {

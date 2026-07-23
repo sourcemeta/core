@@ -5,6 +5,7 @@
 #include "crypto_ecc.h"
 #include "crypto_eddsa.h"
 #include "crypto_helpers.h"
+#include "crypto_other.h"
 
 #include <array>       // std::array
 #include <cassert>     // assert
@@ -340,19 +341,6 @@ auto verify_ecdsa(const EllipticCurve curve, const SignatureHashFunction hash,
 }
 
 } // namespace
-
-// The reference backend parses the key material into big integers inside each
-// verification, which is cheap next to the modular arithmetic, so the parsed
-// key simply holds the raw material
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  std::string modulus;
-  std::string exponent;
-  std::string coordinate_x;
-  std::string coordinate_y;
-  EllipticCurve elliptic_curve;
-  EdwardsCurve edwards_curve;
-};
 
 PublicKey::PublicKey(Internal *internal) noexcept : internal_{internal} {}
 

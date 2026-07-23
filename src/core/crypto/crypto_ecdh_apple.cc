@@ -1,5 +1,7 @@
 #include <sourcemeta/core/crypto_ecdh.h>
 
+#include "crypto_apple.h"
+
 #include <CoreFoundation/CoreFoundation.h> // CF*, kCF*
 #include <Security/Security.h>             // Sec*, kSec*
 
@@ -8,26 +10,6 @@
 #include <string>   // std::string
 
 namespace sourcemeta::core {
-
-// The layout matches the definitions in the sibling Apple key backends, since
-// each translation unit that reads a key redeclares its file-private members
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  SecKeyRef key;
-  std::string modulus;
-  std::size_t field_bytes;
-  std::string edwards_point;
-  EdwardsCurve edwards_curve;
-};
-
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  SecKeyRef key;
-  std::size_t field_bytes;
-  std::string edwards_seed;
-  EdwardsCurve edwards_curve;
-  bool rsa_pss_restricted{false};
-};
 
 auto ecdh_derive(const PrivateKey &private_key, const PublicKey &public_key)
     -> std::optional<std::string> {

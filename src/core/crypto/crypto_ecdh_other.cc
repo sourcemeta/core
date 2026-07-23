@@ -2,6 +2,7 @@
 
 #include "crypto_bignum.h"
 #include "crypto_ecc.h"
+#include "crypto_other.h"
 
 #include <optional> // std::optional, std::nullopt
 #include <string>   // std::string
@@ -13,33 +14,6 @@
 // RFC 7518 Section 4.6 consumes)
 
 namespace sourcemeta::core {
-
-// The layout matches the definitions in the sibling reference key backends,
-// since each translation unit that reads a key redeclares its file-private
-// members
-struct PublicKey::Internal {
-  PublicKey::Type kind;
-  std::string modulus;
-  std::string exponent;
-  std::string coordinate_x;
-  std::string coordinate_y;
-  EllipticCurve elliptic_curve;
-  EdwardsCurve edwards_curve;
-};
-
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  std::string modulus;
-  std::string public_exponent;
-  std::string private_exponent;
-  std::string scalar;
-  EllipticCurve elliptic_curve;
-  std::string edwards_seed;
-  EdwardsCurve edwards_curve;
-  bool rsa_pss_restricted{false};
-  std::string coordinate_x;
-  std::string coordinate_y;
-};
 
 namespace {
 auto to_curve_parameters(const EllipticCurve curve) -> EllipticCurveParameters {

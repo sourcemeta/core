@@ -6,6 +6,7 @@
 #include "crypto_ecc.h"
 #include "crypto_eddsa.h"
 #include "crypto_helpers.h"
+#include "crypto_other.h"
 #include "crypto_pkcs8.h"
 
 #include <array>       // std::array
@@ -377,26 +378,6 @@ auto ec_public_from_scalar(const EllipticCurve curve,
 }
 
 } // namespace
-
-// The reference backend parses the key material into big integers inside each
-// signature, so the parsed key simply holds the raw material
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  std::string modulus;
-  std::string public_exponent;
-  std::string private_exponent;
-  std::string scalar;
-  EllipticCurve elliptic_curve;
-  std::string edwards_seed;
-  EdwardsCurve edwards_curve;
-  bool rsa_pss_restricted{false};
-  // The public coordinates, kept so the public key can be recovered without
-  // recomputing the point from the scalar. A key parsed from a PEM document,
-  // which carries only the scalar on this backend, recomputes them at parse
-  // time, so they are populated for every elliptic curve private key
-  std::string coordinate_x;
-  std::string coordinate_y;
-};
 
 PrivateKey::PrivateKey(Internal *internal) noexcept : internal_{internal} {}
 

@@ -19,22 +19,6 @@
 #include <string_view> // std::string_view
 #include <utility>     // std::move, std::unreachable
 
-namespace sourcemeta::core {
-
-// The parsed key keeps the platform key object alive for reuse. The Edwards
-// curves have no Security framework primitive, so they keep the raw seed and
-// sign through CryptoKit or the reference implementation
-struct PrivateKey::Internal {
-  PrivateKey::Type kind;
-  SecKeyRef key;
-  std::size_t field_bytes;
-  std::string edwards_seed;
-  EdwardsCurve edwards_curve;
-  bool rsa_pss_restricted{false};
-};
-
-} // namespace sourcemeta::core
-
 namespace {
 
 auto to_sec_key_pkcs1_v15_algorithm(
