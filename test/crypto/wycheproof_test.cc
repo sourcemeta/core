@@ -578,6 +578,86 @@ auto register_aes_kw_tests(const std::filesystem::path &path,
     }
   }
 }
+
+auto to_oaep_hash(const std::string_view name)
+    -> std::optional<sourcemeta::core::RSAOAEPHash> {
+  if (name == "SHA-1") {
+    return sourcemeta::core::RSAOAEPHash::SHA1;
+  } else if (name == "SHA-256") {
+    return sourcemeta::core::RSAOAEPHash::SHA256;
+  } else {
+    return std::nullopt;
+  }
+}
+
+// A valid vector must decrypt to exactly the plaintext. An invalid vector must
+// be rejected outright, never decrypted to some other value, so that a failed
+// padding check cannot be masked
+auto check_rsa_oaep(const std::string_view pem,
+                    const sourcemeta::core::RSAOAEPHash hash,
+                    const std::string_view ciphertext,
+                    const std::string_view plaintext, const bool expected)
+    -> void {
+  const auto private_key{sourcemeta::core::make_private_key(pem)};
+  EXPECT_TRUE(private_key.has_value());
+  if (!private_key.has_value()) {
+    return;
+  }
+
+  const auto decrypted{sourcemeta::core::rsa_oaep_decrypt(private_key.value(),
+                                                          hash, ciphertext)};
+  if (expected) {
+    EXPECT_TRUE(decrypted.has_value());
+    EXPECT_EQ(decrypted.value(), plaintext);
+  } else {
+    EXPECT_FALSE(decrypted.has_value());
+  }
+}
+
+auto register_rsa_oaep_tests(const std::filesystem::path &path,
+                             const std::string &suite_name) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    const auto hash{to_oaep_hash(group.at("sha").to_string())};
+    // The supported algorithms use the same hash for the label and the mask,
+    // and an empty label
+    if (!hash.has_value() ||
+        group.at("sha").to_string() != group.at("mgfSha").to_string()) {
+      continue;
+    }
+
+    const auto key{sourcemeta::core::hex_to_bytes(
+        group.at("privateKeyPkcs8").to_string())};
+    if (!key.has_value()) {
+      continue;
+    }
+
+    const auto pem{to_pkcs8_pem(key.value())};
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string result{test.at("result").to_string()};
+      if (result == "acceptable" || !test.at("label").to_string().empty()) {
+        continue;
+      }
+
+      const auto message{
+          sourcemeta::core::hex_to_bytes(test.at("msg").to_string())};
+      const auto ciphertext{
+          sourcemeta::core::hex_to_bytes(test.at("ct").to_string())};
+      if (!message.has_value() || !ciphertext.has_value()) {
+        continue;
+      }
+
+      register_case(
+          suite_name,
+          stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+          [pem, hash = hash.value(), ciphertext = ciphertext.value(),
+           plaintext = message.value(), expected = (result == "valid")]() {
+            check_rsa_oaep(pem, hash, ciphertext, plaintext, expected);
+          });
+    }
+  }
+}
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -646,6 +726,14 @@ auto main(int argc, char **argv) -> int {
   register_aes_cbc_hmac_tests(vectors / "a256cbc_hs512_test.json",
                               "Wycheproof_A256CBC_HS512");
   register_aes_kw_tests(vectors / "aes_wrap_test.json", "Wycheproof_AES_KW");
+  register_rsa_oaep_tests(vectors / "rsa_oaep_2048_sha1_mgf1sha1_test.json",
+                          "Wycheproof_RSA_OAEP_SHA1");
+  register_rsa_oaep_tests(vectors / "rsa_oaep_2048_sha256_mgf1sha256_test.json",
+                          "Wycheproof_RSA_OAEP_2048_SHA256");
+  register_rsa_oaep_tests(vectors / "rsa_oaep_3072_sha256_mgf1sha256_test.json",
+                          "Wycheproof_RSA_OAEP_3072_SHA256");
+  register_rsa_oaep_tests(vectors / "rsa_oaep_4096_sha256_mgf1sha256_test.json",
+                          "Wycheproof_RSA_OAEP_4096_SHA256");
 
   return sourcemeta::core::test_run(argc, argv);
 }
