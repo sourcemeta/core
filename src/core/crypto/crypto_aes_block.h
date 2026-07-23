@@ -8,6 +8,7 @@
 // sizes and the inverse cipher are added by the modes that need them
 
 #include <array>       // std::array
+#include <cassert>     // assert
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::uint8_t
 #include <string_view> // std::string_view
@@ -66,6 +67,7 @@ inline auto aes_field_multiply(const std::uint8_t left,
 
 // AES-256 key expansion (FIPS 197 Section 5.2, with the 256-bit key schedule)
 inline auto aes_expand_key(const std::string_view key) -> AesRoundKeys {
+  assert(key.size() == 32);
   AesRoundKeys round_keys{};
   for (std::size_t index = 0; index < 32; ++index) {
     round_keys[index] = static_cast<std::uint8_t>(key[index]);
