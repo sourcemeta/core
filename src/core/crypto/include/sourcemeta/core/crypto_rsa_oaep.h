@@ -18,7 +18,12 @@ namespace sourcemeta::core {
 /// @ingroup crypto
 /// The hash function that RSA-OAEP uses for both the label digest and the mask
 /// generation function.
-enum class RSAOAEPHash : std::uint8_t { SHA1, SHA256 };
+enum class RSAOAEPHash : std::uint8_t {
+  /// The SHA-1 hash function, selecting RSA-OAEP.
+  SHA1,
+  /// The SHA-256 hash function, selecting RSA-OAEP-256.
+  SHA256
+};
 
 /// @ingroup crypto
 /// Encrypt a short key or message with RSA-OAEP (RFC 8017) under an RSA public
