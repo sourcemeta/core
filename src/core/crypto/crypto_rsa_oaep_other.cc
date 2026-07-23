@@ -2,6 +2,7 @@
 #include <sourcemeta/core/crypto_sha256.h>
 
 #include "crypto_bignum.h"
+#include "crypto_helpers.h"
 #include "crypto_random.h"
 #include "crypto_sha1_other.h"
 
@@ -88,10 +89,7 @@ auto mask_generation(const RSAOAEPHash hash, const std::string_view seed,
   std::uint32_t counter{0};
   while (result.size() < length) {
     std::string block{seed};
-    block.push_back(static_cast<char>((counter >> 24u) & 0xffu));
-    block.push_back(static_cast<char>((counter >> 16u) & 0xffu));
-    block.push_back(static_cast<char>((counter >> 8u) & 0xffu));
-    block.push_back(static_cast<char>(counter & 0xffu));
+    append_big_endian_uint32(block, counter);
     result.append(oaep_hash(hash, block));
     counter += 1;
   }
