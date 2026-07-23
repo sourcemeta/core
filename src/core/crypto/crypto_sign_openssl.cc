@@ -344,6 +344,19 @@ auto make_ec_private_key(const EllipticCurve curve,
                                .field_bytes = curve_field_bytes(curve)}};
 }
 
+auto generate_ec_private_key(const EllipticCurve curve)
+    -> std::optional<PrivateKey> {
+  auto *key{EVP_EC_gen(to_group_name(curve))};
+  if (key == nullptr) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .key = key,
+                               .field_bytes = curve_field_bytes(curve)}};
+}
+
 auto make_edwards_private_key(const EdwardsCurve curve,
                               const std::string_view seed)
     -> std::optional<PrivateKey> {

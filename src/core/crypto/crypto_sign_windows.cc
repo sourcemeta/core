@@ -432,6 +432,35 @@ auto make_ec_private_key(const EllipticCurve curve,
                                .edwards_curve = {}}};
 }
 
+auto generate_ec_private_key(const EllipticCurve curve)
+    -> std::optional<PrivateKey> {
+  BCRYPT_ALG_HANDLE algorithm{nullptr};
+  if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(
+          &algorithm, to_ecdsa_algorithm(curve), nullptr, 0))) {
+    return std::nullopt;
+  }
+
+  BCRYPT_KEY_HANDLE key{nullptr};
+  if (!BCRYPT_SUCCESS(BCryptGenerateKeyPair(
+          algorithm, &key, static_cast<ULONG>(curve_bit_length(curve)), 0)) ||
+      !BCRYPT_SUCCESS(BCryptFinalizeKeyPair(key, 0))) {
+    if (key != nullptr) {
+      BCryptDestroyKey(key);
+    }
+
+    BCryptCloseAlgorithmProvider(algorithm, 0);
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .algorithm = algorithm,
+                               .key = key,
+                               .field_bytes = curve_field_bytes(curve),
+                               .edwards_seed = {},
+                               .edwards_curve = {}}};
+}
+
 auto make_edwards_private_key(const EdwardsCurve curve,
                               const std::string_view seed)
     -> std::optional<PrivateKey> {

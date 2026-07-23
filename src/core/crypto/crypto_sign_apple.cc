@@ -357,6 +357,41 @@ auto make_ec_private_key(const EllipticCurve curve,
                                .edwards_curve = {}}};
 }
 
+auto generate_ec_private_key(const EllipticCurve curve)
+    -> std::optional<PrivateKey> {
+  const int bits{static_cast<int>(curve_bit_length(curve))};
+  auto size{CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &bits)};
+  if (size == nullptr) {
+    return std::nullopt;
+  }
+
+  std::array<const void *, 2> attribute_keys{
+      {kSecAttrKeyType, kSecAttrKeySizeInBits}};
+  std::array<const void *, 2> attribute_values{
+      {kSecAttrKeyTypeECSECPrimeRandom, size}};
+  auto attributes{CFDictionaryCreate(
+      kCFAllocatorDefault, attribute_keys.data(), attribute_values.data(),
+      static_cast<CFIndex>(attribute_keys.size()),
+      &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks)};
+  CFRelease(size);
+  if (attributes == nullptr) {
+    return std::nullopt;
+  }
+
+  auto *key{SecKeyCreateRandomKey(attributes, nullptr)};
+  CFRelease(attributes);
+  if (key == nullptr) {
+    return std::nullopt;
+  }
+
+  return PrivateKey{
+      new PrivateKey::Internal{.kind = PrivateKey::Type::EllipticCurve,
+                               .key = key,
+                               .field_bytes = curve_field_bytes(curve),
+                               .edwards_seed = {},
+                               .edwards_curve = {}}};
+}
+
 auto make_edwards_private_key(const EdwardsCurve curve,
                               const std::string_view seed)
     -> std::optional<PrivateKey> {
