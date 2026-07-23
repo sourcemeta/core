@@ -1,7 +1,4 @@
-6.nesting_signatures_and_encryption.json
 curve25519
-jwe
-jwk
 package.json
 README.md
 rfc7797

@@ -22,7 +22,6 @@ vectors/cryptography_vectors/asymmetric/DER_Serialization/
 vectors/cryptography_vectors/asymmetric/DH/
 vectors/cryptography_vectors/asymmetric/DSA/
 vectors/cryptography_vectors/asymmetric/EC/
-vectors/cryptography_vectors/asymmetric/ECDH/
 vectors/cryptography_vectors/asymmetric/ECDSA/FIPS_186-2/
 vectors/cryptography_vectors/asymmetric/ECDSA/SECP256K1/
 vectors/cryptography_vectors/asymmetric/Ed25519/ed25519-pkcs8-enc.der
@@ -41,16 +40,11 @@ vectors/cryptography_vectors/asymmetric/Traditional_OpenSSL_Serialization/
 vectors/cryptography_vectors/asymmetric/X25519/
 vectors/cryptography_vectors/asymmetric/X448/
 vectors/cryptography_vectors/asymmetric/public/
-vectors/cryptography_vectors/asymmetric/RSA/oaep-custom/
 vectors/cryptography_vectors/asymmetric/RSA/oaep-label.txt
-vectors/cryptography_vectors/asymmetric/RSA/pkcs-1v2-1d2-vec/
 vectors/cryptography_vectors/asymmetric/RSA/pkcs1v15crypt-vectors.txt
-vectors/cryptography_vectors/ciphers/
 vectors/cryptography_vectors/CMAC/
 vectors/cryptography_vectors/fernet/
 vectors/cryptography_vectors/HPKE/
-vectors/cryptography_vectors/KDF/
-vectors/cryptography_vectors/keywrap/
 vectors/cryptography_vectors/pkcs12/
 vectors/cryptography_vectors/pkcs7/
 vectors/cryptography_vectors/poly1305/
