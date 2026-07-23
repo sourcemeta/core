@@ -157,6 +157,7 @@ else()
     crypto_sha512_other.cc crypto_random_other.cc crypto_verify_other.cc
     crypto_secure_equals_generic.cc crypto_sign_other.cc
     crypto_aes_gcm_other.cc
+    crypto_aes_block.h
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
     crypto_pkcs8.h)
 endif()
