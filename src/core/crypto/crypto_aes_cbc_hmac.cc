@@ -84,8 +84,11 @@ auto aes_cbc_hmac_encrypt(const std::string_view key, const std::string_view iv,
                           const std::string_view associated_data,
                           const std::string_view plaintext)
     -> std::optional<AESCBCHMACCiphertext> {
+  // The plaintext bound leaves a whole block of headroom, since the padding
+  // grows the buffer by up to that much and the backends narrow the padded
+  // length to an int
   if (!is_valid_key_size(key.size()) || iv.size() != IV_BYTES ||
-      plaintext.size() > MAX_INPUT_BYTES ||
+      plaintext.size() > MAX_INPUT_BYTES - BLOCK_BYTES ||
       associated_data.size() > MAX_INPUT_BYTES) {
     return std::nullopt;
   }
