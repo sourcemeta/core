@@ -52,8 +52,13 @@ auto ecdh_derive(const PrivateKey &private_key, const PublicKey &public_key)
     std::string secret(length, '\x00');
     if (EVP_PKEY_derive(context,
                         reinterpret_cast<unsigned char *>(secret.data()),
-                        &length) == 1) {
+                        &length) == 1 &&
+        length <= private_internal->field_bytes) {
       secret.resize(length);
+      // Guarantee the fixed-length x coordinate the contract promises, since a
+      // leading zero could otherwise shorten the platform output
+      secret.insert(secret.begin(),
+                    private_internal->field_bytes - secret.size(), '\x00');
       result = std::move(secret);
     }
   }

@@ -37,7 +37,9 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT ecdh_derive(const PrivateKey &private_key,
 /// Derive a key from a shared secret with the Concat KDF (RFC 7518
 /// Section 4.6), the single-step key derivation function over SHA-256, where
 /// the algorithm identifier and the two party information strings are the
-/// already decoded bytes that make up the derivation context. For example:
+/// already decoded bytes that make up the derivation context. Returns no value
+/// when the context or the requested key length exceeds the 32-bit fields the
+/// construction encodes. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/crypto.h>
@@ -45,12 +47,13 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT ecdh_derive(const PrivateKey &private_key,
 ///
 /// const auto key{sourcemeta::core::kdf_concat(secret, "A128GCM", "Alice",
 ///                                             "Bob", 16)};
-/// assert(key.size() == 16);
+/// assert(key.has_value());
+/// assert(key.value().size() == 16);
 /// ```
 auto SOURCEMETA_CORE_CRYPTO_EXPORT kdf_concat(
     const std::string_view shared_secret, const std::string_view algorithm_id,
     const std::string_view party_u_info, const std::string_view party_v_info,
-    const std::size_t derived_key_bytes) -> std::string;
+    const std::size_t derived_key_bytes) -> std::optional<std::string>;
 
 } // namespace sourcemeta::core
 

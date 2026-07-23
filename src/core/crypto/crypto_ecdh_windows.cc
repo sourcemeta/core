@@ -5,13 +5,12 @@
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
 // clang-format on
 
-#include <algorithm>   // std::reverse
-#include <cstddef>     // std::size_t
-#include <cstring>     // std::memcpy
-#include <optional>    // std::optional, std::nullopt
-#include <string>      // std::string
-#include <string_view> // std::string_view
-#include <utility>     // std::move
+#include <algorithm> // std::reverse
+#include <cstddef>   // std::size_t
+#include <cstring>   // std::memcpy
+#include <optional>  // std::optional, std::nullopt
+#include <string>    // std::string
+#include <utility>   // std::move
 
 namespace sourcemeta::core {
 
@@ -175,11 +174,16 @@ auto ecdh_derive(const PrivateKey &private_key, const PublicKey &public_key)
       if (BCRYPT_SUCCESS(BCryptDeriveKey(
               secret, BCRYPT_KDF_RAW_SECRET, nullptr,
               reinterpret_cast<PUCHAR>(secret_bytes.data()),
-              static_cast<ULONG>(secret_bytes.size()), &written, 0))) {
+              static_cast<ULONG>(secret_bytes.size()), &written, 0)) &&
+          written <= field_bytes) {
         secret_bytes.resize(written);
         // The raw secret is little-endian, so it is reversed into the
         // big-endian form the other backends return
         std::reverse(secret_bytes.begin(), secret_bytes.end());
+        // Guarantee the fixed-length x coordinate the contract promises, since
+        // a leading zero could otherwise shorten the platform output
+        secret_bytes.insert(secret_bytes.begin(),
+                            field_bytes - secret_bytes.size(), '\x00');
         result = std::move(secret_bytes);
       }
     }

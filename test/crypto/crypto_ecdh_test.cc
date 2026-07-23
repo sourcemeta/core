@@ -57,17 +57,19 @@ TEST(kdf_concat_derives_the_rfc7518_appendix_c_key) {
   EXPECT_TRUE(shared_secret.has_value());
   const auto derived{sourcemeta::core::kdf_concat(
       shared_secret.value(), "A128GCM", "Alice", "Bob", 16)};
+  EXPECT_TRUE(derived.has_value());
   const auto expected{
       sourcemeta::core::hex_to_bytes("56aa8deaf8236d205c2228cd71a7101a")};
   EXPECT_TRUE(expected.has_value());
-  EXPECT_EQ(derived, expected.value());
+  EXPECT_EQ(derived.value(), expected.value());
 }
 
 TEST(kdf_concat_produces_the_requested_length) {
   const std::string shared_secret(32, '\x2a');
   const auto derived{
       sourcemeta::core::kdf_concat(shared_secret, "A256GCM", "", "", 32)};
-  EXPECT_EQ(derived.size(), std::string::size_type{32});
+  EXPECT_TRUE(derived.has_value());
+  EXPECT_EQ(derived.value().size(), std::string::size_type{32});
 }
 
 TEST(kdf_concat_spans_multiple_hash_blocks) {
@@ -79,7 +81,8 @@ TEST(kdf_concat_spans_multiple_hash_blocks) {
       sourcemeta::core::kdf_concat(shared_secret, "A256CBC-HS512", "", "", 48)};
   const auto second{
       sourcemeta::core::kdf_concat(shared_secret, "A256CBC-HS512", "", "", 48)};
-  EXPECT_EQ(first.size(), std::string::size_type{48});
+  EXPECT_TRUE(first.has_value());
+  EXPECT_EQ(first.value().size(), std::string::size_type{48});
   EXPECT_EQ(first, second);
 }
 
@@ -89,6 +92,8 @@ TEST(kdf_concat_diverges_on_the_algorithm_identifier) {
       sourcemeta::core::kdf_concat(shared_secret, "A128GCM", "", "", 16)};
   const auto second{
       sourcemeta::core::kdf_concat(shared_secret, "A192GCM", "", "", 16)};
+  EXPECT_TRUE(first.has_value());
+  EXPECT_TRUE(second.has_value());
   EXPECT_NE(first, second);
 }
 
@@ -98,7 +103,17 @@ TEST(kdf_concat_diverges_on_the_party_information) {
                                                 "Alice", "Bob", 16)};
   const auto second{sourcemeta::core::kdf_concat(shared_secret, "A128GCM",
                                                  "Bob", "Alice", 16)};
+  EXPECT_TRUE(first.has_value());
+  EXPECT_TRUE(second.has_value());
   EXPECT_NE(first, second);
+}
+
+TEST(kdf_concat_rejects_an_unrepresentable_key_length) {
+  // The key length in bits must fit the 32-bit SuppPubInfo field
+  const std::string shared_secret(32, '\x2a');
+  const auto derived{sourcemeta::core::kdf_concat(shared_secret, "A128GCM", "",
+                                                  "", std::size_t{1} << 40)};
+  EXPECT_FALSE(derived.has_value());
 }
 
 TEST(ecdh_derive_matches_a_known_p256_shared_secret) {

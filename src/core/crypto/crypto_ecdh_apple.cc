@@ -57,8 +57,17 @@ auto ecdh_derive(const PrivateKey &private_key, const PublicKey &public_key)
     return std::nullopt;
   }
 
-  std::string result{reinterpret_cast<const char *>(CFDataGetBytePtr(shared)),
-                     static_cast<std::size_t>(CFDataGetLength(shared))};
+  const auto length{static_cast<std::size_t>(CFDataGetLength(shared))};
+  if (length > private_internal->field_bytes) {
+    CFRelease(shared);
+    return std::nullopt;
+  }
+
+  // Left-pad to the fixed-length x coordinate the contract promises, since a
+  // leading zero could otherwise shorten the platform output
+  std::string result(private_internal->field_bytes - length, '\x00');
+  result.append(reinterpret_cast<const char *>(CFDataGetBytePtr(shared)),
+                length);
   CFRelease(shared);
   return result;
 }
