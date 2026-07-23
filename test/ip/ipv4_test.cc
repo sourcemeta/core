@@ -260,3 +260,205 @@ TEST(invalid_eight_octets) {
 }
 
 TEST(invalid_whitespace_only) { EXPECT_FALSE(sourcemeta::core::is_ipv4(" ")); }
+
+TEST(invalid_fullwidth_digits_all) {
+  // valid-looking but fullwidth (U+FF10 block) digits
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("１９２.１６８.１.１"));
+}
+
+TEST(invalid_fullwidth_digit_first_octet) {
+  // one fullwidth digit in first octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("１92.168.0.1"));
+}
+
+TEST(invalid_fullwidth_digit_last_octet) {
+  // fullwidth digit in last octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("192.168.0.１"));
+}
+
+TEST(invalid_arabic_indic_digits) {
+  // Arabic-Indic digits (U+0660 block)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("١٩٢.١٦٨.٠.١"));
+}
+
+TEST(invalid_ext_arabic_indic_digits) {
+  // Extended Arabic-Indic digits (U+06F0 block)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("۱۹۲.۱۶۸.۰.۱"));
+}
+
+TEST(invalid_devanagari_digits) {
+  // Devanagari digits (U+0966 block)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("१९२.१६८.०.१"));
+}
+
+TEST(invalid_bengali_digit_inner) {
+  // a Bengali 2 (U+09E8) inside octet one
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1২7.0.0.1"));
+}
+
+TEST(invalid_math_bold_digits) {
+  // Mathematical Bold digits (U+1D7CE, astral)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("𝟏𝟗𝟐.𝟏𝟔𝟖.𝟏.𝟏"));
+}
+
+TEST(invalid_superscript_two) {
+  // superscript two (U+00B2)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("².2.3.4"));
+}
+
+TEST(invalid_circled_digit) {
+  // circled digit one (U+2460, not a decimal digit)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("①.2.3.4"));
+}
+
+TEST(invalid_embedded_nul_trailing) {
+  // valid address then NUL then trailing junk
+  EXPECT_FALSE(sourcemeta::core::is_ipv4(
+      std::string_view("192.168.0.1\0.evil.com", 21)));
+}
+
+TEST(invalid_trailing_nul) {
+  // valid address then a single trailing NUL
+  EXPECT_FALSE(
+      sourcemeta::core::is_ipv4(std::string_view("192.168.0.1\0", 12)));
+}
+
+TEST(invalid_two_part_shorthand) {
+  // inet_aton 2-part shorthand
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("127.1"));
+}
+
+TEST(invalid_three_part_shorthand) {
+  // inet_aton 3-part shorthand
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("127.0.1"));
+}
+
+TEST(invalid_decimal_integer_form) {
+  // the 32-bit integer for 127.0.0.1
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("2130706433"));
+}
+
+TEST(invalid_decimal_integer_form_high) {
+  // the 32-bit integer for 192.168.0.1
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("3232235521"));
+}
+
+TEST(invalid_integer_overflow_2_32) {
+  // 2^32, one past the 32-bit range
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("4294967296"));
+}
+
+TEST(invalid_hex_integer) {
+  // hex integer form
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("0x7f000001"));
+}
+
+TEST(invalid_hex_octet_first) {
+  // 0x-prefixed first octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("0x7f.0.0.1"));
+}
+
+TEST(invalid_octal_prefix_explicit) {
+  // explicit 0o octal prefix
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("0o10.0.0.1"));
+}
+
+TEST(invalid_octal_leading_zero_form) {
+  // octal-looking leading-zero form
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("0300.0250.0.1"));
+}
+
+TEST(invalid_trailing_cr_only) {
+  // bare trailing carriage return
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3.4\r"));
+}
+
+TEST(invalid_leading_cr_only) {
+  // bare leading carriage return
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("\r1.2.3.4"));
+}
+
+TEST(invalid_trailing_vertical_tab) {
+  // trailing vertical tab
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3.4\v"));
+}
+
+TEST(invalid_trailing_form_feed) {
+  // trailing form feed
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3.4\f"));
+}
+
+TEST(invalid_trailing_nbsp) {
+  // trailing non-breaking space (U+00A0)
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2.3.4 "));
+}
+
+TEST(invalid_internal_nbsp) {
+  // non-breaking space before an octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.2. 3.4"));
+}
+
+TEST(invalid_exponent_octet) {
+  // exponent notation in first octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1e2.0.0.1"));
+}
+
+TEST(invalid_plus_inner_octet) {
+  // plus sign on an inner octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.+2.3.4"));
+}
+
+TEST(invalid_float_octet) {
+  // extra fractional-looking component
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.5.3.4.0"));
+}
+
+TEST(invalid_pipe_separators) {
+  // pipe separators
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1|2|3|4"));
+}
+
+TEST(invalid_space_separators) {
+  // space separators
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1 2 3 4"));
+}
+
+TEST(invalid_first_octet_256) {
+  // 256 in the first octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("256.1.1.1"));
+}
+
+TEST(invalid_second_octet_256) {
+  // 256 in the second octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.256.1.1"));
+}
+
+TEST(invalid_third_octet_256_b) {
+  // 256 in the third octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.1.256.1"));
+}
+
+TEST(invalid_fourth_octet_256) {
+  // 256 in the fourth octet
+  EXPECT_FALSE(sourcemeta::core::is_ipv4("1.1.1.256"));
+}
+
+TEST(valid_branch_200_249_low) {
+  // dec-octet branch 2 %x30-34 DIGIT, low end
+  EXPECT_TRUE(sourcemeta::core::is_ipv4("200.0.0.0"));
+}
+
+TEST(valid_branch_200_249_high) {
+  // dec-octet branch 2 %x30-34 DIGIT, high end
+  EXPECT_TRUE(sourcemeta::core::is_ipv4("249.1.2.3"));
+}
+
+TEST(valid_all_two_digit_octets) {
+  // every octet in the %x31-39 DIGIT (10-99) branch
+  EXPECT_TRUE(sourcemeta::core::is_ipv4("10.20.30.40"));
+}
+
+TEST(valid_mixed_all_branches) {
+  // one octet from each of the four multi-value branches
+  EXPECT_TRUE(sourcemeta::core::is_ipv4("9.42.200.255"));
+}
