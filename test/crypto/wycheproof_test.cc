@@ -704,10 +704,19 @@ auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
 // secret can be produced
 auto check_ecdh(const EcdhCurve &info, const std::string_view peer_point,
                 const std::string_view shared, const bool expected) -> void {
+  const auto scalar{sourcemeta::core::hex_to_bytes(info.private_scalar)};
+  const auto coordinate_x{sourcemeta::core::hex_to_bytes(info.coordinate_x)};
+  const auto coordinate_y{sourcemeta::core::hex_to_bytes(info.coordinate_y)};
+  EXPECT_TRUE(scalar.has_value());
+  EXPECT_TRUE(coordinate_x.has_value());
+  EXPECT_TRUE(coordinate_y.has_value());
+  if (!scalar.has_value() || !coordinate_x.has_value() ||
+      !coordinate_y.has_value()) {
+    return;
+  }
+
   const auto private_key{sourcemeta::core::make_ec_private_key(
-      info.curve, sourcemeta::core::hex_to_bytes(info.private_scalar).value(),
-      sourcemeta::core::hex_to_bytes(info.coordinate_x).value(),
-      sourcemeta::core::hex_to_bytes(info.coordinate_y).value())};
+      info.curve, scalar.value(), coordinate_x.value(), coordinate_y.value())};
   EXPECT_TRUE(private_key.has_value());
   if (!private_key.has_value()) {
     return;
@@ -732,6 +741,10 @@ auto check_ecdh(const EcdhCurve &info, const std::string_view peer_point,
     const auto secret{
         sourcemeta::core::ecdh_derive(private_key.value(), public_key.value())};
     EXPECT_TRUE(secret.has_value());
+    if (!secret.has_value()) {
+      return;
+    }
+
     EXPECT_EQ(secret.value(),
               sourcemeta::core::pad_left(shared, info.field_bytes, '\x00'));
   } else {
@@ -767,19 +780,28 @@ auto register_ecdh_tests(const std::filesystem::path &path,
 
       const auto peer{
           sourcemeta::core::hex_to_bytes(test.at("public").to_string())};
-      const auto shared{
-          sourcemeta::core::hex_to_bytes(test.at("shared").to_string())};
-      if (!peer.has_value() || !shared.has_value()) {
+      if (!peer.has_value()) {
         continue;
+      }
+
+      const bool expected{result == "valid"};
+      // The shared secret is only compared for a valid vector, so an invalid
+      // vector keeps its coverage even when it carries no usable shared field
+      std::string shared;
+      if (expected) {
+        const auto decoded{
+            sourcemeta::core::hex_to_bytes(test.at("shared").to_string())};
+        if (!decoded.has_value()) {
+          continue;
+        }
+
+        shared = decoded.value();
       }
 
       register_case(suite_name,
                     stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
-                    [info = info.value(), peer = peer.value(),
-                     shared = shared.value(),
-                     expected = (result == "valid")]() {
-                      check_ecdh(info, peer, shared, expected);
-                    });
+                    [info = info.value(), peer = peer.value(), shared,
+                     expected]() { check_ecdh(info, peer, shared, expected); });
     }
   }
 }
