@@ -1,6 +1,7 @@
 #include <sourcemeta/core/text.h>
 
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint32_t
 #include <filesystem>  // std::filesystem::path
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
@@ -263,6 +264,14 @@ auto bytes_to_hex(const std::string_view input) -> std::string {
   }
 
   return result;
+}
+
+auto append_big_endian_uint32(std::string &target, const std::uint32_t value)
+    -> void {
+  target.push_back(static_cast<char>((value >> 24u) & 0xffu));
+  target.push_back(static_cast<char>((value >> 16u) & 0xffu));
+  target.push_back(static_cast<char>((value >> 8u) & 0xffu));
+  target.push_back(static_cast<char>(value & 0xffu));
 }
 
 } // namespace sourcemeta::core

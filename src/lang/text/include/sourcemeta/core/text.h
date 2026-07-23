@@ -663,6 +663,23 @@ auto bytes_to_hex(const std::string_view input) -> std::string;
 
 /// @ingroup text
 ///
+/// Append the big-endian encoding of a 32-bit unsigned integer to a string, as
+/// its four bytes from most to least significant. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/text.h>
+/// #include <cassert>
+///
+/// std::string bytes;
+/// sourcemeta::core::append_big_endian_uint32(bytes, 1);
+/// assert(bytes == std::string({0, 0, 0, 1}));
+/// ```
+SOURCEMETA_CORE_TEXT_EXPORT
+auto append_big_endian_uint32(std::string &target, const std::uint32_t value)
+    -> void;
+
+/// @ingroup text
+///
 /// Return whether two strings are equal under ASCII case-insensitive
 /// comparison. For example:
 ///
