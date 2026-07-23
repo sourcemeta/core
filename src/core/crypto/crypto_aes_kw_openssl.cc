@@ -51,7 +51,10 @@ auto aes_wrap(const std::string_view key_encryption_key,
       EVP_EncryptUpdate(context, output, &length,
                         reinterpret_cast<const unsigned char *>(key.data()),
                         static_cast<int>(key.size())) == 1 &&
-      EVP_EncryptFinal_ex(context, output + length, &final_length) == 1) {
+      EVP_EncryptFinal_ex(context, output + length, &final_length) == 1 &&
+      static_cast<std::size_t>(length) +
+              static_cast<std::size_t>(final_length) ==
+          wrapped.size()) {
     result = std::move(wrapped);
   }
 
@@ -84,7 +87,10 @@ auto aes_unwrap(const std::string_view key_encryption_key,
           context, output, &length,
           reinterpret_cast<const unsigned char *>(wrapped_key.data()),
           static_cast<int>(wrapped_key.size())) == 1 &&
-      EVP_DecryptFinal_ex(context, output + length, &final_length) == 1) {
+      EVP_DecryptFinal_ex(context, output + length, &final_length) == 1 &&
+      static_cast<std::size_t>(length) +
+              static_cast<std::size_t>(final_length) ==
+          key.size()) {
     result = std::move(key);
   }
 

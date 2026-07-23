@@ -18,6 +18,11 @@ static const std::string KEK_256{
         "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
         .value()};
 
+// A distinct 128-bit key-encryption key, to isolate key-material validation
+// from the cipher selection that the key length drives
+static const std::string OTHER_KEK_128{
+    sourcemeta::core::hex_to_bytes("ffeeddccbbaa99887766554433221100").value()};
+
 // The key being wrapped, a 128-bit content encryption key
 static const std::string KEY{
     sourcemeta::core::hex_to_bytes("00112233445566778899aabbccddeeff").value()};
@@ -81,8 +86,8 @@ TEST(aes_key_unwrap_rejects_a_tampered_wrapping) {
 
 TEST(aes_key_unwrap_rejects_a_different_key) {
   const auto wrapped{sourcemeta::core::aes_key_wrap(KEK_128, KEY)};
-  EXPECT_FALSE(
-      sourcemeta::core::aes_key_unwrap(KEK_256, wrapped.value()).has_value());
+  EXPECT_FALSE(sourcemeta::core::aes_key_unwrap(OTHER_KEK_128, wrapped.value())
+                   .has_value());
 }
 
 TEST(aes_key_wrap_rejects_a_wrong_size_key_encryption_key) {

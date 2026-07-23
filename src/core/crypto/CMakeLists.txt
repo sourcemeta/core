@@ -150,7 +150,7 @@ elseif(WIN32)
     crypto_sign_windows.cc crypto_aes_gcm_windows.cc crypto_aes_cbc_windows.cc
     crypto_aes_kw_windows.cc
     crypto_eddsa.h
-    crypto_windows.h
+    crypto_windows.h crypto_aes_kw_loop.h
     crypto_bignum.h crypto_ecc.h crypto_shake256.h crypto_pkcs8.h)
   target_link_libraries(sourcemeta_core_crypto PRIVATE bcrypt)
 else()
@@ -163,7 +163,7 @@ else()
     crypto_sha512_other.cc crypto_random_other.cc crypto_verify_other.cc
     crypto_secure_equals_generic.cc crypto_sign_other.cc
     crypto_aes_gcm_other.cc crypto_aes_cbc_other.cc crypto_aes_kw_other.cc
-    crypto_aes_block.h
+    crypto_aes_block.h crypto_aes_kw_loop.h
     crypto_bignum.h crypto_ecc.h crypto_eddsa.h crypto_shake256.h
     crypto_pkcs8.h)
 endif()
