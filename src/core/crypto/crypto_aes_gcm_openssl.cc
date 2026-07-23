@@ -39,8 +39,9 @@ auto aes_gcm_seal(const std::string_view key, const std::string_view iv,
   }
 
   std::optional<AESGCMCiphertext> result;
-  std::string ciphertext(plaintext.size(), '\x00');
-  std::string tag(TAG_BYTES, '\x00');
+  // A single buffer holds the ciphertext followed by its 16-byte tag
+  std::string data(plaintext.size() + TAG_BYTES, '\x00');
+  auto *const output{reinterpret_cast<unsigned char *>(data.data())};
   int length{0};
   int final_length{0};
   int associated_length{0};
@@ -58,18 +59,14 @@ auto aes_gcm_seal(const std::string_view key, const std::string_view iv,
            static_cast<int>(associated_data.size())) == 1) &&
       (plaintext.empty() ||
        EVP_EncryptUpdate(
-           context, reinterpret_cast<unsigned char *>(ciphertext.data()),
-           &length, reinterpret_cast<const unsigned char *>(plaintext.data()),
+           context, output, &length,
+           reinterpret_cast<const unsigned char *>(plaintext.data()),
            static_cast<int>(plaintext.size())) == 1) &&
-      EVP_EncryptFinal_ex(context,
-                          reinterpret_cast<unsigned char *>(ciphertext.data()) +
-                              length,
-                          &final_length) == 1 &&
+      EVP_EncryptFinal_ex(context, output + length, &final_length) == 1 &&
       EVP_CIPHER_CTX_ctrl(context, EVP_CTRL_GCM_GET_TAG,
                           static_cast<int>(TAG_BYTES),
-                          reinterpret_cast<unsigned char *>(tag.data())) == 1) {
-    result = AESGCMCiphertext{.ciphertext = std::move(ciphertext),
-                              .tag = std::move(tag)};
+                          output + plaintext.size()) == 1) {
+    result = AESGCMCiphertext{.data = std::move(data)};
   }
 
   EVP_CIPHER_CTX_free(context);

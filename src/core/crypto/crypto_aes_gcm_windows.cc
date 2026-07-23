@@ -50,25 +50,25 @@ auto aes_gcm_seal(const std::string_view key, const std::string_view iv,
       BCRYPT_SUCCESS(BCryptGenerateSymmetricKey(
           algorithm, &key_handle, nullptr, 0, as_buffer(key),
           static_cast<ULONG>(key.size()), 0))) {
-    std::string ciphertext(plaintext.size(), '\x00');
-    std::string tag(TAG_BYTES, '\x00');
+    // A single buffer holds the ciphertext followed by its 16-byte tag, which
+    // the mode info writes into at the offset past the ciphertext
+    std::string data(plaintext.size() + TAG_BYTES, '\x00');
     BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO info;
     BCRYPT_INIT_AUTH_MODE_INFO(info);
     info.pbNonce = as_buffer(iv);
     info.cbNonce = static_cast<ULONG>(iv.size());
     info.pbAuthData = as_buffer(associated_data);
     info.cbAuthData = static_cast<ULONG>(associated_data.size());
-    info.pbTag = as_buffer(tag);
+    info.pbTag = as_buffer(data) + plaintext.size();
     info.cbTag = static_cast<ULONG>(TAG_BYTES);
 
     ULONG written{0};
     if (BCRYPT_SUCCESS(BCryptEncrypt(key_handle, as_buffer(plaintext),
                                      static_cast<ULONG>(plaintext.size()),
-                                     &info, nullptr, 0, as_buffer(ciphertext),
-                                     static_cast<ULONG>(ciphertext.size()),
+                                     &info, nullptr, 0, as_buffer(data),
+                                     static_cast<ULONG>(plaintext.size()),
                                      &written, 0))) {
-      result = AESGCMCiphertext{.ciphertext = std::move(ciphertext),
-                                .tag = std::move(tag)};
+      result = AESGCMCiphertext{.data = std::move(data)};
     }
 
     BCryptDestroyKey(key_handle);

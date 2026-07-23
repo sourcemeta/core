@@ -150,10 +150,10 @@ auto aes_gcm_seal(const std::string_view key, const std::string_view iv,
                   const std::string_view plaintext)
     -> std::optional<AESGCMCiphertext> {
   const auto context{make_context(key, iv)};
-  AESGCMCiphertext result{.ciphertext = counter_mode(context, plaintext),
-                          .tag = {}};
-  const auto tag{compute_tag(context, associated_data, result.ciphertext)};
-  result.tag.assign(reinterpret_cast<const char *>(tag.data()), tag.size());
+  // The tag is computed over the ciphertext, then appended to it
+  AESGCMCiphertext result{.data = counter_mode(context, plaintext)};
+  const auto tag{compute_tag(context, associated_data, result.data)};
+  result.data.append(reinterpret_cast<const char *>(tag.data()), tag.size());
   return result;
 }
 

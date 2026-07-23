@@ -5,6 +5,7 @@
 #include <sourcemeta/core/crypto_export.h>
 #endif
 
+#include <cassert>     // assert
 #include <optional>    // std::optional
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -12,13 +13,23 @@
 namespace sourcemeta::core {
 
 /// @ingroup crypto
-/// The output of an AES-GCM encryption, the ciphertext alongside its 16-byte
-/// authentication tag.
+/// The output of an AES-GCM encryption, a single owned buffer holding the
+/// ciphertext followed by its 16-byte authentication tag, exposed as views.
 struct AESGCMCiphertext {
-  /// The encrypted bytes, the same length as the plaintext.
-  std::string ciphertext;
+  /// The ciphertext followed by its 16-byte authentication tag.
+  std::string data;
+
+  /// The ciphertext, the same length as the plaintext.
+  [[nodiscard]] auto ciphertext() const -> std::string_view {
+    assert(this->data.size() >= 16);
+    return std::string_view{this->data}.substr(0, this->data.size() - 16);
+  }
+
   /// The 16-byte authentication tag.
-  std::string tag;
+  [[nodiscard]] auto tag() const -> std::string_view {
+    assert(this->data.size() >= 16);
+    return std::string_view{this->data}.substr(this->data.size() - 16);
+  }
 };
 
 /// @ingroup crypto
@@ -53,7 +64,7 @@ auto SOURCEMETA_CORE_CRYPTO_EXPORT aes_gcm_encrypt(
 /// #include <cassert>
 ///
 /// const auto plaintext{sourcemeta::core::aes_gcm_decrypt(
-///     key, iv, "", result.value().ciphertext, result.value().tag)};
+///     key, iv, "", result.value().ciphertext(), result.value().tag())};
 /// assert(plaintext.has_value());
 /// ```
 auto SOURCEMETA_CORE_CRYPTO_EXPORT aes_gcm_decrypt(

@@ -97,11 +97,11 @@ TEST(aes_gcm_round_trips_with_a_128_bit_key) {
   const auto result{sourcemeta::core::aes_gcm_encrypt(
       KEY_128, IV, ASSOCIATED_DATA, plaintext)};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value().ciphertext.size(), plaintext.size());
-  EXPECT_EQ(result.value().tag.size(), TAG_SIZE);
+  EXPECT_EQ(result.value().ciphertext().size(), plaintext.size());
+  EXPECT_EQ(result.value().tag().size(), TAG_SIZE);
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY_128, IV, ASSOCIATED_DATA, result.value().ciphertext,
-      result.value().tag)};
+      KEY_128, IV, ASSOCIATED_DATA, result.value().ciphertext(),
+      result.value().tag())};
   EXPECT_TRUE(opened.has_value());
   EXPECT_EQ(opened.value(), plaintext);
 }
@@ -111,11 +111,11 @@ TEST(aes_gcm_round_trips_with_a_192_bit_key) {
   const auto result{sourcemeta::core::aes_gcm_encrypt(
       KEY_192, IV, ASSOCIATED_DATA, plaintext)};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value().ciphertext.size(), plaintext.size());
-  EXPECT_EQ(result.value().tag.size(), TAG_SIZE);
+  EXPECT_EQ(result.value().ciphertext().size(), plaintext.size());
+  EXPECT_EQ(result.value().tag().size(), TAG_SIZE);
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY_192, IV, ASSOCIATED_DATA, result.value().ciphertext,
-      result.value().tag)};
+      KEY_192, IV, ASSOCIATED_DATA, result.value().ciphertext(),
+      result.value().tag())};
   EXPECT_TRUE(opened.has_value());
   EXPECT_EQ(opened.value(), plaintext);
 }
@@ -125,10 +125,11 @@ TEST(aes_gcm_round_trips_with_a_256_bit_key) {
   const auto result{
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, plaintext)};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value().ciphertext.size(), plaintext.size());
-  EXPECT_EQ(result.value().tag.size(), TAG_SIZE);
+  EXPECT_EQ(result.value().ciphertext().size(), plaintext.size());
+  EXPECT_EQ(result.value().tag().size(), TAG_SIZE);
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY, IV, ASSOCIATED_DATA, result.value().ciphertext, result.value().tag)};
+      KEY, IV, ASSOCIATED_DATA, result.value().ciphertext(),
+      result.value().tag())};
   EXPECT_TRUE(opened.has_value());
   EXPECT_EQ(opened.value(), plaintext);
 }
@@ -139,7 +140,8 @@ TEST(aes_gcm_round_trips_across_block_boundaries) {
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, plaintext)};
   EXPECT_TRUE(result.has_value());
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY, IV, ASSOCIATED_DATA, result.value().ciphertext, result.value().tag)};
+      KEY, IV, ASSOCIATED_DATA, result.value().ciphertext(),
+      result.value().tag())};
   EXPECT_TRUE(opened.has_value());
   EXPECT_EQ(opened.value(), plaintext);
 }
@@ -148,10 +150,11 @@ TEST(aes_gcm_round_trips_an_empty_plaintext) {
   const auto result{
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, "")};
   EXPECT_TRUE(result.has_value());
-  EXPECT_EQ(result.value().ciphertext.size(), std::string::size_type{0});
-  EXPECT_EQ(result.value().tag.size(), TAG_SIZE);
+  EXPECT_EQ(result.value().ciphertext().size(), std::string::size_type{0});
+  EXPECT_EQ(result.value().tag().size(), TAG_SIZE);
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY, IV, ASSOCIATED_DATA, result.value().ciphertext, result.value().tag)};
+      KEY, IV, ASSOCIATED_DATA, result.value().ciphertext(),
+      result.value().tag())};
   EXPECT_TRUE(opened.has_value());
   EXPECT_EQ(opened.value(), "");
 }
@@ -161,7 +164,7 @@ TEST(aes_gcm_round_trips_empty_associated_data) {
   const auto result{sourcemeta::core::aes_gcm_encrypt(KEY, IV, "", plaintext)};
   EXPECT_TRUE(result.has_value());
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY, IV, "", result.value().ciphertext, result.value().tag)};
+      KEY, IV, "", result.value().ciphertext(), result.value().tag())};
   EXPECT_TRUE(opened.has_value());
   EXPECT_EQ(opened.value(), plaintext);
 }
@@ -175,16 +178,16 @@ TEST(aes_gcm_encrypt_is_deterministic_for_the_same_inputs) {
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, "identical")};
   EXPECT_TRUE(first.has_value());
   EXPECT_TRUE(second.has_value());
-  EXPECT_EQ(first.value().ciphertext, second.value().ciphertext);
-  EXPECT_EQ(first.value().tag, second.value().tag);
+  EXPECT_EQ(first.value().ciphertext(), second.value().ciphertext());
+  EXPECT_EQ(first.value().tag(), second.value().tag());
 }
 
 TEST(aes_gcm_decrypt_rejects_different_associated_data) {
   const auto result{
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, "hello")};
   const auto opened{sourcemeta::core::aes_gcm_decrypt(
-      KEY, IV, "different-header", result.value().ciphertext,
-      result.value().tag)};
+      KEY, IV, "different-header", result.value().ciphertext(),
+      result.value().tag())};
   EXPECT_FALSE(opened.has_value());
 }
 
@@ -192,9 +195,10 @@ TEST(aes_gcm_decrypt_rejects_a_tampered_tag) {
   auto result{
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, "hello")
           .value()};
-  result.tag.back() = static_cast<char>(result.tag.back() ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(KEY, IV, ASSOCIATED_DATA,
-                                                 result.ciphertext, result.tag)
+  // The tag is the final sixteen bytes of the buffer
+  result.data.back() = static_cast<char>(result.data.back() ^ 0x01);
+  EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(
+                   KEY, IV, ASSOCIATED_DATA, result.ciphertext(), result.tag())
                    .has_value());
 }
 
@@ -202,9 +206,10 @@ TEST(aes_gcm_decrypt_rejects_a_tampered_ciphertext) {
   auto result{sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA,
                                                 "a longer payload here")
                   .value()};
-  result.ciphertext[0] = static_cast<char>(result.ciphertext[0] ^ 0x01);
-  EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(KEY, IV, ASSOCIATED_DATA,
-                                                 result.ciphertext, result.tag)
+  // The first byte of the buffer is the first ciphertext byte
+  result.data[0] = static_cast<char>(result.data[0] ^ 0x01);
+  EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(
+                   KEY, IV, ASSOCIATED_DATA, result.ciphertext(), result.tag())
                    .has_value());
 }
 
@@ -212,8 +217,8 @@ TEST(aes_gcm_decrypt_rejects_a_different_key) {
   const auto result{
       sourcemeta::core::aes_gcm_encrypt(KEY, IV, ASSOCIATED_DATA, "hello")};
   EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(KEY_128, IV, ASSOCIATED_DATA,
-                                                 result.value().ciphertext,
-                                                 result.value().tag)
+                                                 result.value().ciphertext(),
+                                                 result.value().tag())
                    .has_value());
 }
 
@@ -232,7 +237,7 @@ TEST(aes_gcm_encrypt_rejects_a_wrong_size_iv) {
 TEST(aes_gcm_decrypt_rejects_a_wrong_size_tag) {
   const auto result{sourcemeta::core::aes_gcm_encrypt(KEY, IV, "", "hello")};
   EXPECT_FALSE(sourcemeta::core::aes_gcm_decrypt(KEY, IV, "",
-                                                 result.value().ciphertext,
+                                                 result.value().ciphertext(),
                                                  std::string(15, '\x00'))
                    .has_value());
 }

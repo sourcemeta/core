@@ -17,17 +17,18 @@ auto aes_gcm_seal(const std::string_view key, const std::string_view iv,
                   const std::string_view associated_data,
                   const std::string_view plaintext)
     -> std::optional<AESGCMCiphertext> {
-  AESGCMCiphertext result{.ciphertext = std::string(plaintext.size(), '\x00'),
-                          .tag = std::string(TAG_BYTES, '\x00')};
+  // A single buffer holds the ciphertext followed by its 16-byte tag, which the
+  // shim writes into through the two output pointers
+  AESGCMCiphertext result{
+      .data = std::string(plaintext.size() + TAG_BYTES, '\x00')};
+  auto *const output{reinterpret_cast<unsigned char *>(result.data.data())};
   if (!sourcemeta_core_aes_gcm_seal_cryptokit(
           reinterpret_cast<const unsigned char *>(key.data()), key.size(),
           reinterpret_cast<const unsigned char *>(iv.data()), iv.size(),
           reinterpret_cast<const unsigned char *>(plaintext.data()),
           plaintext.size(),
           reinterpret_cast<const unsigned char *>(associated_data.data()),
-          associated_data.size(),
-          reinterpret_cast<unsigned char *>(result.ciphertext.data()),
-          reinterpret_cast<unsigned char *>(result.tag.data()))) {
+          associated_data.size(), output, output + plaintext.size())) {
     return std::nullopt;
   }
 

@@ -425,8 +425,8 @@ auto register_aes_gcm_tests(const std::filesystem::path &path,
               const auto sealed{sourcemeta::core::aes_gcm_encrypt(
                   key, iv, associated_data, plaintext)};
               EXPECT_TRUE(sealed.has_value());
-              EXPECT_EQ(sealed.value().ciphertext, ciphertext);
-              EXPECT_EQ(sealed.value().tag, tag);
+              EXPECT_EQ(sealed.value().ciphertext(), ciphertext);
+              EXPECT_EQ(sealed.value().tag(), tag);
             }
           });
     }

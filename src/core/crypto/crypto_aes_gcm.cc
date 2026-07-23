@@ -77,8 +77,7 @@ auto aes_256_gcm_seal(const std::string_view key,
 
   // The sealed message is the nonce followed by the ciphertext and its tag
   std::string sealed{std::move(nonce)};
-  sealed.append(result.value().ciphertext);
-  sealed.append(result.value().tag);
+  sealed.append(result.value().data);
   return sealed;
 }
 
