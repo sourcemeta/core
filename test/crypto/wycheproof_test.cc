@@ -6,9 +6,11 @@
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::uint8_t
 #include <filesystem>  // std::filesystem::path
 #include <functional>  // std::function
 #include <optional>    // std::optional, std::nullopt
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move
@@ -274,9 +276,30 @@ auto register_ecdsa_tests(const std::filesystem::path &path,
 using MacFunction = auto (*)(const std::string_view, const std::string_view)
     -> std::string;
 
+// Some MAC functions also expose a variant that consumes the message as a
+// sequence of parts and returns raw digest bytes. Where available, the
+// registrar additionally runs the vectors through it with the message split
+// in half, to exercise the streaming code paths
+using MultiPartMacFunction = auto (*)(const std::string_view,
+                                      std::span<const std::string_view>)
+    -> std::array<std::uint8_t, 32>;
+
+auto digest_to_hex(const std::array<std::uint8_t, 32> &digest) -> std::string {
+  return sourcemeta::core::bytes_to_hex(
+      {reinterpret_cast<const char *>(digest.data()), digest.size()});
+}
+
+auto split_in_halves(const std::string_view message)
+    -> std::array<std::string_view, 2> {
+  const auto half{message.size() / 2};
+  return {{message.substr(0, half), message.substr(half)}};
+}
+
 auto register_hmac_tests(const std::filesystem::path &path,
                          const std::string &suite_name,
-                         const MacFunction function) -> void {
+                         const MacFunction function,
+                         const MultiPartMacFunction multi_part_function)
+    -> void {
   const auto document{load(path)};
   const auto stem{path.stem().string()};
   for (const auto &group : document.at("testGroups").as_array()) {
@@ -302,6 +325,15 @@ auto register_hmac_tests(const std::filesystem::path &path,
             }
 
             EXPECT_EQ(got, expected);
+
+            if (multi_part_function != nullptr && key.has_value() &&
+                message.has_value()) {
+              const auto parts{split_in_halves(message.value())};
+              const auto computed{
+                  digest_to_hex(multi_part_function(key.value(), parts))};
+              EXPECT_EQ(computed.substr(0, tag_characters) == tag_hex,
+                        expected);
+            }
           });
     }
   }
@@ -436,12 +468,16 @@ auto main(int argc, char **argv) -> int {
                          "Wycheproof_ECDSA");
   }
 
-  register_hmac_tests(vectors / "hmac_sha256_test.json",
-                      "Wycheproof_HMAC_SHA256", sourcemeta::core::hmac_sha256);
+  register_hmac_tests(
+      vectors / "hmac_sha256_test.json", "Wycheproof_HMAC_SHA256",
+      sourcemeta::core::hmac_sha256,
+      static_cast<MultiPartMacFunction>(sourcemeta::core::hmac_sha256_digest));
   register_hmac_tests(vectors / "hmac_sha384_test.json",
-                      "Wycheproof_HMAC_SHA384", sourcemeta::core::hmac_sha384);
+                      "Wycheproof_HMAC_SHA384", sourcemeta::core::hmac_sha384,
+                      nullptr);
   register_hmac_tests(vectors / "hmac_sha512_test.json",
-                      "Wycheproof_HMAC_SHA512", sourcemeta::core::hmac_sha512);
+                      "Wycheproof_HMAC_SHA512", sourcemeta::core::hmac_sha512,
+                      nullptr);
 
   register_eddsa_tests(vectors / "ed25519_test.json", "Wycheproof_EdDSA",
                        sourcemeta::core::EdwardsCurve::Ed25519);

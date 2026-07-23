@@ -3,11 +3,13 @@
 #include <sourcemeta/core/test.h>
 #include <sourcemeta/core/text.h>
 
+#include <array>       // std::array
 #include <cstddef>     // std::size_t
-#include <cstdint>     // std::uint64_t
+#include <cstdint>     // std::uint8_t, std::uint64_t
 #include <filesystem>  // std::filesystem::path
 #include <functional>  // std::function
 #include <optional>    // std::optional, std::nullopt
+#include <span>        // std::span
 #include <string>      // std::string
 #include <string_view> // std::string_view
 #include <utility>     // std::move
@@ -67,6 +69,28 @@ using DigestFunction = auto (*)(const std::string_view) -> std::string;
 // returns a hex string through this alias
 using MacFunction = auto (*)(const std::string_view, const std::string_view)
     -> std::string;
+
+// Some mechanisms also expose a variant that consumes the message as a
+// sequence of parts and returns raw digest bytes. Where available, the
+// registrars additionally run the vectors through it with the message split
+// in half, to exercise the streaming code paths
+using MultiPartDigestFunction = auto (*)(std::span<const std::string_view>)
+    -> std::array<std::uint8_t, 32>;
+
+using MultiPartMacFunction = auto (*)(const std::string_view,
+                                      std::span<const std::string_view>)
+    -> std::array<std::uint8_t, 32>;
+
+auto digest_to_hex(const std::array<std::uint8_t, 32> &digest) -> std::string {
+  return sourcemeta::core::bytes_to_hex(
+      {reinterpret_cast<const char *>(digest.data()), digest.size()});
+}
+
+auto split_in_halves(const std::string_view message)
+    -> std::array<std::string_view, 2> {
+  const auto half{message.size() / 2};
+  return {{message.substr(0, half), message.substr(half)}};
+}
 
 // Every vector in this file reduces to running a closure that asserts on data
 // captured at registration time, so a single runner carrying that closure
@@ -165,7 +189,9 @@ auto register_case(const std::string &suite_name, const std::string &test_name,
 
 auto register_sha_msg_tests(const std::filesystem::path &file_path,
                             const std::string &suite_name,
-                            const DigestFunction digest) -> void {
+                            const DigestFunction digest,
+                            const MultiPartDigestFunction multi_part_digest)
+    -> void {
   std::string current_length;
   std::string current_message_hex;
 
@@ -195,6 +221,10 @@ auto register_sha_msg_tests(const std::filesystem::path &file_path,
                 ? std::string{}
                 : sourcemeta::core::hex_to_bytes(message_hex).value()};
         EXPECT_EQ(digest(message), expected_digest);
+        if (multi_part_digest != nullptr) {
+          const auto parts{split_in_halves(message)};
+          EXPECT_EQ(digest_to_hex(multi_part_digest(parts)), expected_digest);
+        }
       });
     }
   });
@@ -202,7 +232,9 @@ auto register_sha_msg_tests(const std::filesystem::path &file_path,
 
 auto register_sha_monte_tests(const std::filesystem::path &file_path,
                               const std::string &suite_name,
-                              const DigestFunction digest) -> void {
+                              const DigestFunction digest,
+                              const MultiPartDigestFunction multi_part_digest)
+    -> void {
   std::string seed;
   std::string current_count;
 
@@ -236,8 +268,17 @@ auto register_sha_monte_tests(const std::filesystem::path &file_path,
         auto md_1{md_0};
         auto md_2{md_0};
         for (std::uint64_t iteration{3}; iteration <= 1002; ++iteration) {
-          auto next{sourcemeta::core::hex_to_bytes(digest(md_0 + md_1 + md_2))
-                        .value()};
+          std::string next;
+          if (multi_part_digest == nullptr) {
+            next = sourcemeta::core::hex_to_bytes(digest(md_0 + md_1 + md_2))
+                       .value();
+          } else {
+            const std::array<std::string_view, 3> parts{{md_0, md_1, md_2}};
+            const auto raw_digest{multi_part_digest(parts)};
+            next.assign(reinterpret_cast<const char *>(raw_digest.data()),
+                        raw_digest.size());
+          }
+
           md_0 = std::move(md_1);
           md_1 = std::move(md_2);
           md_2 = std::move(next);
@@ -253,19 +294,25 @@ auto register_sha_monte_tests(const std::filesystem::path &file_path,
 }
 
 auto register_sha_tests(const std::filesystem::path &directory,
-                        const std::string &name, const DigestFunction digest)
+                        const std::string &name, const DigestFunction digest,
+                        const MultiPartDigestFunction multi_part_digest)
     -> void {
   register_sha_msg_tests(directory / (name + "ShortMsg.rsp"),
-                         "PyCA_Cryptography_" + name + "_ShortMsg", digest);
+                         "PyCA_Cryptography_" + name + "_ShortMsg", digest,
+                         multi_part_digest);
   register_sha_msg_tests(directory / (name + "LongMsg.rsp"),
-                         "PyCA_Cryptography_" + name + "_LongMsg", digest);
+                         "PyCA_Cryptography_" + name + "_LongMsg", digest,
+                         multi_part_digest);
   register_sha_monte_tests(directory / (name + "Monte.rsp"),
-                           "PyCA_Cryptography_" + name + "_Monte", digest);
+                           "PyCA_Cryptography_" + name + "_Monte", digest,
+                           multi_part_digest);
 }
 
 auto register_hmac_tests(const std::filesystem::path &file_path,
                          const std::string &suite_name,
-                         const MacFunction function) -> void {
+                         const MacFunction function,
+                         const MultiPartMacFunction multi_part_function)
+    -> void {
   std::string key_hex;
   std::string message_hex;
   std::uint64_t case_count{0};
@@ -287,10 +334,15 @@ auto register_hmac_tests(const std::filesystem::path &file_path,
       const auto current_message{message_hex};
       case_count += 1;
       register_case(suite_name, "case_" + std::to_string(case_count), [=]() {
-        EXPECT_EQ(
-            function(sourcemeta::core::hex_to_bytes(current_key).value(),
-                     sourcemeta::core::hex_to_bytes(current_message).value()),
-            expected_tag);
+        const auto key{sourcemeta::core::hex_to_bytes(current_key).value()};
+        const auto message{
+            sourcemeta::core::hex_to_bytes(current_message).value()};
+        EXPECT_EQ(function(key, message), expected_tag);
+        if (multi_part_function != nullptr) {
+          const auto parts{split_in_halves(message)};
+          EXPECT_EQ(digest_to_hex(multi_part_function(key, parts)),
+                    expected_tag);
+        }
       });
     }
   });
@@ -763,23 +815,29 @@ auto main(int argc, char **argv) -> int {
   const auto hashes_path{suite_path / "hashes"};
 
   register_sha_tests(hashes_path / "SHA1", "SHA1",
-                     static_cast<DigestFunction>(sourcemeta::core::sha1));
-  register_sha_tests(hashes_path / "SHA2", "SHA256",
-                     static_cast<DigestFunction>(sourcemeta::core::sha256));
+                     static_cast<DigestFunction>(sourcemeta::core::sha1),
+                     nullptr);
+  register_sha_tests(
+      hashes_path / "SHA2", "SHA256",
+      static_cast<DigestFunction>(sourcemeta::core::sha256),
+      static_cast<MultiPartDigestFunction>(sourcemeta::core::sha256_digest));
   register_sha_tests(hashes_path / "SHA2", "SHA384",
-                     static_cast<DigestFunction>(sourcemeta::core::sha384));
+                     static_cast<DigestFunction>(sourcemeta::core::sha384),
+                     nullptr);
   register_sha_tests(hashes_path / "SHA2", "SHA512",
-                     static_cast<DigestFunction>(sourcemeta::core::sha512));
+                     static_cast<DigestFunction>(sourcemeta::core::sha512),
+                     nullptr);
 
-  register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha256.txt",
-                      "PyCA_Cryptography_HMAC_SHA256",
-                      sourcemeta::core::hmac_sha256);
+  register_hmac_tests(
+      suite_path / "HMAC" / "rfc-4231-sha256.txt",
+      "PyCA_Cryptography_HMAC_SHA256", sourcemeta::core::hmac_sha256,
+      static_cast<MultiPartMacFunction>(sourcemeta::core::hmac_sha256_digest));
   register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha384.txt",
                       "PyCA_Cryptography_HMAC_SHA384",
-                      sourcemeta::core::hmac_sha384);
+                      sourcemeta::core::hmac_sha384, nullptr);
   register_hmac_tests(suite_path / "HMAC" / "rfc-4231-sha512.txt",
                       "PyCA_Cryptography_HMAC_SHA512",
-                      sourcemeta::core::hmac_sha512);
+                      sourcemeta::core::hmac_sha512, nullptr);
 
   const auto rsa_path{suite_path / "asymmetric" / "RSA" / "FIPS_186-2"};
   register_rsa_sigver15_tests(rsa_path / "SigVer15_186-3.rsp");
