@@ -133,3 +133,199 @@ TEST(invalid_urn_prefix) {
   EXPECT_FALSE(sourcemeta::core::is_uuid_like(
       "urn:uuid:2eb8aa08-aa98-11ea-b4aa-73b441d16380"));
 }
+
+TEST(valid_max) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("ffffffff-ffff-ffff-ffff-ffffffffffff"));
+}
+
+// RFC 9562 Section 4.2: the version nibble (index 14) is a semantic field, not
+// a syntactic constraint - every nibble 0-f is a valid string representation.
+// RFC 9562 Section 4.1: the variant nibble (index 19) is likewise
+// unconstrained.
+TEST(valid_version_nibble_0) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-01ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_1) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_2) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-21ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_3) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-31ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_4) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-41ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_5) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-51ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_6) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-61ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_7) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-71ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_8) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-81ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_9) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-91ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_a) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-a1ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_b) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-b1ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_c) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-c1ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_d) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-d1ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_e) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-e1ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_version_nibble_f) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-f1ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_0) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-04aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_1) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-14aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_2) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-24aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_3) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-34aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_4) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-44aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_5) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-54aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_6) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-64aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_7) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-74aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_8) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-84aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_9) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-94aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_a) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-a4aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_b) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-b4aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_c) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-c4aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_d) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-d4aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_e) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-e4aa-73b441d16380"));
+}
+
+TEST(valid_variant_nibble_f) {
+  EXPECT_TRUE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-f4aa-73b441d16380"));
+}
+
+TEST(invalid_underscore_separator) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-b4aa-73b441d1_380"));
+}
+
+TEST(invalid_leading_plus) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("+eb8aa08-aa98-11ea-b4aa-73b441d16380"));
+}
+
+TEST(invalid_hex_radix_prefix) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("0x000000-0000-0000-0000-000000000000"));
+}
+
+// U+0968 DEVANAGARI DIGIT TWO is not a HEXDIG.
+TEST(invalid_non_ascii_digit) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("\xe0\xa5\xa8"
+                                     "eb8aa08-aa98-11ea-b4aa-73b441d16380"));
+}
+
+TEST(invalid_trailing_newline) {
+  EXPECT_FALSE(
+      sourcemeta::core::is_uuid_like("2eb8aa08-aa98-11ea-b4aa-73b441d16380\n"));
+}
