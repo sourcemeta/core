@@ -155,3 +155,33 @@ TEST(ecdh_derive_rejects_a_mismatched_curve) {
       sourcemeta::core::ecdh_derive(private_key.value(), public_key.value())
           .has_value());
 }
+
+TEST(ecdh_es_round_trips_with_generated_keys) {
+  const auto alice{sourcemeta::core::generate_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256)};
+  const auto bob{sourcemeta::core::generate_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256)};
+  EXPECT_TRUE(alice.has_value());
+  EXPECT_TRUE(bob.has_value());
+  const auto alice_public{sourcemeta::core::derive_public_key(alice.value())};
+  const auto bob_public{sourcemeta::core::derive_public_key(bob.value())};
+  EXPECT_TRUE(alice_public.has_value());
+  EXPECT_TRUE(bob_public.has_value());
+
+  const auto alice_secret{
+      sourcemeta::core::ecdh_derive(alice.value(), bob_public.value())};
+  const auto bob_secret{
+      sourcemeta::core::ecdh_derive(bob.value(), alice_public.value())};
+  EXPECT_TRUE(alice_secret.has_value());
+  EXPECT_TRUE(bob_secret.has_value());
+  EXPECT_EQ(alice_secret.value(), bob_secret.value());
+
+  // The full ECDH-ES key derivation agrees on both sides
+  const auto alice_key{sourcemeta::core::kdf_concat(alice_secret.value(),
+                                                    "A128GCM", "", "", 16)};
+  const auto bob_key{
+      sourcemeta::core::kdf_concat(bob_secret.value(), "A128GCM", "", "", 16)};
+  EXPECT_TRUE(alice_key.has_value());
+  EXPECT_TRUE(bob_key.has_value());
+  EXPECT_EQ(alice_key, bob_key);
+}

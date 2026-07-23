@@ -277,6 +277,24 @@ auto ecdsa_signature_verifies(
                                         signature.value());
 }
 
+// A generated key must be internally consistent: the public key derived from
+// it verifies a signature the private key produces
+auto generated_key_signs_and_verifies(
+    const sourcemeta::core::EllipticCurve curve,
+    const sourcemeta::core::SignatureHashFunction hash) -> bool {
+  const auto key{sourcemeta::core::generate_ec_private_key(curve)};
+  if (!key.has_value()) {
+    return false;
+  }
+
+  const auto public_key{sourcemeta::core::derive_public_key(key.value())};
+  const auto signature{
+      sourcemeta::core::ecdsa_sign(key.value(), hash, MESSAGE)};
+  return public_key.has_value() && signature.has_value() &&
+         sourcemeta::core::ecdsa_verify(public_key.value(), hash, MESSAGE,
+                                        signature.value());
+}
+
 // Re-wrap a PKCS#8 PEM with a single extra byte appended to its DER, producing
 // an otherwise valid document that is no longer canonical
 auto with_trailing_der_byte(const std::string_view pem) -> std::string {
@@ -449,6 +467,44 @@ TEST(ecdsa_p521_sha512_signature_verifies) {
       ecdsa_signature_verifies(sourcemeta::core::EllipticCurve::P521,
                                sourcemeta::core::SignatureHashFunction::SHA512,
                                P521_D_HEX, P521_QX_HEX, P521_QY_HEX));
+}
+
+TEST(generate_ec_private_key_produces_a_functional_p256_key) {
+  EXPECT_TRUE(generated_key_signs_and_verifies(
+      sourcemeta::core::EllipticCurve::P256,
+      sourcemeta::core::SignatureHashFunction::SHA256));
+}
+
+TEST(generate_ec_private_key_produces_a_functional_p384_key) {
+  EXPECT_TRUE(generated_key_signs_and_verifies(
+      sourcemeta::core::EllipticCurve::P384,
+      sourcemeta::core::SignatureHashFunction::SHA384));
+}
+
+TEST(generate_ec_private_key_produces_a_functional_p521_key) {
+  EXPECT_TRUE(generated_key_signs_and_verifies(
+      sourcemeta::core::EllipticCurve::P521,
+      sourcemeta::core::SignatureHashFunction::SHA512));
+}
+
+TEST(generate_ec_private_key_is_randomized) {
+  const auto first{sourcemeta::core::generate_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256)};
+  const auto second{sourcemeta::core::generate_ec_private_key(
+      sourcemeta::core::EllipticCurve::P256)};
+  EXPECT_TRUE(first.has_value());
+  EXPECT_TRUE(second.has_value());
+  const auto first_public{sourcemeta::core::derive_public_key(first.value())};
+  const auto second_public{sourcemeta::core::derive_public_key(second.value())};
+  EXPECT_TRUE(first_public.has_value());
+  EXPECT_TRUE(second_public.has_value());
+  const auto first_components{
+      sourcemeta::core::ec_public_components(first_public.value())};
+  const auto second_components{
+      sourcemeta::core::ec_public_components(second_public.value())};
+  EXPECT_TRUE(first_components.has_value());
+  EXPECT_TRUE(second_components.has_value());
+  EXPECT_NE(first_components.value().x, second_components.value().x);
 }
 
 TEST(ecdsa_deterministic_nonce_matches_rfc6979_known_answer) {

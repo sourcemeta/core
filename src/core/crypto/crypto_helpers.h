@@ -124,6 +124,23 @@ inline auto curve_field_bytes(const EllipticCurve curve) noexcept
   std::unreachable();
 }
 
+// The order bit length of each curve, which the platform key generators take as
+// the requested key size. It is not the field width in bits, since P-521 has a
+// 521-bit order that does not fill its 66 octets
+inline auto curve_bit_length(const EllipticCurve curve) noexcept
+    -> std::size_t {
+  switch (curve) {
+    case EllipticCurve::P256:
+      return 256;
+    case EllipticCurve::P384:
+      return 384;
+    case EllipticCurve::P521:
+      return 521;
+  }
+
+  std::unreachable();
+}
+
 // The inverse mapping, identifying the curve from its field width, so a backend
 // that reports a key only by coordinate size resolves it the same way
 inline auto ec_curve_from_field_bytes(const std::size_t field_bytes) noexcept
