@@ -76,10 +76,6 @@ TEST(foo_tilde_tilde) {
   EXPECT_FALSE(sourcemeta::core::is_pointer(input));
 }
 
-// is_pointer coverage for the RFC 6901 section 3 string grammar
-// (the section 4 array-index rules and section 6 fragment form do not
-// constrain section 3 string validity)
-
 TEST(invalid_bare_tilde_eof) {
   EXPECT_FALSE(sourcemeta::core::is_pointer("/~"));
 }

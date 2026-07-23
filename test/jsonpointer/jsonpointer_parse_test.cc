@@ -715,10 +715,6 @@ TEST(to_pointer_default_string_view) {
   EXPECT_EQ(pointer.size(), 0);
 }
 
-// is_pointer coverage for the RFC 6901 section 3 string grammar
-// (the section 4 array-index rules and section 6 fragment form do not
-// constrain section 3 string validity)
-
 TEST(empty_whole_document) { EXPECT_TRUE(sourcemeta::core::is_pointer("")); }
 
 TEST(root_single_empty_token) {
