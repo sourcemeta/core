@@ -600,6 +600,10 @@ auto check_rsa_oaep(const std::string_view pem,
     -> void {
   const auto private_key{sourcemeta::core::make_private_key(pem)};
   EXPECT_TRUE(private_key.has_value());
+  if (!private_key.has_value()) {
+    return;
+  }
+
   const auto decrypted{sourcemeta::core::rsa_oaep_decrypt(private_key.value(),
                                                           hash, ciphertext)};
   if (expected) {

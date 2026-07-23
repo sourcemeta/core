@@ -1,6 +1,6 @@
 #include <sourcemeta/core/crypto_rsa_oaep.h>
 
-#include <windows.h> // ULONG, PUCHAR, LPCWSTR
+#include <windows.h> // ULONG, PUCHAR, LPCWSTR, DWORD
 // clang-format off
 #include <bcrypt.h> // BCrypt*, BCRYPT_*
 // clang-format on
@@ -92,7 +92,19 @@ auto rsa_oaep_decrypt(const PrivateKey &key, const RSAOAEPHash hash,
                       const std::string_view ciphertext)
     -> std::optional<std::string> {
   const auto *const internal{key.internal()};
-  if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
+  if (internal == nullptr || internal->kind != PrivateKey::Type::RSA ||
+      internal->rsa_pss_restricted) {
+    return std::nullopt;
+  }
+
+  // Reject any ciphertext that is not exactly the modulus size, so that an
+  // input with appended or missing bytes cannot decrypt as the same integer
+  DWORD key_bits{0};
+  ULONG property_size{0};
+  if (!BCRYPT_SUCCESS(BCryptGetProperty(internal->key, BCRYPT_KEY_LENGTH,
+                                        reinterpret_cast<PUCHAR>(&key_bits),
+                                        sizeof(key_bits), &property_size, 0)) ||
+      ciphertext.size() != (key_bits + 7u) / 8u) {
     return std::nullopt;
   }
 

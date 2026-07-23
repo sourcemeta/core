@@ -84,7 +84,16 @@ auto rsa_oaep_decrypt(const PrivateKey &key, const RSAOAEPHash hash,
                       const std::string_view ciphertext)
     -> std::optional<std::string> {
   const auto *const internal{key.internal()};
-  if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
+  if (internal == nullptr || internal->kind != PrivateKey::Type::RSA ||
+      internal->rsa_pss_restricted) {
+    return std::nullopt;
+  }
+
+  // OpenSSL reads the ciphertext as a raw integer, so a shorter input with a
+  // dropped leading zero would decrypt as the same value. Require the exact
+  // modulus size so that a malformed ciphertext is rejected
+  if (ciphertext.size() !=
+      static_cast<std::size_t>(EVP_PKEY_get_size(internal->key))) {
     return std::nullopt;
   }
 

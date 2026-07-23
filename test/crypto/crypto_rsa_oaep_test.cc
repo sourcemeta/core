@@ -37,6 +37,39 @@ VoqHMouZBlcLfRprpPpQWlay
 -----END PRIVATE KEY-----
 )"};
 
+// A 2048-bit key whose PKCS#8 algorithm is id-RSASSA-PSS rather than
+// rsaEncryption, so it is restricted to PSS and must refuse OAEP decryption
+static const std::string PSS_RESTRICTED_PRIVATE_KEY_PEM{
+    R"(-----BEGIN PRIVATE KEY-----
+MIIEugIBADALBgkqhkiG9w0BAQoEggSmMIIEogIBAAKCAQEAmLPlf54G5cTEBgZs
+sMSaCFtdTcy0Yjv6HAHK0BLYqdsnff6WMGmuSDdNZ/Oh++a3hTGV6ZdpvNFEo1MD
+Te9CrIL9RwdrY+q9g4KsJhrmBdJPEfg0yIzJwTexQYiovy26X8KFQ3QJ3I6M3evZ
+bjvskmIMbpvtbucT5JVRaQ1RwlxSzZj0EsY6ur5UVwgYYotsfmmqurzyyfqUrq6O
+tifWiCDSpXk/0d920NikHFyR7xbRGVTXyL+iiCDHI7EO91NnA7RzIoFWRhAedkRQ
+7Kt9qj4PdRwMc/bXeihq+7cb+zM17N1jcbLynu+39cPiq1YKqULCY3WiWDmjaq5U
+XsONjQIDAQABAoIBAB0yHhG7ktmI+KqnPU5B1Kp+33TBzAZRLdV/gTmttMerC16z
+V59bgVM04aObqQ+a0eFRNPazuKd9gmhQtZvHwGFv7QGQ2VdB+SiFCimB8JNR3cTT
+hjIG+wcqgQVE3fCpi04GSMj4DW+iQKwojQqewfFN9k8KmIeg/kRwyR8zCPwGM36Y
+OUPZmlhWTBYX3J/Qju2KQU+bvarJ+LWRifFl7CgTSFeIjOzFJfWf5yasP/U3CdEB
+9qP+UhCswg2x2y+V0BeBM9KaEX5OOl/yAUggMYkQ5uq8ZOKpuCP4yS5yhd3Fvo1I
+XIMCFBzfrzOyGKasSgQITo2Pltk0pOQUShyE+rECgYEA1wOh9AdvbQH3Qf19cvKZ
+pGFs8zhoVEGJ2xz04wT78cfjZJE1Yd/WYN6GacN5dbYt/Psoc62v5l/xDB4MZXYh
+B8noyAiYitIBkQ5P75ycrhjk+fqU/uhJvHNOb6tnu3XL4phJl2NmfYcnpMtjxVGT
+fJdhfTGM6MScjYrxG711nf0CgYEAtc+O8KNdlSKufsrUgNzsJJxOgi2MOxDxu9Il
+4YHoegl9Z6W1FCLVFyLcpkfCFjDewXQfyEhgkojwYDbbbwyHMOCugysnrEYWs1JX
+btxRulHdzRhvIFHz3u51ewvAS6FDdpfM/dUcl1sdVcwRJ1c872zTOkcL9EMxqNto
+xx8vetECgYBAWzX+dLtFRXFcryL9ZN/X89FIe3m+vl8k1mX2DWfb1piZYV05DmZ8
+WB6jSX7xXLYnIoXZGgOsUMs1dUkAlXsNecHTHb+KzZDqef4zGg1Ljuf6aqZuJdjs
+LxcrFYLW+UstZ6efSIFE0U9sY/RY+zHJ+QWVE1+5zB+PviasxuiNgQKBgGLutOuB
+GhVjL+zS1lvg26b4X0g7HMmvaLs5mV9i32w46cKSyzxP0ACs+cCJ37VPlodSd1D3
+AYX7ekIA19tPx+jy+kNqIkZ+RTADKIys2tQ2ZCmMmDvQHJI81DTGqjb9Y8aOx/+A
+DfTWodnkF5l+wSvP3gkiTAD453bpHdTsxVthAoGAB3Um+ocT8vaeV1PaS90Ztll1
++mIMYna3Slag9HTvUJEDxndXDezR+vJPmX6bNgGyoSYu9mQ7yu9n/QlWl/eR2ilB
+8xn3yBD8MzAdeRaWKQOrsg+2UIWW+I2H90xdyp57V15Hw0XTDZ05jAuflOFj+cPK
+zz/p2wIRJlfNHxRap+Q=
+-----END PRIVATE KEY-----
+)"};
+
 TEST(rsa_oaep_round_trips_with_sha256) {
   const std::string_view plaintext{"a content encryption key"};
   const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
@@ -131,4 +164,43 @@ TEST(rsa_oaep_encrypt_rejects_a_too_long_plaintext) {
       sourcemeta::core::rsa_oaep_encrypt(
           public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, plaintext)
           .has_value());
+}
+
+TEST(rsa_oaep_decrypt_rejects_a_ciphertext_of_the_wrong_length) {
+  const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{
+      sourcemeta::core::derive_public_key(private_key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+  EXPECT_TRUE(wrapped.has_value());
+
+  const std::string appended{wrapped.value() + '\x00'};
+  EXPECT_FALSE(
+      sourcemeta::core::rsa_oaep_decrypt(
+          private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, appended)
+          .has_value());
+
+  const std::string truncated{wrapped.value().substr(1)};
+  EXPECT_FALSE(
+      sourcemeta::core::rsa_oaep_decrypt(
+          private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, truncated)
+          .has_value());
+}
+
+TEST(rsa_oaep_decrypt_refuses_a_pss_restricted_key) {
+  const auto private_key{
+      sourcemeta::core::make_private_key(PSS_RESTRICTED_PRIVATE_KEY_PEM)};
+  EXPECT_TRUE(private_key.has_value());
+  const auto public_key{
+      sourcemeta::core::derive_public_key(private_key.value())};
+  EXPECT_TRUE(public_key.has_value());
+  const auto wrapped{sourcemeta::core::rsa_oaep_encrypt(
+      public_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, "hello")};
+  EXPECT_TRUE(wrapped.has_value());
+  EXPECT_FALSE(sourcemeta::core::rsa_oaep_decrypt(
+                   private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256,
+                   wrapped.value())
+                   .has_value());
 }

@@ -82,7 +82,8 @@ auto rsa_oaep_decrypt(const PrivateKey &key, const RSAOAEPHash hash,
                       const std::string_view ciphertext)
     -> std::optional<std::string> {
   const auto *const internal{key.internal()};
-  if (internal == nullptr || internal->kind != PrivateKey::Type::RSA) {
+  if (internal == nullptr || internal->kind != PrivateKey::Type::RSA ||
+      internal->rsa_pss_restricted) {
     return std::nullopt;
   }
 
