@@ -3,6 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/oidc_error.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include <chrono>      // std::chrono::seconds
@@ -70,7 +71,10 @@ auto is_absolute_uri_without_fragment(const std::string_view value) -> bool {
 auto is_https_url_with_host(const std::string_view value) -> bool {
   try {
     const URI uri{value};
-    return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+    // RFC 3986 Section 3.1: the scheme is case-insensitive, so an uppercase or
+    // mixed-case HTTPS is still https
+    return uri.scheme().has_value() &&
+           equals_ignore_case(uri.scheme().value(), "https") &&
            uri.host().has_value() && !uri.host().value().empty();
   } catch (const URIParseError &) {
     return false;
@@ -128,10 +132,10 @@ auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
     throw OIDCRegistrationParseError{};
   }
 
-  // OpenID Connect Dynamic Client Registration 1.0 Section 2: both the
-  // sector_identifier_uri (fetched by the OpenID Provider) and the
-  // initiate_login_uri (a third-party login target) use the https scheme, so a
-  // non-https or hostless value would point at an insecure or invalid location
+  // OpenID Connect Dynamic Client Registration 1.0 Section 5: the
+  // sector_identifier_uri is fetched over https by the OpenID Provider, so a
+  // non-https or hostless value would point it at an insecure or invalid
+  // location
   const auto *sector{
       data.try_at("sector_identifier_uri"sv, HASH_SECTOR_IDENTIFIER_URI)};
   if (sector != nullptr &&
@@ -139,6 +143,8 @@ auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
     throw OIDCRegistrationParseError{};
   }
 
+  // OpenID Connect Core 1.0 Section 4: the initiate_login_uri is a third-party
+  // login target that "MUST use the https scheme"
   const auto *initiate_login{
       data.try_at("initiate_login_uri"sv, HASH_INITIATE_LOGIN_URI)};
   if (initiate_login != nullptr &&

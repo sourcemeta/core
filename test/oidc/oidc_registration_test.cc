@@ -98,6 +98,15 @@ TEST(from_rejects_a_non_https_sector_identifier_uri) {
                    .has_value());
 }
 
+TEST(from_accepts_a_mixed_case_https_sector_identifier_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "sector_identifier_uri": "HTTPS://client.example/sector.json"
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                  .has_value());
+}
+
 TEST(from_rejects_a_non_https_initiate_login_uri) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "redirect_uris": [ "https://client.example/cb" ],
