@@ -24,10 +24,10 @@ namespace sourcemeta::core {
 /// #include <sourcemeta/core/oidc.h>
 /// #include <cassert>
 ///
-/// assert(sourcemeta::core::oidc_request_object_pairing_is_valid("eyJ...",
-/// ""));
-/// assert(!sourcemeta::core::oidc_request_object_pairing_is_valid("eyJ...",
-///     "https://client.example/request.jwt"));
+/// assert(sourcemeta::core::oidc_request_object_pairing_is_valid(
+///     "eyJ...", ""));
+/// assert(!sourcemeta::core::oidc_request_object_pairing_is_valid(
+///     "eyJ...", "https://client.example/request.jwt"));
 /// ```
 SOURCEMETA_CORE_OIDC_EXPORT
 auto oidc_request_object_pairing_is_valid(const std::string_view request,
