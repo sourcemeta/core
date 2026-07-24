@@ -43,12 +43,23 @@ inline auto jwe_read_party_info(const JSON &header, const JSON::StringView name,
   return true;
 }
 
-// The JWE Ciphertext and Authentication Tag segments produced by content
-// encryption, which the compact serialization carries separately (RFC 7516
+// The output of content encryption, holding the ciphertext followed by the
+// authentication tag in one buffer as the AEAD primitives produce it, so the
+// compact serialization can slice out each segment without a copy (RFC 7516
 // Section 7.1)
 struct JWEContent {
-  std::string ciphertext;
-  std::string tag;
+  std::string data;
+  std::string::size_type tag_bytes;
+
+  [[nodiscard]] auto ciphertext() const -> std::string_view {
+    return std::string_view{this->data}.substr(0, this->data.size() -
+                                                      this->tag_bytes);
+  }
+
+  [[nodiscard]] auto tag() const -> std::string_view {
+    return std::string_view{this->data}.substr(this->data.size() -
+                                               this->tag_bytes);
+  }
 };
 
 // AES GCM takes a 96-bit initialization vector (RFC 7518 Section 5.3) and AES
@@ -127,25 +138,26 @@ inline auto jwe_content_encrypt(const JWEEncryption encryption,
     case JWEEncryption::A128GCM:
     case JWEEncryption::A192GCM:
     case JWEEncryption::A256GCM: {
-      const auto result{aes_gcm_encrypt(key, iv, associated_data, plaintext)};
+      auto result{aes_gcm_encrypt(key, iv, associated_data, plaintext)};
       if (!result.has_value()) {
         return std::nullopt;
       }
 
-      return JWEContent{.ciphertext = std::string{result.value().ciphertext()},
-                        .tag = std::string{result.value().tag()}};
+      // The GCM tag is always 16 octets (RFC 7518 Section 5.3)
+      return JWEContent{.data = std::move(result).value().data,
+                        .tag_bytes = 16};
     }
     case JWEEncryption::A128CBC_HS256:
     case JWEEncryption::A192CBC_HS384:
     case JWEEncryption::A256CBC_HS512: {
-      const auto result{
-          aes_cbc_hmac_encrypt(key, iv, associated_data, plaintext)};
+      auto result{aes_cbc_hmac_encrypt(key, iv, associated_data, plaintext)};
       if (!result.has_value()) {
         return std::nullopt;
       }
 
-      return JWEContent{.ciphertext = std::string{result.value().ciphertext()},
-                        .tag = std::string{result.value().tag()}};
+      const auto tag_bytes{result.value().tag_length};
+      return JWEContent{.data = std::move(result).value().data,
+                        .tag_bytes = tag_bytes};
     }
   }
 

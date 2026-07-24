@@ -18,8 +18,13 @@ using namespace std::string_view_literals;
 constexpr auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
 constexpr auto HASH_ENC{sourcemeta::core::JSON::Object::hash("enc"sv)};
 constexpr auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit"sv)};
+constexpr auto HASH_ZIP{sourcemeta::core::JSON::Object::hash("zip"sv)};
 constexpr auto HASH_APU{sourcemeta::core::JSON::Object::hash("apu"sv)};
 constexpr auto HASH_APV{sourcemeta::core::JSON::Object::hash("apv"sv)};
+constexpr auto HASH_KTY{sourcemeta::core::JSON::Object::hash("kty"sv)};
+constexpr auto HASH_CRV{sourcemeta::core::JSON::Object::hash("crv"sv)};
+constexpr auto HASH_X{sourcemeta::core::JSON::Object::hash("x"sv)};
+constexpr auto HASH_Y{sourcemeta::core::JSON::Object::hash("y"sv)};
 
 auto compact(const sourcemeta::core::JSON &document) -> std::string {
   std::ostringstream stream;
@@ -38,8 +43,15 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
   }
 
   // Critical header extensions are not understood, so an object carrying them
-  // is not emitted (RFC 7516 Section 4.1.11)
+  // is not emitted (RFC 7516 Section 4.1.13)
   if (header.try_at("crit", HASH_CRIT) != nullptr) {
+    return std::nullopt;
+  }
+
+  // Compression is not implemented, so a request to compress is refused rather
+  // than emitting an object that could not be decrypted here (RFC 7516 Section
+  // 4.1.3)
+  if (header.try_at("zip", HASH_ZIP) != nullptr) {
     return std::nullopt;
   }
 
@@ -60,9 +72,12 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
 
   const auto content_key_bytes{jwe_encryption_key_bytes(encryption.value())};
 
-  // The protected header that is emitted and authenticated; ECDH-ES adds its
-  // ephemeral public key to it
-  JSON protected_header{header};
+  // The protected header that is emitted and authenticated. Only ECDH-ES needs
+  // to augment it (with the ephemeral public key), so the deep copy is deferred
+  // to that branch and every other algorithm authenticates the caller header
+  // directly
+  const JSON *emitted_header{&header};
+  JSON ecdh_header{nullptr};
 
   std::string content_key;
   std::string encrypted_key;
@@ -190,23 +205,26 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
         encrypted_key = std::move(wrapped).value();
       }
 
+      // The ephemeral public key is a fresh object with known-unique members,
+      // so each is inserted with its precomputed hash and no duplicate check
       auto ephemeral_key{JSON::make_object()};
-      ephemeral_key.assign("kty", JSON{std::string{"EC"}});
-      ephemeral_key.assign(
-          "crv",
-          JSON{std::string{elliptic_curve_to_jwk(recipient.value().curve)}});
-      ephemeral_key.assign(
-          "x", JSON{base64url_encode(ephemeral_components.value().x)});
-      ephemeral_key.assign(
-          "y", JSON{base64url_encode(ephemeral_components.value().y)});
-      protected_header.assign("epk", std::move(ephemeral_key));
+      ephemeral_key.assign_if_nonempty("kty", HASH_KTY, "EC");
+      ephemeral_key.assign_if_nonempty(
+          "crv", HASH_CRV, elliptic_curve_to_jwk(recipient.value().curve));
+      ephemeral_key.assign_if_nonempty(
+          "x", HASH_X, base64url_encode(ephemeral_components.value().x));
+      ephemeral_key.assign_if_nonempty(
+          "y", HASH_Y, base64url_encode(ephemeral_components.value().y));
+      ecdh_header = header;
+      ecdh_header.assign("epk", std::move(ephemeral_key));
+      emitted_header = &ecdh_header;
       break;
     }
   }
 
   // The Additional Authenticated Data is the encoded protected header, which is
   // also the first compact segment (RFC 7516 Section 5.1 steps 13 and 14)
-  const auto encoded_header{base64url_encode(compact(protected_header))};
+  const auto encoded_header{base64url_encode(compact(*emitted_header))};
 
   const auto initialization_vector{
       random_bytes(jwe_encryption_iv_bytes(encryption.value()))};
@@ -217,16 +235,26 @@ auto jwe_encrypt(const JSON &header, const std::string_view plaintext,
     return std::nullopt;
   }
 
-  // Assemble the five compact segments (RFC 7516 Section 7.1)
-  std::string result{encoded_header};
+  // Assemble the five compact segments (RFC 7516 Section 7.1), reserving the
+  // exact length so the growing result never reallocates
+  const auto encoded_key{base64url_encode(encrypted_key)};
+  const auto encoded_iv{base64url_encode(initialization_vector)};
+  const auto encoded_ciphertext{base64url_encode(content.value().ciphertext())};
+  const auto encoded_tag{base64url_encode(content.value().tag())};
+
+  std::string result;
+  result.reserve(encoded_header.size() + encoded_key.size() +
+                 encoded_iv.size() + encoded_ciphertext.size() +
+                 encoded_tag.size() + 4);
+  result.append(encoded_header);
   result.push_back('.');
-  result.append(base64url_encode(encrypted_key));
+  result.append(encoded_key);
   result.push_back('.');
-  result.append(base64url_encode(initialization_vector));
+  result.append(encoded_iv);
   result.push_back('.');
-  result.append(base64url_encode(content.value().ciphertext));
+  result.append(encoded_ciphertext);
   result.push_back('.');
-  result.append(base64url_encode(content.value().tag));
+  result.append(encoded_tag);
   return result;
 }
 

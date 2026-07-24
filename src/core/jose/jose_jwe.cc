@@ -14,6 +14,7 @@ using namespace std::string_view_literals;
 constexpr auto HASH_ALG{sourcemeta::core::JSON::Object::hash("alg"sv)};
 constexpr auto HASH_ENC{sourcemeta::core::JSON::Object::hash("enc"sv)};
 constexpr auto HASH_CRIT{sourcemeta::core::JSON::Object::hash("crit"sv)};
+constexpr auto HASH_ZIP{sourcemeta::core::JSON::Object::hash("zip"sv)};
 constexpr auto HASH_KID{sourcemeta::core::JSON::Object::hash("kid"sv)};
 
 // The JSON layer preserves repeated members rather than collapsing them, so
@@ -92,8 +93,15 @@ auto JWE::parse(const std::string_view input, JWE &result) -> bool {
   }
 
   // Critical header extensions are not understood and must be rejected (RFC
-  // 7516 Section 4.1.11)
+  // 7516 Section 4.1.13)
   if (header_json.value().try_at("crit", HASH_CRIT) != nullptr) {
+    return false;
+  }
+
+  // Compression is not implemented, so a compressed object is rejected rather
+  // than returning the still-compressed octets as the plaintext (RFC 7516
+  // Section 5.2 step 17)
+  if (header_json.value().try_at("zip", HASH_ZIP) != nullptr) {
     return false;
   }
 

@@ -104,3 +104,39 @@ TEST(from_rejects_a_duplicate_header_member) {
                        R"({"alg":"dir","enc":"A128GCM","enc":"A256GCM"})"))
                    .has_value());
 }
+
+TEST(from_rejects_a_compression_header) {
+  EXPECT_FALSE(sourcemeta::core::JWE::from(
+                   compact_from_header(
+                       R"({"alg":"dir","enc":"A128GCM","zip":"DEF"})"))
+                   .has_value());
+}
+
+TEST(from_rejects_a_non_string_algorithm) {
+  EXPECT_FALSE(sourcemeta::core::JWE::from(
+                   compact_from_header(R"({"alg":1,"enc":"A128GCM"})"))
+                   .has_value());
+}
+
+TEST(from_rejects_a_non_string_encryption) {
+  EXPECT_FALSE(sourcemeta::core::JWE::from(
+                   compact_from_header(R"({"alg":"dir","enc":2})"))
+                   .has_value());
+}
+
+TEST(from_rejects_an_empty_header) {
+  EXPECT_FALSE(
+      sourcemeta::core::JWE::from(compact_from_header("{}")).has_value());
+}
+
+TEST(from_rejects_a_header_that_is_not_json) {
+  EXPECT_FALSE(
+      sourcemeta::core::JWE::from(compact_from_header("not json")).has_value());
+}
+
+TEST(from_keeps_an_unknown_encryption_unresolved) {
+  const auto object{sourcemeta::core::JWE::from(
+      compact_from_header(R"({"alg":"dir","enc":"A64GCM"})"))};
+  EXPECT_TRUE(object.has_value());
+  EXPECT_FALSE(object.value().encryption().has_value());
+}

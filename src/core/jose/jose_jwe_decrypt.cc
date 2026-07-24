@@ -60,8 +60,13 @@ auto ecdh_content_key(const sourcemeta::core::JWE &jwe,
   }
 
   if (algorithm == sourcemeta::core::JWEAlgorithm::ECDH_ES) {
-    // Direct Key Agreement: the derived key is the CEK, over the "enc" value
-    // (RFC 7518 Section 4.6.2)
+    // Direct Key Agreement carries no wrapped key, so the Encrypted Key must be
+    // empty (RFC 7516 Section 5.2 step 10)
+    if (!jwe.encrypted_key().empty()) {
+      return std::nullopt;
+    }
+
+    // The derived key is the CEK, over the "enc" value (RFC 7518 Section 4.6.2)
     return sourcemeta::core::kdf_concat(
         shared.value(), sourcemeta::core::jwe_encryption_name(encryption),
         party_u, party_v, content_key_bytes);
@@ -148,10 +153,11 @@ auto jwe_decrypt(const JWE &jwe, const JWKPrivate &key)
       break;
   }
 
-  // RFC 7516 Section 11.5: a key-management failure MUST NOT be distinguishable
-  // from a tag failure. A missing or wrong-length CEK is replaced with a random
-  // one so that decryption always proceeds to the authentication tag check and
-  // fails there, denying a key-unwrap oracle
+  // RFC 7516 Section 11.5: the recipient MUST NOT distinguish format, padding,
+  // and length errors of the encrypted key. Substituting a random CEK, which
+  // the section strongly recommends, for a missing or wrong-length one makes
+  // decryption always proceed to the authentication tag check and fail there,
+  // denying a key-unwrap oracle
   std::string effective_key{
       content_key.has_value() && content_key.value().size() == content_key_bytes
           ? std::move(content_key).value()
