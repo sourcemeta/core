@@ -4,7 +4,6 @@
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/uri.h>
 
-#include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -13,37 +12,8 @@ namespace sourcemeta::core {
 
 namespace {
 
-using namespace std::literals::string_view_literals;
-
 constexpr std::string_view ISSUER_RELATION{
     "http://openid.net/specs/connect/1.0/issuer"};
-
-// OpenID Connect Discovery 1.0 Section 2.1: derive the host of the normalized
-// resource, the authority of a URL resource or the part after the last "@" of
-// an acct resource
-auto resource_host(const std::string_view resource) -> std::string_view {
-  if (resource.starts_with("acct:")) {
-    const auto account{resource.substr(5)};
-    const auto at{account.rfind('@')};
-    if (at == std::string_view::npos) {
-      return {};
-    }
-
-    return account.substr(at + 1);
-  }
-
-  const auto scheme{resource.find("://")};
-  if (scheme == std::string_view::npos) {
-    return {};
-  }
-
-  const auto authority_start{scheme + 3};
-  const auto authority_end{resource.find_first_of("/?#", authority_start)};
-  return resource.substr(authority_start,
-                         authority_end == std::string_view::npos
-                             ? std::string_view::npos
-                             : authority_end - authority_start);
-}
 
 } // namespace
 
@@ -78,7 +48,34 @@ auto oidc_webfinger_request(const std::string_view identifier)
     request.resource.append(identifier);
   }
 
-  const auto host{resource_host(request.resource)};
+  // OpenID Connect Discovery 1.0 Section 2.1: the host is the domain after the
+  // last "@" of an acct resource, or the authority of a URL resource. An acct
+  // URI carries no authority component, so the URI parser cannot expose its
+  // host, but a URL resource is parsed rather than scanned by hand. The host is
+  // copied out because the parsed URI does not outlive this scope
+  std::string host;
+  if (request.resource.starts_with("acct:")) {
+    const std::string_view account{
+        std::string_view{request.resource}.substr(5)};
+    const auto at{account.rfind('@')};
+    if (at == std::string_view::npos) {
+      return std::nullopt;
+    }
+
+    host = account.substr(at + 1);
+  } else {
+    try {
+      const URI resource{request.resource};
+      if (!resource.host().has_value() || resource.host().value().empty()) {
+        return std::nullopt;
+      }
+
+      host = resource.host().value();
+    } catch (const URIParseError &) {
+      return std::nullopt;
+    }
+  }
+
   if (host.empty()) {
     return std::nullopt;
   }

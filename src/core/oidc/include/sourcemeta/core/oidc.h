@@ -13,7 +13,7 @@
 
 /// @defgroup oidc OpenID Connect
 /// @brief A standards-driven implementation of the OpenID Connect 1.0 message
-/// family, layered over the OAuth and JOSE modules.
+/// family.
 ///
 /// This functionality is included as follows:
 ///

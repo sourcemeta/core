@@ -3,6 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/oidc_error.h>
+#include <sourcemeta/core/uri.h>
 
 #include <optional>    // std::optional, std::nullopt
 #include <string_view> // std::string_view
@@ -73,20 +74,9 @@ auto string_member(const JSON &data, const JSON::StringView name,
   return std::string_view{member->to_string()};
 }
 
-// A non-empty array whose members are all strings, the shape every "supported"
-// list must take
-auto is_string_array(const JSON *member) -> bool {
-  if (member == nullptr || !member->is_array() || member->empty()) {
-    return false;
-  }
-
-  for (const auto &element : member->as_array()) {
-    if (!element.is_string()) {
-      return false;
-    }
-  }
-
-  return true;
+// A required "supported" list, a present and non-empty array of strings
+auto is_required_string_array(const JSON *member) -> bool {
+  return member != nullptr && member->is_array_of_strings() && !member->empty();
 }
 
 auto validate_provider_metadata(const OAuthServerMetadata &oauth) -> void {
@@ -101,7 +91,7 @@ auto validate_provider_metadata(const OAuthServerMetadata &oauth) -> void {
   // OpenID Connect Discovery 1.0 Section 3: subject_types_supported is REQUIRED
   const auto *subject_types{
       data.try_at("subject_types_supported"sv, HASH_SUBJECT_TYPES)};
-  if (!is_string_array(subject_types)) {
+  if (!is_required_string_array(subject_types)) {
     throw OIDCMetadataParseError{};
   }
 
@@ -112,7 +102,8 @@ auto validate_provider_metadata(const OAuthServerMetadata &oauth) -> void {
   // unsigned ID Token, so a list offering only unsigned tokens is rejected
   const auto *id_token_algs{data.try_at(
       "id_token_signing_alg_values_supported"sv, HASH_ID_TOKEN_SIGNING_ALGS)};
-  if (!is_string_array(id_token_algs) || id_token_algs->contains("none")) {
+  if (!is_required_string_array(id_token_algs) ||
+      id_token_algs->contains("none")) {
     throw OIDCMetadataParseError{};
   }
 }
@@ -120,9 +111,13 @@ auto validate_provider_metadata(const OAuthServerMetadata &oauth) -> void {
 auto is_https_url(const std::string_view value) -> bool {
   // OpenID Connect Discovery 1.0 Section 3: every advertised endpoint is a URL
   // using the https scheme
-  return value.starts_with("https://") &&
-         value.find(' ') == std::string_view::npos &&
-         value.find('#') == std::string_view::npos;
+  try {
+    const URI uri{value};
+    return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+           uri.host().has_value() && !uri.host().value().empty();
+  } catch (const URIParseError &) {
+    return false;
+  }
 }
 
 } // namespace
