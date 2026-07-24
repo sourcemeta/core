@@ -1772,6 +1772,19 @@ public:
   /// ```
   [[nodiscard]] auto unique() const -> bool;
 
+  /// This method checks if a JSON object does not name any key more than once.
+  /// The parser preserves repeated members rather than collapsing them, so this
+  /// detects a document whose object named a key twice. For example:
+  ///
+  /// ```cpp
+  /// #include <sourcemeta/core/json.h>
+  /// #include <cassert>
+  ///
+  /// const auto document{sourcemeta::core::parse_json(R"({ "foo": 1 })")};
+  /// assert(document.unique_keys());
+  /// ```
+  [[nodiscard]] auto unique_keys() const -> bool;
+
   /*
    * Write operations
    */
