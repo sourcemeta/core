@@ -1,7 +1,8 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME oidc
   PRIVATE_HEADERS error.h metadata.h discovery.h hash.h id_token.h
+    authentication.h claims.h
   SOURCES oidc_error.cc oidc_metadata.cc oidc_discovery.cc oidc_hash.cc
-    oidc_id_token.cc)
+    oidc_id_token.cc oidc_authentication.cc oidc_claims.cc)
 
 target_link_libraries(sourcemeta_core_oidc
   PUBLIC sourcemeta::core::json)

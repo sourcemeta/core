@@ -1,0 +1,138 @@
+#include <sourcemeta/core/oidc.h>
+#include <sourcemeta/core/test.h>
+
+#include <string>      // std::string
+#include <string_view> // std::string_view
+
+static auto contains(const std::string &haystack, const std::string_view needle)
+    -> bool {
+  return haystack.find(needle) != std::string::npos;
+}
+
+TEST(build_includes_the_core_parameters) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid profile";
+  request.state = "xyz";
+  request.nonce = "n-0S6_WzA2Mj";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+  EXPECT_TRUE(contains(url, "response_type=code"));
+  EXPECT_TRUE(contains(url, "client_id=s6BhdRkqt3"));
+  EXPECT_TRUE(contains(url, "scope=openid%20profile"));
+  EXPECT_TRUE(contains(url, "state=xyz"));
+  EXPECT_TRUE(contains(url, "nonce=n-0S6_WzA2Mj"));
+}
+
+TEST(build_appends_the_openid_connect_parameters) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.display = "page";
+  request.prompt = "consent";
+  request.max_age = "3600";
+  request.ui_locales = "en-US";
+  request.login_hint = "user@example.com";
+  request.acr_values = "urn:acr:1";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+  EXPECT_TRUE(contains(url, "display=page"));
+  EXPECT_TRUE(contains(url, "prompt=consent"));
+  EXPECT_TRUE(contains(url, "max_age=3600"));
+  EXPECT_TRUE(contains(url, "ui_locales=en-US"));
+  EXPECT_TRUE(contains(url, "login_hint=user%40example.com"));
+  EXPECT_TRUE(contains(url, "acr_values=urn%3Aacr%3A1"));
+}
+
+TEST(build_rejects_a_scope_without_openid) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "profile email";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_rejects_an_empty_scope) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_rejects_a_non_exclusive_none_prompt) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.prompt = "none consent";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_accepts_an_exclusive_none_prompt) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.prompt = "none";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+  EXPECT_TRUE(contains(url, "prompt=none"));
+}
+
+TEST(authorization_url_convenience_enforces_the_defaults) {
+  const auto url{sourcemeta::core::oidc_authorization_url(
+      "https://server.example/authorize", "s6BhdRkqt3",
+      "https://client.example/cb", "xyz", "code-challenge", "n-0S6_WzA2Mj")};
+  EXPECT_TRUE(url.has_value());
+  EXPECT_TRUE(contains(url.value(), "response_type=code"));
+  EXPECT_TRUE(contains(url.value(), "scope=openid"));
+  EXPECT_TRUE(contains(url.value(), "code_challenge=code-challenge"));
+  EXPECT_TRUE(contains(url.value(), "code_challenge_method=S256"));
+  EXPECT_TRUE(contains(url.value(), "nonce=n-0S6_WzA2Mj"));
+  EXPECT_TRUE(contains(url.value(), "state=xyz"));
+}
+
+TEST(parse_extracts_the_base_and_openid_parameters) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&scope=openid%20profile&"
+      "nonce=n-0S6&prompt=consent&max_age=3600&acr_values=urn%3Aacr%3A1",
+      storage, request));
+  EXPECT_EQ(request.response_type, "code");
+  EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+  EXPECT_EQ(request.scope, "openid profile");
+  EXPECT_EQ(request.nonce, "n-0S6");
+  EXPECT_EQ(request.prompt, "consent");
+  EXPECT_EQ(request.max_age, "3600");
+  EXPECT_EQ(request.acr_values, "urn:acr:1");
+}
+
+TEST(nonce_is_the_expected_length) {
+  const auto nonce{sourcemeta::core::oidc_nonce()};
+  EXPECT_EQ(nonce.size(), 43);
+}
+
+TEST(nonce_is_fresh_on_each_call) {
+  const auto first{sourcemeta::core::oidc_nonce()};
+  const auto second{sourcemeta::core::oidc_nonce()};
+  EXPECT_FALSE(first == second);
+}
+
+TEST(parse_rejects_a_duplicated_parameter) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "client_id=a&client_id=b&scope=openid", storage, request));
+}
