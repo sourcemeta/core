@@ -74,13 +74,16 @@ struct OIDCValidationOptions {
   /// The authorization code to bind through `c_hash`, verified against the
   /// claim when both are present (OpenID Connect Core 1.0 Section 3.3.2.11).
   std::optional<std::string_view> code;
-  /// Whether the `at_hash` claim is required to be present, the case for the
-  /// implicit and hybrid flows that return an access token from the
-  /// authorization endpoint (OpenID Connect Core 1.0 Sections 3.2.2.10 and
+  /// Whether the `at_hash` claim is required, the case for the implicit and
+  /// hybrid flows that return an access token from the authorization endpoint.
+  /// When set, the claim must be present and verified against `access_token`,
+  /// which must also be supplied (OpenID Connect Core 1.0 Sections 3.2.2.10 and
   /// 3.3.2.11).
   bool require_access_token_hash{false};
-  /// Whether the `c_hash` claim is required to be present, the case for the
-  /// hybrid `code id_token` flow (OpenID Connect Core 1.0 Section 3.3.2.11).
+  /// Whether the `c_hash` claim is required, the case for the hybrid
+  /// `code id_token` flow. When set, the claim must be present and verified
+  /// against `code`, which must also be supplied (OpenID Connect Core 1.0
+  /// Section 3.3.2.11).
   bool require_code_hash{false};
 };
 

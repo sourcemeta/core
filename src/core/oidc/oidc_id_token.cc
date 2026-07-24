@@ -157,31 +157,41 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
   }
 
   // OpenID Connect Core 1.0 Sections 3.1.3.6, 3.2.2.10, and 3.3.2.11: the
-  // binding hash is REQUIRED in the front-channel flows, so its absence fails
-  // when the caller demands it, and whenever it is present alongside the token
-  // it is recomputed under the token algorithm and must match
+  // binding hash is REQUIRED in the front-channel flows. A required binding
+  // must be a string claim actually verified against its token, so an absent or
+  // non-string claim, or a missing token to verify against, all fail. When it
+  // is not required, a present claim is still verified whenever the token is
+  // given
   const auto *at_hash{payload.try_at("at_hash"sv, HASH_AT_HASH)};
-  if (options.require_access_token_hash && at_hash == nullptr) {
-    return std::nullopt;
-  }
-
-  if (at_hash != nullptr && options.access_token.has_value() &&
-      (!at_hash->is_string() || !token.algorithm().has_value() ||
-       !oidc_verify_token_hash(options.access_token.value(),
-                               token.algorithm().value(),
-                               at_hash->to_string()))) {
+  if (options.require_access_token_hash) {
+    if (at_hash == nullptr || !at_hash->is_string() ||
+        !options.access_token.has_value() || !token.algorithm().has_value() ||
+        !oidc_verify_token_hash(options.access_token.value(),
+                                token.algorithm().value(),
+                                at_hash->to_string())) {
+      return std::nullopt;
+    }
+  } else if (at_hash != nullptr && options.access_token.has_value() &&
+             (!at_hash->is_string() || !token.algorithm().has_value() ||
+              !oidc_verify_token_hash(options.access_token.value(),
+                                      token.algorithm().value(),
+                                      at_hash->to_string()))) {
     return std::nullopt;
   }
 
   const auto *code_hash{payload.try_at("c_hash"sv, HASH_C_HASH)};
-  if (options.require_code_hash && code_hash == nullptr) {
-    return std::nullopt;
-  }
-
-  if (code_hash != nullptr && options.code.has_value() &&
-      (!code_hash->is_string() || !token.algorithm().has_value() ||
-       !oidc_verify_token_hash(options.code.value(), token.algorithm().value(),
-                               code_hash->to_string()))) {
+  if (options.require_code_hash) {
+    if (code_hash == nullptr || !code_hash->is_string() ||
+        !options.code.has_value() || !token.algorithm().has_value() ||
+        !oidc_verify_token_hash(options.code.value(), token.algorithm().value(),
+                                code_hash->to_string())) {
+      return std::nullopt;
+    }
+  } else if (code_hash != nullptr && options.code.has_value() &&
+             (!code_hash->is_string() || !token.algorithm().has_value() ||
+              !oidc_verify_token_hash(options.code.value(),
+                                      token.algorithm().value(),
+                                      code_hash->to_string()))) {
     return std::nullopt;
   }
 

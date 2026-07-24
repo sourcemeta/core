@@ -448,6 +448,30 @@ TEST(validate_accepts_a_required_access_token_hash_when_present) {
   EXPECT_TRUE(identity.has_value());
 }
 
+TEST(validate_rejects_a_required_access_token_hash_without_the_token) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = reference_now;
+  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().payload().defines("at_hash"));
+
+  // The claim is present, but with no access token to verify it against a
+  // required binding cannot be accepted unverified
+  sourcemeta::core::OIDCValidationOptions options;
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
 TEST(validate_enforces_the_code_hash) {
   sourcemeta::core::OIDCIdTokenClaims claims;
   claims.issuer = "https://issuer.example";
@@ -481,6 +505,30 @@ TEST(validate_requires_the_code_hash_when_configured) {
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
   options.code = "the-authorization-code";
+  options.require_code_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_rejects_a_required_code_hash_without_the_code) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = reference_now;
+  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.code = "the-authorization-code";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().payload().defines("c_hash"));
+
+  // The claim is present, but with no code to verify it against a required
+  // binding cannot be accepted unverified
+  sourcemeta::core::OIDCValidationOptions options;
   options.require_code_hash = true;
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
