@@ -2,6 +2,7 @@
 
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include <optional>    // std::optional, std::nullopt
@@ -55,14 +56,13 @@ auto oidc_webfinger_request(const std::string_view identifier)
   // copied out because the parsed URI does not outlive this scope
   std::string host;
   if (request.resource.starts_with("acct:")) {
-    const std::string_view account{
-        std::string_view{request.resource}.substr(5)};
-    const auto at{account.rfind('@')};
-    if (at == std::string_view::npos) {
+    const auto account{
+        rsplit_once(std::string_view{request.resource}.substr(5), '@')};
+    if (!account.has_value()) {
       return std::nullopt;
     }
 
-    host = account.substr(at + 1);
+    host = account.value().second;
   } else {
     try {
       const URI resource{request.resource};

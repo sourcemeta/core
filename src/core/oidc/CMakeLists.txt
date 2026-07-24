@@ -8,6 +8,8 @@ target_link_libraries(sourcemeta_core_oidc
   PUBLIC sourcemeta::core::oauth)
 target_link_libraries(sourcemeta_core_oidc
   PRIVATE sourcemeta::core::uri)
+target_link_libraries(sourcemeta_core_oidc
+  PRIVATE sourcemeta::core::text)
 
 if(SOURCEMETA_CORE_INSTALL)
   sourcemeta_library_install(NAMESPACE sourcemeta PROJECT core NAME oidc)
