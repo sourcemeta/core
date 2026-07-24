@@ -8,8 +8,10 @@
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
-static constexpr std::string_view OCT_JWK{
-    R"JSON({"kty":"oct","k":"AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"})JSON"};
+static constexpr std::string_view OCT_JWK{R"JSON({
+  "kty": "oct",
+  "k": "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"
+})JSON"};
 
 static auto oct_private_key() -> sourcemeta::core::JWKPrivate {
   return sourcemeta::core::JWKPrivate::from(
@@ -19,14 +21,14 @@ static auto oct_private_key() -> sourcemeta::core::JWKPrivate {
 
 static auto oct_key_set() -> sourcemeta::core::JWKS {
   return sourcemeta::core::JWKS::from(
-             sourcemeta::core::parse_json(std::string{R"({"keys":[)"} +
-                                          std::string{OCT_JWK} + R"(]})"))
+             sourcemeta::core::parse_json(std::string{R"({ "keys": [ )"} +
+                                          std::string{OCT_JWK} + R"( ] })"))
       .value();
 }
 
 static auto sign_id_token(const std::string_view payload) -> std::string {
   return sourcemeta::core::jwt_sign(
-             sourcemeta::core::parse_json(R"({"alg":"HS256"})"),
+             sourcemeta::core::parse_json(R"JSON({ "alg": "HS256" })JSON"),
              sourcemeta::core::parse_json(payload), oct_private_key())
       .value();
 }
@@ -66,8 +68,13 @@ TEST(mint_and_validate_round_trip) {
 }
 
 TEST(validate_rejects_an_expired_token) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":1700000000,"iat":1699996400})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 1700000000,
+    "iat": 1699996400
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -77,8 +84,12 @@ TEST(validate_rejects_an_expired_token) {
 }
 
 TEST(validate_rejects_a_wrong_issuer) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -88,8 +99,12 @@ TEST(validate_rejects_a_wrong_issuer) {
 }
 
 TEST(validate_rejects_a_wrong_audience) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -99,8 +114,11 @@ TEST(validate_rejects_a_wrong_audience) {
 }
 
 TEST(validate_rejects_a_missing_subject) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","aud":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -110,8 +128,13 @@ TEST(validate_rejects_a_missing_subject) {
 }
 
 TEST(validate_rejects_a_mismatched_nonce) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000,"nonce":"n-abc"})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000,
+    "nonce": "n-abc"
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
@@ -123,8 +146,12 @@ TEST(validate_rejects_a_mismatched_nonce) {
 }
 
 TEST(validate_rejects_a_missing_nonce_when_one_was_sent) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
@@ -136,8 +163,13 @@ TEST(validate_rejects_a_missing_nonce_when_one_was_sent) {
 }
 
 TEST(validate_echoes_a_matching_nonce) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000,"nonce":"n-abc"})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000,
+    "nonce": "n-abc"
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
@@ -150,8 +182,13 @@ TEST(validate_echoes_a_matching_nonce) {
 }
 
 TEST(validate_accepts_a_multi_audience_token_with_matching_azp) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":["client-id","other"],"azp":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", "other" ],
+    "azp": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -162,8 +199,12 @@ TEST(validate_accepts_a_multi_audience_token_with_matching_azp) {
 }
 
 TEST(validate_rejects_a_multi_audience_token_without_azp) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":["client-id","other"],"exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", "other" ],
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -173,8 +214,13 @@ TEST(validate_rejects_a_multi_audience_token_without_azp) {
 }
 
 TEST(validate_rejects_a_mismatched_azp) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","azp":"other","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "azp": "other",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const auto identity{sourcemeta::core::oidc_validate_id_token(
@@ -184,8 +230,13 @@ TEST(validate_rejects_a_mismatched_azp) {
 }
 
 TEST(validate_enforces_an_acceptable_acr) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","acr":"silver","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "acr": "silver",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const std::array<std::string_view, 1> acceptable{{"gold"}};
@@ -206,8 +257,13 @@ TEST(validate_enforces_an_acceptable_acr) {
 }
 
 TEST(validate_enforces_the_maximum_authentication_age) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","auth_time":1699996400,"exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "auth_time": 1699996400,
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
@@ -225,8 +281,12 @@ TEST(validate_enforces_the_maximum_authentication_age) {
 }
 
 TEST(validate_requires_issued_at_when_configured) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
@@ -238,8 +298,12 @@ TEST(validate_requires_issued_at_when_configured) {
 }
 
 TEST(validate_rejects_an_algorithm_outside_the_allow_list) {
-  const auto compact{sign_id_token(
-      R"({"iss":"https://issuer.example","sub":"user-1","aud":"client-id","exp":2000000000})")};
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   const std::array<sourcemeta::core::JWSAlgorithm, 1> only_rs256{
@@ -300,22 +364,28 @@ TEST(validate_enforces_the_code_hash) {
 }
 
 TEST(parse_id_token_extracts_the_member) {
-  const auto response{sourcemeta::core::parse_json(
-      R"JSON({"access_token":"at","token_type":"Bearer","id_token":"eyJ.aaa.bbb"})JSON")};
+  const auto response{sourcemeta::core::parse_json(R"JSON({
+    "access_token": "at",
+    "token_type": "Bearer",
+    "id_token": "eyJ.aaa.bbb"
+  })JSON")};
   const auto id_token{sourcemeta::core::oidc_parse_id_token(response)};
   EXPECT_TRUE(id_token.has_value());
   EXPECT_EQ(id_token.value(), "eyJ.aaa.bbb");
 }
 
 TEST(parse_id_token_rejects_an_absent_member) {
-  const auto response{sourcemeta::core::parse_json(
-      R"JSON({"access_token":"at","token_type":"Bearer"})JSON")};
+  const auto response{sourcemeta::core::parse_json(R"JSON({
+    "access_token": "at",
+    "token_type": "Bearer"
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::oidc_parse_id_token(response).has_value());
 }
 
 TEST(parse_id_token_rejects_a_non_string_member) {
-  const auto response{
-      sourcemeta::core::parse_json(R"JSON({"id_token":123})JSON")};
+  const auto response{sourcemeta::core::parse_json(R"JSON({
+    "id_token": 123
+  })JSON")};
   EXPECT_FALSE(sourcemeta::core::oidc_parse_id_token(response).has_value());
 }
 
