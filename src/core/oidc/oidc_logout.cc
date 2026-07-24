@@ -1,0 +1,182 @@
+#include <sourcemeta/core/oidc_logout.h>
+
+#include <sourcemeta/core/crypto.h>
+#include <sourcemeta/core/jose.h>
+#include <sourcemeta/core/json.h>
+#include <sourcemeta/core/uri.h>
+
+#include <algorithm>   // std::ranges::find
+#include <chrono>      // std::chrono::system_clock
+#include <span>        // std::span
+#include <string>      // std::string
+#include <string_view> // std::string_view
+
+namespace sourcemeta::core {
+
+namespace {
+
+using namespace std::literals::string_view_literals;
+
+constexpr auto HASH_EVENTS{JSON::Object::hash("events"sv)};
+
+constexpr std::string_view BACKCHANNEL_LOGOUT_EVENT{
+    "http://schemas.openid.net/event/backchannel-logout"};
+
+// RFC 7519 Section 5.1: a typ without a slash is treated as if application/
+// were prepended, so the compact and prefixed forms compare equal
+auto strip_application_prefix(const std::string_view value)
+    -> std::string_view {
+  constexpr std::string_view prefix{"application/"};
+  if (value.starts_with(prefix) &&
+      value.find('/', prefix.size()) == std::string_view::npos) {
+    return value.substr(prefix.size());
+  }
+
+  return value;
+}
+
+auto append_parameter(std::string &sink, const std::string_view name,
+                      const std::string_view value) -> void {
+  if (!value.empty()) {
+    URI::append_query_parameter(sink, name, value);
+  }
+}
+
+} // namespace
+
+auto oidc_build_logout_url(const std::string_view end_session_endpoint,
+                           const OIDCLogoutRequest &request, std::string &sink)
+    -> void {
+  sink.append(end_session_endpoint);
+  // The query builder joins with "&" once a parameter is present, so a fresh
+  // query is opened with "?" and an existing one is continued with "&"
+  sink.push_back(
+      end_session_endpoint.find('?') == std::string_view::npos ? '?' : '&');
+  append_parameter(sink, "id_token_hint", request.id_token_hint);
+  append_parameter(sink, "logout_hint", request.logout_hint);
+  append_parameter(sink, "client_id", request.client_id);
+  append_parameter(sink, "post_logout_redirect_uri",
+                   request.post_logout_redirect_uri);
+  append_parameter(sink, "state", request.state);
+  append_parameter(sink, "ui_locales", request.ui_locales);
+}
+
+auto oidc_validate_logout_token(
+    const JWT &token, const JWKS &keys,
+    const std::span<const JWSAlgorithm> allowed_algorithms,
+    const std::string_view issuer, const std::string_view client_id,
+    const std::chrono::system_clock::time_point now,
+    const JWTClockSkew clock_skew) -> bool {
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.6 step: the algorithm is
+  // pinned and never taken from the header alone, and alg none is never allowed
+  const auto algorithm{token.algorithm()};
+  if (!algorithm.has_value() ||
+      std::ranges::find(allowed_algorithms, algorithm.value()) ==
+          allowed_algorithms.end()) {
+    return false;
+  }
+
+  bool verified{false};
+  for (const auto &key : keys) {
+    if (jwt_verify_signature(token, key)) {
+      verified = true;
+      break;
+    }
+  }
+
+  if (!verified) {
+    return false;
+  }
+
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: the typ header is
+  // logout+jwt, which distinguishes a logout token from an ID Token
+  const auto type{token.type()};
+  if (!type.has_value() ||
+      strip_application_prefix(type.value()) != "logout+jwt") {
+    return false;
+  }
+
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.6: iss and aud as for an
+  // ID Token
+  const auto token_issuer{token.issuer()};
+  if (!token_issuer.has_value() || token_issuer.value() != issuer) {
+    return false;
+  }
+
+  if (!token.has_audience(client_id)) {
+    return false;
+  }
+
+  // The iat is REQUIRED and must not be in the future, and an exp when present
+  // must not have passed
+  const auto issued_at{token.issued_at()};
+  if (!issued_at.has_value() ||
+      issued_at.value() > now + clock_skew.issued_at) {
+    return false;
+  }
+
+  const auto expires_at{token.expires_at()};
+  if (expires_at.has_value() &&
+      now > expires_at.value() + clock_skew.expiration) {
+    return false;
+  }
+
+  const auto &payload{token.payload()};
+
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: a sub, a sid, or both
+  if (!payload.defines("sub") && !payload.defines("sid")) {
+    return false;
+  }
+
+  // The events claim is an object carrying the back-channel logout member,
+  // whose value is an object
+  const auto *events{payload.try_at("events"sv, HASH_EVENTS)};
+  if (events == nullptr || !events->is_object() ||
+      !events->defines(BACKCHANNEL_LOGOUT_EVENT) ||
+      !events->at(BACKCHANNEL_LOGOUT_EVENT).is_object()) {
+    return false;
+  }
+
+  // A logout token MUST NOT contain a nonce, which prevents it being confused
+  // with an ID Token, and a jti is REQUIRED for replay detection
+  if (payload.defines("nonce") || !payload.defines("jti")) {
+    return false;
+  }
+
+  return true;
+}
+
+auto oidc_front_channel_pairing_is_valid(const std::string_view issuer,
+                                         const std::string_view session_id)
+    -> bool {
+  // OpenID Connect Front-Channel Logout 1.0 Section 3: iss and sid are included
+  // together or not at all
+  return issuer.empty() == session_id.empty();
+}
+
+auto oidc_session_state(const std::string_view client_id,
+                        const std::string_view origin,
+                        const std::string_view provider_browser_state,
+                        const std::string_view salt) -> std::string {
+  // OpenID Connect Session Management 1.0 Section 4.2: the value is
+  // base64url(SHA256(client_id + " " + origin + " " + op_browser_state + " " +
+  // salt)) + "." + salt
+  std::string message;
+  message.reserve(client_id.size() + origin.size() +
+                  provider_browser_state.size() + salt.size() + 3);
+  message.append(client_id);
+  message.push_back(' ');
+  message.append(origin);
+  message.push_back(' ');
+  message.append(provider_browser_state);
+  message.push_back(' ');
+  message.append(salt);
+
+  const auto digest{sha256_digest(message)};
+  std::string result{base64url_encode(digest)};
+  result.push_back('.');
+  result.append(salt);
+  return result;
+}
+
+} // namespace sourcemeta::core

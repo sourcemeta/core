@@ -20,6 +20,7 @@
 #include <sourcemeta/core/markdown.h>
 #include <sourcemeta/core/mcp.h>
 #include <sourcemeta/core/numeric.h>
+#include <sourcemeta/core/oidc.h>
 #include <sourcemeta/core/options.h>
 #include <sourcemeta/core/parallel.h>
 #include <sourcemeta/core/preprocessor.h>
