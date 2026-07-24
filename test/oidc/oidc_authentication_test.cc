@@ -131,6 +131,7 @@ TEST(parse_extracts_the_base_and_openid_parameters) {
       storage, request));
   EXPECT_EQ(request.response_type, "code");
   EXPECT_EQ(request.client_id, "s6BhdRkqt3");
+  EXPECT_EQ(request.redirect_uri, "https://client.example/cb");
   EXPECT_EQ(request.scope, "openid profile");
   EXPECT_EQ(request.nonce, "n-0S6");
   EXPECT_EQ(request.prompt, "consent");
