@@ -67,6 +67,24 @@ TEST(build_rejects_an_empty_scope) {
       "https://server.example/authorize", request, url));
 }
 
+TEST(build_rejects_an_empty_client_id) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_rejects_an_empty_redirect_uri) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.scope = "openid";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
 TEST(build_rejects_a_non_exclusive_none_prompt) {
   sourcemeta::core::OIDCAuthenticationRequest request;
   request.client_id = "s6BhdRkqt3";
@@ -117,6 +135,47 @@ TEST(parse_extracts_the_base_and_openid_parameters) {
   EXPECT_EQ(request.prompt, "consent");
   EXPECT_EQ(request.max_age, "3600");
   EXPECT_EQ(request.acr_values, "urn:acr:1");
+}
+
+TEST(authorization_url_rejects_an_empty_code_challenge) {
+  const auto url{sourcemeta::core::oidc_authorization_url(
+      "https://server.example/authorize", "s6BhdRkqt3",
+      "https://client.example/cb", "xyz", "", "n-0S6_WzA2Mj")};
+  EXPECT_FALSE(url.has_value());
+}
+
+TEST(parse_rejects_a_scope_without_openid) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&scope=profile%20email", storage,
+      request));
+}
+
+TEST(parse_rejects_a_non_exclusive_none_prompt) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&scope=openid&"
+      "prompt=none%20consent",
+      storage, request));
+}
+
+TEST(parse_resets_stale_fields_across_reuse) {
+  std::string first_storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&scope=openid&nonce=n-0S6",
+      first_storage, request));
+  EXPECT_EQ(request.nonce, "n-0S6");
+
+  // A second parse into the same object must not retain the earlier nonce
+  std::string second_storage;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=other&scope=openid", second_storage,
+      request));
+  EXPECT_EQ(request.client_id, "other");
+  EXPECT_TRUE(request.nonce.empty());
 }
 
 TEST(nonce_is_the_expected_length) {

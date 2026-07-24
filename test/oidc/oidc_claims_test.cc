@@ -91,6 +91,16 @@ TEST(claims_parameter_requests_detects_a_requested_claim) {
       claims, "userinfo", "phone_number"));
 }
 
+TEST(claims_parameter_requests_rejects_a_malformed_entry) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "userinfo": {
+      "email": "not-an-object-or-null"
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_requests(
+      claims, "userinfo", "email"));
+}
+
 TEST(claims_parameter_is_essential_reads_the_flag) {
   const auto claims{sourcemeta::core::parse_json(R"JSON({
     "id_token": {

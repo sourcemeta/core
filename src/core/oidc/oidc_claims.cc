@@ -172,7 +172,15 @@ auto oidc_claims_parameter_requests(const JSON &claims,
   }
 
   const auto &target_object{claims.at(target)};
-  return target_object.is_object() && target_object.defines(claim);
+  if (!target_object.is_object() || !target_object.defines(claim)) {
+    return false;
+  }
+
+  // OpenID Connect Core 1.0 Section 5.5: a claim entry is either null (the
+  // default manner) or an object, so a malformed value such as a string is not
+  // honored as a request
+  const auto &specification{target_object.at(claim)};
+  return specification.is_null() || specification.is_object();
 }
 
 auto oidc_claims_parameter_is_essential(const JSON &claims,

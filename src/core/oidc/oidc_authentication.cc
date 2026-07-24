@@ -80,6 +80,13 @@ auto oidc_nonce() -> std::array<char, 43> { return oauth_random_token(); }
 auto oidc_build_authentication_url(const std::string_view endpoint,
                                    const OIDCAuthenticationRequest &request,
                                    std::string &sink) -> bool {
+  // OpenID Connect Core 1.0 Section 3.1.2.1: the client identifier and the
+  // redirection URI are REQUIRED, so a request missing either cannot yield a
+  // usable URL
+  if (request.client_id.empty() || request.redirect_uri.empty()) {
+    return false;
+  }
+
   // OpenID Connect Core 1.0 Section 3.1.2.1: scope is REQUIRED and must contain
   // the openid value, which is what makes the request an OpenID Connect one
   if (!space_list_contains(request.scope, "openid")) {
@@ -136,6 +143,12 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
                             const std::string_view code_challenge,
                             const std::string_view nonce)
     -> std::optional<std::string> {
+  // This convenience guarantees PKCE, so an empty code challenge, which would
+  // silently produce a non-PKCE URL, is refused (RFC 7636 Section 4.3)
+  if (code_challenge.empty()) {
+    return std::nullopt;
+  }
+
   OIDCAuthenticationRequest request;
   request.client_id = client_id;
   request.redirect_uri = redirect_uri;
@@ -158,6 +171,10 @@ auto oidc_parse_authentication_request(const std::string_view query,
                                        std::string &storage,
                                        OIDCAuthenticationRequest &result)
     -> bool {
+  // Reset so a parameter absent from this query cannot retain a stale value
+  // when the caller reuses the result across parses
+  result = OIDCAuthenticationRequest{};
+
   OAuthAuthorizationRequest base;
   const auto parsed{oauth_parse_authorization_request(
       query, storage, base,
@@ -175,7 +192,12 @@ auto oidc_parse_authentication_request(const std::string_view query,
   result.code_challenge = base.code_challenge;
   result.code_challenge_method = base.code_challenge_method;
   result.request_uri = base.request_uri;
-  return true;
+
+  // The same OpenID Connect well-formedness the builder enforces: scope must
+  // contain openid and a none prompt must appear alone (OpenID Connect Core 1.0
+  // Section 3.1.2.1)
+  return space_list_contains(result.scope, "openid") &&
+         prompt_is_valid(result.prompt);
 }
 
 } // namespace sourcemeta::core
