@@ -73,8 +73,14 @@ TEST(build_claims_parameter_omits_an_empty_target) {
 }
 
 TEST(claims_parameter_requests_detects_a_requested_claim) {
-  const auto claims{sourcemeta::core::parse_json(
-      R"JSON({"id_token":{"auth_time":{"essential":true}},"userinfo":{"email":null}})JSON")};
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "auth_time": { "essential": true }
+    },
+    "userinfo": {
+      "email": null
+    }
+  })JSON")};
   EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_requests(
       claims, "id_token", "auth_time"));
   EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_requests(
@@ -86,8 +92,15 @@ TEST(claims_parameter_requests_detects_a_requested_claim) {
 }
 
 TEST(claims_parameter_is_essential_reads_the_flag) {
-  const auto claims{sourcemeta::core::parse_json(
-      R"JSON({"id_token":{"auth_time":{"essential":true}},"userinfo":{"email":null,"name":{"essential":false}}})JSON")};
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "auth_time": { "essential": true }
+    },
+    "userinfo": {
+      "email": null,
+      "name": { "essential": false }
+    }
+  })JSON")};
   EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_is_essential(
       claims, "id_token", "auth_time"));
   EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
