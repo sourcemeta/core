@@ -658,6 +658,153 @@ auto register_rsa_oaep_tests(const std::filesystem::path &path,
     }
   }
 }
+
+// The suite gives each private key only as a scalar, but the platform backends
+// build a private key from the scalar together with its public point, so the
+// point of the primary key of each curve is precomputed here
+struct EcdhCurve {
+  sourcemeta::core::EllipticCurve curve;
+  std::size_t field_bytes;
+  std::string_view private_scalar;
+  std::string_view coordinate_x;
+  std::string_view coordinate_y;
+};
+
+auto to_ecdh_curve(const std::string_view name) -> std::optional<EcdhCurve> {
+  if (name == "secp256r1") {
+    return EcdhCurve{
+        sourcemeta::core::EllipticCurve::P256, 32,
+        "00809c461d8b39163537ff8f5ef5b977e4cdb980e70e38a7ee0b37cc876729e9ff",
+        "0468ae7706221e5990f7484d34fbec5a99050179a6c11817bbed4aed962998ff",
+        "b5228d89a1b448f12332376c8c7f080763532a055e07f14a5de0dc30104579e1"};
+  } else if (name == "secp384r1") {
+    return EcdhCurve{sourcemeta::core::EllipticCurve::P384, 48,
+                     "00c1781d86cac2c052b7e4f48cef415c5c133052f4e504397e75e4d7"
+                     "cd0ca149da0b4988b8a6ded5ceae4b580691376187",
+                     "29eb9c63a12322cd99de0e8e3c11e6c8a486b1008181be4c825f38b3"
+                     "71e6f03e2926cd60e9a9ccd42e1aa8799d2ef3a7",
+                     "9d045f3a3df974743268be650fbaf68c7045a483093ce2e289903097"
+                     "396f040058faacb723eb493b5b631bc365c5fc49"};
+  } else if (name == "secp521r1") {
+    return EcdhCurve{
+        sourcemeta::core::EllipticCurve::P521, 66,
+        "01781d86cac2c052b7e4f48cef415c5c1319e07db70db92a497c2ac764e9509ac0b073"
+        "22801f5ae1f28c9d7db71f79e5f51bf646790af988d62339a6d1543192e327",
+        "0026e4bc8e3dfcb2898f9fb71eb373199ecd58b13b66c221110819bd05159eb5e3b8d1"
+        "376f7d5151db140b3cdae698bca9683f3d041164fe0e3dba0d2f02d6643adb",
+        "010a3f1fcb6dbccc773d143d454347145a9bec498e7a5e2d412095b9350c58d8e9411e"
+        "a85afe4c56053ad35d8be4230f5e2718365f43dbd2ed44b096a90bfc6227b6"};
+  } else {
+    return std::nullopt;
+  }
+}
+
+// A valid vector must derive exactly the given shared secret. An invalid vector
+// carries a peer point off the curve or otherwise malformed, so no shared
+// secret can be produced
+auto check_ecdh(const EcdhCurve &info, const std::string_view peer_point,
+                const std::string_view shared, const bool expected) -> void {
+  const auto scalar{sourcemeta::core::hex_to_bytes(info.private_scalar)};
+  const auto coordinate_x{sourcemeta::core::hex_to_bytes(info.coordinate_x)};
+  const auto coordinate_y{sourcemeta::core::hex_to_bytes(info.coordinate_y)};
+  EXPECT_TRUE(scalar.has_value());
+  EXPECT_TRUE(coordinate_x.has_value());
+  EXPECT_TRUE(coordinate_y.has_value());
+  if (!scalar.has_value() || !coordinate_x.has_value() ||
+      !coordinate_y.has_value()) {
+    return;
+  }
+
+  const auto private_key{sourcemeta::core::make_ec_private_key(
+      info.curve, scalar.value(), coordinate_x.value(), coordinate_y.value())};
+  EXPECT_TRUE(private_key.has_value());
+  if (!private_key.has_value()) {
+    return;
+  }
+
+  // The peer point is the uncompressed X9.63 encoding, splitting into its two
+  // coordinates after the leading tag byte
+  std::optional<sourcemeta::core::PublicKey> public_key;
+  if (peer_point.size() == (2 * info.field_bytes) + 1 &&
+      static_cast<unsigned char>(peer_point.front()) == 0x04) {
+    public_key = sourcemeta::core::make_ec_public_key(
+        info.curve, peer_point.substr(1, info.field_bytes),
+        peer_point.substr(1 + info.field_bytes));
+  }
+
+  if (expected) {
+    EXPECT_TRUE(public_key.has_value());
+    if (!public_key.has_value()) {
+      return;
+    }
+
+    const auto secret{
+        sourcemeta::core::ecdh_derive(private_key.value(), public_key.value())};
+    EXPECT_TRUE(secret.has_value());
+    if (!secret.has_value()) {
+      return;
+    }
+
+    EXPECT_EQ(secret.value(),
+              sourcemeta::core::pad_left(shared, info.field_bytes, '\x00'));
+  } else {
+    const auto secret{public_key.has_value()
+                          ? sourcemeta::core::ecdh_derive(private_key.value(),
+                                                          public_key.value())
+                          : std::nullopt};
+    EXPECT_FALSE(secret.has_value());
+  }
+}
+
+auto register_ecdh_tests(const std::filesystem::path &path,
+                         const std::string &suite_name) -> void {
+  const auto document{load(path)};
+  const auto stem{path.stem().string()};
+  for (const auto &group : document.at("testGroups").as_array()) {
+    const auto info{to_ecdh_curve(group.at("curve").to_string())};
+    if (!info.has_value()) {
+      continue;
+    }
+
+    for (const auto &test : group.at("tests").as_array()) {
+      const std::string result{test.at("result").to_string()};
+      // The suite provides only the scalar of each private key, so a valid
+      // vector is checked only for the one key whose point is known here. Every
+      // invalid vector is still checked, since its bad peer point is rejected
+      // before the private key matters
+      if (result == "acceptable" ||
+          (result == "valid" &&
+           test.at("private").to_string() != info.value().private_scalar)) {
+        continue;
+      }
+
+      const auto peer{
+          sourcemeta::core::hex_to_bytes(test.at("public").to_string())};
+      if (!peer.has_value()) {
+        continue;
+      }
+
+      const bool expected{result == "valid"};
+      // The shared secret is only compared for a valid vector, so an invalid
+      // vector keeps its coverage even when it carries no usable shared field
+      std::string shared;
+      if (expected) {
+        const auto decoded{
+            sourcemeta::core::hex_to_bytes(test.at("shared").to_string())};
+        if (!decoded.has_value()) {
+          continue;
+        }
+
+        shared = decoded.value();
+      }
+
+      register_case(suite_name,
+                    stem + "_tc" + std::to_string(test.at("tcId").to_integer()),
+                    [info = info.value(), peer = peer.value(), shared,
+                     expected]() { check_ecdh(info, peer, shared, expected); });
+    }
+  }
+}
 } // namespace
 
 auto main(int argc, char **argv) -> int {
@@ -734,6 +881,13 @@ auto main(int argc, char **argv) -> int {
                           "Wycheproof_RSA_OAEP_3072_SHA256");
   register_rsa_oaep_tests(vectors / "rsa_oaep_4096_sha256_mgf1sha256_test.json",
                           "Wycheproof_RSA_OAEP_4096_SHA256");
+
+  register_ecdh_tests(vectors / "ecdh_secp256r1_ecpoint_test.json",
+                      "Wycheproof_ECDH_P256");
+  register_ecdh_tests(vectors / "ecdh_secp384r1_ecpoint_test.json",
+                      "Wycheproof_ECDH_P384");
+  register_ecdh_tests(vectors / "ecdh_secp521r1_ecpoint_test.json",
+                      "Wycheproof_ECDH_P521");
 
   return sourcemeta::core::test_run(argc, argv);
 }
