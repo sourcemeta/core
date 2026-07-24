@@ -106,9 +106,7 @@ auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
       !absent_or_string(data, "id_token_encrypted_response_alg"sv,
                         HASH_ID_TOKEN_ENCRYPTED_ALG) ||
       !absent_or_string(data, "userinfo_signed_response_alg"sv,
-                        HASH_USERINFO_SIGNED_ALG) ||
-      !absent_or_string(data, "initiate_login_uri"sv,
-                        HASH_INITIATE_LOGIN_URI)) {
+                        HASH_USERINFO_SIGNED_ALG)) {
     throw OIDCRegistrationParseError{};
   }
 
@@ -130,13 +128,22 @@ auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
     throw OIDCRegistrationParseError{};
   }
 
-  // OpenID Connect Dynamic Client Registration 1.0 Section 5: a
-  // sector_identifier_uri is fetched over https, so a non-https or hostless
-  // value would send the OpenID Provider to an insecure or invalid location
+  // OpenID Connect Dynamic Client Registration 1.0 Section 2: both the
+  // sector_identifier_uri (fetched by the OpenID Provider) and the
+  // initiate_login_uri (a third-party login target) use the https scheme, so a
+  // non-https or hostless value would point at an insecure or invalid location
   const auto *sector{
       data.try_at("sector_identifier_uri"sv, HASH_SECTOR_IDENTIFIER_URI)};
   if (sector != nullptr &&
       (!sector->is_string() || !is_https_url_with_host(sector->to_string()))) {
+    throw OIDCRegistrationParseError{};
+  }
+
+  const auto *initiate_login{
+      data.try_at("initiate_login_uri"sv, HASH_INITIATE_LOGIN_URI)};
+  if (initiate_login != nullptr &&
+      (!initiate_login->is_string() ||
+       !is_https_url_with_host(initiate_login->to_string()))) {
     throw OIDCRegistrationParseError{};
   }
 }
