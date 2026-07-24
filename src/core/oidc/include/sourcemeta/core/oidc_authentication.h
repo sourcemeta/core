@@ -141,8 +141,9 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
 /// @ingroup oidc
 /// Parse the query of an OpenID Connect authentication request at the provider
 /// into the result, returning whether it is well formed (OpenID Connect Core
-/// 1.0 Section 3.1.2.1). The scope must contain `openid` and a `none` prompt
-/// must appear alone, the same checks the builder applies. Each recognized
+/// 1.0 Section 3.1.2.1). The `client_id` and `redirect_uri` are REQUIRED, the
+/// scope must contain `openid`, and a `none` prompt must appear alone, the same
+/// checks the builder applies. Each recognized
 /// value is form-decoded, borrowing from the input when it carries no escape
 /// and otherwise from the storage arena, which the caller owns and reuses
 /// across parses. The result is reset first, then borrows from the input and

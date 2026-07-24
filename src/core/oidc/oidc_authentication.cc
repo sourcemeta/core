@@ -193,10 +193,12 @@ auto oidc_parse_authentication_request(const std::string_view query,
   result.code_challenge_method = base.code_challenge_method;
   result.request_uri = base.request_uri;
 
-  // The same OpenID Connect well-formedness the builder enforces: scope must
-  // contain openid and a none prompt must appear alone (OpenID Connect Core 1.0
-  // Section 3.1.2.1)
-  return space_list_contains(result.scope, "openid") &&
+  // The same OpenID Connect well-formedness the builder enforces, so parsing
+  // never accepts a request the module could not build: the client identifier
+  // and redirection URI are REQUIRED, the scope must contain openid, and a none
+  // prompt must appear alone (OpenID Connect Core 1.0 Section 3.1.2.1)
+  return !result.client_id.empty() && !result.redirect_uri.empty() &&
+         space_list_contains(result.scope, "openid") &&
          prompt_is_valid(result.prompt);
 }
 

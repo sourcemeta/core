@@ -125,7 +125,8 @@ TEST(parse_extracts_the_base_and_openid_parameters) {
   std::string storage;
   sourcemeta::core::OIDCAuthenticationRequest request;
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
-      "response_type=code&client_id=s6BhdRkqt3&scope=openid%20profile&"
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid%20profile&"
       "nonce=n-0S6&prompt=consent&max_age=3600&acr_values=urn%3Aacr%3A1",
       storage, request));
   EXPECT_EQ(request.response_type, "code");
@@ -144,19 +145,38 @@ TEST(authorization_url_rejects_an_empty_code_challenge) {
   EXPECT_FALSE(url.has_value());
 }
 
+TEST(parse_rejects_a_missing_client_id) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
+      "scope=openid",
+      storage, request));
+}
+
+TEST(parse_rejects_a_missing_redirect_uri) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&scope=openid", storage,
+      request));
+}
+
 TEST(parse_rejects_a_scope_without_openid) {
   std::string storage;
   sourcemeta::core::OIDCAuthenticationRequest request;
   EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
-      "response_type=code&client_id=s6BhdRkqt3&scope=profile%20email", storage,
-      request));
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=profile%20email",
+      storage, request));
 }
 
 TEST(parse_rejects_a_non_exclusive_none_prompt) {
   std::string storage;
   sourcemeta::core::OIDCAuthenticationRequest request;
   EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
-      "response_type=code&client_id=s6BhdRkqt3&scope=openid&"
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
       "prompt=none%20consent",
       storage, request));
 }
@@ -165,15 +185,17 @@ TEST(parse_resets_stale_fields_across_reuse) {
   std::string first_storage;
   sourcemeta::core::OIDCAuthenticationRequest request;
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
-      "response_type=code&client_id=s6BhdRkqt3&scope=openid&nonce=n-0S6",
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&nonce=n-0S6",
       first_storage, request));
   EXPECT_EQ(request.nonce, "n-0S6");
 
   // A second parse into the same object must not retain the earlier nonce
   std::string second_storage;
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
-      "response_type=code&client_id=other&scope=openid", second_storage,
-      request));
+      "response_type=code&client_id=other&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid",
+      second_storage, request));
   EXPECT_EQ(request.client_id, "other");
   EXPECT_TRUE(request.nonce.empty());
 }
