@@ -12,6 +12,8 @@ target_link_libraries(sourcemeta_core_oidc
 target_link_libraries(sourcemeta_core_oidc
   PRIVATE sourcemeta::core::crypto)
 target_link_libraries(sourcemeta_core_oidc
+  PRIVATE sourcemeta::core::time)
+target_link_libraries(sourcemeta_core_oidc
   PRIVATE sourcemeta::core::uri)
 target_link_libraries(sourcemeta_core_oidc
   PRIVATE sourcemeta::core::text)

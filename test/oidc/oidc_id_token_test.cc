@@ -280,6 +280,24 @@ TEST(validate_enforces_the_maximum_authentication_age) {
   EXPECT_TRUE(accepted.has_value());
 }
 
+TEST(validate_accepts_a_fractional_auth_time) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "auth_time": 1699996400.5,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.maximum_authentication_age = std::chrono::hours{2};
+  const auto accepted{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_TRUE(accepted.has_value());
+}
+
 TEST(validate_requires_issued_at_when_configured) {
   const auto compact{sign_id_token(R"JSON({
     "iss": "https://issuer.example",

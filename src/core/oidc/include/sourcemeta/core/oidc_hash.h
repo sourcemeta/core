@@ -18,8 +18,11 @@ namespace sourcemeta::core {
 /// code hash (`c_hash`) for a token and the ID Token signing algorithm (OpenID
 /// Connect Core 1.0 Section 3.1.3.6). The token is hashed with the SHA variant
 /// the algorithm is defined over, the left-most half of the digest is kept, and
-/// that half is base64url-encoded without padding. Returns no value when the
-/// digest cannot be selected from the algorithm alone. For example:
+/// that half is base64url-encoded without padding. The digest is selected from
+/// the algorithm by table rather than by slicing its name, where `EdDSA` maps
+/// to SHA-512, which is correct for Ed25519 but not for Ed448. Returns no value
+/// only for an algorithm whose digest size is not 256, 384, or 512 bits, which
+/// no currently defined algorithm reaches. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

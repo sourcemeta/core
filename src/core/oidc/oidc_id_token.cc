@@ -4,11 +4,13 @@
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oidc_hash.h>
+#include <sourcemeta/core/time.h>
 
-#include <chrono> // std::chrono::system_clock, std::chrono::seconds, std::chrono::duration_cast
+#include <chrono> // std::chrono::system_clock, std::chrono::seconds, std::chrono::duration, std::chrono::duration_cast
 #include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
+#include <stdexcept>   // std::out_of_range
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -121,9 +123,17 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
   // forced when the authentication is older than the requested maximum age
   std::optional<std::chrono::system_clock::time_point> authentication_time;
   const auto *auth_time{payload.try_at("auth_time"sv, HASH_AUTH_TIME)};
-  if (auth_time != nullptr && auth_time->is_integer()) {
-    authentication_time =
-        std::chrono::system_clock::from_time_t(auth_time->to_integer());
+  if (auth_time != nullptr && auth_time->is_number()) {
+    // A NumericDate may be non-integer (RFC 7519 Section 2), and a value beyond
+    // the range of a double cannot stand for a usable timestamp, so it is
+    // treated as absent rather than aborting, matching how the JWT layer reads
+    // the registered time claims
+    try {
+      authentication_time = from_unix_timestamp(
+          std::chrono::duration<double>{auth_time->as_real()});
+    } catch (const std::out_of_range &) {
+      authentication_time = std::nullopt;
+    }
   }
 
   if (options.maximum_authentication_age.has_value()) {
