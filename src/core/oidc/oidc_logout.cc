@@ -3,7 +3,6 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
-#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include "oidc_verify.h"
@@ -26,21 +25,6 @@ constexpr auto HASH_EVENTS{JSON::Object::hash("events"sv)};
 
 constexpr std::string_view BACKCHANNEL_LOGOUT_EVENT{
     "http://schemas.openid.net/event/backchannel-logout"};
-
-// RFC 7519 Section 5.1: a typ without a slash is treated as if application/
-// were prepended, so the compact and prefixed forms compare equal. RFC 7515
-// Section 4.1.9 makes the media type case-insensitive
-auto strip_application_prefix(const std::string_view value)
-    -> std::string_view {
-  constexpr std::string_view prefix{"application/"};
-  if (value.size() > prefix.size() &&
-      equals_ignore_case(value.substr(0, prefix.size()), prefix) &&
-      value.find('/', prefix.size()) == std::string_view::npos) {
-    return value.substr(prefix.size());
-  }
-
-  return value;
-}
 
 } // namespace
 
@@ -96,12 +80,8 @@ auto oidc_validate_logout_token(
   }
 
   // OpenID Connect Back-Channel Logout 1.0 Section 2.4: the typ header SHOULD
-  // be logout+jwt, so it is validated only when present, comparing the media
-  // type case-insensitively
-  const auto type{token.type()};
-  if (type.has_value() &&
-      !equals_ignore_case(strip_application_prefix(type.value()),
-                          "logout+jwt")) {
+  // be logout+jwt, so it is validated only when present
+  if (token.type().has_value() && !token.has_type("logout+jwt")) {
     return false;
   }
 

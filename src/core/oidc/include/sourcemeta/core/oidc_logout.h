@@ -64,11 +64,11 @@ auto oidc_build_logout_url(const std::string_view end_session_endpoint,
 /// Validate a Back-Channel Logout token against a key set at a given time
 /// (OpenID Connect Back-Channel Logout 1.0 Section 2.6). The signature is
 /// verified under a pinned algorithm, the issuer and audience must match, the
-/// `iat` and `exp` must be present and not in the past or future, the `typ`
-/// header when present must be `logout+jwt`, the token must carry a `sub` or
-/// `sid`, an `events` object with the back-channel logout member, a `jti`, and
-/// it must not carry a `nonce`. Replay rejection by `jti` is the caller's
-/// responsibility. For example:
+/// `iat` must be present and not in the future, the `exp` must be present and
+/// not have passed, the `typ` header when present must be `logout+jwt`, the
+/// token must carry a `sub` or `sid`, an `events` object with the back-channel
+/// logout member, a `jti`, and it must not carry a `nonce`. Replay rejection by
+/// `jti` is the caller's responsibility. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

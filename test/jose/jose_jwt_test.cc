@@ -104,6 +104,39 @@ TEST(absent_type) {
   EXPECT_FALSE(token.value().type().has_value());
 }
 
+TEST(has_type_matches_the_exact_value) {
+  const auto input{
+      make_token(R"({ "alg": "RS256", "typ": "at+jwt" })", R"({})", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().has_type("at+jwt"));
+  EXPECT_FALSE(token.value().has_type("logout+jwt"));
+}
+
+TEST(has_type_is_case_insensitive) {
+  const auto input{
+      make_token(R"({ "alg": "RS256", "typ": "Logout+JWT" })", R"({})", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().has_type("logout+jwt"));
+}
+
+TEST(has_type_ignores_the_application_prefix) {
+  const auto input{make_token(
+      R"({ "alg": "RS256", "typ": "application/at+jwt" })", R"({})", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(token.value().has_type("at+jwt"));
+  EXPECT_TRUE(token.value().has_type("application/at+jwt"));
+}
+
+TEST(has_type_is_false_when_absent) {
+  const auto input{make_token(R"({ "alg": "RS256" })", R"({})", "sig")};
+  const auto token{sourcemeta::core::JWT::from(input)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(token.value().has_type("at+jwt"));
+}
+
 TEST(issuer) {
   const auto input{
       make_token(R"({ "alg": "RS256" })", R"({ "iss": "acme" })", "sig")};
