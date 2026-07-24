@@ -1639,3 +1639,41 @@ TEST(constexpr_hash_matches_runtime_for_a_long_key) {
   const auto run_time{sourcemeta::core::JSON::Object::hash(key)};
   EXPECT_TRUE(compile_time == run_time);
 }
+
+TEST(unique_keys_empty_object) {
+  const auto document{sourcemeta::core::parse_json("{}")};
+  EXPECT_TRUE(document.unique_keys());
+}
+
+TEST(unique_keys_true) {
+  const auto document{
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2, "baz": 3 })")};
+  EXPECT_TRUE(document.unique_keys());
+}
+
+TEST(unique_keys_false) {
+  const auto document{
+      sourcemeta::core::parse_json(R"({ "foo": 1, "bar": 2, "foo": 3 })")};
+  EXPECT_FALSE(document.unique_keys());
+}
+
+TEST(unique_keys_false_adjacent) {
+  const auto document{
+      sourcemeta::core::parse_json(R"({ "foo": 1, "foo": 2 })")};
+  EXPECT_FALSE(document.unique_keys());
+}
+
+TEST(unique_keys_false_long_keys) {
+  // Keys beyond the perfect-hash width exercise the string-comparison fallback
+  const std::string key(40, 'a');
+  const auto document{sourcemeta::core::parse_json("{ \"" + key + "\": 1, \"" +
+                                                   key + "\": 2 }")};
+  EXPECT_FALSE(document.unique_keys());
+}
+
+TEST(unique_keys_true_long_keys) {
+  const auto document{sourcemeta::core::parse_json(
+      R"({ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1": 1,
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2": 2 })")};
+  EXPECT_TRUE(document.unique_keys());
+}
