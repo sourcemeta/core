@@ -8,6 +8,8 @@
 // NOLINTBEGIN(misc-include-cleaner)
 #include <sourcemeta/core/oidc_discovery.h>
 #include <sourcemeta/core/oidc_error.h>
+#include <sourcemeta/core/oidc_hash.h>
+#include <sourcemeta/core/oidc_id_token.h>
 #include <sourcemeta/core/oidc_metadata.h>
 // NOLINTEND(misc-include-cleaner)
 
