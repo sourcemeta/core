@@ -7,15 +7,12 @@
 #include <string_view> // std::string_view
 #include <vector>      // std::vector
 
-static auto has(const std::vector<std::string> &values,
-                const std::string_view target) -> bool {
-  for (const auto &value : values) {
-    if (value == target) {
-      return true;
-    }
-  }
-
-  return false;
+static auto collect(const std::string_view scopes) -> std::vector<std::string> {
+  std::vector<std::string> claims;
+  sourcemeta::core::oidc_scope_to_claims(
+      scopes,
+      [&claims](std::string_view claim) { claims.emplace_back(claim); });
+  return claims;
 }
 
 TEST(is_standard_claim_recognizes_registered_claims) {
@@ -28,45 +25,26 @@ TEST(is_standard_claim_recognizes_registered_claims) {
 }
 
 TEST(scope_to_claims_maps_openid_to_sub) {
-  std::vector<std::string> claims;
-  sourcemeta::core::oidc_scope_to_claims(
-      "openid",
-      [&claims](std::string_view claim) { claims.emplace_back(claim); });
-  EXPECT_EQ(claims.size(), 1);
-  EXPECT_TRUE(has(claims, "sub"));
+  EXPECT_EQ(collect("openid"), (std::vector<std::string>{"sub"}));
 }
 
 TEST(scope_to_claims_maps_email) {
-  std::vector<std::string> claims;
-  sourcemeta::core::oidc_scope_to_claims(
-      "openid email",
-      [&claims](std::string_view claim) { claims.emplace_back(claim); });
-  EXPECT_TRUE(has(claims, "sub"));
-  EXPECT_TRUE(has(claims, "email"));
-  EXPECT_TRUE(has(claims, "email_verified"));
-  EXPECT_FALSE(has(claims, "name"));
+  EXPECT_EQ(collect("openid email"),
+            (std::vector<std::string>{"sub", "email", "email_verified"}));
 }
 
 TEST(scope_to_claims_maps_profile_phone_address) {
-  std::vector<std::string> claims;
-  sourcemeta::core::oidc_scope_to_claims(
-      "openid profile phone address",
-      [&claims](std::string_view claim) { claims.emplace_back(claim); });
-  EXPECT_TRUE(has(claims, "name"));
-  EXPECT_TRUE(has(claims, "given_name"));
-  EXPECT_TRUE(has(claims, "updated_at"));
-  EXPECT_TRUE(has(claims, "phone_number"));
-  EXPECT_TRUE(has(claims, "phone_number_verified"));
-  EXPECT_TRUE(has(claims, "address"));
+  EXPECT_EQ(
+      collect("openid profile phone address"),
+      (std::vector<std::string>{
+          "sub", "name", "family_name", "given_name", "middle_name", "nickname",
+          "preferred_username", "profile", "picture", "website", "gender",
+          "birthdate", "zoneinfo", "locale", "updated_at", "address",
+          "phone_number", "phone_number_verified"}));
 }
 
 TEST(scope_to_claims_ignores_unknown_scopes) {
-  std::vector<std::string> claims;
-  sourcemeta::core::oidc_scope_to_claims(
-      "openid api:read",
-      [&claims](std::string_view claim) { claims.emplace_back(claim); });
-  EXPECT_EQ(claims.size(), 1);
-  EXPECT_TRUE(has(claims, "sub"));
+  EXPECT_EQ(collect("openid api:read"), (std::vector<std::string>{"sub"}));
 }
 
 TEST(build_claims_parameter_marks_essential_and_voluntary) {

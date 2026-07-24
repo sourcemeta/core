@@ -1,6 +1,7 @@
 #include <sourcemeta/core/oidc_authentication.h>
 
 #include <sourcemeta/core/oauth.h>
+#include <sourcemeta/core/text.h>
 
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
@@ -17,24 +18,13 @@ namespace {
 // Section 3.1.2.1, which compares such parameters as space-delimited lists)
 auto space_list_contains(const std::string_view list,
                          const std::string_view token) -> bool {
-  std::size_t position{0};
-  while (position <= list.size()) {
-    const auto space{list.find(' ', position)};
-    const auto value{space == std::string_view::npos
-                         ? list.substr(position)
-                         : list.substr(position, space - position)};
+  bool found{false};
+  split(list, ' ', [&found, token](const std::string_view value) -> void {
     if (value == token) {
-      return true;
+      found = true;
     }
-
-    if (space == std::string_view::npos) {
-      break;
-    }
-
-    position = space + 1;
-  }
-
-  return false;
+  });
+  return found;
 }
 
 // OpenID Connect Core 1.0 Section 3.1.2.1: the none prompt value "MUST NOT be
@@ -45,24 +35,42 @@ auto prompt_is_valid(const std::string_view prompt) -> bool {
   }
 
   std::size_t token_count{0};
-  std::size_t position{0};
-  while (position <= prompt.size()) {
-    const auto space{prompt.find(' ', position)};
-    const auto value{space == std::string_view::npos
-                         ? prompt.substr(position)
-                         : prompt.substr(position, space - position)};
+  split(prompt, ' ', [&token_count](const std::string_view value) -> void {
     if (!value.empty()) {
       token_count += 1;
     }
-
-    if (space == std::string_view::npos) {
-      break;
-    }
-
-    position = space + 1;
-  }
-
+  });
   return token_count == 1;
+}
+
+// OpenID Connect Core 1.0 Section 3.1.2.1: store a parsed OpenID Connect
+// authentication parameter that the OAuth layer treats as an extension
+auto assign_openid_parameter(OIDCAuthenticationRequest &result,
+                             const std::string_view name,
+                             const std::string_view value) -> void {
+  if (name == "nonce") {
+    result.nonce = value;
+  } else if (name == "display") {
+    result.display = value;
+  } else if (name == "prompt") {
+    result.prompt = value;
+  } else if (name == "max_age") {
+    result.max_age = value;
+  } else if (name == "ui_locales") {
+    result.ui_locales = value;
+  } else if (name == "id_token_hint") {
+    result.id_token_hint = value;
+  } else if (name == "login_hint") {
+    result.login_hint = value;
+  } else if (name == "acr_values") {
+    result.acr_values = value;
+  } else if (name == "claims") {
+    result.claims = value;
+  } else if (name == "request") {
+    result.request = value;
+  } else if (name == "response_mode") {
+    result.response_mode = value;
+  }
 }
 
 } // namespace
@@ -153,32 +161,8 @@ auto oidc_parse_authentication_request(const std::string_view query,
   OAuthAuthorizationRequest base;
   const auto parsed{oauth_parse_authorization_request(
       query, storage, base,
-      [&result](const std::string_view name,
-                const std::string_view value) -> void {
-        if (name == "nonce") {
-          result.nonce = value;
-        } else if (name == "display") {
-          result.display = value;
-        } else if (name == "prompt") {
-          result.prompt = value;
-        } else if (name == "max_age") {
-          result.max_age = value;
-        } else if (name == "ui_locales") {
-          result.ui_locales = value;
-        } else if (name == "id_token_hint") {
-          result.id_token_hint = value;
-        } else if (name == "login_hint") {
-          result.login_hint = value;
-        } else if (name == "acr_values") {
-          result.acr_values = value;
-        } else if (name == "claims") {
-          result.claims = value;
-        } else if (name == "request") {
-          result.request = value;
-        } else if (name == "response_mode") {
-          result.response_mode = value;
-        }
-      })};
+      [&result](const std::string_view name, const std::string_view value)
+          -> void { assign_openid_parameter(result, name, value); })};
   if (!parsed) {
     return false;
   }
