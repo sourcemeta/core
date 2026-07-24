@@ -72,8 +72,8 @@ TEST(validate_rejects_an_expired_token) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
-    "exp": 1700000000,
-    "iat": 1699996400
+    "iat": 1699996400,
+    "exp": 1700000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
@@ -88,6 +88,7 @@ TEST(validate_rejects_a_wrong_issuer) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -103,6 +104,7 @@ TEST(validate_rejects_a_wrong_audience) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -117,6 +119,39 @@ TEST(validate_rejects_a_missing_subject) {
   const auto compact{sign_id_token(R"JSON({
     "iss": "https://issuer.example",
     "aud": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_rejects_a_missing_iat) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_rejects_a_malformed_audience_array) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": [ "client-id", 123 ],
+    "azp": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -132,6 +167,7 @@ TEST(validate_rejects_a_mismatched_nonce) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000,
     "nonce": "n-abc"
   })JSON")};
@@ -150,6 +186,7 @@ TEST(validate_rejects_a_missing_nonce_when_one_was_sent) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -167,6 +204,7 @@ TEST(validate_echoes_a_matching_nonce) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000,
     "nonce": "n-abc"
   })JSON")};
@@ -187,6 +225,7 @@ TEST(validate_accepts_a_multi_audience_token_with_matching_azp) {
     "sub": "user-1",
     "aud": [ "client-id", "other" ],
     "azp": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -203,6 +242,7 @@ TEST(validate_rejects_a_multi_audience_token_without_azp) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": [ "client-id", "other" ],
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -219,6 +259,7 @@ TEST(validate_rejects_a_mismatched_azp) {
     "sub": "user-1",
     "aud": "client-id",
     "azp": "other",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -235,6 +276,7 @@ TEST(validate_enforces_an_acceptable_acr) {
     "sub": "user-1",
     "aud": "client-id",
     "acr": "silver",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -262,6 +304,7 @@ TEST(validate_enforces_the_maximum_authentication_age) {
     "sub": "user-1",
     "aud": "client-id",
     "auth_time": 1699996400,
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -286,6 +329,7 @@ TEST(validate_accepts_a_fractional_auth_time) {
     "sub": "user-1",
     "aud": "client-id",
     "auth_time": 1699996400.5,
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -298,17 +342,19 @@ TEST(validate_accepts_a_fractional_auth_time) {
   EXPECT_TRUE(accepted.has_value());
 }
 
-TEST(validate_requires_issued_at_when_configured) {
+TEST(validate_rejects_a_future_auth_time) {
   const auto compact{sign_id_token(R"JSON({
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "auth_time": 1900000000,
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
   EXPECT_TRUE(token.has_value());
   sourcemeta::core::OIDCValidationOptions options;
-  options.require_issued_at = true;
+  options.maximum_authentication_age = std::chrono::hours{2};
   const auto identity{sourcemeta::core::oidc_validate_id_token(
       token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
       "client-id", reference_now, options)};
@@ -320,6 +366,7 @@ TEST(validate_rejects_an_algorithm_outside_the_allow_list) {
     "iss": "https://issuer.example",
     "sub": "user-1",
     "aud": "client-id",
+    "iat": 1699996400,
     "exp": 2000000000
   })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};
@@ -360,6 +407,47 @@ TEST(validate_enforces_the_access_token_hash) {
   EXPECT_FALSE(rejected.has_value());
 }
 
+TEST(validate_requires_the_access_token_hash_when_configured) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
+}
+
+TEST(validate_accepts_a_required_access_token_hash_when_present) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = reference_now;
+  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+
+  sourcemeta::core::OIDCValidationOptions options;
+  options.access_token = "the-access-token";
+  options.require_access_token_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_TRUE(identity.has_value());
+}
+
 TEST(validate_enforces_the_code_hash) {
   sourcemeta::core::OIDCIdTokenClaims claims;
   claims.issuer = "https://issuer.example";
@@ -379,6 +467,25 @@ TEST(validate_enforces_the_code_hash) {
       token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
       "client-id", reference_now, mismatched)};
   EXPECT_FALSE(rejected.has_value());
+}
+
+TEST(validate_requires_the_code_hash_when_configured) {
+  const auto compact{sign_id_token(R"JSON({
+    "iss": "https://issuer.example",
+    "sub": "user-1",
+    "aud": "client-id",
+    "iat": 1699996400,
+    "exp": 2000000000
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  sourcemeta::core::OIDCValidationOptions options;
+  options.code = "the-authorization-code";
+  options.require_code_hash = true;
+  const auto identity{sourcemeta::core::oidc_validate_id_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, options)};
+  EXPECT_FALSE(identity.has_value());
 }
 
 TEST(parse_id_token_extracts_the_member) {

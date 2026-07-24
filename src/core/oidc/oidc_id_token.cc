@@ -59,6 +59,15 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
   // more than one value the authorized party is REQUIRED and must be the
   // client, and when it is present at all it must be the client
   const auto *audience{payload.try_at("aud"sv, HASH_AUD)};
+
+  // A malformed audience array, one carrying a non-string member, is rejected
+  // rather than accepted because one member happened to match the client
+  // (OpenID Connect Core 1.0 Section 2)
+  if (audience != nullptr && audience->is_array() &&
+      !audience->is_array_of_strings()) {
+    return std::nullopt;
+  }
+
   const bool multiple_audiences{audience != nullptr && audience->is_array() &&
                                 audience->size() > 1};
   const auto *authorized_party{payload.try_at("azp"sv, HASH_AZP)};
@@ -84,17 +93,18 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
     }
   }
 
-  // OpenID Connect Core 1.0 Section 3.1.3.7 step 10: the issued-at age policy
+  // OpenID Connect Core 1.0 Section 2: iat is REQUIRED in an ID Token, so its
+  // presence and validity are enforced unconditionally rather than as an opt-in
   const auto issued_at{token.issued_at()};
-  if (options.require_issued_at && !issued_at.has_value()) {
+  if (!issued_at.has_value()) {
     return std::nullopt;
   }
 
-  if (options.maximum_issued_at_age.has_value()) {
-    if (!issued_at.has_value() ||
-        now - issued_at.value() > options.maximum_issued_at_age.value()) {
-      return std::nullopt;
-    }
+  // OpenID Connect Core 1.0 Section 3.1.3.7 step 10: the optional issued-at age
+  // policy
+  if (options.maximum_issued_at_age.has_value() &&
+      now - issued_at.value() > options.maximum_issued_at_age.value()) {
+    return std::nullopt;
   }
 
   // OpenID Connect Core 1.0 Section 3.1.3.7 step 12: the authentication context
@@ -137,36 +147,42 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
   }
 
   if (options.maximum_authentication_age.has_value()) {
-    if (!authentication_time.has_value() ||
+    // An authentication time in the future has not happened yet, so it cannot
+    // satisfy a freshness window and is rejected before the age comparison
+    if (!authentication_time.has_value() || authentication_time.value() > now ||
         now - authentication_time.value() >
             options.maximum_authentication_age.value()) {
       return std::nullopt;
     }
   }
 
-  // OpenID Connect Core 1.0 Sections 3.1.3.6 and 3.3.2.11: when an access token
-  // or code reaches the client and the ID Token carries the binding hash, the
-  // hash is recomputed under the token algorithm and must match
-  if (options.access_token.has_value()) {
-    const auto *at_hash{payload.try_at("at_hash"sv, HASH_AT_HASH)};
-    if (at_hash != nullptr &&
-        (!at_hash->is_string() || !token.algorithm().has_value() ||
-         !oidc_verify_token_hash(options.access_token.value(),
-                                 token.algorithm().value(),
-                                 at_hash->to_string()))) {
-      return std::nullopt;
-    }
+  // OpenID Connect Core 1.0 Sections 3.1.3.6, 3.2.2.10, and 3.3.2.11: the
+  // binding hash is REQUIRED in the front-channel flows, so its absence fails
+  // when the caller demands it, and whenever it is present alongside the token
+  // it is recomputed under the token algorithm and must match
+  const auto *at_hash{payload.try_at("at_hash"sv, HASH_AT_HASH)};
+  if (options.require_access_token_hash && at_hash == nullptr) {
+    return std::nullopt;
   }
 
-  if (options.code.has_value()) {
-    const auto *code_hash{payload.try_at("c_hash"sv, HASH_C_HASH)};
-    if (code_hash != nullptr &&
-        (!code_hash->is_string() || !token.algorithm().has_value() ||
-         !oidc_verify_token_hash(options.code.value(),
-                                 token.algorithm().value(),
-                                 code_hash->to_string()))) {
-      return std::nullopt;
-    }
+  if (at_hash != nullptr && options.access_token.has_value() &&
+      (!at_hash->is_string() || !token.algorithm().has_value() ||
+       !oidc_verify_token_hash(options.access_token.value(),
+                               token.algorithm().value(),
+                               at_hash->to_string()))) {
+    return std::nullopt;
+  }
+
+  const auto *code_hash{payload.try_at("c_hash"sv, HASH_C_HASH)};
+  if (options.require_code_hash && code_hash == nullptr) {
+    return std::nullopt;
+  }
+
+  if (code_hash != nullptr && options.code.has_value() &&
+      (!code_hash->is_string() || !token.algorithm().has_value() ||
+       !oidc_verify_token_hash(options.code.value(), token.algorithm().value(),
+                               code_hash->to_string()))) {
+    return std::nullopt;
   }
 
   OIDCIdentity identity;

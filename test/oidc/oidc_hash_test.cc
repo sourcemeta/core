@@ -16,6 +16,14 @@ TEST(token_hash_rs256) {
   EXPECT_EQ(hash.value(), "piwt8oCH-K2D9pXlaS1Y-w");
 }
 
+TEST(token_hash_rejects_eddsa) {
+  // The correct digest for EdDSA depends on the signing curve, which the
+  // algorithm alone does not convey, so it is rejected rather than guessed
+  EXPECT_FALSE(sourcemeta::core::oidc_token_hash(
+                   reference_token, sourcemeta::core::JWSAlgorithm::EdDSA)
+                   .has_value());
+}
+
 TEST(token_hash_es384) {
   const auto hash{sourcemeta::core::oidc_token_hash(
       reference_token, sourcemeta::core::JWSAlgorithm::ES384)};

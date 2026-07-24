@@ -19,10 +19,10 @@ namespace sourcemeta::core {
 /// Connect Core 1.0 Section 3.1.3.6). The token is hashed with the SHA variant
 /// the algorithm is defined over, the left-most half of the digest is kept, and
 /// that half is base64url-encoded without padding. The digest is selected from
-/// the algorithm by table rather than by slicing its name, where `EdDSA` maps
-/// to SHA-512, which is correct for Ed25519 but not for Ed448. Returns no value
-/// only for an algorithm whose digest size is not 256, 384, or 512 bits, which
-/// no currently defined algorithm reaches. For example:
+/// the algorithm by table rather than by slicing its name. Returns no value for
+/// `EdDSA`, whose correct digest depends on the signing curve (SHA-512 for
+/// Ed25519, SHAKE256 for Ed448) that the algorithm alone does not convey. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

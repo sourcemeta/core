@@ -65,9 +65,6 @@ struct OIDCValidationOptions {
   /// The maximum authentication age, requiring a fresh `auth_time` when set
   /// (OpenID Connect Core 1.0 Section 3.1.3.7 step 13).
   std::optional<std::chrono::seconds> maximum_authentication_age;
-  /// Whether the `iat` claim is required to be present, stricter than the
-  /// specification's MAY (OpenID Connect Core 1.0 Section 3.1.3.7 step 10).
-  bool require_issued_at{false};
   /// The maximum age of the `iat` claim, checked when set (OpenID Connect Core
   /// 1.0 Section 3.1.3.7 step 10).
   std::optional<std::chrono::seconds> maximum_issued_at_age;
@@ -77,6 +74,14 @@ struct OIDCValidationOptions {
   /// The authorization code to bind through `c_hash`, verified against the
   /// claim when both are present (OpenID Connect Core 1.0 Section 3.3.2.11).
   std::optional<std::string_view> code;
+  /// Whether the `at_hash` claim is required to be present, the case for the
+  /// implicit and hybrid flows that return an access token from the
+  /// authorization endpoint (OpenID Connect Core 1.0 Sections 3.2.2.10 and
+  /// 3.3.2.11).
+  bool require_access_token_hash{false};
+  /// Whether the `c_hash` claim is required to be present, the case for the
+  /// hybrid `code id_token` flow (OpenID Connect Core 1.0 Section 3.3.2.11).
+  bool require_code_hash{false};
 };
 
 /// @ingroup oidc
@@ -84,11 +89,12 @@ struct OIDCValidationOptions {
 /// asserted identity or no value when any check fails (OpenID Connect Core 1.0
 /// Section 3.1.3.7). The base JSON Web Token verification (signature under a
 /// pinned algorithm, issuer, audience, expiration, and skew) runs first, then
-/// the OpenID Connect steps: the subject is required, an `azp` matching the
-/// client is required when the audience carries more than one value, the nonce
-/// is echoed when one was sent, and the authentication context and age
-/// constraints hold. The algorithm allow-list is pinned by the caller and must
-/// never contain `none`. For example:
+/// the OpenID Connect steps: the subject and issued-at are required, an `azp`
+/// matching the client is required when the audience carries more than one
+/// value, the nonce is echoed when one was sent, the authentication context and
+/// age constraints hold, and a required binding hash is present and matches.
+/// The algorithm allow-list is pinned by the caller and must never contain
+/// `none`. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

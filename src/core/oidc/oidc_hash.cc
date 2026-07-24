@@ -13,12 +13,18 @@ namespace sourcemeta::core {
 
 auto oidc_token_hash(const std::string_view token, const JWSAlgorithm algorithm)
     -> std::optional<std::string> {
+  // The correct digest for EdDSA depends on the signing curve, SHA-512 for
+  // Ed25519 but SHAKE256 for Ed448, which the algorithm alone does not convey.
+  // Selecting SHA-512 for every EdDSA value would silently produce a wrong
+  // binding for Ed448, so it is rejected rather than guessed
+  if (algorithm == JWSAlgorithm::EdDSA) {
+    return std::nullopt;
+  }
+
   // OpenID Connect Core 1.0 Section 3.1.3.6: "hash the octets of the ASCII
   // representation ... with the hash algorithm used ... take the left-most half
   // of the hash and base64url-encode it". The digest is selected by an explicit
-  // table rather than by slicing the algorithm name. EdDSA maps to SHA-512,
-  // which is Ed25519 correct but not Ed448 correct, a limitation inherited from
-  // the algorithm-only digest table
+  // table rather than by slicing the algorithm name
   switch (jws_algorithm_digest_bits(algorithm)) {
     case 256: {
       const auto digest{sha256_digest(token)};
