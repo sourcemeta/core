@@ -13,6 +13,10 @@
 #include <sourcemeta/core/oidc_hash.h>
 #include <sourcemeta/core/oidc_id_token.h>
 #include <sourcemeta/core/oidc_metadata.h>
+#include <sourcemeta/core/oidc_profile.h>
+#include <sourcemeta/core/oidc_registration.h>
+#include <sourcemeta/core/oidc_subject.h>
+#include <sourcemeta/core/oidc_userinfo.h>
 // NOLINTEND(misc-include-cleaner)
 
 /// @defgroup oidc OpenID Connect

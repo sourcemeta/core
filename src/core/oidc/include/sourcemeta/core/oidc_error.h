@@ -27,6 +27,18 @@ public:
   }
 };
 
+/// @ingroup oidc
+/// An error that occurs when parsing an invalid OpenID Connect client
+/// registration document.
+class SOURCEMETA_CORE_OIDC_EXPORT OIDCRegistrationParseError
+    : public std::exception {
+public:
+  [[nodiscard]] auto what() const noexcept -> const char * override {
+    return "The input is not a valid OpenID Connect client registration "
+           "document";
+  }
+};
+
 #if defined(_MSC_VER)
 #pragma warning(default : 4251 4275)
 #endif
