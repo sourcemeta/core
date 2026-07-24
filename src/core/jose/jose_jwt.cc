@@ -37,6 +37,22 @@ auto string_claim(const sourcemeta::core::JSON &object,
   return std::string_view{member->to_string()};
 }
 
+// RFC 7519 Section 5.1: a "typ" value not containing a slash is treated as if
+// "application/" were prepended, so the compact and prefixed forms compare
+// equal, and RFC 7515 Section 4.1.9 makes the media type case-insensitive
+auto strip_application_prefix(const std::string_view value)
+    -> std::string_view {
+  constexpr std::string_view prefix{"application/"};
+  if (value.size() > prefix.size() &&
+      sourcemeta::core::equals_ignore_case(value.substr(0, prefix.size()),
+                                           prefix) &&
+      value.find('/', prefix.size()) == std::string_view::npos) {
+    return value.substr(prefix.size());
+  }
+
+  return value;
+}
+
 auto date_claim(const sourcemeta::core::JSON &object,
                 const sourcemeta::core::JSON::StringView name,
                 const sourcemeta::core::JSON::Object::hash_type hash)
@@ -151,6 +167,13 @@ auto JWT::key_id() const noexcept -> std::optional<std::string_view> {
 
 auto JWT::type() const noexcept -> std::optional<std::string_view> {
   return string_claim(this->header_, "typ", HASH_TYP);
+}
+
+auto JWT::has_type(const std::string_view media_type) const -> bool {
+  const auto value{this->type()};
+  return value.has_value() &&
+         equals_ignore_case(strip_application_prefix(value.value()),
+                            strip_application_prefix(media_type));
 }
 
 auto JWT::issuer() const noexcept -> std::optional<std::string_view> {

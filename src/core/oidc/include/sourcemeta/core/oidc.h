@@ -9,11 +9,14 @@
 #include <sourcemeta/core/oidc_authentication.h>
 #include <sourcemeta/core/oidc_claims.h>
 #include <sourcemeta/core/oidc_discovery.h>
+#include <sourcemeta/core/oidc_encryption.h>
 #include <sourcemeta/core/oidc_error.h>
 #include <sourcemeta/core/oidc_hash.h>
 #include <sourcemeta/core/oidc_id_token.h>
+#include <sourcemeta/core/oidc_logout.h>
 #include <sourcemeta/core/oidc_metadata.h>
 #include <sourcemeta/core/oidc_registration.h>
+#include <sourcemeta/core/oidc_request_object.h>
 #include <sourcemeta/core/oidc_subject.h>
 #include <sourcemeta/core/oidc_userinfo.h>
 // NOLINTEND(misc-include-cleaner)

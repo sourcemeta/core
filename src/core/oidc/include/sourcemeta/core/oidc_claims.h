@@ -74,8 +74,8 @@ struct OIDCClaimRequest {
 ///
 /// const std::array<sourcemeta::core::OIDCClaimRequest, 1> userinfo{
 ///     {{.name = "email", .essential = true}}};
-/// const auto document{sourcemeta::core::oidc_build_claims_parameter(userinfo,
-/// {})};
+/// const auto document{
+///     sourcemeta::core::oidc_build_claims_parameter(userinfo, {})};
 /// assert(document.defines("userinfo"));
 /// ```
 SOURCEMETA_CORE_OIDC_EXPORT
