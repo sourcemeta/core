@@ -93,6 +93,38 @@ TEST(verify_rejects_a_wrong_audience) {
   EXPECT_FALSE(verified.has_value());
 }
 
+TEST(verify_rejects_a_missing_issuer) {
+  const auto parameters{sourcemeta::core::parse_json(
+      R"JSON({
+    "aud": "https://op.example",
+    "scope": "openid"
+  })JSON")};
+  const auto object{sourcemeta::core::oidc_build_request_object(
+      parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(object.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), oct_key_set(), allowed_hs256, "client",
+      "https://op.example")};
+  EXPECT_FALSE(verified.has_value());
+}
+
+TEST(verify_rejects_a_missing_audience) {
+  const auto parameters{sourcemeta::core::parse_json(
+      R"JSON({
+    "iss": "client",
+    "scope": "openid"
+  })JSON")};
+  const auto object{sourcemeta::core::oidc_build_request_object(
+      parameters, oct_private_key(), sourcemeta::core::JWSAlgorithm::HS256)};
+  const auto token{sourcemeta::core::JWT::from(object.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto verified{sourcemeta::core::oidc_verify_request_object(
+      token.value(), oct_key_set(), allowed_hs256, "client",
+      "https://op.example")};
+  EXPECT_FALSE(verified.has_value());
+}
+
 TEST(verify_rejects_an_unknown_kid) {
   const auto object{
       sourcemeta::core::jwt_sign(sourcemeta::core::parse_json(R"JSON({

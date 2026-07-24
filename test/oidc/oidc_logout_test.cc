@@ -44,6 +44,7 @@ static constexpr std::string_view VALID_PAYLOAD{R"JSON({
   "iss": "https://issuer.example",
   "aud": "client-id",
   "iat": 1700000000,
+  "exp": 2000000000,
   "jti": "logout-1",
   "sub": "user-1",
   "events": {
@@ -89,6 +90,31 @@ TEST(validate_logout_token_rejects_a_wrong_typ) {
       "client-id", reference_now));
 }
 
+TEST(validate_logout_token_accepts_a_missing_typ) {
+  const auto compact{sign_logout_token(R"JSON({
+    "alg": "HS256"
+  })JSON",
+                                       VALID_PAYLOAD)};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_accepts_a_mixed_case_typ) {
+  const auto compact{sign_logout_token(R"JSON({
+    "alg": "HS256",
+    "typ": "application/Logout+JWT"
+  })JSON",
+                                       VALID_PAYLOAD)};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
 TEST(validate_logout_token_rejects_an_unknown_kid) {
   const auto compact{sign_logout_token(R"JSON({
     "alg": "HS256",
@@ -108,6 +134,7 @@ TEST(validate_logout_token_rejects_a_nonce) {
     "iss": "https://issuer.example",
     "aud": "client-id",
     "iat": 1700000000,
+    "exp": 2000000000,
     "jti": "logout-1",
     "sub": "user-1",
     "nonce": "n",
@@ -127,6 +154,7 @@ TEST(validate_logout_token_rejects_a_missing_events) {
     "iss": "https://issuer.example",
     "aud": "client-id",
     "iat": 1700000000,
+    "exp": 2000000000,
     "jti": "logout-1",
     "sub": "user-1"
   })JSON")};
@@ -142,6 +170,7 @@ TEST(validate_logout_token_rejects_a_missing_subject_and_session) {
     "iss": "https://issuer.example",
     "aud": "client-id",
     "iat": 1700000000,
+    "exp": 2000000000,
     "jti": "logout-1",
     "events": {
       "http://schemas.openid.net/event/backchannel-logout": {}
@@ -159,6 +188,7 @@ TEST(validate_logout_token_rejects_a_missing_jti) {
     "iss": "https://issuer.example",
     "aud": "client-id",
     "iat": 1700000000,
+    "exp": 2000000000,
     "sub": "user-1",
     "events": {
       "http://schemas.openid.net/event/backchannel-logout": {}
@@ -178,6 +208,145 @@ TEST(validate_logout_token_rejects_a_wrong_issuer) {
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
       token.value(), oct_key_set(), allowed_hs256, "https://attacker.example",
       "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_a_missing_exp) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_an_expired_token) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1600000000,
+    "exp": 1650000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_an_exp_at_the_boundary) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1600000000,
+    "exp": 1700000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_a_non_string_subject) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sub": 42,
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_a_non_string_session) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sid": {},
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_a_non_string_jti) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "exp": 2000000000,
+    "jti": 7,
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(build_logout_url_without_parameters_leaves_the_endpoint_untouched) {
+  const sourcemeta::core::OIDCLogoutRequest request;
+  std::string url;
+  sourcemeta::core::oidc_build_logout_url("https://server.example/logout",
+                                          request, url);
+  EXPECT_EQ(url, "https://server.example/logout");
+}
+
+TEST(build_logout_url_continues_an_existing_query) {
+  sourcemeta::core::OIDCLogoutRequest request;
+  request.state = "xyz";
+  std::string url;
+  sourcemeta::core::oidc_build_logout_url(
+      "https://server.example/logout?foo=bar", request, url);
+  EXPECT_EQ(url, "https://server.example/logout?foo=bar&state=xyz");
+}
+
+TEST(build_logout_url_opens_a_fresh_query) {
+  sourcemeta::core::OIDCLogoutRequest request;
+  request.state = "xyz";
+  std::string url;
+  sourcemeta::core::oidc_build_logout_url("https://server.example/logout",
+                                          request, url);
+  EXPECT_EQ(url, "https://server.example/logout?state=xyz");
 }
 
 TEST(front_channel_pairing_requires_both_or_neither) {

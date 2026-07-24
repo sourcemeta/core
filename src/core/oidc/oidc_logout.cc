@@ -3,6 +3,7 @@
 #include <sourcemeta/core/crypto.h>
 #include <sourcemeta/core/jose.h>
 #include <sourcemeta/core/json.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include "oidc_verify.h"
@@ -18,29 +19,27 @@ namespace {
 
 using namespace std::literals::string_view_literals;
 
+constexpr auto HASH_SUB{JSON::Object::hash("sub"sv)};
+constexpr auto HASH_SID{JSON::Object::hash("sid"sv)};
+constexpr auto HASH_JTI{JSON::Object::hash("jti"sv)};
 constexpr auto HASH_EVENTS{JSON::Object::hash("events"sv)};
 
 constexpr std::string_view BACKCHANNEL_LOGOUT_EVENT{
     "http://schemas.openid.net/event/backchannel-logout"};
 
 // RFC 7519 Section 5.1: a typ without a slash is treated as if application/
-// were prepended, so the compact and prefixed forms compare equal
+// were prepended, so the compact and prefixed forms compare equal. RFC 7515
+// Section 4.1.9 makes the media type case-insensitive
 auto strip_application_prefix(const std::string_view value)
     -> std::string_view {
   constexpr std::string_view prefix{"application/"};
-  if (value.starts_with(prefix) &&
+  if (value.size() > prefix.size() &&
+      equals_ignore_case(value.substr(0, prefix.size()), prefix) &&
       value.find('/', prefix.size()) == std::string_view::npos) {
     return value.substr(prefix.size());
   }
 
   return value;
-}
-
-auto append_parameter(std::string &sink, const std::string_view name,
-                      const std::string_view value) -> void {
-  if (!value.empty()) {
-    URI::append_query_parameter(sink, name, value);
-  }
 }
 
 } // namespace
@@ -49,17 +48,38 @@ auto oidc_build_logout_url(const std::string_view end_session_endpoint,
                            const OIDCLogoutRequest &request, std::string &sink)
     -> void {
   sink.append(end_session_endpoint);
-  // The query builder joins with "&" once a parameter is present, so a fresh
-  // query is opened with "?" and an existing one is continued with "&"
-  sink.push_back(
-      end_session_endpoint.find('?') == std::string_view::npos ? '?' : '&');
-  append_parameter(sink, "id_token_hint", request.id_token_hint);
-  append_parameter(sink, "logout_hint", request.logout_hint);
-  append_parameter(sink, "client_id", request.client_id);
-  append_parameter(sink, "post_logout_redirect_uri",
-                   request.post_logout_redirect_uri);
-  append_parameter(sink, "state", request.state);
-  append_parameter(sink, "ui_locales", request.ui_locales);
+
+  // The query is opened lazily on the first present parameter, so an all-empty
+  // request leaves the endpoint untouched rather than appending a dangling
+  // separator, and an endpoint that already carries a query is continued rather
+  // than opened again
+  bool opened{false};
+  const auto append{
+      [&sink, &opened, end_session_endpoint](
+          const std::string_view name, const std::string_view value) -> void {
+        if (value.empty()) {
+          return;
+        }
+
+        if (!opened) {
+          if (end_session_endpoint.find('?') == std::string_view::npos) {
+            sink.push_back('?');
+          } else if (sink.back() != '?' && sink.back() != '&') {
+            sink.push_back('&');
+          }
+
+          opened = true;
+        }
+
+        URI::append_query_parameter(sink, name, value);
+      }};
+
+  append("id_token_hint", request.id_token_hint);
+  append("logout_hint", request.logout_hint);
+  append("client_id", request.client_id);
+  append("post_logout_redirect_uri", request.post_logout_redirect_uri);
+  append("state", request.state);
+  append("ui_locales", request.ui_locales);
 }
 
 auto oidc_validate_logout_token(
@@ -75,11 +95,13 @@ auto oidc_validate_logout_token(
     return false;
   }
 
-  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: the typ header is
-  // logout+jwt, which distinguishes a logout token from an ID Token
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: the typ header SHOULD
+  // be logout+jwt, so it is validated only when present, comparing the media
+  // type case-insensitively
   const auto type{token.type()};
-  if (!type.has_value() ||
-      strip_application_prefix(type.value()) != "logout+jwt") {
+  if (type.has_value() &&
+      !equals_ignore_case(strip_application_prefix(type.value()),
+                          "logout+jwt")) {
     return false;
   }
 
@@ -94,24 +116,32 @@ auto oidc_validate_logout_token(
     return false;
   }
 
-  // The iat is REQUIRED and must not be in the future, and an exp when present
-  // must not have passed
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: iat is REQUIRED and
+  // must not be in the future
   const auto issued_at{token.issued_at()};
   if (!issued_at.has_value() ||
       issued_at.value() > now + clock_skew.issued_at) {
     return false;
   }
 
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: exp is REQUIRED and is
+  // validated as for an ID Token, so a token at or past its expiration (with
+  // skew) is rejected
   const auto expires_at{token.expires_at()};
-  if (expires_at.has_value() &&
-      now > expires_at.value() + clock_skew.expiration) {
+  if (!expires_at.has_value() ||
+      now >= expires_at.value() + clock_skew.expiration) {
     return false;
   }
 
   const auto &payload{token.payload()};
 
-  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: a sub, a sid, or both
-  if (!payload.defines("sub") && !payload.defines("sid")) {
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: a sub, a sid, or both,
+  // each a string when present
+  const auto *subject{payload.try_at("sub"sv, HASH_SUB)};
+  const auto *session{payload.try_at("sid"sv, HASH_SID)};
+  const auto has_subject{subject != nullptr && subject->is_string()};
+  const auto has_session{session != nullptr && session->is_string()};
+  if (!has_subject && !has_session) {
     return false;
   }
 
@@ -125,8 +155,10 @@ auto oidc_validate_logout_token(
   }
 
   // A logout token MUST NOT contain a nonce, which prevents it being confused
-  // with an ID Token, and a jti is REQUIRED for replay detection
-  if (payload.defines("nonce") || !payload.defines("jti")) {
+  // with an ID Token, and a jti string is REQUIRED for replay detection
+  const auto *token_identifier{payload.try_at("jti"sv, HASH_JTI)};
+  if (payload.defines("nonce") || token_identifier == nullptr ||
+      !token_identifier->is_string()) {
     return false;
   }
 

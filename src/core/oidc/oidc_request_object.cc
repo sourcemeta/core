@@ -18,7 +18,6 @@ using namespace std::literals::string_view_literals;
 
 constexpr auto HASH_ALG{JSON::Object::hash("alg"sv)};
 constexpr auto HASH_ISS{JSON::Object::hash("iss"sv)};
-constexpr auto HASH_AUD{JSON::Object::hash("aud"sv)};
 
 } // namespace
 
@@ -55,16 +54,16 @@ auto oidc_verify_request_object(
   }
 
   // OpenID Connect Core 1.0 Section 6.1: the request object is issued by the
-  // client and addressed to the OpenID Provider
+  // client and addressed to the OpenID Provider, so iss and aud are REQUIRED
+  // and must match the client and the provider respectively
   const auto &payload{token.payload()};
   const auto *issuer{payload.try_at("iss"sv, HASH_ISS)};
-  if (issuer != nullptr &&
-      (!issuer->is_string() || issuer->to_string() != client_id)) {
+  if (issuer == nullptr || !issuer->is_string() ||
+      issuer->to_string() != client_id) {
     return std::nullopt;
   }
 
-  const auto *audience{payload.try_at("aud"sv, HASH_AUD)};
-  if (audience != nullptr && !token.has_audience(provider_issuer)) {
+  if (!token.has_audience(provider_issuer)) {
     return std::nullopt;
   }
 
