@@ -3,9 +3,9 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/oidc_error.h>
+#include <sourcemeta/core/uri.h>
 
 #include <chrono>      // std::chrono::seconds
-#include <cstddef>     // std::size_t
 #include <limits>      // std::numeric_limits
 #include <optional>    // std::optional, std::nullopt
 #include <span>        // std::span
@@ -48,10 +48,42 @@ auto string_member(const JSON &data, const JSON::StringView name,
   return std::string_view{member->to_string()};
 }
 
+// A member that is absent, or present and a string. A present member of any
+// other type is malformed for a field the accessors read as a string
+auto absent_or_string(const JSON &data, const JSON::StringView name,
+                      const JSON::Object::hash_type hash) -> bool {
+  const auto *member{data.try_at(name, hash)};
+  return member == nullptr || member->is_string();
+}
+
+// RFC 6749 Section 3.1.2: a redirection URI is an absolute URI without a
+// fragment
+auto is_absolute_uri_without_fragment(const std::string_view value) -> bool {
+  try {
+    const URI uri{value};
+    return uri.scheme().has_value() && !uri.fragment().has_value();
+  } catch (const URIParseError &) {
+    return false;
+  }
+}
+
+auto is_https_url_with_host(const std::string_view value) -> bool {
+  try {
+    const URI uri{value};
+    return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+           uri.host().has_value() && !uri.host().value().empty();
+  } catch (const URIParseError &) {
+    return false;
+  }
+}
+
 auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
-  // OpenID Connect Dynamic Client Registration 1.0 Section 2: redirect_uris is
-  // REQUIRED, which OpenID Connect tightens from the OAuth OPTIONAL
   const auto &data{oauth.data()};
+
+  // OpenID Connect Dynamic Client Registration 1.0 Section 2: redirect_uris is
+  // REQUIRED (OpenID Connect tightens the OAuth OPTIONAL), and each entry is an
+  // absolute URI without a fragment (RFC 6749 Section 3.1.2), so an unusable
+  // callback is never treated as registered
   const auto *redirect_uris{data.try_at("redirect_uris"sv, HASH_REDIRECT_URIS)};
   if (redirect_uris == nullptr || !redirect_uris->is_array() ||
       redirect_uris->empty()) {
@@ -59,9 +91,53 @@ auto validate_client_metadata(const OAuthClientMetadata &oauth) -> void {
   }
 
   for (const auto &element : redirect_uris->as_array()) {
-    if (!element.is_string()) {
+    if (!element.is_string() ||
+        !is_absolute_uri_without_fragment(element.to_string())) {
       throw OIDCRegistrationParseError{};
     }
+  }
+
+  // A present member whose JSON type is wrong is rejected rather than read as
+  // its default, so malformed metadata cannot silently weaken the settings
+  if (!absent_or_string(data, "application_type"sv, HASH_APPLICATION_TYPE) ||
+      !absent_or_string(data, "subject_type"sv, HASH_SUBJECT_TYPE) ||
+      !absent_or_string(data, "id_token_signed_response_alg"sv,
+                        HASH_ID_TOKEN_SIGNED_ALG) ||
+      !absent_or_string(data, "id_token_encrypted_response_alg"sv,
+                        HASH_ID_TOKEN_ENCRYPTED_ALG) ||
+      !absent_or_string(data, "userinfo_signed_response_alg"sv,
+                        HASH_USERINFO_SIGNED_ALG) ||
+      !absent_or_string(data, "initiate_login_uri"sv,
+                        HASH_INITIATE_LOGIN_URI)) {
+    throw OIDCRegistrationParseError{};
+  }
+
+  const auto *max_age{data.try_at("default_max_age"sv, HASH_DEFAULT_MAX_AGE)};
+  if (max_age != nullptr &&
+      (!max_age->is_integer() || max_age->to_integer() < 0)) {
+    throw OIDCRegistrationParseError{};
+  }
+
+  const auto *require_auth_time{
+      data.try_at("require_auth_time"sv, HASH_REQUIRE_AUTH_TIME)};
+  if (require_auth_time != nullptr && !require_auth_time->is_boolean()) {
+    throw OIDCRegistrationParseError{};
+  }
+
+  const auto *post_logout{data.try_at("post_logout_redirect_uris"sv,
+                                      HASH_POST_LOGOUT_REDIRECT_URIS)};
+  if (post_logout != nullptr && !post_logout->is_array_of_strings()) {
+    throw OIDCRegistrationParseError{};
+  }
+
+  // OpenID Connect Dynamic Client Registration 1.0 Section 5: a
+  // sector_identifier_uri is fetched over https, so a non-https or hostless
+  // value would send the OpenID Provider to an insecure or invalid location
+  const auto *sector{
+      data.try_at("sector_identifier_uri"sv, HASH_SECTOR_IDENTIFIER_URI)};
+  if (sector != nullptr &&
+      (!sector->is_string() || !is_https_url_with_host(sector->to_string()))) {
+    throw OIDCRegistrationParseError{};
   }
 }
 
@@ -172,15 +248,16 @@ auto oidc_sector_identifier_contains(
     const JSON &sector_document,
     const std::span<const std::string_view> redirect_uris) -> bool {
   // OpenID Connect Dynamic Client Registration 1.0 Section 5: the document is a
-  // JSON array of redirection URIs, and every registered URI must appear in it
-  if (!sector_document.is_array()) {
+  // JSON array of redirection URIs, so a non-string element makes it malformed,
+  // and every registered URI must appear in it
+  if (!sector_document.is_array_of_strings()) {
     return false;
   }
 
   for (const auto redirect_uri : redirect_uris) {
     bool found{false};
     for (const auto &element : sector_document.as_array()) {
-      if (element.is_string() && element.to_string() == redirect_uri) {
+      if (element.to_string() == redirect_uri) {
         found = true;
         break;
       }

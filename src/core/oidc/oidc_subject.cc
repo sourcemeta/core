@@ -34,19 +34,22 @@ auto to_oidc_subject_type(const std::string_view name) noexcept
 
 auto oidc_pairwise_subject(const std::string_view sector_identifier,
                            const std::string_view local_account_identifier,
-                           const std::string_view salt) -> std::string {
+                           const std::string_view provider_secret)
+    -> std::string {
   // OpenID Connect Core 1.0 Section 8.1: the pairwise value is derived from the
-  // sector identifier, a local account identifier, and a provider secret. A
-  // keyed HMAC over the sector and account, separated by a space so the fields
-  // cannot run together, is non-reversible and distinct per sector
+  // sector identifier, a local account identifier, and a provider secret. The
+  // HMAC input is length-prefixed so the field boundary cannot collide with a
+  // separator that also appears in the data, keeping distinct pairs distinct
+  const auto sector_length{std::to_string(sector_identifier.size())};
   std::string message;
-  message.reserve(sector_identifier.size() + 1 +
+  message.reserve(sector_length.size() + 1 + sector_identifier.size() +
                   local_account_identifier.size());
+  message.append(sector_length);
+  message.push_back(':');
   message.append(sector_identifier);
-  message.push_back(' ');
   message.append(local_account_identifier);
 
-  const auto digest{hmac_sha256_digest(salt, message)};
+  const auto digest{hmac_sha256_digest(provider_secret, message)};
   return base64url_encode(digest);
 }
 

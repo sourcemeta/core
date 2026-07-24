@@ -56,9 +56,11 @@ auto to_oidc_subject_type(const std::string_view name) noexcept
 
 /// @ingroup oidc
 /// Derive a pairwise subject identifier from a sector identifier and a local
-/// account identifier, keyed by an OpenID Provider secret (OpenID Connect Core
-/// 1.0 Section 8.1). The value is a keyed HMAC-SHA256 over the sector and
-/// account, base64url-encoded, so it is stable per client, distinct per sector,
+/// account identifier, keyed by a confidential OpenID Provider secret (OpenID
+/// Connect Core 1.0 Section 8.1). The `provider_secret` must be kept secret, as
+/// a public value would let account identifiers be enumerated from the pairwise
+/// subjects. The value is a keyed HMAC-SHA256 over the sector and account,
+/// base64url-encoded, so it is stable per client, distinct per sector,
 /// non-reversible, and well under the 255 character limit. For example:
 ///
 /// ```cpp
@@ -72,7 +74,8 @@ auto to_oidc_subject_type(const std::string_view name) noexcept
 SOURCEMETA_CORE_OIDC_EXPORT
 auto oidc_pairwise_subject(const std::string_view sector_identifier,
                            const std::string_view local_account_identifier,
-                           const std::string_view salt) -> std::string;
+                           const std::string_view provider_secret)
+    -> std::string;
 
 } // namespace sourcemeta::core
 

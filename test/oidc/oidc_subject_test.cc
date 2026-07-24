@@ -59,6 +59,16 @@ TEST(pairwise_subject_differs_per_salt) {
   EXPECT_FALSE(first == second);
 }
 
+TEST(pairwise_subject_avoids_a_field_boundary_collision) {
+  // Without length-framing, "client a" + "b" and "client" + "a b" would form
+  // the same concatenation and collide
+  const auto first{sourcemeta::core::oidc_pairwise_subject("client a", "b",
+                                                           "provider-secret")};
+  const auto second{sourcemeta::core::oidc_pairwise_subject("client", "a b",
+                                                            "provider-secret")};
+  EXPECT_FALSE(first == second);
+}
+
 TEST(pairwise_subject_stays_within_the_length_limit) {
   const auto subject{sourcemeta::core::oidc_pairwise_subject(
       "client.example", "user-1", "provider-secret")};

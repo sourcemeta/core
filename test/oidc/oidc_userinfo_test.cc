@@ -89,6 +89,22 @@ TEST(verify_userinfo_rejects_a_substituted_subject) {
   EXPECT_FALSE(claims.has_value());
 }
 
+TEST(verify_userinfo_rejects_an_unknown_kid) {
+  // The key set carries no key identifier, so a response naming one is not
+  // accepted on the strength of another key verifying its signature
+  const auto compact{sourcemeta::core::jwt_sign(
+      sourcemeta::core::parse_json(
+          R"JSON({ "alg": "HS256", "kid": "unknown" })JSON"),
+      sourcemeta::core::parse_json(R"JSON({ "sub": "user-1" })JSON"),
+      sourcemeta::core::JWKPrivate::from(sourcemeta::core::parse_json(OCT_JWK))
+          .value())};
+  const auto token{sourcemeta::core::JWT::from(compact.value())};
+  EXPECT_TRUE(token.has_value());
+  const auto claims{sourcemeta::core::oidc_verify_userinfo(
+      token.value(), oct_key_set(), allowed_hs256, "user-1")};
+  EXPECT_FALSE(claims.has_value());
+}
+
 TEST(verify_userinfo_rejects_an_algorithm_outside_the_allow_list) {
   const auto compact{sign_userinfo(R"JSON({ "sub": "user-1" })JSON")};
   const auto token{sourcemeta::core::JWT::from(compact)};

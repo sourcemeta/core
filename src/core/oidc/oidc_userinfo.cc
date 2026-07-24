@@ -54,16 +54,27 @@ auto oidc_verify_userinfo(
     return std::nullopt;
   }
 
-  bool verified{false};
-  for (const auto &key : keys) {
-    if (jwt_verify_signature(token, key)) {
-      verified = true;
-      break;
+  // OpenID Connect Core 1.0 Section 5.3.2, matching jwt_verify: when the header
+  // names a key it is the only one tried, so a response naming an unknown or
+  // revoked key is not accepted because some other retained key verifies it
+  const auto key_id{token.key_id()};
+  if (key_id.has_value()) {
+    const auto *key{keys.find(key_id.value())};
+    if (key == nullptr || !jwt_verify_signature(token, *key)) {
+      return std::nullopt;
     }
-  }
+  } else {
+    bool verified{false};
+    for (const auto &key : keys) {
+      if (jwt_verify_signature(token, key)) {
+        verified = true;
+        break;
+      }
+    }
 
-  if (!verified) {
-    return std::nullopt;
+    if (!verified) {
+      return std::nullopt;
+    }
   }
 
   // OpenID Connect Core 1.0 Section 5.3.2: the sub must match the ID Token sub

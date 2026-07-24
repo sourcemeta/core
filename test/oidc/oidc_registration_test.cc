@@ -57,6 +57,47 @@ TEST(from_rejects_an_empty_redirect_uris) {
                    .has_value());
 }
 
+TEST(from_rejects_a_relative_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(
+      R"JSON({ "redirect_uris": [ "/cb" ] })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_fragment_bearing_redirect_uri) {
+  auto document{sourcemeta::core::parse_json(
+      R"JSON({ "redirect_uris": [ "https://client.example/cb#x" ] })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_wrong_typed_require_auth_time) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "require_auth_time": "true"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_wrong_typed_application_type) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "application_type": 42
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
+TEST(from_rejects_a_non_https_sector_identifier_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "redirect_uris": [ "https://client.example/cb" ],
+    "sector_identifier_uri": "http://client.example/sector.json"
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCClientMetadata::from(std::move(document))
+                   .has_value());
+}
+
 TEST(from_exposes_post_logout_redirect_uris) {
   auto document{sourcemeta::core::parse_json(R"JSON({
     "redirect_uris": [ "https://client.example/cb" ],
@@ -85,6 +126,15 @@ TEST(sector_identifier_rejects_a_missing_uri) {
       R"JSON([ "https://client.example/cb" ])JSON")};
   const std::array<std::string_view, 2> registered{
       {"https://client.example/cb", "https://client.example/other"}};
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_sector_identifier_contains(document, registered));
+}
+
+TEST(sector_identifier_rejects_a_non_string_element) {
+  const auto document{sourcemeta::core::parse_json(
+      R"JSON([ "https://client.example/cb", 123 ])JSON")};
+  const std::array<std::string_view, 1> registered{
+      {"https://client.example/cb"}};
   EXPECT_FALSE(
       sourcemeta::core::oidc_sector_identifier_contains(document, registered));
 }
