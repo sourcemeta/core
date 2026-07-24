@@ -68,9 +68,10 @@ auto oidc_webfinger_request(const std::string_view identifier)
 
 /// @ingroup oidc
 /// Extract the issuer from a WebFinger JSON Resource Descriptor, the `href` of
-/// the link whose `rel` is the OpenID Connect issuer relation, returning no
-/// value when it is absent (OpenID Connect Discovery 1.0 Section 2). For
-/// example:
+/// the link whose `rel` is the OpenID Connect issuer relation and whose value
+/// is a valid https issuer identifier, returning no value when none is present
+/// (OpenID Connect Discovery 1.0 Section 2). The returned view borrows from the
+/// descriptor, which must outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

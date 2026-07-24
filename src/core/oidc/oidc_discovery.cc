@@ -16,6 +16,19 @@ namespace {
 constexpr std::string_view ISSUER_RELATION{
     "http://openid.net/specs/connect/1.0/issuer"};
 
+// OpenID Connect Discovery 1.0 Section 2: an issuer identifier is an https URL
+// with a host and no query or fragment
+auto is_issuer_identifier(const std::string_view value) -> bool {
+  try {
+    const URI uri{value};
+    return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+           uri.host().has_value() && !uri.host().value().empty() &&
+           !uri.query().has_value() && !uri.fragment().has_value();
+  } catch (const URIParseError &) {
+    return false;
+  }
+}
+
 } // namespace
 
 auto oidc_discovery_url(const std::string_view issuer)
@@ -66,11 +79,23 @@ auto oidc_webfinger_request(const std::string_view identifier)
   } else {
     try {
       const URI resource{request.resource};
-      if (!resource.host().has_value() || resource.host().value().empty()) {
+      // OpenID Connect Discovery 1.0 Section 2.1: a URL resource uses the https
+      // scheme and carries a host, so a non-https URL identifier is rejected
+      if (!resource.scheme().has_value() ||
+          resource.scheme().value() != "https" ||
+          !resource.host().has_value() || resource.host().value().empty()) {
         return std::nullopt;
       }
 
-      host = resource.host().value();
+      // RFC 3986 Section 3.2.2: an IPv6 host is wrapped in brackets so the
+      // WebFinger URL it is interpolated into stays valid
+      if (resource.is_ipv6()) {
+        host.push_back('[');
+        host.append(resource.host().value());
+        host.push_back(']');
+      } else {
+        host = resource.host().value();
+      }
     } catch (const URIParseError &) {
       return std::nullopt;
     }
@@ -100,10 +125,19 @@ auto oidc_webfinger_issuer(const JSON &descriptor)
   }
 
   for (const auto &link : links.as_array()) {
-    if (link.is_object() && link.defines("rel") && link.at("rel").is_string() &&
-        link.at("rel").to_string() == ISSUER_RELATION && link.defines("href") &&
-        link.at("href").is_string()) {
-      return std::string_view{link.at("href").to_string()};
+    if (!link.is_object() || !link.defines("rel") ||
+        !link.at("rel").is_string() ||
+        link.at("rel").to_string() != ISSUER_RELATION ||
+        !link.defines("href") || !link.at("href").is_string()) {
+      continue;
+    }
+
+    // OpenID Connect Discovery 1.0 Section 2: a matching link whose href is not
+    // a valid issuer identifier is skipped rather than returned, and the search
+    // continues
+    const std::string_view href{link.at("href").to_string()};
+    if (is_issuer_identifier(href)) {
+      return href;
     }
   }
 

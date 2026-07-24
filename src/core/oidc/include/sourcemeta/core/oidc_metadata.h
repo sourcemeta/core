@@ -24,7 +24,7 @@ namespace sourcemeta::core {
 /// document, validated on construction against the issuer it was retrieved for:
 /// the OAuth checks apply, and in addition `jwks_uri`,
 /// `subject_types_supported`, and `id_token_signing_alg_values_supported` are
-/// REQUIRED and non-empty, and the signing algorithm list must exclude `none`.
+/// REQUIRED and non-empty, and the signing algorithm list must include `RS256`.
 /// A string accessor returns a view into the owned document, valid for the
 /// lifetime of this object. For example:
 ///
@@ -148,7 +148,8 @@ struct OIDCProviderMetadataConfig {
   /// Section 3), REQUIRED and non-empty.
   std::span<const std::string_view> subject_types_supported;
   /// The supported ID Token signing algorithms (OpenID Connect Discovery 1.0
-  /// Section 3), REQUIRED, non-empty, and without `none`.
+  /// Section 3), REQUIRED, non-empty, and including `RS256`. The module never
+  /// advertises `none`.
   std::span<const std::string_view> id_token_signing_alg_values_supported;
   /// The supported ID Token encryption algorithms (OpenID Connect Discovery 1.0
   /// Section 3).
@@ -209,8 +210,8 @@ struct OIDCProviderMetadataConfig {
 /// document would be unusable: the OAuth base is unusable, the REQUIRED
 /// `jwks_uri`, `subject_types_supported`, or
 /// `id_token_signing_alg_values_supported` is missing or empty, the ID Token
-/// signing algorithm list contains `none`, or an advertised OpenID Connect
-/// endpoint is not a valid https URL. For example:
+/// signing algorithm list omits `RS256` or contains `none`, or an advertised
+/// OpenID Connect endpoint is not a valid https URL. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>

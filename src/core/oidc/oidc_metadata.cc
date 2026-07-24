@@ -96,14 +96,16 @@ auto validate_provider_metadata(const OAuthServerMetadata &oauth) -> void {
   }
 
   // OpenID Connect Discovery 1.0 Section 3:
-  // id_token_signing_alg_values_supported is REQUIRED. "The value none MAY be
-  // supported but MUST NOT be used unless the Response Type used returns no ID
-  // Token from the Authorization Endpoint", and the module never accepts an
-  // unsigned ID Token, so a list offering only unsigned tokens is rejected
+  // id_token_signing_alg_values_supported is REQUIRED and "The algorithm RS256
+  // MUST be included". "The value none MAY be supported but MUST NOT be used
+  // unless the Response Type used returns no ID Token from the Authorization
+  // Endpoint", so a provider is allowed to advertise it here, and the module
+  // enforces the never-accept-none rule when an ID Token is validated rather
+  // than when the metadata is parsed
   const auto *id_token_algs{data.try_at(
       "id_token_signing_alg_values_supported"sv, HASH_ID_TOKEN_SIGNING_ALGS)};
   if (!is_required_string_array(id_token_algs) ||
-      id_token_algs->contains("none")) {
+      !id_token_algs->contains("RS256")) {
     throw OIDCMetadataParseError{};
   }
 }
@@ -113,8 +115,11 @@ auto is_https_url(const std::string_view value) -> bool {
   // using the https scheme
   try {
     const URI uri{value};
+    // A fragment is never sent in an HTTP request, so an endpoint carrying one
+    // would advertise a location clients cannot reach and is rejected
     return uri.scheme().has_value() && uri.scheme().value() == "https" &&
-           uri.host().has_value() && !uri.host().value().empty();
+           uri.host().has_value() && !uri.host().value().empty() &&
+           !uri.fragment().has_value();
   } catch (const URIParseError &) {
     return false;
   }
@@ -227,11 +232,22 @@ auto oidc_make_provider_metadata(const OIDCProviderMetadataConfig &config)
     return std::nullopt;
   }
 
-  // Section 14 of the module design: alg none is never advertised
+  // OpenID Connect Discovery 1.0 Section 3: RS256 MUST be included. The module
+  // never publishes none even though the specification permits advertising it
+  // (module design Section 14)
+  bool advertises_rs256{false};
   for (const auto algorithm : config.id_token_signing_alg_values_supported) {
     if (algorithm == "none") {
       return std::nullopt;
     }
+
+    if (algorithm == "RS256") {
+      advertises_rs256 = true;
+    }
+  }
+
+  if (!advertises_rs256) {
+    return std::nullopt;
   }
 
   // OpenID Connect Discovery 1.0 Section 3: the OpenID Connect endpoints use

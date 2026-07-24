@@ -161,6 +161,36 @@ TEST(from_rejects_an_unsigned_only_id_token_alg_list) {
                    .has_value());
 }
 
+TEST(from_accepts_none_alongside_rs256) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256", "none" ]
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::OIDCProviderMetadata::from(
+                  std::move(document), "https://example.com")
+                  .has_value());
+}
+
+TEST(from_rejects_a_list_without_rs256) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "ES256" ]
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::OIDCProviderMetadata::from(
+                   std::move(document), "https://example.com")
+                   .has_value());
+}
+
 TEST(make_builds_a_minimal_provider_document) {
   const std::array<std::string_view, 1> response_types{{"code"}};
   const std::array<std::string_view, 1> subject_types{{"public"}};
@@ -281,6 +311,41 @@ TEST(make_rejects_a_non_https_userinfo_endpoint) {
   config.subject_types_supported = subject_types;
   config.id_token_signing_alg_values_supported = id_token_algs;
   config.userinfo_endpoint = "http://server.example/userinfo";
+
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_make_provider_metadata(config).has_value());
+}
+
+TEST(make_rejects_a_list_without_rs256) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"ES256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+
+  EXPECT_FALSE(
+      sourcemeta::core::oidc_make_provider_metadata(config).has_value());
+}
+
+TEST(make_rejects_a_fragment_bearing_endpoint) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+  config.userinfo_endpoint = "https://server.example/userinfo#v2";
 
   EXPECT_FALSE(
       sourcemeta::core::oidc_make_provider_metadata(config).has_value());
