@@ -6,6 +6,8 @@
 #endif
 
 // NOLINTBEGIN(misc-include-cleaner)
+#include <sourcemeta/core/oidc_authentication.h>
+#include <sourcemeta/core/oidc_claims.h>
 #include <sourcemeta/core/oidc_discovery.h>
 #include <sourcemeta/core/oidc_error.h>
 #include <sourcemeta/core/oidc_hash.h>
