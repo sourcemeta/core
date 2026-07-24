@@ -4,12 +4,11 @@
 #include <sourcemeta/core/text.h>
 #include <sourcemeta/core/time.h>
 
-#include <chrono>        // std::chrono::duration, std::chrono::system_clock
-#include <optional>      // std::optional, std::nullopt
-#include <stdexcept>     // std::out_of_range
-#include <string_view>   // std::string_view
-#include <unordered_set> // std::unordered_set
-#include <utility>       // std::move
+#include <chrono>      // std::chrono::duration, std::chrono::system_clock
+#include <optional>    // std::optional, std::nullopt
+#include <stdexcept>   // std::out_of_range
+#include <string_view> // std::string_view
+#include <utility>     // std::move
 
 namespace {
 using namespace std::string_view_literals;
@@ -36,19 +35,6 @@ auto string_claim(const sourcemeta::core::JSON &object,
   }
 
   return std::string_view{member->to_string()};
-}
-
-// The JSON layer preserves repeated members rather than collapsing them, so
-// uniqueness is checked here
-auto has_unique_members(const sourcemeta::core::JSON &object) -> bool {
-  std::unordered_set<std::string_view> names;
-  for (const auto &entry : object.as_object()) {
-    if (!names.emplace(entry.first).second) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 auto date_claim(const sourcemeta::core::JSON &object,
@@ -117,8 +103,8 @@ auto JWT::parse(const std::string_view input, JWT &result) -> bool {
   // RFC 7515 Section 4: the header parameter names must be unique, and RFC 7519
   // Section 4: the claim names must be unique, so a duplicate in either the
   // header or the payload is rejected (RFC 8725 Section 2.4)
-  if (!has_unique_members(header_json.value()) ||
-      !has_unique_members(payload_json.value())) {
+  if (!header_json.value().unique_keys() ||
+      !payload_json.value().unique_keys()) {
     return false;
   }
 
