@@ -252,6 +252,11 @@ public:
     return {this->buffer_.data(), this->buffer_.size()};
   }
 
+  /// A pointer to the held bytes, valid until the next mutation.
+  [[nodiscard]] auto data() const noexcept -> const char * {
+    return this->buffer_.data();
+  }
+
   /// Whether the held bytes equal the given view.
   [[nodiscard]] auto operator==(const std::string_view other) const noexcept
       -> bool {
