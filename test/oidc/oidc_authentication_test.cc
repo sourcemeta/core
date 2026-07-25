@@ -108,6 +108,105 @@ TEST(build_accepts_an_exclusive_none_prompt) {
   EXPECT_TRUE(contains(url, "prompt=none"));
 }
 
+TEST(build_rejects_offline_access_with_a_none_prompt) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid offline_access";
+  request.prompt = "none";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_accepts_offline_access_with_a_consent_prompt) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid offline_access";
+  request.prompt = "consent";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+  EXPECT_TRUE(contains(url, "scope=openid%20offline_access"));
+}
+
+TEST(build_accepts_a_code_response_type_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+  EXPECT_TRUE(contains(url, "response_type=code"));
+}
+
+TEST(build_rejects_a_hybrid_response_type_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code id_token";
+  request.nonce = "n-0S6";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_accepts_a_hybrid_response_type_under_legacy) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code id_token";
+  request.nonce = "n-0S6";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url,
+      sourcemeta::core::OIDCProfile::Legacy));
+  EXPECT_TRUE(contains(url, "response_type=code%20id_token"));
+}
+
+TEST(build_rejects_a_hybrid_without_a_nonce_under_legacy) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code id_token";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url,
+      sourcemeta::core::OIDCProfile::Legacy));
+}
+
+TEST(build_rejects_an_implicit_response_type_under_legacy) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "id_token";
+  request.nonce = "n-0S6";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url,
+      sourcemeta::core::OIDCProfile::Legacy));
+}
+
+TEST(build_rejects_an_access_token_response_type_under_legacy) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code token";
+  request.nonce = "n-0S6";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url,
+      sourcemeta::core::OIDCProfile::Legacy));
+}
+
 TEST(authorization_url_convenience_enforces_the_defaults) {
   const auto url{sourcemeta::core::oidc_authorization_url(
       "https://server.example/authorize", "s6BhdRkqt3",
@@ -180,6 +279,55 @@ TEST(parse_rejects_a_non_exclusive_none_prompt) {
       "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
       "prompt=none%20consent",
       storage, request));
+}
+
+TEST(parse_rejects_offline_access_with_a_none_prompt) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
+      "scope=openid%20offline_access&prompt=none",
+      storage, request));
+}
+
+TEST(parse_accepts_offline_access_with_a_consent_prompt) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
+      "scope=openid%20offline_access&prompt=consent",
+      storage, request));
+  EXPECT_EQ(request.scope, "openid offline_access");
+}
+
+TEST(parse_rejects_a_hybrid_response_type_under_strict) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code%20id_token&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&nonce=n-0S6",
+      storage, request));
+}
+
+TEST(parse_accepts_a_hybrid_response_type_under_legacy) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code%20id_token&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&nonce=n-0S6",
+      storage, request, sourcemeta::core::OIDCProfile::Legacy));
+  EXPECT_EQ(request.response_type, "code id_token");
+}
+
+TEST(parse_rejects_a_hybrid_without_a_nonce_under_legacy) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code%20id_token&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid",
+      storage, request, sourcemeta::core::OIDCProfile::Legacy));
 }
 
 TEST(parse_resets_stale_fields_across_reuse) {

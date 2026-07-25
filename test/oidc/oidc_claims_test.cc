@@ -118,3 +118,85 @@ TEST(claims_parameter_is_essential_reads_the_flag) {
   EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_is_essential(
       claims, "userinfo", "name"));
 }
+
+TEST(build_claims_parameter_emits_value_and_values) {
+  const sourcemeta::core::JSON acr_value{"urn:mace:incommon:iap:silver"};
+  const std::array<sourcemeta::core::JSON, 2> amr_values{
+      {sourcemeta::core::JSON{"pwd"}, sourcemeta::core::JSON{"otp"}}};
+  const std::array<sourcemeta::core::OIDCClaimRequest, 2> id_token{
+      {{.name = "acr", .essential = true, .value = &acr_value},
+       {.name = "amr", .values = amr_values}}};
+  const auto document{
+      sourcemeta::core::oidc_build_claims_parameter({}, id_token)};
+  EXPECT_TRUE(document.at("id_token").at("acr").at("essential").to_boolean());
+  EXPECT_EQ(document.at("id_token").at("acr").at("value").to_string(),
+            "urn:mace:incommon:iap:silver");
+  EXPECT_TRUE(document.at("id_token").at("amr").at("values").is_array());
+  EXPECT_EQ(document.at("id_token").at("amr").at("values").size(), 2);
+  EXPECT_EQ(document.at("id_token").at("amr").at("values").at(0).to_string(),
+            "pwd");
+  EXPECT_EQ(document.at("id_token").at("amr").at("values").at(1).to_string(),
+            "otp");
+}
+
+TEST(claims_parameter_value_reads_the_requested_value) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": { "value": "urn:mace:silver" }
+    }
+  })JSON")};
+  const auto *value{
+      sourcemeta::core::oidc_claims_parameter_value(claims, "id_token", "acr")};
+  EXPECT_TRUE(value != nullptr);
+  EXPECT_EQ(value->to_string(), "urn:mace:silver");
+  EXPECT_EQ(
+      sourcemeta::core::oidc_claims_parameter_value(claims, "id_token", "amr"),
+      nullptr);
+}
+
+TEST(claims_parameter_accepts_an_exact_value) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": { "value": "gold" }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"gold"}));
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"silver"}));
+}
+
+TEST(claims_parameter_accepts_one_of_values) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": { "values": [ "gold", "silver" ] }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"silver"}));
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"bronze"}));
+}
+
+TEST(claims_parameter_accepts_any_value_when_unconstrained) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": null,
+      "auth_time": { "essential": true }
+    }
+  })JSON")};
+  EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"anything"}));
+  EXPECT_TRUE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "auth_time", sourcemeta::core::JSON{123}));
+}
+
+TEST(claims_parameter_accepts_rejects_an_unrequested_claim) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": null
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "amr", sourcemeta::core::JSON{"x"}));
+}

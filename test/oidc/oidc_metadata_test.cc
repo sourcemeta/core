@@ -350,3 +350,21 @@ TEST(make_rejects_a_fragment_bearing_endpoint) {
   EXPECT_FALSE(
       sourcemeta::core::oidc_make_provider_metadata(config).has_value());
 }
+
+TEST(make_accepts_a_mixed_case_https_scheme) {
+  const std::array<std::string_view, 1> response_types{{"code"}};
+  const std::array<std::string_view, 1> subject_types{{"public"}};
+  const std::array<std::string_view, 1> id_token_algs{{"RS256"}};
+  sourcemeta::core::OIDCProviderMetadataConfig config;
+  config.base.issuer = "https://server.example";
+  config.base.authorization_endpoint = "https://server.example/authorize";
+  config.base.token_endpoint = "https://server.example/token";
+  config.base.jwks_uri = "https://server.example/jwks";
+  config.base.response_types_supported = response_types;
+  config.subject_types_supported = subject_types;
+  config.id_token_signing_alg_values_supported = id_token_algs;
+  config.userinfo_endpoint = "HTTPS://server.example/userinfo";
+
+  EXPECT_TRUE(
+      sourcemeta::core::oidc_make_provider_metadata(config).has_value());
+}

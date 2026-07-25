@@ -1,7 +1,7 @@
 sourcemeta_library(NAMESPACE sourcemeta PROJECT core NAME oidc
   PRIVATE_HEADERS error.h metadata.h discovery.h hash.h id_token.h
     authentication.h claims.h userinfo.h registration.h subject.h
-    request_object.h logout.h encryption.h
+    request_object.h logout.h encryption.h profile.h
   SOURCES oidc_error.cc oidc_metadata.cc oidc_discovery.cc oidc_hash.cc
     oidc_id_token.cc oidc_authentication.cc oidc_claims.cc oidc_userinfo.cc
     oidc_registration.cc oidc_subject.cc oidc_verify.h oidc_request_object.cc

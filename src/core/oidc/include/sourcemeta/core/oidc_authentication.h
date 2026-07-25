@@ -5,6 +5,8 @@
 #include <sourcemeta/core/oidc_export.h>
 #endif
 
+#include <sourcemeta/core/oidc_profile.h>
+
 #include <array>       // std::array
 #include <optional>    // std::optional
 #include <string>      // std::string
@@ -90,8 +92,12 @@ struct OIDCAuthenticationRequest {
 /// Build an OpenID Connect authentication request URL from an endpoint and a
 /// request, returning whether the request is well formed (OpenID Connect Core
 /// 1.0 Section 3.1.2.1). The `client_id` and `redirect_uri` are REQUIRED, the
-/// `scope` must contain `openid`, and when `prompt` carries `none` it must be
-/// the only value. The OpenID Connect parameters are appended to the OAuth
+/// `scope` must contain `openid`, when `prompt` carries `none` it must be the
+/// only value, and `offline_access` cannot pair with a `none` prompt. The
+/// `response_type` is limited by the profile, which permits the Authorization
+/// Code flow by default and additionally the Hybrid `code id_token` flow under
+/// `OIDCProfile::Legacy`, and any flow that returns an ID Token requires a
+/// `nonce`. The OpenID Connect parameters are appended to the OAuth
 /// authorization query, percent-escaped, and the sink is appended to and never
 /// cleared. For example:
 ///
@@ -110,9 +116,9 @@ struct OIDCAuthenticationRequest {
 ///     "https://server.example/authorize", request, url));
 /// ```
 SOURCEMETA_CORE_OIDC_EXPORT
-auto oidc_build_authentication_url(const std::string_view endpoint,
-                                   const OIDCAuthenticationRequest &request,
-                                   std::string &sink) -> bool;
+auto oidc_build_authentication_url(
+    const std::string_view endpoint, const OIDCAuthenticationRequest &request,
+    std::string &sink, const OIDCProfile profile = OIDCProfile::Strict) -> bool;
 
 /// @ingroup oidc
 /// A convenience for the common authorization code flow authentication request,
@@ -142,12 +148,13 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
 /// Parse the query of an OpenID Connect authentication request at the provider
 /// into the result, returning whether it is well formed (OpenID Connect Core
 /// 1.0 Section 3.1.2.1). The `client_id` and `redirect_uri` are REQUIRED, the
-/// scope must contain `openid`, and a `none` prompt must appear alone, the same
-/// checks the builder applies. Each recognized
-/// value is form-decoded, borrowing from the input when it carries no escape
-/// and otherwise from the storage arena, which the caller owns and reuses
-/// across parses. The result is reset first, then borrows from the input and
-/// the storage, so both must outlive it. For example:
+/// scope must contain `openid`, a `none` prompt must appear alone,
+/// `offline_access` cannot pair with a `none` prompt, and the `response_type`
+/// is limited by the profile, the same checks the builder applies. Each
+/// recognized value is form-decoded, borrowing from the input when it carries
+/// no escape and otherwise from the storage arena, which the caller owns and
+/// reuses across parses. The result is reset first, then borrows from the input
+/// and the storage, so both must outlive it. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>
@@ -162,10 +169,10 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
 /// assert(request.nonce == "n-0S6");
 /// ```
 SOURCEMETA_CORE_OIDC_EXPORT
-auto oidc_parse_authentication_request(const std::string_view query,
-                                       std::string &storage,
-                                       OIDCAuthenticationRequest &result)
-    -> bool;
+auto oidc_parse_authentication_request(
+    const std::string_view query, std::string &storage,
+    OIDCAuthenticationRequest &result,
+    const OIDCProfile profile = OIDCProfile::Strict) -> bool;
 
 } // namespace sourcemeta::core
 

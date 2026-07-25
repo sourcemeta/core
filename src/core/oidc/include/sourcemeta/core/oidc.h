@@ -15,6 +15,7 @@
 #include <sourcemeta/core/oidc_id_token.h>
 #include <sourcemeta/core/oidc_logout.h>
 #include <sourcemeta/core/oidc_metadata.h>
+#include <sourcemeta/core/oidc_profile.h>
 #include <sourcemeta/core/oidc_registration.h>
 #include <sourcemeta/core/oidc_request_object.h>
 #include <sourcemeta/core/oidc_subject.h>

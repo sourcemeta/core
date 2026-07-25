@@ -26,6 +26,31 @@ constexpr auto HASH_EVENTS{JSON::Object::hash("events"sv)};
 constexpr std::string_view BACKCHANNEL_LOGOUT_EVENT{
     "http://schemas.openid.net/event/backchannel-logout"};
 
+// The query is opened lazily on the first present parameter, so an all-empty
+// request leaves the endpoint untouched rather than appending a dangling
+// separator, and an endpoint that already carries a query is continued rather
+// than opened again
+auto append_logout_parameter(std::string &sink, const std::string_view endpoint,
+                             const std::string_view name,
+                             const std::string_view value, bool &query_opened)
+    -> void {
+  if (value.empty()) {
+    return;
+  }
+
+  if (!query_opened) {
+    if (endpoint.find('?') == std::string_view::npos) {
+      sink.push_back('?');
+    } else if (sink.back() != '?' && sink.back() != '&') {
+      sink.push_back('&');
+    }
+
+    query_opened = true;
+  }
+
+  URI::append_query_parameter(sink, name, value);
+}
+
 } // namespace
 
 auto oidc_build_logout_url(const std::string_view end_session_endpoint,
@@ -33,37 +58,20 @@ auto oidc_build_logout_url(const std::string_view end_session_endpoint,
     -> void {
   sink.append(end_session_endpoint);
 
-  // The query is opened lazily on the first present parameter, so an all-empty
-  // request leaves the endpoint untouched rather than appending a dangling
-  // separator, and an endpoint that already carries a query is continued rather
-  // than opened again
-  bool opened{false};
-  const auto append{
-      [&sink, &opened, end_session_endpoint](
-          const std::string_view name, const std::string_view value) -> void {
-        if (value.empty()) {
-          return;
-        }
-
-        if (!opened) {
-          if (end_session_endpoint.find('?') == std::string_view::npos) {
-            sink.push_back('?');
-          } else if (sink.back() != '?' && sink.back() != '&') {
-            sink.push_back('&');
-          }
-
-          opened = true;
-        }
-
-        URI::append_query_parameter(sink, name, value);
-      }};
-
-  append("id_token_hint", request.id_token_hint);
-  append("logout_hint", request.logout_hint);
-  append("client_id", request.client_id);
-  append("post_logout_redirect_uri", request.post_logout_redirect_uri);
-  append("state", request.state);
-  append("ui_locales", request.ui_locales);
+  bool query_opened{false};
+  append_logout_parameter(sink, end_session_endpoint, "id_token_hint",
+                          request.id_token_hint, query_opened);
+  append_logout_parameter(sink, end_session_endpoint, "logout_hint",
+                          request.logout_hint, query_opened);
+  append_logout_parameter(sink, end_session_endpoint, "client_id",
+                          request.client_id, query_opened);
+  append_logout_parameter(sink, end_session_endpoint,
+                          "post_logout_redirect_uri",
+                          request.post_logout_redirect_uri, query_opened);
+  append_logout_parameter(sink, end_session_endpoint, "state", request.state,
+                          query_opened);
+  append_logout_parameter(sink, end_session_endpoint, "ui_locales",
+                          request.ui_locales, query_opened);
 }
 
 auto oidc_validate_logout_token(
