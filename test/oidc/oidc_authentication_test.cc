@@ -246,6 +246,19 @@ TEST(build_accepts_a_missing_pkce_under_legacy) {
   EXPECT_TRUE(contains(url, "response_type=code"));
 }
 
+TEST(build_rejects_a_whitespace_only_response_type) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = " ";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
 TEST(build_rejects_a_hybrid_response_type_under_strict) {
   sourcemeta::core::OIDCAuthenticationRequest request;
   request.client_id = "s6BhdRkqt3";
@@ -448,6 +461,17 @@ TEST(parse_rejects_a_missing_response_type) {
       "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
       "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_"
       "challenge_method=S256",
+      storage, request));
+}
+
+TEST(parse_rejects_a_whitespace_only_response_type) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=%20&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
+      "code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&"
+      "code_challenge_method=S256",
       storage, request));
 }
 

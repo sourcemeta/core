@@ -61,16 +61,24 @@ auto offline_access_is_valid(const std::string_view scope,
 // (OAuth 2.0 Section 3.1.1)
 auto response_type_is_allowed(const std::string_view response_type,
                               const OIDCProfile profile) -> bool {
+  // An unset response_type is left to the OAuth layer, which applies the
+  // default "code", so only a value that is actually present is validated here
+  if (response_type.empty()) {
+    return true;
+  }
+
+  bool has_token{false};
   bool has_code{false};
   bool has_id_token{false};
   bool has_unsupported{false};
   split(response_type, ' ',
-        [&has_code, &has_id_token,
+        [&has_token, &has_code, &has_id_token,
          &has_unsupported](const std::string_view value) -> void {
           if (value.empty()) {
             return;
           }
 
+          has_token = true;
           if (value == "code") {
             has_code = true;
           } else if (value == "id_token") {
@@ -80,7 +88,9 @@ auto response_type_is_allowed(const std::string_view response_type,
           }
         });
 
-  if (has_unsupported) {
+  // A present value that carries no token, such as one that is only whitespace,
+  // is not a meaningful response type
+  if (!has_token || has_unsupported) {
     return false;
   }
 
