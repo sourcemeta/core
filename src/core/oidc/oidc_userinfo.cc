@@ -17,6 +17,7 @@ namespace {
 using namespace std::literals::string_view_literals;
 
 constexpr auto HASH_SUB{JSON::Object::hash("sub"sv)};
+constexpr auto HASH_ISS{JSON::Object::hash("iss"sv)};
 constexpr auto HASH_AUD{JSON::Object::hash("aud"sv)};
 
 } // namespace
@@ -63,9 +64,11 @@ auto oidc_verify_userinfo(
   // OpenID Connect Core 1.0 Section 5.3.2: a signed response SHOULD carry iss
   // and aud, so when present the iss must be this provider and the aud must
   // include this client, which stops a response minted for another client from
-  // being accepted here
-  const auto issuer{token.issuer()};
-  if (issuer.has_value() && issuer.value() != expected_issuer) {
+  // being accepted here. The raw members are inspected so a present but
+  // non-string claim fails closed rather than being read as absent
+  const auto *issuer{token.payload().try_at("iss"sv, HASH_ISS)};
+  if (issuer != nullptr &&
+      (!issuer->is_string() || issuer->to_string() != expected_issuer)) {
     return std::nullopt;
   }
 

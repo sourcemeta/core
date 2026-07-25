@@ -162,6 +162,20 @@ TEST(verify_userinfo_rejects_a_wrong_issuer) {
   EXPECT_FALSE(claims.has_value());
 }
 
+TEST(verify_userinfo_rejects_a_non_string_issuer) {
+  const auto compact{sign_userinfo(R"JSON({
+    "sub": "user-1",
+    "iss": 42,
+    "aud": "client-id"
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto claims{sourcemeta::core::oidc_verify_userinfo(
+      token.value(), oct_key_set(), allowed_hs256, "user-1",
+      "https://issuer.example", "client-id")};
+  EXPECT_FALSE(claims.has_value());
+}
+
 TEST(verify_userinfo_rejects_an_audience_for_another_client) {
   const auto compact{sign_userinfo(R"JSON({
     "sub": "user-1",
