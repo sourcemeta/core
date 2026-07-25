@@ -106,15 +106,18 @@ auto response_type_requires_nonce(const std::string_view response_type)
   return requires_nonce;
 }
 
-// RFC 7636 Section 4.2: a code challenge is 43 to 128 characters drawn from the
-// unreserved set (ALPHA / DIGIT / "-" / "." / "_" / "~")
+// The only supported PKCE method is S256, whose code challenge is the base64url
+// encoding of a SHA-256 digest (RFC 7636 Section 4.2, Appendix A), so it is
+// exactly 43 characters drawn from the base64url alphabet. The "." and "~" of
+// the wider unreserved grammar can only appear under the plain method and never
+// in a redeemable S256 challenge
 auto code_challenge_is_valid(const std::string_view code_challenge) -> bool {
-  return code_challenge.size() >= 43 && code_challenge.size() <= 128 &&
+  return code_challenge.size() == 43 &&
          std::ranges::all_of(code_challenge, [](const char character) -> bool {
            return (character >= 'A' && character <= 'Z') ||
                   (character >= 'a' && character <= 'z') ||
                   (character >= '0' && character <= '9') || character == '-' ||
-                  character == '.' || character == '_' || character == '~';
+                  character == '_';
          });
 }
 

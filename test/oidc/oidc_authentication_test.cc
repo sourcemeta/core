@@ -196,8 +196,37 @@ TEST(build_rejects_a_code_challenge_with_invalid_characters_under_strict) {
   request.redirect_uri = "https://client.example/cb";
   request.scope = "openid";
   request.response_type = "code";
-  // Forty-three characters, but the trailing "!" is outside the unreserved set
+  // Forty-three characters, but the trailing "!" is outside the base64url set
   request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-c!";
+  request.code_challenge_method = "S256";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_rejects_a_non_base64url_code_challenge_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  // Forty-three characters, but "." and "~" cannot appear in the base64url
+  // encoding of a SHA-256 digest even though they are unreserved
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw.c~";
+  request.code_challenge_method = "S256";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_rejects_an_overlong_code_challenge_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  // Forty-four base64url characters, one longer than a SHA-256 digest encodes
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cMX";
   request.code_challenge_method = "S256";
   std::string url;
   EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
