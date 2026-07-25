@@ -187,6 +187,25 @@ TEST(sign_aws_sigv4_hashes_a_secure_string_body) {
   EXPECT_TRUE(request.header("Authorization").has_value());
 }
 
+TEST(sign_aws_sigv4_hashes_an_empty_secure_string_body) {
+  const auto moment{
+      sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};
+  sourcemeta::core::HTTPSystemRequest request{
+      "https://example.amazonaws.com/", sourcemeta::core::HTTPMethod::POST};
+  request.body(sourcemeta::core::SecureString{},
+               "application/x-www-form-urlencoded");
+  request.sign_aws_sigv4(
+      {.access_key_id = "AKIDEXAMPLE",
+       .secret_access_key = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+       .session_token = ""},
+      "us-east-1", "service", moment);
+
+  // An empty wiping-storage body views a possibly-null buffer and must hash as
+  // the empty string
+  EXPECT_EQ(request.header("x-amz-content-sha256").value(),
+            sourcemeta::core::sha256(""));
+}
+
 TEST(sign_aws_sigv4_adds_session_token_when_present) {
   const auto moment{
       sourcemeta::core::from_iso8601_basic("20150830T123600Z").value()};

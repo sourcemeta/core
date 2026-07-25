@@ -249,6 +249,12 @@ public:
 
   /// A view over the held bytes.
   [[nodiscard]] operator std::string_view() const noexcept {
+    // An empty buffer may expose a null data pointer, so a default view is
+    // returned rather than constructing one from a possibly-null pointer
+    if (this->buffer_.empty()) {
+      return {};
+    }
+
     return {this->buffer_.data(), this->buffer_.size()};
   }
 

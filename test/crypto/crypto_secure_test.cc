@@ -41,6 +41,13 @@ TEST(secure_string_exposes_its_bytes_through_data) {
   EXPECT_EQ(std::string_view(secret.data(), secret.size()), "hunter2");
 }
 
+TEST(secure_string_of_empty_content_views_as_empty) {
+  const sourcemeta::core::SecureString secret{};
+  const std::string_view view{secret};
+  EXPECT_TRUE(view.empty());
+  EXPECT_EQ(view, std::string_view{});
+}
+
 TEST(secure_string_appends_content) {
   sourcemeta::core::SecureString secret{"hunter"};
   secret.append("2");
