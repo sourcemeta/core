@@ -3,6 +3,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/oidc_error.h>
+#include <sourcemeta/core/text.h>
 #include <sourcemeta/core/uri.h>
 
 #include <optional>    // std::optional, std::nullopt
@@ -116,8 +117,10 @@ auto is_https_url(const std::string_view value) -> bool {
   try {
     const URI uri{value};
     // A fragment is never sent in an HTTP request, so an endpoint carrying one
-    // would advertise a location clients cannot reach and is rejected
-    return uri.scheme().has_value() && uri.scheme().value() == "https" &&
+    // would advertise a location clients cannot reach and is rejected. RFC 3986
+    // Section 3.1 makes the scheme case-insensitive
+    return uri.scheme().has_value() &&
+           equals_ignore_case(uri.scheme().value(), "https") &&
            uri.host().has_value() && !uri.host().value().empty() &&
            !uri.fragment().has_value();
   } catch (const URIParseError &) {

@@ -17,6 +17,8 @@ using namespace std::literals::string_view_literals;
 constexpr auto HASH_USERINFO{JSON::Object::hash("userinfo"sv)};
 constexpr auto HASH_ID_TOKEN{JSON::Object::hash("id_token"sv)};
 constexpr auto HASH_ESSENTIAL{JSON::Object::hash("essential"sv)};
+constexpr auto HASH_VALUE{JSON::Object::hash("value"sv)};
+constexpr auto HASH_VALUES{JSON::Object::hash("values"sv)};
 
 // OpenID Connect Core 1.0 Section 5.1: the standard claims
 constexpr std::array<std::string_view, 20> STANDARD_CLAIMS{
@@ -63,6 +65,36 @@ auto emit_claims(const std::span<const std::string_view> claims,
   }
 }
 
+// OpenID Connect Core 1.0 Section 5.5.1: a claim request is null in the default
+// manner, or an object carrying essential, value, or values
+auto build_claim_specification(const OIDCClaimRequest &request) -> JSON {
+  if (!request.essential && request.value == nullptr &&
+      request.values.empty()) {
+    return JSON{nullptr};
+  }
+
+  auto specification{JSON::make_object()};
+  if (request.essential) {
+    specification.assign_assume_new("essential", JSON{true}, HASH_ESSENTIAL);
+  }
+
+  if (request.value != nullptr) {
+    specification.assign_assume_new("value", JSON{*request.value}, HASH_VALUE);
+  }
+
+  if (!request.values.empty()) {
+    auto candidates{JSON::make_array()};
+    for (const auto &candidate : request.values) {
+      candidates.push_back(JSON{candidate});
+    }
+
+    specification.assign_assume_new("values", std::move(candidates),
+                                    HASH_VALUES);
+  }
+
+  return specification;
+}
+
 auto assign_claim_requests(JSON &document, const std::string_view target,
                            const JSON::Object::hash_type hash,
                            const std::span<const OIDCClaimRequest> claims)
@@ -73,16 +105,26 @@ auto assign_claim_requests(JSON &document, const std::string_view target,
 
   auto member{JSON::make_object()};
   for (const auto &request : claims) {
-    if (request.essential) {
-      auto specification{JSON::make_object()};
-      specification.assign_assume_new("essential", JSON{true}, HASH_ESSENTIAL);
-      member.assign(request.name, std::move(specification));
-    } else {
-      member.assign(request.name, JSON{nullptr});
-    }
+    member.assign(request.name, build_claim_specification(request));
   }
 
   document.assign_assume_new(std::string{target}, std::move(member), hash);
+}
+
+// OpenID Connect Core 1.0 Section 5.5: the request entry for a claim under a
+// target member, or no pointer when the target or claim is absent
+auto claim_specification(const JSON &claims, const std::string_view target,
+                         const std::string_view claim) -> const JSON * {
+  if (!claims.is_object()) {
+    return nullptr;
+  }
+
+  const auto *target_object{claims.try_at(target)};
+  if (target_object == nullptr || !target_object->is_object()) {
+    return nullptr;
+  }
+
+  return target_object->try_at(claim);
 }
 
 } // namespace
@@ -167,41 +209,78 @@ auto oidc_build_claims_parameter(
 auto oidc_claims_parameter_requests(const JSON &claims,
                                     const std::string_view target,
                                     const std::string_view claim) -> bool {
-  if (!claims.is_object() || !claims.defines(target)) {
-    return false;
-  }
-
-  const auto &target_object{claims.at(target)};
-  if (!target_object.is_object() || !target_object.defines(claim)) {
-    return false;
-  }
-
   // OpenID Connect Core 1.0 Section 5.5: a claim entry is either null (the
   // default manner) or an object, so a malformed value such as a string is not
   // honored as a request
-  const auto &specification{target_object.at(claim)};
-  return specification.is_null() || specification.is_object();
+  const auto *specification{claim_specification(claims, target, claim)};
+  return specification != nullptr &&
+         (specification->is_null() || specification->is_object());
 }
 
 auto oidc_claims_parameter_is_essential(const JSON &claims,
                                         const std::string_view target,
                                         const std::string_view claim) -> bool {
-  if (!claims.is_object() || !claims.defines(target)) {
+  const auto *specification{claim_specification(claims, target, claim)};
+  if (specification == nullptr || !specification->is_object()) {
     return false;
   }
 
-  const auto &target_object{claims.at(target)};
-  if (!target_object.is_object() || !target_object.defines(claim)) {
+  const auto *essential{specification->try_at("essential"sv, HASH_ESSENTIAL)};
+  return essential != nullptr && essential->is_boolean() &&
+         essential->to_boolean();
+}
+
+auto oidc_claims_parameter_value(const JSON &claims,
+                                 const std::string_view target,
+                                 const std::string_view claim) -> const JSON * {
+  const auto *specification{claim_specification(claims, target, claim)};
+  if (specification == nullptr || !specification->is_object()) {
+    return nullptr;
+  }
+
+  return specification->try_at("value"sv, HASH_VALUE);
+}
+
+auto oidc_claims_parameter_accepts(const JSON &claims,
+                                   const std::string_view target,
+                                   const std::string_view claim,
+                                   const JSON &value) -> bool {
+  // OpenID Connect Core 1.0 Section 5.5: only a null or object entry is a valid
+  // request, so an absent or malformed one permits nothing
+  const auto *specification{claim_specification(claims, target, claim)};
+  if (specification == nullptr ||
+      !(specification->is_null() || specification->is_object())) {
     return false;
   }
 
-  const auto &specification{target_object.at(claim)};
-  if (!specification.is_object() || !specification.defines("essential")) {
-    return false;
+  // A null request carries no value constraint, so it permits any value
+  if (specification->is_null()) {
+    return true;
   }
 
-  const auto &essential{specification.at("essential")};
-  return essential.is_boolean() && essential.to_boolean();
+  // OpenID Connect Core 1.0 Section 5.5.1: value requests an exact value and
+  // values a set of acceptable ones, so a request carrying neither is
+  // unconstrained, and a present but malformed values constraint permits
+  // nothing rather than silently opening the request up
+  const auto *requested_value{specification->try_at("value"sv, HASH_VALUE)};
+  const auto *requested_values{specification->try_at("values"sv, HASH_VALUES)};
+  if (requested_value == nullptr && requested_values == nullptr) {
+    return true;
+  }
+
+  if (requested_value != nullptr && value == *requested_value) {
+    return true;
+  }
+
+  if (requested_values != nullptr && requested_values->is_array()) {
+    for (const auto &candidate : requested_values->as_array()) {
+      if (candidate == value) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 } // namespace sourcemeta::core
