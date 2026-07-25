@@ -67,6 +67,36 @@ TEST(mint_and_validate_round_trip) {
   EXPECT_EQ(identity.value().issuer, "https://issuer.example");
 }
 
+TEST(mint_rejects_a_code_binding_under_eddsa) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = reference_now;
+  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.nonce = "n-abc";
+  claims.code = "the-authorization-code";
+  // EdDSA has no defined c_hash digest, so minting fails rather than emitting a
+  // token missing the REQUIRED binding
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::EdDSA)};
+  EXPECT_FALSE(compact.has_value());
+}
+
+TEST(mint_rejects_an_access_token_binding_under_eddsa) {
+  sourcemeta::core::OIDCIdTokenClaims claims;
+  claims.issuer = "https://issuer.example";
+  claims.subject = "user-1";
+  claims.audience = "client-id";
+  claims.issued_at = reference_now;
+  claims.expiration = reference_now + std::chrono::hours{1};
+  claims.nonce = "n-abc";
+  claims.access_token = "the-access-token";
+  const auto compact{sourcemeta::core::oidc_mint_id_token(
+      claims, oct_private_key(), sourcemeta::core::JWSAlgorithm::EdDSA)};
+  EXPECT_FALSE(compact.has_value());
+}
+
 TEST(validate_rejects_an_expired_token) {
   const auto compact{sign_id_token(R"JSON({
     "iss": "https://issuer.example",

@@ -375,6 +375,39 @@ TEST(verify_assertion_rejects_a_replayed_identifier) {
             sourcemeta::core::OAuthAssertionError::Replay);
 }
 
+TEST(verify_assertion_detects_a_replay_in_the_final_sub_second) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  const auto assertion{sourcemeta::core::oauth_build_client_assertion(
+      "s6BhdRkqt3", "https://server.example/token", std::chrono::seconds{300},
+      FIXED_TIME, key.value(), sourcemeta::core::JWSAlgorithm::ES256)};
+  EXPECT_TRUE(assertion.has_value());
+  const auto keys{
+      sourcemeta::core::JWKS::from(sourcemeta::core::parse_json(JWKS_JSON))};
+  EXPECT_TRUE(keys.has_value());
+  sourcemeta::core::OAuthDPoPReplayStore store;
+  sourcemeta::core::OAuthAssertionVerifyOptions options;
+  options.allowed_algorithms = ALLOWED;
+  options.replay_store = &store;
+
+  // Both verifications land in the final fractional second of validity, where a
+  // whole-second-truncated replay window would collapse to zero and drop the
+  // stored identifier before the second check runs
+  const auto expiration{FIXED_TIME + std::chrono::seconds{300}};
+  const auto first{expiration - std::chrono::milliseconds{500}};
+  const auto second{expiration - std::chrono::milliseconds{100}};
+  EXPECT_FALSE(sourcemeta::core::oauth_verify_client_assertion(
+                   assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
+                   first, options)
+                   .has_value());
+  EXPECT_EQ(sourcemeta::core::oauth_verify_client_assertion(
+                assertion.value(), AUDIENCES, "s6BhdRkqt3", keys.value(),
+                second, options)
+                .value(),
+            sourcemeta::core::OAuthAssertionError::Replay);
+}
+
 TEST(build_assertion_carries_distinct_issuer_and_subject) {
   auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(EC_PRIVATE_JWK))};

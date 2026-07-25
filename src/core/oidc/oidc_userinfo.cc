@@ -17,6 +17,7 @@ namespace {
 using namespace std::literals::string_view_literals;
 
 constexpr auto HASH_SUB{JSON::Object::hash("sub"sv)};
+constexpr auto HASH_AUD{JSON::Object::hash("aud"sv)};
 
 } // namespace
 
@@ -45,7 +46,9 @@ auto oidc_userinfo_matches_subject(const JSON &userinfo,
 auto oidc_verify_userinfo(
     const JWT &token, const JWKS &keys,
     const std::span<const JWSAlgorithm> allowed_algorithms,
-    const std::string_view expected_subject) -> std::optional<JSON> {
+    const std::string_view expected_subject,
+    const std::string_view expected_issuer,
+    const std::string_view expected_client_id) -> std::optional<JSON> {
   // OpenID Connect Core 1.0 Section 5.3.2: the algorithm is pinned and the key
   // selected by identifier, never taken from the token header alone
   if (!oidc_verify_selected_signature(token, keys, allowed_algorithms)) {
@@ -54,6 +57,20 @@ auto oidc_verify_userinfo(
 
   // OpenID Connect Core 1.0 Section 5.3.2: the sub must match the ID Token sub
   if (!oidc_userinfo_matches_subject(token.payload(), expected_subject)) {
+    return std::nullopt;
+  }
+
+  // OpenID Connect Core 1.0 Section 5.3.2: a signed response SHOULD carry iss
+  // and aud, so when present the iss must be this provider and the aud must
+  // include this client, which stops a response minted for another client from
+  // being accepted here
+  const auto issuer{token.issuer()};
+  if (issuer.has_value() && issuer.value() != expected_issuer) {
+    return std::nullopt;
+  }
+
+  const auto *audience{token.payload().try_at("aud"sv, HASH_AUD)};
+  if (audience != nullptr && !token.has_audience(expected_client_id)) {
     return std::nullopt;
   }
 

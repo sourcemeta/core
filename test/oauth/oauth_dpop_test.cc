@@ -411,6 +411,26 @@ TEST(verify_rejects_an_unexpected_type) {
             sourcemeta::core::OAuthDPoPError::UnexpectedType);
 }
 
+TEST(verify_accepts_an_application_prefixed_type) {
+  auto key{sourcemeta::core::JWKPrivate::from(
+      sourcemeta::core::parse_json(EC_PRIVATE_JWK))};
+  EXPECT_TRUE(key.has_value());
+  auto header{sourcemeta::core::parse_json(
+      R"({"typ":"application/dpop+jwt","alg":"ES256"})")};
+  header.assign("jwk", sourcemeta::core::parse_json(EC_PUBLIC_JWK));
+  const auto payload{sourcemeta::core::parse_json(
+      R"({"jti":"x","htm":"POST","htu":"https://server.example.com/token",)"
+      R"("iat":1562262616})")};
+  const auto proof{sourcemeta::core::jwt_sign(header, payload, key.value())};
+  EXPECT_TRUE(proof.has_value());
+
+  const sourcemeta::core::OAuthDPoPVerifyOptions options;
+  EXPECT_FALSE(sourcemeta::core::oauth_dpop_verify(
+                   proof.value(), "POST", "https://server.example.com/token",
+                   FIXED_TIME, options)
+                   .has_value());
+}
+
 TEST(verify_rejects_a_symmetric_algorithm) {
   const auto key{sourcemeta::core::JWKPrivate::from(
       sourcemeta::core::parse_json(OCT_JWK))};
