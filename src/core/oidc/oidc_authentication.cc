@@ -3,6 +3,7 @@
 #include <sourcemeta/core/oauth.h>
 #include <sourcemeta/core/text.h>
 
+#include <algorithm>   // std::ranges::all_of
 #include <array>       // std::array
 #include <cstddef>     // std::size_t
 #include <optional>    // std::optional, std::nullopt
@@ -105,10 +106,23 @@ auto response_type_requires_nonce(const std::string_view response_type)
   return requires_nonce;
 }
 
+// RFC 7636 Section 4.2: a code challenge is 43 to 128 characters drawn from the
+// unreserved set (ALPHA / DIGIT / "-" / "." / "_" / "~")
+auto code_challenge_is_valid(const std::string_view code_challenge) -> bool {
+  return code_challenge.size() >= 43 && code_challenge.size() <= 128 &&
+         std::ranges::all_of(code_challenge, [](const char character) -> bool {
+           return (character >= 'A' && character <= 'Z') ||
+                  (character >= 'a' && character <= 'z') ||
+                  (character >= '0' && character <= '9') || character == '-' ||
+                  character == '.' || character == '_' || character == '~';
+         });
+}
+
 // RFC 9700 Section 2.1.1: the strict profile binds the authorization code to
 // the client with PKCE using the S256 method, protecting against code
-// interception, so a strict request carries a code_challenge and the S256
-// method. The legacy profile leaves this to the caller for older deployments
+// interception, so a strict request carries a well-formed code_challenge and
+// the S256 method. The legacy profile leaves this to the caller for older
+// deployments
 auto pkce_is_valid(const std::string_view code_challenge,
                    const std::string_view code_challenge_method,
                    const OIDCProfile profile) -> bool {
@@ -116,7 +130,8 @@ auto pkce_is_valid(const std::string_view code_challenge,
     return true;
   }
 
-  return !code_challenge.empty() && code_challenge_method == "S256";
+  return code_challenge_method == "S256" &&
+         code_challenge_is_valid(code_challenge);
 }
 
 // OpenID Connect Core 1.0 Section 3.1.2.1: store a parsed OpenID Connect

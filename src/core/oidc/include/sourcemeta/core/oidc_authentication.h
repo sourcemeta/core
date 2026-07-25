@@ -169,8 +169,10 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
 /// std::string storage;
 /// sourcemeta::core::OIDCAuthenticationRequest request;
 /// assert(sourcemeta::core::oidc_parse_authentication_request(
-///     "response_type=code&client_id=s6BhdRkqt3&scope=openid&nonce=n-0S6&"
-///     "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
+///     "response_type=code&client_id=s6BhdRkqt3&"
+///     "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
+///     "nonce=n-0S6&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&"
+///     "code_challenge_method=S256",
 ///     storage, request));
 /// assert(request.nonce == "n-0S6");
 /// ```
