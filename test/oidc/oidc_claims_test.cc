@@ -200,3 +200,23 @@ TEST(claims_parameter_accepts_rejects_an_unrequested_claim) {
   EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_accepts(
       claims, "id_token", "amr", sourcemeta::core::JSON{"x"}));
 }
+
+TEST(claims_parameter_accepts_rejects_a_malformed_entry) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": "not-an-object-or-null"
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"x"}));
+}
+
+TEST(claims_parameter_accepts_rejects_a_malformed_values_constraint) {
+  const auto claims{sourcemeta::core::parse_json(R"JSON({
+    "id_token": {
+      "acr": { "values": "gold" }
+    }
+  })JSON")};
+  EXPECT_FALSE(sourcemeta::core::oidc_claims_parameter_accepts(
+      claims, "id_token", "acr", sourcemeta::core::JSON{"gold"}));
+}

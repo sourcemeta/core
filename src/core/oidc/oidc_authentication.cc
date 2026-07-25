@@ -105,6 +105,20 @@ auto response_type_requires_nonce(const std::string_view response_type)
   return requires_nonce;
 }
 
+// RFC 9700 Section 2.1.1: the strict profile binds the authorization code to
+// the client with PKCE using the S256 method, protecting against code
+// interception, so a strict request carries a code_challenge and the S256
+// method. The legacy profile leaves this to the caller for older deployments
+auto pkce_is_valid(const std::string_view code_challenge,
+                   const std::string_view code_challenge_method,
+                   const OIDCProfile profile) -> bool {
+  if (profile != OIDCProfile::Strict) {
+    return true;
+  }
+
+  return !code_challenge.empty() && code_challenge_method == "S256";
+}
+
 // OpenID Connect Core 1.0 Section 3.1.2.1: store a parsed OpenID Connect
 // authentication parameter that the OAuth layer treats as an extension
 auto assign_openid_parameter(OIDCAuthenticationRequest &result,
@@ -178,6 +192,11 @@ auto oidc_build_authentication_url(const std::string_view endpoint,
   if (!response_type_is_allowed(request.response_type, profile) ||
       (response_type_requires_nonce(request.response_type) &&
        request.nonce.empty())) {
+    return false;
+  }
+
+  if (!pkce_is_valid(request.code_challenge, request.code_challenge_method,
+                     profile)) {
     return false;
   }
 
@@ -280,16 +299,20 @@ auto oidc_parse_authentication_request(const std::string_view query,
   // never accepts a request the module could not build: the client identifier
   // and redirection URI are REQUIRED, the scope must contain openid, a none
   // prompt must appear alone, offline_access cannot pair with a none prompt,
-  // the response_type is limited by the profile, and a returned ID Token
-  // requires a nonce (OpenID Connect Core 1.0 Section 3.1.2.1,
-  // Section 3.3.2.11, Section 11)
+  // the response_type is REQUIRED and limited by the profile, a returned ID
+  // Token requires a nonce, and the strict profile requires PKCE (OpenID
+  // Connect Core 1.0 Section 3.1.2.1, Section 3.3.2.11, Section 11, RFC 9700
+  // Section 2.1.1)
   return !result.client_id.empty() && !result.redirect_uri.empty() &&
          space_list_contains(result.scope, "openid") &&
          prompt_is_valid(result.prompt) &&
          offline_access_is_valid(result.scope, result.prompt) &&
+         !result.response_type.empty() &&
          response_type_is_allowed(result.response_type, profile) &&
          !(response_type_requires_nonce(result.response_type) &&
-           result.nonce.empty());
+           result.nonce.empty()) &&
+         pkce_is_valid(result.code_challenge, result.code_challenge_method,
+                       profile);
 }
 
 } // namespace sourcemeta::core

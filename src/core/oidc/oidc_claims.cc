@@ -245,24 +245,26 @@ auto oidc_claims_parameter_accepts(const JSON &claims,
                                    const std::string_view target,
                                    const std::string_view claim,
                                    const JSON &value) -> bool {
+  // OpenID Connect Core 1.0 Section 5.5: only a null or object entry is a valid
+  // request, so an absent or malformed one permits nothing
   const auto *specification{claim_specification(claims, target, claim)};
-  if (specification == nullptr) {
+  if (specification == nullptr ||
+      !(specification->is_null() || specification->is_object())) {
     return false;
   }
 
   // A null request carries no value constraint, so it permits any value
-  if (!specification->is_object()) {
+  if (specification->is_null()) {
     return true;
   }
 
   // OpenID Connect Core 1.0 Section 5.5.1: value requests an exact value and
   // values a set of acceptable ones, so a request carrying neither is
-  // unconstrained
+  // unconstrained, and a present but malformed values constraint permits
+  // nothing rather than silently opening the request up
   const auto *requested_value{specification->try_at("value"sv, HASH_VALUE)};
   const auto *requested_values{specification->try_at("values"sv, HASH_VALUES)};
-  const auto has_values{requested_values != nullptr &&
-                        requested_values->is_array()};
-  if (requested_value == nullptr && !has_values) {
+  if (requested_value == nullptr && requested_values == nullptr) {
     return true;
   }
 
@@ -270,7 +272,7 @@ auto oidc_claims_parameter_accepts(const JSON &claims,
     return true;
   }
 
-  if (has_values) {
+  if (requested_values != nullptr && requested_values->is_array()) {
     for (const auto &candidate : requested_values->as_array()) {
       if (candidate == value) {
         return true;

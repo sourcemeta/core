@@ -96,8 +96,9 @@ struct OIDCAuthenticationRequest {
 /// only value, and `offline_access` cannot pair with a `none` prompt. The
 /// `response_type` is limited by the profile, which permits the Authorization
 /// Code flow by default and additionally the Hybrid `code id_token` flow under
-/// `OIDCProfile::Legacy`, and any flow that returns an ID Token requires a
-/// `nonce`. The OpenID Connect parameters are appended to the OAuth
+/// `OIDCProfile::Legacy`, any flow that returns an ID Token requires a `nonce`,
+/// and `OIDCProfile::Strict` requires a `code_challenge` with the `S256` method
+/// (PKCE). The OpenID Connect parameters are appended to the OAuth
 /// authorization query, percent-escaped, and the sink is appended to and never
 /// cleared. For example:
 ///
@@ -111,6 +112,8 @@ struct OIDCAuthenticationRequest {
 /// request.redirect_uri = "https://client.example/cb";
 /// request.scope = "openid profile";
 /// request.nonce = "n-0S6_WzA2Mj";
+/// request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+/// request.code_challenge_method = "S256";
 /// std::string url;
 /// assert(sourcemeta::core::oidc_build_authentication_url(
 ///     "https://server.example/authorize", request, url));
@@ -147,14 +150,16 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
 /// @ingroup oidc
 /// Parse the query of an OpenID Connect authentication request at the provider
 /// into the result, returning whether it is well formed (OpenID Connect Core
-/// 1.0 Section 3.1.2.1). The `client_id` and `redirect_uri` are REQUIRED, the
-/// scope must contain `openid`, a `none` prompt must appear alone,
-/// `offline_access` cannot pair with a `none` prompt, and the `response_type`
-/// is limited by the profile, the same checks the builder applies. Each
-/// recognized value is form-decoded, borrowing from the input when it carries
-/// no escape and otherwise from the storage arena, which the caller owns and
-/// reuses across parses. The result is reset first, then borrows from the input
-/// and the storage, so both must outlive it. For example:
+/// 1.0 Section 3.1.2.1). The `client_id`, `redirect_uri`, and `response_type`
+/// are REQUIRED, the scope must contain `openid`, a `none` prompt must appear
+/// alone, `offline_access` cannot pair with a `none` prompt, the
+/// `response_type` is limited by the profile, and `OIDCProfile::Strict`
+/// requires a `code_challenge` with the `S256` method (PKCE), the same checks
+/// the builder applies. Each recognized value is form-decoded, borrowing from
+/// the input when it carries no escape and otherwise from the storage arena,
+/// which the caller owns and reuses across parses. The result is reset first,
+/// then borrows from the input and the storage, so both must outlive it. For
+/// example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>
@@ -164,7 +169,8 @@ auto oidc_authorization_url(const std::string_view authorization_endpoint,
 /// std::string storage;
 /// sourcemeta::core::OIDCAuthenticationRequest request;
 /// assert(sourcemeta::core::oidc_parse_authentication_request(
-///     "response_type=code&client_id=s6BhdRkqt3&scope=openid&nonce=n-0S6",
+///     "response_type=code&client_id=s6BhdRkqt3&scope=openid&nonce=n-0S6&"
+///     "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
 ///     storage, request));
 /// assert(request.nonce == "n-0S6");
 /// ```

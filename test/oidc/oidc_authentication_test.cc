@@ -16,6 +16,8 @@ TEST(build_includes_the_core_parameters) {
   request.scope = "openid profile";
   request.state = "xyz";
   request.nonce = "n-0S6_WzA2Mj";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
   std::string url;
   EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
       "https://server.example/authorize", request, url));
@@ -37,6 +39,8 @@ TEST(build_appends_the_openid_connect_parameters) {
   request.ui_locales = "en-US";
   request.login_hint = "user@example.com";
   request.acr_values = "urn:acr:1";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
   std::string url;
   EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
       "https://server.example/authorize", request, url));
@@ -102,6 +106,8 @@ TEST(build_accepts_an_exclusive_none_prompt) {
   request.redirect_uri = "https://client.example/cb";
   request.scope = "openid";
   request.prompt = "none";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
   std::string url;
   EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
       "https://server.example/authorize", request, url));
@@ -125,6 +131,8 @@ TEST(build_accepts_offline_access_with_a_consent_prompt) {
   request.redirect_uri = "https://client.example/cb";
   request.scope = "openid offline_access";
   request.prompt = "consent";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
   std::string url;
   EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
       "https://server.example/authorize", request, url));
@@ -137,9 +145,48 @@ TEST(build_accepts_a_code_response_type_under_strict) {
   request.redirect_uri = "https://client.example/cb";
   request.scope = "openid";
   request.response_type = "code";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "S256";
   std::string url;
   EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
       "https://server.example/authorize", request, url));
+  EXPECT_TRUE(contains(url, "response_type=code"));
+}
+
+TEST(build_rejects_a_missing_pkce_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_rejects_a_plain_pkce_method_under_strict) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  request.code_challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+  request.code_challenge_method = "plain";
+  std::string url;
+  EXPECT_FALSE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url));
+}
+
+TEST(build_accepts_a_missing_pkce_under_legacy) {
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  request.client_id = "s6BhdRkqt3";
+  request.redirect_uri = "https://client.example/cb";
+  request.scope = "openid";
+  request.response_type = "code";
+  std::string url;
+  EXPECT_TRUE(sourcemeta::core::oidc_build_authentication_url(
+      "https://server.example/authorize", request, url,
+      sourcemeta::core::OIDCProfile::Legacy));
   EXPECT_TRUE(contains(url, "response_type=code"));
 }
 
@@ -226,7 +273,8 @@ TEST(parse_extracts_the_base_and_openid_parameters) {
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
       "response_type=code&client_id=s6BhdRkqt3&"
       "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid%20profile&"
-      "nonce=n-0S6&prompt=consent&max_age=3600&acr_values=urn%3Aacr%3A1",
+      "nonce=n-0S6&prompt=consent&max_age=3600&acr_values=urn%3Aacr%3A1&"
+      "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
       storage, request));
   EXPECT_EQ(request.response_type, "code");
   EXPECT_EQ(request.client_id, "s6BhdRkqt3");
@@ -297,7 +345,8 @@ TEST(parse_accepts_offline_access_with_a_consent_prompt) {
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
       "response_type=code&client_id=s6BhdRkqt3&"
       "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&"
-      "scope=openid%20offline_access&prompt=consent",
+      "scope=openid%20offline_access&prompt=consent&"
+      "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
       storage, request));
   EXPECT_EQ(request.scope, "openid offline_access");
 }
@@ -330,12 +379,32 @@ TEST(parse_rejects_a_hybrid_without_a_nonce_under_legacy) {
       storage, request, sourcemeta::core::OIDCProfile::Legacy));
 }
 
+TEST(parse_rejects_a_missing_response_type) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
+      "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
+      storage, request));
+}
+
+TEST(parse_rejects_a_missing_pkce_under_strict) {
+  std::string storage;
+  sourcemeta::core::OIDCAuthenticationRequest request;
+  EXPECT_FALSE(sourcemeta::core::oidc_parse_authentication_request(
+      "response_type=code&client_id=s6BhdRkqt3&"
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid",
+      storage, request));
+}
+
 TEST(parse_resets_stale_fields_across_reuse) {
   std::string first_storage;
   sourcemeta::core::OIDCAuthenticationRequest request;
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
       "response_type=code&client_id=s6BhdRkqt3&"
-      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&nonce=n-0S6",
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&nonce=n-0S6&"
+      "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
       first_storage, request));
   EXPECT_EQ(request.nonce, "n-0S6");
 
@@ -343,7 +412,8 @@ TEST(parse_resets_stale_fields_across_reuse) {
   std::string second_storage;
   EXPECT_TRUE(sourcemeta::core::oidc_parse_authentication_request(
       "response_type=code&client_id=other&"
-      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid",
+      "redirect_uri=https%3A%2F%2Fclient.example%2Fcb&scope=openid&"
+      "code_challenge=E9Melhoa2Owv&code_challenge_method=S256",
       second_storage, request));
   EXPECT_EQ(request.client_id, "other");
   EXPECT_TRUE(request.nonce.empty());

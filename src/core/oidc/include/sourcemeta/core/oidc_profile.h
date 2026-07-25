@@ -22,11 +22,13 @@ namespace sourcemeta::core {
 /// const auto profile{sourcemeta::core::OIDCProfile::Strict};
 /// ```
 enum class OIDCProfile : std::uint8_t {
-  /// The default, permitting only the Authorization Code flow with PKCE,
-  /// `nonce`, and `state`.
+  /// The default, allowing only the Authorization Code flow and requiring PKCE
+  /// with the `S256` method.
   Strict,
   /// Additionally permits the Hybrid `code id_token` flow, still seen in older
-  /// deployments, which mandates `nonce` and `c_hash` validation.
+  /// deployments, which requires a `nonce` on the request. Validating its ID
+  /// Token still requires the caller to enable `c_hash` checking through the ID
+  /// Token validation options.
   Legacy
 };
 
