@@ -245,9 +245,9 @@ auto oauth_dpop_verify(const std::string_view proof,
 
   const auto &parsed{token.value()};
 
-  // Check 4: the token type is dpop+jwt
-  const auto type{parsed.type()};
-  if (!type.has_value() || type.value() != "dpop+jwt") {
+  // Check 4: the token type is dpop+jwt, comparing the media type as RFC 7515
+  // Section 4.1.9 requires (case-insensitive, application/ prefix optional)
+  if (!parsed.has_type("dpop+jwt")) {
     return OAuthDPoPError::UnexpectedType;
   }
 

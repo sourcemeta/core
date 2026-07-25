@@ -25,6 +25,8 @@ constexpr auto HASH_EVENTS{JSON::Object::hash("events"sv)};
 
 constexpr std::string_view BACKCHANNEL_LOGOUT_EVENT{
     "http://schemas.openid.net/event/backchannel-logout"};
+constexpr auto HASH_BACKCHANNEL_LOGOUT_EVENT{
+    JSON::Object::hash(BACKCHANNEL_LOGOUT_EVENT)};
 
 // The query is opened lazily on the first present parameter, so an all-empty
 // request leaves the endpoint untouched rather than appending a dangling
@@ -136,9 +138,13 @@ auto oidc_validate_logout_token(
   // The events claim is an object carrying the back-channel logout member,
   // whose value is an object
   const auto *events{payload.try_at("events"sv, HASH_EVENTS)};
-  if (events == nullptr || !events->is_object() ||
-      !events->defines(BACKCHANNEL_LOGOUT_EVENT) ||
-      !events->at(BACKCHANNEL_LOGOUT_EVENT).is_object()) {
+  if (events == nullptr || !events->is_object()) {
+    return false;
+  }
+
+  const auto *logout_event{
+      events->try_at(BACKCHANNEL_LOGOUT_EVENT, HASH_BACKCHANNEL_LOGOUT_EVENT)};
+  if (logout_event == nullptr || !logout_event->is_object()) {
     return false;
   }
 

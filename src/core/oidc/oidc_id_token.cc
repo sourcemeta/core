@@ -294,19 +294,26 @@ auto oidc_mint_id_token(const OIDCIdTokenClaims &claims, const JWKPrivate &key,
   }
 
   // OpenID Connect Core 1.0 Section 3.1.3.6: at_hash binds the access token and
-  // c_hash binds the code, both hashed under the ID Token signing algorithm
+  // c_hash binds the code, both hashed under the ID Token signing algorithm.
+  // When a token to bind is supplied but its hash cannot be computed for the
+  // algorithm, minting fails rather than emitting a token missing a REQUIRED
+  // binding
   if (claims.access_token.has_value()) {
     const auto hash{oidc_token_hash(claims.access_token.value(), algorithm)};
-    if (hash.has_value()) {
-      payload.assign_assume_new("at_hash", JSON{hash.value()}, HASH_AT_HASH);
+    if (!hash.has_value()) {
+      return std::nullopt;
     }
+
+    payload.assign_assume_new("at_hash", JSON{hash.value()}, HASH_AT_HASH);
   }
 
   if (claims.code.has_value()) {
     const auto hash{oidc_token_hash(claims.code.value(), algorithm)};
-    if (hash.has_value()) {
-      payload.assign_assume_new("c_hash", JSON{hash.value()}, HASH_C_HASH);
+    if (!hash.has_value()) {
+      return std::nullopt;
     }
+
+    payload.assign_assume_new("c_hash", JSON{hash.value()}, HASH_C_HASH);
   }
 
   return jwt_sign(header, payload, key);

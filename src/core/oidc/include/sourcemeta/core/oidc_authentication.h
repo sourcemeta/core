@@ -135,7 +135,8 @@ auto oidc_build_authentication_url(
 ///
 /// const auto url{sourcemeta::core::oidc_authorization_url(
 ///     "https://server.example/authorize", "s6BhdRkqt3",
-///     "https://client.example/cb", "xyz", "code-challenge", "n-0S6_WzA2Mj")};
+///     "https://client.example/cb", "xyz",
+///     "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "n-0S6_WzA2Mj")};
 /// assert(url.has_value());
 /// ```
 SOURCEMETA_CORE_OIDC_EXPORT

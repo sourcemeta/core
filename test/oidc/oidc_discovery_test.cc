@@ -91,6 +91,31 @@ TEST(webfinger_request_brackets_an_ipv6_host) {
             "2F%2Fopenid.net%2Fspecs%2Fconnect%2F1.0%2Fissuer");
 }
 
+TEST(webfinger_request_preserves_a_non_default_port) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("https://example.com:8443/joe")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_EQ(request.value().resource, "https://example.com:8443/joe");
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://example.com:8443/.well-known/webfinger?"));
+}
+
+TEST(webfinger_request_preserves_a_port_with_an_ipv6_host) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("https://[::1]:8443/joe")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://[::1]:8443/.well-known/webfinger?"));
+}
+
+TEST(webfinger_request_accepts_an_uppercase_https_scheme) {
+  const auto request{
+      sourcemeta::core::oidc_webfinger_request("HTTPS://example.com/joe")};
+  EXPECT_TRUE(request.has_value());
+  EXPECT_TRUE(request.value().url.starts_with(
+      "https://example.com/.well-known/webfinger?"));
+}
+
 TEST(webfinger_issuer_extracts_the_href) {
   const auto descriptor{sourcemeta::core::parse_json(R"JSON({
     "subject": "acct:joe@example.com",
@@ -104,6 +129,21 @@ TEST(webfinger_issuer_extracts_the_href) {
   const auto issuer{sourcemeta::core::oidc_webfinger_issuer(descriptor)};
   EXPECT_TRUE(issuer.has_value());
   EXPECT_EQ(issuer.value(), "https://example.com");
+}
+
+TEST(webfinger_issuer_accepts_an_uppercase_https_href) {
+  const auto descriptor{sourcemeta::core::parse_json(R"JSON({
+    "subject": "acct:joe@example.com",
+    "links": [
+      {
+        "rel": "http://openid.net/specs/connect/1.0/issuer",
+        "href": "HTTPS://example.com"
+      }
+    ]
+  })JSON")};
+  const auto issuer{sourcemeta::core::oidc_webfinger_issuer(descriptor)};
+  EXPECT_TRUE(issuer.has_value());
+  EXPECT_EQ(issuer.value(), "HTTPS://example.com");
 }
 
 TEST(webfinger_issuer_ignores_other_relations) {

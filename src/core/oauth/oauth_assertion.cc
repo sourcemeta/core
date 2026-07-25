@@ -141,9 +141,13 @@ auto verify_assertion(
       const auto skew{std::clamp(options.clock_skew,
                                  std::chrono::seconds::zero(),
                                  std::chrono::seconds{31556952})};
-      const auto remaining{std::chrono::duration_cast<std::chrono::seconds>(
-                               expiration.value() - now) +
-                           skew};
+      // The remaining lifetime is rounded up to the next whole second so the
+      // stored entry never expires before the sub-second interval during which
+      // the assertion itself is still accepted, which a truncating cast would
+      // collapse to zero in the final fractional second
+      const auto remaining{
+          std::chrono::ceil<std::chrono::seconds>(expiration.value() - now) +
+          skew};
       const auto window{remaining > std::chrono::seconds{0}
                             ? remaining
                             : std::chrono::seconds{0}};

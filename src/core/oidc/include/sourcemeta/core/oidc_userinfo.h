@@ -52,9 +52,11 @@ auto oidc_userinfo_matches_subject(const JSON &userinfo,
 
 /// @ingroup oidc
 /// Verify a signed UserInfo response and its subject, returning the claims or
-/// no value when the signature does not verify under a pinned algorithm or the
-/// subject does not match the ID Token subject (OpenID Connect Core 1.0
-/// Section 5.3.2). For example:
+/// no value when the signature does not verify under a pinned algorithm, the
+/// subject does not match the ID Token subject, or a present `iss` or `aud`
+/// does not identify this provider and client (OpenID Connect Core 1.0
+/// Section 5.3.2). Checking `aud` binds the response to this client, preventing
+/// one minted for another client from being accepted here. For example:
 ///
 /// ```cpp
 /// #include <sourcemeta/core/oidc.h>
@@ -66,13 +68,16 @@ auto oidc_userinfo_matches_subject(const JSON &userinfo,
 /// const std::array allowed{sourcemeta::core::JWSAlgorithm::RS256};
 /// assert(token.has_value() && keys.has_value());
 /// const auto claims{sourcemeta::core::oidc_verify_userinfo(
-///     token.value(), keys.value(), allowed, "user-1")};
+///     token.value(), keys.value(), allowed, "user-1",
+///     "https://op.example", "client-id")};
 /// ```
 SOURCEMETA_CORE_OIDC_EXPORT
 auto oidc_verify_userinfo(
     const JWT &token, const JWKS &keys,
     const std::span<const JWSAlgorithm> allowed_algorithms,
-    const std::string_view expected_subject) -> std::optional<JSON>;
+    const std::string_view expected_subject,
+    const std::string_view expected_issuer,
+    const std::string_view expected_client_id) -> std::optional<JSON>;
 
 } // namespace sourcemeta::core
 
