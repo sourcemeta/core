@@ -450,3 +450,588 @@ TEST(invalid_at_sign) {
   EXPECT_FALSE(sourcemeta::core::is_hostname("user@host"));
   EXPECT_FALSE(sourcemeta::core::is_idn_hostname("user@host"));
 }
+
+// Total length cap. RFC 1123 §2.1: "Host software MUST handle host
+// names of up to 63 characters and SHOULD handle host names of up to 255
+// characters." The existing tests only reach the cap through four 63-byte
+// labels, so these reach it through many short ones instead
+
+TEST(valid_total_255_many_short_labels) {
+  // 128 single-character labels and 127 dots is 255 bytes, right at the cap
+  std::string hostname{"a"};
+  for (int index = 0; index < 127; ++index) {
+    hostname.append(".a");
+  }
+  EXPECT_EQ(hostname.size(), 255u);
+  EXPECT_TRUE(sourcemeta::core::is_hostname(hostname));
+}
+
+TEST(invalid_total_256_many_short_labels) {
+  // the same shape one byte over the cap, with every label still well formed
+  std::string hostname{"aa"};
+  for (int index = 0; index < 127; ++index) {
+    hostname.append(".a");
+  }
+  EXPECT_EQ(hostname.size(), 256u);
+  EXPECT_FALSE(sourcemeta::core::is_hostname(hostname));
+}
+
+TEST(invalid_total_far_over_cap) {
+  // the total-length check runs before any label scan, so an input far past
+  // the cap is rejected without walking it
+  EXPECT_FALSE(sourcemeta::core::is_hostname(std::string(100000, 'a')));
+}
+
+// Per-label cap in non-leading positions. RFC 1035 §2.3.4 caps a label at 63
+// octets, and the existing tests only exercise the first label
+
+TEST(valid_middle_label_63) {
+  // 63-character label between two other labels
+  EXPECT_TRUE(
+      sourcemeta::core::is_hostname("a." + std::string(63, 'a') + ".b"));
+}
+
+TEST(valid_last_label_63) {
+  // 63-character label in last position
+  EXPECT_TRUE(sourcemeta::core::is_hostname("a." + std::string(63, 'a')));
+}
+
+TEST(invalid_middle_label_64) {
+  // 64-character label between two other labels
+  EXPECT_FALSE(
+      sourcemeta::core::is_hostname("a." + std::string(64, 'a') + ".b"));
+}
+
+TEST(invalid_last_label_64) {
+  // 64-character label in last position
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a." + std::string(64, 'a')));
+}
+
+// Hyphen placement. RFC 1123 §2.1 relaxes the first character to a letter or
+// a digit, and RFC 952 ASSUMPTIONS says "The last character must not be a
+// minus sign or period"
+
+TEST(invalid_hyphen_only) {
+  // a lone hyphen has no leading let-dig
+  EXPECT_FALSE(sourcemeta::core::is_hostname("-"));
+}
+
+TEST(invalid_double_hyphen_only) {
+  // two hyphens still have no leading let-dig
+  EXPECT_FALSE(sourcemeta::core::is_hostname("--"));
+}
+
+TEST(invalid_minimal_trailing_hyphen) {
+  // shortest label ending in a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a-"));
+}
+
+TEST(invalid_minimal_leading_hyphen) {
+  // shortest label starting with a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("-a"));
+}
+
+TEST(invalid_first_of_two_leading_hyphen) {
+  // first label of two starts with a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("-a.b"));
+}
+
+TEST(invalid_first_of_two_trailing_hyphen) {
+  // first label of two ends with a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a-.b"));
+}
+
+TEST(invalid_last_label_leading_hyphen) {
+  // last label starts with a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a.-b"));
+}
+
+TEST(invalid_last_label_trailing_hyphen) {
+  // last label ends with a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a.b-"));
+}
+
+TEST(invalid_hyphen_label_first) {
+  // a whole label that is just a hyphen, first
+  EXPECT_FALSE(sourcemeta::core::is_hostname("-.a"));
+}
+
+TEST(invalid_hyphen_label_last) {
+  // a whole label that is just a hyphen, last
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a.-"));
+}
+
+TEST(valid_three_interior_hyphens) {
+  // three consecutive interior hyphens
+  EXPECT_TRUE(sourcemeta::core::is_hostname("a---b"));
+}
+
+TEST(valid_hyphen_heavy_label_63) {
+  // 63 characters that are hyphens except the two required let-dig ends
+  EXPECT_TRUE(sourcemeta::core::is_hostname("a" + std::string(61, '-') + "b"));
+}
+
+TEST(valid_hyphen_in_every_label) {
+  // an interior hyphen in each of three labels
+  EXPECT_TRUE(sourcemeta::core::is_hostname("a-b.c-d.e-f"));
+}
+
+// Dot structure. RFC 952 §B: <hname> ::= <name>*["."<name>], so every dot
+// must sit between two non-empty labels
+
+TEST(invalid_two_dots_only) {
+  // two dots with no label anywhere
+  EXPECT_FALSE(sourcemeta::core::is_hostname(".."));
+}
+
+TEST(invalid_three_dots_only) {
+  // three dots with no label anywhere
+  EXPECT_FALSE(sourcemeta::core::is_hostname("..."));
+}
+
+TEST(invalid_minimal_trailing_dot) {
+  // shortest trailing-dot form
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a."));
+}
+
+TEST(invalid_minimal_leading_dot) {
+  // shortest leading-dot form
+  EXPECT_FALSE(sourcemeta::core::is_hostname(".a"));
+}
+
+TEST(invalid_minimal_double_dot) {
+  // shortest empty interior label
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a..b"));
+}
+
+TEST(invalid_fqdn_trailing_dot) {
+  // root-anchored FQDN form with three labels
+  EXPECT_FALSE(sourcemeta::core::is_hostname("www.example.com."));
+}
+
+TEST(invalid_leading_dot_multi_label) {
+  // leading dot before a two-label name
+  EXPECT_FALSE(sourcemeta::core::is_hostname(".example.com"));
+}
+
+TEST(invalid_double_dot_before_tld) {
+  // two trailing dots after a two-label name
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.com.."));
+}
+
+TEST(valid_twenty_labels) {
+  // twenty single-character labels
+  EXPECT_TRUE(
+      sourcemeta::core::is_hostname("a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t"));
+}
+
+// The "xn--" A-label branch. RFC 5890 §2.3.2.1 makes the ACE prefix
+// case-insensitive and calls a label that carries the prefix without being a
+// real Punycode encoding a "Fake A-label"
+
+TEST(xn_prefix_only) {
+  // the bare ACE prefix: the trailing-hyphen rule rejects it before the
+  // A-label check runs
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--"));
+}
+
+TEST(xn_prefix_only_uppercase) {
+  // the same, in uppercase
+  EXPECT_FALSE(sourcemeta::core::is_hostname("XN--"));
+}
+
+TEST(xn_two_characters) {
+  // two characters, too short to carry the ACE prefix
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn"));
+}
+
+TEST(xn_three_characters) {
+  // three characters, ends in a hyphen
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn-"));
+}
+
+TEST(xn_single_hyphen_at_three) {
+  // hyphen at position 3 only, so not an A-label
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn-a"));
+}
+
+TEST(xn_body_single_letter) {
+  // a one-character Punycode body that does not decode to a U-label
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--a"));
+}
+
+TEST(xn_prefix_not_at_label_start) {
+  // the ACE prefix only counts at the start of a label
+  EXPECT_TRUE(sourcemeta::core::is_hostname("axn--1234"));
+}
+
+TEST(xn_prefix_mixed_case_lower_body) {
+  // mixed-case prefix, lowercase body
+  EXPECT_TRUE(sourcemeta::core::is_hostname("Xn--4gbwdl"));
+}
+
+TEST(xn_prefix_mixed_case_second_char) {
+  // mixed-case prefix on the second character
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xN--4gbwdl"));
+}
+
+TEST(xn_prefix_uppercase_lower_body) {
+  // uppercase prefix, lowercase body
+  EXPECT_TRUE(sourcemeta::core::is_hostname("XN--4gbwdl"));
+}
+
+TEST(xn_single_label_valid) {
+  // a valid A-label on its own
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--4gbwdl"));
+}
+
+TEST(xn_valid_second_label) {
+  // a valid A-label after an ASCII label
+  EXPECT_TRUE(sourcemeta::core::is_hostname("example.xn--wgbh1c"));
+}
+
+TEST(xn_invalid_second_label) {
+  // the A-label check also runs on non-leading labels
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.xn--X"));
+}
+
+TEST(xn_valid_russian_tld) {
+  // the A-label for the Cyrillic .rf top-level domain
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--p1ai"));
+}
+
+TEST(xn_valid_two_a_labels_and_ascii) {
+  // A-labels around an ASCII label
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--p1ai.example.xn--p1ai"));
+}
+
+TEST(xn_body_trailing_hyphen) {
+  // an ACE-prefixed label ending in a hyphen, rejected by the LDH rule first
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--a-"));
+}
+
+TEST(xn_prefix_only_middle_label) {
+  // the bare ACE prefix as a middle label
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a.xn--.b"));
+}
+
+TEST(xn_real_a_label_at_63) {
+  // the A-label for 55 letter a followed by U+00E4, exactly at the 63-octet
+  // cap
+  EXPECT_TRUE(
+      sourcemeta::core::is_hostname("xn--" + std::string(55, 'a') + "-uve"));
+}
+
+TEST(xn_real_a_label_at_64) {
+  // the same shape with one more letter a, one octet past the cap
+  EXPECT_FALSE(
+      sourcemeta::core::is_hostname("xn--" + std::string(56, 'a') + "-qye"));
+}
+
+TEST(xn_fake_body_leading_delimiter) {
+  // RFC 5890 §2.3.2.1 Fake A-label: LDH-clean, but the Punycode body starts
+  // with the delimiter
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn---p1ai"));
+}
+
+TEST(xn_fake_body_trailing_basic) {
+  // RFC 5890 §2.3.2.1 Fake A-label: the body does not round-trip through
+  // Punycode
+  EXPECT_FALSE(sourcemeta::core::is_hostname("xn--p1ai-a"));
+}
+
+TEST(xn_valid_a_label_then_ascii) {
+  // a valid A-label followed by an ASCII label
+  EXPECT_TRUE(sourcemeta::core::is_hostname("xn--p1ai.example"));
+}
+
+// Line terminators and surrounding whitespace. RFC 952 ASSUMPTIONS: "No blank
+// or space characters are permitted as part of a name"
+
+TEST(invalid_trailing_newline) {
+  // a trailing newline, the classic line-oriented reader artefact
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.com\n"));
+}
+
+TEST(invalid_trailing_carriage_return) {
+  // a trailing carriage return
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.com\r"));
+}
+
+TEST(invalid_trailing_crlf) {
+  // a trailing CRLF pair
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.com\r\n"));
+}
+
+TEST(invalid_leading_newline) {
+  // a leading newline
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\nexample.com"));
+}
+
+TEST(invalid_newline_only) {
+  // a lone newline
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\n"));
+}
+
+TEST(invalid_trailing_tab) {
+  // a trailing tab
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.com\t"));
+}
+
+TEST(invalid_leading_space) {
+  // a leading space
+  EXPECT_FALSE(sourcemeta::core::is_hostname(" example.com"));
+}
+
+TEST(invalid_trailing_space) {
+  // a trailing space
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example.com "));
+}
+
+TEST(invalid_space_only) {
+  // a lone space
+  EXPECT_FALSE(sourcemeta::core::is_hostname(" "));
+}
+
+TEST(invalid_interior_newline) {
+  // a newline where the label separator would go
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\ncom"));
+}
+
+// Embedded NUL. Each of these is passed with an explicit length, so the
+// bytes after the NUL are part of the input rather than being cut off
+
+TEST(invalid_nul_only) {
+  // a lone NUL byte
+  EXPECT_FALSE(sourcemeta::core::is_hostname(std::string_view("\0", 1)));
+}
+
+TEST(invalid_trailing_nul) {
+  // a valid name followed by a NUL
+  EXPECT_FALSE(
+      sourcemeta::core::is_hostname(std::string_view("example.com\0", 12)));
+}
+
+TEST(invalid_leading_nul) {
+  // a NUL before a valid name
+  EXPECT_FALSE(
+      sourcemeta::core::is_hostname(std::string_view("\0example.com", 12)));
+}
+
+TEST(invalid_nul_truncation_payload) {
+  // a NUL that would truncate the name in a C string reader
+  EXPECT_FALSE(sourcemeta::core::is_hostname(
+      std::string_view("example.com\0.evil.test", 22)));
+}
+
+// The label alphabet, swept over every byte value. RFC 952 §B builds
+// <name> out of <let>, <let-or-digit> and <let-or-digit-or-hyphen>, and
+// RFC 1123 §2.1 changes only the first-character rule, so the accepted set is
+// closed and can be checked exhaustively rather than sampled
+
+TEST(byte_alphabet_interior_position) {
+  for (int value = 0; value < 256; ++value) {
+    const auto character{static_cast<char>(value)};
+    const bool is_let_dig{(character >= 'a' && character <= 'z') ||
+                          (character >= 'A' && character <= 'Z') ||
+                          (character >= '0' && character <= '9')};
+    std::string candidate{"a"};
+    candidate.push_back(character);
+    candidate.append("b");
+    // an interior hyphen is let-dig-hyp and an interior dot is the label
+    // separator, so both keep the name well formed
+    if (is_let_dig || character == '-' || character == '.') {
+      EXPECT_TRUE(sourcemeta::core::is_hostname(candidate));
+    } else {
+      EXPECT_FALSE(sourcemeta::core::is_hostname(candidate));
+    }
+  }
+}
+
+// RFC 1123 §2.1: the first character of a label must be a letter or a digit,
+// which rules out the hyphen and the dot that the interior position allows
+TEST(byte_alphabet_leading_position) {
+  for (int value = 0; value < 256; ++value) {
+    const auto character{static_cast<char>(value)};
+    const bool is_let_dig{(character >= 'a' && character <= 'z') ||
+                          (character >= 'A' && character <= 'Z') ||
+                          (character >= '0' && character <= '9')};
+    std::string candidate;
+    candidate.push_back(character);
+    candidate.append("ab");
+    if (is_let_dig) {
+      EXPECT_TRUE(sourcemeta::core::is_hostname(candidate));
+    } else {
+      EXPECT_FALSE(sourcemeta::core::is_hostname(candidate));
+    }
+  }
+}
+
+// RFC 952 §B: <name> ends in <let-or-digit>, so a trailing hyphen is out, and
+// a trailing dot is not part of the host name grammar either
+TEST(byte_alphabet_trailing_position) {
+  for (int value = 0; value < 256; ++value) {
+    const auto character{static_cast<char>(value)};
+    const bool is_let_dig{(character >= 'a' && character <= 'z') ||
+                          (character >= 'A' && character <= 'Z') ||
+                          (character >= '0' && character <= '9')};
+    std::string candidate{"ab"};
+    candidate.push_back(character);
+    if (is_let_dig) {
+      EXPECT_TRUE(sourcemeta::core::is_hostname(candidate));
+    } else {
+      EXPECT_FALSE(sourcemeta::core::is_hostname(candidate));
+    }
+  }
+}
+
+// Non-ASCII bytes. RFC 952 ASSUMPTIONS draws the alphabet from "(A-Z), digits
+// (0-9), minus sign (-), and period (.)", so nothing above 0x7F belongs in a
+// host name, however much a codepoint looks or case-folds like ASCII
+
+TEST(invalid_kelvin_sign) {
+  // U+212A KELVIN SIGN, which case-folds to ASCII k
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xe2\x84\xaa"
+                                             "b"));
+}
+
+TEST(invalid_long_s) {
+  // U+017F LATIN SMALL LETTER LONG S, which case-folds to ASCII s
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xc5\xbf"
+                                             "b"));
+}
+
+TEST(invalid_dotless_i) {
+  // U+0131 LATIN SMALL LETTER DOTLESS I
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xc4\xb1"
+                                             "b"));
+}
+
+TEST(invalid_arabic_indic_digit) {
+  // U+0660 ARABIC-INDIC DIGIT ZERO
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xd9\xa0"
+                                             "b"));
+}
+
+TEST(invalid_fullwidth_digit) {
+  // U+FF10 FULLWIDTH DIGIT ZERO
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xef\xbc\x90"
+                                             "b"));
+}
+
+TEST(invalid_devanagari_digit) {
+  // U+0966 DEVANAGARI DIGIT ZERO
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xe0\xa5\xa6"
+                                             "b"));
+}
+
+TEST(invalid_latin_small_e_acute) {
+  // U+00E9, a plain accented Latin letter
+  EXPECT_FALSE(sourcemeta::core::is_hostname("caf\xc3\xa9.test"));
+}
+
+TEST(invalid_non_breaking_space) {
+  // U+00A0 NO-BREAK SPACE
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xc2\xa0"
+                                             "b"));
+}
+
+TEST(invalid_ideographic_full_stop) {
+  // U+3002 IDEOGRAPHIC FULL STOP, an IDNA separator but not an ASCII dot
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xe3\x80\x82"
+                                             "com"));
+}
+
+TEST(invalid_halfwidth_ideographic_full_stop) {
+  // U+FF61 HALFWIDTH IDEOGRAPHIC FULL STOP
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xef\xbd\xa1"
+                                             "com"));
+}
+
+TEST(invalid_one_dot_leader) {
+  // U+2024 ONE DOT LEADER, a full stop look-alike
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xe2\x80\xa4"
+                                             "com"));
+}
+
+TEST(invalid_zero_width_joiner) {
+  // U+200D ZERO WIDTH JOINER
+  EXPECT_FALSE(sourcemeta::core::is_hostname("a\xe2\x80\x8d"
+                                             "b"));
+}
+
+TEST(invalid_high_byte_leading) {
+  // a lone UTF-8 continuation byte in leading position
+  EXPECT_FALSE(sourcemeta::core::is_hostname("\x80"
+                                             "ab"));
+}
+
+TEST(invalid_high_byte_trailing) {
+  // 0xFF, which never appears in valid UTF-8
+  EXPECT_FALSE(sourcemeta::core::is_hostname("ab\xff"));
+}
+
+TEST(invalid_overlong_full_stop) {
+  // an overlong UTF-8 encoding of the ASCII full stop
+  EXPECT_FALSE(sourcemeta::core::is_hostname("example\xc0\xae"
+                                             "com"));
+}
+
+TEST(invalid_truncated_utf8) {
+  // a truncated two-byte UTF-8 sequence
+  EXPECT_FALSE(sourcemeta::core::is_hostname("ab\xc3"));
+}
+
+// Additional valid shapes
+
+TEST(valid_localhost) {
+  // the single-label name every resolver ships with
+  EXPECT_TRUE(sourcemeta::core::is_hostname("localhost"));
+}
+
+TEST(valid_all_numeric_dotted_quad) {
+  // RFC 1123 §2.1 mentions the dotted-decimal form only in a DISCUSSION
+  // block, and the §2.5 requirements table has no entry for it, so the
+  // grammar accepts it
+  EXPECT_TRUE(sourcemeta::core::is_hostname("127.0.0.1"));
+}
+
+TEST(valid_all_numeric_single_label) {
+  // a label with no letters at all
+  EXPECT_TRUE(sourcemeta::core::is_hostname("1234567890"));
+}
+
+TEST(valid_max_dotted_quad) {
+  // the all-numeric form at its widest
+  EXPECT_TRUE(sourcemeta::core::is_hostname("255.255.255.255"));
+}
+
+TEST(valid_digit_first_every_label) {
+  // RFC 1123 §2.1 relaxes the first character to let-dig in every label
+  EXPECT_TRUE(sourcemeta::core::is_hostname("1a.2b.3c"));
+}
+
+TEST(valid_all_digit_label_63) {
+  // 63 digits in a single label
+  EXPECT_TRUE(sourcemeta::core::is_hostname(std::string(63, '1')));
+}
+
+TEST(valid_uppercase_only) {
+  // an entirely uppercase name
+  EXPECT_TRUE(sourcemeta::core::is_hostname("EXAMPLE.COM"));
+}
+
+TEST(valid_single_uppercase_z) {
+  // the top of the uppercase range
+  EXPECT_TRUE(sourcemeta::core::is_hostname("Z"));
+}
+
+TEST(valid_single_lowercase_z) {
+  // the top of the lowercase range
+  EXPECT_TRUE(sourcemeta::core::is_hostname("z"));
+}
+
+TEST(valid_single_digit_nine) {
+  // the top of the digit range
+  EXPECT_TRUE(sourcemeta::core::is_hostname("9"));
+}
