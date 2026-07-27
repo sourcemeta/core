@@ -5,6 +5,7 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/uri.h>
 
+#include "oidc_time.h"
 #include "oidc_verify.h"
 
 #include <chrono>      // std::chrono::system_clock
@@ -107,10 +108,12 @@ auto oidc_validate_logout_token(
   }
 
   // OpenID Connect Back-Channel Logout 1.0 Section 2.4: iat is REQUIRED and
-  // must not be in the future
+  // must not be in the future. The skew shifts the server clock rather than the
+  // claim, so a NumericDate near the representable bound cannot overflow the
+  // comparison
   const auto issued_at{token.issued_at()};
   if (!issued_at.has_value() ||
-      issued_at.value() > now + clock_skew.issued_at) {
+      issued_at.value() > oidc_shift_forward(now, clock_skew.issued_at)) {
     return false;
   }
 
@@ -119,7 +122,7 @@ auto oidc_validate_logout_token(
   // skew) is rejected
   const auto expires_at{token.expires_at()};
   if (!expires_at.has_value() ||
-      now >= expires_at.value() + clock_skew.expiration) {
+      oidc_shift_backward(now, clock_skew.expiration) >= expires_at.value()) {
     return false;
   }
 

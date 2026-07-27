@@ -62,6 +62,41 @@ TEST(secure_string_grows_across_a_reallocation) {
   EXPECT_EQ(secret.back(), 'b');
 }
 
+TEST(secure_string_capacity_of_an_empty_string) {
+  const sourcemeta::core::SecureString secret;
+  EXPECT_EQ(secret.capacity(), 0);
+}
+
+TEST(secure_string_capacity_covers_the_held_bytes) {
+  const sourcemeta::core::SecureString secret{"hunter2"};
+  EXPECT_TRUE(secret.capacity() >= secret.size());
+  EXPECT_EQ(secret.size(), 7);
+}
+
+TEST(secure_string_capacity_reflects_a_reservation) {
+  sourcemeta::core::SecureString secret{"hunter2"};
+  secret.reserve(64);
+  EXPECT_TRUE(secret.capacity() >= 64);
+  EXPECT_EQ(secret.size(), 7);
+}
+
+TEST(secure_string_capacity_survives_an_append_within_the_reservation) {
+  sourcemeta::core::SecureString secret{"hunter2"};
+  secret.reserve(64);
+  const auto reserved{secret.capacity()};
+  secret.append("!");
+  EXPECT_EQ(secret.capacity(), reserved);
+  EXPECT_EQ(secret.size(), 8);
+}
+
+TEST(secure_string_capacity_does_not_shrink_on_a_smaller_reservation) {
+  sourcemeta::core::SecureString secret{"hunter2"};
+  secret.reserve(64);
+  const auto reserved{secret.capacity()};
+  secret.reserve(2);
+  EXPECT_EQ(secret.capacity(), reserved);
+}
+
 TEST(secure_string_appends_a_view_of_itself) {
   sourcemeta::core::SecureString secret{"hunter2"};
   secret.reserve(14);

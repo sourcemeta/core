@@ -5,6 +5,7 @@
 
 #include <array>       // std::array
 #include <chrono>      // std::chrono
+#include <cstdint>     // std::int64_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
 
@@ -264,6 +265,117 @@ TEST(validate_logout_token_rejects_an_exp_at_the_boundary) {
   EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
       token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
       "client-id", reference_now));
+}
+
+// The newest whole second the clock can represent and a conversion still
+// admits. The tick period differs across standard libraries, so the bound is
+// derived rather than written out
+static auto highest_representable_second() -> std::int64_t {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+             std::chrono::system_clock::duration::max())
+             .count() -
+         2;
+}
+
+static auto logout_token_expiring_at(const std::int64_t expiration)
+    -> std::string {
+  return std::string{R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    },
+    "exp": )JSON"} +
+         std::to_string(expiration) + "\n  }";
+}
+
+TEST(validate_logout_token_accepts_an_exp_near_the_representable_bound) {
+  // Adding the skew to a claim this far in the future overflows the tick type,
+  // so the skew shifts the server clock instead and the token still validates
+  const auto compact{sign_logout_token(
+      VALID_HEADER, logout_token_expiring_at(highest_representable_second()))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, std::chrono::seconds{60}));
+}
+
+TEST(validate_logout_token_accepts_an_exp_near_the_bound_without_skew) {
+  const auto compact{sign_logout_token(
+      VALID_HEADER, logout_token_expiring_at(highest_representable_second()))};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}
+
+TEST(validate_logout_token_rejects_an_expired_token_under_a_skew) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1600000000,
+    "exp": 1699999000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, std::chrono::seconds{60}));
+  // The same token is inside the window once the tolerance covers the gap
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, std::chrono::seconds{2000}));
+}
+
+TEST(validate_logout_token_rejects_a_future_iat_beyond_the_skew) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700001000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, std::chrono::seconds{60}));
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, std::chrono::seconds{2000}));
+}
+
+TEST(validate_logout_token_tolerates_a_saturating_skew) {
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_TRUE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, std::chrono::seconds::max()));
 }
 
 TEST(validate_logout_token_rejects_a_non_string_subject) {

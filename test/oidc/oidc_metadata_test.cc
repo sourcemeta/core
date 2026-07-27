@@ -4,6 +4,7 @@
 
 #include <array>       // std::array
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 
 static const auto VALID_PROVIDER_DOCUMENT{sourcemeta::core::parse_json(R"JSON({
   "issuer": "https://example.com",
@@ -189,6 +190,302 @@ TEST(from_rejects_a_list_without_rs256) {
   EXPECT_FALSE(sourcemeta::core::OIDCProviderMetadata::from(
                    std::move(document), "https://example.com")
                    .has_value());
+}
+
+TEST(from_rejects_a_cleartext_authorization_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "http://example.com/authorize",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_token_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "token_endpoint": "http://example.com/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_userinfo_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "http://example.com/userinfo",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_registration_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "registration_endpoint": "http://example.com/register",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_jwks_uri) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "jwks_uri": "http://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_end_session_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "end_session_endpoint": "http://example.com/logout",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_check_session_iframe) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "check_session_iframe": "http://example.com/checksession",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_endpoint_under_an_https_issuer) {
+  // The shape a provider behind a misconfigured reverse proxy advertises, an
+  // https issuer alongside a cleartext endpoint that would receive the client
+  // secret and the authorization code
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "http://internal.example.com:8080/token",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_cleartext_jwks_uri_on_another_host) {
+  // The key set authenticates every user, so a cleartext location on an
+  // unrelated host is refused even when every other endpoint is https
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "jwks_uri": "http://attacker.example.net/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_accepts_every_https_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "authorization_endpoint": "https://example.com/authorize",
+    "token_endpoint": "https://example.com/token",
+    "userinfo_endpoint": "https://example.com/userinfo",
+    "registration_endpoint": "https://example.com/register",
+    "end_session_endpoint": "https://example.com/logout",
+    "check_session_iframe": "https://example.com/checksession",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().authorization_endpoint().value(),
+            "https://example.com/authorize");
+  EXPECT_EQ(metadata.value().token_endpoint().value(),
+            "https://example.com/token");
+  EXPECT_EQ(metadata.value().userinfo_endpoint().value(),
+            "https://example.com/userinfo");
+  EXPECT_EQ(metadata.value().registration_endpoint().value(),
+            "https://example.com/register");
+  EXPECT_EQ(metadata.value().end_session_endpoint().value(),
+            "https://example.com/logout");
+  EXPECT_EQ(metadata.value().check_session_iframe().value(),
+            "https://example.com/checksession");
+  EXPECT_EQ(metadata.value().jwks_uri(), "https://example.com/jwks");
+}
+
+TEST(from_rejects_a_userinfo_endpoint_with_a_fragment) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "https://example.com/userinfo#profile",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_accepts_a_userinfo_endpoint_with_a_query) {
+  // OpenID Connect Discovery 1.0 Section 3: the endpoint "MAY contain port,
+  // path, and query parameter components"
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "https://example.com:8443/userinfo?tenant=1",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().userinfo_endpoint().value(),
+            "https://example.com:8443/userinfo?tenant=1");
+}
+
+TEST(from_accepts_an_uppercase_userinfo_scheme) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "HTTPS://example.com/userinfo",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().userinfo_endpoint().value(),
+            "HTTPS://example.com/userinfo");
+}
+
+TEST(from_rejects_a_non_string_userinfo_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": 42,
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_null_userinfo_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": null,
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_relative_userinfo_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "/userinfo",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_userinfo_endpoint_without_a_host) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "https:///userinfo",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_malformed_userinfo_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "https://example com/userinfo",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_rejects_a_javascript_scheme_userinfo_endpoint) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "userinfo_endpoint": "javascript:alert(1)",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "RS256" ]
+  })JSON")};
+  const auto metadata{sourcemeta::core::OIDCProviderMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_FALSE(metadata.has_value());
 }
 
 TEST(make_builds_a_minimal_provider_document) {
