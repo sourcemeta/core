@@ -71,6 +71,20 @@ zz/p2wIRJlfNHxRap+Q=
 -----END PRIVATE KEY-----
 )"};
 
+// A ciphertext of "hello" under the test key above whose leading octet is zero,
+// which holds for roughly one ciphertext in 256. Encrypting cannot be asked for
+// that property, so a known one is pinned to keep the truncation case
+// deterministic rather than a rare coincidence
+static constexpr std::string_view LEADING_ZERO_CIPHERTEXT_HEX{
+    "00baf76551170422f767d2e90f80eb09304e0424030106bca40fc766c8b7adc200373"
+    "59ef47ba652354d47719619db6a9243732c3c13fd4122b9f961fe4c9a3bcbb82d72a1"
+    "64e91a718a35dc0124e6a1ee83a50ca22588e30a5291a8f2c4a374744bad2849f9e88"
+    "bb542a9447f7763e4688009a6a5565a3cc3adcdd39cb73cc9c50dbe91cdf7a9b618b9"
+    "b8d3496c73d0f9a984d41684d6b4c41152dd9a14e76c888d513e1e724339628e3b226"
+    "07899a7ab76125f7504c2848e7c2bb61353bce525512c5060244e79a174b200392453"
+    "5456091a4e873dbf8060a52422a3b8a777e1c99c1af2670e93757692440bdd17a765c"
+    "4356aa111d21eca7e241151bd1601"};
+
 TEST(rsa_oaep_round_trips_with_sha256) {
   const std::string_view plaintext{"a content encryption key"};
   const auto private_key{sourcemeta::core::make_private_key(PRIVATE_KEY_PEM)};
@@ -189,20 +203,6 @@ TEST(rsa_oaep_decrypt_rejects_a_ciphertext_of_the_wrong_length) {
           private_key.value(), sourcemeta::core::RSAOAEPHash::SHA256, truncated)
           .has_value());
 }
-
-// A ciphertext of "hello" under the test key above whose leading octet is zero,
-// which holds for roughly one ciphertext in 256. Encrypting cannot be asked for
-// that property, so a known one is pinned here to make the case below
-// deterministic rather than a rare coincidence
-static constexpr std::string_view LEADING_ZERO_CIPHERTEXT_HEX{
-    "00baf76551170422f767d2e90f80eb09304e0424030106bca40fc766c8b7adc200373"
-    "59ef47ba652354d47719619db6a9243732c3c13fd4122b9f961fe4c9a3bcbb82d72a1"
-    "64e91a718a35dc0124e6a1ee83a50ca22588e30a5291a8f2c4a374744bad2849f9e88"
-    "bb542a9447f7763e4688009a6a5565a3cc3adcdd39cb73cc9c50dbe91cdf7a9b618b9"
-    "b8d3496c73d0f9a984d41684d6b4c41152dd9a14e76c888d513e1e724339628e3b226"
-    "07899a7ab76125f7504c2848e7c2bb61353bce525512c5060244e79a174b200392453"
-    "5456091a4e873dbf8060a52422a3b8a777e1c99c1af2670e93757692440bdd17a765c"
-    "4356aa111d21eca7e241151bd1601"};
 
 TEST(rsa_oaep_decrypt_rejects_a_ciphertext_missing_a_leading_zero) {
   // A ciphertext is a big-endian integer, so dropping a leading zero octet

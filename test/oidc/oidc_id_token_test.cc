@@ -27,11 +27,16 @@ static auto oct_key_set() -> sourcemeta::core::JWKS {
       .value();
 }
 
-static auto sign_id_token(const std::string_view payload) -> std::string {
+static auto sign_id_token(const sourcemeta::core::JSON &payload)
+    -> std::string {
   return sourcemeta::core::jwt_sign(
              sourcemeta::core::parse_json(R"JSON({ "alg": "HS256" })JSON"),
-             sourcemeta::core::parse_json(payload), oct_private_key())
+             payload, oct_private_key())
       .value();
+}
+
+static auto sign_id_token(const std::string_view payload) -> std::string {
+  return sign_id_token(sourcemeta::core::parse_json(payload));
 }
 
 static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
@@ -40,6 +45,40 @@ static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{
 // A fixed reference time, 2023-11-14T22:13:20Z
 static const auto reference_now{
     std::chrono::system_clock::from_time_t(1700000000)};
+
+// The oldest whole second the clock can represent and a conversion still
+// admits. The tick period differs across standard libraries, so the bound is
+// derived rather than written out
+static auto lowest_representable_second() -> std::int64_t {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+             std::chrono::system_clock::duration::min())
+             .count() +
+         2;
+}
+
+static auto id_token_claims() -> sourcemeta::core::JSON {
+  auto payload{sourcemeta::core::JSON::make_object()};
+  payload.assign("iss", sourcemeta::core::JSON{"https://issuer.example"});
+  payload.assign("sub", sourcemeta::core::JSON{"user-1"});
+  payload.assign("aud", sourcemeta::core::JSON{"client-id"});
+  payload.assign("exp", sourcemeta::core::JSON{std::int64_t{2000000000}});
+  return payload;
+}
+
+static auto id_token_issued_at(const std::int64_t issued_at)
+    -> sourcemeta::core::JSON {
+  auto payload{id_token_claims()};
+  payload.assign("iat", sourcemeta::core::JSON{issued_at});
+  return payload;
+}
+
+static auto id_token_authenticated_at(const std::int64_t authenticated_at)
+    -> sourcemeta::core::JSON {
+  auto payload{id_token_claims()};
+  payload.assign("iat", sourcemeta::core::JSON{std::int64_t{1699996400}});
+  payload.assign("auth_time", sourcemeta::core::JSON{authenticated_at});
+  return payload;
+}
 
 TEST(mint_and_validate_round_trip) {
   sourcemeta::core::OIDCIdTokenClaims claims;
@@ -390,38 +429,6 @@ TEST(validate_rejects_a_future_auth_time) {
       token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
       "client-id", reference_now, options)};
   EXPECT_FALSE(identity.has_value());
-}
-
-// The oldest whole second the clock can represent and a conversion still
-// admits. The tick period differs across standard libraries, so the bound is
-// derived rather than written out
-static auto lowest_representable_second() -> std::int64_t {
-  return std::chrono::duration_cast<std::chrono::seconds>(
-             std::chrono::system_clock::duration::min())
-             .count() +
-         2;
-}
-
-static auto id_token_issued_at(const std::int64_t issued_at) -> std::string {
-  return std::string{R"JSON({
-    "iss": "https://issuer.example",
-    "sub": "user-1",
-    "aud": "client-id",
-    "exp": 2000000000,
-    "iat": )JSON"} +
-         std::to_string(issued_at) + "\n  }";
-}
-
-static auto id_token_authenticated_at(const std::int64_t authenticated_at)
-    -> std::string {
-  return std::string{R"JSON({
-    "iss": "https://issuer.example",
-    "sub": "user-1",
-    "aud": "client-id",
-    "exp": 2000000000,
-    "iat": 1699996400,
-    "auth_time": )JSON"} +
-         std::to_string(authenticated_at) + "\n  }";
 }
 
 TEST(validate_enforces_the_maximum_issued_at_age) {
