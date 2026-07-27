@@ -212,3 +212,25 @@ TEST(verify_rejects_oversized_exponent) {
       sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(), exponent, MESSAGE,
       sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()));
 }
+
+TEST(verify_rejects_a_zero_padded_signature) {
+  // A signature is a big-endian integer, so a leading zero octet denotes the
+  // same value and the range comparison strips it. RFC 8017 Section 8.2.2 step
+  // 1 requires the length to be exactly the modulus size, which is what refuses
+  // a second encoding of one signature
+  EXPECT_FALSE(verify_pkcs1(
+      sourcemeta::core::SignatureHashFunction::SHA256,
+      sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+      sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(), MESSAGE,
+      sourcemeta::core::hex_to_bytes("00" + SIGNATURE_SHA256_HEX).value()));
+}
+
+TEST(verify_rejects_a_truncated_signature) {
+  const auto signature{
+      sourcemeta::core::hex_to_bytes(SIGNATURE_SHA256_HEX).value()};
+  EXPECT_FALSE(
+      verify_pkcs1(sourcemeta::core::SignatureHashFunction::SHA256,
+                   sourcemeta::core::hex_to_bytes(MODULUS_HEX).value(),
+                   sourcemeta::core::hex_to_bytes(EXPONENT_HEX).value(),
+                   MESSAGE, signature.substr(1)));
+}
