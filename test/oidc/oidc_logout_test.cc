@@ -8,6 +8,7 @@
 #include <cstdint>     // std::int64_t
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 
 static constexpr std::string_view OCT_JWK{R"JSON({
   "kty": "oct",
@@ -15,10 +16,11 @@ static constexpr std::string_view OCT_JWK{R"JSON({
 })JSON"};
 
 static auto oct_key_set() -> sourcemeta::core::JWKS {
-  return sourcemeta::core::JWKS::from(
-             sourcemeta::core::parse_json(std::string{R"({ "keys": [ )"} +
-                                          std::string{OCT_JWK} + R"( ] })"))
-      .value();
+  auto keys{sourcemeta::core::JSON::make_array()};
+  keys.push_back(sourcemeta::core::parse_json(OCT_JWK));
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("keys", std::move(keys));
+  return sourcemeta::core::JWKS::from(std::move(document)).value();
 }
 
 static auto sign_logout_token(const std::string_view header,

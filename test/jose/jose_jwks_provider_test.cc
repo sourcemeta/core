@@ -6,6 +6,7 @@
 #include <cstddef>     // std::size_t
 #include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
+#include <sstream>     // std::ostringstream
 #include <stdexcept>   // std::runtime_error
 #include <string>      // std::string
 #include <string_view> // std::string_view
@@ -56,14 +57,22 @@ constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_RS256{
 
 // A symmetric key, so a test can mint tokens differing only in their `typ`
 // header and observe which entry point admits which
-constexpr std::string_view OCT_JWK{
-    R"JSON({ "kty": "oct", "k": "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow" })JSON"};
+constexpr std::string_view OCT_JWK{R"JSON({
+  "kty": "oct",
+  "k": "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow"
+})JSON"};
 
 constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_HS256{
     {sourcemeta::core::JWSAlgorithm::HS256}};
 
 auto oct_key_document() -> std::string {
-  return std::string{R"({ "keys": [ )"} + std::string{OCT_JWK} + R"( ] })";
+  auto keys{sourcemeta::core::JSON::make_array()};
+  keys.push_back(sourcemeta::core::parse_json(OCT_JWK));
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("keys", std::move(keys));
+  std::ostringstream stream;
+  sourcemeta::core::stringify(document, stream);
+  return stream.str();
 }
 
 auto sign_with_type(const std::string_view type) -> std::string {
@@ -798,8 +807,9 @@ TEST(verify_access_token_accepts_the_prefixed_spelling) {
 }
 
 TEST(verify_access_token_rejects_an_id_token) {
-  // The S7 scenario: an ID Token whose issuer and audience match the policy is
-  // otherwise indistinguishable, and only the type check refuses it
+  // An ID Token whose issuer and audience match is otherwise indistinguishable
+  // from an access token, so the type check is what refuses it (RFC 9068
+  // Section 5)
   auto provider{oct_provider()};
   const auto compact{sign_with_type("JWT")};
   const auto token{sourcemeta::core::JWT::from(compact)};
