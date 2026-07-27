@@ -1677,3 +1677,49 @@ TEST(make_server_metadata_rejects_a_non_https_jwks_uri) {
   const auto document{sourcemeta::core::oauth_make_server_metadata(config)};
   EXPECT_FALSE(document.has_value());
 }
+
+TEST(is_endpoint_url_accepts_an_https_url) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_endpoint_url("https://example.com"));
+  EXPECT_TRUE(
+      sourcemeta::core::oauth_is_endpoint_url("https://example.com/token"));
+}
+
+TEST(is_endpoint_url_accepts_a_port_and_a_query) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_endpoint_url(
+      "https://example.com:8443/token?tenant=1"));
+}
+
+TEST(is_endpoint_url_accepts_an_uppercase_scheme) {
+  EXPECT_TRUE(sourcemeta::core::oauth_is_endpoint_url("HTTPS://example.com"));
+  EXPECT_TRUE(sourcemeta::core::oauth_is_endpoint_url("HtTpS://example.com"));
+}
+
+TEST(is_endpoint_url_rejects_a_cleartext_url) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("http://example.com"));
+}
+
+TEST(is_endpoint_url_rejects_a_fragment) {
+  EXPECT_FALSE(
+      sourcemeta::core::oauth_is_endpoint_url("https://example.com/token#a"));
+}
+
+TEST(is_endpoint_url_rejects_a_missing_host) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("https:///token"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("https://:8443/token"));
+}
+
+TEST(is_endpoint_url_rejects_a_relative_reference) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("/token"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("//example.com/token"));
+}
+
+TEST(is_endpoint_url_rejects_another_scheme) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("file://example.com/a"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("javascript:alert(1)"));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("httpsx://example.com"));
+}
+
+TEST(is_endpoint_url_rejects_a_malformed_url) {
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url(""));
+  EXPECT_FALSE(sourcemeta::core::oauth_is_endpoint_url("https://ex ample.com"));
+}

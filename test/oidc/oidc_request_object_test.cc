@@ -6,6 +6,7 @@
 #include <array>       // std::array
 #include <string>      // std::string
 #include <string_view> // std::string_view
+#include <utility>     // std::move
 
 static constexpr std::string_view OCT_JWK{R"JSON({
   "kty": "oct",
@@ -19,10 +20,11 @@ static auto oct_private_key() -> sourcemeta::core::JWKPrivate {
 }
 
 static auto oct_key_set() -> sourcemeta::core::JWKS {
-  return sourcemeta::core::JWKS::from(
-             sourcemeta::core::parse_json(std::string{R"({ "keys": [ )"} +
-                                          std::string{OCT_JWK} + R"( ] })"))
-      .value();
+  auto keys{sourcemeta::core::JSON::make_array()};
+  keys.push_back(sourcemeta::core::parse_json(OCT_JWK));
+  auto document{sourcemeta::core::JSON::make_object()};
+  document.assign("keys", std::move(keys));
+  return sourcemeta::core::JWKS::from(std::move(document)).value();
 }
 
 static constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> allowed_hs256{

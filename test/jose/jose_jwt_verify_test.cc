@@ -68,7 +68,8 @@ TEST(algorithm_not_allowed) {
       {sourcemeta::core::JWSAlgorithm::ES256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
-      std::chrono::system_clock::from_time_t(1300000000))};
+      std::chrono::system_clock::from_time_t(1300000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(),
             sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
@@ -84,7 +85,8 @@ TEST(unknown_key_by_identifier) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
-      std::chrono::system_clock::from_time_t(1300000000))};
+      std::chrono::system_clock::from_time_t(1300000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -99,7 +101,8 @@ TEST(unknown_key_no_compatible_key) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
-      std::chrono::system_clock::from_time_t(1300000000))};
+      std::chrono::system_clock::from_time_t(1300000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -114,7 +117,8 @@ TEST(signature_failure) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
-      std::chrono::system_clock::from_time_t(1300000000))};
+      std::chrono::system_clock::from_time_t(1300000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Signature);
 }
@@ -129,7 +133,8 @@ TEST(valid_signature_reaches_audience_check) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "joe", "client",
-      std::chrono::system_clock::from_time_t(1300000000))};
+      std::chrono::system_clock::from_time_t(1300000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
 }
@@ -144,7 +149,8 @@ TEST(issuer_mismatch_after_valid_signature) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "wrong", "client",
-      std::chrono::system_clock::from_time_t(1300000000))};
+      std::chrono::system_clock::from_time_t(1300000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Issuer);
 }
@@ -178,7 +184,8 @@ TEST(valid) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "acme", "client",
-      std::chrono::system_clock::from_time_t(1000000000))};
+      std::chrono::system_clock::from_time_t(1000000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_FALSE(error.has_value());
 }
 
@@ -248,7 +255,8 @@ TEST(jwt_verify_hs256_full_round_trip) {
       {sourcemeta::core::JWSAlgorithm::HS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "acme", "client",
-      std::chrono::system_clock::from_time_t(1500000000))};
+      std::chrono::system_clock::from_time_t(1500000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_FALSE(error.has_value());
 }
 
@@ -272,7 +280,8 @@ TEST(jwt_verify_hs256_rejected_when_not_allowed) {
       {sourcemeta::core::JWSAlgorithm::RS256}};
   const auto error{sourcemeta::core::jwt_verify(
       token.value(), keys.value(), allowed, "acme", "client",
-      std::chrono::system_clock::from_time_t(1500000000))};
+      std::chrono::system_clock::from_time_t(1500000000), {}, std::nullopt,
+      std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(),
             sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
