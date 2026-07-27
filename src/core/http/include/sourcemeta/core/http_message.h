@@ -158,14 +158,18 @@ inline auto http_parse_headers(const std::string_view input, Callback callback)
 /// #include <cassert>
 /// #include <string_view>
 ///
-/// std::string_view last_value;
+/// std::size_t count{0};
 /// sourcemeta::core::http_parse_cookies(
 ///     "session=abc; theme=dark",
-///     [&last_value](const std::string_view, const std::string_view value) {
-///       last_value = value;
+///     [&count](const std::string_view, const std::string_view) {
+///       count += 1;
 ///     });
-/// assert(last_value == "dark");
+/// assert(count == 2);
 /// ```
+///
+/// A header may carry several cookies under one name, so a callback that
+/// assigns to a single variable keeps whichever happens to come last. Use
+/// `http_cookie_values` to look one up by name.
 template <typename Callback>
   requires std::invocable<Callback, std::string_view, std::string_view>
 inline auto http_parse_cookies(const std::string_view input, Callback callback)
@@ -226,6 +230,46 @@ inline auto http_parse_cookies(const std::string_view input, Container &cookies)
                      [&cookies](const std::string_view name,
                                 const std::string_view value) -> void {
                        cookies.emplace_back(name, value);
+                     });
+}
+
+/// @ingroup http
+/// Collect every value carried under the given cookie name, in the order the
+/// header presents them. A request may carry several cookies with one name,
+/// since a parent domain and the host itself can each set one and RFC 6265
+/// §4.2.2 notes the server "cannot determine from the Cookie header alone [...]
+/// for which hosts the cookie is valid". That section also warns that servers
+/// "SHOULD NOT rely upon the order in which these cookies appear", so a caller
+/// verifying a signed cookie tries every value rather than any single one.
+/// Naming a cookie with the RFC 6265bis §4.1.3.2 `__Host-` prefix prevents the
+/// collision at the source. For example:
+///
+/// ```cpp
+/// #include <sourcemeta/core/http.h>
+/// #include <cassert>
+/// #include <string_view>
+/// #include <vector>
+///
+/// std::vector<std::string_view> values;
+/// sourcemeta::core::http_cookie_values("session=abc; theme=dark; session=xyz",
+///                                      "session", values);
+/// assert(values.size() == 2);
+/// assert(values.at(0) == "abc");
+/// assert(values.at(1) == "xyz");
+/// ```
+template <typename Container>
+  requires requires(Container container, std::string_view entry) {
+    container.emplace_back(entry);
+  }
+inline auto http_cookie_values(const std::string_view input,
+                               const std::string_view name, Container &values)
+    -> void {
+  http_parse_cookies(input,
+                     [&name, &values](const std::string_view cookie,
+                                      const std::string_view value) -> void {
+                       if (cookie == name) {
+                         values.emplace_back(value);
+                       }
                      });
 }
 

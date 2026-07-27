@@ -681,3 +681,61 @@ TEST(make_accepts_a_mixed_case_https_scheme) {
   EXPECT_TRUE(
       sourcemeta::core::oidc_make_provider_metadata(config).has_value());
 }
+
+TEST(from_lifts_validated_oauth_metadata) {
+  // The shape a caching resolver hands back, lifted without a reparse
+  auto oauth{sourcemeta::core::OAuthServerMetadata::from(
+      sourcemeta::core::JSON{VALID_PROVIDER_DOCUMENT}, "https://example.com")};
+  EXPECT_TRUE(oauth.has_value());
+  const auto metadata{
+      sourcemeta::core::OIDCProviderMetadata::from(std::move(oauth).value())};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().issuer(), "https://example.com");
+  EXPECT_EQ(metadata.value().jwks_uri(), "https://example.com/jwks");
+  EXPECT_EQ(metadata.value().userinfo_endpoint().value(),
+            "https://example.com/userinfo");
+  EXPECT_TRUE(metadata.value().supports_subject_type("public"));
+}
+
+TEST(from_oauth_rejects_a_document_missing_the_oidc_requirements) {
+  // Valid as OAuth authorization server metadata, but OpenID Connect promotes
+  // jwks_uri to REQUIRED and demands the subject and signing lists
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "response_types_supported": [ "code" ]
+  })JSON")};
+  auto oauth{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(oauth.has_value());
+  const auto metadata{
+      sourcemeta::core::OIDCProviderMetadata::from(std::move(oauth).value())};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_oauth_rejects_a_signing_list_without_rs256) {
+  auto document{sourcemeta::core::parse_json(R"JSON({
+    "issuer": "https://example.com",
+    "jwks_uri": "https://example.com/jwks",
+    "response_types_supported": [ "code" ],
+    "subject_types_supported": [ "public" ],
+    "id_token_signing_alg_values_supported": [ "ES256" ]
+  })JSON")};
+  auto oauth{sourcemeta::core::OAuthServerMetadata::from(
+      std::move(document), "https://example.com")};
+  EXPECT_TRUE(oauth.has_value());
+  const auto metadata{
+      sourcemeta::core::OIDCProviderMetadata::from(std::move(oauth).value())};
+  EXPECT_FALSE(metadata.has_value());
+}
+
+TEST(from_oauth_preserves_the_underlying_oauth_view) {
+  auto oauth{sourcemeta::core::OAuthServerMetadata::from(
+      sourcemeta::core::JSON{VALID_PROVIDER_DOCUMENT}, "https://example.com")};
+  EXPECT_TRUE(oauth.has_value());
+  const auto metadata{
+      sourcemeta::core::OIDCProviderMetadata::from(std::move(oauth).value())};
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata.value().oauth().token_endpoint().value(),
+            "https://example.com/token");
+  EXPECT_TRUE(metadata.value().oauth().supports_response_type("code"));
+}

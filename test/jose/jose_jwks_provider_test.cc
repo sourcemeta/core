@@ -4,6 +4,7 @@
 #include <array>       // std::array
 #include <chrono>      // std::chrono
 #include <cstddef>     // std::size_t
+#include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
 #include <stdexcept>   // std::runtime_error
 #include <string>      // std::string
@@ -53,6 +54,46 @@ constexpr std::string_view ELLIPTIC_CURVE_KEYS{
 constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_RS256{
     {sourcemeta::core::JWSAlgorithm::RS256}};
 
+// A symmetric key, so a test can mint tokens differing only in their `typ`
+// header and observe which entry point admits which
+constexpr std::string_view OCT_JWK{
+    R"JSON({ "kty": "oct", "k": "AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow" })JSON"};
+
+constexpr std::array<sourcemeta::core::JWSAlgorithm, 1> ALLOWED_HS256{
+    {sourcemeta::core::JWSAlgorithm::HS256}};
+
+auto oct_key_document() -> std::string {
+  return std::string{R"({ "keys": [ )"} + std::string{OCT_JWK} + R"( ] })";
+}
+
+auto sign_with_type(const std::string_view type) -> std::string {
+  auto header{sourcemeta::core::JSON::make_object()};
+  header.assign("alg", sourcemeta::core::JSON{"HS256"});
+  if (!type.empty()) {
+    header.assign("typ", sourcemeta::core::JSON{type});
+  }
+
+  auto payload{sourcemeta::core::JSON::make_object()};
+  payload.assign("iss", sourcemeta::core::JSON{"acme"});
+  payload.assign("aud", sourcemeta::core::JSON{"client"});
+  payload.assign("exp", sourcemeta::core::JSON{std::int64_t{2000000000}});
+  return sourcemeta::core::jwt_sign(header, payload,
+                                    sourcemeta::core::JWKPrivate::from(
+                                        sourcemeta::core::parse_json(OCT_JWK))
+                                        .value())
+      .value();
+}
+
+auto oct_provider() -> sourcemeta::core::JWKSProvider {
+  return sourcemeta::core::JWKSProvider{
+      "https://issuer.test/jwks",
+      [](const std::string_view)
+          -> std::optional<sourcemeta::core::JWKSProvider::FetchResult> {
+        return sourcemeta::core::JWKSProvider::FetchResult{oct_key_document(),
+                                                           std::nullopt};
+      }};
+}
+
 } // namespace
 
 TEST(unreachable_issuer_denies) {
@@ -70,8 +111,8 @@ TEST(unreachable_issuer_denies) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{1});
@@ -91,8 +132,8 @@ TEST(malformed_body_is_treated_as_failure) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -113,11 +154,15 @@ TEST(cache_hit_does_not_refetch) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 }
@@ -138,19 +183,25 @@ TEST(cache_control_absent_uses_fallback) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 1 hour fallback lifetime elapses
   now = std::chrono::system_clock::from_time_t(1000000000 + 3599);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the fallback lifetime
   now = std::chrono::system_clock::from_time_t(1000000000 + 3600);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -171,19 +222,25 @@ TEST(cache_control_above_maximum_clamps_down) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 24 hour maximum lifetime elapses
   now = std::chrono::system_clock::from_time_t(1000000000 + 86399);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the maximum lifetime, never at the advertised 48 hours
   now = std::chrono::system_clock::from_time_t(1000000000 + 86400);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -204,19 +261,25 @@ TEST(cache_control_below_minimum_clamps_up) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 5 minute minimum lifetime elapses
   now = std::chrono::system_clock::from_time_t(1000000000 + 299);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the minimum lifetime, never at the advertised 60 seconds
   now = std::chrono::system_clock::from_time_t(1000000000 + 300);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -238,20 +301,26 @@ TEST(cache_control_zero_clamps_to_minimum) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the 5 minute minimum lifetime elapses
   now = std::chrono::system_clock::from_time_t(1000000000 + 299);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the minimum lifetime, and zero does not collapse into the
   // fallback
   now = std::chrono::system_clock::from_time_t(1000000000 + 300);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -275,8 +344,8 @@ TEST(unknown_key_triggers_one_guarded_refetch) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_FALSE(error.has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -301,8 +370,8 @@ TEST(signature_failure_is_not_retried) {
   const auto token{sourcemeta::core::JWT::from(RS256_TOKEN_WITH_KEY_ID)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "joe",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Signature);
   EXPECT_EQ(calls, std::size_t{1});
@@ -327,23 +396,23 @@ TEST(unknown_key_refetch_is_bounded_by_cooldown) {
   EXPECT_TRUE(token.has_value());
 
   // Cold fetch then one guarded refetch, and the named key is still absent
-  const auto first{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
+  const auto first{provider.verify(token.value(), ALLOWED_RS256, "joe",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(first.has_value());
   EXPECT_EQ(first.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{2});
 
   // Within the cooldown window no further refetch happens
-  const auto second{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
+  const auto second{provider.verify(token.value(), ALLOWED_RS256, "joe",
+                                    "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(second.has_value());
   EXPECT_EQ(second.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{2});
 
   // After the cooldown elapses a new guarded refetch is allowed
   now = std::chrono::system_clock::from_time_t(1300000000 + 301);
-  const auto third{
-      provider.verify(token.value(), ALLOWED_RS256, "joe", "client")};
+  const auto third{provider.verify(token.value(), ALLOWED_RS256, "joe",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(third.has_value());
   EXPECT_EQ(third.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
   EXPECT_EQ(calls, std::size_t{3});
@@ -369,21 +438,27 @@ TEST(failed_refresh_serves_stale_keys) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Past the fallback lifetime the refresh is attempted and fails, so the
   // retained keys still verify the token
   now = std::chrono::system_clock::from_time_t(1000000000 + 7200);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 
   // A failed refresh backs off by the minimum lifetime, so an immediate retry
   // does not hammer the unreachable issuer
   now = std::chrono::system_clock::from_time_t(1000000000 + 7200 + 60);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -429,7 +504,9 @@ TEST(clock_skew_tolerates_recent_expiry) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
 }
 
@@ -448,8 +525,8 @@ TEST(fetcher_exception_is_treated_as_failure) {
 
   // A throwing fetcher must not escape verification, and it denies like any
   // failed fetch
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -474,13 +551,15 @@ TEST(fetcher_recovers_after_exception) {
   EXPECT_TRUE(token.has_value());
 
   // The first fetch throws and denies, leaving the provider usable
-  const auto first{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto first{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(first.has_value());
   EXPECT_EQ(first.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 
   // The next call obtains keys and verifies, proving no state was corrupted
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -504,14 +583,18 @@ TEST(fetcher_exception_serves_stale_keys) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Past the fallback lifetime the refresh throws, so the retained keys are
   // still served rather than failing closed
   now = std::chrono::system_clock::from_time_t(1000000000 + 7200);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -530,8 +613,8 @@ TEST(empty_key_set_is_treated_as_failure) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::UnknownKey);
 }
@@ -555,7 +638,8 @@ TEST(disallowed_algorithm_denies) {
   // The token's signing algorithm is absent from the allow-list
   const std::array<sourcemeta::core::JWSAlgorithm, 1> allowed{
       {sourcemeta::core::JWSAlgorithm::ES256}};
-  const auto error{provider.verify(token.value(), allowed, "acme", "client")};
+  const auto error{provider.verify(token.value(), allowed, "acme", "client",
+                                   std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(),
             sourcemeta::core::JWTVerificationError::AlgorithmNotAllowed);
@@ -578,8 +662,8 @@ TEST(expired_token_denies) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Expiration);
 }
@@ -598,8 +682,8 @@ TEST(wrong_audience_denies) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "unexpected")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "unexpected", std::nullopt, std::nullopt)};
   EXPECT_TRUE(error.has_value());
   EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Audience);
 }
@@ -624,19 +708,25 @@ TEST(inverted_lifetime_bounds_stay_well_defined) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Still fresh one second before the minimum elapses
   now = std::chrono::system_clock::from_time_t(1000000000 + 86399);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{1});
 
   // Stale at exactly the minimum
   now = std::chrono::system_clock::from_time_t(1000000000 + 86400);
-  EXPECT_FALSE(provider.verify(token.value(), ALLOWED_RS256, "acme", "client")
+  EXPECT_FALSE(provider
+                   .verify(token.value(), ALLOWED_RS256, "acme", "client",
+                           std::nullopt, std::nullopt)
                    .has_value());
   EXPECT_EQ(calls, std::size_t{2});
 }
@@ -657,8 +747,8 @@ TEST(empty_clock_falls_back_to_the_system_clock) {
   const auto token{sourcemeta::core::JWT::from(SIGNED_TOKEN)};
   EXPECT_TRUE(token.has_value());
 
-  const auto error{
-      provider.verify(token.value(), ALLOWED_RS256, "acme", "client")};
+  const auto error{provider.verify(token.value(), ALLOWED_RS256, "acme",
+                                   "client", std::nullopt, std::nullopt)};
   EXPECT_FALSE(error.has_value());
 }
 
@@ -682,4 +772,64 @@ TEST(verify_shares_its_resolved_clock_reading) {
                                    resolved_now)};
   EXPECT_FALSE(error.has_value());
   EXPECT_TRUE(resolved_now == now);
+}
+
+TEST(verify_access_token_accepts_an_at_jwt_token) {
+  auto provider{oct_provider()};
+  const auto compact{sign_with_type("at+jwt")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(
+      provider
+          .verify_access_token(token.value(), ALLOWED_HS256, "acme", "client")
+          .has_value());
+}
+
+TEST(verify_access_token_accepts_the_prefixed_spelling) {
+  // RFC 9068 Section 4 admits "at+jwt" or "application/at+jwt"
+  auto provider{oct_provider()};
+  const auto compact{sign_with_type("application/at+jwt")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(
+      provider
+          .verify_access_token(token.value(), ALLOWED_HS256, "acme", "client")
+          .has_value());
+}
+
+TEST(verify_access_token_rejects_an_id_token) {
+  // The S7 scenario: an ID Token whose issuer and audience match the policy is
+  // otherwise indistinguishable, and only the type check refuses it
+  auto provider{oct_provider()};
+  const auto compact{sign_with_type("JWT")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto permissive{provider.verify(token.value(), ALLOWED_HS256, "acme",
+                                        "client", std::nullopt, std::nullopt)};
+  EXPECT_FALSE(permissive.has_value());
+  const auto error{provider.verify_access_token(token.value(), ALLOWED_HS256,
+                                                "acme", "client")};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
+}
+
+TEST(verify_access_token_rejects_a_token_without_a_type) {
+  auto provider{oct_provider()};
+  const auto compact{sign_with_type("")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{provider.verify_access_token(token.value(), ALLOWED_HS256,
+                                                "acme", "client")};
+  EXPECT_TRUE(error.has_value());
+  EXPECT_EQ(error.value(), sourcemeta::core::JWTVerificationError::Type);
+}
+
+TEST(verify_access_token_still_checks_the_subject) {
+  auto provider{oct_provider()};
+  const auto compact{sign_with_type("at+jwt")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const auto error{provider.verify_access_token(token.value(), ALLOWED_HS256,
+                                                "acme", "client", "someone")};
+  EXPECT_TRUE(error.has_value());
 }
