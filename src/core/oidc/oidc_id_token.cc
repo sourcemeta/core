@@ -6,8 +6,6 @@
 #include <sourcemeta/core/oidc_hash.h>
 #include <sourcemeta/core/time.h>
 
-#include "oidc_time.h"
-
 #include <chrono> // std::chrono::system_clock, std::chrono::seconds, std::chrono::duration, std::chrono::duration_cast
 #include <cstdint>     // std::int64_t
 #include <optional>    // std::optional, std::nullopt
@@ -106,7 +104,7 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
   // policy
   if (options.maximum_issued_at_age.has_value() &&
       issued_at.value() <
-          oidc_shift_backward(now, options.maximum_issued_at_age.value())) {
+          clock_shift_backward(now, options.maximum_issued_at_age.value())) {
     return std::nullopt;
   }
 
@@ -154,8 +152,8 @@ auto oidc_id_token_checks(const JWT &token, const std::string_view issuer,
     // satisfy a freshness window and is rejected before the age comparison
     if (!authentication_time.has_value() || authentication_time.value() > now ||
         authentication_time.value() <
-            oidc_shift_backward(now,
-                                options.maximum_authentication_age.value())) {
+            clock_shift_backward(now,
+                                 options.maximum_authentication_age.value())) {
       return std::nullopt;
     }
   }

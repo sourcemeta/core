@@ -489,3 +489,52 @@ TEST(session_state_is_stable_and_salted) {
       "client-id", "https://client.example", "browser-state", "other")};
   EXPECT_FALSE(first == different);
 }
+
+TEST(validate_logout_token_bounds_the_clock_skew_like_the_base_check) {
+  // The same tolerance must mean the same thing whichever path validates a
+  // token, so a skew beyond the grace period cannot revive a token here that
+  // the base JSON Web Token check would refuse
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1600000000,
+    "exp": 1650000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  const std::chrono::seconds two_years{63113904};
+  EXPECT_TRUE(sourcemeta::core::jwt_check_claims(
+                  token.value(), "https://issuer.example", "client-id",
+                  reference_now, two_years)
+                  .has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now, two_years));
+}
+
+TEST(validate_logout_token_rejects_a_future_nbf) {
+  // Delegating to the base check also picks up the not-before rule, which the
+  // previous reimplementation of these claims never applied
+  const auto compact{sign_logout_token(VALID_HEADER, R"JSON({
+    "iss": "https://issuer.example",
+    "aud": "client-id",
+    "iat": 1700000000,
+    "nbf": 1900000000,
+    "exp": 2000000000,
+    "jti": "logout-1",
+    "sub": "user-1",
+    "events": {
+      "http://schemas.openid.net/event/backchannel-logout": {}
+    }
+  })JSON")};
+  const auto token{sourcemeta::core::JWT::from(compact)};
+  EXPECT_TRUE(token.has_value());
+  EXPECT_FALSE(sourcemeta::core::oidc_validate_logout_token(
+      token.value(), oct_key_set(), allowed_hs256, "https://issuer.example",
+      "client-id", reference_now));
+}

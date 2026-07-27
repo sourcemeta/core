@@ -5,7 +5,6 @@
 #include <sourcemeta/core/json.h>
 #include <sourcemeta/core/uri.h>
 
-#include "oidc_time.h"
 #include "oidc_verify.h"
 
 #include <chrono>      // std::chrono::system_clock
@@ -97,32 +96,16 @@ auto oidc_validate_logout_token(
   }
 
   // OpenID Connect Back-Channel Logout 1.0 Section 2.6: iss and aud as for an
-  // ID Token
-  const auto token_issuer{token.issuer()};
-  if (!token_issuer.has_value() || token_issuer.value() != issuer) {
+  // ID Token, so the base JSON Web Token check runs rather than a second copy
+  // of those rules. Sharing it is also what keeps the clock skew bounded the
+  // same way here as on every other path that validates a token
+  if (jwt_check_claims(token, issuer, client_id, now, clock_skew).has_value()) {
     return false;
   }
 
-  if (!token.has_audience(client_id)) {
-    return false;
-  }
-
-  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: iat is REQUIRED and
-  // must not be in the future. The skew shifts the server clock rather than the
-  // claim, so a NumericDate near the representable bound cannot overflow the
-  // comparison
-  const auto issued_at{token.issued_at()};
-  if (!issued_at.has_value() ||
-      issued_at.value() > oidc_shift_forward(now, clock_skew.issued_at)) {
-    return false;
-  }
-
-  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: exp is REQUIRED and is
-  // validated as for an ID Token, so a token at or past its expiration (with
-  // skew) is rejected
-  const auto expires_at{token.expires_at()};
-  if (!expires_at.has_value() ||
-      oidc_shift_backward(now, clock_skew.expiration) >= expires_at.value()) {
+  // OpenID Connect Back-Channel Logout 1.0 Section 2.4: iat is REQUIRED, which
+  // the base check treats as optional since RFC 7519 does
+  if (!token.issued_at().has_value()) {
     return false;
   }
 

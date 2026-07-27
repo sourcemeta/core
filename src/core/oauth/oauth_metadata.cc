@@ -357,6 +357,12 @@ auto OAuthServerMetadata::registration_endpoint() const
                        HASH_REGISTRATION_ENDPOINT);
 }
 
+auto OAuthServerMetadata::device_authorization_endpoint() const
+    -> std::optional<std::string_view> {
+  return string_member(this->data_, "device_authorization_endpoint"sv,
+                       HASH_DEVICE_AUTHORIZATION_ENDPOINT);
+}
+
 auto OAuthServerMetadata::revocation_endpoint() const
     -> std::optional<std::string_view> {
   return string_member(this->data_, "revocation_endpoint"sv,
